@@ -1,0 +1,176 @@
+{
+    "SHARED": {
+        "ADD": "Add",
+        "EDIT": "Edit",
+        "SAVE": "Save",
+        "PRINT": "Print",
+        "DELETE": "Delete",
+        "SHOW": "Show",
+        "YES": "Yes",
+        "NO": "No",
+        "OK": "Ok",
+        "HOME": "HOME",
+        "CONFIRM": "Confirm",
+        "CANCEL": "Cancel",
+        "BACK": "Come back",
+        "ACTIONS": "Actions",
+        "TEXT_HERE": "Type your text here...",
+        "GENERAL": "General",
+        "DRAG_OR_CLICK_FILE": "Drag file over or click to upload",
+        "UPLOADED_FILE": "Uploaded file",
+        "NO_DATA": "No data",
+        "NOT_FOUND": "Page not found",
+        "FILTER": {
+            "MESSAGE": "Filter",
+            "PLACEHOLDER": "Apply search filter",
+            "NO_DATA": "No data matching the filter {{filter}}"
+        },
+        "ORDER": {
+            "FIRST": "First place",
+            "UP": "Order up",
+            "DOWN": "Order down",
+            "LAST": "Last place"
+        },
+        "PAGINATOR": {
+            "FIRST": "First page",
+            "NEXT": "Next page",
+            "PREVIOUS": "Previous page",
+            "LAST": "Last page",
+            "ITEMS_PER_PAGE": "Items per page:"
+        },
+        "VALIDATOR": {
+            "REQUIRED": "You must enter a value",
+            "INVALID": "Not a valid value"
+        }
+    },
+    "MENU": {
+        "PIECES": "Pieces",
+        "INSTRUMENTS": "Instruments",
+        "ALBUMS": "Albums",
+        "LOGOUT": "Logout",
+        "USER": "User menu",
+        "LANGUAGES": {
+            "TITLE": "Language",
+            "ENUMS": {
+                "IT": "Italian",
+                "EN": "English"
+            }
+        }
+    },
+    "ALBUMS": {
+        "ID": "Code",
+        "NAME": "Name",
+        "DATE": "Date",
+        "DESCRIPTION": "Description",
+        "PIECES": "Pieces",
+        "DIALOG": {
+            "DELETE": {
+                "TITLE": "Delete album",
+                "MESSAGE": "Are you sure you want to remove the album from the list?"
+            }
+        },
+        "SUCCESS": {
+            "SAVE": "Album saved successfully",
+            "DELETE": "Album deleted successfully"
+        },
+        "ERROR": {
+            "DELETE": "Unable to remove album. [Error: {{status}}, message: {{message}}]",
+            "LOAD": "Unable to load album. [Error: {{status}}, message: {{message}}]",
+            "SAVE": "Unable to save album. [Error: {{status}}, message: {{message}}]"
+        }
+    },
+    "COLLECTIONS": {
+        "ID": "Code",
+        "ORDER": "Order",
+        "DESCRIPTION": "Description"
+    },
+    "INSTRUMENTS": {
+        "ID": "Code",
+        "NAME": "Name",
+        "DESCRIPTION": "Description",
+        "DIALOG": {
+            "DELETE": {
+                "TITLE": "Delete instrument",
+                "MESSAGE": "Are you sure you want to remove the instrument from the list?"
+            }
+        },
+        "SUCCESS": {
+            "SAVE": "Instrument saved successfully",
+            "DELETE": "Instruments deleted successfully"
+        },
+        "ERROR": {
+            "DELETE": "Unable to remove instrument. [Error: {{status}}, message: {{message}}]",
+            "LOAD": "Unable to load instrument. [Error: {{status}}, message: {{message}}]",
+            "SAVE": "Unable to save instrument. [Error: {{status}}, message: {{message}}]"
+        }
+    },
+    "MEDIA": {
+        "ID": "Code",
+        "NAME": "Name",
+        "TYPE": "Type",
+        "PAGE": "Page",
+        "INSTRUMENT": "Instrument",
+        "ORDER": "Order",
+        "DESCRIPTION": "Description",
+        "DIALOG": {
+            "DELETE": {
+                "TITLE": "Delete media",
+                "MESSAGE": "Are you sure you want to remove the media from the list?"
+            },
+            "SHOW": {
+                "TITLE": "Show media"
+            }
+        },
+        "ENUMS": {
+            "PDF": "Pdf",
+            "IMAGE": "Image",
+            "AUDIO": "Audio",
+            "VIDEO": "Video",
+            "OTHER": "Other",
+            "null": ""
+        }
+    },
+    "PIECES": {
+        "ID": "Code",
+        "NAME": "Name",
+        "TYPE": "Type",
+        "AUTHOR": "Author",
+        "ARRANGER": "Arranger",
+        "DESCRIPTION": "Description",
+        "MEDIA": "Media",
+        "SELECT_TYPE": "Select the piece type",
+        "DIALOG": {
+            "DELETE": {
+                "TITLE": "Delete piece",
+                "MESSAGE": "Are you sure you want to remove the piece from the list?"
+            }
+        },
+        "ENUMS": {
+            "CLASSIC": "Classic",
+            "CONCERT": "Concert",
+            "POP_MUSIC": "Pop music",
+            "MILITARY_MARCHES": "Military march",
+            "SYMPHONIC_MARCHES": "Synphonic march",
+            "FUNERAL_MARCHES": "Funeral march",
+            "CARNIVAL_MARCHES": "Carnival march",
+            "RELIGIOUS_MARCHES": "Religious march",
+            "null": ""
+        },
+        "SUCCESS": {
+            "SAVE": "Piece saved successfully",
+            "DELETE": "Piece deleted successfully"
+        },
+        "ERROR": {
+            "DELETE": "Unable to remove piece. [Error: {{status}}, message: {{message}}]",
+            "LOAD": "Unable to load piece. [Error: {{status}}, message: {{message}}]",
+            "LOAD_MEDIA": "Unable to load media. [Error: {{status}}, message: {{message}}]",
+            "LOAD_INSTRUMENTS": "Unable to load instruments list. [Error: {{status}}, message: {{message}}]",
+            "SAVE": "Unable to save piece. [Error: {{status}}, message: {{message}}]"
+        }
+    },
+    "PREVIEW": {
+        "ERROR": {
+            "LOAD":"Unable to load the printer preview. [Errore: {{status}}, messaggio: {{message}}]"
+        }
+    }
+}

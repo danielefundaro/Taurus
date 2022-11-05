@@ -1,0 +1,15 @@
+.rounded-thumbnail {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 4rem;
+}
+
+.space > * {
+    margin: 0.5rem;
+}
+
+mat-table {
+    mat-form-field {
+        width: -webkit-fill-available;
+    }
+}
