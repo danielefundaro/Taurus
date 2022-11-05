@@ -1,0 +1,17 @@
+<h1 mat-dialog-title>{{data.title}}{{data.media.name ? ' - ' + (data.media.name | slice:0:20) : '' }}</h1>
+<div mat-dialog-content>
+    <file-drop [disabled]="!data.edit" [multiple]="false" (onFileDrop)="onFileDrop($event)" class="margin-bottom-1rem">
+    </file-drop>
+    <ng-container [ngSwitch]="data.media.type" *ngIf="data.media.preview">
+        <img class="w-100" [src]="data.media.preview" alt="{{data.media.name}}" *ngSwitchCase="mediaImage">
+        <audio controls autoplay *ngSwitchCase="mediaAudio">
+            <source [src]="data.media.preview" [type]="data.media.contentType">
+        </audio>
+        <video controls autoplay *ngSwitchCase="mediaVideo">
+            <source [src]="data.media.preview" [type]="data.media.contentType">
+        </video>
+    </ng-container>
+</div>
+<div mat-dialog-actions>
+    <button mat-button mat-dialog-close cdkFocusInitial [mat-dialog-close]="true">{{'SHARED.OK' | translate}}</button>
+</div>

@@ -1,0 +1,8 @@
+<h1 mat-dialog-title>{{data.title}}</h1>
+<div mat-dialog-content>
+    {{data.message}}
+</div>
+<div mat-dialog-actions>
+    <button mat-button mat-dialog-close [mat-dialog-close]="true">{{'SHARED.CONFIRM' | translate}}</button>
+    <button mat-button mat-dialog-close cdkFocusInitial [mat-dialog-close]="false">{{'SHARED.CANCEL' | translate}}</button>
+</div>

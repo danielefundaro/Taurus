@@ -1,0 +1,99 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+mat-table {
+    mat-cell, mat-header-cell {
+        padding: 0 0.5rem;
+    }
+}
+
+.margin-1rem {
+    margin: 1rem;
+}
+
+.margin-bottom-1rem {
+    margin-bottom: 1rem;
+}
+
+.margin-top-2rem {
+    margin-top: 2rem;
+}
+
+.mat-snackbar.info {
+    background: #c3c3c3;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+.mat-snackbar.success {
+    background: #69f0ae;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+.mat-snackbar.warn {
+    background: #f4ab36;
+    color: #fff;
+}
+
+.mat-snackbar.error {
+    background: #f44336;
+    color: #fff;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+@media print {
+    @page {
+        margin: 0;
+        size: A4 portrait;
+    }
+
+    body {
+        height: min-content;
+    }
+
+    * {
+        overflow: visible !important;
+    }
+
+    .print {
+        visibility: visible !important;
+    }
+
+    .print {
+        img {
+            visibility: visible !important;
+            break-inside: avoid;
+            display: block !important;
+            width: 100% !important;
+            object-fit: contain;
+        }
+    }
+
+    :not(.print):not(.container):not(.sidenav-container):not(html):not(body):not(app-root) {
+        visibility: hidden;
+    }
+
+    .main-page-container {
+        padding: 0 !important;
+    }
+
+    .sidenav-content {
+        margin-left: 0 !important;
+        overflow: hidden !important;
+    }
+
+    mat-toolbar, mat-sidenav, button, mat-card-header {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
