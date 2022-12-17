@@ -49,6 +49,10 @@
         "ALBUMS": "Albums",
         "LOGOUT": "Logout",
         "USER": "User menu",
+        "THEME": {
+            "LIGHT": "Light",
+            "DARK": "Dark"
+        },
         "LANGUAGES": {
             "TITLE": "Language",
             "ENUMS": {
