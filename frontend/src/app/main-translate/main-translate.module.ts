@@ -4,7 +4,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { LanguageService } from '../services/language.service';
+import { SettingsService } from '../services/settings.service';
 
 
 export function createTranslateLoader(http: HttpClient) {
@@ -29,11 +29,11 @@ export function createTranslateLoader(http: HttpClient) {
 })
 
 export class MainTranslateModule {
-    constructor(private translate: TranslateService, private languageSelected: LanguageService) {
-        this.translate.addLangs(languageSelected.languages);
-        this.translate.setDefaultLang(languageSelected.default);
+    constructor(private translate: TranslateService, private settingsService: SettingsService) {
+        this.translate.addLangs(settingsService.languages);
+        this.translate.setDefaultLang(settingsService.default);
 
-        this.languageSelected.languageChanged().subscribe(data => {
+        this.settingsService.languageChanged().subscribe(data => {
             this.translate.use(data);
         });
     }
