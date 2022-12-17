@@ -49,6 +49,10 @@
         "ALBUMS": "Albums",
         "LOGOUT": "Logout",
         "USER": "Menu utente",
+        "THEME": {
+            "LIGHT": "Chiaro",
+            "DARK": "Scuro"
+        },
         "LANGUAGES": {
             "TITLE": "Lingua",
             "ENUMS": {

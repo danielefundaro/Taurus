@@ -20,6 +20,10 @@
                         <mat-icon>apps</mat-icon>
                         <span>{{'MENU.USER' | translate}}</span>
                     </button>
+                    <button mat-menu-item (click)="changeTheme()">
+                        <mat-icon>{{isDarkTheme ? "brightness_7" : "brightness_2"}}</mat-icon>
+                        <span>{{('MENU.THEME.' + (isDarkTheme ? 'LIGHT' : 'DARK')) | translate}}</span>
+                    </button>
                     <button mat-menu-item [matMenuTriggerFor]="language">
                         <mat-icon>outlined_flag</mat-icon>
                         <span>{{'MENU.LANGUAGES.TITLE' | translate}}</span>
