@@ -6,7 +6,6 @@ import { Observable, Subject } from "rxjs";
 })
 export class SettingsService {
     private _languageChanged = new Subject<string>();
-    private _themeChanged = new Subject<boolean>();
     private _languages: string[] = ['it', 'en'];
     private _isDarkTheme: boolean = window.matchMedia("(prefers-color-scheme: dark)").matches || false;
 
@@ -17,13 +16,18 @@ export class SettingsService {
     }
     public set currentLang(lang: string) { this._languageChanged.next(lang); }
     public get isDarkTheme(): boolean { return this._isDarkTheme; }
-    public set isDarkTheme(value: boolean) { this._isDarkTheme = value; this._themeChanged.next(value); }
 
     public languageChanged(): Observable<string> {
         return this._languageChanged.asObservable();
     }
 
-    public themeChanged(): Observable<boolean> {
-        return this._themeChanged.asObservable();
+    public toggleTheme(): boolean {
+        this._isDarkTheme = !this._isDarkTheme;
+        this.setDefalutTheme();
+        return this._isDarkTheme;
+    }
+
+    public setDefalutTheme(): void {
+        document.body.classList.toggle('darkTheme', this._isDarkTheme);
     }
 }

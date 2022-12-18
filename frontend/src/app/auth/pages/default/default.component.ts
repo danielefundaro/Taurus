@@ -18,10 +18,10 @@ export class DefaultComponent {
         
         this.userService.isLoggedIn().then(data => this.isLoggedIn = data);
         this.userService.loadUserProfile().then(data => this.user = data);
-        this.settingsService.themeChanged().subscribe(isDarkTheme => this.setTheme(isDarkTheme));
 
         // Set default theme
-        this.setTheme(this.settingsService.isDarkTheme);
+        this.settingsService.setDefalutTheme();
+        this.isDarkTheme = this.settingsService.isDarkTheme;
     }
 
     public openProfile(): void {
@@ -29,7 +29,7 @@ export class DefaultComponent {
     }
 
     public changeTheme(): void {
-        this.settingsService.isDarkTheme = !this.settingsService.isDarkTheme;
+        this.isDarkTheme = this.settingsService.toggleTheme();
     }
 
     public changeLang(lang: string): void {
@@ -38,10 +38,5 @@ export class DefaultComponent {
 
     public signout(): void {
         this.userService.logout();
-    }
-
-    private setTheme(isDarkTheme: boolean): void {
-        this.isDarkTheme = isDarkTheme;
-        document.body.classList.toggle('darkTheme', isDarkTheme);
     }
 }
