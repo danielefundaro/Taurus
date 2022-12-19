@@ -6,7 +6,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { catchError, debounceTime, firstValueFrom, fromEvent, map, merge, of, startWith, switchMap } from 'rxjs';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { DeleteDialogComponent } from '../../components/delete-dialog/delete-dialog.component';
 import { Instrument } from '../../models';
 import { InstrumentService } from '../../services';
@@ -25,8 +25,9 @@ export class InstrumentsComponent implements AfterViewInit {
     @ViewChild("filter", { static: false }) private filter!: ElementRef;
 
     constructor(private router: Router, private instrumentService: InstrumentService, private dialog: MatDialog,
-        private translate: TranslateService, private snackBar: SnackBarService) {
+        private translate: TranslateService, private snackBar: SnackBarService, private settingsService: SettingsService) {
         this.dataSource = new MatTableDataSource<Instrument>();
+        this.settingsService.isLoading = true;
     }
 
     ngAfterViewInit(): void {
@@ -50,6 +51,7 @@ export class InstrumentsComponent implements AfterViewInit {
             })
         ).subscribe(data => {
             this.dataSource.data = data;
+            this.settingsService.isLoading = false;
         });
     }
 
@@ -70,12 +72,14 @@ export class InstrumentsComponent implements AfterViewInit {
             disableClose: true
         }).afterClosed()).then(result => {
             if (result) {
+                this.settingsService.isLoading = true;
+
                 firstValueFrom(this.instrumentService.delete(id)).then(data => {
                     this.snackBar.success(this.translate.instant("INSTRUMENTS.SUCCESS.DELETE"));
                     this.paginator.page.emit();
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("INSTRUMENTS.ERROR.DELETE", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-                });
+                }).then(() => this.settingsService.isLoading = false);
             }
         });
     }

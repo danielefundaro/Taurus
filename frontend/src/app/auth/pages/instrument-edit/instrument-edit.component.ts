@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AngularEditorConfig } from '@kolkov/angular-editor';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { Instrument } from '../../models';
 import { InstrumentService } from '../../services';
 
@@ -48,7 +48,7 @@ export class InstrumentEditComponent implements OnInit, OnDestroy {
     private param?: Subscription;
 
     constructor(private router: Router, private route: ActivatedRoute, private instrumentService: InstrumentService,
-        private translate: TranslateService, private snackBar: SnackBarService) {
+        private translate: TranslateService, private snackBar: SnackBarService, private settingsService: SettingsService) {
         this.formGroup = new FormGroup({
             id: new FormControl(undefined),
             name: new FormControl(undefined, [Validators.required]),
@@ -57,6 +57,8 @@ export class InstrumentEditComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.settingsService.isLoading = true;
+
         this.param = this.route.params.subscribe(data => {
             const id = data['id'];
 
@@ -67,7 +69,9 @@ export class InstrumentEditComponent implements OnInit, OnDestroy {
                     this.description?.setValue(instrument.description);
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("INSTRUMENTS.ERROR.LOAD", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-                });
+                }).then(() => this.settingsService.isLoading = false);
+            } else {
+                this.settingsService.isLoading = false;
             }
         });
     }
@@ -82,11 +86,13 @@ export class InstrumentEditComponent implements OnInit, OnDestroy {
         instrument.name = this.name?.value;
         instrument.description = this.description?.value;
 
+        this.settingsService.isLoading = true;
+
         firstValueFrom(this.instrumentService.save(instrument)).then(data => {
             this.snackBar.success(this.translate.instant("INSTRUMENTS.SUCCESS.SAVE"));
             this.router.navigate(['instruments', data?.id]);
         }).catch(error => {
             this.snackBar.error(this.translate.instant("INSTRUMENTS.ERROR.SAVE", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-        });
+        }).then(() => this.settingsService.isLoading = false);
     }
 }

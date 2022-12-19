@@ -8,7 +8,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { catchError, debounceTime, firstValueFrom, fromEvent, map, merge, of, startWith, switchMap } from 'rxjs';
 import { Piece } from 'src/app/auth/models';
 import { MediaService, PieceService, PrinterService } from 'src/app/auth/services';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { DeleteDialogComponent } from '../../components/delete-dialog/delete-dialog.component';
 
 @Component({
@@ -26,8 +26,9 @@ export class PiecesComponent implements AfterViewInit {
 
     constructor(private router: Router, private pieceService: PieceService, private dialog: MatDialog,
         private translate: TranslateService, private snackBar: SnackBarService, private mediaService: MediaService,
-        private printerService: PrinterService) {
+        private printerService: PrinterService, private settingsService: SettingsService) {
         this.dataSource = new MatTableDataSource<Piece>(new Array<Piece>());
+        this.settingsService.isLoading = true;
     }
 
     ngAfterViewInit(): void {
@@ -51,6 +52,7 @@ export class PiecesComponent implements AfterViewInit {
             })
         ).subscribe(data => {
             this.dataSource.data = data;
+            this.settingsService.isLoading = false;
         });
         const paginatorIntl = this.paginator._intl;
         this.translate.get('SHARED.PAGINATOR.FIRST').subscribe(data => { paginatorIntl.firstPageLabel = data; });
@@ -74,6 +76,8 @@ export class PiecesComponent implements AfterViewInit {
 
     public printPiece = (piece: Piece): void => {
         if (piece.media) {
+            this.settingsService.isLoading = true;
+
             Promise.all(piece.media.map(media => firstValueFrom(this.mediaService.stream(media.id)))).then(streams => {
                 piece.media = this.mediaService.bunchSanitizer(streams, piece.media);
 
@@ -81,7 +85,7 @@ export class PiecesComponent implements AfterViewInit {
                     this.printerService.push(...piece.media.sort((a, b) => a.order <= b.order ? -1 : 1));
                     this.printerService.preview();
                 }
-            });
+            }).then(() => this.settingsService.isLoading = false);
         }
     }
 
@@ -94,12 +98,14 @@ export class PiecesComponent implements AfterViewInit {
             disableClose: true
         }).afterClosed()).then(result => {
             if (result) {
+                this.settingsService.isLoading = true;
+
                 firstValueFrom(this.pieceService.delete(id)).then(() => {
                     this.snackBar.success(this.translate.instant("PIECES.SUCCESS.DELETE"));
                     this.paginator.page.emit();
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("PIECES.ERROR.DELETE", { 'status': error.error?.status || error.status, 'message': error.error?.error || error.message }), error.error?.status || error.status);
-                })
+                }).then(() => this.settingsService.isLoading = false);
             }
         });
     }

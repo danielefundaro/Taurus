@@ -8,7 +8,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { AngularEditorConfig } from '@kolkov/angular-editor';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription, firstValueFrom, Observable, map, startWith, switchMap } from 'rxjs';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { DeleteDialogComponent } from '../../components/delete-dialog/delete-dialog.component';
 import { PersonalDataSource, Collection, Album, Piece, PositionEnum } from '../../models';
 import { AlbumService, PieceService } from '../../services';
@@ -68,7 +68,7 @@ export class AlbumEditComponent implements OnInit, AfterViewInit, OnDestroy {
 
     constructor(private router: Router, private route: ActivatedRoute, private albumService: AlbumService,
         private pieceService: PieceService, private translate: TranslateService, private dialog: MatDialog,
-        private dateAdapter: DateAdapter<Date>, private snackBar: SnackBarService) {
+        private dateAdapter: DateAdapter<Date>, private snackBar: SnackBarService, private settingsService: SettingsService) {
         this.dateAdapter.setLocale(translate.currentLang);
         this.readOnly = false;
         this.dataSource = new PersonalDataSource<Collection>();
@@ -82,6 +82,8 @@ export class AlbumEditComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.settingsService.isLoading = true;
+
         this.filteredPiecesOptions = this.pieceFilter?.valueChanges.pipe(
             startWith(this.pieceFilter.value),
             switchMap(value => firstValueFrom(this.pieceService.searchesExcludeIds(this.collections.map(collection => collection.piece.id), value, 0, 20, 'name', 'asc'))),
@@ -116,7 +118,9 @@ export class AlbumEditComponent implements OnInit, AfterViewInit, OnDestroy {
                     this.dataSource.set(this.collections);
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("ALBUMS.ERROR.LOAD", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-                });
+                }).then(() => this.settingsService.isLoading = false);
+            } else {
+                this.settingsService.isLoading = false;
             }
         });
     }
@@ -140,12 +144,14 @@ export class AlbumEditComponent implements OnInit, AfterViewInit, OnDestroy {
         album.description = this.description?.value;
         album.collections = this.dataSource.data;
 
+        this.settingsService.isLoading = true;
+
         firstValueFrom(this.albumService.save(album)).then(data => {
             this.snackBar.success(this.translate.instant("ALBUMS.SUCCESS.SAVE"));
             this.router.navigate(['albums', data?.id]);
         }).catch(error => {
             this.snackBar.error(this.translate.instant("ALBUMS.ERROR.SAVE", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-        });
+        }).then(() => this.settingsService.isLoading = false);
     }
 
     public pieceName(piece: Piece): string {
