@@ -35,7 +35,8 @@
     animation: spinning-coin 3s infinite;
     -webkit-transform-origin: center;
     transform-origin: center;
-    background-image: url("./../../../../assets/music-note.webp");
+    background-image: url("./../../../../assets/chroma.png");
+    background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
     content: "";
@@ -63,7 +64,7 @@
     -webkit-animation: spin 0.5s infinite linear;
     animation: spin 0.5s infinite linear;
     border-radius: 100%;
-    border-top: 6px solid #eee;
+    border-top: 6px solid;
     content: "";
     display: block;
     height: 40px;
