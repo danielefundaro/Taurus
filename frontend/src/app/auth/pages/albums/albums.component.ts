@@ -6,7 +6,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { merge, fromEvent, startWith, debounceTime, switchMap, catchError, of, map, firstValueFrom } from 'rxjs';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { DeleteDialogComponent } from '../../components/delete-dialog/delete-dialog.component';
 import { Album } from '../../models';
 import { AlbumService } from '../../services';
@@ -25,8 +25,9 @@ export class AlbumsComponent implements AfterViewInit {
     @ViewChild("filter", { static: false }) private filter!: ElementRef;
 
     constructor(private translate: TranslateService, private router: Router, private albumService: AlbumService,
-        private dialog: MatDialog, private snackBar: SnackBarService) {
+        private dialog: MatDialog, private snackBar: SnackBarService, private settingsService: SettingsService) {
         this.dataSource = new MatTableDataSource<Album>();
+        this.settingsService.isLoading = true;
     }
 
     ngAfterViewInit(): void {
@@ -53,6 +54,7 @@ export class AlbumsComponent implements AfterViewInit {
             })
         ).subscribe(data => {
             this.dataSource.data = data;
+            this.settingsService.isLoading = false;
         });
     }
 
@@ -77,12 +79,14 @@ export class AlbumsComponent implements AfterViewInit {
             disableClose: true
         }).afterClosed()).then(result => {
             if (result) {
+                this.settingsService.isLoading = true;
+
                 firstValueFrom(this.albumService.delete(id)).then(() => {
                     this.snackBar.success(this.translate.instant("ALBUMS.SUCCESS.DELETE"));
                     this.paginator.page.emit();
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("ALBUMS.ERROR.DELETE", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-                });
+                }).then(() => this.settingsService.isLoading = false);
             }
         });
     }

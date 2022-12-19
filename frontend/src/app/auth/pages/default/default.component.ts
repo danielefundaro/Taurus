@@ -1,16 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { KeycloakProfile } from 'keycloak-js';
+import { Subscription } from 'rxjs';
 import { SettingsService, UserService } from 'src/app/services';
 
 @Component({
     templateUrl: './default.component.html',
     styleUrls: ['./default.component.scss']
 })
-export class DefaultComponent {
+export class DefaultComponent implements OnDestroy {
     public languages: string[];
     public user?: KeycloakProfile;
     public isLoggedIn!: boolean;
     public isDarkTheme: boolean;
+    public isLoading!: boolean;
+    private loadState: Subscription;
 
     constructor(private userService: UserService, private settingsService: SettingsService) {
         this.languages = settingsService.languages;
@@ -22,6 +25,13 @@ export class DefaultComponent {
         // Set default theme
         this.settingsService.setDefalutTheme();
         this.isDarkTheme = this.settingsService.isDarkTheme;
+
+        // Check loading state
+        this.loadState = this.settingsService.loadStateChanged().subscribe(data => this.isLoading = data);
+    }
+
+    ngOnDestroy(): void {
+        this.loadState.unsubscribe();
     }
 
     public openProfile(): void {

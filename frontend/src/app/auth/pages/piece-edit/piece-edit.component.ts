@@ -7,7 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AngularEditorConfig } from '@kolkov/angular-editor';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { SnackBarService } from 'src/app/services';
+import { SettingsService, SnackBarService } from 'src/app/services';
 import { DeleteDialogComponent } from '../../components/delete-dialog/delete-dialog.component';
 import { ViewMediaDialogComponent } from '../../components/view-media-dialog/view-media-dialog.component';
 import { Instrument, Media, MediaTypeEnum, PersonalDataSource, Piece, PieceTypeEnum, PositionEnum } from '../../models';
@@ -70,7 +70,8 @@ export class PieceEditComponent implements OnInit, AfterViewInit, OnDestroy {
 
     constructor(private router: Router, private route: ActivatedRoute, private pieceService: PieceService,
         private instrumentService: InstrumentService, private mediaService: MediaService,
-        private translate: TranslateService, private dialog: MatDialog, private snackBar: SnackBarService) {
+        private translate: TranslateService, private dialog: MatDialog, private snackBar: SnackBarService,
+        private settingsService: SettingsService) {
         this.readOnly = false;
         this.dataSource = new PersonalDataSource<Media>();
         this.formGroup = new FormGroup({
@@ -84,6 +85,7 @@ export class PieceEditComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.settingsService.isLoading = true;
         this.fragment = this.route.fragment.subscribe(data => {
             if (this.readOnly = data === "show") {
                 this.id?.disable();
@@ -131,7 +133,9 @@ export class PieceEditComponent implements OnInit, AfterViewInit, OnDestroy {
                     });
                 }).catch(error => {
                     this.snackBar.error(this.translate.instant("PIECES.ERROR.LOAD", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-                });
+                }).then(() => this.settingsService.isLoading = false);
+            } else {
+                this.settingsService.isLoading = false;
             }
         });
     }
@@ -157,6 +161,8 @@ export class PieceEditComponent implements OnInit, AfterViewInit, OnDestroy {
         piece.description = this.description?.value;
         piece.media = this.dataSource.data;
 
+        this.settingsService.isLoading = true;
+
         firstValueFrom(this.pieceService.save(piece)).then(savedPiece => {
             if (savedPiece.media) {
                 Promise.all(savedPiece.media?.map((media, i) => {
@@ -179,7 +185,7 @@ export class PieceEditComponent implements OnInit, AfterViewInit, OnDestroy {
             }
         }).catch(error => {
             this.snackBar.error(this.translate.instant("PIECES.ERROR.SAVE", {'status': error.error?.status || error.status, 'message': error.error?.error || error.message}), error.error?.status || error.status);
-        });
+        }).then(() => this.settingsService.isLoading = false);
     }
 
     public onFileDrop(files: File[]): void {
