@@ -20,6 +20,7 @@
         "UPLOADED_FILE": "File caricato",
         "NO_DATA": "Non esistono dati",
         "NOT_FOUND": "Pagina non trovata",
+        "LOADING": "Caricamento...",
         "FILTER": {
             "MESSAGE": "Filtro",
             "PLACEHOLDER": "Applica filtro di ricerca",

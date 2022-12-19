@@ -20,6 +20,7 @@
         "UPLOADED_FILE": "Uploaded file",
         "NO_DATA": "No data",
         "NOT_FOUND": "Page not found",
+        "LOADING": "Loading...",
         "FILTER": {
             "MESSAGE": "Filter",
             "PLACEHOLDER": "Apply search filter",
