@@ -1,0 +1,10 @@
+<div class="container" *ngIf="isLoading">
+    <div class="ground"></div>
+    <div class="content" fxLayout="column" fxLayoutAlign="center center">
+        <div>
+            <div class="spinning-coin"></div>
+            <div class="arc" color="primary"></div>
+        </div>
+        <p fxFlexOffset="15">{{"SHARED.LOADING" | translate}}</p>
+    </div>
+</div>

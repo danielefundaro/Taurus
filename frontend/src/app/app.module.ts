@@ -18,12 +18,14 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MainTranslateModule } from './main-translate/main-translate.module';
 import { KeycloakInitModule } from './init/keycloak-init.module';
+import { LoadingSpinnerComponent } from './auth/components/loading-spinner/loading-spinner.component';
 
 
 @NgModule({
     declarations: [
         AppComponent,
         DefaultComponent,
+        LoadingSpinnerComponent,
     ],
     imports: [
         BrowserModule,
