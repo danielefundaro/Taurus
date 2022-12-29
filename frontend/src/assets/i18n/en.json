@@ -21,6 +21,7 @@
         "NO_DATA": "No data",
         "NOT_FOUND": "Page not found",
         "LOADING": "Loading...",
+        "FORBIDDEN": "Access denied",
         "FILTER": {
             "MESSAGE": "Filter",
             "PLACEHOLDER": "Apply search filter",
