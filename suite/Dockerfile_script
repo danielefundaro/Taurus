@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/mssql-tools
+
+COPY ./script-keycloak.sql /script-keycloak
+COPY ./script-taurus.sql /script-taurus
+
+CMD /bin/bash -c "if test -f /script-keycloak; then until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P pUk7gG6IC^6@ -i /script-keycloak; do sleep 5; done; rm /script-keycloak; echo Deleted \'script-keycloak\' file.; else echo Impossible to start because the \'script-keycloak\' file doesn\'t exist.; fi; if test -f /script-taurus; then until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P pUk7gG6IC^6@ -i /script-taurus; do sleep 5; done; rm /script-taurus; echo Deleted \'script-taurus\' file.; else echo Impossible to start because the \'script-taurus\' file doesn\'t exist.; fi"
