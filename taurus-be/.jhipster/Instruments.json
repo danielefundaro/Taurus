@@ -1,6 +1,6 @@
 {
   "annotations": {
-    "changelogDate": "20241217004816"
+    "changelogDate": "20241222160401"
   },
   "applications": "[taurus]",
   "dto": "mapstruct",
@@ -49,9 +49,9 @@
   "pagination": "pagination",
   "relationships": [
     {
-      "otherEntityName": "media",
+      "otherEntityName": "performers",
       "otherEntityRelationshipName": "instrument",
-      "relationshipName": "media",
+      "relationshipName": "performer",
       "relationshipSide": "left",
       "relationshipType": "one-to-many"
     }

@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import static com.fundaro.zodiac.taurus.domain.InstrumentsTestSamples.*;
-import static com.fundaro.zodiac.taurus.domain.MediaTestSamples.*;
+import static com.fundaro.zodiac.taurus.domain.PerformersTestSamples.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.web.rest.TestUtil;
@@ -26,24 +26,24 @@ class InstrumentsTest {
     }
 
     @Test
-    void mediaTest() {
+    void performerTest() {
         Instruments instruments = getInstrumentsRandomSampleGenerator();
-        Media mediaBack = getMediaRandomSampleGenerator();
+        Performers performersBack = getPerformersRandomSampleGenerator();
 
-        instruments.addMedia(mediaBack);
-        assertThat(instruments.getMedia()).containsOnly(mediaBack);
-        assertThat(mediaBack.getInstrument()).isEqualTo(instruments);
+        instruments.addPerformer(performersBack);
+        assertThat(instruments.getPerformers()).containsOnly(performersBack);
+        assertThat(performersBack.getInstrument()).isEqualTo(instruments);
 
-        instruments.removeMedia(mediaBack);
-        assertThat(instruments.getMedia()).doesNotContain(mediaBack);
-        assertThat(mediaBack.getInstrument()).isNull();
+        instruments.removePerformer(performersBack);
+        assertThat(instruments.getPerformers()).doesNotContain(performersBack);
+        assertThat(performersBack.getInstrument()).isNull();
 
-        instruments.media(new HashSet<>(Set.of(mediaBack)));
-        assertThat(instruments.getMedia()).containsOnly(mediaBack);
-        assertThat(mediaBack.getInstrument()).isEqualTo(instruments);
+        instruments.performers(new HashSet<>(Set.of(performersBack)));
+        assertThat(instruments.getPerformers()).containsOnly(performersBack);
+        assertThat(performersBack.getInstrument()).isEqualTo(instruments);
 
-        instruments.setMedia(new HashSet<>());
-        assertThat(instruments.getMedia()).doesNotContain(mediaBack);
-        assertThat(mediaBack.getInstrument()).isNull();
+        instruments.setPerformers(new HashSet<>());
+        assertThat(instruments.getPerformers()).doesNotContain(performersBack);
+        assertThat(performersBack.getInstrument()).isNull();
     }
 }

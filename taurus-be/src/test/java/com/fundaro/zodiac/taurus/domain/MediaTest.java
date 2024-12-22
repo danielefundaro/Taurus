@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.domain;
 
-import static com.fundaro.zodiac.taurus.domain.InstrumentsTestSamples.*;
 import static com.fundaro.zodiac.taurus.domain.MediaTestSamples.*;
+import static com.fundaro.zodiac.taurus.domain.PerformersTestSamples.*;
 import static com.fundaro.zodiac.taurus.domain.PiecesTestSamples.*;
 import static com.fundaro.zodiac.taurus.domain.TracksTestSamples.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +28,28 @@ class MediaTest {
     }
 
     @Test
+    void performerTest() {
+        Media media = getMediaRandomSampleGenerator();
+        Performers performersBack = getPerformersRandomSampleGenerator();
+
+        media.addPerformer(performersBack);
+        assertThat(media.getPerformers()).containsOnly(performersBack);
+        assertThat(performersBack.getMedia()).isEqualTo(media);
+
+        media.removePerformer(performersBack);
+        assertThat(media.getPerformers()).doesNotContain(performersBack);
+        assertThat(performersBack.getMedia()).isNull();
+
+        media.performers(new HashSet<>(Set.of(performersBack)));
+        assertThat(media.getPerformers()).containsOnly(performersBack);
+        assertThat(performersBack.getMedia()).isEqualTo(media);
+
+        media.setPerformers(new HashSet<>());
+        assertThat(media.getPerformers()).doesNotContain(performersBack);
+        assertThat(performersBack.getMedia()).isNull();
+    }
+
+    @Test
     void pieceTest() {
         Media media = getMediaRandomSampleGenerator();
         Pieces piecesBack = getPiecesRandomSampleGenerator();
@@ -47,18 +69,6 @@ class MediaTest {
         media.setPieces(new HashSet<>());
         assertThat(media.getPieces()).doesNotContain(piecesBack);
         assertThat(piecesBack.getMedia()).isNull();
-    }
-
-    @Test
-    void instrumentTest() {
-        Media media = getMediaRandomSampleGenerator();
-        Instruments instrumentsBack = getInstrumentsRandomSampleGenerator();
-
-        media.setInstrument(instrumentsBack);
-        assertThat(media.getInstrument()).isEqualTo(instrumentsBack);
-
-        media.instrument(null);
-        assertThat(media.getInstrument()).isNull();
     }
 
     @Test

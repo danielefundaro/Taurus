@@ -852,7 +852,7 @@ class InstrumentsResourceIT {
         Instruments partialUpdatedInstruments = new Instruments();
         partialUpdatedInstruments.setId(instruments.getId());
 
-        partialUpdatedInstruments.insertBy(UPDATED_INSERT_BY).description(UPDATED_DESCRIPTION);
+        partialUpdatedInstruments.insertDate(UPDATED_INSERT_DATE).editBy(UPDATED_EDIT_BY).description(UPDATED_DESCRIPTION);
 
         webTestClient
             .patch()

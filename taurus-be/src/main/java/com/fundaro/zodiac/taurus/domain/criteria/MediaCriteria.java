@@ -27,8 +27,6 @@ public class MediaCriteria extends CommonCriteria {
 
     private LongFilter orderNumber;
 
-    private LongFilter instrumentId;
-
     private LongFilter trackId;
 
     public MediaCriteria() {
@@ -40,7 +38,6 @@ public class MediaCriteria extends CommonCriteria {
         this.name = other.optionalName().map(StringFilter::copy).orElse(null);
         this.description = other.optionalDescription().map(StringFilter::copy).orElse(null);
         this.orderNumber = other.optionalOrderNumber().map(LongFilter::copy).orElse(null);
-        this.instrumentId = other.optionalInstrumentId().map(LongFilter::copy).orElse(null);
         this.trackId = other.optionalTrackId().map(LongFilter::copy).orElse(null);
     }
 
@@ -106,25 +103,6 @@ public class MediaCriteria extends CommonCriteria {
         this.orderNumber = orderNumber;
     }
 
-    public LongFilter getInstrumentId() {
-        return instrumentId;
-    }
-
-    public Optional<LongFilter> optionalInstrumentId() {
-        return Optional.ofNullable(instrumentId);
-    }
-
-    public LongFilter instrumentId() {
-        if (instrumentId == null) {
-            setInstrumentId(new LongFilter());
-        }
-        return instrumentId;
-    }
-
-    public void setInstrumentId(LongFilter instrumentId) {
-        this.instrumentId = instrumentId;
-    }
-
     public LongFilter getTrackId() {
         return trackId;
     }
@@ -158,14 +136,13 @@ public class MediaCriteria extends CommonCriteria {
                 Objects.equals(name, that.name) &&
                 Objects.equals(description, that.description) &&
                 Objects.equals(orderNumber, that.orderNumber) &&
-                Objects.equals(instrumentId, that.instrumentId) &&
                 Objects.equals(trackId, that.trackId)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), name, description, orderNumber, instrumentId, trackId);
+        return Objects.hash(super.hashCode(), name, description, orderNumber, trackId);
     }
 
     // prettier-ignore
@@ -176,7 +153,6 @@ public class MediaCriteria extends CommonCriteria {
             optionalName().map(f -> "name=" + f + ", ").orElse("") +
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
             optionalOrderNumber().map(f -> "orderNumber=" + f + ", ").orElse("") +
-            optionalInstrumentId().map(f -> "instrumentId=" + f + ", ").orElse("") +
             optionalTrackId().map(f -> "trackId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
             "}";

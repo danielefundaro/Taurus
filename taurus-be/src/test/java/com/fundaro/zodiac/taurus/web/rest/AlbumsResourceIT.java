@@ -919,7 +919,7 @@ class AlbumsResourceIT {
         Albums partialUpdatedAlbums = new Albums();
         partialUpdatedAlbums.setId(albums.getId());
 
-        partialUpdatedAlbums.description(UPDATED_DESCRIPTION).date(UPDATED_DATE);
+        partialUpdatedAlbums.insertBy(UPDATED_INSERT_BY);
 
         webTestClient
             .patch()

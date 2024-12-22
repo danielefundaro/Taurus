@@ -852,11 +852,7 @@ class LkTrackTypeResourceIT {
         LkTrackType partialUpdatedLkTrackType = new LkTrackType();
         partialUpdatedLkTrackType.setId(lkTrackType.getId());
 
-        partialUpdatedLkTrackType
-            .deleted(UPDATED_DELETED)
-            .insertBy(UPDATED_INSERT_BY)
-            .insertDate(UPDATED_INSERT_DATE)
-            .description(UPDATED_DESCRIPTION);
+        partialUpdatedLkTrackType.insertBy(UPDATED_INSERT_BY).editBy(UPDATED_EDIT_BY).editDate(UPDATED_EDIT_DATE);
 
         webTestClient
             .patch()

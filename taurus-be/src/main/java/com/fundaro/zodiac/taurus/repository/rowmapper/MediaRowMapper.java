@@ -26,7 +26,6 @@ public class MediaRowMapper extends CommonRowMapper<Media> {
         entity.setName(getConverter().fromRow(row, prefix + "_name", String.class));
         entity.setDescription(getConverter().fromRow(row, prefix + "_description", String.class));
         entity.setOrderNumber(getConverter().fromRow(row, prefix + "_order_number", Long.class));
-        entity.setInstrumentId(getConverter().fromRow(row, prefix + "_instrument_id", Long.class));
         entity.setTrackId(getConverter().fromRow(row, prefix + "_track_id", Long.class));
         return entity;
     }

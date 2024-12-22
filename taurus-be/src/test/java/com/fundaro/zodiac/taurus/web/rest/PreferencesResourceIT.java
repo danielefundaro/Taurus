@@ -924,7 +924,7 @@ class PreferencesResourceIT {
         Preferences partialUpdatedPreferences = new Preferences();
         partialUpdatedPreferences.setId(preferences.getId());
 
-        partialUpdatedPreferences.editBy(UPDATED_EDIT_BY).key(UPDATED_KEY).value(UPDATED_VALUE);
+        partialUpdatedPreferences.editDate(UPDATED_EDIT_DATE).userId(UPDATED_USER_ID);
 
         webTestClient
             .patch()
