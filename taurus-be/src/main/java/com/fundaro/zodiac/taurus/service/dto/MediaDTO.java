@@ -14,8 +14,6 @@ public class MediaDTO extends CommonFieldsDTO {
 
     private Long orderNumber;
 
-    private InstrumentsDTO instrument;
-
     @NotNull
     private TracksDTO track;
 
@@ -41,14 +39,6 @@ public class MediaDTO extends CommonFieldsDTO {
 
     public void setOrderNumber(Long orderNumber) {
         this.orderNumber = orderNumber;
-    }
-
-    public InstrumentsDTO getInstrument() {
-        return instrument;
-    }
-
-    public void setInstrument(InstrumentsDTO instrument) {
-        this.instrument = instrument;
     }
 
     public TracksDTO getTrack() {
@@ -79,7 +69,6 @@ public class MediaDTO extends CommonFieldsDTO {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", orderNumber=" + getOrderNumber() +
-            ", instrument=" + getInstrument() +
             ", track=" + getTrack() +
             "}";
     }

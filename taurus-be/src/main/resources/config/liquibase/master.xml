@@ -11,19 +11,23 @@
     <property name="datetimeType" value="datetime" dbms="postgresql"/>
 
     <include file="config/liquibase/changelog/00000000000000_initial_schema.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004814_added_entity_Albums.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004815_added_entity_Collections.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004816_added_entity_Instruments.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004817_added_entity_LkTrackType.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004818_added_entity_Media.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004819_added_entity_Pieces.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004820_added_entity_Tracks.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241219220110_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160359_added_entity_Albums.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160400_added_entity_Collections.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160401_added_entity_Instruments.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160403_added_entity_LkTrackType.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160404_added_entity_Media.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160405_added_entity_Performers.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160407_added_entity_Pieces.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160409_added_entity_Tracks.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
-    <include file="config/liquibase/changelog/20241217004815_added_entity_constraints_Collections.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004818_added_entity_constraints_Media.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004819_added_entity_constraints_Pieces.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241217004820_added_entity_constraints_Tracks.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160400_added_entity_constraints_Collections.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160404_added_entity_constraints_Media.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160405_added_entity_constraints_Performers.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160407_added_entity_constraints_Pieces.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160409_added_entity_constraints_Tracks.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

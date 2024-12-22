@@ -10,11 +10,9 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
-import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.repository.EntityManager;
-import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
@@ -93,9 +91,6 @@ class MediaResourceIT {
     private Media media;
 
     private Media insertedMedia;
-
-    @Autowired
-    private InstrumentsRepository instrumentsRepository;
 
     @Autowired
     private TracksRepository tracksRepository;
@@ -713,20 +708,6 @@ class MediaResourceIT {
     }
 
     @Test
-    void getAllMediaByInstrumentIsEqualToSomething() {
-        Instruments instrument = InstrumentsResourceIT.createEntity();
-        instrumentsRepository.save(instrument).block();
-        Long instrumentId = instrument.getId();
-        media.setInstrumentId(instrumentId);
-        insertedMedia = mediaRepository.save(media).block();
-        // Get all the mediaList where instrument equals to instrumentId
-        defaultMediaShouldBeFound("instrumentId.equals=" + instrumentId);
-
-        // Get all the mediaList where instrument equals to (instrumentId + 1)
-        defaultMediaShouldNotBeFound("instrumentId.equals=" + (instrumentId + 1));
-    }
-
-    @Test
     void getAllMediaByTrackIsEqualToSomething() {
         Tracks track = TracksResourceIT.createEntity();
         tracksRepository.save(track).block();
@@ -950,7 +931,7 @@ class MediaResourceIT {
         Media partialUpdatedMedia = new Media();
         partialUpdatedMedia.setId(media.getId());
 
-        partialUpdatedMedia.editDate(UPDATED_EDIT_DATE).name(UPDATED_NAME).description(UPDATED_DESCRIPTION);
+        partialUpdatedMedia.insertBy(UPDATED_INSERT_BY).editBy(UPDATED_EDIT_BY).name(UPDATED_NAME);
 
         webTestClient
             .patch()

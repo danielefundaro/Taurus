@@ -976,7 +976,14 @@ class TracksResourceIT {
         Tracks partialUpdatedTracks = new Tracks();
         partialUpdatedTracks.setId(tracks.getId());
 
-        partialUpdatedTracks.editBy(UPDATED_EDIT_BY).editDate(UPDATED_EDIT_DATE).name(UPDATED_NAME);
+        partialUpdatedTracks
+            .insertBy(UPDATED_INSERT_BY)
+            .insertDate(UPDATED_INSERT_DATE)
+            .editDate(UPDATED_EDIT_DATE)
+            .name(UPDATED_NAME)
+            .description(UPDATED_DESCRIPTION)
+            .composer(UPDATED_COMPOSER)
+            .arranger(UPDATED_ARRANGER);
 
         webTestClient
             .patch()

@@ -6,22 +6,22 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
                         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
     <!--
-        Added the constraints for entity Media.
+        Added the constraints for entity Performers.
     -->
-    <changeSet id="20241217004818-2" author="jhipster">
+    <changeSet id="20241222160405-2" author="jhipster">
 
         <addForeignKeyConstraint baseColumnNames="instrument_id"
-                                 baseTableName="media"
-                                 constraintName="fk_media__instrument_id"
+                                 baseTableName="performers"
+                                 constraintName="fk_performers__instrument_id"
                                  referencedColumnNames="id"
                                  referencedTableName="instruments"
                                  />
 
-        <addForeignKeyConstraint baseColumnNames="track_id"
-                                 baseTableName="media"
-                                 constraintName="fk_media__track_id"
+        <addForeignKeyConstraint baseColumnNames="media_id"
+                                 baseTableName="performers"
+                                 constraintName="fk_performers__media_id"
                                  referencedColumnNames="id"
-                                 referencedTableName="tracks"
+                                 referencedTableName="media"
                                  />
     </changeSet>
 </databaseChangeLog>

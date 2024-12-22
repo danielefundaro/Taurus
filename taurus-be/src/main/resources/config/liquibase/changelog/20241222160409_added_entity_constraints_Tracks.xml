@@ -8,7 +8,7 @@
     <!--
         Added the constraints for entity Tracks.
     -->
-    <changeSet id="20241217004820-2" author="jhipster">
+    <changeSet id="20241222160409-2" author="jhipster">
 
         <addForeignKeyConstraint baseColumnNames="type_id"
                                  baseTableName="tracks"

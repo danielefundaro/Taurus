@@ -13,14 +13,8 @@ import org.mapstruct.*;
  */
 @Mapper(componentModel = "spring")
 public interface MediaMapper extends EntityMapper<MediaDTO, Media> {
-    @Mapping(target = "instrument", source = "instrument", qualifiedByName = "instrumentsId")
     @Mapping(target = "track", source = "track", qualifiedByName = "tracksId")
     MediaDTO toDto(Media s);
-
-    @Named("instrumentsId")
-    @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "id", source = "id")
-    InstrumentsDTO toDtoInstrumentsId(Instruments instruments);
 
     @Named("tracksId")
     @BeanMapping(ignoreByDefault = true)
