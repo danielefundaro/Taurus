@@ -854,7 +854,11 @@ class CollectionsResourceIT {
         Collections partialUpdatedCollections = new Collections();
         partialUpdatedCollections.setId(collections.getId());
 
-        partialUpdatedCollections.editDate(UPDATED_EDIT_DATE).orderNumber(UPDATED_ORDER_NUMBER);
+        partialUpdatedCollections
+            .deleted(UPDATED_DELETED)
+            .insertBy(UPDATED_INSERT_BY)
+            .editDate(UPDATED_EDIT_DATE)
+            .orderNumber(UPDATED_ORDER_NUMBER);
 
         webTestClient
             .patch()

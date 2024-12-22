@@ -1179,10 +1179,11 @@ class PiecesResourceIT {
         partialUpdatedPieces.setId(pieces.getId());
 
         partialUpdatedPieces
-            .insertDate(UPDATED_INSERT_DATE)
+            .insertBy(UPDATED_INSERT_BY)
             .editDate(UPDATED_EDIT_DATE)
-            .name(UPDATED_NAME)
-            .contentType(UPDATED_CONTENT_TYPE);
+            .description(UPDATED_DESCRIPTION)
+            .contentType(UPDATED_CONTENT_TYPE)
+            .orderNumber(UPDATED_ORDER_NUMBER);
 
         webTestClient
             .patch()

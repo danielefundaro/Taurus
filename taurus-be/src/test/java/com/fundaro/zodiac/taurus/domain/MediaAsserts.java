@@ -74,7 +74,6 @@ public class MediaAsserts {
     public static void assertMediaUpdatableRelationshipsEquals(Media expected, Media actual) {
         assertThat(expected)
             .as("Verify Media relationships")
-            .satisfies(e -> assertThat(e.getInstrument()).as("check instrument").isEqualTo(actual.getInstrument()))
             .satisfies(e -> assertThat(e.getTrack()).as("check track").isEqualTo(actual.getTrack()));
     }
 }

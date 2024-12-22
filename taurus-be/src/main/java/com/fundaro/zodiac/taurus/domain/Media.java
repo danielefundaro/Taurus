@@ -25,19 +25,16 @@ public class Media extends CommonFields {
     private Long orderNumber;
 
     @org.springframework.data.annotation.Transient
+    @JsonIgnoreProperties(value = {"instrument", "media"}, allowSetters = true)
+    private Set<Performers> performers = new HashSet<>();
+
+    @org.springframework.data.annotation.Transient
     @JsonIgnoreProperties(value = {"media"}, allowSetters = true)
     private Set<Pieces> pieces = new HashSet<>();
 
     @org.springframework.data.annotation.Transient
-    @JsonIgnoreProperties(value = {"media"}, allowSetters = true)
-    private Instruments instrument;
-
-    @org.springframework.data.annotation.Transient
     @JsonIgnoreProperties(value = {"collections", "media", "type"}, allowSetters = true)
     private Tracks track;
-
-    @Column("instrument_id")
-    private Long instrumentId;
 
     @Column("track_id")
     private Long trackId;
@@ -121,6 +118,37 @@ public class Media extends CommonFields {
         this.orderNumber = orderNumber;
     }
 
+    public Set<Performers> getPerformers() {
+        return this.performers;
+    }
+
+    public void setPerformers(Set<Performers> performers) {
+        if (this.performers != null) {
+            this.performers.forEach(i -> i.setMedia(null));
+        }
+        if (performers != null) {
+            performers.forEach(i -> i.setMedia(this));
+        }
+        this.performers = performers;
+    }
+
+    public Media performers(Set<Performers> performers) {
+        this.setPerformers(performers);
+        return this;
+    }
+
+    public Media addPerformer(Performers performers) {
+        this.performers.add(performers);
+        performers.setMedia(this);
+        return this;
+    }
+
+    public Media removePerformer(Performers performers) {
+        this.performers.remove(performers);
+        performers.setMedia(null);
+        return this;
+    }
+
     public Set<Pieces> getPieces() {
         return this.pieces;
     }
@@ -152,20 +180,6 @@ public class Media extends CommonFields {
         return this;
     }
 
-    public Instruments getInstrument() {
-        return this.instrument;
-    }
-
-    public void setInstrument(Instruments instruments) {
-        this.instrument = instruments;
-        this.instrumentId = instruments != null ? instruments.getId() : null;
-    }
-
-    public Media instrument(Instruments instruments) {
-        this.setInstrument(instruments);
-        return this;
-    }
-
     public Tracks getTrack() {
         return this.track;
     }
@@ -178,14 +192,6 @@ public class Media extends CommonFields {
     public Media track(Tracks tracks) {
         this.setTrack(tracks);
         return this;
-    }
-
-    public Long getInstrumentId() {
-        return this.instrumentId;
-    }
-
-    public void setInstrumentId(Long instruments) {
-        this.instrumentId = instruments;
     }
 
     public Long getTrackId() {

@@ -24,8 +24,8 @@ public class Instruments extends CommonFields {
     private String description;
 
     @org.springframework.data.annotation.Transient
-    @JsonIgnoreProperties(value = {"pieces", "instrument", "track"}, allowSetters = true)
-    private Set<Media> media = new HashSet<>();
+    @JsonIgnoreProperties(value = {"instrument", "media"}, allowSetters = true)
+    private Set<Performers> performers = new HashSet<>();
 
     public Instruments() {
         super();
@@ -93,34 +93,34 @@ public class Instruments extends CommonFields {
         this.description = description;
     }
 
-    public Set<Media> getMedia() {
-        return this.media;
+    public Set<Performers> getPerformers() {
+        return this.performers;
     }
 
-    public void setMedia(Set<Media> media) {
-        if (this.media != null) {
-            this.media.forEach(i -> i.setInstrument(null));
+    public void setPerformers(Set<Performers> performers) {
+        if (this.performers != null) {
+            this.performers.forEach(i -> i.setInstrument(null));
         }
-        if (media != null) {
-            media.forEach(i -> i.setInstrument(this));
+        if (performers != null) {
+            performers.forEach(i -> i.setInstrument(this));
         }
-        this.media = media;
+        this.performers = performers;
     }
 
-    public Instruments media(Set<Media> media) {
-        this.setMedia(media);
+    public Instruments performers(Set<Performers> performers) {
+        this.setPerformers(performers);
         return this;
     }
 
-    public Instruments addMedia(Media media) {
-        this.media.add(media);
-        media.setInstrument(this);
+    public Instruments addPerformer(Performers performers) {
+        this.performers.add(performers);
+        performers.setInstrument(this);
         return this;
     }
 
-    public Instruments removeMedia(Media media) {
-        this.media.remove(media);
-        media.setInstrument(null);
+    public Instruments removePerformer(Performers performers) {
+        this.performers.remove(performers);
+        performers.setInstrument(null);
         return this;
     }
 

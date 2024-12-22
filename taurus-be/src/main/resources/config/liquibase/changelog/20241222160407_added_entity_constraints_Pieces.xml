@@ -8,7 +8,7 @@
     <!--
         Added the constraints for entity Pieces.
     -->
-    <changeSet id="20241217004819-2" author="jhipster">
+    <changeSet id="20241222160407-2" author="jhipster">
 
         <addForeignKeyConstraint baseColumnNames="media_id"
                                  baseTableName="pieces"
