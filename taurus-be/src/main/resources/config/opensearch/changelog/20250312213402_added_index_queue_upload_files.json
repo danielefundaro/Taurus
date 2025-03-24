@@ -1,0 +1,44 @@
+{
+  "id": "20250312213407_1",
+  "author": "taurus",
+  "index_name": "queue-upload-files",
+  "context": "builder",
+  "properties": {
+    "deleted": {
+      "type": "boolean"
+    },
+    "insert_by": {
+      "type": "text"
+    },
+    "insert_date": {
+      "type": "date"
+    },
+    "edit_by": {
+      "type": "text"
+    },
+    "edit_date": {
+      "type": "date"
+    },
+    "name": {
+      "type": "text"
+    },
+    "description": {
+      "type": "text"
+    },
+    "user_id": {
+      "type": "text"
+    },
+    "path": {
+      "type": "text"
+    },
+    "track_id": {
+      "type": "text"
+    },
+    "status": {
+      "type": "text"
+    },
+    "type": {
+      "type": "text"
+    }
+  }
+}

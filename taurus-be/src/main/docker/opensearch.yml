@@ -1,0 +1,59 @@
+# This configuration is intended for development purpose, it's **your** responsibility to harden it for production
+name: taurus
+services:
+  opensearch-node1:
+    image: opensearchproject/opensearch:2.19.1
+    #restart: unless-stopped
+    container_name: opensearch-node1
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: true # Prevents execution of bundled demo script which installs demo certificates and security configurations to OpenSearch, only for development environment
+      DISABLE_SECURITY_PLUGIN: true # Disables Security plugin, only for development environment
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: openSearch_admin1
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: opensearch-cluster
+      node.name: opensearch-node1
+      discovery.seed_hosts: opensearch-node1,opensearch-node2
+      cluster.initial_cluster_manager_nodes: opensearch-node1,opensearch-node2
+      bootstrap.memory_lock: true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - 9200:9200
+      - 9600:9600
+  opensearch-node2:
+    image: opensearchproject/opensearch:2.19.1
+    #restart: unless-stopped
+    container_name: opensearch-node2
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: true # Prevents execution of bundled demo script which installs demo certificates and security configurations to OpenSearch, only for development environment
+      DISABLE_SECURITY_PLUGIN: true # Disables Security plugin, only for development environment
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: openSearch_admin1
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: opensearch-cluster
+      node.name: opensearch-node2
+      discovery.seed_hosts: opensearch-node1,opensearch-node2
+      cluster.initial_cluster_manager_nodes: opensearch-node1,opensearch-node2
+      bootstrap.memory_lock: true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.19.1
+    #restart: unless-stopped
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    expose:
+      - 5601
+    environment:
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: true # Disables security dashboards plugin in OpenSearch Dashboards, only for development environment
+      OPENSEARCH_HOSTS: '["http://opensearch-node1:9200","http://opensearch-node2:9200"]' # On production environment: '["https://opensearch-node1:9200","https://opensearch-node2:9200"]'

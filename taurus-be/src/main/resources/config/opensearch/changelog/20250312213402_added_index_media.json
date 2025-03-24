@@ -1,0 +1,35 @@
+{
+  "id": "20250312213404_1",
+  "author": "taurus",
+  "index_name": "media",
+  "context": "builder",
+  "properties": {
+    "deleted": {
+      "type": "boolean"
+    },
+    "insert_by": {
+      "type": "text"
+    },
+    "insert_date": {
+      "type": "date"
+    },
+    "edit_by": {
+      "type": "text"
+    },
+    "edit_date": {
+      "type": "date"
+    },
+    "name": {
+      "type": "text"
+    },
+    "description": {
+      "type": "text"
+    },
+    "path": {
+      "type": "text"
+    },
+    "content_type": {
+      "type": "text"
+    }
+  }
+}

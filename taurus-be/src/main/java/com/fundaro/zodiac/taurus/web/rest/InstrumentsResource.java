@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/instruments")
-public class InstrumentsResource extends CommonResource<Instruments, InstrumentsDTO, InstrumentsCriteria, InstrumentsService> {
+public class InstrumentsResource extends CommonOpenSearchResource<Instruments, InstrumentsDTO, InstrumentsCriteria, InstrumentsService> {
 
     public InstrumentsResource(InstrumentsService instrumentsService) {
-        super(instrumentsService, InstrumentsResource.class, Instruments.class.getSimpleName());
+        super(instrumentsService, "Instruments", InstrumentsResource.class);
     }
 }

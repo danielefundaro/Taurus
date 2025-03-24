@@ -11,22 +11,11 @@ import java.time.ZonedDateTime;
 public class NoticesDTO extends CommonFieldsDTO {
 
     @NotNull(message = "must not be null")
-    private String userId;
-
-    @NotNull(message = "must not be null")
     private String name;
 
     private String message;
 
     private ZonedDateTime readDate;
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
 
     public String getName() {
         return name;
@@ -69,7 +58,6 @@ public class NoticesDTO extends CommonFieldsDTO {
     public String toString() {
         return "NoticesDTO{" +
             "id=" + getId() +
-            ", userId='" + getUserId() + "'" +
             ", name='" + getName() + "'" +
             ", message='" + getMessage() + "'" +
             ", readDate='" + getReadDate() + "'" +
