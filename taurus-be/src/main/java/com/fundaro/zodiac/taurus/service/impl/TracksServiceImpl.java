@@ -13,6 +13,7 @@ import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.multipart.FilePart;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Service Implementation for managing {@link Tracks}.
@@ -56,7 +58,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
             return queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken).flatMap(mono -> mono.map(q -> {
                 try {
-                    sender.send(Converter.convertObjectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
+                    sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
                 } catch (IOException e) {
                     return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message"));
                 }
@@ -64,5 +66,15 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 return q;
             }));
         })).then();
+    }
+
+    @Override
+    protected List<Query> getQueries(TracksCriteria criteria) {
+        List<Query> queries = super.getQueries(criteria);
+        queries.addAll(Converter.stringFilterToQuery("composer", criteria.getComposer()));
+        queries.addAll(Converter.stringFilterToQuery("arranger", criteria.getArranger()));
+        queries.addAll(Converter.stringFilterToQuery("type", criteria.getType()));
+
+        return queries;
     }
 }

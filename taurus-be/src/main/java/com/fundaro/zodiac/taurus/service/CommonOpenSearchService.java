@@ -1,16 +1,14 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
-import com.fundaro.zodiac.taurus.domain.Notices;
-import com.fundaro.zodiac.taurus.domain.criteria.CommonCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
-public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonCriteria> {
+public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria> {
     /**
      * Save an entity.
      *
