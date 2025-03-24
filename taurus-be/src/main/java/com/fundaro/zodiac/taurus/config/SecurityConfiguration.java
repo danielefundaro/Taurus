@@ -23,6 +23,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -88,10 +89,10 @@ public class SecurityConfiguration {
             )
             .cors(withDefaults())
             .csrf(csrf ->
-                csrf
-                    .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
-                    // See https://stackoverflow.com/q/74447118/65681
-                    .csrfTokenRequestHandler(new ServerCsrfTokenRequestAttributeHandler())
+                csrf.disable()
+//                    .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+//                    // See https://stackoverflow.com/q/74447118/65681
+//                    .csrfTokenRequestHandler(new ServerCsrfTokenRequestAttributeHandler())
             )
             // See https://github.com/spring-projects/spring-security/issues/5766
             .addFilterAt(new CookieCsrfFilter(), SecurityWebFiltersOrder.REACTOR_CONTEXT)
@@ -111,6 +112,7 @@ public class SecurityConfiguration {
             .authorizeExchange(authz ->
                 // prettier-ignore
                 authz
+                    .pathMatchers("/**").permitAll()
                     .pathMatchers("/api/authenticate").permitAll()
                     .pathMatchers("/api/auth-info").permitAll()
                     .pathMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
@@ -126,6 +128,27 @@ public class SecurityConfiguration {
             .oauth2Login(oauth2 -> oauth2.authorizationRequestResolver(authorizationRequestResolver(this.clientRegistrationRepository)))
             .oauth2Client(withDefaults())
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+
+//        http
+//            .cors(withDefaults())
+//            .authorizeExchange(authz ->
+//                // prettier-ignore
+//                authz
+//                    .pathMatchers("/api/authenticate").permitAll()
+//                    .pathMatchers("/api/auth-info").permitAll()
+//                    .pathMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
+//                    .pathMatchers("/api/**").authenticated()
+//                    .pathMatchers("/services/**").authenticated()
+//                    .pathMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
+//                    .pathMatchers("/management/health").permitAll()
+//                    .pathMatchers("/management/health/**").permitAll()
+//                    .pathMatchers("/management/info").permitAll()
+//                    .pathMatchers("/management/prometheus").permitAll()
+//                    .pathMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN)
+//            )
+//            .oauth2Login(oauth2 -> oauth2.authorizationRequestResolver(authorizationRequestResolver(this.clientRegistrationRepository)))
+//            .oauth2Client(withDefaults())
+//            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 

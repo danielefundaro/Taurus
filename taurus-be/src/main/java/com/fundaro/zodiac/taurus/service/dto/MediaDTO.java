@@ -1,52 +1,34 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
-import jakarta.validation.constraints.NotNull;
 
-/**
- * A DTO for the {@link com.fundaro.zodiac.taurus.domain.Media} entity.
- */
-@SuppressWarnings("common-java:DuplicatedBlocks")
-public class MediaDTO extends CommonFieldsDTO {
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-    private String name;
+import java.util.Objects;
 
-    private String description;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class MediaDTO extends CommonFieldsOpenSearchDTO {
 
-    private Long orderNumber;
+    @JsonIgnore
+    private String path;
 
-    @NotNull
-    private TracksDTO track;
+    @JsonIgnore
+    private String contentType;
 
-    public String getName() {
-        return name;
+    public String getPath() {
+        return path;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setPath(String path) {
+        this.path = path;
     }
 
-    public String getDescription() {
-        return description;
+    public String getContentType() {
+        return contentType;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Long getOrderNumber() {
-        return orderNumber;
-    }
-
-    public void setOrderNumber(Long orderNumber) {
-        this.orderNumber = orderNumber;
-    }
-
-    public TracksDTO getTrack() {
-        return track;
-    }
-
-    public void setTrack(TracksDTO track) {
-        this.track = track;
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     @Override
@@ -54,6 +36,7 @@ public class MediaDTO extends CommonFieldsDTO {
         if (this == o) {
             return true;
         }
+
         if (!(o instanceof MediaDTO)) {
             return false;
         }
@@ -61,15 +44,20 @@ public class MediaDTO extends CommonFieldsDTO {
         return super.equals(o);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getPath(), getContentType());
+    }
+
     // prettier-ignore
     @Override
     public String toString() {
-        return "MediaDTO{" +
+        return "QueueUploadFilesDTO{" +
             "id=" + getId() +
             ", name='" + getName() + "'" +
+            ", path='" + getPath() + "'" +
+            ", contentType='" + getContentType() + "'" +
             ", description='" + getDescription() + "'" +
-            ", orderNumber=" + getOrderNumber() +
-            ", track=" + getTrack() +
             "}";
     }
 }

@@ -207,4 +207,10 @@ jhipster:
 # application:
 
 application:
-  base-path: data
+  base-path: D:\data
+  opensearch:
+    host: localhost
+    port: 9200
+    schema: http
+    username: admin
+    password: ${OPENSEARCH_ADMIN_PASSWORD}

@@ -1,0 +1,9 @@
+name: taurus
+services:
+  rabbitmq:
+    image: rabbitmq:4.0.7-management-alpine
+    #restart: unless-stopped
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
