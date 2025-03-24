@@ -2,7 +2,6 @@ package com.fundaro.zodiac.taurus.domain.criteria;
 
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
-import tech.jhipster.service.filter.LongFilter;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.util.Objects;
@@ -19,17 +18,13 @@ import java.util.Optional;
  */
 @ParameterObject
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class TracksCriteria extends CommonCriteria {
-
-    private StringFilter name;
-
-    private StringFilter description;
+public class TracksCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter composer;
 
     private StringFilter arranger;
 
-    private LongFilter typeId;
+    private StringFilter type;
 
     public TracksCriteria() {
         super();
@@ -37,54 +32,14 @@ public class TracksCriteria extends CommonCriteria {
 
     public TracksCriteria(TracksCriteria other) {
         super(other);
-        this.name = other.optionalName().map(StringFilter::copy).orElse(null);
-        this.description = other.optionalDescription().map(StringFilter::copy).orElse(null);
         this.composer = other.optionalComposer().map(StringFilter::copy).orElse(null);
         this.arranger = other.optionalArranger().map(StringFilter::copy).orElse(null);
-        this.typeId = other.optionalTypeId().map(LongFilter::copy).orElse(null);
+        this.type = other.optionalTypeId().map(StringFilter::copy).orElse(null);
     }
 
     @Override
     public TracksCriteria copy() {
         return new TracksCriteria(this);
-    }
-
-    public StringFilter getName() {
-        return name;
-    }
-
-    public Optional<StringFilter> optionalName() {
-        return Optional.ofNullable(name);
-    }
-
-    public StringFilter name() {
-        if (name == null) {
-            setName(new StringFilter());
-        }
-        return name;
-    }
-
-    public void setName(StringFilter name) {
-        this.name = name;
-    }
-
-    public StringFilter getDescription() {
-        return description;
-    }
-
-    public Optional<StringFilter> optionalDescription() {
-        return Optional.ofNullable(description);
-    }
-
-    public StringFilter description() {
-        if (description == null) {
-            setDescription(new StringFilter());
-        }
-        return description;
-    }
-
-    public void setDescription(StringFilter description) {
-        this.description = description;
     }
 
     public StringFilter getComposer() {
@@ -125,23 +80,23 @@ public class TracksCriteria extends CommonCriteria {
         this.arranger = arranger;
     }
 
-    public LongFilter getTypeId() {
-        return typeId;
+    public StringFilter getType() {
+        return type;
     }
 
-    public Optional<LongFilter> optionalTypeId() {
-        return Optional.ofNullable(typeId);
+    public Optional<StringFilter> optionalTypeId() {
+        return Optional.ofNullable(type);
     }
 
-    public LongFilter typeId() {
-        if (typeId == null) {
-            setTypeId(new LongFilter());
+    public StringFilter typeId() {
+        if (type == null) {
+            setType(new StringFilter());
         }
-        return typeId;
+        return type;
     }
 
-    public void setTypeId(LongFilter typeId) {
-        this.typeId = typeId;
+    public void setType(StringFilter type) {
+        this.type = type;
     }
 
     @Override
@@ -155,17 +110,15 @@ public class TracksCriteria extends CommonCriteria {
         final TracksCriteria that = (TracksCriteria) o;
         return (
             super.equals(o) &&
-                Objects.equals(name, that.name) &&
-                Objects.equals(description, that.description) &&
                 Objects.equals(composer, that.composer) &&
                 Objects.equals(arranger, that.arranger) &&
-                Objects.equals(typeId, that.typeId)
+                Objects.equals(type, that.type)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), name, description, composer, arranger, typeId);
+        return Objects.hash(super.hashCode(), composer, arranger, type);
     }
 
     // prettier-ignore
@@ -177,8 +130,7 @@ public class TracksCriteria extends CommonCriteria {
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
             optionalComposer().map(f -> "composer=" + f + ", ").orElse("") +
             optionalArranger().map(f -> "arranger=" + f + ", ").orElse("") +
-            optionalTypeId().map(f -> "typeId=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
+            optionalTypeId().map(f -> "type=" + f + ", ").orElse("") +
             "}";
     }
 }

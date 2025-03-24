@@ -1,10 +1,18 @@
 package com.fundaro.zodiac.taurus.utils;
 
+import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
+import org.opensearch.client.json.JsonData;
+import org.opensearch.client.opensearch._types.FieldValue;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch._types.query_dsl.RangeQuery;
+import tech.jhipster.service.filter.Filter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -12,13 +20,19 @@ import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Converter {
+
     public static String camelCaseToKebabCase(String s) {
         return s.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
     }
 
-    public static List<String> pdf2Image(byte[] content, String filename, String destinationPath) throws IOException {
+    public static String camelCaseToSnakeCase(String s) {
+        return s.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    }
+
+    public static List<String> pdfToImage(byte[] content, String filename, String destinationPath) throws IOException {
         String formatName = "png";
         int dpi = 300;
         List<String> files = new ArrayList<>();
@@ -52,7 +66,7 @@ public class Converter {
         return files;
     }
 
-    public static byte[] convertObjectToBytes(Object obj) throws IOException {
+    public static byte[] objectToBytes(Object obj) throws IOException {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         try (ObjectOutputStream ois = new ObjectOutputStream(boas)) {
             ois.writeObject(obj);
@@ -60,11 +74,108 @@ public class Converter {
         }
     }
 
-    public static Object convertBytesToObject(byte[] bytes) throws IOException, ClassNotFoundException {
+    public static Object bytesToObject(byte[] bytes) throws IOException, ClassNotFoundException {
         InputStream is = new ByteArrayInputStream(bytes);
         try (ObjectInputStream ois = new ObjectInputStream(is)) {
             return ois.readObject();
         }
+    }
+
+    public static List<Query> stringFilterToQuery(String fieldName, StringFilter fieldValue) {
+        List<Query> queries = new ArrayList<>();
+        List<Query> notQueries = new ArrayList<>();
+        String finalFieldName = camelCaseToSnakeCase(fieldName);
+
+        if (Strings.isNotBlank(fieldValue.getEquals())) {
+            queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.stringValue(fieldValue.getEquals())))));
+        }
+
+        if (Strings.isNotBlank(fieldValue.getNotEquals())) {
+            notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.stringValue(fieldValue.getNotEquals())))));
+        }
+
+        if (Strings.isNotBlank(fieldValue.getContains())) {
+            queries.add(Query.of(f -> f.queryString(m -> m.query(fieldValue.getContains()).fields(List.of(finalFieldName)))));
+        }
+
+        if (Strings.isNotBlank(fieldValue.getDoesNotContain())) {
+            notQueries.add(Query.of(f -> f.queryString(m -> m.query(fieldValue.getDoesNotContain()).fields(List.of(finalFieldName)))));
+        }
+
+        if (!fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().anyMatch(Strings::isNotBlank)) {
+            List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().stringValue(v).build()).toList();
+            queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+        }
+
+        if (!fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().anyMatch(Strings::isNotBlank)) {
+            List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().stringValue(v).build()).toList();
+            notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+        }
+
+        if (!notQueries.isEmpty()) {
+            queries.add(Query.of(f -> f.bool(b -> b.mustNot(notQueries))));
+        }
+
+        return queries;
+    }
+
+    public static List<Query> dateFilterToQuery(String fieldName, DateFilter fieldValue) {
+        List<Query> queries = new ArrayList<>();
+        List<Query> notQueries = new ArrayList<>();
+        String finalFieldName = camelCaseToSnakeCase(fieldName);
+
+        if (!Objects.isNull(fieldValue.getEquals())) {
+            queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getEquals().getTime())))));
+        }
+
+        if (!Objects.isNull(fieldValue.getNotEquals())) {
+            notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getNotEquals().getTime())))));
+        }
+
+        if (!fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().noneMatch(Objects::isNull)) {
+            List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().longValue(v.getTime()).build()).toList();
+            queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+        }
+
+        if (!fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().noneMatch(Objects::isNull)) {
+            List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().longValue(v.getTime()).build()).toList();
+            notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+        }
+
+        if (!notQueries.isEmpty()) {
+            queries.add(Query.of(f -> f.bool(b -> b.mustNot(notQueries))));
+        }
+
+        if (!Objects.isNull(fieldValue.getLessThanOrEqual()) ||
+            !Objects.isNull(fieldValue.getLessThanOrEqual()) ||
+            !Objects.isNull(fieldValue.getLessThan()) ||
+            !Objects.isNull(fieldValue.getGreaterThan())) {
+            RangeQuery.Builder rangeQueryBuilder = new RangeQuery.Builder().field(finalFieldName);
+
+            if (!Objects.isNull(fieldValue.getLessThanOrEqual())) {
+                rangeQueryBuilder.lte(JsonData.of(fieldValue.getLessThanOrEqual()));
+            }
+
+            if (!Objects.isNull(fieldValue.getGreaterThanOrEqual())) {
+                rangeQueryBuilder.gte(JsonData.of(fieldValue.getGreaterThanOrEqual()));
+            }
+
+            if (!Objects.isNull(fieldValue.getLessThan())) {
+                rangeQueryBuilder.lt(JsonData.of(fieldValue.getLessThan()));
+            }
+
+            if (!Objects.isNull(fieldValue.getGreaterThan())) {
+                rangeQueryBuilder.gt(JsonData.of(fieldValue.getGreaterThan()));
+            }
+
+            queries.add(Query.of(f -> f.range(rangeQueryBuilder.build())));
+        }
+
+        return queries;
+    }
+
+    public static <T> List<Query> generalFilterToQuery(String fieldName, Filter<T> fieldValue) {
+        return stringFilterToQuery(fieldName, (StringFilter) fieldValue);
     }
 
     private static Rectangle getBounds(BufferedImage img, Color fillColor) {

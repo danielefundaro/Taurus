@@ -6,8 +6,12 @@ import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
+import com.fundaro.zodiac.taurus.utils.Converter;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Service Implementation for managing {@link Albums}.
@@ -18,5 +22,14 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
 
     public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper) {
         super(openSearchService, albumsMapper, AlbumsService.class, Albums.class, "Albums");
+    }
+
+    @Override
+    protected List<Query> getQueries(AlbumsCriteria criteria) {
+        List<Query> queries = super.getQueries(criteria);
+        queries.addAll(Converter.dateFilterToQuery("date", criteria.getDate()));
+        queries.addAll(Converter.stringFilterToQuery("date", criteria.getTrackName()));
+
+        return queries;
     }
 }

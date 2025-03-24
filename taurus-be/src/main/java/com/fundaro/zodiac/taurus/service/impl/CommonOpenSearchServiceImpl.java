@@ -1,12 +1,10 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fundaro.zodiac.taurus.domain.ChildrenEntities;
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
-import com.fundaro.zodiac.taurus.domain.criteria.CommonCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
-import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.mapper.EntityOpenSearchMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
@@ -30,10 +28,12 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 
-public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
+public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
 
     private final OpenSearchService openSearchService;
 
@@ -135,16 +135,14 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     @Override
     public Mono<Page<D>> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
+        List<Query> queries = getQueries(criteria);
 
         try {
             SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
                 .index(getIndex(entityName))
                 .from(pageable.getPageNumber() * pageable.getPageSize())
                 .size(pageable.getPageSize())
-                .query(q -> q.bool(b -> b.must(List.of(
-                    Query.of(f -> f.exists(e -> e.field("deleted"))),
-                    Query.of(f -> f.match(m -> m.field("deleted").query(value -> value.booleanValue(false))))
-                ))))
+                .query(q -> q.bool(b -> b.must(queries)))
                 .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(sort.getProperty()).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
 
             if (searchResponse == null || searchResponse.hits().hits().isEmpty()) {
@@ -207,6 +205,17 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         }
 
         throw new IOException();
+    }
+
+    protected List<Query> getQueries(C criteria) {
+        List<Query> queries = new ArrayList<>();
+        queries.add(Query.of(f -> f.exists(e -> e.field("deleted"))));
+        queries.add(Query.of(f -> f.match(m -> m.field("deleted").query(value -> value.booleanValue(false)))));
+        queries.addAll(Converter.stringFilterToQuery("_id", criteria.getId()));
+        queries.addAll(Converter.stringFilterToQuery("name", criteria.getName()));
+        queries.addAll(Converter.stringFilterToQuery("description", criteria.getName()));
+
+        return queries;
     }
 
     private E saveEntity(String id, E entity, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
