@@ -8,7 +8,9 @@ import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
+import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -23,6 +25,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Service Implementation for managing {@link QueueUploadFiles}.
@@ -62,5 +65,16 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
 
             return super.save(dto, abstractAuthenticationToken);
         });
+    }
+
+    @Override
+    protected List<Query> getQueries(QueueUploadFilesCriteria criteria) {
+        List<Query> queries = super.getQueries(criteria);
+        queries.addAll(Converter.stringFilterToQuery("userId", criteria.getUserId()));
+        queries.addAll(Converter.stringFilterToQuery("trackId", criteria.getTrackId()));
+        queries.addAll(Converter.generalFilterToQuery("status", criteria.getStatus()));
+        queries.addAll(Converter.stringFilterToQuery("type", criteria.getType()));
+
+        return queries;
     }
 }

@@ -9,17 +9,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Criteria class for the {@link com.fundaro.zodiac.taurus.domain.QueueUploadFiles} entity. This class is used
- * in {@link com.fundaro.zodiac.taurus.web.rest.LastResearchResource} to receive all the possible filtering options from
- * the Http GET request parameters.
- * For example the following could be a valid request:
- * {@code /queue-upload-files?id.greaterThan=5&attr1.contains=something&attr2.specified=false}
+ * Criteria class for the {@link com.fundaro.zodiac.taurus.domain.QueueUploadFiles} entity
  * As Spring is unable to properly convert the types, unless specific {@link Filter} class are used, we need to use
  * fix type specific filters.
  */
 @ParameterObject
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class QueueUploadFilesCriteria extends CommonCriteria {
+public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
 
     public static class StatusFilter extends Filter<UploadFileStatus> {
 
@@ -42,6 +38,8 @@ public class QueueUploadFilesCriteria extends CommonCriteria {
 
     private StatusFilter status;
 
+    private StringFilter type;
+
     public QueueUploadFilesCriteria() {
         super();
     }
@@ -51,6 +49,7 @@ public class QueueUploadFilesCriteria extends CommonCriteria {
         this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
         this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
         this.status = other.optionalStatus().map(StatusFilter::copy).orElse(null);
+        this.type = other.optionalType().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -115,6 +114,25 @@ public class QueueUploadFilesCriteria extends CommonCriteria {
         this.status = status;
     }
 
+    public StringFilter getType() {
+        return type;
+    }
+
+    public Optional<StringFilter> optionalType() {
+        return Optional.ofNullable(type);
+    }
+
+    public StringFilter type() {
+        if (type == null) {
+            setTrackId(new StringFilter());
+        }
+        return type;
+    }
+
+    public void setType(StringFilter type) {
+        this.type = type;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -128,13 +146,14 @@ public class QueueUploadFilesCriteria extends CommonCriteria {
             super.equals(o) &&
                 Objects.equals(userId, that.userId) &&
                 Objects.equals(trackId, that.trackId) &&
-                Objects.equals(status, that.status)
+                Objects.equals(status, that.status) &&
+                Objects.equals(type, that.type)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), userId, trackId, status);
+        return Objects.hash(super.hashCode(), userId, trackId, status, type);
     }
 
     // prettier-ignore
@@ -145,7 +164,7 @@ public class QueueUploadFilesCriteria extends CommonCriteria {
             optionalUserId().map(f -> "userId=" + f + ", ").orElse("") +
             optionalTrackId().map(f -> "trackId=" + f + ", ").orElse("") +
             optionalStatus().map(f -> "status=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
+            optionalType().map(f -> "type=" + f + ", ").orElse("") +
             "}";
     }
 }

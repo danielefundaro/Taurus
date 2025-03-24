@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
-import com.fundaro.zodiac.taurus.domain.criteria.CommonCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import jakarta.validation.Valid;
@@ -32,7 +32,7 @@ import java.net.URISyntaxException;
 /**
  * REST controller for managing {@link CommonFieldsOpenSearch}.
  */
-public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonCriteria, S extends CommonOpenSearchService<E, D, C>> {
+public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, S extends CommonOpenSearchService<E, D, C>> {
 
     private final Logger log;
 

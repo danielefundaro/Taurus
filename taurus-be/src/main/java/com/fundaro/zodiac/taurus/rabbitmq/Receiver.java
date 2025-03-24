@@ -53,7 +53,7 @@ public class Receiver {
     @RabbitHandler
     public void receive(byte[] message) throws IOException, ClassNotFoundException {
         log.debug("Received message {}", message);
-        UploadFilesPackage uploadFilesPackage = (UploadFilesPackage) Converter.convertBytesToObject(message);
+        UploadFilesPackage uploadFilesPackage = (UploadFilesPackage) Converter.bytesToObject(message);
         AbstractAuthenticationToken abstractAuthenticationToken = uploadFilesPackage.getAbstractAuthenticationToken();
 
         // Get queue from id and check if exists
@@ -75,7 +75,7 @@ public class Receiver {
                 try (InputStream inputStream = new FileInputStream(file)) {
                     String destinationPath = Paths.get(basePath, type, file.getParentFile().getName()).toString().toLowerCase();
                     log.info("Converting pdf2Image file from {} to {}", sourcePath, destinationPath);
-                    filesPath = Converter.pdf2Image(inputStream.readAllBytes(), file.getName(), destinationPath);
+                    filesPath = Converter.pdfToImage(inputStream.readAllBytes(), file.getName(), destinationPath);
                 }
 
                 if (!filesPath.isEmpty()) {

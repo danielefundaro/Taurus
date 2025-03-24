@@ -1,9 +1,9 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
-import tech.jhipster.service.filter.ZonedDateTimeFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -19,13 +19,11 @@ import java.util.Optional;
  */
 @ParameterObject
 @SuppressWarnings("common-java:DuplicatedBlocks")
-public class AlbumsCriteria extends CommonCriteria {
+public class AlbumsCriteria extends CommonOpenSearchCriteria {
 
-    private StringFilter name;
+    private DateFilter date;
 
-    private StringFilter description;
-
-    private ZonedDateTimeFilter date;
+    private StringFilter trackName;
 
     public AlbumsCriteria() {
         super();
@@ -33,9 +31,8 @@ public class AlbumsCriteria extends CommonCriteria {
 
     public AlbumsCriteria(AlbumsCriteria other) {
         super(other);
-        this.name = other.optionalName().map(StringFilter::copy).orElse(null);
-        this.description = other.optionalDescription().map(StringFilter::copy).orElse(null);
-        this.date = other.optionalDate().map(ZonedDateTimeFilter::copy).orElse(null);
+        this.date = other.optionalDate().map(DateFilter::copy).orElse(null);
+        this.trackName = other.optionalTrackName().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -43,61 +40,42 @@ public class AlbumsCriteria extends CommonCriteria {
         return new AlbumsCriteria(this);
     }
 
-    public StringFilter getName() {
-        return name;
-    }
-
-    public Optional<StringFilter> optionalName() {
-        return Optional.ofNullable(name);
-    }
-
-    public StringFilter name() {
-        if (name == null) {
-            setName(new StringFilter());
-        }
-        return name;
-    }
-
-    public void setName(StringFilter name) {
-        this.name = name;
-    }
-
-    public StringFilter getDescription() {
-        return description;
-    }
-
-    public Optional<StringFilter> optionalDescription() {
-        return Optional.ofNullable(description);
-    }
-
-    public StringFilter description() {
-        if (description == null) {
-            setDescription(new StringFilter());
-        }
-        return description;
-    }
-
-    public void setDescription(StringFilter description) {
-        this.description = description;
-    }
-
-    public ZonedDateTimeFilter getDate() {
+    public DateFilter getDate() {
         return date;
     }
 
-    public Optional<ZonedDateTimeFilter> optionalDate() {
+    public Optional<DateFilter> optionalDate() {
         return Optional.ofNullable(date);
     }
 
-    public ZonedDateTimeFilter date() {
+    public DateFilter date() {
         if (date == null) {
-            setDate(new ZonedDateTimeFilter());
+            setDate(new DateFilter());
         }
         return date;
     }
 
-    public void setDate(ZonedDateTimeFilter date) {
+    public void setDate(DateFilter date) {
         this.date = date;
+    }
+
+    public StringFilter getTrackName() {
+        return trackName;
+    }
+
+    public Optional<StringFilter> optionalTrackName() {
+        return Optional.ofNullable(trackName);
+    }
+
+    public StringFilter trackName() {
+        if (trackName == null) {
+            setTrackName(new StringFilter());
+        }
+        return trackName;
+    }
+
+    public void setTrackName(StringFilter trackName) {
+        this.trackName = trackName;
     }
 
     @Override
@@ -111,15 +89,13 @@ public class AlbumsCriteria extends CommonCriteria {
         final AlbumsCriteria that = (AlbumsCriteria) o;
         return (
             super.equals(o) &&
-                Objects.equals(name, that.name) &&
-                Objects.equals(description, that.description) &&
                 Objects.equals(date, that.date)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), name, description, date);
+        return Objects.hash(super.hashCode(), date);
     }
 
     // prettier-ignore
@@ -130,7 +106,6 @@ public class AlbumsCriteria extends CommonCriteria {
             optionalName().map(f -> "name=" + f + ", ").orElse("") +
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
             optionalDate().map(f -> "date=" + f + ", ").orElse("") +
-            optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
             "}";
     }
 }
