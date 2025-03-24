@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
-import com.fundaro.zodiac.taurus.domain.Scores;
-import com.fundaro.zodiac.taurus.web.rest.ScoresResources;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.LongFilter;
@@ -11,8 +9,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Criteria class for the {@link Scores} entity. This class is used
- * in {@link ScoresResources} to receive all the possible filtering options from
+ * Criteria class for the {@link com.fundaro.zodiac.taurus.domain.Media} entity. This class is used
+ * in {@link com.fundaro.zodiac.taurus.web.rest.MediaResource} to receive all the possible filtering options from
  * the Http GET request parameters.
  * For example the following could be a valid request:
  * {@code /media?id.greaterThan=5&attr1.contains=something&attr2.specified=false}
