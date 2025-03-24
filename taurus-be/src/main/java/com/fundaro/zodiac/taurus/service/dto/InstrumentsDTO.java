@@ -1,33 +1,13 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fundaro.zodiac.taurus.domain.Instruments;
 
 /**
- * A DTO for the {@link com.fundaro.zodiac.taurus.domain.Instruments} entity.
+ * A DTO for the {@link Instruments} entity.
  */
-@SuppressWarnings("common-java:DuplicatedBlocks")
-public class InstrumentsDTO extends CommonFieldsDTO {
-
-    @NotNull(message = "must not be null")
-    private String name;
-
-    private String description;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class InstrumentsDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public boolean equals(Object o) {

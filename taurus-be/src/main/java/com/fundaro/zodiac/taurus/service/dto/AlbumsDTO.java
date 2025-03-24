@@ -1,44 +1,36 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fundaro.zodiac.taurus.domain.Albums;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.Objects;
+import java.util.Set;
 
 /**
- * A DTO for the {@link com.fundaro.zodiac.taurus.domain.Albums} entity.
+ * A DTO for the {@link Albums} entity.
  */
-@SuppressWarnings("common-java:DuplicatedBlocks")
-public class AlbumsDTO extends CommonFieldsDTO {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
-    @NotNull(message = "must not be null")
-    private String name;
+    private Date date;
 
-    private String description;
+    private Set<ChildrenEntitiesDTO> tracks;
 
-    private ZonedDateTime date;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public ZonedDateTime getDate() {
+    public Date getDate() {
         return date;
     }
 
-    public void setDate(ZonedDateTime date) {
+    public void setDate(Date date) {
         this.date = date;
+    }
+
+    public Set<ChildrenEntitiesDTO> getTracks() {
+        return tracks;
+    }
+
+    public void setTracks(Set<ChildrenEntitiesDTO> tracks) {
+        this.tracks = tracks;
     }
 
     @Override
@@ -53,6 +45,11 @@ public class AlbumsDTO extends CommonFieldsDTO {
         return super.equals(o);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getTracks());
+    }
+
     // prettier-ignore
     @Override
     public String toString() {
@@ -61,6 +58,7 @@ public class AlbumsDTO extends CommonFieldsDTO {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", date='" + getDate() + "'" +
+            ", tracks=" + getTracks() +
             "}";
     }
 }

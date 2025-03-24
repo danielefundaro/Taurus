@@ -7,15 +7,18 @@ import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CommonService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.EntityMapper;
-import com.fundaro.zodiac.taurus.web.rest.errors.BadRequestAlertException;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.ZonedDateTime;
 import java.util.Objects;
 
 @Transactional
@@ -36,6 +39,10 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         this.entityName = entityName;
     }
 
+    public Logger getLog() {
+        return log;
+    }
+
     public String getEntityName() {
         return entityName;
     }
@@ -45,7 +52,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         log.debug("Request to save {} : {}", entityName, dto);
 
         if (dto.getId() != null) {
-            throw new BadRequestAlertException(String.format("A new %s cannot already have an ID", entityName), entityName, "id.exists");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot already have an ID", entityName), entityName, "id.exists");
         }
 
         return saveEntity(mapper.toEntity(dto), abstractAuthenticationToken).map(mapper::toDto);
@@ -56,16 +63,16 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         log.debug("Request to update {} : {}", entityName, dto);
 
         if (dto.getId() == null) {
-            throw new BadRequestAlertException("Invalid id", entityName, "id.null");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null");
         }
 
         if (!Objects.equals(id, dto.getId())) {
-            throw new BadRequestAlertException("Invalid ID", entityName, "id.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
 
         return repository.findById(id).flatMap(existingEntity -> {
             if (existingEntity == null) {
-                return Mono.error(new BadRequestAlertException("Entity not found", entityName, "id.notFound"));
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
 
             mapper.partialUpdate(existingEntity, dto);
@@ -78,15 +85,15 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         log.debug("Request to partially update {} : {}", entityName, dto);
 
         if (dto.getId() == null) {
-            throw new BadRequestAlertException("Invalid id", entityName, "id.null");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null");
         }
         if (!Objects.equals(id, dto.getId())) {
-            throw new BadRequestAlertException("Invalid ID", entityName, "id.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
 
         return repository.findById(dto.getId()).flatMap(existingEntity -> {
             if (existingEntity == null) {
-                return Mono.error(new BadRequestAlertException("Entity not found", entityName, "id.notFound"));
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
 
             mapper.partialUpdate(existingEntity, dto);
@@ -133,13 +140,16 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
 
     private Mono<E> saveEntity(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        entity.setEditBy(userId);
+        entity.setEditDate(ZonedDateTime.now());
 
-        if (org.apache.logging.log4j.util.Strings.isNotBlank(userId)) {
-            entity.setEditBy(userId);
+        if (Strings.isBlank(entity.getInsertBy())) {
+            entity.setInsertBy(userId);
+            entity.setInsertDate(ZonedDateTime.now());
+        }
 
-            if (org.apache.logging.log4j.util.Strings.isNotBlank(entity.getInsertBy())) {
-                entity.setInsertBy(userId);
-            }
+        if (entity.getDeleted() == null) {
+            entity.setDeleted(false);
         }
 
         return repository.save(entity);

@@ -11,12 +11,12 @@ class InstrumentsDTOTest {
     void dtoEqualsVerifier() throws Exception {
         TestUtil.equalsVerifier(InstrumentsDTO.class);
         InstrumentsDTO instrumentsDTO1 = new InstrumentsDTO();
-        instrumentsDTO1.setId(1L);
+        instrumentsDTO1.setId("1L");
         InstrumentsDTO instrumentsDTO2 = new InstrumentsDTO();
         assertThat(instrumentsDTO1).isNotEqualTo(instrumentsDTO2);
         instrumentsDTO2.setId(instrumentsDTO1.getId());
         assertThat(instrumentsDTO1).isEqualTo(instrumentsDTO2);
-        instrumentsDTO2.setId(2L);
+        instrumentsDTO2.setId("2L");
         assertThat(instrumentsDTO1).isNotEqualTo(instrumentsDTO2);
         instrumentsDTO1.setId(null);
         assertThat(instrumentsDTO1).isNotEqualTo(instrumentsDTO2);

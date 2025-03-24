@@ -9,3 +9,19 @@ services:
     extends:
       file: ./keycloak.yml
       service: keycloak
+  opensearch-node1:
+    extends:
+      file: ./opensearch.yml
+      service: opensearch-node1
+  opensearch-node2:
+    extends:
+      file: ./opensearch.yml
+      service: opensearch-node2
+  opensearch-dashboards:
+    extends:
+      file: ./opensearch.yml
+      service: opensearch-dashboards
+  rabbitmq:
+    extends:
+      file: ./rabbitmq.yml
+      service: rabbitmq
