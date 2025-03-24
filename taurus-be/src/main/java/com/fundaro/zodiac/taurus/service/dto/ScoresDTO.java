@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fundaro.zodiac.taurus.domain.ChildrenEntities;
 import com.fundaro.zodiac.taurus.domain.Scores;
 
 import java.util.Objects;
@@ -15,12 +15,22 @@ public class ScoresDTO extends CommonFieldsOpenSearchDTO {
 
     Set<ChildrenEntitiesDTO> media;
 
+    Set<ChildrenEntities> instruments;
+
     public Set<ChildrenEntitiesDTO> getMedia() {
         return media;
     }
 
     public void setMedia(Set<ChildrenEntitiesDTO> media) {
         this.media = media;
+    }
+
+    public Set<ChildrenEntities> getInstruments() {
+        return instruments;
+    }
+
+    public void setInstruments(Set<ChildrenEntities> instruments) {
+        this.instruments = instruments;
     }
 
     @Override
@@ -37,7 +47,7 @@ public class ScoresDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getMedia().hashCode());
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getMedia().hashCode(), this.getInstruments().hashCode());
     }
 
     // prettier-ignore
@@ -48,6 +58,7 @@ public class ScoresDTO extends CommonFieldsOpenSearchDTO {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", media=" + getMedia() +
+            ", instruments=" + getInstruments() +
             "}";
     }
 }
