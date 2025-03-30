@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
@@ -25,6 +26,9 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter trackName;
 
+    @JsonIgnore
+    private StringFilter trackId;
+
     public AlbumsCriteria() {
         super();
     }
@@ -33,6 +37,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         super(other);
         this.date = other.optionalDate().map(DateFilter::copy).orElse(null);
         this.trackName = other.optionalTrackName().map(StringFilter::copy).orElse(null);
+        this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -48,15 +53,9 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(date);
     }
 
-    public DateFilter date() {
-        if (date == null) {
-            setDate(new DateFilter());
-        }
-        return date;
-    }
-
-    public void setDate(DateFilter date) {
+    public AlbumsCriteria setDate(DateFilter date) {
         this.date = date;
+        return this;
     }
 
     public StringFilter getTrackName() {
@@ -67,15 +66,22 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(trackName);
     }
 
-    public StringFilter trackName() {
-        if (trackName == null) {
-            setTrackName(new StringFilter());
-        }
-        return trackName;
+    public AlbumsCriteria setTrackName(StringFilter trackName) {
+        this.trackName = trackName;
+        return this;
     }
 
-    public void setTrackName(StringFilter trackName) {
-        this.trackName = trackName;
+    public StringFilter getTrackId() {
+        return trackId;
+    }
+
+    public Optional<StringFilter> optionalTrackId() {
+        return Optional.ofNullable(trackId);
+    }
+
+    public AlbumsCriteria setTrackId(StringFilter trackId) {
+        this.trackId = trackName;
+        return this;
     }
 
     @Override
@@ -106,6 +112,8 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
             optionalName().map(f -> "name=" + f + ", ").orElse("") +
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
             optionalDate().map(f -> "date=" + f + ", ").orElse("") +
+            optionalTrackName().map(f -> "trackName=" + f + ", ").orElse("") +
+            optionalTrackId().map(f -> "trackId=" + f + ", ").orElse("") +
             "}";
     }
 }

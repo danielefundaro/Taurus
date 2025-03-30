@@ -39,8 +39,12 @@ public interface EntityOpenSearchMapper<D extends CommonFieldsOpenSearchDTO, E e
 
     @Named("orderChildrenToDto")
     default Set<ChildrenEntitiesDTO> orderChildrenToDto(Set<ChildrenEntities> entitySet) {
-        return entitySet.stream().map(this::childrenToDto)
-            .sorted(Comparator.comparing(ChildrenEntitiesDTO::getOrder))
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (entitySet != null) {
+            return entitySet.stream().map(this::childrenToDto)
+                .sorted(Comparator.comparing(ChildrenEntitiesDTO::getOrder))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+
+        return null;
     }
 }
