@@ -24,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
@@ -82,57 +83,13 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     @Override
     public Mono<D> update(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to update {} : {}", entityName, dto);
-
-        if (dto.getId() == null) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null"));
-        }
-
-        if (!Objects.equals(id, dto.getId())) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid"));
-        }
-
-        E existingEntity;
-        try {
-            existingEntity = getById(id);
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
-        }
-
-        mapper.partialUpdate(existingEntity, dto);
-
-        try {
-            return Mono.just(mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken)));
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic"));
-        }
+        return updateDto(id, dto, abstractAuthenticationToken);
     }
 
     @Override
     public Mono<D> partialUpdate(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to partially update {} : {}", entityName, dto);
-
-        if (dto.getId() == null) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null"));
-        }
-
-        if (!Objects.equals(id, dto.getId())) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid"));
-        }
-
-        E existingEntity;
-        try {
-            existingEntity = getById(id);
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
-        }
-
-        mapper.partialUpdate(existingEntity, dto);
-
-        try {
-            return Mono.just(mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken)));
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic"));
-        }
+        return updateDto(id, dto, abstractAuthenticationToken);
     }
 
     @Override
@@ -193,19 +150,19 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     }
 
     @Override
-    public void deleteChildInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteria, BiFunction<D, String, Boolean> deleteChild) {
+    public void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function) {
         // Create filter
         StringFilter stringFilter = new StringFilter();
         stringFilter.setEquals(childId);
 
         // Create criteria
-        C c = criteria.apply(stringFilter);
+        C c = criteriaFunction.apply(stringFilter);
         Pageable pageable = Pageable.ofSize(20);
 
-        // Search from parent and remove child with the same id
+        // Search from parent and update children with the same id
         findByCriteria(c, pageable, abstractAuthenticationToken).map(dPage -> {
             dPage.getContent().forEach(dto -> {
-                if (deleteChild.apply(dto, childId)) {
+                if (function.apply(dto, childId)) {
                     partialUpdate(dto.getId(), dto, abstractAuthenticationToken).then();
                 }
             });
@@ -235,6 +192,32 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         queries.addAll(Converter.stringFilterToQuery("description", criteria.getName()));
 
         return queries;
+    }
+
+    @NonNull
+    private Mono<D> updateDto(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (dto.getId() == null) {
+            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null"));
+        }
+
+        if (!Objects.equals(id, dto.getId())) {
+            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid"));
+        }
+
+        E existingEntity;
+        try {
+            existingEntity = getById(id);
+        } catch (IOException e) {
+            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
+        }
+
+        mapper.partialUpdate(existingEntity, dto);
+
+        try {
+            return Mono.just(mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken)));
+        } catch (IOException e) {
+            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic"));
+        }
     }
 
     private E saveEntity(String id, E entity, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {

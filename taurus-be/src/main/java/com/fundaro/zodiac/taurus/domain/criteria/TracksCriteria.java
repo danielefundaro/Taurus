@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
@@ -26,6 +27,11 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter type;
 
+    private StringFilter instrumentId;
+
+    @JsonIgnore
+    private StringFilter mediaId;
+
     public TracksCriteria() {
         super();
     }
@@ -35,6 +41,8 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         this.composer = other.optionalComposer().map(StringFilter::copy).orElse(null);
         this.arranger = other.optionalArranger().map(StringFilter::copy).orElse(null);
         this.type = other.optionalTypeId().map(StringFilter::copy).orElse(null);
+        this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
+        this.mediaId = other.optionalMediaId().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -81,6 +89,32 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
+    public StringFilter getInstrumentId() {
+        return instrumentId;
+    }
+
+    public Optional<StringFilter> optionalInstrumentId() {
+        return Optional.ofNullable(instrumentId);
+    }
+
+    public TracksCriteria setInstrumentId(StringFilter instrumentId) {
+        this.instrumentId = instrumentId;
+        return this;
+    }
+
+    public StringFilter getMediaId() {
+        return mediaId;
+    }
+
+    public Optional<StringFilter> optionalMediaId() {
+        return Optional.ofNullable(mediaId);
+    }
+
+    public TracksCriteria setMediaId(StringFilter mediaId) {
+        this.mediaId = mediaId;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -94,13 +128,14 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
             super.equals(o) &&
                 Objects.equals(composer, that.composer) &&
                 Objects.equals(arranger, that.arranger) &&
-                Objects.equals(type, that.type)
+                Objects.equals(type, that.type) &&
+                Objects.equals(instrumentId, that.instrumentId)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), composer, arranger, type);
+        return Objects.hash(super.hashCode(), composer, arranger, type, instrumentId);
     }
 
     // prettier-ignore
@@ -113,6 +148,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
             optionalComposer().map(f -> "composer=" + f + ", ").orElse("") +
             optionalArranger().map(f -> "arranger=" + f + ", ").orElse("") +
             optionalTypeId().map(f -> "type=" + f + ", ").orElse("") +
+            optionalInstrumentId().map(f -> "instrumentId=" + f + ", ").orElse("") +
             "}";
     }
 }
