@@ -28,7 +28,8 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
     protected List<Query> getQueries(AlbumsCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
         queries.addAll(Converter.dateFilterToQuery("date", criteria.getDate()));
-        queries.addAll(Converter.stringFilterToQuery("date", criteria.getTrackName()));
+        queries.addAll(Converter.stringFilterToQuery("tracks.name", criteria.getTrackName()));
+        queries.addAll(Converter.stringFilterToQuery("tracks.id", criteria.getTrackId()));
 
         return queries;
     }
