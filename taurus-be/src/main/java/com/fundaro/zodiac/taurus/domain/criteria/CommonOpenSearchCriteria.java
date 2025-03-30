@@ -37,15 +37,9 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
         return Optional.ofNullable(id);
     }
 
-    public StringFilter id() {
-        if (id == null) {
-            setId(new StringFilter());
-        }
-        return id;
-    }
-
-    public void setId(StringFilter name) {
+    public CommonOpenSearchCriteria setId(StringFilter name) {
         this.name = name;
+        return this;
     }
 
     public StringFilter getName() {
@@ -56,15 +50,9 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
         return Optional.ofNullable(name);
     }
 
-    public StringFilter name() {
-        if (name == null) {
-            setName(new StringFilter());
-        }
-        return name;
-    }
-
-    public void setName(StringFilter name) {
+    public CommonOpenSearchCriteria setName(StringFilter name) {
         this.name = name;
+        return this;
     }
 
     public StringFilter getDescription() {
@@ -75,15 +63,9 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
         return Optional.ofNullable(description);
     }
 
-    public StringFilter description() {
-        if (description == null) {
-            setDescription(new StringFilter());
-        }
-        return description;
-    }
-
-    public void setDescription(StringFilter description) {
+    public CommonOpenSearchCriteria setDescription(StringFilter description) {
         this.description = description;
+        return this;
     }
 
     @Override

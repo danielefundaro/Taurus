@@ -1,10 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Tracks;
+import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
-import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
+import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -34,11 +36,14 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     private final QueueUploadFilesService queueUploadFilesService;
 
+    private final AlbumsService albumsService;
+
     private final Sender sender;
 
-    public TracksServiceImpl(OpenSearchService openSearchService, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, Sender sender) {
+    public TracksServiceImpl(OpenSearchService openSearchService, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, AlbumsService albumsService, Sender sender) {
         super(openSearchService, tracksMapper, TracksService.class, Tracks.class, "Tracks");
         this.queueUploadFilesService = queueUploadFilesService;
+        this.albumsService = albumsService;
         this.sender = sender;
     }
 
@@ -66,6 +71,18 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 return q;
             }));
         })).then();
+    }
+
+    @Override
+    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.delete(id, abstractAuthenticationToken).map(b -> {
+            if (b) {
+                // Delete all related information
+                albumsService.deleteChildInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
+            }
+
+            return b;
+        });
     }
 
     @Override

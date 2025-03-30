@@ -9,9 +9,6 @@ import java.io.IOException;
 import java.util.function.Function;
 
 public interface OpenSearchService {
-    boolean isOpen();
-
-    void close() throws IOException;
 
     CreateIndexResponse createIndex(String indexName, TypeMapping.Builder builder) throws IOException;
 

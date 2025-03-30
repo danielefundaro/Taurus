@@ -37,14 +37,25 @@
     "scores": {
       "type": "object",
       "properties": {
-        "index": {
-          "type": "text"
-        },
-        "name": {
+        "description": {
           "type": "text"
         },
         "order": {
           "type": "long"
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "text"
+            },
+            "name": {
+              "type": "text"
+            },
+            "order": {
+              "type": "long"
+            }
+          }
         },
         "instruments": {
           "type": "object",

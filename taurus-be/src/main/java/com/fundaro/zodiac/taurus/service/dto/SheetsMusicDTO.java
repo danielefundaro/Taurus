@@ -2,13 +2,44 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SheetsMusicDTO extends ChildrenEntitiesDTO {
+public class SheetsMusicDTO implements Serializable {
+
+    private String description;
+
+    private Long order;
+
+    private Set<ChildrenEntitiesDTO> media;
 
     private Set<ChildrenEntitiesDTO> instruments;
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Long getOrder() {
+        return order;
+    }
+
+    public void setOrder(Long order) {
+        this.order = order;
+    }
+
+    public Set<ChildrenEntitiesDTO> getMedia() {
+        return media;
+    }
+
+    public void setMedia(Set<ChildrenEntitiesDTO> media) {
+        this.media = media;
+    }
 
     public Set<ChildrenEntitiesDTO> getInstruments() {
         return instruments;
@@ -39,10 +70,10 @@ public class SheetsMusicDTO extends ChildrenEntitiesDTO {
     @Override
     public String toString() {
         return "{" +
-            (getIndex() != null ? "index=" + getIndex() : "") +
-            (getName() != null ? "name=" + getName() : "") +
-            (getOrder() != null ? "order=" + getOrder() : "") +
-            (getInstruments() != null ? "instruments=" + getInstruments() : "") +
+            "description='" + getDescription() + "'" +
+            ", order=" + getOrder() +
+            ", media=" + getMedia() +
+            ", instruments=" + getInstruments() +
             "}";
     }
 }

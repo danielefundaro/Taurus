@@ -2,7 +2,6 @@ package com.fundaro.zodiac.taurus.service.mapper;
 
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
-import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import org.mapstruct.Mapper;
@@ -23,10 +22,15 @@ public interface TracksMapper extends EntityOpenSearchMapper<TracksDTO, Tracks> 
     TracksDTO toDto(Tracks s);
 
     @Mapping(target = "instruments", source = "instruments", qualifiedByName = "orderChildrenToDto")
+    @Mapping(target = "media", source = "media", qualifiedByName = "orderChildrenToDto")
     SheetsMusicDTO toSheetsMusicDTO(SheetsMusic s);
 
     @Named("orderScores")
     default Set<SheetsMusicDTO> orderScores(Set<SheetsMusic> scores) {
-        return scores.stream().map(this::toSheetsMusicDTO).sorted(Comparator.comparing(ChildrenEntitiesDTO::getOrder)).collect(Collectors.toCollection(LinkedHashSet::new));
+        if (scores != null) {
+            return scores.stream().map(this::toSheetsMusicDTO).sorted(Comparator.comparing(SheetsMusicDTO::getOrder)).collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+
+        return null;
     }
 }

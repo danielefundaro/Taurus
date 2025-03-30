@@ -50,15 +50,9 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(composer);
     }
 
-    public StringFilter composer() {
-        if (composer == null) {
-            setComposer(new StringFilter());
-        }
-        return composer;
-    }
-
-    public void setComposer(StringFilter composer) {
+    public TracksCriteria setComposer(StringFilter composer) {
         this.composer = composer;
+        return this;
     }
 
     public StringFilter getArranger() {
@@ -69,15 +63,9 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(arranger);
     }
 
-    public StringFilter arranger() {
-        if (arranger == null) {
-            setArranger(new StringFilter());
-        }
-        return arranger;
-    }
-
-    public void setArranger(StringFilter arranger) {
+    public TracksCriteria setArranger(StringFilter arranger) {
         this.arranger = arranger;
+        return this;
     }
 
     public StringFilter getType() {
@@ -88,15 +76,9 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(type);
     }
 
-    public StringFilter typeId() {
-        if (type == null) {
-            setType(new StringFilter());
-        }
-        return type;
-    }
-
-    public void setType(StringFilter type) {
+    public TracksCriteria setType(StringFilter type) {
         this.type = type;
+        return this;
     }
 
     @Override

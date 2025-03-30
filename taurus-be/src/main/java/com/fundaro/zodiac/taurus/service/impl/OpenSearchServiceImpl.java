@@ -35,18 +35,6 @@ public class OpenSearchServiceImpl implements OpenSearchService {
     }
 
     @Override
-    public boolean isOpen() {
-        return isOpen;
-    }
-
-    @Override
-    public void close() throws IOException {
-        transport.close();
-        restClient.close();
-        isOpen = false;
-    }
-
-    @Override
     public CreateIndexResponse createIndex(String indexName, TypeMapping.Builder mappingBuilder) throws IOException {
         if (!isOpen) open();
         CreateIndexResponse response;
@@ -107,5 +95,11 @@ public class OpenSearchServiceImpl implements OpenSearchService {
         transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
         openSearchClient = new OpenSearchClient(transport);
         isOpen = true;
+    }
+
+    private void close() throws IOException {
+        transport.close();
+        restClient.close();
+        isOpen = false;
     }
 }

@@ -4,7 +4,6 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
-import com.fundaro.zodiac.taurus.service.ScoresService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.*;
 import com.fundaro.zodiac.taurus.utils.Converter;
@@ -35,15 +34,12 @@ public class Receiver {
 
     private final MediaService mediaService;
 
-    private final ScoresService scoresService;
-
     private final TracksService tracksService;
 
     private final String basePath;
 
-    public Receiver(QueueUploadFilesService queueUploadFilesService, MediaService mediaService, ScoresService scoresService, TracksService tracksService, ApplicationProperties applicationProperties) {
+    public Receiver(QueueUploadFilesService queueUploadFilesService, MediaService mediaService, TracksService tracksService, ApplicationProperties applicationProperties) {
         this.mediaService = mediaService;
-        this.scoresService = scoresService;
         this.tracksService = tracksService;
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
@@ -66,6 +62,11 @@ public class Receiver {
             String type = Strings.isNotBlank(queueUploadFilesDTO.getType()) ? queueUploadFilesDTO.getType() : "unknowns";
 
             if (tracksDTO != null) {
+                // if the score list doesn't exists, create one
+                if (tracksDTO.getScores() == null) {
+                    tracksDTO.setScores(new HashSet<>());
+                }
+
                 // Get file from path and convert it
                 File file = new File(sourcePath);
 
@@ -87,6 +88,8 @@ public class Receiver {
                         MediaDTO mediaDTO = new MediaDTO();
                         mediaDTO.setPath(filePath);
                         mediaDTO.setContentType("image/png");
+                        mediaDTO.setName(tracksDTO.getName());
+                        mediaDTO.setDescription(tracksDTO.getDescription());
                         mediaDTO = mediaService.save(mediaDTO, abstractAuthenticationToken).block();
 
                         if (mediaDTO != null) {
@@ -98,33 +101,20 @@ public class Receiver {
                         }
                     }
 
-                    // Save score
+                    // Save scores
                     log.info("Saved {} media entity", childrenEntitiesDTOSet.size());
 
-                    ScoresDTO scoresDTO = new ScoresDTO();
-                    scoresDTO.setMedia(childrenEntitiesDTOSet);
-                    scoresDTO = scoresService.save(scoresDTO, abstractAuthenticationToken).block();
-
                     // Update track
-                    if (scoresDTO != null) {
-                        log.info("Saved {} score", scoresDTO);
+                    SheetsMusicDTO sheetsMusicDTO = new SheetsMusicDTO();
+                    sheetsMusicDTO.setMedia(childrenEntitiesDTOSet);
 
-                        SheetsMusicDTO sheetsMusicDTO = new SheetsMusicDTO();
-                        sheetsMusicDTO.setIndex(scoresDTO.getId());
-                        sheetsMusicDTO.setName(scoresDTO.getName());
+                    // Get max order value
+                    long sheetMusicOrder = tracksDTO.getScores().stream().map(SheetsMusicDTO::getOrder).max(Long::compareTo).orElse(0L);
+                    sheetsMusicDTO.setOrder(++sheetMusicOrder);
 
-                        if (tracksDTO.getScores() == null) {
-                            tracksDTO.setScores(new HashSet<>());
-                        }
-
-                        // Get max order value
-                        long sheetMusicOrder = tracksDTO.getScores().stream().map(ChildrenEntitiesDTO::getOrder).max(Long::compareTo).orElse(0L);
-                        sheetsMusicDTO.setOrder(++sheetMusicOrder);
-
-                        tracksDTO.getScores().add(sheetsMusicDTO);
-                        tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken).block();
-                        log.info("Updated {} tracks", tracksDTO);
-                    }
+                    tracksDTO.getScores().add(sheetsMusicDTO);
+                    tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken).block();
+                    log.info("Updated {} tracks", tracksDTO);
                 } else {
                     log.error("Could not convert any files in {}", sourcePath);
                 }

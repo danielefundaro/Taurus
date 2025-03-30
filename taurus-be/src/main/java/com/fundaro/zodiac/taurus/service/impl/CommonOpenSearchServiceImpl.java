@@ -26,12 +26,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import reactor.core.publisher.Mono;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
 
@@ -142,6 +145,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
                 .index(getIndex(entityName))
                 .from(pageable.getPageNumber() * pageable.getPageSize())
                 .size(pageable.getPageSize())
+                .trackTotalHits(t -> t.enabled(true))
                 .query(q -> q.bool(b -> b.must(queries)))
                 .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(sort.getProperty()).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
 
@@ -157,14 +161,6 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
             return Mono.just(new PageImpl<>(list, pageable, searchResponse.hits().total().value()));
         } catch (IOException e) {
-            try {
-                if (openSearchService.isOpen()) {
-                    openSearchService.close();
-                }
-            } catch (IOException ex) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, ex.getMessage()), entityName, "generic"));
-            }
-
             return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
         }
     }
@@ -176,23 +172,46 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         try {
             return Mono.just(mapper.toDto(getById(id)));
         } catch (IOException e) {
-            return Mono.empty();
+            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
         }
     }
 
     @Override
-    public Mono<Void> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to delete {} : {}", entityName, id);
+        E entity;
 
         try {
-            E entity = getById(id);
+            entity = getById(id);
             entity.setDeleted(true);
             saveEntity(id, entity, abstractAuthenticationToken);
         } catch (IOException e) {
-            return Mono.empty();
+            return Mono.just(false);
         }
 
-        return Mono.empty();
+        return Mono.just(entity.getDeleted());
+    }
+
+    @Override
+    public void deleteChildInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteria, BiFunction<D, String, Boolean> deleteChild) {
+        // Create filter
+        StringFilter stringFilter = new StringFilter();
+        stringFilter.setEquals(childId);
+
+        // Create criteria
+        C c = criteria.apply(stringFilter);
+        Pageable pageable = Pageable.ofSize(20);
+
+        // Search from parent and remove child with the same id
+        findByCriteria(c, pageable, abstractAuthenticationToken).map(dPage -> {
+            dPage.getContent().forEach(dto -> {
+                if (deleteChild.apply(dto, childId)) {
+                    partialUpdate(dto.getId(), dto, abstractAuthenticationToken).then();
+                }
+            });
+
+            return dPage;
+        }).then();
     }
 
     protected E getById(String id) throws IOException {
