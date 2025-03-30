@@ -71,12 +71,12 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     /**
-     * Delete the "childId" entity.
+     * Update the "childId" entity.
      *
      * @param childId the id of the entity.
      * @param abstractAuthenticationToken the token of the user.
-     * @param criteria the criteria to find children information.
-     * @param deleteChildFunction the definition of the function.
+     * @param criteriaFunction the criteriaFunction to find children's information.
+     * @param function the definition of the function.
      */
-    void deleteChildInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteria, BiFunction<D, String, Boolean> deleteChildFunction);
+    void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function);
 }

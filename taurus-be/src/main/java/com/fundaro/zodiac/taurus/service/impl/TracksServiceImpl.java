@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
+import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Service Implementation for managing {@link Tracks}.
@@ -45,6 +47,22 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         this.queueUploadFilesService = queueUploadFilesService;
         this.albumsService = albumsService;
         this.sender = sender;
+    }
+
+    @Override
+    public Mono<TracksDTO> update(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.update(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
+            updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
+            return tracksDTO;
+        });
+    }
+
+    @Override
+    public Mono<TracksDTO> partialUpdate(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.partialUpdate(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
+            updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
+            return tracksDTO;
+        });
     }
 
     @Override
@@ -78,7 +96,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         return super.delete(id, abstractAuthenticationToken).map(b -> {
             if (b) {
                 // Delete all related information
-                albumsService.deleteChildInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
+                albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
             }
 
             return b;
@@ -91,7 +109,27 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queries.addAll(Converter.stringFilterToQuery("composer", criteria.getComposer()));
         queries.addAll(Converter.stringFilterToQuery("arranger", criteria.getArranger()));
         queries.addAll(Converter.stringFilterToQuery("type", criteria.getType()));
+        queries.addAll(Converter.stringFilterToQuery("scores.media.index", criteria.getMediaId()));
 
         return queries;
+    }
+
+    private void updateRelatedTracks(String id, TracksDTO oldTracksDto, TracksDTO tracksDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (Objects.equals(oldTracksDto.getName(), tracksDTO.getName())) {
+            albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> {
+                boolean result = false;
+
+                if (albumsDTO.getTracks() != null) {
+                    for (ChildrenEntitiesDTO childrenEntitiesDTO : albumsDTO.getTracks()) {
+                        if (childrenEntitiesDTO.getIndex().equals(s)) {
+                            childrenEntitiesDTO.setName(tracksDTO.getName());
+                            result = true;
+                        }
+                    }
+                }
+
+                return result;
+            });
+        }
     }
 }
