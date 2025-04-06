@@ -5,28 +5,32 @@ import { RouterModule, RouterOutlet } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { DataViewModule } from 'primeng/dataview';
+import { DatePickerModule } from 'primeng/datepicker';
 import { DropdownModule } from 'primeng/dropdown';
+import { DynamicDialogModule } from 'primeng/dynamicdialog';
+import { FileUploadModule } from 'primeng/fileupload';
+import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
+import { GalleriaModule } from 'primeng/galleria';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { OrderListModule } from 'primeng/orderlist';
 import { PickListModule } from 'primeng/picklist';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { FloatLabelModule } from 'primeng/floatlabel';
-import { TableModule } from 'primeng/table';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
 import { ToolbarModule } from 'primeng/toolbar';
-import { DatePickerModule } from 'primeng/datepicker';
-import { DynamicDialogModule } from 'primeng/dynamicdialog';
 
 @NgModule({
     imports: [
         NgClass,
         NgIf,
         NgFor,
+        DatePipe,
+        AsyncPipe,
         FormsModule,
         RouterModule,
         RouterOutlet,
@@ -40,7 +44,6 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         OrderListModule,
         TagModule,
         AvatarModule,
-        DatePipe,
         FluidModule,
         TextareaModule,
         FloatLabelModule,
@@ -50,12 +53,15 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         ToolbarModule,
         DatePickerModule,
         DynamicDialogModule,
-        AsyncPipe,
+        FileUploadModule,
+        GalleriaModule,
     ],
     exports: [
         NgClass,
         NgIf,
         NgFor,
+        DatePipe,
+        AsyncPipe,
         FormsModule,
         RouterModule,
         RouterOutlet,
@@ -69,7 +75,6 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         OrderListModule,
         TagModule,
         AvatarModule,
-        DatePipe,
         FluidModule,
         TextareaModule,
         FloatLabelModule,
@@ -79,7 +84,8 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         ToolbarModule,
         DatePickerModule,
         DynamicDialogModule,
-        AsyncPipe,
+        FileUploadModule,
+        GalleriaModule,
     ],
 })
 export class ImportsModule { }

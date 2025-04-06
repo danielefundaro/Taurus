@@ -9,4 +9,12 @@ export class MediaService extends CommonOpenSearchService<Media, MediaCriteria> 
     override resourceName(): string {
         return "media";
     }
+
+    public stream(id: string): string {
+        return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
+    }
+
+    public streamImage(id: string) {
+        return this.http.get<any>(`${this.baseUrl}/${this.resourceName()}/${id}/stream`);
+    }
 }

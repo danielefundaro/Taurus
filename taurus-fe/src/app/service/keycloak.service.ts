@@ -10,7 +10,7 @@ export class KeycloakService {
     public $isUserLoggedIn: BehaviorSubject<boolean>;
     public $loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
-    public get token() {
+    public get token(): string | undefined {
         return this.keycloak.token;
     }
 

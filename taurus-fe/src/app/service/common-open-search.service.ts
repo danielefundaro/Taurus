@@ -14,7 +14,7 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this._baseUrl;
     }
 
-    constructor(private readonly http: HttpClient) {
+    constructor(protected http: HttpClient) {
         this._baseUrl = environment.baseUrl;
     }
 

@@ -1,45 +1,52 @@
 <p-fluid>
     <div class="flex">
-        <div class="card flex flex-col gap-8 w-full">
+        <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center font-semibold text-xl">
-                <span>Albums</span>
+                <span>Traccia</span>
                 <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
             </div>
             <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full">
+                <p-floatlabel class="flex w-full" variant="on">
                     <input pInputText id="name" type="text" [(ngModel)]="track!.name" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
-                <p-floatlabel class="flex w-full">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="yy-mm-dd"
-                        [(ngModel)]="track!.composer" />
-                    <label for="date">Data</label>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="name" type="text" [(ngModel)]="track!.composer" />
+                    <label for="name">Compositore</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="name" type="text" [(ngModel)]="track!.arranger" />
+                    <label for="name">Arrangiatore</label>
                 </p-floatlabel>
             </div>
-            <p-floatlabel class="flex">
+            <p-floatlabel class="flex" variant="on">
                 <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
-            <div class="flex flex-wrap">
-            </div>
+            <app-type-handler variant="on" label="Tipo" [(types)]="track!.type"></app-type-handler>
+            <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
+                mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()">
+                <ng-template #empty>
+                    <div>Trascina il file qui per caricarlo.</div>
+                </ng-template>
+            </p-fileupload>
         </div>
     </div>
 
     <p-toolbar styleClass="mt-10 mb-6">
         <ng-template #start>
-            <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="addNew()" />
             <p-button severity="secondary" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteSelectedTracks()"
-                [disabled]="selectedTracks.length" />
+                [disabled]="selectedScores.length" />
         </ng-template>
     </p-toolbar>
 
-    <p-table #dt [value]="track.scores!" [rows]="10" [columns]="cols" [paginator]="true" [globalFilterFields]="['name']"
-        [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
+    <p-table #dt class="minw-75rem" [value]="track.scores!" [rows]="10" [columns]="cols" [paginator]="true"
+        [globalFilterFields]="['name']" [(selection)]="selectedScores" [rowHover]="true" dataKey="index"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tracks" [showCurrentPageReport]="true"
         [rowsPerPageOptions]="[10, 20, 30]">
         <ng-template #caption>
             <div class="flex items-center justify-between">
-                <h5 class="m-0">Gestisci tracce</h5>
+                <h5 class="m-0">Gestisci parti</h5>
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
                     <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Search..." />
@@ -48,36 +55,57 @@
         </ng-template>
         <ng-template #header>
             <tr>
-                <th style="width: 3rem" scope="col">
+                <th class="w-12" scope="col">
                     <p-tableHeaderCheckbox />
                 </th>
-                <th style="min-width: 16rem" scope="col">Codice</th>
-                <th pSortableColumn="order" style="min-width:10rem" scope="col">
+                <th pSortableColumn="order" class="minw-8rem" scope="col">
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th pSortableColumn="name" style="min-width:16rem" scope="col">
-                    Nome
+                <th class="minw-16rem" scope="col">Descrizione</th>
+                <th pSortableColumn="media" class="minw-16rem" scope="col">
+                    Media
+                    <p-sortIcon field="media" />
+                </th>
+                <th pSortableColumn="name" class="minw-16rem" scope="col">
+                    Strumenti
                     <p-sortIcon field="name" />
                 </th>
-                <th style="min-width: 12rem" scope="col"></th>
+                <th class="minw-12rem" scope="col"></th>
             </tr>
         </ng-template>
-        <ng-template #body let-track>
+        <ng-template #body let-score>
             <tr>
-                <td style="width: 3rem">
-                    <p-tableCheckbox [value]="track" />
+                <td class="w-12">
+                    <p-tableCheckbox [value]="score" />
                 </td>
-                <td style="min-width: 12rem">{{ track.index }}</td>
-                <td>{{ track.order }}</td>
-                <td style="min-width: 16rem">{{ track.name }}</td>
-                <td>
+                <td class="minw-8rem">{{ score.order }}</td>
+                <td class="minw-16rem">{{ score.description }}</td>
+                <td class="minw-16rem" class="flex flex-col md:flex-row flex-wrap gap-2">
+                    <p-button icon="pi pi-external-link" label="Show" (onClick)="showMedia()" />
+                    <!-- <ng-container *ngFor="let media of score!.media">
+                        <img [src]="mediaStream(media)" class="w-40 cursor-pointer" alt="sheet-music-{{media.index}}" (onClick)="showMedia(media)" />
+                    </ng-container> -->
+                </td>
+                <td class="minw-16rem">{{ score.instruments }}</td>
+                <td class="minw-12rem">
                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
-                        (onClick)="editTrack(track)" />
+                        (onClick)="editScore(score)" />
                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                        (onClick)="deleteTrack(track)" />
+                        (onClick)="deleteScore(score)" />
                 </td>
             </tr>
         </ng-template>
     </p-table>
 </p-fluid>
+
+<p-galleria [value]="images" [(visible)]="displayBasic" [responsiveOptions]="galleriaResponsiveOptions" [numVisible]="5"
+    [autoPlay]="true" [circular]="true" [fullScreen]="true" [transitionInterval]="3000"
+    [containerStyle]="{ 'max-width': '640px' }">
+    <ng-template #item let-media>
+        <img [src]="media" alt="sheet-music-{{media.index}}" />
+    </ng-template>
+    <ng-template #thumbnail let-media>
+        <img [src]="media" alt="sheet-music-{{media.index}}" />
+    </ng-template>
+</p-galleria>

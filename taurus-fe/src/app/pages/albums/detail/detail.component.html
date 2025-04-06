@@ -1,27 +1,25 @@
 <p-fluid>
     <div class="flex">
-        <div class="card flex flex-col gap-8 w-full">
+        <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center font-semibold text-xl">
                 <span>Albums</span>
                 <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
             </div>
             <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full">
+                <p-floatlabel class="flex w-full" variant="on">
                     <input pInputText id="name" type="text" [(ngModel)]="album!.name" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
-                <p-floatlabel class="flex w-full">
+                <p-floatlabel class="flex w-full" variant="on">
                     <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="yy-mm-dd"
                         [(ngModel)]="album!.date" />
                     <label for="date">Data</label>
                 </p-floatlabel>
             </div>
-            <p-floatlabel class="flex">
+            <p-floatlabel class="flex" variant="on">
                 <textarea pTextarea id="description" rows="4" [(ngModel)]="album!.description"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
-            <div class="flex flex-wrap">
-            </div>
         </div>
     </div>
 
@@ -33,8 +31,8 @@
         </ng-template>
     </p-toolbar>
 
-    <p-table #dt [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true" [globalFilterFields]="['name']"
-        [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
+    <p-table #dt class="minw-75rem" [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true"
+        [globalFilterFields]="['name']" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tracks" [showCurrentPageReport]="true"
         [rowsPerPageOptions]="[10, 20, 30]">
         <ng-template #caption>
@@ -48,30 +46,30 @@
         </ng-template>
         <ng-template #header>
             <tr>
-                <th style="width: 3rem" scope="col">
+                <th class="w-12" scope="col">
                     <p-tableHeaderCheckbox />
                 </th>
-                <th style="min-width: 16rem" scope="col">Codice</th>
-                <th pSortableColumn="order" style="min-width:10rem" scope="col">
+                <th class="minw-12rem" scope="col">Codice</th>
+                <th pSortableColumn="order" class="minw-10rem" scope="col">
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th pSortableColumn="name" style="min-width:16rem" scope="col">
+                <th pSortableColumn="name" class="minw-16rem" scope="col">
                     Nome
                     <p-sortIcon field="name" />
                 </th>
-                <th style="min-width: 12rem" scope="col"></th>
+                <th class="minw-12rem" scope="col"></th>
             </tr>
         </ng-template>
         <ng-template #body let-track>
             <tr>
-                <td style="width: 3rem">
+                <td class="w-12">
                     <p-tableCheckbox [value]="track" />
                 </td>
-                <td style="min-width: 12rem">{{ track.index }}</td>
-                <td>{{ track.order }}</td>
-                <td style="min-width: 16rem">{{ track.name }}</td>
-                <td>
+                <td class="minw-12rem">{{ track.index }}</td>
+                <td class="minw-10rem">{{ track.order }}</td>
+                <td class="minw-16rem">{{ track.name }}</td>
+                <td class="minw-12rem">
                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                         (onClick)="editTrack(track)" />
                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
