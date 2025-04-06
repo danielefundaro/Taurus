@@ -66,6 +66,7 @@ export class AlbumsComponent {
             closable: true,
             draggable: true,
             resizable: true,
+            modal: true,
             width: '50vw',
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
