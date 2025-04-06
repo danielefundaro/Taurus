@@ -26,30 +26,30 @@
                                 shape="circle"></p-avatar>
                         </a>
                         <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
-                            <div class="flex flex-row md:flex-col justify-between items-start gap-2">
-                                <div>
-                                    <a class="text-lg font-medium mt-2 cursor-pointer block" [routerLink]="item.id">{{
-                                        item.name }}</a>
-                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                        item.description }}</span>
-                                </div>
-                                <div class="bg-surface-100 p-1" style="border-radius: 30px" *ngIf="item.date">
-                                    <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2" style="
-                                                border-radius: 30px;
-                                                box-shadow:
-                                                    0px 1px 2px 0px rgba(0, 0, 0, 0.04),
-                                                    0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-                                            ">
-                                        <span class="text-surface-900 font-medium text-sm">{{ item.date |
-                                            date:'dd-MM-yyyy' }}</span>
-                                        <i class="pi pi-calendar text-yellow-500"></i>
-                                    </div>
+                            <div>
+                                <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
+                                    {{ item.name }}
+                                </a>
+                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                    {{ item.description }}
+                                </span>
+                                <div class="flex flex-col md:flex-row flex-wrap items-start mt-2 gap-2"
+                                    *ngIf="item.type">
+                                    <p-tag [value]="type" [rounded]="true" severity="secondary"
+                                        *ngFor="let type of item.type"></p-tag>
                                 </div>
                             </div>
-                            <div class="flex flex-col md:items-end gap-8">
-                                <span class="text-xl font-semibold">{{ item.date | date:'dd-MM-yyyy' }}</span>
+                            <div class="flex flex-col md:items-end gap-2">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-lg font-medium" *ngIf="item.composer">
+                                        {{ item.composer }}
+                                    </span>
+                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm"
+                                        *ngIf="item.arranger">{{ item.arranger }}
+                                    </span>
+                                </div>
                                 <div class="flex flex-row md:flex-row gap-2">
-                                    <p-button icon="pi pi-pencil" label="Edit" [routerLink]="item.id"
+                                    <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
                                         styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
                                     <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
                                         (onClick)="deleteElement(item)"></p-button>
@@ -77,28 +77,25 @@
                             <div class="pt-12">
                                 <div class="flex flex-row justify-between items-start gap-2">
                                     <div>
-                                        <a class="text-lg font-medium mt-1 cursor-pointer block"
-                                            [routerLink]="item.id">{{
-                                            item.name }}</a>
-                                        <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">{{
-                                            item.description }}</span>
-                                    </div>
-                                    <div class="bg-surface-100 p-1" style="border-radius: 30px" *ngIf="item.date">
-                                        <div class="bg-surface-0 flex items-center gap-2 justify-center py-1 px-2"
-                                            style="
-                                                border-radius: 30px;
-                                                box-shadow:
-                                                    0px 1px 2px 0px rgba(0, 0, 0, 0.04),
-                                                    0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-                                            ">
-                                            <span class="text-surface-900 font-medium text-sm">{{ item.date |
-                                                date:'dd-MM-yyyy' }}</span>
-                                            <i class="pi pi-calendar text-yellow-500"></i>
-                                        </div>
+                                        <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
+                                            {{ item.name }}
+                                        </a>
+                                        <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                            {{ item.description }}
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="flex flex-col gap-6 mt-6">
-                                    <span class="text-2xl font-semibold">{{ item.date | date:'dd-MM-yyyy' }}</span>
+                                <div class="flex flex-row flex-wrap mt-2 gap-2" *ngIf="item.type">
+                                    <p-tag [value]="type" [rounded]="true" severity="secondary"
+                                        *ngFor="let type of item.type"></p-tag>
+                                </div>
+                                <div class="flex flex-col gap-2 mt-6">
+                                    <span class="text-lg font-medium" *ngIf="item.composer">
+                                        {{ item.composer }}
+                                    </span>
+                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm"
+                                        *ngIf="item.arranger">{{ item.arranger }}
+                                    </span>
                                     <div class="flex gap-2">
                                         <p-button icon="pi pi-pencil" label="Edit" [routerLink]="item.id"
                                             class="flex-auto whitespace-nowrap" styleClass="w-full"></p-button>

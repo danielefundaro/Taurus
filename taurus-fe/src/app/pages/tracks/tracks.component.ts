@@ -5,10 +5,10 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { first } from 'rxjs';
-import { AddAlbumsDialogComponent } from '../../dialog/add-albums-dialog/add-albums-dialog.component';
+import { AddTracksDialogComponent } from '../../dialog/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
-import { Albums, Page, Tracks, TracksCriteria } from '../../module';
-import { AlbumsService, TracksService } from '../../service';
+import { Page, Tracks, TracksCriteria } from '../../module';
+import { TracksService } from '../../service';
 
 @Component({
     selector: 'app-tracks',
@@ -18,7 +18,10 @@ import { AlbumsService, TracksService } from '../../service';
     ],
     templateUrl: './tracks.component.html',
     styleUrl: './tracks.component.scss',
-    providers: [AlbumsService, DialogService]
+    providers: [
+        TracksService,
+        DialogService,
+    ]
 })
 export class TracksComponent {
     public sortOptions!: SelectItem[];
@@ -63,19 +66,20 @@ export class TracksComponent {
     }
 
     public addNew(): void {
-        this.dynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
+        this.dynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
             header: "Aggiungi traccia",
             closable: true,
             draggable: true,
             resizable: true,
+            modal: true,
             width: '50vw',
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
 
-        this.dynamicDialogRef.onClose.pipe(first()).subscribe((result: Albums) => {
+        this.dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
             if (result) {
                 this.tracksService.create(result).pipe(first()).subscribe({
-                    next: (album: Albums) => {
+                    next: (track: Tracks) => {
                         this.loadElements();
                     }
                 });
@@ -98,7 +102,7 @@ export class TracksComponent {
         tracksCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
 
         this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe({
-            next: (value: Page<Albums>) => {
+            next: (value: Page<Tracks>) => {
                 this.tracks = value.content;
                 this.totalRecords = value.totalElements;
             }

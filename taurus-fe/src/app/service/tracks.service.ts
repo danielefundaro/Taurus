@@ -9,4 +9,8 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
     override resourceName(): string {
         return "tracks";
     }
+
+    public stream(id: string): string {
+        return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
+    }
 }
