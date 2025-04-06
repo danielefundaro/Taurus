@@ -247,6 +247,17 @@ public class OpenSearchConfiguration {
     private Map<String, Property> getProperties(Map<String, Map<String, Object>> properties) {
         Map<String, Property> map = new HashMap<>();
         properties.forEach((key, value) -> {
+            String format = null;
+            Map<String, Property> fields = null;
+
+            if (value.containsKey("format")) {
+                format = value.get("format").toString();
+            }
+
+            if (value.containsKey("fields")) {
+                fields = getProperties((Map<String, Map<String, Object>>) value.get("fields"));
+            }
+
             if (value.containsKey("type")) {
                 Property p = switch (value.get("type").toString()) {
                     case "alias" -> new Property.Builder().alias(new FieldAliasProperty.Builder().build()).build();
@@ -254,7 +265,15 @@ public class OpenSearchConfiguration {
                     case "binary" -> new Property.Builder().binary(new BinaryProperty.Builder().build()).build();
                     case "completion" ->
                         new Property.Builder().completion(new CompletionProperty.Builder().build()).build();
-                    case "date" -> new Property.Builder().date(new DateProperty.Builder().build()).build();
+                    case "date" -> {
+                        DateProperty.Builder dateProperty = new DateProperty.Builder();
+
+                        if (Strings.isNotBlank(format)) {
+                            dateProperty.format(format);
+                        }
+
+                        yield new Property.Builder().date(dateProperty.build()).build();
+                    }
                     case "dateRange" ->
                         new Property.Builder().dateRange(new DateRangeProperty.Builder().build()).build();
                     case "double" -> new Property.Builder().double_(new DoubleNumberProperty.Builder().build()).build();
@@ -288,7 +307,15 @@ public class OpenSearchConfiguration {
                         new Property.Builder().rankFeatures(new RankFeaturesProperty.Builder().build()).build();
                     case "search_as_you_type" ->
                         new Property.Builder().searchAsYouType(new SearchAsYouTypeProperty.Builder().build()).build();
-                    case "text" -> new Property.Builder().text(new TextProperty.Builder().build()).build();
+                    case "text" -> {
+                        TextProperty.Builder textPropertyBuilder = new TextProperty.Builder();
+
+                        if (fields != null) {
+                            textPropertyBuilder.fields(fields);
+                        }
+
+                        yield new Property.Builder().text(textPropertyBuilder.build()).build();
+                    }
                     case "token_count" ->
                         new Property.Builder().tokenCount(new TokenCountProperty.Builder().build()).build();
                     default -> null;
