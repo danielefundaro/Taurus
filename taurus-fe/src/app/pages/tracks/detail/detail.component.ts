@@ -1,13 +1,15 @@
 import { Component } from '@angular/core';
-import { AlbumsService, TracksService } from '../../../service';
+import { AlbumsService, MediaService, TracksService } from '../../../service';
 import { SelectItem } from 'primeng/api';
 import { ActivatedRoute } from '@angular/router';
-import { Albums, ChildrenEntities } from '../../../module';
+import { Albums, ChildrenEntities, Tracks } from '../../../module';
 import { ImportsModule } from '../../../imports';
 import { Table } from 'primeng/table';
+import { first } from 'rxjs';
+import { SheetsMusic } from '../../../module/sheets-music.module';
 
 @Component({
-    selector: 'app-detail',
+    selector: 'app-track-detail',
     imports: [
         ImportsModule,
     ],
@@ -18,28 +20,28 @@ import { Table } from 'primeng/table';
 export class DetailComponent {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
-    public album: Albums = new Albums();
+    public track: Tracks = new Tracks();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
 
-    constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
+    constructor(private readonly tracksService: TracksService, private readonly mediaService: MediaService,
         private readonly routeService: ActivatedRoute) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
     }
 
     ngOnInit() {
-        this.routeService.params.subscribe(params => {
+        this.routeService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
         });
     }
 
     public save(): void {
-        this.albumsService.update(this.album.id, this.album).subscribe({
+        this.tracksService.update(this.track.id, this.track).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.loadElement(album.id);
             }
-        })
+        });
     }
 
     public deleteSelectedTracks(): void {
@@ -49,10 +51,10 @@ export class DetailComponent {
     }
 
     public addNew(): void {
-        this.album.tracks?.push(new ChildrenEntities());
+        this.track.scores?.push(new SheetsMusic());
     }
 
-    public onGlobalFilter(table: Table<ChildrenEntities>, event: Event): void {
+    public onGlobalFilter(table: Table<SheetsMusic>, event: Event): void {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
@@ -60,14 +62,14 @@ export class DetailComponent {
         console.log(track);
     }
 
-    public deleteTrack(selectedTrack: ChildrenEntities): void {
-        this.album.tracks?.slice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
+    public deleteTrack(selectedScore: SheetsMusic): void {
+        this.track.scores?.slice(this.track.scores.findIndex(score => selectedScore.order === score.order), 1);
     }
 
     private loadElement(id: string) {
-        this.albumsService.getById(id).subscribe({
+        this.tracksService.getById(id).pipe(first()).subscribe({
             next: (album: Albums) => {
-                this.album = album;
+                this.track = album;
             }
         });
     }
