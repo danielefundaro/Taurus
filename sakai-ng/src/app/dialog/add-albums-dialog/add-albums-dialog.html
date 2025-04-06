@@ -1,0 +1,22 @@
+<p-fluid class="flex flex-col flex-start gap-4 mb-8">
+    <span class="text-surface-500 dark:text-surface-400 block mb-8">Inserisci le informazioni.</span>
+    <div class="flex flex-row gap-4">
+        <p-floatlabel class="flex w-full" variant="on">
+            <label for="name">Nome</label>
+            <input pInputText id="name" type="text" [(ngModel)]="album.name" />
+        </p-floatlabel>
+        <p-floatlabel class="flex w-full" variant="on">
+            <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="dd-mm-yy"
+                class="w-full" [(ngModel)]="album.date" />
+            <label for="date">Data</label>
+        </p-floatlabel>
+    </div>
+    <p-floatlabel class="flex" variant="on">
+        <label for="description">Descrizione</label>
+        <textarea pTextarea id="description" rows="10" class="w-full" [(ngModel)]="album.description"></textarea>
+    </p-floatlabel>
+</p-fluid>
+<div class="flex justify-end gap-2 mt-2">
+    <p-button label="Annulla" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
+    <p-button label="Salva" icon="pi pi-check" [outlined]="true" severity="primary" (onClick)="save()" />
+</div>
