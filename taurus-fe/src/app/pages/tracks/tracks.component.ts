@@ -5,7 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { first } from 'rxjs';
-import { AddTracksDialogComponent } from '../../dialog/add-tracks-dialog/add-tracks-dialog.component';
+import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
 import { TracksService } from '../../service';
