@@ -20,13 +20,19 @@
       "type": "date"
     },
     "name": {
-      "type": "text"
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
     },
     "description": {
       "type": "text"
     },
     "date": {
-      "type": "date"
+      "type": "date",
+      "format": "yyyy-MM-dd||epoch_millis||rfc3339_lenient"
     },
     "tracks": {
       "type": "object",
