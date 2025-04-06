@@ -1,19 +1,23 @@
 import { Component } from '@angular/core';
-import { AlbumsService, TracksService } from '../../../service';
-import { SelectItem } from 'primeng/api';
 import { ActivatedRoute } from '@angular/router';
-import { Albums, ChildrenEntities } from '../../../module';
-import { ImportsModule } from '../../../imports';
+import { SelectItem } from 'primeng/api';
 import { Table } from 'primeng/table';
+import { first } from 'rxjs';
+import { ImportsModule } from '../../../imports';
+import { Albums, ChildrenEntities } from '../../../module';
+import { AlbumsService, TracksService } from '../../../service';
 
 @Component({
-    selector: 'app-detail',
+    selector: 'app-album-detail',
     imports: [
         ImportsModule,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [AlbumsService, TracksService],
+    providers: [
+        AlbumsService,
+        TracksService
+    ],
 })
 export class DetailComponent {
     public sortOptions!: SelectItem[];
@@ -29,17 +33,17 @@ export class DetailComponent {
     }
 
     ngOnInit() {
-        this.routeService.params.subscribe(params => {
+        this.routeService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
         });
     }
 
     public save(): void {
-        this.albumsService.update(this.album.id, this.album).subscribe({
+        this.albumsService.update(this.album.id, this.album).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.loadElement(album.id);
             }
-        })
+        });
     }
 
     public deleteSelectedTracks(): void {
@@ -65,7 +69,7 @@ export class DetailComponent {
     }
 
     private loadElement(id: string) {
-        this.albumsService.getById(id).subscribe({
+        this.albumsService.getById(id).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.album = album;
             }

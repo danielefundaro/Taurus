@@ -4,11 +4,11 @@ import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { Subscription } from 'rxjs';
+import { first } from 'rxjs';
 import { AddAlbumsDialogComponent } from '../../dialog/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
-import { Albums, AlbumsCriteria, Page } from '../../module';
-import { AlbumsService } from '../../service';
+import { Albums, Page, Tracks, TracksCriteria } from '../../module';
+import { AlbumsService, TracksService } from '../../service';
 
 @Component({
     selector: 'app-tracks',
@@ -26,14 +26,12 @@ export class TracksComponent {
     public options = ['list', 'grid'];
     public totalRecords: number = 0;
     public dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
-    public albums: Albums[];
+    public tracks: Tracks[];
 
-    private albumsSubscription?: Subscription;
-    private albumsDeleteSubscription?: Subscription;
     private dynamicDialogRef?: DynamicDialogRef;
 
-    constructor(private readonly albumsService: AlbumsService, public dialogService: DialogService) {
-        this.albums = [];
+    constructor(private readonly tracksService: TracksService, public dialogService: DialogService) {
+        this.tracks = [];
     }
 
     ngOnInit() {
@@ -41,16 +39,6 @@ export class TracksComponent {
             { label: 'Name A-Z', value: 'name.keyword' },
             { label: 'Name Z-A', value: '!name.keyword' },
         ];
-    }
-
-    ngOnDestroy() {
-        if (this.albumsSubscription) {
-            this.albumsSubscription.unsubscribe();
-        }
-
-        if (this.albumsDeleteSubscription) {
-            this.albumsDeleteSubscription.unsubscribe();
-        }
     }
 
     public onSortChange(event: SelectChangeEvent) {
@@ -76,7 +64,7 @@ export class TracksComponent {
 
     public addNew(): void {
         this.dynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
-            header: "Aggiungi album",
+            header: "Aggiungi traccia",
             closable: true,
             draggable: true,
             resizable: true,
@@ -84,19 +72,19 @@ export class TracksComponent {
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
 
-        this.dynamicDialogRef.onClose.subscribe((result: Albums) => {
+        this.dynamicDialogRef.onClose.pipe(first()).subscribe((result: Albums) => {
             if (result) {
-                this.albumsService.create(result).subscribe({
+                this.tracksService.create(result).pipe(first()).subscribe({
                     next: (album: Albums) => {
                         this.loadElements();
                     }
                 });
             }
-        })
+        });
     }
 
-    public deleteElement(albums: Albums) {
-        this.albumsDeleteSubscription = this.albumsService.delete(albums.id).subscribe({
+    public deleteElement(track: Tracks) {
+        this.tracksService.delete(track.id).pipe(first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
             }
@@ -104,14 +92,14 @@ export class TracksComponent {
     }
 
     private loadElements() {
-        const albumsCriteria: AlbumsCriteria = new AlbumsCriteria();
-        albumsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
-        albumsCriteria.size = this.dataViewLazyLoadEvent.rows;
-        albumsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+        const tracksCriteria: TracksCriteria = new TracksCriteria();
+        tracksCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
+        tracksCriteria.size = this.dataViewLazyLoadEvent.rows;
+        tracksCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
 
-        this.albumsSubscription = this.albumsService.getAll(albumsCriteria).subscribe({
+        this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe({
             next: (value: Page<Albums>) => {
-                this.albums = value.content;
+                this.tracks = value.content;
                 this.totalRecords = value.totalElements;
             }
         });
