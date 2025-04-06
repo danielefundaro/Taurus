@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { NgModule } from "@angular/core";
 import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
@@ -50,6 +50,7 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         ToolbarModule,
         DatePickerModule,
         DynamicDialogModule,
+        AsyncPipe,
     ],
     exports: [
         NgClass,
@@ -78,6 +79,7 @@ import { DynamicDialogModule } from 'primeng/dynamicdialog';
         ToolbarModule,
         DatePickerModule,
         DynamicDialogModule,
+        AsyncPipe,
     ],
 })
 export class ImportsModule { }

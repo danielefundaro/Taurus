@@ -1,7 +1,7 @@
 <div class="card">
-    <p-dataview [value]="albums" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true"
+    <p-dataview [value]="tracks" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
-        [paginatorPosition]="albums.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
+        [paginatorPosition]="tracks.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
         [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
         [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>

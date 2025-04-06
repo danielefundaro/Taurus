@@ -7,17 +7,17 @@
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full">
-                    <input pInputText id="name" type="text" [(ngModel)]="album!.name" />
+                    <input pInputText id="name" type="text" [(ngModel)]="track!.name" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full">
                     <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="yy-mm-dd"
-                        [(ngModel)]="album!.date" />
+                        [(ngModel)]="track!.composer" />
                     <label for="date">Data</label>
                 </p-floatlabel>
             </div>
             <p-floatlabel class="flex">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="album!.description"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
             <div class="flex flex-wrap">
@@ -33,7 +33,7 @@
         </ng-template>
     </p-toolbar>
 
-    <p-table #dt [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true" [globalFilterFields]="['name']"
+    <p-table #dt [value]="track.scores!" [rows]="10" [columns]="cols" [paginator]="true" [globalFilterFields]="['name']"
         [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tracks" [showCurrentPageReport]="true"
         [rowsPerPageOptions]="[10, 20, 30]">
