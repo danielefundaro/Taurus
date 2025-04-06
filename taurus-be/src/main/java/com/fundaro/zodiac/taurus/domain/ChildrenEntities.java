@@ -2,8 +2,10 @@ package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.io.Serializable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ChildrenEntities {
+public class ChildrenEntities implements Serializable {
 
     private String index;
 
