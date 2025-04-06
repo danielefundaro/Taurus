@@ -5,7 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { first } from 'rxjs';
-import { AddAlbumsDialogComponent } from '../../dialog/add-albums-dialog/add-albums-dialog.component';
+import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, Page } from '../../module';
 import { AlbumsService } from '../../service';
