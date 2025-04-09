@@ -60,6 +60,11 @@ export class AppMenu {
                         routerLink: ['/tracks']
                     },
                     {
+                        label: 'Instruments',
+                        icon: 'pi pi-fw pi-globe',
+                        routerLink: ['/instruments']
+                    },
+                    {
                         label: 'Landing',
                         icon: 'pi pi-fw pi-globe',
                         routerLink: ['/landing']
