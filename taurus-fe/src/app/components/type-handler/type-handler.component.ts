@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { FormsModule } from '@angular/forms';
 import { ChipModule } from 'primeng/chip';
 import { FloatLabelModule } from 'primeng/floatlabel';
+import { InputGroup } from 'primeng/inputgroup';
+import { InputGroupAddon } from 'primeng/inputgroupaddon';
 import { InputTextModule } from 'primeng/inputtext';
 
 @Component({
@@ -13,7 +15,9 @@ import { InputTextModule } from 'primeng/inputtext';
         FormsModule,
         FloatLabelModule,
         InputTextModule,
-        ChipModule
+        InputGroup,
+        InputGroupAddon,
+        ChipModule,
     ],
     templateUrl: './type-handler.component.html',
     styleUrl: './type-handler.component.scss',
