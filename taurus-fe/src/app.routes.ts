@@ -27,6 +27,12 @@ export const appRoutes: Routes = [
                 canActivate: [canActivateAuthRole],
                 data: { role: ['ROLE_USER'] },
             },
+            {
+                path: 'instruments',
+                loadChildren: () => import('./app/pages/instruments/instruments.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: ['ROLE_USER'] },
+            },
         ]
     },
     { path: 'landing', component: Landing },
