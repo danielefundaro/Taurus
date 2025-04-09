@@ -35,8 +35,9 @@
 
     <p-toolbar styleClass="mt-10 mb-6">
         <ng-template #start>
-            <p-button severity="secondary" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteSelectedTracks()"
-                [disabled]="selectedScores.length" />
+            <p-button severity="primary" label="Nuovo" icon="pi pi-plus" class="mr-2" outlined (onClick)="addNew()" />
+            <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
+                (onClick)="deleteSelectedTracks()" [disabled]="selectedScores.length" />
         </ng-template>
     </p-toolbar>
 
@@ -62,12 +63,11 @@
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th class="minw-16rem" scope="col">Descrizione</th>
                 <th pSortableColumn="media" class="minw-16rem" scope="col">
                     Media
                     <p-sortIcon field="media" />
                 </th>
-                <th pSortableColumn="name" class="minw-16rem" scope="col">
+                <th pSortableColumn="name" class="minw-12rem" scope="col">
                     Strumenti
                     <p-sortIcon field="name" />
                 </th>
@@ -80,14 +80,19 @@
                     <p-tableCheckbox [value]="score" />
                 </td>
                 <td class="minw-8rem">{{ score.order }}</td>
-                <td class="minw-16rem">{{ score.description }}</td>
-                <td class="minw-16rem" class="flex flex-col md:flex-row flex-wrap gap-2">
-                    <p-button icon="pi pi-external-link" label="Show" (onClick)="showMedia()" />
-                    <!-- <ng-container *ngFor="let media of score!.media">
-                        <img [src]="mediaStream(media)" class="w-40 cursor-pointer" alt="sheet-music-{{media.index}}" (onClick)="showMedia(media)" />
-                    </ng-container> -->
+                <td class="minw-16rem">
+                    <p-button icon="pi pi-external-link" label="Show" (onClick)="showMedia(score.media)"
+                        *ngIf="score!.media" />
+                    <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1" (drop)="dropHandler(score)"
+                        (dragover)="dragoverHandler($event)">
+                        <ng-container *ngFor="let media of score!.media">
+                            <img [src]="mediaStream(media)" class="w-40 cursor-pointer"
+                                alt="sheet-music-{{media.index}}" [draggable]="true"
+                                (dragstart)="dragstartHandler(media, score)" />
+                        </ng-container>
+                    </div>
                 </td>
-                <td class="minw-16rem">{{ score.instruments }}</td>
+                <td class="minw-12rem">{{ score.instruments }}</td>
                 <td class="minw-12rem">
                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
                         (onClick)="editScore(score)" />
@@ -99,9 +104,9 @@
     </p-table>
 </p-fluid>
 
-<p-galleria [value]="images" [(visible)]="displayBasic" [responsiveOptions]="galleriaResponsiveOptions" [numVisible]="5"
+<p-galleria [value]="images" [(visible)]="displayBasic" [responsiveOptions]="responsiveOptions" [numVisible]="5"
     [autoPlay]="true" [circular]="true" [fullScreen]="true" [transitionInterval]="3000"
-    [containerStyle]="{ 'max-width': '640px' }">
+    [containerStyle]="{ 'max-width': '60rem' }">
     <ng-template #item let-media>
         <img [src]="media" alt="sheet-music-{{media.index}}" />
     </ng-template>
