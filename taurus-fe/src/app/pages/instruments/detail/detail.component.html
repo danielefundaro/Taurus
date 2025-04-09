@@ -1,0 +1,20 @@
+<p-fluid>
+    <div class="flex">
+        <div class="card flex flex-col gap-4 w-full">
+            <div class="flex flex-row justify-between items-center font-semibold text-xl">
+                <span>Strumento</span>
+                <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
+            </div>
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="name" type="text" [(ngModel)]="instrument!.name" />
+                    <label for="name">Nome</label>
+                </p-floatlabel>
+            </div>
+            <p-floatlabel class="flex" variant="on">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="instrument!.description"></textarea>
+                <label for="description">Descrizione</label>
+            </p-floatlabel>
+        </div>
+    </div>
+</p-fluid>
