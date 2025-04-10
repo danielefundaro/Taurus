@@ -63,15 +63,15 @@
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th pSortableColumn="media" class="minw-16rem" scope="col">
+                <th pSortableColumn="media" class="minw-8rem" scope="col">
                     Media
                     <p-sortIcon field="media" />
                 </th>
-                <th pSortableColumn="name" class="minw-12rem" scope="col">
+                <th pSortableColumn="name" class="minw-8rem" scope="col">
                     Strumenti
                     <p-sortIcon field="name" />
                 </th>
-                <th class="minw-12rem" scope="col"></th>
+                <th class="minw-2rem" scope="col"></th>
             </tr>
         </ng-template>
         <ng-template #body let-score>
@@ -80,24 +80,31 @@
                     <p-tableCheckbox [value]="score" />
                 </td>
                 <td class="minw-8rem">{{ score.order }}</td>
-                <td class="minw-16rem">
-                    <p-button icon="pi pi-external-link" label="Show" (onClick)="showMedia(score.media)"
-                        *ngIf="score!.media" />
+                <td class="minw-8rem">
+                    <p-button icon="pi pi-images" label="Show" (onClick)="showMedia(score.media)"
+                        *ngIf="score!.media?.length > 3" />
                     <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1" (drop)="dropHandler(score)"
                         (dragover)="dragoverHandler($event)">
                         <ng-container *ngFor="let media of score!.media">
-                            <img [src]="mediaStream(media)" class="w-40 cursor-pointer"
-                                alt="sheet-music-{{media.index}}" [draggable]="true"
-                                (dragstart)="dragstartHandler(media, score)" />
+                            <div class="div-image pi pi-image" [draggable]="true" (click)="toggleDataTable(op2, $event)"
+                                (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
+                                (keypress)="toggleDataTable(op2, $event)" (dragstart)="dragstartHandler(media, score)">
+                                <p-popover #op2 [style]="{width: '50rem'}">
+                                    <img [src]="mediaStream(media) | secure | async" class="w-50 cursor-pointer"
+                                        alt="sheet-music-{{media.index}}" />
+                                </p-popover>
+                            </div>
                         </ng-container>
                     </div>
                 </td>
-                <td class="minw-12rem">{{ score.instruments }}</td>
-                <td class="minw-12rem">
-                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
-                        (onClick)="editScore(score)" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                        (onClick)="deleteScore(score)" />
+                <td class="minw-8rem">{{ score.instruments }}</td>
+                <td class="minw-2rem">
+                    <div class="flex flex-col md:flex-row">
+                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" pTooltip="Modifica"
+                            (onClick)="editScore(score)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
+                            (onClick)="deleteScore(score)" />
+                    </div>
                 </td>
             </tr>
         </ng-template>

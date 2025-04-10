@@ -17,12 +17,15 @@ import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { OrderListModule } from 'primeng/orderlist';
 import { PickListModule } from 'primeng/picklist';
+import { PopoverModule } from 'primeng/popover';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToolbarModule } from 'primeng/toolbar';
+import { SecurePipe } from './pipe/secure.pipe';
+import { TooltipModule } from 'primeng/tooltip';
 
 @NgModule({
     imports: [
@@ -55,6 +58,9 @@ import { ToolbarModule } from 'primeng/toolbar';
         DynamicDialogModule,
         FileUploadModule,
         GalleriaModule,
+        SecurePipe,
+        PopoverModule,
+        TooltipModule,
     ],
     exports: [
         NgClass,
@@ -86,6 +92,12 @@ import { ToolbarModule } from 'primeng/toolbar';
         DynamicDialogModule,
         FileUploadModule,
         GalleriaModule,
+        SecurePipe,
+        PopoverModule,
+        TooltipModule,
     ],
+    providers: [
+        SecurePipe,
+    ]
 })
 export class ImportsModule { }

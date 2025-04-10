@@ -1,12 +1,13 @@
 import { HttpHeaders } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SelectItem } from 'primeng/api';
+import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { first } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
 import { ImportsModule } from '../../../imports';
-import { Albums, ChildrenEntities, Tracks } from '../../../module';
+import { ChildrenEntities, Tracks } from '../../../module';
 import { SheetsMusic } from '../../../module/sheets-music.module';
 import { KeycloakService, MediaService, TracksService } from '../../../service';
 
@@ -14,7 +15,7 @@ import { KeycloakService, MediaService, TracksService } from '../../../service';
     selector: 'app-track-detail',
     imports: [
         ImportsModule,
-        TypeHandlerComponent
+        TypeHandlerComponent,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
@@ -22,6 +23,7 @@ import { KeycloakService, MediaService, TracksService } from '../../../service';
         TracksService,
         KeycloakService,
     ],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailComponent {
     protected sortOptions!: SelectItem[];
@@ -45,10 +47,6 @@ export class DetailComponent {
         {
             breakpoint: '768px',
             numVisible: 3
-        },
-        {
-            breakpoint: '560px',
-            numVisible: 1
         }
     ];
 
@@ -68,8 +66,8 @@ export class DetailComponent {
 
     protected save(): void {
         this.tracksService.update(this.track.id, this.track).pipe(first()).subscribe({
-            next: (album: Albums) => {
-                this.loadElement(album.id);
+            next: (track: Tracks) => {
+                this.loadElement(track.id);
             }
         });
     }
@@ -107,6 +105,10 @@ export class DetailComponent {
     protected showMedia(media: ChildrenEntities[]) {
         this.displayBasic = true;
         this.images = media.map(m => this.mediaService.stream(m.index));
+    }
+
+    protected toggleDataTable(op: Popover, event: any) {
+        op.toggle(event);
     }
 
     protected mediaStream(media: ChildrenEntities): string {
