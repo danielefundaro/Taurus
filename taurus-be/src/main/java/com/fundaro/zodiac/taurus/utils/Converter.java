@@ -97,19 +97,19 @@ public class Converter {
             }
 
             if (Strings.isNotBlank(fieldValue.getContains())) {
-                queries.add(Query.of(f -> f.queryString(m -> m.query(fieldValue.getContains()).fields(List.of(finalFieldName)))));
+                queries.add(Query.of(f -> f.queryString(m -> m.query(String.format("*%s*", fieldValue.getContains())).fields(List.of(finalFieldName)))));
             }
 
             if (Strings.isNotBlank(fieldValue.getDoesNotContain())) {
-                notQueries.add(Query.of(f -> f.queryString(m -> m.query(fieldValue.getDoesNotContain()).fields(List.of(finalFieldName)))));
+                notQueries.add(Query.of(f -> f.queryString(m -> m.query(String.format("*%s*", fieldValue.getDoesNotContain())).fields(List.of(finalFieldName)))));
             }
 
-            if (!fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().anyMatch(Strings::isNotBlank)) {
+            if (Objects.nonNull(fieldValue.getIn()) && !fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().anyMatch(Strings::isNotBlank)) {
                 List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().stringValue(v).build()).toList();
                 queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
             }
 
-            if (!fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().anyMatch(Strings::isNotBlank)) {
+            if (Objects.nonNull(fieldValue.getNotIn()) && !fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().anyMatch(Strings::isNotBlank)) {
                 List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().stringValue(v).build()).toList();
                 notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
             }
