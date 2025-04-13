@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+::ng-deep {
+    .p-orderlist-list-container {
+        width: 100%;
+    }
+}
+
+.div-image {
+    width: 2rem;
+    font-size: 2rem;
+}
