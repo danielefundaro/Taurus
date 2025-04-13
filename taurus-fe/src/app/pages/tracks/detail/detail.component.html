@@ -83,12 +83,11 @@
                 <td class="minw-8rem">
                     <p-button icon="pi pi-images" label="Show" (onClick)="showMedia(score.media)"
                         *ngIf="score!.media?.length > 3" />
-                    <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1" (drop)="dropHandler(score)"
-                        (dragover)="dragoverHandler($event)">
+                    <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1">
                         <ng-container *ngFor="let media of score!.media">
-                            <div class="div-image pi pi-image" [draggable]="true" (click)="toggleDataTable(op2, $event)"
+                            <div class="div-image pi pi-image" (click)="toggleDataTable(op2, $event)"
                                 (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
-                                (keypress)="toggleDataTable(op2, $event)" (dragstart)="dragstartHandler(media, score)">
+                                (keypress)="toggleDataTable(op2, $event)">
                                 <p-popover #op2 [style]="{width: '50rem'}">
                                     <img [src]="mediaStream(media) | secure | async" class="w-50 cursor-pointer"
                                         alt="sheet-music-{{media.index}}" />
@@ -97,13 +96,17 @@
                         </ng-container>
                     </div>
                 </td>
-                <td class="minw-8rem">{{ score.instruments }}</td>
+                <td class="minw-8rem">
+                    <div class="flex flex-col md:flex-row gap-2">
+                        <p-tag [value]="instrument.name" [rounded]="true" severity="success" *ngFor="let instrument of score.instruments"></p-tag>
+                    </div>
+                </td>
                 <td class="minw-2rem">
                     <div class="flex flex-col md:flex-row">
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" pTooltip="Modifica"
-                            (onClick)="editScore(score)" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
-                            (onClick)="deleteScore(score)" />
+                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
+                            pTooltip="Modifica" (onClick)="editScore(score)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                            pTooltip="Elimina" (onClick)="deleteScore(score)" />
                     </div>
                 </td>
             </tr>
@@ -111,9 +114,10 @@
     </p-table>
 </p-fluid>
 
-<p-galleria [value]="images" [(visible)]="displayBasic" [responsiveOptions]="responsiveOptions" [numVisible]="5"
-    [autoPlay]="true" [circular]="true" [fullScreen]="true" [transitionInterval]="3000"
-    [containerStyle]="{ 'max-width': '60rem' }">
+<p-galleria [value]="images" [(visible)]="displayGalleria" [responsiveOptions]="responsiveOptions" [numVisible]="5"
+    [autoPlay]="true" [circular]="true" [fullScreen]="true" [transitionInterval]="3000" [showIndicators]="true"
+    [showThumbnails]="false" [changeItemOnIndicatorHover]="true" [showItemNavigators]="true"
+    [showIndicatorsOnItem]="true" [containerStyle]="{ 'max-width': '60rem' }">
     <ng-template #item let-media>
         <img [src]="media" alt="sheet-music-{{media.index}}" />
     </ng-template>

@@ -1,12 +1,11 @@
 <p-floatlabel class="flex" [variant]="variant">
-    <label for="type" class="z-index-100">{{label}}</label>
-    <!-- <input pInputText id="type" type="text" (keypress)="inputChange($event)" (blur)="blur()" [(ngModel)]="current" /> -->
     <p-inputgroup>
         <input pInputText id="type" type="text" (keypress)="inputChange($event)" (blur)="blur()" [(ngModel)]="current" />
         <p-inputgroup-addon class="cursor-pointer">
             <i class="pi pi-chevron-right"></i>
         </p-inputgroup-addon>
     </p-inputgroup>
+    <label for="type" class="z-index-100">{{label}}</label>
 </p-floatlabel>
 <div class="flex flex-row gap-2 mt-1" *ngIf="types?.length">
     <ng-container *ngFor="let type of types">

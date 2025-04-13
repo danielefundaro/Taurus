@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { CommonFieldsOpenSearch, CommonOpenSearchCriteria, Page } from '../module';
+import { Filter } from '../module/criteria/filter';
 
 @Injectable({
     providedIn: 'root'
@@ -51,8 +52,18 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         if (req) {
             Object.entries(req).forEach(([key, val]) => {
                 if (val !== undefined && val !== null) {
-                    for (const value of [].concat((req[key])).filter(v => v !== '')) {
-                        options = options.append(key, value);
+                    if (val instanceof Filter) {
+                        Object.entries(req[key]).forEach(([subKey, subVal]) => {
+                            if (subVal !== undefined && subVal !== null) {
+                                for (const value of [].concat((req[key][subKey])).filter(v => v !== '')) {
+                                    options = options.append(`${key}.${subKey}`, value);
+                                }
+                            }
+                        });
+                    } else {
+                        for (const value of [].concat((req[key])).filter(v => v !== '')) {
+                            options = options.append(key, value);
+                        }
                     }
                 }
             });

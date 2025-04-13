@@ -20,6 +20,7 @@
         <textarea pTextarea id="description" rows="10" class="w-full" [(ngModel)]="track.description"></textarea>
     </p-floatlabel>
 </p-fluid>
+
 <div class="flex justify-end gap-2 mt-2">
     <p-button label="Annulla" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
     <p-button label="Salva" icon="pi pi-check" [outlined]="true" severity="primary" (onClick)="save()" [disabled]="!track.name" />

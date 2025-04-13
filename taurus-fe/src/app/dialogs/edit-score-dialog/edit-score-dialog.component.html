@@ -1,0 +1,79 @@
+<p-fluid class="mb-8">
+    <span class="text-surface-500 dark:text-surface-400 block mb-8">Inserisci le informazioni.</span>
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-row gap-10">
+            <div class="flex flex-col w-full gap-4">
+                <p-floatlabel variant="on">
+                    <p-inputnumber id="name" [(ngModel)]="currentScore!.order" showButtons
+                        (onInput)="onReorderScores($event)" [min]="1" [max]="scores.length"
+                        mode="decimal"></p-inputnumber>
+                    <label for="name">Ordine</label>
+                </p-floatlabel>
+                <p-floatlabel variant="on">
+                    <p-autocomplete [(ngModel)]="currentScore!.instruments" [suggestions]="autoFilteredInstruments"
+                        [virtualScroll]="true" [virtualScrollItemSize]="34" optionLabel="name" dropdown multiple
+                        display="chip" (completeMethod)="filterInstruments($event)" (ngModelChange)="onReorderInstruments()" />
+                    <label for="name">Strumenti</label>
+                </p-floatlabel>
+                <div class="w-full" *ngIf="!selectedScore">
+                    <div class="font-semibold text-l mb-4">Media</div>
+                    <p-orderlist [value]="currentScore.media" dataKey="id" breakpoint="575px" [stripedRows]="true"
+                        [responsive]="true" (onReorder)="onReorderMedia(currentScore)">
+                        <ng-template let-option let-selected="selected" #item>
+                            <span class="me-2">Pagina {{ option.order }}</span>
+                            <div class="div-image pi pi-image" (click)="toggleDataTable(op2, $event)"
+                                (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
+                                (keypress)="toggleDataTable(op2, $event)">
+                                <p-popover #op2 [style]="{width: '40rem'}">
+                                    <img [src]="mediaStream(option) | secure | async"
+                                        alt="sheet-music-{{option.index}}" />
+                                </p-popover>
+                            </div>
+                        </ng-template>
+                    </p-orderlist>
+                </div>
+            </div>
+            <div class="flex flex-col w-full gap-4">
+                <p-floatlabel variant="on">
+                    <p-select optionLabel="order" [options]="scores" [(ngModel)]="selectedScore">
+                        <ng-template #selectedItem let-selectedOption>
+                            <span>{{ selectedOption.order }}</span>
+                        </ng-template>
+                    </p-select>
+                    <label for="name">Ordine</label>
+                </p-floatlabel>
+                <p-floatlabel variant="on" *ngIf="selectedScore">
+                    <p-autocomplete [(ngModel)]="selectedScore!.instruments" [suggestions]="autoFilteredInstruments"
+                        [virtualScroll]="true" [virtualScrollItemSize]="34" optionLabel="name" multiple display="chip"
+                        [disabled]="true" />
+                    <label for="name">Strumenti</label>
+                </p-floatlabel>
+            </div>
+        </div>
+        <div class="w-full" *ngIf="selectedScore">
+            <div class="font-semibold text-l mb-4">Media</div>
+            <p-pick-list [source]="currentScore.media" [target]="selectedScore.media" dataKey="id" breakpoint="575px"
+                [stripedRows]="true" [responsive]="true" (onMoveToSource)="onReorderMedia(currentScore)"
+                (onMoveToTarget)="onReorderMedia(selectedScore)" (onMoveAllToSource)="onReorderMedia(currentScore)"
+                (onMoveAllToTarget)="onReorderMedia(selectedScore)" (onSourceReorder)="onReorderMedia(currentScore)"
+                (onTargetReorder)="onReorderMedia(selectedScore)">
+                <ng-template let-option let-selected="selected" #item>
+                    <span class="me-2">Pagina {{ option.order }}</span>
+                    <div class="div-image pi pi-image" [draggable]="true" (click)="toggleDataTable(op2, $event)"
+                        (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
+                        (keypress)="toggleDataTable(op2, $event)">
+                        <p-popover #op2 [style]="{width: '40rem'}">
+                            <img [src]="mediaStream(option) | secure | async" alt="sheet-music-{{option.index}}" />
+                        </p-popover>
+                    </div>
+                </ng-template>
+            </p-pick-list>
+        </div>
+    </div>
+</p-fluid>
+
+<div class="flex justify-end gap-2 mt-2" #footer>
+    <p-button label="Annulla" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
+    <p-button label="Conferma" icon="pi pi-check" [outlined]="true" severity="primary" (onClick)="save()"
+        [disabled]="!currentScore!.order" />
+</div>
