@@ -26,8 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Service Implementation for managing {@link Tracks}.
@@ -50,7 +52,14 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
+    public Mono<TracksDTO> save(TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        finalizeOrders(dto);
+        return super.save(dto, abstractAuthenticationToken);
+    }
+
+    @Override
     public Mono<TracksDTO> update(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        finalizeOrders(dto);
         return super.update(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
             updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
             return tracksDTO;
@@ -59,6 +68,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     @Override
     public Mono<TracksDTO> partialUpdate(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        finalizeOrders(dto);
         return super.partialUpdate(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
             updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
             return tracksDTO;
@@ -112,6 +122,31 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queries.addAll(Converter.stringFilterToQuery("scores.media.index", criteria.getMediaId()));
 
         return queries;
+    }
+
+    private static void finalizeOrders(TracksDTO dto) {
+        if (dto.getScores() != null && !dto.getScores().isEmpty()) {
+            AtomicLong i = new AtomicLong(0L);
+            dto.getScores().stream()
+                .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
+                .forEach(score -> score.setOrder(i.incrementAndGet()));
+        }
+
+        dto.getScores().forEach(score -> {
+            if (score.getMedia() != null && !score.getMedia().isEmpty()) {
+                AtomicLong i = new AtomicLong(0L);
+                score.getMedia().stream()
+                    .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
+                    .forEach(media -> media.setOrder(i.incrementAndGet()));
+            }
+
+            if (score.getInstruments() != null && !score.getInstruments().isEmpty()) {
+                AtomicLong i = new AtomicLong(0L);
+                score.getInstruments().stream()
+                    .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
+                    .forEach(instrument -> instrument.setOrder(i.incrementAndGet()));
+            }
+        });
     }
 
     private void updateRelatedTracks(String id, TracksDTO oldTracksDto, TracksDTO tracksDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
