@@ -31,8 +31,6 @@ export class TracksComponent {
     public dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     public tracks: Tracks[];
 
-    private dynamicDialogRef?: DynamicDialogRef;
-
     constructor(private readonly tracksService: TracksService, public dialogService: DialogService) {
         this.tracks = [];
     }
@@ -66,7 +64,7 @@ export class TracksComponent {
     }
 
     public addNew(): void {
-        this.dynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
+        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
             header: "Aggiungi traccia",
             closable: true,
             draggable: true,
@@ -76,7 +74,7 @@ export class TracksComponent {
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
 
-        this.dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
             if (result) {
                 this.tracksService.create(result).pipe(first()).subscribe({
                     next: (track: Tracks) => {

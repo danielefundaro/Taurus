@@ -9,4 +9,5 @@ export * from "./media.module";
 export * from "./notices.module";
 export * from "./page.module";
 export * from "./preferences.module";
+export * from "./sheets-music.module";
 export * from "./tracks.module";

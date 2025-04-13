@@ -1,14 +1,14 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { first } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
+import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
-import { ChildrenEntities, Tracks } from '../../../module';
-import { SheetsMusic } from '../../../module/sheets-music.module';
+import { ChildrenEntities, SheetsMusic, Tracks } from '../../../module';
 import { KeycloakService, MediaService, TracksService } from '../../../service';
 
 @Component({
@@ -22,19 +22,16 @@ import { KeycloakService, MediaService, TracksService } from '../../../service';
     providers: [
         TracksService,
         KeycloakService,
+        DialogService,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailComponent {
-    protected sortOptions!: SelectItem[];
-    protected totalRecords: number = 0;
     protected track: Tracks = new Tracks();
-    protected draggableImage?: ChildrenEntities;
-    protected oldScore?: SheetsMusic;
     protected cols: string[];
     protected selectedScores: SheetsMusic[];
     protected images: string[];
-    protected displayBasic: boolean;
+    protected displayGalleria: boolean;
     protected responsiveOptions: any[] = [
         {
             breakpoint: '1024px',
@@ -51,11 +48,12 @@ export class DetailComponent {
     ];
 
     constructor(private readonly tracksService: TracksService, private readonly mediaService: MediaService,
-        private readonly keycloakService: KeycloakService, private readonly routeService: ActivatedRoute) {
+        private readonly keycloakService: KeycloakService, private readonly routeService: ActivatedRoute,
+        private readonly dialogService: DialogService) {
         this.cols = ["Ordine", "Descrizione", "Media", "Strumento"];
         this.selectedScores = [];
         this.images = [];
-        this.displayBasic = false;
+        this.displayGalleria = false;
     }
 
     ngOnInit() {
@@ -103,7 +101,7 @@ export class DetailComponent {
     }
 
     protected showMedia(media: ChildrenEntities[]) {
-        this.displayBasic = true;
+        this.displayGalleria = true;
         this.images = media.map(m => this.mediaService.stream(m.index));
     }
 
@@ -116,33 +114,30 @@ export class DetailComponent {
     }
 
     protected editScore(score: SheetsMusic): void {
-        console.log(score);
+        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(EditScoreDialogComponent, {
+            inputValues: {
+                currentScoreOrder: score.order,
+                scores: JSON.parse(JSON.stringify(this.track.scores)),
+            },
+            header: "Modifica parte",
+            closable: true,
+            draggable: true,
+            resizable: true,
+            modal: true,
+            width: '50vw',
+            breakpoints: { '1199px': '75vw', '575px': '90vw' },
+        });
+
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: SheetsMusic[]) => {
+            if (result) {
+                this.track.scores = result;
+            }
+        });
     }
 
     protected deleteScore(selectedScore: SheetsMusic): void {
         this.track.scores?.splice(this.track.scores.findIndex(score => selectedScore.order === score.order), 1);
-    }
-
-    protected dragstartHandler(media: ChildrenEntities, score: SheetsMusic): void {
-        this.draggableImage = JSON.parse(JSON.stringify(media));
-        this.oldScore = score;
-    }
-
-    protected dragoverHandler(ev: DragEvent): void {
-        ev.preventDefault();
-    }
-
-    protected dropHandler(score: SheetsMusic): void {
-        if (this.draggableImage && this.oldScore && this.oldScore.order !== score.order) {
-            if (!score.media) {
-                score.media = [];
-            }
-
-            score.media.push(this.draggableImage);
-            this.oldScore.media?.splice(this.oldScore.media.findIndex(media => media.index === this.draggableImage!.index), 1);
-            this.draggableImage = undefined;
-            this.oldScore = undefined;
-        }
+        this.track.scores?.sort((a, b) => a.order! < b.order! ? -1 : 1).forEach((score, i) => score.order = i + 1);
     }
 
     private loadElement(id: string) {
