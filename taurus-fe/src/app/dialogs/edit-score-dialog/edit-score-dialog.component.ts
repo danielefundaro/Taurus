@@ -10,12 +10,10 @@ import { InputNumberInputEvent, InputNumberModule } from 'primeng/inputnumber';
 import { OrderListModule } from 'primeng/orderlist';
 import { PickListModule } from 'primeng/picklist';
 import { Popover, PopoverModule } from 'primeng/popover';
-import { first } from 'rxjs';
-import { ChildrenEntities, Instruments, InstrumentsCriteria, Page, SheetsMusic } from '../../module';
-import { StringFilter } from '../../module/criteria/filter';
+import { SelectModule } from 'primeng/select';
+import { ChildrenEntities, Instruments, SheetsMusic } from '../../module';
 import { SecurePipe } from '../../pipe/secure.pipe';
 import { InstrumentsService, MediaService } from '../../service';
-import { SelectModule } from 'primeng/select';
 
 @Component({
     selector: 'app-edit-score-dialog',
@@ -46,22 +44,28 @@ export class EditScoreDialogComponent {
 
     @Input() public currentScoreOrder: number;
     @Input() public scores: SheetsMusic[];
+    @Input() public instruments: ChildrenEntities[];
     protected currentScore: SheetsMusic;
     protected selectedScore?: SheetsMusic;
     protected autoFilteredInstruments: ChildrenEntities[];
-    private totalAutoFilteredInstruments: number;
 
     constructor(private readonly dialogRef: DynamicDialogRef<EditScoreDialogComponent>,
-        private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number, scores: SheetsMusic[] }>,
+        private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number, scores: SheetsMusic[], instruments: Instruments[] }>,
         private readonly instrumentsService: InstrumentsService,
         private readonly mediaService: MediaService,
     ) {
         this.currentScoreOrder = this.config.inputValues?.currentScoreOrder ?? -1;
         this.scores = this.config.inputValues?.scores ?? [];
+        this.instruments = this.config.inputValues?.instruments.map(instrument => {
+            const childrenEntities = new ChildrenEntities();
+            childrenEntities.name = instrument.name;
+            childrenEntities.index = instrument.id;
+
+            return childrenEntities;
+        }) ?? [];
 
         this.currentScore = this.scores.find(score => score.order === this.currentScoreOrder) ?? {};
-        this.autoFilteredInstruments = [];
-        this.totalAutoFilteredInstruments = 0;
+        this.autoFilteredInstruments = this.instruments;
     }
 
     protected onReorderScores(event: InputNumberInputEvent): void {
@@ -85,24 +89,7 @@ export class EditScoreDialogComponent {
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {
-        const instrumentsCriteria = new InstrumentsCriteria();
-        instrumentsCriteria.name = new StringFilter();
-        instrumentsCriteria.name.contains = event.query;
-        instrumentsCriteria.page = 0;
-        instrumentsCriteria.sort = ['name.keyword,asc'];
-
-        this.instrumentsService.getAll(instrumentsCriteria).pipe(first()).subscribe({
-            next: (pageInstruments: Page<Instruments>) => {
-                this.totalAutoFilteredInstruments = pageInstruments.totalElements;
-                this.autoFilteredInstruments = pageInstruments.content.map(instrument => {
-                    const childrenEntities = new ChildrenEntities();
-                    childrenEntities.name = instrument.name;
-                    childrenEntities.index = instrument.id;
-
-                    return childrenEntities;
-                });
-            }
-        });
+        this.autoFilteredInstruments = this.instruments.filter(instrument => instrument.name?.includes(event.query));
     }
 
     protected onReorderInstruments(): void {

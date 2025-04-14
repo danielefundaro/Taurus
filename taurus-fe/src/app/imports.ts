@@ -24,8 +24,8 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToolbarModule } from 'primeng/toolbar';
-import { SecurePipe } from './pipe/secure.pipe';
 import { TooltipModule } from 'primeng/tooltip';
+import { SecurePipe } from './pipe/secure.pipe';
 
 @NgModule({
     imports: [
