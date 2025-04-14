@@ -25,18 +25,15 @@ import java.util.function.Function;
 public class OpenSearchServiceImpl implements OpenSearchService {
     private final ApplicationProperties applicationProperties;
 
-    private RestClient restClient;
-    private OpenSearchTransport transport;
     private OpenSearchClient openSearchClient;
-    private boolean isOpen = false;
 
     public OpenSearchServiceImpl(ApplicationProperties applicationProperties) {
         this.applicationProperties = applicationProperties;
+        this.open();
     }
 
     @Override
     public CreateIndexResponse createIndex(String indexName, TypeMapping.Builder mappingBuilder) throws IOException {
-        if (!isOpen) open();
         CreateIndexResponse response;
         BooleanResponse booleanResponse = openSearchClient.indices().exists(builder -> builder.index(indexName));
 
@@ -50,36 +47,22 @@ public class OpenSearchServiceImpl implements OpenSearchService {
                 .build();
         }
 
-        if (isOpen) close();
-
         return response;
     }
 
     @Override
     public <TDocument> IndexResponse index(IndexRequest<TDocument> indexRequest) throws IOException {
-        if (!isOpen) open();
-        IndexResponse response = openSearchClient.index(indexRequest);
-        if (isOpen) close();
-
-        return response;
+        return openSearchClient.index(indexRequest);
     }
 
     @Override
     public <TDocument> GetResponse<TDocument> get(Function<GetRequest.Builder, ObjectBuilder<GetRequest>> fn, Class<TDocument> documentClass) throws IOException {
-        if (!isOpen) open();
-        GetResponse<TDocument> response = openSearchClient.get(fn.apply(new GetRequest.Builder()).build(), documentClass);
-        if (isOpen) close();
-
-        return response;
+        return openSearchClient.get(fn.apply(new GetRequest.Builder()).build(), documentClass);
     }
 
     @Override
     public <TDocument> SearchResponse<TDocument> search(Function<SearchRequest.Builder, ObjectBuilder<SearchRequest>> fn, Class<TDocument> documentClass) throws IOException {
-        if (!isOpen) open();
-        SearchResponse<TDocument> response = openSearchClient.search(fn.apply(new SearchRequest.Builder()).build(), documentClass);
-        if (isOpen) close();
-
-        return response;
+        return openSearchClient.search(fn.apply(new SearchRequest.Builder()).build(), documentClass);
     }
 
     private void open() {
@@ -89,17 +72,10 @@ public class OpenSearchServiceImpl implements OpenSearchService {
         credentialsProvider.setCredentials(new AuthScope(host), new UsernamePasswordCredentials(applicationProperties.getOpenSearch().getUsername(), applicationProperties.getOpenSearch().getPassword()));
 
         // Initialize the client with SSL and TLS enabled
-        restClient = RestClient.builder(host)
+        RestClient restClient = RestClient.builder(host)
             .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)).build();
 
-        transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+        OpenSearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
         openSearchClient = new OpenSearchClient(transport);
-        isOpen = true;
-    }
-
-    private void close() throws IOException {
-        transport.close();
-        restClient.close();
-        isOpen = false;
     }
 }
