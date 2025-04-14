@@ -4,12 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
-import { first } from 'rxjs';
+import { first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
-import { ChildrenEntities, SheetsMusic, Tracks } from '../../../module';
-import { KeycloakService, MediaService, TracksService } from '../../../service';
+import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
+import { InstrumentsService, KeycloakService, MediaService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
@@ -21,10 +21,11 @@ import { KeycloakService, MediaService, TracksService } from '../../../service';
     styleUrl: './detail.component.scss',
     providers: [
         TracksService,
+        InstrumentsService,
         KeycloakService,
         DialogService,
     ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.Default,
 })
 export class DetailComponent {
     protected track: Tracks = new Tracks();
@@ -47,18 +48,38 @@ export class DetailComponent {
         }
     ];
 
+    private instruments: Instruments[];
+
     constructor(private readonly tracksService: TracksService, private readonly mediaService: MediaService,
-        private readonly keycloakService: KeycloakService, private readonly routeService: ActivatedRoute,
+        private readonly instrumentsService: InstrumentsService, private readonly keycloakService: KeycloakService,
+        private readonly routeService: ActivatedRoute,
         private readonly dialogService: DialogService) {
-        this.cols = ["Ordine", "Descrizione", "Media", "Strumento"];
+        this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
         this.images = [];
         this.displayGalleria = false;
+        this.instruments = [];
     }
 
     ngOnInit() {
         this.routeService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
+        });
+
+        let page = 0;
+        const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name.keyword,asc'] };
+
+        this.instrumentsService.getAll().pipe(first()).subscribe(async result => {
+            let totalElements = result.totalElements;
+            this.instruments = result.content;
+
+            while (totalElements > this.instruments.length) {
+                instrumentsCriteria.page = ++page;
+
+                const data = await firstValueFrom(this.instrumentsService.getAll(instrumentsCriteria));
+                this.instruments.push(...data.content);
+                totalElements = data.totalElements;
+            }
         });
     }
 
@@ -94,6 +115,7 @@ export class DetailComponent {
         this.selectedScores.forEach(selectedScore => {
             this.deleteScore(selectedScore);
         });
+        this.selectedScores = [];
     }
 
     protected onGlobalFilter(table: Table<SheetsMusic>, event: Event): void {
@@ -118,6 +140,7 @@ export class DetailComponent {
             inputValues: {
                 currentScoreOrder: score.order,
                 scores: JSON.parse(JSON.stringify(this.track.scores)),
+                instruments: this.instruments,
             },
             header: "Modifica parte",
             closable: true,
