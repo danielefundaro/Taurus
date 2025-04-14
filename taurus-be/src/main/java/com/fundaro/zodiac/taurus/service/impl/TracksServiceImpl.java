@@ -124,29 +124,29 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         return queries;
     }
 
-    private static void finalizeOrders(TracksDTO dto) {
+    private void finalizeOrders(TracksDTO dto) {
         if (dto.getScores() != null && !dto.getScores().isEmpty()) {
             AtomicLong i = new AtomicLong(0L);
             dto.getScores().stream()
                 .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
                 .forEach(score -> score.setOrder(i.incrementAndGet()));
+
+            dto.getScores().forEach(score -> {
+                if (score.getMedia() != null && !score.getMedia().isEmpty()) {
+                    AtomicLong j = new AtomicLong(0L);
+                    score.getMedia().stream()
+                        .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
+                        .forEach(media -> media.setOrder(j.incrementAndGet()));
+                }
+
+                if (score.getInstruments() != null && !score.getInstruments().isEmpty()) {
+                    AtomicLong j = new AtomicLong(0L);
+                    score.getInstruments().stream()
+                        .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
+                        .forEach(instrument -> instrument.setOrder(j.incrementAndGet()));
+                }
+            });
         }
-
-        dto.getScores().forEach(score -> {
-            if (score.getMedia() != null && !score.getMedia().isEmpty()) {
-                AtomicLong i = new AtomicLong(0L);
-                score.getMedia().stream()
-                    .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
-                    .forEach(media -> media.setOrder(i.incrementAndGet()));
-            }
-
-            if (score.getInstruments() != null && !score.getInstruments().isEmpty()) {
-                AtomicLong i = new AtomicLong(0L);
-                score.getInstruments().stream()
-                    .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
-                    .forEach(instrument -> instrument.setOrder(i.incrementAndGet()));
-            }
-        });
     }
 
     private void updateRelatedTracks(String id, TracksDTO oldTracksDto, TracksDTO tracksDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
