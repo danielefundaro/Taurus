@@ -52,8 +52,7 @@ export class DetailComponent {
 
     constructor(private readonly tracksService: TracksService, private readonly mediaService: MediaService,
         private readonly instrumentsService: InstrumentsService, private readonly keycloakService: KeycloakService,
-        private readonly routeService: ActivatedRoute,
-        private readonly dialogService: DialogService) {
+        private readonly routeService: ActivatedRoute, private readonly dialogService: DialogService) {
         this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
         this.images = [];
@@ -107,6 +106,8 @@ export class DetailComponent {
         const score = new SheetsMusic();
         const max = Math.max(...this.track.scores.map(score => score.order!), 0);
         score.order = max + 1;
+        score.media = [];
+        score.instruments = [];
 
         this.track.scores.push(score);
     }

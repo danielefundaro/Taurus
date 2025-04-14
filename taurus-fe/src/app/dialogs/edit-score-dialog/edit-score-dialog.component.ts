@@ -13,7 +13,7 @@ import { Popover, PopoverModule } from 'primeng/popover';
 import { SelectModule } from 'primeng/select';
 import { ChildrenEntities, Instruments, SheetsMusic } from '../../module';
 import { SecurePipe } from '../../pipe/secure.pipe';
-import { InstrumentsService, MediaService } from '../../service';
+import { MediaService } from '../../service';
 
 @Component({
     selector: 'app-edit-score-dialog',
@@ -35,7 +35,6 @@ import { InstrumentsService, MediaService } from '../../service';
     templateUrl: './edit-score-dialog.component.html',
     styleUrl: './edit-score-dialog.component.scss',
     providers: [
-        InstrumentsService,
         MediaService,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,7 +50,6 @@ export class EditScoreDialogComponent {
 
     constructor(private readonly dialogRef: DynamicDialogRef<EditScoreDialogComponent>,
         private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number, scores: SheetsMusic[], instruments: Instruments[] }>,
-        private readonly instrumentsService: InstrumentsService,
         private readonly mediaService: MediaService,
     ) {
         this.currentScoreOrder = this.config.inputValues?.currentScoreOrder ?? -1;
@@ -89,7 +87,7 @@ export class EditScoreDialogComponent {
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredInstruments = this.instruments.filter(instrument => instrument.name?.includes(event.query));
+        this.autoFilteredInstruments = this.instruments.filter(instrument => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected onReorderInstruments(): void {

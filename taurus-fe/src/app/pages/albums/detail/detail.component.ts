@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SelectItem } from 'primeng/api';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { first } from 'rxjs';
+import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
-import { Albums, ChildrenEntities } from '../../../module';
-import { AlbumsService, TracksService } from '../../../service';
+import { Albums, ChildrenEntities, Tracks } from '../../../module';
+import { AlbumsService } from '../../../service';
 
 @Component({
     selector: 'app-album-detail',
@@ -16,7 +18,7 @@ import { AlbumsService, TracksService } from '../../../service';
     styleUrl: './detail.component.scss',
     providers: [
         AlbumsService,
-        TracksService
+        DialogService,
     ],
 })
 export class DetailComponent {
@@ -26,7 +28,7 @@ export class DetailComponent {
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
 
-    constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
+    constructor(private readonly albumsService: AlbumsService, private readonly dialogService: DialogService,
         private readonly routeService: ActivatedRoute) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
@@ -50,10 +52,37 @@ export class DetailComponent {
         this.selectedTracks.forEach(selectedTrack => {
             this.deleteTrack(selectedTrack);
         });
+        this.selectedTracks = [];
     }
 
     public addNew(): void {
-        this.album.tracks?.push(new ChildrenEntities());
+        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(IncludeTracksDialogComponent, {
+            header: "Aggiungi traccia",
+            closable: true,
+            draggable: true,
+            resizable: true,
+            modal: true,
+            width: '50vw',
+            breakpoints: { '1199px': '75vw', '575px': '90vw' },
+        });
+
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks[]) => {
+            if (result) {
+                if (!this.album.tracks) {
+                    this.album.tracks = [];
+                }
+
+                this.album.tracks.push(...result.map(track => {
+                    const childrenEntities = new ChildrenEntities();
+                    childrenEntities.index = track.id;
+                    childrenEntities.name = track.name;
+
+                    return childrenEntities;
+                }));
+
+                this.album.tracks.forEach((track, i) => track.order = i + 1);
+            }
+        });
     }
 
     public onGlobalFilter(table: Table<ChildrenEntities>, event: Event): void {
@@ -65,7 +94,7 @@ export class DetailComponent {
     }
 
     public deleteTrack(selectedTrack: ChildrenEntities): void {
-        this.album.tracks?.slice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
+        this.album.tracks?.splice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
     }
 
     private loadElement(id: string) {
