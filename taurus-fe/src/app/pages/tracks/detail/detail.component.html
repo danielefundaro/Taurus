@@ -37,12 +37,12 @@
         <ng-template #start>
             <p-button severity="primary" label="Nuovo" icon="pi pi-plus" class="mr-2" outlined (onClick)="addNew()" />
             <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
-                (onClick)="deleteSelectedTracks()" [disabled]="selectedScores.length" />
+                (onClick)="deleteSelectedTracks()" [disabled]="!selectedScores.length" />
         </ng-template>
     </p-toolbar>
 
     <p-table #dt class="minw-75rem" [value]="track.scores!" [rows]="10" [columns]="cols" [paginator]="true"
-        [globalFilterFields]="['name']" [(selection)]="selectedScores" [rowHover]="true" dataKey="index"
+        [globalFilterFields]="['name']" [(selection)]="selectedScores" [rowHover]="true" dataKey="order"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tracks" [showCurrentPageReport]="true"
         [rowsPerPageOptions]="[10, 20, 30]">
         <ng-template #caption>
@@ -63,18 +63,17 @@
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th pSortableColumn="media" class="minw-8rem" scope="col">
+                <th class="minw-8rem" scope="col">
                     Media
-                    <p-sortIcon field="media" />
                 </th>
-                <th pSortableColumn="name" class="minw-8rem" scope="col">
+                <th pSortableColumn="instruments" class="minw-8rem" scope="col">
                     Strumenti
-                    <p-sortIcon field="name" />
+                    <p-sortIcon field="instruments.name" />
                 </th>
                 <th class="minw-2rem" scope="col"></th>
             </tr>
         </ng-template>
-        <ng-template #body let-score>
+        <ng-template #body let-score let-rowIndex="rowIndex">
             <tr>
                 <td class="w-12">
                     <p-tableCheckbox [value]="score" />
@@ -85,11 +84,11 @@
                         *ngIf="score!.media?.length > 3" />
                     <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1">
                         <ng-container *ngFor="let media of score!.media">
-                            <div class="div-image pi pi-image" (click)="toggleDataTable(op2, $event)"
+                            <div class="div-image pi pi-image cursor-pointer" (click)="toggleDataTable(op2, $event)"
                                 (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
                                 (keypress)="toggleDataTable(op2, $event)">
                                 <p-popover #op2 [style]="{width: '50rem'}">
-                                    <img [src]="mediaStream(media) | secure | async" class="w-50 cursor-pointer"
+                                    <img [src]="mediaStream(media) | secure | async" class="w-50"
                                         alt="sheet-music-{{media.index}}" />
                                 </p-popover>
                             </div>
@@ -98,7 +97,8 @@
                 </td>
                 <td class="minw-8rem">
                     <div class="flex flex-col md:flex-row gap-2">
-                        <p-tag [value]="instrument.name" [rounded]="true" severity="success" *ngFor="let instrument of score.instruments"></p-tag>
+                        <p-tag [value]="instrument.name" [rounded]="true" severity="success"
+                            *ngFor="let instrument of score.instruments"></p-tag>
                     </div>
                 </td>
                 <td class="minw-2rem">

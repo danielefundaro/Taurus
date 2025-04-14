@@ -7,7 +7,7 @@
     </p-inputgroup>
     <label for="type" class="z-index-100">{{label}}</label>
 </p-floatlabel>
-<div class="flex flex-row gap-2 mt-1" *ngIf="types?.length">
+<div class="flex flex-row flex-wrap gap-2 mt-1" *ngIf="types?.length">
     <ng-container *ngFor="let type of types">
         <p-chip [label]="type" [removable]="true" (onRemove)="removeType(type)">
         </p-chip>
