@@ -22,11 +22,11 @@ import { AlbumsService } from '../../../service';
     ],
 })
 export class DetailComponent {
-    public sortOptions!: SelectItem[];
-    public totalRecords: number = 0;
-    public album: Albums = new Albums();
-    public cols: string[];
-    public selectedTracks: ChildrenEntities[];
+    protected sortOptions!: SelectItem[];
+    protected totalRecords: number = 0;
+    protected album: Albums = new Albums();
+    protected cols: string[];
+    protected selectedTracks: ChildrenEntities[];
 
     constructor(private readonly albumsService: AlbumsService, private readonly dialogService: DialogService,
         private readonly routeService: ActivatedRoute) {
@@ -40,7 +40,7 @@ export class DetailComponent {
         });
     }
 
-    public save(): void {
+    protected save(): void {
         this.albumsService.update(this.album.id, this.album).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.loadElement(album.id);
@@ -48,14 +48,18 @@ export class DetailComponent {
         });
     }
 
-    public deleteSelectedTracks(): void {
+    protected deleteSelectedTracks(): void {
         this.selectedTracks.forEach(selectedTrack => {
             this.deleteTrack(selectedTrack);
         });
         this.selectedTracks = [];
     }
 
-    public addNew(): void {
+    protected onRowReorder() {
+        this.album.tracks?.forEach((track, i) => track.order = i + 1);
+    }
+
+    protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(IncludeTracksDialogComponent, {
             header: "Aggiungi traccia",
             closable: true,
@@ -83,16 +87,13 @@ export class DetailComponent {
         });
     }
 
-    public onGlobalFilter(table: Table<ChildrenEntities>, event: Event): void {
+    protected onGlobalFilter(table: Table<ChildrenEntities>, event: Event): void {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
-    public editTrack(track: ChildrenEntities): void {
-        console.log(track);
-    }
-
-    public deleteTrack(selectedTrack: ChildrenEntities): void {
+    protected deleteTrack(selectedTrack: ChildrenEntities): void {
         this.album.tracks?.splice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
+        this.album.tracks?.forEach((track, i) => track.order = i + 1);
     }
 
     private loadElement(id: string) {
