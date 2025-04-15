@@ -35,12 +35,14 @@ export class IncludeTracksDialogComponent {
 
     protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     protected tracks: Tracks[];
+    protected selectedTracks: Tracks[];
     protected totalRecords: number = 0;
     private readonly search: { name?: string, type?: string, composer?: string };
 
     constructor(private readonly dialogRef: DynamicDialogRef<IncludeTracksDialogComponent>,
         private readonly tracksService: TracksService) {
         this.tracks = [];
+        this.selectedTracks = [];
         this.search = {};
     }
 
@@ -59,7 +61,7 @@ export class IncludeTracksDialogComponent {
     }
 
     protected save(): void {
-        this.dialogRef.close(this.tracks);
+        this.dialogRef.close(this.selectedTracks);
     }
 
     private loadElements(): void {
@@ -82,6 +84,9 @@ export class IncludeTracksDialogComponent {
             tracksCriteria.composer = new StringFilter();
             tracksCriteria.composer.contains = this.search.composer;
         }
+
+        // Reset selection
+        this.selectedTracks = [];
 
         this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe({
             next: (value: Page<Tracks>) => {

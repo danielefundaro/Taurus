@@ -25,16 +25,17 @@
 
     <p-toolbar styleClass="mt-10 mb-6">
         <ng-template #start>
-            <p-button label="Aggiungi traccia" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="addNew()" />
-            <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined (onClick)="deleteSelectedTracks()"
-                [disabled]="!selectedTracks.length" />
+            <p-button label="Aggiungi traccia" icon="pi pi-plus" severity="secondary" class="mr-2"
+                (onClick)="addNew()" />
+            <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
+                (onClick)="deleteSelectedTracks()" [disabled]="!selectedTracks.length" />
         </ng-template>
     </p-toolbar>
 
     <p-table #dt class="minw-75rem" [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true"
         [globalFilterFields]="['name']" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tracks" [showCurrentPageReport]="true"
-        [rowsPerPageOptions]="[10, 20, 30]">
+        [rowsPerPageOptions]="[10, 20, 30]" (onRowReorder)="onRowReorder()">
         <ng-template #caption>
             <div class="flex items-center justify-between">
                 <h5 class="m-0">Gestisci tracce</h5>
@@ -61,17 +62,17 @@
                 <th class="minw-12rem" scope="col"></th>
             </tr>
         </ng-template>
-        <ng-template #body let-track>
-            <tr>
+        <ng-template #body let-track let-index="rowIndex">
+            <tr [pReorderableRow]="index">
                 <td class="w-12">
-                    <p-tableCheckbox [value]="track" />
+                    <p-tableCheckbox [value]="track" pReorderableRowHandle />
                 </td>
-                <td class="minw-12rem">{{ track.index }}</td>
-                <td class="minw-10rem">{{ track.order }}</td>
-                <td class="minw-16rem">{{ track.name }}</td>
+                <td class="minw-12rem" pReorderableRowHandle>{{ track.index }}</td>
+                <td class="minw-10rem" pReorderableRowHandle>{{ track.order }}</td>
+                <td class="minw-16rem" pReorderableRowHandle>{{ track.name }}</td>
                 <td class="minw-12rem">
-                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
-                        (onClick)="editTrack(track)" />
+                    <p-button icon="pi pi-search" class="mr-2" [rounded]="true" [outlined]="true"
+                        [routerLink]="'/tracks/'+track.index" />
                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                         (onClick)="deleteTrack(track)" />
                 </td>
