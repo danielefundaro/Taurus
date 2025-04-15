@@ -99,9 +99,7 @@ export class DetailComponent {
     }
 
     protected addNew(): void {
-        if (!this.track.scores) {
-            this.track.scores = [];
-        }
+        this.track.scores ??= [];
 
         const score = new SheetsMusic();
         const max = Math.max(...this.track.scores.map(score => score.order!), 0);
