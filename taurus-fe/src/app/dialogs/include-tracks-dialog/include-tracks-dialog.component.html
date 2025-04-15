@@ -1,13 +1,18 @@
 <p-table [value]="tracks" [paginator]="true" [lazy]="true" [lazyLoadOnInit]="true" [first]="tableLazyLoadEvent.first"
-    [rows]="tableLazyLoadEvent.rows!" [paginator]="true" [size]="'small'" [totalRecords]="totalRecords"
-    [paginatorPosition]="'bottom'" stripedRows [rowsPerPageOptions]="[5, 10, 20]" (onLazyLoad)="onLazyLoad($event)">
+    [rows]="tableLazyLoadEvent.rows!" [paginator]="true" [size]="'small'" [totalRecords]="totalRecords" dataKey="id"
+    [(selection)]="selectedTracks" [rowHover]="true" [paginatorPosition]="'bottom'" stripedRows
+    [rowsPerPageOptions]="[5, 10, 20]" (onLazyLoad)="onLazyLoad($event)">
     <ng-template #header>
         <tr>
+            <th scope="col"></th>
             <th scope="col">Nome</th>
             <th scope="col">Tipo</th>
             <th scope="col">Compositore</th>
         </tr>
         <tr>
+            <th scope="col">
+                <p-tableHeaderCheckbox />
+            </th>
             <th scope="col">
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
@@ -33,6 +38,9 @@
     </ng-template>
     <ng-template #body let-track>
         <tr>
+            <td>
+                <p-tableCheckbox [value]="track" />
+            </td>
             <td>{{ track.name }}</td>
             <td>
                 <div class="flex flex-col md:flex-row flex-wrap items-start mt-2 gap-2" *ngIf="track.type">
@@ -47,5 +55,5 @@
 <div class="flex justify-end gap-2 mt-20" #footer>
     <p-button label="Annulla" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
     <p-button label="Conferma" icon="pi pi-check" [outlined]="true" severity="primary" (onClick)="save()"
-        [disabled]="false" />
+        [disabled]="!selectedTracks.length" />
 </div>
