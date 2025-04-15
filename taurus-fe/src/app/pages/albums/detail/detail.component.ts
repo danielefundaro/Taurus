@@ -68,9 +68,7 @@ export class DetailComponent {
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks[]) => {
             if (result) {
-                if (!this.album.tracks) {
-                    this.album.tracks = [];
-                }
+                this.album.tracks ??= [];
 
                 this.album.tracks.push(...result.map(track => {
                     const childrenEntities = new ChildrenEntities();
