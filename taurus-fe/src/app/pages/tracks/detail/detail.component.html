@@ -1,8 +1,8 @@
 <p-fluid>
     <div class="flex">
         <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center font-semibold text-xl">
-                <span>Traccia</span>
+            <div class="flex flex-row justify-between items-center">
+                <span class="font-semibold text-xl">Traccia</span>
                 <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
             </div>
             <div class="flex flex-col md:flex-row gap-6">
@@ -101,13 +101,11 @@
                             *ngFor="let instrument of score.instruments"></p-tag>
                     </div>
                 </td>
-                <td class="minw-2rem">
-                    <div class="flex flex-col md:flex-row">
-                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
-                            pTooltip="Modifica" (onClick)="editScore(score)" />
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            pTooltip="Elimina" (onClick)="deleteScore(score)" />
-                    </div>
+                <td class="minw-2rem flex flex-col md:flex-row gap-2">
+                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
+                        tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
+                        tooltipPosition="top" pTooltip="Elimina" (onClick)="deleteScore(score)" />
                 </td>
             </tr>
         </ng-template>
