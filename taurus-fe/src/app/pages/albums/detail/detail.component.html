@@ -1,9 +1,12 @@
 <p-fluid>
     <div class="flex">
         <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center font-semibold text-xl">
-                <span>Albums</span>
-                <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
+            <div class="flex flex-row justify-between items-center">
+                <span class="font-semibold text-xl">Album</span>
+                <div class="flex flex-row gap-2">
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
+                    <p-button label="Stampa" icon="pi pi-print" severity="secondary" (onClick)="print()" />
+                </div>
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
@@ -50,16 +53,15 @@
                 <th class="w-12" scope="col">
                     <p-tableHeaderCheckbox />
                 </th>
-                <th class="minw-12rem" scope="col">Codice</th>
-                <th pSortableColumn="order" class="minw-10rem" scope="col">
+                <th pSortableColumn="order" class="minw-8rem" scope="col">
                     Ordine
                     <p-sortIcon field="order" />
                 </th>
-                <th pSortableColumn="name" class="minw-16rem" scope="col">
+                <th pSortableColumn="name" class="minw-8rem" scope="col">
                     Nome
                     <p-sortIcon field="name" />
                 </th>
-                <th class="minw-12rem" scope="col"></th>
+                <th class="minw-2rem" scope="col"></th>
             </tr>
         </ng-template>
         <ng-template #body let-track let-index="rowIndex">
@@ -67,14 +69,15 @@
                 <td class="w-12">
                     <p-tableCheckbox [value]="track" pReorderableRowHandle />
                 </td>
-                <td class="minw-12rem" pReorderableRowHandle>{{ track.index }}</td>
-                <td class="minw-10rem" pReorderableRowHandle>{{ track.order }}</td>
-                <td class="minw-16rem" pReorderableRowHandle>{{ track.name }}</td>
-                <td class="minw-12rem">
-                    <p-button icon="pi pi-search" class="mr-2" [rounded]="true" [outlined]="true"
-                        [routerLink]="'/tracks/'+track.index" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                        (onClick)="deleteTrack(track)" />
+                <td class="minw-8rem" pReorderableRowHandle>{{ track.order }}</td>
+                <td class="minw-8rem" pReorderableRowHandle>{{ track.name }}</td>
+                <td class="minw-2rem flex flex-col md:flex-row gap-2">
+                    <a [routerLink]="'/tracks/'+track.index">
+                        <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza"
+                            tooltipPosition="top" />
+                    </a>
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
+                        tooltipPosition="top" (onClick)="deleteTrack(track)" />
                 </td>
             </tr>
         </ng-template>
