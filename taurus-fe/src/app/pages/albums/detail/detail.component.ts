@@ -48,6 +48,10 @@ export class DetailComponent {
         });
     }
 
+    protected print(): void {
+        window.print();
+    }
+
     protected deleteSelectedTracks(): void {
         this.selectedTracks.forEach(selectedTrack => {
             this.deleteTrack(selectedTrack);
@@ -55,7 +59,7 @@ export class DetailComponent {
         this.selectedTracks = [];
     }
 
-    protected onRowReorder() {
+    protected onRowReorder(): void {
         this.album.tracks?.forEach((track, i) => track.order = i + 1);
     }
 
@@ -96,7 +100,7 @@ export class DetailComponent {
         this.album.tracks?.forEach((track, i) => track.order = i + 1);
     }
 
-    private loadElement(id: string) {
+    private loadElement(id: string): void {
         this.albumsService.getById(id).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.album = album;
