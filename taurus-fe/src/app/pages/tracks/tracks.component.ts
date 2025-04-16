@@ -8,6 +8,7 @@ import { first } from 'rxjs';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
+import { StringFilter } from '../../module/criteria/filter';
 import { TracksService } from '../../service';
 
 @Component({
@@ -42,7 +43,7 @@ export class TracksComponent {
         ];
     }
 
-    public onSortChange(event: SelectChangeEvent) {
+    public onSortChange(event: SelectChangeEvent): void {
         let value = event.value;
 
         if (value.indexOf('!') === 0) {
@@ -54,9 +55,13 @@ export class TracksComponent {
         }
     }
 
-    public onLazyLoad(event: DataViewLazyLoadEvent) {
+    public onLazyLoad(event: DataViewLazyLoadEvent): void {
         this.dataViewLazyLoadEvent = event;
         this.loadElements();
+    }
+
+    protected onGlobalFilter(event: Event): void {
+        this.loadElements((event.target as HTMLInputElement).value);
     }
 
     public initials(name?: string | null): string {
@@ -85,7 +90,7 @@ export class TracksComponent {
         });
     }
 
-    public deleteElement(track: Tracks) {
+    public deleteElement(track: Tracks): void {
         this.tracksService.delete(track.id).pipe(first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
@@ -93,11 +98,16 @@ export class TracksComponent {
         });
     }
 
-    private loadElements() {
+    private loadElements(search?: string): void {
         const tracksCriteria: TracksCriteria = new TracksCriteria();
         tracksCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         tracksCriteria.size = this.dataViewLazyLoadEvent.rows;
         tracksCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+
+        if (search) {
+            tracksCriteria.name = new StringFilter();
+            tracksCriteria.name.contains = search;
+        }
 
         this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe({
             next: (value: Page<Tracks>) => {
