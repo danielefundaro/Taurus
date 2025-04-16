@@ -5,15 +5,20 @@
         [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
         [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
-            <div class="flex justify-end gap-3 sm:gap-12">
-                <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="addNew()" />
-                <p-select [options]="sortOptions" placeholder="Sort By Name" (onChange)="onSortChange($event)" />
+            <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3">
+                <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
+                <p-iconfield>
+                    <p-inputicon class="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter($event)" placeholder="Cerca..." />
+                </p-iconfield>
+                <p-select [options]="sortOptions" placeholder="Ordina per..." (onChange)="onSortChange($event)" />
                 <p-select-button [(ngModel)]="layout" [options]="options" [allowEmpty]="false">
                     <ng-template #item let-option>
-                        <i class="pi " [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"></i>
+                        <i class="pi " [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"
+                            [pTooltip]="option === 'list' ? 'Lista' : 'Griglia'"></i>
                     </ng-template>
                 </p-select-button>
-            </div>
+            </p-fluid>
         </ng-template>
 
         <ng-template #list let-items>

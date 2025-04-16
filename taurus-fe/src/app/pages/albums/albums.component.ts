@@ -9,6 +9,7 @@ import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-al
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, Page } from '../../module';
 import { AlbumsService } from '../../service';
+import { StringFilter } from '../../module/criteria/filter';
 
 @Component({
     selector: 'app-albums',
@@ -51,9 +52,13 @@ export class AlbumsComponent {
         }
     }
 
-    protected onLazyLoad(event: DataViewLazyLoadEvent) {
+    protected onLazyLoad(event: DataViewLazyLoadEvent): void {
         this.dataViewLazyLoadEvent = event;
         this.loadElements();
+    }
+
+    protected onGlobalFilter(event: Event): void {
+        this.loadElements((event.target as HTMLInputElement).value);
     }
 
     protected initials(name?: string | null): string {
@@ -82,7 +87,7 @@ export class AlbumsComponent {
         });
     }
 
-    protected deleteElement(albums: Albums) {
+    protected deleteElement(albums: Albums): void {
         this.albumsService.delete(albums.id).pipe(first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
@@ -90,11 +95,16 @@ export class AlbumsComponent {
         });
     }
 
-    private loadElements() {
+    private loadElements(search?: string): void {
         const albumsCriteria: AlbumsCriteria = new AlbumsCriteria();
         albumsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         albumsCriteria.size = this.dataViewLazyLoadEvent.rows;
         albumsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+
+        if (search) {
+            albumsCriteria.name = new StringFilter();
+            albumsCriteria.name.contains = search;
+        }
 
         this.albumsService.getAll(albumsCriteria).pipe(first()).subscribe({
             next: (value: Page<Albums>) => {
