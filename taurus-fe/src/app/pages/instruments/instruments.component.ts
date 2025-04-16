@@ -9,6 +9,7 @@ import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dia
 import { ImportsModule } from '../../imports';
 import { Instruments, InstrumentsCriteria, Page } from '../../module';
 import { InstrumentsService } from '../../service';
+import { StringFilter } from '../../module/criteria/filter';
 
 @Component({
     selector: 'app-instruments',
@@ -59,6 +60,10 @@ export class InstrumentsComponent {
         this.loadElements();
     }
 
+    protected onGlobalFilter(event: Event): void {
+        this.loadElements((event.target as HTMLInputElement).value);
+    }
+
     protected initials(name?: string | null): string {
         return (name ?? '').split(" ").slice(0, 2).map(s => s[0]).join(" ").toUpperCase();
     }
@@ -93,11 +98,16 @@ export class InstrumentsComponent {
         });
     }
 
-    private loadElements() {
+    private loadElements(search?: string) {
         const instrumentsCriteria: InstrumentsCriteria = new InstrumentsCriteria();
         instrumentsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         instrumentsCriteria.size = this.dataViewLazyLoadEvent.rows;
         instrumentsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+
+        if (search) {
+            instrumentsCriteria.name = new StringFilter();
+            instrumentsCriteria.name.contains = search;
+        }
 
         this.instrumentsService.getAll(instrumentsCriteria).pipe(first()).subscribe({
             next: (value: Page<Instruments>) => {

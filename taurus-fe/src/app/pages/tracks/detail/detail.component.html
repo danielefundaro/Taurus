@@ -119,9 +119,6 @@
     [showThumbnails]="false" [changeItemOnIndicatorHover]="true" [showItemNavigators]="true"
     [showIndicatorsOnItem]="true" [containerStyle]="{ 'max-width': '60rem' }">
     <ng-template #item let-media>
-        <img [src]="media" alt="sheet-music-{{media.index}}" />
-    </ng-template>
-    <ng-template #thumbnail let-media>
-        <img [src]="media" alt="sheet-music-{{media.index}}" />
+        <img class="image-galleria" [src]="media" alt="sheet-music-{{media.index}}" />
     </ng-template>
 </p-galleria>
