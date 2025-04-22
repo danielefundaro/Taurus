@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
+import { canActivateAuthRole } from './app/guard/auth-role.guard';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
-import { canActivateAuthRole } from './app/guard/auth-role.guard';
+import { PreviewComponent } from './app/pages/preview/preview.component';
 
 export const appRoutes: Routes = [
     {
@@ -30,6 +31,12 @@ export const appRoutes: Routes = [
             {
                 path: 'instruments',
                 loadChildren: () => import('./app/pages/instruments/instruments.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: ['ROLE_USER'] },
+            },
+            {
+                path: 'preview',
+                component: PreviewComponent,
                 canActivate: [canActivateAuthRole],
                 data: { role: ['ROLE_USER'] },
             },

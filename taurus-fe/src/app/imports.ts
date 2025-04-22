@@ -1,4 +1,4 @@
-import { AsyncPipe, DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, CommonModule, DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { NgModule } from "@angular/core";
 import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
@@ -34,6 +34,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         NgFor,
         DatePipe,
         AsyncPipe,
+        CommonModule,
         FormsModule,
         RouterModule,
         RouterOutlet,
@@ -68,6 +69,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         NgFor,
         DatePipe,
         AsyncPipe,
+        CommonModule,
         FormsModule,
         RouterModule,
         RouterOutlet,

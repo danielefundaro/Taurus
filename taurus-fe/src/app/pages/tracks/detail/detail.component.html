@@ -3,7 +3,7 @@
         <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center">
                 <span class="font-semibold text-xl">Traccia</span>
-                <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
+                <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
@@ -80,32 +80,37 @@
                 </td>
                 <td class="minw-8rem">{{ score.order }}</td>
                 <td class="minw-8rem">
-                    <p-button icon="pi pi-images" label="Show" (onClick)="showMedia(score.media)"
-                        *ngIf="score!.media?.length > 3" />
-                    <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1">
-                        <ng-container *ngFor="let media of score!.media">
-                            <div class="div-image pi pi-image cursor-pointer" (click)="toggleDataTable(op2, $event)"
-                                (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
-                                (keypress)="toggleDataTable(op2, $event)">
-                                <p-popover #op2 [style]="{width: '50rem'}">
-                                    <img [src]="mediaStream(media) | secure | async" class="w-50"
-                                        alt="sheet-music-{{media.index}}" />
-                                </p-popover>
-                            </div>
-                        </ng-container>
+                    <div class="flex flex-col items-start">
+                        <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1">
+                            <ng-container *ngFor="let media of score!.media">
+                                <div class="div-image pi pi-image cursor-pointer" (click)="toggleDataTable(op2, $event)"
+                                    (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
+                                    (keypress)="toggleDataTable(op2, $event)">
+                                    <p-popover #op2 [style]="{width: '50rem'}">
+                                        <img [src]="mediaStream(media) | secure | async" class="w-50"
+                                            alt="sheet-music-{{media.index}}" />
+                                    </p-popover>
+                                </div>
+                            </ng-container>
+                        </div>
+                        <p-button icon="pi pi-images" label="Show" (onClick)="showMedia(score.media)" class="mt-2 block"
+                            *ngIf="score!.media?.length >= 3" />
                     </div>
                 </td>
                 <td class="minw-8rem">
-                    <div class="flex flex-col md:flex-row gap-2">
+                    <div class="flex flex-col md:flex-row gap-2" *ngIf="score.instruments?.length">
                         <p-tag [value]="instrument.name" [rounded]="true" severity="success"
                             *ngFor="let instrument of score.instruments"></p-tag>
                     </div>
                 </td>
-                <td class="minw-2rem flex flex-col md:flex-row gap-2">
-                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
-                        tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
-                        tooltipPosition="top" pTooltip="Elimina" (onClick)="deleteScore(score)" />
+                <td class="minw-2rem">
+                    <div class="flex flex-col md:flex-row gap-2">
+                        <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
+                            tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                            pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina"
+                            (onClick)="deleteScore(score)" />
+                    </div>
                 </td>
             </tr>
         </ng-template>

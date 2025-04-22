@@ -1,5 +1,5 @@
 import { HttpHeaders } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
@@ -27,7 +27,7 @@ import { InstrumentsService, KeycloakService, MediaService, TracksService } from
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
-export class DetailComponent {
+export class DetailComponent implements OnInit {
     protected track: Tracks = new Tracks();
     protected cols: string[];
     protected selectedScores: SheetsMusic[];
