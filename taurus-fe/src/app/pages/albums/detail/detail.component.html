@@ -5,7 +5,7 @@
                 <span class="font-semibold text-xl">Album</span>
                 <div class="flex flex-row gap-2">
                     <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
-                    <p-button label="Stampa" icon="pi pi-print" severity="secondary" (onClick)="print()" />
+                    <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()" [disabled]="!album.tracks?.length" />
                 </div>
             </div>
             <div class="flex flex-col md:flex-row gap-6">
@@ -71,13 +71,15 @@
                 </td>
                 <td class="minw-8rem" pReorderableRowHandle>{{ track.order }}</td>
                 <td class="minw-8rem" pReorderableRowHandle>{{ track.name }}</td>
-                <td class="minw-2rem flex flex-col md:flex-row gap-2">
-                    <a [routerLink]="'/tracks/'+track.index">
-                        <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza"
-                            tooltipPosition="top" />
-                    </a>
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina"
-                        tooltipPosition="top" (onClick)="deleteTrack(track)" />
+                <td class="minw-2rem">
+                    <div class="flex flex-col md:flex-row gap-2">
+                        <a [routerLink]="'/tracks/'+track.index">
+                            <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza"
+                                tooltipPosition="top" />
+                        </a>
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                            pTooltip="Elimina" tooltipPosition="top" (onClick)="deleteTrack(track)" />
+                    </div>
                 </td>
             </tr>
         </ng-template>

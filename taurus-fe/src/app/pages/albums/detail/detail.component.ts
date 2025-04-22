@@ -1,13 +1,13 @@
-import { Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
-import { first } from 'rxjs';
+import { first, forkJoin, Subscription } from 'rxjs';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
-import { AlbumsService } from '../../../service';
+import { AlbumsService, MediaService, PrinterService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-album-detail',
@@ -18,26 +18,38 @@ import { AlbumsService } from '../../../service';
     styleUrl: './detail.component.scss',
     providers: [
         AlbumsService,
+        TracksService,
+        MediaService,
         DialogService,
     ],
 })
-export class DetailComponent {
+export class DetailComponent implements OnInit, OnDestroy {
     protected sortOptions!: SelectItem[];
     protected totalRecords: number = 0;
     protected album: Albums = new Albums();
     protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
 
-    constructor(private readonly albumsService: AlbumsService, private readonly dialogService: DialogService,
-        private readonly routeService: ActivatedRoute) {
+    private $subscription?: Subscription;
+
+    constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
+        private readonly mediaService: MediaService, private readonly printerService: PrinterService,
+        private readonly dialogService: DialogService, private readonly activatedRouteService: ActivatedRoute,
+        private readonly router: Router) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
     }
 
     ngOnInit() {
-        this.routeService.params.pipe(first()).subscribe(params => {
+        this.activatedRouteService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
         });
+    }
+
+    ngOnDestroy(): void {
+        if (this.$subscription) {
+            this.$subscription.unsubscribe();
+        }
     }
 
     protected save(): void {
@@ -48,8 +60,23 @@ export class DetailComponent {
         });
     }
 
-    protected print(): void {
-        window.print();
+    protected preview(): void {
+        let childrenEntities: ChildrenEntities[] = [];
+
+        if (this.selectedTracks.length > 0) {
+            childrenEntities = this.selectedTracks
+        } else if (this.album.tracks!.length > 0) {
+            childrenEntities = this.album.tracks!;
+        }
+
+        this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
+            for (let track of tracks) {
+                let mediaStreams: string[] = track.scores!.flatMap(score => score.media!.map(media => this.mediaService.stream(media.index)));
+                this.printerService.push(...mediaStreams);
+            }
+
+            this.router.navigate(["preview"]);
+        });
     }
 
     protected deleteSelectedTracks(): void {
