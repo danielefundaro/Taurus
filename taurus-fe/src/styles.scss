@@ -3,3 +3,23 @@
 @use './assets/layout/layout.scss';
 @use 'primeicons/primeicons.css';
 @use './assets/demo/demo.scss';
+
+@media print {
+    .print {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .not-print {
+        visibility: hidden;
+    }
+
+    .gap-0 {
+        gap: 0;
+    }
+
+    .card {
+        background-color: transparent;
+    }
+}

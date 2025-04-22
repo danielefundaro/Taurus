@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
@@ -24,7 +24,7 @@ import { TracksService } from '../../service';
         DialogService,
     ]
 })
-export class TracksComponent {
+export class TracksComponent implements OnInit {
     public sortOptions!: SelectItem[];
     public layout: 'list' | 'grid' = 'list';
     public options = ['list', 'grid'];
