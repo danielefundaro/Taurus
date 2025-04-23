@@ -43,10 +43,12 @@ export class EditScoreDialogComponent {
 
     @Input() public currentScoreOrder: number;
     @Input() public scores: SheetsMusic[];
-    @Input() public instruments: ChildrenEntities[];
+    @Input() public instruments: Instruments[];
     protected currentScore: SheetsMusic;
     protected selectedScore?: SheetsMusic;
     protected autoFilteredInstruments: ChildrenEntities[];
+
+    private readonly childrenEntities: ChildrenEntities[];
 
     constructor(private readonly dialogRef: DynamicDialogRef<EditScoreDialogComponent>,
         private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number, scores: SheetsMusic[], instruments: Instruments[] }>,
@@ -54,16 +56,18 @@ export class EditScoreDialogComponent {
     ) {
         this.currentScoreOrder = this.config.inputValues?.currentScoreOrder ?? -1;
         this.scores = this.config.inputValues?.scores ?? [];
-        this.instruments = this.config.inputValues?.instruments.map(instrument => {
-            const childrenEntities = new ChildrenEntities();
-            childrenEntities.name = instrument.name;
-            childrenEntities.index = instrument.id;
+        this.instruments = this.config.inputValues?.instruments ?? [];
 
-            return childrenEntities;
+        this.childrenEntities = this.config.inputValues?.instruments.map(instrument => {
+            const childrenEntity = new ChildrenEntities();
+            childrenEntity.name = instrument.name;
+            childrenEntity.index = instrument.id;
+
+            return childrenEntity;
         }) ?? [];
 
         this.currentScore = this.scores.find(score => score.order === this.currentScoreOrder) ?? {};
-        this.autoFilteredInstruments = this.instruments;
+        this.autoFilteredInstruments = this.childrenEntities;
     }
 
     protected onReorderScores(event: InputNumberInputEvent): void {
@@ -87,7 +91,7 @@ export class EditScoreDialogComponent {
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredInstruments = this.instruments.filter(instrument => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredInstruments = this.childrenEntities.filter(instrument => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected onReorderInstruments(): void {

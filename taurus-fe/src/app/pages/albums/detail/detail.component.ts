@@ -33,9 +33,8 @@ export class DetailComponent implements OnInit, OnDestroy {
     private $subscription?: Subscription;
 
     constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
-        private readonly mediaService: MediaService, private readonly printerService: PrinterService,
-        private readonly dialogService: DialogService, private readonly activatedRouteService: ActivatedRoute,
-        private readonly router: Router) {
+        private readonly printerService: PrinterService, private readonly dialogService: DialogService,
+        private readonly activatedRouteService: ActivatedRoute, private readonly router: Router) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
     }
@@ -70,11 +69,7 @@ export class DetailComponent implements OnInit, OnDestroy {
         }
 
         this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
-            for (let track of tracks) {
-                let mediaStreams: string[] = track.scores!.flatMap(score => score.media!.map(media => this.mediaService.stream(media.index)));
-                this.printerService.push(...mediaStreams);
-            }
-
+            this.printerService.push(...tracks.flatMap(track => track.scores!))
             this.router.navigate(["preview"]);
         });
     }

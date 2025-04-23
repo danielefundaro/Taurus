@@ -118,11 +118,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
         }
 
         this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
-            for (let track of tracks) {
-                let mediaStreams: string[] = track.scores!.flatMap(score => score.media!.map(media => this.mediaService.stream(media.index)));
-                this.printerService.push(...mediaStreams);
-            }
-
+            this.printerService.push(...tracks.flatMap(track => track.scores!))
             this.router.navigate(["preview"]);
         });
     }
