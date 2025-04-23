@@ -1,8 +1,37 @@
-<div class="card">
-    <div class="flex flex-row justify-end not-print">
-        <p-button label="Stampa" icon="pi pi-print" severity="primary" (onClick)="print()"></p-button>
+<p-toolbar class="not-print" styleClass="mb-6">
+    <ng-template #start>
+    </ng-template>
+    <ng-template #end>
+        <p-button label="Stampa" icon="pi pi-print" severity="primary" (onClick)="print()"
+            [disabled]="!mediaStreams.length"></p-button>
+    </ng-template>
+</p-toolbar>
+
+<div class="flex flex-row gap-2">
+    <div class="card">
+        <div class="flex flex-col justify-start items-start gap-1 print">
+            <ng-container *ngIf="mediaStreams.length > 0; else elseBlock">
+                <img [src]="mediaStream | secure | async" alt="" *ngFor="let mediaStream of mediaStreams">
+            </ng-container>
+
+            <ng-template #elseBlock>
+                <span class="not-print"><b>Nessun elemento selezionato</b></span>
+            </ng-template>
+        </div>
     </div>
-    <div class="flex flex-col justify-start items-start gap-1 print gap-0">
-        <img [src]="mediaStream | secure | async" alt="" *ngFor="let mediaStream of mediaStreams">
+
+    <div class="card not-print flex flex-col gap-2 w-full mw-max-content">
+        <div class="flex flex-row items-center gap-1">
+            <p-checkBox inputId="selectAll" [binary]="true" [(ngModel)]="selectAll"
+                (onChange)="selectAllChange($event)"></p-checkBox>
+            <label for="selectAll">Seleziona tutto</label>
+        </div>
+        <div class="flex flex-row items-center gap-1" *ngFor="let instrument of instruments | keyvalue">
+            <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key"
+                [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()"></p-checkBox>
+            <label [for]="instrument.key">{{instrument.value}}</label>
+        </div>
     </div>
+
+    <p-scrolltop />
 </div>

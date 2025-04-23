@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { DataViewModule } from 'primeng/dataview';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DropdownModule } from 'primeng/dropdown';
@@ -18,6 +19,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { OrderListModule } from 'primeng/orderlist';
 import { PickListModule } from 'primeng/picklist';
 import { PopoverModule } from 'primeng/popover';
+import { ScrollTopModule } from 'primeng/scrolltop';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
@@ -62,6 +64,8 @@ import { SecurePipe } from './pipe/secure.pipe';
         SecurePipe,
         PopoverModule,
         TooltipModule,
+        CheckboxModule,
+        ScrollTopModule,
     ],
     exports: [
         NgClass,
@@ -97,6 +101,8 @@ import { SecurePipe } from './pipe/secure.pipe';
         SecurePipe,
         PopoverModule,
         TooltipModule,
+        CheckboxModule,
+        ScrollTopModule,
     ],
     providers: [
         SecurePipe,
