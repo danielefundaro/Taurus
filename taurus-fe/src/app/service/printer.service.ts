@@ -1,24 +1,25 @@
 import { Injectable } from "@angular/core";
+import { SheetsMusic } from "../module";
 
 @Injectable({
     providedIn: 'root'
 })
 export class PrinterService {
-    private _mediaStreams: string[] = [];
+    private _scores: SheetsMusic[] = [];
 
     constructor() {
-        this._mediaStreams = [];
+        this._scores = [];
     }
 
-    public get mediaStream(): string[] {
-        return this._mediaStreams;
+    public get scores(): SheetsMusic[] {
+        return this._scores;
     }
 
     public clear(): void {
-        this._mediaStreams = [];
+        this._scores = [];
     }
 
-    public push(...items: string[]): void {
-        this._mediaStreams.push(...items);
+    public push(...items: SheetsMusic[]): void {
+        this._scores.push(...items);
     }
 }
