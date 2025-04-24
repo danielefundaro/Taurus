@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { first } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments } from '../../../module';
 import { InstrumentsService } from '../../../service';
@@ -36,7 +36,7 @@ export class DetailComponent {
     }
 
     public save(): void {
-        this.instrumentsService.update(this.instrument.id, this.instrument).pipe(first()).subscribe({
+        this.instrumentsService.update(this.instrument.id, this.instrument).pipe(delay(1000), first()).subscribe({
             next: (instrument: Instruments) => {
                 this.loadElement(instrument.id);
             }

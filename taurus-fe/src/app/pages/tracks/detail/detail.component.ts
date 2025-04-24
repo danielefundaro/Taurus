@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
-import { first, firstValueFrom } from 'rxjs';
+import { delay, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
@@ -83,7 +83,7 @@ export class DetailComponent implements OnInit {
     }
 
     protected save(): void {
-        this.tracksService.update(this.track.id, this.track).pipe(first()).subscribe({
+        this.tracksService.update(this.track.id, this.track).pipe(delay(1000), first()).subscribe({
             next: (track: Tracks) => {
                 this.loadElement(track.id);
             }

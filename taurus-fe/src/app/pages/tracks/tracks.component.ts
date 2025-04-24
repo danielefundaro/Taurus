@@ -4,7 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { first } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
@@ -81,7 +81,7 @@ export class TracksComponent implements OnInit {
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
             if (result) {
-                this.tracksService.create(result).pipe(first()).subscribe({
+                this.tracksService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (track: Tracks) => {
                         this.loadElements();
                     }
@@ -91,7 +91,7 @@ export class TracksComponent implements OnInit {
     }
 
     public deleteElement(track: Tracks): void {
-        this.tracksService.delete(track.id).pipe(first()).subscribe({
+        this.tracksService.delete(track.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
             }
