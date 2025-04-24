@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { KeycloakService } from '../service';
+import { KeycloakService, ToastService } from '../service';
 
 @Injectable({
     providedIn: 'root',
@@ -16,7 +16,10 @@ export class HttpInterceptorService implements HttpInterceptor {
     private isRefreshing = false;
     private readonly refreshTokenSubject: BehaviorSubject<any>;
 
-    constructor(private readonly keycloakService: KeycloakService) {
+    constructor(
+        private readonly keycloakService: KeycloakService,
+        private readonly toastService: ToastService
+    ) {
         this.isRefreshing = false;
         this.refreshTokenSubject = new BehaviorSubject<any>(null);
     }
@@ -29,21 +32,16 @@ export class HttpInterceptorService implements HttpInterceptor {
         if (!this.keycloakService.$isUserLoggedIn.value) {
             this.keycloakService.logout();
             return next.handle(req).pipe(
-                // catchError((error: HttpErrorResponse) => {
-                //     this.messageService.add({
-                //         severity: 'error',
-                //         summary: 'Errore',
-                //         detail: 'Errore durante la richiesta',
-                //         life: 2000,
-                //     });
-                //     return throwError(() => error);
-                // }),
+                catchError((error: HttpErrorResponse) => {
+                    this.toastService.error('Errore', 'Errore durante la richiesta');
+                    return throwError(() => error);
+                }),
             );
         }
 
         if (!this.excludedRoutes.some(route => req.url.includes(route))) {
-          this.keycloakService.$loading.next(true);
-          this.httpRequestStack.push(req);
+            this.keycloakService.$loading.next(true);
+            this.httpRequestStack.push(req);
         }
 
         const token = this.getAuthToken();
@@ -58,35 +56,9 @@ export class HttpInterceptorService implements HttpInterceptor {
         }), catchError((error: HttpErrorResponse) => {
             if (error && error.status === 401 && !this.isRefresh(authReq)) {
                 return this.handle401Error(authReq, next);
-            } else if (error && error.status === 413 && error.url?.includes('/guidelines')) {
-            //   this.messageService.add({
-            //     severity: 'error',
-            //     summary: 'Errore',
-            //     detail: `Operazione non consentita: dimensione massima di 20MB superata`,
-            //     life: 3000,
-            //   });
             } else {
-                // let detail = "Errore durante la richiesta";
-
-                // if (error.error) {
-                //     switch (error.error.message) {
-                //         case "error.rowInvalidCrime": detail = "Errore durante la richiesta. Reato non valido"; break;
-                //         case "error.rowInvalidSource": detail = "Errore durante la richiesta. Tipo fonte non valido"; break;
-                //         case "error.rowInvalidUrl": detail = "Errore durante la richiesta. Url non valido"; break;
-                //         case "error.nonempty":  detail = "Errore durante la richiesta. La categoria di reato è associata a dei reati"; break;
-                //         case "error.existcustomizations": detail = "Operazione non consentita: a questo gestore sono associate delle personalizzati incomplete"; break;
-                //         case "error.fileTooLarge": detail = `Operazione non consentita: dimensione massima di ${error.error.detail} superata` ; break;
-                //         case "error.fileEmpty": detail = "Operazione non consentita: il file passato è vuoto"; break;
-                //         case "error.fileNotAllowed": detail = "Operazione non consentita: non è possibile caricare questo tipo di file"; break;
-                //     }
-                // }
-
-                // this.messageService.add({
-                //     severity: 'error',
-                //     summary: 'Errore',
-                //     detail: detail,
-                //     life: 3000,
-                // });
+                let detail = "Errore durante la richiesta";
+                this.toastService.error('Errore', detail);
             }
 
             return throwError(() => error);
