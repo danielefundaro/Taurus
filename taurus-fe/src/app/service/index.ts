@@ -5,4 +5,5 @@ export * from "./last-researches.service";
 export * from "./media.service";
 export * from "./notices.service";
 export * from "./printer.service";
+export * from "./toast.service";
 export * from "./tracks.service";

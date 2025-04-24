@@ -1,10 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { first, forkJoin, Subscription } from 'rxjs';
+import { delay, first, forkJoin, Subscription } from 'rxjs';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, ChildrenEntities, Page } from '../../module';
@@ -23,8 +23,9 @@ import { AlbumsService, MediaService, PrinterService, TracksService } from '../.
         AlbumsService,
         TracksService,
         MediaService,
-        DialogService
-    ]
+        DialogService,
+    ],
+    changeDetection: ChangeDetectionStrategy.Default,
 })
 export class AlbumsComponent implements OnInit, OnDestroy {
     protected sortOptions!: SelectItem[];
@@ -36,9 +37,13 @@ export class AlbumsComponent implements OnInit, OnDestroy {
 
     private $subscription?: Subscription;
 
-    constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
-        private readonly mediaService: MediaService, private readonly printerService: PrinterService,
-        private readonly dialogService: DialogService, private readonly router: Router) {
+    constructor(
+        private readonly albumsService: AlbumsService,
+        private readonly tracksService: TracksService,
+        private readonly printerService: PrinterService,
+        private readonly dialogService: DialogService,
+        private readonly router: Router,
+    ) {
         this.albums = [];
     }
 
@@ -93,7 +98,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Albums) => {
             if (result) {
-                this.albumsService.create(result).pipe(first()).subscribe({
+                this.albumsService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (album: Albums) => {
                         this.loadElements();
                     }
@@ -103,7 +108,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
     }
 
     protected deleteElement(albums: Albums): void {
-        this.albumsService.delete(albums.id).pipe(first()).subscribe({
+        this.albumsService.delete(albums.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
             }
