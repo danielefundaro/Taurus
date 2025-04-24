@@ -4,6 +4,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter } from '@angular/router';
 import Aura from '@primeng/themes/aura';
 import { AutoRefreshTokenService, provideKeycloak, UserActivityService, withAutoRefreshToken } from 'keycloak-angular';
+import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
@@ -45,5 +46,6 @@ export const appConfig: ApplicationConfig = {
             multi: true,
         },
         provideHttpClient(withInterceptorsFromDi()),
+        MessageService,
     ],
 };
