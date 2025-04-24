@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
-import { first, forkJoin, Subscription } from 'rxjs';
+import { delay, first, forkJoin, Subscription } from 'rxjs';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
@@ -52,7 +52,7 @@ export class DetailComponent implements OnInit, OnDestroy {
     }
 
     protected save(): void {
-        this.albumsService.update(this.album.id, this.album).pipe(first()).subscribe({
+        this.albumsService.update(this.album.id, this.album).pipe(delay(1000), first()).subscribe({
             next: (album: Albums) => {
                 this.loadElement(album.id);
             }
