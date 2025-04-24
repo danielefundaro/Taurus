@@ -53,13 +53,15 @@ public class Converter {
             for (int page = 0; page < pdDocument.getNumberOfPages(); ++page) {
                 String destinationFilePath = String.format("%s/%s.%s", destinationFile.getPath(), page + 1, formatName);
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.GRAY);
-                ImageIOUtil.writeImage(bim, destinationFilePath, dpi);
-                files.add(destinationFilePath);
 
                 // Remove external bounding box
-//                Rectangle bounds = getBounds(bim, Color.WHITE);
-//                BufferedImage trimmed = bim.getSubimage(bounds.x, bounds.y, bounds.width, bounds.height);
-//                ImageIOUtil.writeImage(trimmed, destinationFilePath, dpi);
+                Color avgColor = getAvgColor(bim);
+                Rectangle bounds = getBounds(bim, avgColor);
+                BufferedImage trimmed = bim.getSubimage(bounds.x, bounds.y, bounds.width, bounds.height);
+
+                // Write image into filesystem
+                ImageIOUtil.writeImage(trimmed, destinationFilePath, dpi);
+                files.add(destinationFilePath);
             }
         }
 
@@ -191,7 +193,9 @@ public class Converter {
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                if (new Color(img.getRGB(x, y), true).equals(fillColor)) {
+                Color pixelColor = new Color(img.getRGB(x, y), true);
+
+                if (pixelColor.getRed() < fillColor.getRed() && pixelColor.getBlue() < fillColor.getBlue() && pixelColor.getGreen() < fillColor.getGreen()) {
                     top = Math.min(top, y);
                     bottom = Math.max(bottom, y);
 
@@ -201,6 +205,37 @@ public class Converter {
             }
         }
 
+        // Add 10 pixels of border
+        if (left > 10) {
+            left -= 10;
+        }
+
+        if (top > 10) {
+            top -= 10;
+        }
+
+        if (right < img.getWidth() - 10) {
+            right += 10;
+        }
+
+        if (bottom < img.getWidth() - 10) {
+            bottom += 10;
+        }
+
         return new Rectangle(left, top, right - left, bottom - top);
+    }
+
+    private static Color getAvgColor(BufferedImage img) {
+        long width = img.getWidth(), height = img.getHeight(), color = 0;
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Color pixelColor = new Color(img.getRGB(x, y), true);
+                color += pixelColor.getRed();
+            }
+        }
+
+        int avg = (int) (color / (width * height));
+        return new Color(avg, avg, avg);
     }
 }
