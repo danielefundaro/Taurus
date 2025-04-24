@@ -4,7 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { first } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Instruments, InstrumentsCriteria, Page } from '../../module';
@@ -81,7 +81,7 @@ export class InstrumentsComponent {
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Instruments) => {
             if (result) {
-                this.instrumentsService.create(result).pipe(first()).subscribe({
+                this.instrumentsService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (album: Instruments) => {
                         this.loadElements();
                     }
@@ -91,7 +91,7 @@ export class InstrumentsComponent {
     }
 
     protected deleteElement(instrument: Instruments) {
-        this.instrumentsService.delete(instrument.id).pipe(first()).subscribe({
+        this.instrumentsService.delete(instrument.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
                 this.loadElements();
             }
