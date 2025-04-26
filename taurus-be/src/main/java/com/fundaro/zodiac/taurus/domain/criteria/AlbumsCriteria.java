@@ -80,7 +80,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
     }
 
     public AlbumsCriteria setTrackId(StringFilter trackId) {
-        this.trackId = trackName;
+        this.trackId = trackId;
         return this;
     }
 
