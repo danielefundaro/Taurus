@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -95,28 +96,9 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     @Override
     public Mono<Page<D>> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
-        List<Query> queries = getQueries(criteria);
 
         try {
-            SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
-                .index(getIndex(entityName))
-                .from(pageable.getPageNumber() * pageable.getPageSize())
-                .size(pageable.getPageSize())
-                .trackTotalHits(t -> t.enabled(true))
-                .query(q -> q.bool(b -> b.must(queries)))
-                .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(sort.getProperty()).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
-
-            if (searchResponse == null || searchResponse.hits().hits().isEmpty()) {
-                return Mono.just(new PageImpl<>(new ArrayList<>(), pageable, 0L));
-            }
-
-            List<D> list = searchResponse.hits().hits().stream().map(hit -> {
-                D dto = mapper.toDto(hit.source());
-                dto.setId(hit.id());
-                return dto;
-            }).toList();
-
-            return Mono.just(new PageImpl<>(list, pageable, searchResponse.hits().total().value()));
+            return Mono.just(findByCriteria(criteria, pageable));
         } catch (IOException e) {
             return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
         }
@@ -157,18 +139,25 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
         // Create criteria
         C c = criteriaFunction.apply(stringFilter);
-        Pageable pageable = Pageable.ofSize(20);
 
         // Search from parent and update children with the same id
-        findByCriteria(c, pageable, abstractAuthenticationToken).map(dPage -> {
-            dPage.getContent().forEach(dto -> {
+        int pageNumber = 0, size = 20;
+        Page<D> result = new PageImpl<>(new ArrayList<>(), PageRequest.of(pageNumber, size), 0);
+
+        do {
+            Pageable pageable = PageRequest.of(pageNumber++, size);
+            try {
+                result = findByCriteria(c, pageable);
+            } catch (IOException e) {
+
+            }
+
+            result.getContent().forEach(dto -> {
                 if (function.apply(dto, childId)) {
                     partialUpdate(dto.getId(), dto, abstractAuthenticationToken).then();
                 }
             });
-
-            return dPage;
-        }).then();
+        } while (result.getTotalPages() > pageNumber);
     }
 
     protected E getById(String id) throws IOException {
@@ -230,6 +219,30 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         }
 
         return entity;
+    }
+
+    private Page<D> findByCriteria(C criteria, Pageable pageable) throws IOException {
+        List<Query> queries = getQueries(criteria);
+
+        SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
+            .index(getIndex(entityName))
+            .from(pageable.getPageNumber() * pageable.getPageSize())
+            .size(pageable.getPageSize())
+            .trackTotalHits(t -> t.enabled(true))
+            .query(q -> q.bool(b -> b.must(queries)))
+            .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(sort.getProperty()).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
+
+        if (searchResponse == null || searchResponse.hits().hits().isEmpty()) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0L);
+        }
+
+        List<D> list = searchResponse.hits().hits().stream().map(hit -> {
+            D dto = mapper.toDto(hit.source());
+            dto.setId(hit.id());
+            return dto;
+        }).toList();
+
+        return new PageImpl<>(list, pageable, searchResponse.hits().total().value());
     }
 
     private String getIndex(String indexName) {
