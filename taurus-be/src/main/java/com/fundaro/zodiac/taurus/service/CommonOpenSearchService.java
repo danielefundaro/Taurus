@@ -16,7 +16,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Save an entity.
      *
-     * @param dto the entity to save.
+     * @param dto                         the entity to save.
      * @param abstractAuthenticationToken the token of the user.
      * @return the persisted entity.
      */
@@ -25,8 +25,8 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Updates an entity.
      *
-     * @param id  the id of the entity.
-     * @param dto the entity to update.
+     * @param id                          the id of the entity.
+     * @param dto                         the entity to update.
      * @param abstractAuthenticationToken the token of the user.
      * @return the persisted entity.
      */
@@ -35,8 +35,8 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Partially updates an entity.
      *
-     * @param id  the id of the entity.
-     * @param dto the entity to update partially.
+     * @param id                          the id of the entity.
+     * @param dto                         the entity to update partially.
      * @param abstractAuthenticationToken the token of the user.
      * @return the persisted entity.
      */
@@ -45,8 +45,8 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Find entities by criteria.
      *
-     * @param criteria filtering criteria.
-     * @param pageable the pagination information.
+     * @param criteria                    filtering criteria.
+     * @param pageable                    the pagination information.
      * @param abstractAuthenticationToken the token of the user.
      * @return the list of entities.
      */
@@ -55,7 +55,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Get the "id" entity.
      *
-     * @param id the id of the entity.
+     * @param id                          the id of the entity.
      * @param abstractAuthenticationToken the token of the user.
      * @return the entity.
      */
@@ -64,7 +64,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Delete the "id" entity.
      *
-     * @param id the id of the entity.
+     * @param id                          the id of the entity.
      * @param abstractAuthenticationToken the token of the user.
      * @return a Mono to signal the deletion
      */
@@ -73,10 +73,10 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     /**
      * Update the "childId" entity.
      *
-     * @param childId the id of the entity.
+     * @param childId                     the id of the entity.
      * @param abstractAuthenticationToken the token of the user.
-     * @param criteriaFunction the criteriaFunction to find children's information.
-     * @param function the definition of the function.
+     * @param criteriaFunction            the criteriaFunction to find children's information.
+     * @param function                    the definition of the function.
      */
     void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function);
 }
