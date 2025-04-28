@@ -7,7 +7,7 @@ import { delay, first, forkJoin, Subscription } from 'rxjs';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
-import { AlbumsService, MediaService, PrinterService, TracksService } from '../../../service';
+import { AlbumsService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-album-detail',
@@ -32,9 +32,15 @@ export class DetailComponent implements OnInit, OnDestroy {
 
     private $subscription?: Subscription;
 
-    constructor(private readonly albumsService: AlbumsService, private readonly tracksService: TracksService,
-        private readonly printerService: PrinterService, private readonly dialogService: DialogService,
-        private readonly activatedRouteService: ActivatedRoute, private readonly router: Router) {
+    constructor(
+        private readonly albumsService: AlbumsService,
+        private readonly tracksService: TracksService,
+        private readonly printerService: PrinterService,
+        private readonly toastService: ToastService,
+        private readonly dialogService: DialogService,
+        private readonly activatedRouteService: ActivatedRoute,
+        private readonly router: Router,
+    ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
     }
@@ -54,6 +60,7 @@ export class DetailComponent implements OnInit, OnDestroy {
     protected save(): void {
         this.albumsService.update(this.album.id, this.album).pipe(delay(1000), first()).subscribe({
             next: (album: Albums) => {
+                this.toastService.success("Successo", "Album aggiornato con successo");
                 this.loadElement(album.id);
             }
         });

@@ -2,6 +2,7 @@ export * from "./albums.service";
 export * from "./instruments.service";
 export * from "./keycloak.service";
 export * from "./last-researches.service";
+export * from "./loading.service";
 export * from "./media.service";
 export * from "./notices.service";
 export * from "./printer.service";

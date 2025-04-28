@@ -25,7 +25,7 @@
             </p-floatlabel>
             <app-type-handler variant="on" label="Tipo" [(types)]="track!.type"></app-type-handler>
             <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
-                mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()">
+                mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()" ()>
                 <ng-template #empty>
                     <div>Trascina il file qui per caricarlo.</div>
                 </ng-template>

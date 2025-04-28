@@ -9,7 +9,7 @@ import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-al
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, ChildrenEntities, Page } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { AlbumsService, MediaService, PrinterService, TracksService } from '../../service';
+import { AlbumsService, MediaService, PrinterService, ToastService, TracksService } from '../../service';
 
 @Component({
     selector: 'app-albums',
@@ -41,6 +41,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
         private readonly albumsService: AlbumsService,
         private readonly tracksService: TracksService,
         private readonly printerService: PrinterService,
+        private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly router: Router,
     ) {
@@ -100,6 +101,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
             if (result) {
                 this.albumsService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (album: Albums) => {
+                        this.toastService.success("Successo", "Album aggiunto con successo");
                         this.loadElements();
                     }
                 });
@@ -110,6 +112,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
     protected deleteElement(albums: Albums): void {
         this.albumsService.delete(albums.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
+                this.toastService.success("Successo", "Album eliminato con successo");
                 this.loadElements();
             }
         });

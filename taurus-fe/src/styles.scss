@@ -19,3 +19,30 @@
         background-color: transparent;
     }
 }
+
+.progress-spinner {
+    position: fixed;
+    z-index: 99999;
+    height: 8em;
+    width: 8em;
+    overflow: hidden;
+    margin: auto;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+
+/* Transparent Overlay */
+.progress-spinner:before {
+    content: "";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.53);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
