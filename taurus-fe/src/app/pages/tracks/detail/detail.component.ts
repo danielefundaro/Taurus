@@ -9,7 +9,7 @@ import { TypeHandlerComponent } from "../../../components/type-handler/type-hand
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
-import { InstrumentsService, KeycloakService, MediaService, TracksService } from '../../../service';
+import { InstrumentsService, KeycloakService, MediaService, ToastService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
@@ -50,9 +50,15 @@ export class DetailComponent implements OnInit {
 
     private instruments: Instruments[];
 
-    constructor(private readonly tracksService: TracksService, private readonly mediaService: MediaService,
-        private readonly instrumentsService: InstrumentsService, private readonly keycloakService: KeycloakService,
-        private readonly routeService: ActivatedRoute, private readonly dialogService: DialogService) {
+    constructor(
+        private readonly tracksService: TracksService,
+        private readonly mediaService: MediaService,
+        private readonly instrumentsService: InstrumentsService,
+        private readonly keycloakService: KeycloakService,
+        private readonly toastService: ToastService,
+        private readonly routeService: ActivatedRoute,
+        private readonly dialogService: DialogService,
+    ) {
         this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
         this.images = [];
@@ -85,6 +91,7 @@ export class DetailComponent implements OnInit {
     protected save(): void {
         this.tracksService.update(this.track.id, this.track).pipe(delay(1000), first()).subscribe({
             next: (track: Tracks) => {
+                this.toastService.success("Successo", "Traccia aggiornata con successo");
                 this.loadElement(track.id);
             }
         });

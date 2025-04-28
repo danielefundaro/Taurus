@@ -2,7 +2,8 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { KeycloakService, ToastService } from '../service';
+import { KeycloakService, LoadingService, ToastService } from '../service';
+import { Router } from '@angular/router';
 
 @Injectable({
     providedIn: 'root',
@@ -18,7 +19,9 @@ export class HttpInterceptorService implements HttpInterceptor {
 
     constructor(
         private readonly keycloakService: KeycloakService,
-        private readonly toastService: ToastService
+        private readonly toastService: ToastService,
+        private readonly loadingService: LoadingService,
+        private readonly router: Router,
     ) {
         this.isRefreshing = false;
         this.refreshTokenSubject = new BehaviorSubject<any>(null);
@@ -40,7 +43,7 @@ export class HttpInterceptorService implements HttpInterceptor {
         }
 
         if (!this.excludedRoutes.some(route => req.url.includes(route))) {
-            this.keycloakService.$loading.next(true);
+            this.loadingService.loading = true;
             this.httpRequestStack.push(req);
         }
 
@@ -51,11 +54,18 @@ export class HttpInterceptorService implements HttpInterceptor {
             this.httpRequestStack.pop();
 
             if (this.httpRequestStack.length === 0) {
-                this.keycloakService.$loading.next(false);
+                this.loadingService.loading = false;
             }
         }), catchError((error: HttpErrorResponse) => {
             if (error && error.status === 401 && !this.isRefresh(authReq)) {
                 return this.handle401Error(authReq, next);
+            } else if ('error' in error) {
+                if (error.error.message === 'error.id.notFound') {
+                    this.router.navigate(["notfound"]);
+                } else {
+                    let detail = "Errore durante la richiesta";
+                    this.toastService.error('Errore', detail);
+                }
             } else {
                 let detail = "Errore durante la richiesta";
                 this.toastService.error('Errore', detail);

@@ -8,6 +8,7 @@ import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
+import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
 export const appConfig: ApplicationConfig = {
@@ -47,5 +48,6 @@ export const appConfig: ApplicationConfig = {
         },
         provideHttpClient(withInterceptorsFromDi()),
         MessageService,
+        LoadingService,
     ],
 };

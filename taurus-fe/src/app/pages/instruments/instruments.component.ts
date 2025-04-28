@@ -8,8 +8,8 @@ import { delay, first } from 'rxjs';
 import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Instruments, InstrumentsCriteria, Page } from '../../module';
-import { InstrumentsService } from '../../service';
 import { StringFilter } from '../../module/criteria/filter';
+import { InstrumentsService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-instruments',
@@ -32,7 +32,11 @@ export class InstrumentsComponent {
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     protected instruments: Instruments[];
 
-    constructor(private readonly instrumentsService: InstrumentsService, private readonly dialogService: DialogService) {
+    constructor(
+        private readonly instrumentsService: InstrumentsService,
+        private readonly toastService: ToastService,
+        private readonly dialogService: DialogService,
+    ) {
         this.instruments = [];
     }
 
@@ -83,6 +87,7 @@ export class InstrumentsComponent {
             if (result) {
                 this.instrumentsService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (album: Instruments) => {
+                        this.toastService.success("Successo", "Strumento aggiunto con successo");
                         this.loadElements();
                     }
                 });
@@ -93,6 +98,7 @@ export class InstrumentsComponent {
     protected deleteElement(instrument: Instruments) {
         this.instrumentsService.delete(instrument.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
+                this.toastService.success("Successo", "Strumento eliminato con successo");
                 this.loadElements();
             }
         });

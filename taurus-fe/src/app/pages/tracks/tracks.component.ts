@@ -9,7 +9,7 @@ import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tr
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { TracksService } from '../../service';
+import { ToastService, TracksService } from '../../service';
 
 @Component({
     selector: 'app-tracks',
@@ -32,7 +32,11 @@ export class TracksComponent implements OnInit {
     public dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     public tracks: Tracks[];
 
-    constructor(private readonly tracksService: TracksService, public dialogService: DialogService) {
+    constructor(
+        private readonly tracksService: TracksService,
+        private readonly toastService: ToastService,
+        private readonly dialogService: DialogService,
+    ) {
         this.tracks = [];
     }
 
@@ -83,6 +87,7 @@ export class TracksComponent implements OnInit {
             if (result) {
                 this.tracksService.create(result).pipe(delay(1000), first()).subscribe({
                     next: (track: Tracks) => {
+                        this.toastService.success("Successo", "Traccia aggiunta con successo");
                         this.loadElements();
                     }
                 });
@@ -93,6 +98,7 @@ export class TracksComponent implements OnInit {
     public deleteElement(track: Tracks): void {
         this.tracksService.delete(track.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
+                this.toastService.success("Successo", "Traccia eliminata con successo");
                 this.loadElements();
             }
         });

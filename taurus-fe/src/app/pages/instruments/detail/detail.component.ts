@@ -4,7 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { delay, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments } from '../../../module';
-import { InstrumentsService } from '../../../service';
+import { InstrumentsService, ToastService } from '../../../service';
 
 @Component({
     selector: 'app-instrument-detail',
@@ -24,7 +24,11 @@ export class DetailComponent {
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
 
-    constructor(private readonly instrumentsService: InstrumentsService, private readonly routeService: ActivatedRoute) {
+    constructor(
+        private readonly instrumentsService: InstrumentsService,
+        private readonly toastService: ToastService,
+        private readonly routeService: ActivatedRoute
+    ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
     }
@@ -38,6 +42,7 @@ export class DetailComponent {
     public save(): void {
         this.instrumentsService.update(this.instrument.id, this.instrument).pipe(delay(1000), first()).subscribe({
             next: (instrument: Instruments) => {
+                this.toastService.success("Successo", "Strumento aggiornato con successo");
                 this.loadElement(instrument.id);
             }
         });
