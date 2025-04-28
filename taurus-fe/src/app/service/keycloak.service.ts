@@ -8,7 +8,6 @@ import { BehaviorSubject } from "rxjs";
 export class KeycloakService {
     private readonly keycloak = inject(Keycloak);
     public $isUserLoggedIn: BehaviorSubject<boolean>;
-    public $loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
     public get token(): string | undefined {
         return this.keycloak.token;
