@@ -53,9 +53,7 @@ export class TypeHandlerComponent {
     }
 
     private addTypes(): void {
-        if (!this.types) {
-            this.types = [];
-        }
+        this.types ??= [];
 
         if (this.current.trim() !== "") {
             this.types.push(...this.current.split(",").map(type => type.trim()));
