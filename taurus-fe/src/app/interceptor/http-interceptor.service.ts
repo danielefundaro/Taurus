@@ -57,8 +57,10 @@ export class HttpInterceptorService implements HttpInterceptor {
                 this.loadingService.loading = false;
             }
         }), catchError((error: HttpErrorResponse) => {
-            if (error && error.status === 401 && !this.isRefresh(authReq)) {
+            if (error.status === 401 && !this.isRefresh(authReq)) {
                 return this.handle401Error(authReq, next);
+            } else if (error.status === 403) {
+                this.router.navigate(['forbidden']);
             } else if ('error' in error) {
                 if (error.error.message === 'error.id.notFound') {
                     this.router.navigate(["notfound"]);
