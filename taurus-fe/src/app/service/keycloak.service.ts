@@ -1,5 +1,5 @@
 import { inject, Injectable } from "@angular/core";
-import Keycloak from 'keycloak-js';
+import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { BehaviorSubject } from "rxjs";
 
 @Injectable({
@@ -7,7 +7,19 @@ import { BehaviorSubject } from "rxjs";
 })
 export class KeycloakService {
     private readonly keycloak = inject(Keycloak);
-    public $isUserLoggedIn: BehaviorSubject<boolean>;
+    private readonly $isUserLoggedIn: BehaviorSubject<boolean>;
+
+    public get isUserLoggedIn(): boolean {
+        return this.$isUserLoggedIn.value;
+    }
+
+    public get profile(): KeycloakProfile | undefined {
+        return this.keycloak.profile;
+    }
+
+    public get userInfo(): {} | undefined {
+        return this.keycloak.userInfo;
+    }
 
     public get token(): string | undefined {
         return this.keycloak.token;
@@ -17,11 +29,26 @@ export class KeycloakService {
         this.$isUserLoggedIn = new BehaviorSubject(!this.keycloak.isTokenExpired());
     }
 
-    public refreshToken() {
+    public accountManagement(): Promise<void> {
+        return this.keycloak.accountManagement();
+    }
+
+    public loadUserInfo(): Promise<{}> {
+        return this.keycloak.loadUserInfo();
+    }
+
+    public loadUserProfile(): Promise<KeycloakProfile> {
+        return this.keycloak.loadUserProfile();
+    }
+
+    public refreshToken(): string | undefined {
         return this.keycloak.refreshToken;
     }
 
     public logout() {
-        return this.keycloak.logout().then(() => this.$isUserLoggedIn.next(false));
+        return this.keycloak.logout().then(() => {
+            this.$isUserLoggedIn.next(false);
+            this.keycloak.clearToken();
+        });
     }
 }
