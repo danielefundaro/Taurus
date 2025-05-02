@@ -6,6 +6,7 @@ import { Landing } from './app/pages/landing/landing';
 import { LayoutComponent } from './app/pages/layout/layout.component';
 import { Notfound } from './app/pages/notfound/notfound.component';
 import { PreviewComponent } from './app/pages/preview/preview.component';
+import { Forbidden } from './app/pages/forbidden/forbidden.component';
 
 export const appRoutes: Routes = [
     {
@@ -44,6 +45,7 @@ export const appRoutes: Routes = [
     },
     { path: 'landing', component: Landing },
     { path: 'notfound', component: Notfound },
+    { path: 'forbidden', component: Forbidden },
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: '**', redirectTo: '/notfound' }
 ];
