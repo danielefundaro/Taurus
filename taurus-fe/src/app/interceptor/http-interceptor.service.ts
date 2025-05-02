@@ -32,7 +32,7 @@ export class HttpInterceptorService implements HttpInterceptor {
             return next.handle(req);
         }
 
-        if (!this.keycloakService.$isUserLoggedIn.value) {
+        if (!this.keycloakService.isUserLoggedIn) {
             this.keycloakService.logout();
             return next.handle(req).pipe(
                 catchError((error: HttpErrorResponse) => {
