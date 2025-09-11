@@ -19,10 +19,10 @@ public interface CommonRepository<E extends CommonFields, C extends CommonCriter
     Flux<E> findAll();
 
     @Override
-    Mono<E> findById(Long id);
+    Mono<E> findByIdAndUserId(Long id, String userId);
 
     @Override
-    Mono<Void> deleteById(Long id);
+    Mono<Void> deleteByIdAndUserId(Long id, String userId);
 }
 
 interface CommonRepositoryInternal<E extends CommonFields, C extends CommonCriteria> {
@@ -32,14 +32,13 @@ interface CommonRepositoryInternal<E extends CommonFields, C extends CommonCrite
 
     Flux<E> findAll();
 
-
-    Mono<E> findById(Long id);
+    Mono<E> findByIdAndUserId(Long id, String userId);
 
     // this is not supported at the moment because of https://github.com/jhipster/generator-jhipster/issues/18269
     // Flux<E> findAllBy(Pageable pageable, Criteria criteria);
-    Flux<E> findByCriteria(C criteria, Pageable pageable);
+    Flux<E> findByCriteria(C criteria, Pageable pageable, String userId);
 
-    Mono<Long> countByCriteria(C criteria);
+    Mono<Long> countByCriteria(C criteria, String userId);
 
-    Mono<Void> deleteById(Long id);
+    Mono<Void> deleteByIdAndUserId(Long id, String userId);
 }

@@ -14,10 +14,6 @@ import java.time.ZonedDateTime;
 public class Notices extends CommonFields {
 
     @NotNull(message = "must not be null")
-    @Column("user_id")
-    private String userId;
-
-    @NotNull(message = "must not be null")
     @Column("name")
     private String name;
 
@@ -67,17 +63,9 @@ public class Notices extends CommonFields {
         return this;
     }
 
-    public String getUserId() {
-        return this.userId;
-    }
-
     public Notices userId(String userId) {
         this.setUserId(userId);
         return this;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public String getName() {
@@ -118,8 +106,6 @@ public class Notices extends CommonFields {
     public void setReadDate(ZonedDateTime readDate) {
         this.readDate = readDate;
     }
-
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
     public boolean equals(Object o) {

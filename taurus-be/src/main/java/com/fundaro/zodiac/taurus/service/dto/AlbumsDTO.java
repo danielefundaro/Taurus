@@ -15,6 +15,8 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     private Date date;
 
+    private String state;
+
     private Set<ChildrenEntitiesDTO> tracks;
 
     public Date getDate() {
@@ -23,6 +25,14 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     public Set<ChildrenEntitiesDTO> getTracks() {
@@ -58,6 +68,7 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", date='" + getDate() + "'" +
+            ", state='" + getState() + "'" +
             ", tracks=" + getTracks() +
             "}";
     }

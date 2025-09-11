@@ -13,6 +13,8 @@ public class Albums extends CommonFieldsOpenSearch {
 
     private Date date;
 
+    private String state;
+
     private Set<ChildrenEntities> tracks;
 
     public Date getDate() {
@@ -21,6 +23,14 @@ public class Albums extends CommonFieldsOpenSearch {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     public Set<ChildrenEntities> getTracks() {
@@ -62,6 +72,7 @@ public class Albums extends CommonFieldsOpenSearch {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", date='" + getDate() + "'" +
+            ", state='" + getState() + "'" +
             ", tracks=" + getTracks() +
             "}";
     }

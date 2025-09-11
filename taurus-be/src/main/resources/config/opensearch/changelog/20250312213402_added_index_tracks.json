@@ -27,6 +27,14 @@
         }
       }
     },
+    "sub_name": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
     "description": {
       "type": "text"
     },
@@ -45,6 +53,25 @@
           "type": "keyword"
         }
       }
+    },
+    "tempo": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "tone": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "complete": {
+      "type": "boolean"
     },
     "type": {
       "type": "text",

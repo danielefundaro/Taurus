@@ -20,8 +20,6 @@ import java.util.Optional;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class PreferencesCriteria extends CommonCriteria {
 
-    private StringFilter userId;
-
     private StringFilter key;
 
     private StringFilter value;
@@ -32,7 +30,6 @@ public class PreferencesCriteria extends CommonCriteria {
 
     public PreferencesCriteria(PreferencesCriteria other) {
         super(other);
-        this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
         this.key = other.optionalKey().map(StringFilter::copy).orElse(null);
         this.value = other.optionalValue().map(StringFilter::copy).orElse(null);
     }
@@ -40,25 +37,6 @@ public class PreferencesCriteria extends CommonCriteria {
     @Override
     public PreferencesCriteria copy() {
         return new PreferencesCriteria(this);
-    }
-
-    public StringFilter getUserId() {
-        return userId;
-    }
-
-    public Optional<StringFilter> optionalUserId() {
-        return Optional.ofNullable(userId);
-    }
-
-    public StringFilter userId() {
-        if (userId == null) {
-            setUserId(new StringFilter());
-        }
-        return userId;
-    }
-
-    public void setUserId(StringFilter userId) {
-        this.userId = userId;
     }
 
     public StringFilter getKey() {
@@ -109,7 +87,6 @@ public class PreferencesCriteria extends CommonCriteria {
         }
         final PreferencesCriteria that = (PreferencesCriteria) o;
         return (
-            Objects.equals(userId, that.userId) &&
                 Objects.equals(key, that.key) &&
                 Objects.equals(value, that.value)
         );
@@ -117,7 +94,7 @@ public class PreferencesCriteria extends CommonCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), userId, key, value);
+        return Objects.hash(super.hashCode(), key, value);
     }
 
     // prettier-ignore
