@@ -1,5 +1,8 @@
-import { Injectable, effect, signal, computed } from '@angular/core';
-import { Subject } from 'rxjs';
+import { computed, effect, Injectable, signal } from '@angular/core';
+import { first, of, Subject, switchMap } from 'rxjs';
+import { Preferences, PreferencesCriteria, Page } from '../module';
+import { LocalStorageService } from './local-storage.service';
+import { PreferencesService } from './preferences.service';
 
 export interface LayoutConfig {
     preset?: string;
@@ -78,13 +81,27 @@ export class LayoutService {
 
     private initialized = false;
 
-    constructor() {
+    constructor(
+        private readonly preferencesService: PreferencesService,
+        private readonly localStorageService: LocalStorageService,
+    ) {
         effect(() => {
             const config = this.layoutConfig();
+
             if (config) {
                 this.onConfigUpdate();
+
+                this.saveConfig(config);
             }
         });
+
+        effect(() => {
+            const state = this.layoutState();
+
+            if (state) {
+                this.saveConfig(state);
+            }
+        })
 
         effect(() => {
             const config = this.layoutConfig();
@@ -116,7 +133,7 @@ export class LayoutService {
             .then(() => {
                 this.onTransitionEnd();
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 
     toggleDarkMode(config?: LayoutConfig): void {
@@ -166,6 +183,46 @@ export class LayoutService {
     onConfigUpdate() {
         this._config = { ...this.layoutConfig() };
         this.configUpdate.next(this.layoutConfig());
+    }
+
+    private saveConfig(config: any) {
+        for (let key of Object.keys(config)) {
+            let preference = this.localStorageService.getItem(key);
+            const value = config[key];
+
+            if (!preference) {
+                preference = new Preferences();
+                preference.key = key;
+                preference.value = value;
+                this.localStorageService.setItem(key, preference);
+
+                this.preferencesService.count().pipe(first(), switchMap(count => {
+                    const criteria = new PreferencesCriteria();
+                    criteria.size = count;
+                    criteria.page = 0;
+
+                    return this.preferencesService.getAll(criteria).pipe(first());
+                }), switchMap(result => {
+                    if (!result.content.find(p => p.key === key)) {
+                        return this.preferencesService.create(preference!);
+                    }
+
+                    return of(undefined);
+                })).subscribe({
+                    next: (result?: Preferences) => {
+                        if (result) {
+                            this.localStorageService.setItem(key, result);
+                        }
+                    }
+                });
+            } else if (preference.value !== value) {
+                preference.value = value;
+                this.preferencesService.update(preference.id, preference).pipe(first()).subscribe(result => {
+                    this.localStorageService.setItem(key, result);
+                });
+                this.localStorageService.setItem(key, preference);
+            }
+        }
     }
 
     onMenuStateChange(event: MenuChangeEvent) {
