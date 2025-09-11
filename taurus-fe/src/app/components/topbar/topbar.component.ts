@@ -26,7 +26,11 @@ export class TopbarComponent {
         private readonly keycloakService: KeycloakService,
     ) { }
 
-    toggleDarkMode() {
+    protected toggleMenu(): void {
+        this.layoutService.onMenuToggle();
+    }
+
+    protected toggleDarkMode(): void {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
