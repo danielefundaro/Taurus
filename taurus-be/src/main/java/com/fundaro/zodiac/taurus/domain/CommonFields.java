@@ -41,6 +41,10 @@ public class CommonFields implements Serializable {
     @Column("edit_date")
     private ZonedDateTime editDate;
 
+    @NotNull(message = "must not be null")
+    @Column("user_id")
+    private String userId;
+
     public CommonFields() {
     }
 
@@ -51,6 +55,7 @@ public class CommonFields implements Serializable {
         this.insertDate = other.insertDate;
         this.editBy = other.editBy;
         this.editDate = other.editDate;
+        this.userId = other.userId;
     }
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
@@ -103,7 +108,13 @@ public class CommonFields implements Serializable {
         this.editDate = editDate;
     }
 
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
+    public String getUserId() {
+        return this.userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     @Override
     public boolean equals(Object o) {

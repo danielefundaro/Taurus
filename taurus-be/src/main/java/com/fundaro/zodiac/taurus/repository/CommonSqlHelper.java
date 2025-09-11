@@ -19,6 +19,7 @@ public abstract class CommonSqlHelper {
         columns.add(Column.aliased("insert_date", table, columnPrefix + "_insert_date"));
         columns.add(Column.aliased("edit_by", table, columnPrefix + "_edit_by"));
         columns.add(Column.aliased("edit_date", table, columnPrefix + "_edit_date"));
+        columns.add(Column.aliased("user_id", table, columnPrefix + "_user_id"));
 
         return columns;
     }

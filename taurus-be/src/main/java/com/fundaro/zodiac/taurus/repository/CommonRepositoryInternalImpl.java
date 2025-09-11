@@ -20,6 +20,7 @@ import org.springframework.r2dbc.core.RowsFetchSpec;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tech.jhipster.service.ConditionBuilder;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +76,7 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
         return sqlHelper;
     }
 
-    protected abstract Condition buildConditions(C criteria);
+    protected abstract Condition buildConditions(C criteria, String userId);
 
     @Override
     public Flux<E> findAll() {
@@ -88,8 +89,9 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
     }
 
     @Override
-    public Mono<E> findById(Long id) {
-        Comparison whereClause = Conditions.isEqual(entityTable.column("id"), Conditions.just(id.toString()));
+    public Mono<E> findByIdAndUserId(Long id, String userId) {
+        Condition whereClause = Conditions.isEqual(entityTable.column("id"), Conditions.just(id.toString()))
+            .and(Conditions.isEqual(entityTable.column("user_id"), Conditions.just(String.format("'%s'", userId))));
         return createQuery(null, whereClause).one();
     }
 
@@ -99,26 +101,26 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
     }
 
     @Override
-    public Flux<E> findByCriteria(C criteria, Pageable page) {
-        return createQuery(page, buildConditions(criteria)).all();
+    public Flux<E> findByCriteria(C criteria, Pageable page, String userId) {
+        return createQuery(page, buildConditions(criteria, userId)).all();
     }
 
     @Override
-    public Mono<Long> countByCriteria(C criteria) {
-        return findByCriteria(criteria, null)
+    public Mono<Long> countByCriteria(C criteria, String userId) {
+        return findByCriteria(criteria, null, userId)
             .collectList()
             .map(collectedList -> collectedList != null ? (long) collectedList.size() : (long) 0);
     }
 
     @Override
-    public Mono<Void> deleteById(Long id) {
-        return findById(id).map(entity -> {
+    public Mono<Void> deleteByIdAndUserId(Long id, String userId) {
+        return findByIdAndUserId(id, userId).map(entity -> {
             entity.setDeleted(true);
             return entity;
         }).flatMap(this::save).then();
     }
 
-    protected ConditionBuilder commonConditions(C criteria) {
+    protected ConditionBuilder commonConditions(C criteria, String userId) {
         ConditionBuilder builder = new ConditionBuilder(this.columnConverter);
         List<Condition> allConditions = new ArrayList<Condition>();
         if (criteria != null) {
@@ -126,6 +128,8 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
                 builder.buildFilterConditionForField(criteria.getId(), entityTable.column("id"));
             }
         }
+
+        builder.buildFilterConditionForField(new StringFilter().setEquals(userId), entityTable.column("user_id"));
         return builder;
     }
 

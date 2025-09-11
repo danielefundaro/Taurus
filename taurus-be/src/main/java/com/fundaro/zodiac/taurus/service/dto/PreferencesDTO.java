@@ -9,20 +9,9 @@ import jakarta.validation.constraints.NotNull;
 public class PreferencesDTO extends CommonFieldsDTO {
 
     @NotNull(message = "must not be null")
-    private String userId;
-
-    @NotNull(message = "must not be null")
     private String key;
 
     private String value;
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
 
     public String getKey() {
         return key;

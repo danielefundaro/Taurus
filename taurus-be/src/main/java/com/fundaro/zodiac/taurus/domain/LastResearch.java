@@ -13,10 +13,6 @@ import java.time.ZonedDateTime;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class LastResearch extends CommonFields {
 
-    @NotNull(message = "must not be null")
-    @Column("user_id")
-    private String userId;
-
     @Column("value")
     private String value;
 
@@ -63,17 +59,9 @@ public class LastResearch extends CommonFields {
         return this;
     }
 
-    public String getUserId() {
-        return this.userId;
-    }
-
     public LastResearch userId(String userId) {
         this.setUserId(userId);
         return this;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public String getValue() {
@@ -101,8 +89,6 @@ public class LastResearch extends CommonFields {
     public void setField(String field) {
         this.field = field;
     }
-
-    // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
     public boolean equals(Object o) {

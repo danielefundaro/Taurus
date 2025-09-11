@@ -28,12 +28,9 @@ class LastResearchRepositoryInternalImpl extends CommonRepositoryInternalImpl<La
     }
 
     @Override
-    protected Condition buildConditions(LastResearchCriteria criteria) {
-        ConditionBuilder builder = super.commonConditions(criteria);
+    protected Condition buildConditions(LastResearchCriteria criteria, String userId) {
+        ConditionBuilder builder = super.commonConditions(criteria, userId);
         if (criteria != null) {
-            if (criteria.getUserId() != null) {
-                builder.buildFilterConditionForField(criteria.getUserId(), getEntityTable().column("user_id"));
-            }
             if (criteria.getValue() != null) {
                 builder.buildFilterConditionForField(criteria.getValue(), getEntityTable().column("value"));
             }

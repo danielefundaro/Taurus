@@ -14,10 +14,6 @@ import java.time.ZonedDateTime;
 public class Preferences extends CommonFields {
 
     @NotNull(message = "must not be null")
-    @Column("user_id")
-    private String userId;
-
-    @NotNull(message = "must not be null")
     @Column("key")
     private String key;
 
@@ -64,17 +60,9 @@ public class Preferences extends CommonFields {
         return this;
     }
 
-    public String getUserId() {
-        return this.userId;
-    }
-
     public Preferences userId(String userId) {
         this.setUserId(userId);
         return this;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public String getKey() {
