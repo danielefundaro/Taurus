@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Notices, NoticesCriteria } from '../module';
+import { Preferences, PreferencesCriteria } from '../module';
 import { CommonService } from './common.service';
 
 @Injectable({
     providedIn: 'root'
 })
-export class PreferencesService extends CommonService<Notices, NoticesCriteria> {
+export class PreferencesService extends CommonService<Preferences, PreferencesCriteria> {
     override resourceName(): string {
-        return "notices";
+        return "preferences";
     }
 }

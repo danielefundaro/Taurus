@@ -4,6 +4,7 @@ export * from "./keycloak.service";
 export * from "./last-researches.service";
 export * from "./layout.service";
 export * from "./loading.service";
+export * from "./local-storage.service";
 export * from "./media.service";
 export * from "./notices.service";
 export * from "./printer.service";

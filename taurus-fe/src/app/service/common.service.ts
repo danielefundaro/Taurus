@@ -37,7 +37,7 @@ export abstract class CommonService<D extends CommonFields, C extends CommonCrit
         return this.http.get<Page<D>>(`${this._baseUrl}/${this.resourceName()}`, { params: options, observe: 'body' });
     }
 
-    public count(c: C): Observable<number> {
+    public count(c?: C): Observable<number> {
         const options = this.createRequestOption(c);
         return this.http.get<number>(`${this._baseUrl}/${this.resourceName()}/count`, { params: options, observe: 'body' });
     }
