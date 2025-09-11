@@ -55,6 +55,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot already have an ID", entityName), entityName, "id.exists");
         }
 
+        setUserIdDto(dto, abstractAuthenticationToken);
         return saveEntity(mapper.toEntity(dto), abstractAuthenticationToken).map(mapper::toDto);
     }
 
@@ -70,7 +71,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
 
-        return repository.findById(id).flatMap(existingEntity -> {
+        String userId = setUserIdDto(dto, abstractAuthenticationToken);
+        return repository.findByIdAndUserId(id, userId).flatMap(existingEntity -> {
             if (existingEntity == null) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
@@ -91,7 +93,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
 
-        return repository.findById(dto.getId()).flatMap(existingEntity -> {
+        String userId = setUserIdDto(dto, abstractAuthenticationToken);
+        return repository.findByIdAndUserId(dto.getId(), userId).flatMap(existingEntity -> {
             if (existingEntity == null) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
@@ -105,7 +108,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     @Transactional(readOnly = true)
     public Flux<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
-        return repository.findByCriteria(criteria, pageable).map(mapper::toDto);
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByCriteria(criteria, pageable, userId).map(mapper::toDto);
     }
 
     /**
@@ -117,7 +121,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     @Override
     public Mono<Long> countByCriteria(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get the count of all {} by Criteria", entityName);
-        return repository.countByCriteria(criteria);
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        return repository.countByCriteria(criteria, userId);
     }
 
     @Override
@@ -129,19 +134,28 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     @Transactional(readOnly = true)
     public Mono<D> findOne(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get {} : {}", entityName, id);
-        return repository.findById(id).map(mapper::toDto);
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByIdAndUserId(id, userId).map(mapper::toDto);
     }
 
     @Override
     public Mono<Void> delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to delete {} : {}", entityName, id);
-        return repository.deleteById(id);
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        return repository.deleteByIdAndUserId(id, userId);
+    }
+
+    private String setUserIdDto(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        dto.setUserId(userId);
+        return userId;
     }
 
     private Mono<E> saveEntity(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         entity.setEditBy(userId);
         entity.setEditDate(ZonedDateTime.now());
+        entity.setUserId(userId);
 
         if (Strings.isBlank(entity.getInsertBy())) {
             entity.setInsertBy(userId);

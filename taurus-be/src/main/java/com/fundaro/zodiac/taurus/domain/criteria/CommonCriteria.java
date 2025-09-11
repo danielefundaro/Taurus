@@ -1,9 +1,11 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.Criteria;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.LongFilter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -25,6 +27,9 @@ public class CommonCriteria implements Serializable, Criteria {
 
     private LongFilter id;
 
+    @JsonIgnore
+    private StringFilter userId;
+
     private Boolean distinct;
 
     public CommonCriteria() {
@@ -32,6 +37,7 @@ public class CommonCriteria implements Serializable, Criteria {
 
     public CommonCriteria(CommonCriteria other) {
         this.id = other.optionalId().map(LongFilter::copy).orElse(null);
+        this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -57,6 +63,25 @@ public class CommonCriteria implements Serializable, Criteria {
 
     public void setId(LongFilter id) {
         this.id = id;
+    }
+
+    public StringFilter getUserId() {
+        return userId;
+    }
+
+    public Optional<StringFilter> optionalUserId() {
+        return Optional.ofNullable(userId);
+    }
+
+    public StringFilter userId() {
+        if (userId == null) {
+            setUserId(new StringFilter());
+        }
+        return userId;
+    }
+
+    public void setUserId(StringFilter userId) {
+        this.userId = userId;
     }
 
     public Boolean getDistinct() {
@@ -89,11 +114,13 @@ public class CommonCriteria implements Serializable, Criteria {
         }
 
         final CommonCriteria that = (CommonCriteria) o;
-        return Objects.equals(id, that.id) && Objects.equals(distinct, that.distinct);
+        return Objects.equals(id, that.id)
+            && Objects.equals(userId, that.userId)
+            && Objects.equals(distinct, that.distinct);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, distinct);
+        return Objects.hash(id, userId, distinct);
     }
 }
