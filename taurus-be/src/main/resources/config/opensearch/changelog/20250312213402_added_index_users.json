@@ -1,6 +1,6 @@
 {
-  "id": "20250312213403_1",
-  "index_name": "albums",
+  "id": "20250312213405_1",
+  "index_name": "users",
   "action": "create_index",
   "author": "taurus",
   "context": "builder",
@@ -28,14 +28,42 @@
         }
       }
     },
-    "description": {
-      "type": "text"
+    "last_name": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
     },
-    "date": {
-      "type": "date",
-      "format": "yyyy-MM-dd||epoch_millis||rfc3339_lenient"
+    "birth_date": {
+      "type": "date"
     },
-    "tracks": {
+    "email": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "tenant": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "roles": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "instruments": {
       "type": "object",
       "properties": {
         "index": {

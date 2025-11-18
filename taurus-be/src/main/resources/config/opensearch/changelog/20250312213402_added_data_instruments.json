@@ -1,0 +1,8 @@
+{
+  "id": "20250312213402_1_data",
+  "index_name": "instruments",
+  "action": "load_data",
+  "author": "taurus",
+  "context": "builder",
+  "file": "/config/opensearch/data/instruments.json"
+}

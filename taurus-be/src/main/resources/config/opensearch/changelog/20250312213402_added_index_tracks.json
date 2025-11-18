@@ -1,7 +1,8 @@
 {
   "id": "20250312213406_1",
-  "author": "taurus",
   "index_name": "tracks",
+  "action": "create_index",
+  "author": "taurus",
   "context": "builder",
   "properties": {
     "deleted": {
