@@ -5,7 +5,11 @@
 }, {
   "file": "/config/opensearch/changelog/20250312213402_added_index_media.json"
 }, {
+  "file": "/config/opensearch/changelog/20250312213402_added_index_queue_upload_files.json"
+}, {
   "file": "/config/opensearch/changelog/20250312213402_added_index_tracks.json"
 }, {
-  "file": "/config/opensearch/changelog/20250312213402_added_index_queue_upload_files.json"
+  "file": "/config/opensearch/changelog/20250312213402_added_data_instruments.json"
+}, {
+  "file": "/config/opensearch/changelog/20250312213402_added_index_users.json"
 }]

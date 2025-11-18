@@ -1,7 +1,8 @@
 {
   "id": "20250312213402_1",
-  "author": "taurus",
   "index_name": "instruments",
+  "action": "create_index",
+  "author": "taurus",
   "context": "builder",
   "properties": {
     "deleted": {
@@ -30,11 +31,5 @@
     "description": {
       "type": "text"
     }
-  },
-  "load_data": {
-    "id": "20250312213402_1_data",
-    "author": "taurus",
-    "context": "init-data",
-    "file": "/config/opensearch/data/instruments.json"
   }
 }
