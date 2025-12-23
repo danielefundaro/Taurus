@@ -145,7 +145,7 @@ export class DetailComponent implements OnInit {
     }
 
     protected drop(endDraggedScore: SheetsMusic) {
-        if (this.draggedMedia) {
+        if (this.draggedMedia && this.startDraggedScore != endDraggedScore) {
             endDraggedScore.media?.push(this.draggedMedia);
             this.startDraggedScore?.media?.splice(this.startDraggedScore.media.findIndex(m => m.index === this.draggedMedia!.index), 1);
             this.startDraggedScore = undefined;
