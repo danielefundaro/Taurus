@@ -49,6 +49,8 @@ export class DetailComponent implements OnInit {
     ];
 
     private instruments: Instruments[];
+    private draggedMedia?: ChildrenEntities = undefined;
+    private startDraggedScore?: SheetsMusic = undefined;
 
     constructor(
         private readonly tracksService: TracksService,
@@ -118,9 +120,9 @@ export class DetailComponent implements OnInit {
     }
 
     protected deleteSelectedTracks(): void {
-        this.selectedScores.forEach(selectedScore => {
+        for (let selectedScore of this.selectedScores) {
             this.deleteScore(selectedScore);
-        });
+        }
         this.selectedScores = [];
     }
 
@@ -137,6 +139,25 @@ export class DetailComponent implements OnInit {
         op.toggle(event);
     }
 
+    protected dragStart(startDraggedScore: SheetsMusic, media: ChildrenEntities) {
+        this.startDraggedScore = startDraggedScore;
+        this.draggedMedia = media;
+    }
+
+    protected drop(endDraggedScore: SheetsMusic) {
+        if (this.draggedMedia) {
+            endDraggedScore.media?.push(this.draggedMedia);
+            this.startDraggedScore?.media?.splice(this.startDraggedScore.media.findIndex(m => m.index === this.draggedMedia!.index), 1);
+            this.startDraggedScore = undefined;
+            this.draggedMedia = undefined;
+        }
+    }
+
+    protected dragEnd() {
+        this.startDraggedScore = undefined;
+        this.draggedMedia = undefined;
+    }
+
     protected mediaStream(media: ChildrenEntities): string {
         return this.mediaService.stream(media.index);
     }
@@ -145,7 +166,7 @@ export class DetailComponent implements OnInit {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(EditScoreDialogComponent, {
             inputValues: {
                 currentScoreOrder: score.order,
-                scores: JSON.parse(JSON.stringify(this.track.scores)),
+                scores: structuredClone(this.track.scores),
                 instruments: this.instruments,
             },
             header: "Modifica parte",

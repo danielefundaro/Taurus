@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DataViewModule } from 'primeng/dataview';
 import { DatePickerModule } from 'primeng/datepicker';
+import { DragDropModule } from 'primeng/dragdrop';
 import { DropdownModule } from 'primeng/dropdown';
 import { DynamicDialogModule } from 'primeng/dynamicdialog';
 import { FileUploadModule } from 'primeng/fileupload';
@@ -66,6 +67,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         TooltipModule,
         CheckboxModule,
         ScrollTopModule,
+        DragDropModule,
     ],
     exports: [
         NgClass,
@@ -103,6 +105,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         TooltipModule,
         CheckboxModule,
         ScrollTopModule,
+        DragDropModule,
     ],
     providers: [
         SecurePipe,
