@@ -83,7 +83,7 @@
                     <div class="flex flex-col items-start">
                         <div pDroppable class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1 w-100" (onDrop)="drop(score)">
                             <ng-container *ngFor="let media of score!.media">
-                                <div pDraggable pDroppable class="div-image pi pi-image cursor-pointer"
+                                <div pDraggable class="div-image pi pi-image cursor-pointer"
                                     (click)="toggleDataTable(op2, $event)" (keydown)="toggleDataTable(op2, $event)"
                                     (keypress)="toggleDataTable(op2, $event)" (keyup)="toggleDataTable(op2, $event)"
                                     (onDragStart)="dragStart(score, media)" (onDragEnd)="dragEnd()">
