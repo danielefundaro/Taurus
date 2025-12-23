@@ -4,7 +4,7 @@
         <div class="flex flex-row gap-10">
             <div class="flex flex-col w-full gap-4">
                 <p-floatlabel variant="on">
-                    <p-inputnumber id="name" [(ngModel)]="currentScore!.order" showButtons
+                    <p-inputnumber id="name" [(ngModel)]="currentScore!.order" [showButtons]="true"
                         (onInput)="onReorderScores($event)" [min]="1" [max]="scores.length"
                         mode="decimal"></p-inputnumber>
                     <label for="name">Ordine</label>
@@ -33,7 +33,7 @@
                     </p-orderlist>
                 </div>
             </div>
-            <div class="flex flex-col w-full gap-4">
+            <div class="flex flex-col w-full gap-4" *ngIf="false">
                 <p-floatlabel variant="on">
                     <p-select optionLabel="order" [options]="scores" [(ngModel)]="selectedScore">
                         <ng-template #selectedItem let-selectedOption>
@@ -61,7 +61,7 @@
                     <span class="me-2">Pagina {{ option.order }}</span>
                     <div class="div-image pi pi-image" [draggable]="true" (click)="toggleDataTable(op2, $event)"
                         (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)"
-                        (keypress)="toggleDataTable(op2, $event)">
+                        (keyup)="toggleDataTable(op2, $event)">
                         <p-popover #op2 [style]="{width: '40rem'}">
                             <img [src]="mediaStream(option) | secure | async" alt="sheet-music-{{option.index}}" />
                         </p-popover>

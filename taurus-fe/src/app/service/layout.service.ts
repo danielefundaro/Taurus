@@ -203,7 +203,7 @@ export class LayoutService {
 
                     return this.preferencesService.getAll(criteria).pipe(first());
                 }), switchMap(result => {
-                    if (!result.content.find(p => p.key === key)) {
+                    if (!result.content.some(p => p.key === key)) {
                         return this.preferencesService.create(preference!);
                     }
 

@@ -11,9 +11,9 @@ import { Router } from '@angular/router';
 export class HttpInterceptorService implements HttpInterceptor {
     private readonly _nonProtectedRoutes: (RegExp | string)[] = [
     ];
-    private readonly excludedRoutes = [];
+    private readonly excludedRoutes = ["api/preferences"];
 
-    private readonly httpRequestStack = Array<HttpRequest<any>>();
+    private readonly httpRequestStack = new Array<HttpRequest<any>>();
     private isRefreshing = false;
     private readonly refreshTokenSubject: BehaviorSubject<any>;
 
@@ -23,7 +23,6 @@ export class HttpInterceptorService implements HttpInterceptor {
         private readonly loadingService: LoadingService,
         private readonly router: Router,
     ) {
-        this.isRefreshing = false;
         this.refreshTokenSubject = new BehaviorSubject<any>(null);
     }
 
