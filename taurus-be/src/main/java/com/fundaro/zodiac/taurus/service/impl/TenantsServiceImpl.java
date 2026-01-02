@@ -1,6 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
@@ -17,8 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashSet;
-import java.util.Map;
 
 /**
  * Service Implementation for managing {@link Tenants}.
@@ -37,8 +34,6 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     public Mono<TenantsDTO> save(TenantsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         return super.save(dto, abstractAuthenticationToken).handle((tenantsDTO, sink) -> {
-            TypeReference<LinkedHashSet<Map<String, String>>> typeReference = new TypeReference<>() {
-            };
             try {
                 changelogService.extractAllResources("config/opensearch/tenants.json", tenantsDTO.getCode());
             } catch (IOException | NoSuchAlgorithmException e) {
