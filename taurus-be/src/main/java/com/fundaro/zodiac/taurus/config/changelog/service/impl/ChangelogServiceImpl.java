@@ -24,9 +24,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,38 @@ public class ChangelogServiceImpl implements ChangelogService {
     @Override
     public void createChangeLogIndex() throws IOException {
         openSearchService.createIndex(CHANGELOGINDEXNAME, ChangelogRecord.builder());
+    }
+
+    @Override
+    public void extractAllResources(String resourceName, String tenantCode) throws IOException, NoSuchAlgorithmException {
+        TypeReference<LinkedHashSet<Map<String, String>>> resourceTypeReference = new TypeReference<>() {
+        };
+        LinkedHashSet<Map<String, String>> resources = getMaps(resourceName, resourceTypeReference);
+
+        if (resources != null && !resources.isEmpty()) {
+            for (Map<String, String> change : resources) {
+                if (change.containsKey("file")) {
+                    String filename = change.get("file");
+                    TypeReference<ChangelogFile> typeReference = new TypeReference<>() {
+                    };
+                    ChangelogFile mapIndex = getMaps(filename, typeReference);
+
+                    // If the file exists, check and add index
+                    if (mapIndex != null) {
+                        if (Strings.isNotBlank(tenantCode)) {
+                            mapIndex.setTenantCode(tenantCode);
+                        }
+
+                        switch (mapIndex.getAction()) {
+                            case CREATE_INDEX -> createIndex(mapIndex, filename);
+                            case LOAD_DATA -> loadData(mapIndex, filename);
+                        }
+                    } else {
+                        LOG.warn("Skip file {} because does not exists", filename);
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -91,8 +123,7 @@ public class ChangelogServiceImpl implements ChangelogService {
         }
     }
 
-    @Override
-    public <T> T getMaps(String resourceName, TypeReference<T> typeReference) throws IOException {
+    private <T> T getMaps(String resourceName, TypeReference<T> typeReference) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         try (InputStream inputStream = this.getClass().getResourceAsStream(resourceName)) {
             if (inputStream != null) {

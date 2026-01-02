@@ -8,7 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mapper for the entity {@link Users} and its DTO {@link UsersDTO}.
@@ -27,7 +28,7 @@ public interface UsersMapper extends EntityOpenSearchMapper<UsersDTO, Users> {
     User toKeycloakUser(UsersDTO s);
 
     @Named("rolesToGroups")
-    default List<String> rolesToGroups(List<RoleEnum> roles) {
-        return roles.stream().map(RoleEnum::mapToString).toList();
+    default Set<String> rolesToGroups(Set<RoleEnum> roles) {
+        return roles.stream().map(RoleEnum::mapToString).collect(Collectors.toSet());
     }
 }
