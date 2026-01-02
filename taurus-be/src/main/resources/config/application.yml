@@ -214,3 +214,9 @@ application:
     schema: http
     username: admin
     password: ${OPENSEARCH_ADMIN_PASSWORD}
+  keycloak:
+    master-uri: http://localhost:9080/realms/master
+    admin:
+      issuer-uri: http://localhost:9080/admin/realms/taurus
+      username: admin
+      password: admin
