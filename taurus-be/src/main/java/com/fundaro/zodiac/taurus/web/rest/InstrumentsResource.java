@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST controller for managing {@link com.fundaro.zodiac.taurus.domain.Instruments}.
+ * REST controller for managing {@link Instruments}.
  */
 @RestController
 @RequestMapping("/api/instruments")
 public class InstrumentsResource extends CommonOpenSearchResource<Instruments, InstrumentsDTO, InstrumentsCriteria, InstrumentsService> {
 
     public InstrumentsResource(InstrumentsService instrumentsService) {
-        super(instrumentsService, "Instruments", InstrumentsResource.class);
+        super(instrumentsService, Instruments.class.getSimpleName(), InstrumentsResource.class);
     }
 }

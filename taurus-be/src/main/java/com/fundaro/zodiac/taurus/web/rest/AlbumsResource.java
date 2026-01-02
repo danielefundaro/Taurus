@@ -15,6 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AlbumsResource extends CommonOpenSearchResource<Albums, AlbumsDTO, AlbumsCriteria, AlbumsService> {
 
     public AlbumsResource(AlbumsService service) {
-        super(service, "Albums", AlbumsResource.class);
+        super(service, Albums.class.getSimpleName(), AlbumsResource.class);
     }
 }
