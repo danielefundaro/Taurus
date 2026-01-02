@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
 
@@ -10,6 +11,7 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Tracks extends CommonFieldsOpenSearch {
 
+    @JsonProperty("sub_name")
     private String subName;
 
     private String composer;

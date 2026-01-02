@@ -35,7 +35,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     private final TracksService tracksService;
 
     public MediaServiceImpl(OpenSearchService openSearchService, MediaMapper mediaMapper, TracksService tracksService) {
-        super(openSearchService, mediaMapper, MediaService.class, Media.class, "Media");
+        super(openSearchService, mediaMapper, MediaService.class, Media.class);
         this.tracksService = tracksService;
     }
 

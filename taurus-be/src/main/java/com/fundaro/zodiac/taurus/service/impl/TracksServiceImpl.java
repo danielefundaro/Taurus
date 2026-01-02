@@ -45,7 +45,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private final Sender sender;
 
     public TracksServiceImpl(OpenSearchService openSearchService, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, AlbumsService albumsService, Sender sender) {
-        super(openSearchService, tracksMapper, TracksService.class, Tracks.class, "Tracks");
+        super(openSearchService, tracksMapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.albumsService = albumsService;
         this.sender = sender;
@@ -77,28 +77,25 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     @Override
     public Mono<Void> uploadFile(String id, FilePart filePart, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> DataBufferUtils.join(filePart.content()).flatMap(dataBuffer -> {
+        return DataBufferUtils.join(filePart.content()).flatMap(dataBuffer -> {
             if (dataBuffer.capacity() == 0) {
                 return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty"));
             }
 
+
             String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
             QueueUploadFilesDTO queueUploadFilesDTO = new QueueUploadFilesDTO();
             queueUploadFilesDTO.setUserId(userId);
-            queueUploadFilesDTO.setTrackId(id);
             queueUploadFilesDTO.setFilePart(filePart);
             queueUploadFilesDTO.setType(getEntityName());
 
-            return queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken).flatMap(mono -> mono.map(q -> {
-                try {
-                    sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
-                } catch (IOException e) {
-                    return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message"));
-                }
-
-                return q;
-            }));
-        })).then();
+            if (id != null) {
+                queueUploadFilesDTO.setTrackId(id);
+                return findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken));
+            } else {
+                return queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+            }
+        }).then();
     }
 
     @Override
@@ -166,5 +163,17 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 return result;
             });
         }
+    }
+
+    private Mono<Object> queueSaveEntity(QueueUploadFilesDTO queueUploadFilesDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken).flatMap(mono -> mono.map(q -> {
+            try {
+                sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
+            } catch (IOException e) {
+                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message"));
+            }
+
+            return q;
+        }));
     }
 }
