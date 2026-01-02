@@ -18,7 +18,7 @@ public class User implements Serializable {
 
     private String email;
 
-    private Set<String> realmRoles;
+    private Set<String> groups;
 
     private Boolean enabled;
 
@@ -34,6 +34,10 @@ public class User implements Serializable {
 
     public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -68,12 +72,12 @@ public class User implements Serializable {
         this.email = email;
     }
 
-    public Set<String> getRealmRoles() {
-        return realmRoles;
+    public Set<String> getGroups() {
+        return groups;
     }
 
-    public void setRealmRoles(Set<String> realmRoles) {
-        this.realmRoles = realmRoles;
+    public void setGroups(Set<String> groups) {
+        this.groups = groups;
     }
 
     public Boolean getEnabled() {
@@ -107,7 +111,7 @@ public class User implements Serializable {
             ", firstName='" + firstName + "'" +
             ", lastName='" + lastName + "'" +
             ", email='" + email + "'" +
-            ", realmRoles=" + realmRoles +
+            ", groups=" + groups +
             ", enabled=" + enabled +
             "}";
     }
