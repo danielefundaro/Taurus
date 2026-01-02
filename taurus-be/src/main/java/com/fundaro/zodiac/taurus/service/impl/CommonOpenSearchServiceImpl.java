@@ -66,6 +66,10 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return mapper;
     }
 
+    public Logger getLogger() {
+        return log;
+    }
+
     @Override
     public Mono<D> save(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to save {} : {}", entityName, dto);
