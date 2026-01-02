@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.config.changelog.bean;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.config.changelog.enums.ActionEnum;
+import com.fundaro.zodiac.taurus.utils.Converter;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import org.apache.logging.log4j.util.Strings;
@@ -65,6 +66,10 @@ public class ChangelogFile implements Serializable {
 
     public String getFile() {
         return file;
+    }
+
+    public void setTenantCode(String tenantCode) {
+        this.indexName = String.format("%s-%s", tenantCode, indexName);
     }
 
     public boolean isValid() {
