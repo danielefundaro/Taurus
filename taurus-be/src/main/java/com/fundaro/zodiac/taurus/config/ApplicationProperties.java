@@ -11,7 +11,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
 public class ApplicationProperties {
     private String basePath;
+
     private OpenSearchProperties openSearch;
+
+    private Keycloak keycloak;
 
     public String getBasePath() {
         return basePath;
@@ -27,6 +30,14 @@ public class ApplicationProperties {
 
     public void setOpenSearch(OpenSearchProperties openSearch) {
         this.openSearch = openSearch;
+    }
+
+    public Keycloak getKeycloak() {
+        return keycloak;
+    }
+
+    public void setKeycloak(Keycloak keycloak) {
+        this.keycloak = keycloak;
     }
 
     public static class OpenSearchProperties {
@@ -74,6 +85,56 @@ public class ApplicationProperties {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+    }
+
+    public static class Keycloak {
+        private String masterUri;
+
+        private final Admin admin = new Admin();
+
+        public String getMasterUri() {
+            return masterUri;
+        }
+
+        public void setMasterUri(String masterUri) {
+            this.masterUri = masterUri;
+        }
+
+        public Admin getAdmin() {
+            return admin;
+        }
+
+        public static class Admin {
+            private String issuerUri;
+
+            private String username;
+
+            private String password;
+
+            public String getIssuerUri() {
+                return issuerUri;
+            }
+
+            public void setIssuerUri(String issuerUri) {
+                this.issuerUri = issuerUri;
+            }
+
+            public String getUsername() {
+                return username;
+            }
+
+            public void setUsername(String username) {
+                this.username = username;
+            }
+
+            public String getPassword() {
+                return password;
+            }
+
+            public void setPassword(String password) {
+                this.password = password;
+            }
         }
     }
 }

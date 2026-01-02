@@ -22,7 +22,23 @@ import javax.annotation.Nonnull;
 public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, TracksCriteria, TracksService> {
 
     public TracksResource(TracksService service) {
-        super(service, "Tracks", TracksResource.class);
+        super(service, Tracks.class.getSimpleName(), TracksResource.class);
+    }
+
+    /**
+     * {@code POST  /stream} : Save a new file.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (Ok)} and with body the stream of the file, or with status {@code 400 (Bad Request)} if the media has not exists.
+     */
+    @PostMapping(value = "/stream", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ResponseEntity<Void>> uploadMedia(@Nonnull @RequestPart("file") FilePart filePart, AbstractAuthenticationToken abstractAuthenticationToken) {
+        getLog().debug("REST request to upload media {}", getEntityName());
+        return getService().uploadFile(null, filePart, abstractAuthenticationToken)
+            .then(Mono.just(
+                ResponseEntity.noContent()
+                    .headers(HeaderUtil.createEntityDeletionAlert(getApplicationName(), false, getEntityName(), ""))
+                    .build()
+            ));
     }
 
     /**
