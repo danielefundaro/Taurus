@@ -37,7 +37,7 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
     private final String basePath;
 
     public QueueUploadFilesServiceImpl(OpenSearchService openSearchService, QueueUploadFilesMapper queueUploadFilesMapper, ApplicationProperties applicationProperties) {
-        super(openSearchService, queueUploadFilesMapper, QueueUploadFilesService.class, QueueUploadFiles.class, "QueueUploadFiles");
+        super(openSearchService, queueUploadFilesMapper, QueueUploadFilesService.class, QueueUploadFiles.class);
         basePath = applicationProperties.getBasePath();
     }
 

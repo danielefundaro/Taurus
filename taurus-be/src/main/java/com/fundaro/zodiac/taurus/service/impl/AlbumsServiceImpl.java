@@ -21,7 +21,7 @@ import java.util.List;
 public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, AlbumsDTO, AlbumsCriteria, AlbumsMapper> implements AlbumsService {
 
     public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper) {
-        super(openSearchService, albumsMapper, AlbumsService.class, Albums.class, "Albums");
+        super(openSearchService, albumsMapper, AlbumsService.class, Albums.class);
     }
 
     @Override
