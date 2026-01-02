@@ -20,6 +20,9 @@
     "edit_date": {
       "type": "date"
     },
+    "description": {
+      "type": "text"
+    },
     "name": {
       "type": "text",
       "fields": {
@@ -62,6 +65,9 @@
           "type": "keyword"
         }
       }
+    },
+    "active": {
+      "type": "boolean"
     },
     "instruments": {
       "type": "object",

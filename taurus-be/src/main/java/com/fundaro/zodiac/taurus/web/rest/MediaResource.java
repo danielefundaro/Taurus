@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 public class MediaResource extends CommonOpenSearchResource<Media, MediaDTO, MediaCriteria, MediaService> {
 
     public MediaResource(MediaService service) {
-        super(service, "Media", MediaResource.class);
+        super(service, Media.class.getSimpleName(), MediaResource.class);
     }
 
     /**
