@@ -23,7 +23,7 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
 
     private Boolean active;
 
-    private Set<ChildrenEntities> instruments;
+    private Set<ChildrenEntitiesDTO> instruments;
 
     public String getLastName() {
         return lastName;
@@ -65,11 +65,11 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
         this.active = active;
     }
 
-    public Set<ChildrenEntities> getInstruments() {
+    public Set<ChildrenEntitiesDTO> getInstruments() {
         return instruments;
     }
 
-    public void setInstruments(Set<ChildrenEntities> instruments) {
+    public void setInstruments(Set<ChildrenEntitiesDTO> instruments) {
         this.instruments = instruments;
     }
 
