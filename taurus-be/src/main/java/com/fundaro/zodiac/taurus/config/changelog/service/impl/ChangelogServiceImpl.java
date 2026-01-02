@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.config.changelog.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.changelog.bean.ChangelogFile;
 import com.fundaro.zodiac.taurus.config.changelog.bean.ChangelogRecord;
 import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
@@ -16,12 +17,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 @Service
 public class ChangelogServiceImpl implements ChangelogService {
@@ -63,11 +69,11 @@ public class ChangelogServiceImpl implements ChangelogService {
     }
 
     @Override
-    public void loadData(ChangelogFile changelogFile, String filename, BiFunction<String, TypeReference<Set<Map<String, Object>>>, Set<Map<String, Object>>> getMaps) throws IOException, NoSuchAlgorithmException {
+    public void loadData(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException {
         if (changelogFile.isValid() && changelogFile.isFileSpecified()) {
             TypeReference<Set<Map<String, Object>>> dataTypeReference = new TypeReference<>() {
             };
-            Set<Map<String, Object>> dataMapIndex = getMaps.apply(changelogFile.getFile(), dataTypeReference);
+            Set<Map<String, Object>> dataMapIndex = getMaps(changelogFile.getFile(), dataTypeReference);
 
             if (dataMapIndex != null) {
                 String md5checkSum = checksum(changelogFile, changelogFile);
@@ -83,6 +89,19 @@ public class ChangelogServiceImpl implements ChangelogService {
         } else {
             missingInformationErrorLog(filename);
         }
+    }
+
+    @Override
+    public <T> T getMaps(String resourceName, TypeReference<T> typeReference) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (InputStream inputStream = this.getClass().getResourceAsStream(resourceName)) {
+            if (inputStream != null) {
+                String json = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).lines().collect(Collectors.joining("\n"));
+                return mapper.readValue(json, typeReference);
+            }
+        }
+
+        return null;
     }
 
     private static void missingInformationErrorLog(String filename) {
