@@ -50,12 +50,12 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     private final String entityName;
 
-    public <T extends CommonOpenSearchService<E, D, C>> CommonOpenSearchServiceImpl(OpenSearchService openSearchService, M mapper, Class<T> logClass, Class<E> classEntity, String entityName) {
+    public <T extends CommonOpenSearchService<E, D, C>> CommonOpenSearchServiceImpl(OpenSearchService openSearchService, M mapper, Class<T> logClass, Class<E> classEntity) {
         this.openSearchService = openSearchService;
         this.mapper = mapper;
         this.log = LoggerFactory.getLogger(logClass);
         this.classEntity = classEntity;
-        this.entityName = entityName;
+        this.entityName = classEntity.getSimpleName();
     }
 
     public String getEntityName() {

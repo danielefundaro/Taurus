@@ -27,7 +27,7 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
     private final TracksService tracksService;
 
     public InstrumentsServiceImpl(OpenSearchService openSearchService, InstrumentsMapper instrumentsMapper, TracksService tracksService) {
-        super(openSearchService, instrumentsMapper, InstrumentsService.class, Instruments.class, "Instruments");
+        super(openSearchService, instrumentsMapper, InstrumentsService.class, Instruments.class);
         this.tracksService = tracksService;
     }
 
