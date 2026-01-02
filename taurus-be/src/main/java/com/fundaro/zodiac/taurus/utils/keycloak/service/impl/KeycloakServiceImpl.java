@@ -49,44 +49,79 @@ public class KeycloakServiceImpl implements KeycloakService {
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    @Override
     public List<User> getUsers() {
         String url = String.format("%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
-        ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
+        ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
         };
-        ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
-        return null;
+        ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            log.error("Error getting users from Keycloak");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting users from Keycloak", User.class.getSimpleName(), "users.list");
+        }
+
+        return response.getBody();
     }
 
+    @Override
     public User getUser(String id) {
         String url = String.format("%s/user/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
-        return null;
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            log.error("Error getting user with id {} from Keycloak", id);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting users with id %s from Keycloak", id), User.class.getSimpleName(), "get.user");
+        }
+
+        return response.getBody();
     }
 
-    public User getUserByUsernameOrEmail(String username, String email) {
+    @Override
+    public String getUserIdByUsernameOrEmail(String username, String email) {
         String url = String.format("%s/users?username=%s&email=%s&exact=true", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), username, email);
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
-        return null;
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            log.error("Error getting user with username or email from Keycloak: {}, {}", username, email);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting user with username or email from Keycloak: %s, %s", username, email), User.class.getSimpleName(), "get.user");
+        }
+
+        return response.getBody().getId();
     }
 
+    @Override
     public User saveUser(User user) {
         String url = String.format("%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), user, typeRef);
-        return null;
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            log.error("Error saving user on Keycloak: {}", user);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error saving user on Keycloak", User.class.getSimpleName(), "save.user");
+        }
+
+        return response.getBody();
     }
 
+    @Override
     public User updateUser(User user) {
         String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), user.getId());
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), user, typeRef);
-        return null;
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            log.error("Error updating user on Keycloak: {}", user);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user on Keycloak", User.class.getSimpleName(), "update.user");
+        }
+
+        return response.getBody();
     }
 
     private HttpHeaders getAdminHttpHeaders() {

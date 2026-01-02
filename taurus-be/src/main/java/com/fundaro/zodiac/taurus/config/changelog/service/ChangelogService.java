@@ -14,5 +14,7 @@ public interface ChangelogService {
 
     void createIndex(ChangelogFile mapIndex, String filename) throws IOException, NoSuchAlgorithmException;
 
-    void loadData(ChangelogFile loadData, String filename, BiFunction<String, TypeReference<Set<Map<String, Object>>>, Set<Map<String, Object>>> getMaps) throws IOException, NoSuchAlgorithmException;
+    void loadData(ChangelogFile loadData, String filename) throws IOException, NoSuchAlgorithmException;
+
+    <T> T getMaps(String resourceName, TypeReference<T> typeReference) throws IOException;
 }

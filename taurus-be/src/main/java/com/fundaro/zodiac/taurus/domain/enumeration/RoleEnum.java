@@ -1,0 +1,29 @@
+package com.fundaro.zodiac.taurus.domain.enumeration;
+
+/**
+ * The RoleEnum enumeration.
+ */
+public enum RoleEnum {
+    ROLE_SUPER_ADMIN,
+    ROLE_ADMIN,
+    ROLE_ARCHIVIST,
+    ROLE_USER;
+
+    @Override
+    public String toString() {
+        return mapToString(this);
+    }
+
+    public static String mapToString(RoleEnum roleEnum) {
+        String role = "";
+
+        switch (roleEnum) {
+            case ROLE_SUPER_ADMIN -> role = "SuperAdmins";
+            case ROLE_ADMIN -> role = "Admins";
+            case ROLE_ARCHIVIST -> role = "Archivists";
+            case ROLE_USER -> role = "Users";
+        }
+
+        return role;
+    }
+}

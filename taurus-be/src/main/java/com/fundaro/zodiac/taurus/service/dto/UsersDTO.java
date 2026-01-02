@@ -2,7 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fundaro.zodiac.taurus.domain.ChildrenEntities;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
@@ -19,7 +19,7 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
 
     private String email;
 
-    private Set<String> roles;
+    private Set<RoleEnum> roles;
 
     private Boolean active;
 
@@ -49,11 +49,11 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
         this.email = email;
     }
 
-    public Set<String> getRoles() {
+    public Set<RoleEnum> getRoles() {
         return roles;
     }
 
-    public void setRoles(Set<String> roles) {
+    public void setRoles(Set<RoleEnum> roles) {
         this.roles = roles;
     }
 
