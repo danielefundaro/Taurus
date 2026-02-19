@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { ChipModule } from 'primeng/chip';
 import { DatePickerModule } from 'primeng/datepicker';
-import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
@@ -34,8 +33,7 @@ import { KeycloakService, TracksService } from '../../service';
 })
 export class AddFilesDialogComponent {
 
-    constructor(private readonly dialogRef: DynamicDialogRef<AddFilesDialogComponent>,
-            private readonly tracksService: TracksService,
+    constructor(private readonly tracksService: TracksService,
             private readonly keycloakService: KeycloakService,) {
     }
 
@@ -45,9 +43,5 @@ export class AddFilesDialogComponent {
 
     protected httpHeaders(): HttpHeaders {
         return new HttpHeaders({ 'Authorization': `Bearer ${this.keycloakService.token}` });
-    }
-
-    protected cancel(): void {
-        this.dialogRef.close();
     }
 }
