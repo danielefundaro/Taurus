@@ -142,7 +142,7 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
     public Mono<ResponseEntity<Page<D>>> getAllEntities(C criteria, @ParameterObject Pageable pageable, ServerHttpRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} by criteria: {}", entityName, criteria);
 
-        return service.findByCriteria(criteria, pageable, abstractAuthenticationToken).map(countWithEntities ->
+        return service.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).map(countWithEntities ->
             ResponseEntity.ok()
                 .headers(
                     PaginationUtil.generatePaginationHttpHeaders(

@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 
 import java.time.ZonedDateTime;
@@ -11,10 +11,8 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UsersDTO extends CommonFieldsOpenSearchDTO {
 
-    @JsonProperty("last_name")
     private String lastName;
 
-    @JsonProperty("birth_date")
     private ZonedDateTime birthDate;
 
     private String email;
@@ -24,6 +22,9 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
     private Boolean active;
 
     private Set<ChildrenEntitiesDTO> instruments;
+
+    @JsonIgnore
+    private String keycloakId;
 
     public String getLastName() {
         return lastName;
@@ -73,6 +74,14 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
         this.instruments = instruments;
     }
 
+    public String getKeycloakId() {
+        return keycloakId;
+    }
+
+    public void setKeycloakId(String keycloakId) {
+        this.keycloakId = keycloakId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -88,12 +97,13 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(email, usersDTO.email) &&
             Objects.equals(roles, usersDTO.roles) &&
             Objects.equals(active, usersDTO.active) &&
-            Objects.equals(instruments, usersDTO.instruments);
+            Objects.equals(instruments, usersDTO.instruments) &&
+            Objects.equals(keycloakId, usersDTO.keycloakId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), lastName, birthDate, email, roles, active, instruments);
+        return Objects.hash(super.hashCode(), lastName, birthDate, email, roles, active, instruments, keycloakId);
     }
 
     @Override
@@ -101,13 +111,14 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
         return "UsersDTO{" +
             "id=" + getId() +
             ", name='" + getName() + "'" +
+            ", lastName='" + getLastName() + "'" +
             ", description='" + getDescription() + "'" +
-            ", lastName='" + getLastName() + '\'' +
             ", birthDate=" + getBirthDate() +
-            ", email='" + getEmail() + '\'' +
+            ", email='" + getEmail() + "'" +
             ", roles=" + getRoles() +
             ", active=" + getActive() +
             ", instruments=" + getInstruments() +
+            ", keycloakId=" + getKeycloakId() +
             '}';
     }
 }

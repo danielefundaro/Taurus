@@ -43,24 +43,6 @@ public final class SecurityUtils {
             .flatMap(authentication -> Mono.justOrEmpty(extractPrincipal(authentication)));
     }
 
-    private static String extractPrincipal(Authentication authentication) {
-        if (authentication == null) {
-            return null;
-        } else if (authentication.getPrincipal() instanceof UserDetails springSecurityUser) {
-            return springSecurityUser.getUsername();
-        } else if (authentication instanceof JwtAuthenticationToken) {
-            return (String) ((JwtAuthenticationToken) authentication).getToken().getClaims().get("preferred_username");
-        } else if (authentication.getPrincipal() instanceof DefaultOidcUser) {
-            Map<String, Object> attributes = ((DefaultOidcUser) authentication.getPrincipal()).getAttributes();
-            if (attributes.containsKey("preferred_username")) {
-                return (String) attributes.get("preferred_username");
-            }
-        } else if (authentication.getPrincipal() instanceof String s) {
-            return s;
-        }
-        return null;
-    }
-
     /**
      * Check if a user is authenticated.
      *
@@ -115,14 +97,6 @@ public final class SecurityUtils {
         return mapRolesToGrantedAuthorities(getRolesFromClaims(claims));
     }
 
-    @SuppressWarnings("unchecked")
-    private static Collection<String> getRolesFromClaims(Map<String, Object> claims) {
-        return (Collection<String>) claims.getOrDefault(
-            "groups",
-            claims.getOrDefault("roles", claims.getOrDefault(CLAIMS_NAMESPACE + "roles", new ArrayList<>()))
-        );
-    }
-
     private static List<GrantedAuthority> mapRolesToGrantedAuthorities(Collection<String> roles) {
         return roles.stream().filter(role -> role.startsWith("ROLE_")).map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
@@ -173,6 +147,40 @@ public final class SecurityUtils {
     }
 
     public static String getUserIdFromAuthentication(AbstractAuthenticationToken authToken) {
+        return getAttributeFromAuthentication("sub", authToken);
+    }
+
+    public static String getTenantIdFromAuthentication(AbstractAuthenticationToken authToken) {
+        return getAttributeFromAuthentication("tenant", authToken);
+    }
+
+    private static String extractPrincipal(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        } else if (authentication.getPrincipal() instanceof UserDetails springSecurityUser) {
+            return springSecurityUser.getUsername();
+        } else if (authentication instanceof JwtAuthenticationToken) {
+            return (String) ((JwtAuthenticationToken) authentication).getToken().getClaims().get("preferred_username");
+        } else if (authentication.getPrincipal() instanceof DefaultOidcUser) {
+            Map<String, Object> attributes = ((DefaultOidcUser) authentication.getPrincipal()).getAttributes();
+            if (attributes.containsKey("preferred_username")) {
+                return (String) attributes.get("preferred_username");
+            }
+        } else if (authentication.getPrincipal() instanceof String s) {
+            return s;
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Collection<String> getRolesFromClaims(Map<String, Object> claims) {
+        return (Collection<String>) claims.getOrDefault(
+            "groups",
+            claims.getOrDefault("roles", claims.getOrDefault(CLAIMS_NAMESPACE + "roles", new ArrayList<>()))
+        );
+    }
+
+    private static String getAttributeFromAuthentication(String attributeName, AbstractAuthenticationToken authToken) {
         Map<String, Object> attributes;
         if (authToken instanceof JwtAuthenticationToken) {
             attributes = ((JwtAuthenticationToken) authToken).getTokenAttributes();
@@ -182,10 +190,10 @@ public final class SecurityUtils {
             throw new IllegalArgumentException("AuthenticationToken is not OAuth2 or JWT!");
         }
 
-        if (attributes.isEmpty() || !attributes.containsKey("sub")) {
+        if (attributes.isEmpty() || !attributes.containsKey(attributeName)) {
             return null;
         }
 
-        return attributes.get("sub").toString();
+        return attributes.get(attributeName).toString();
     }
 }

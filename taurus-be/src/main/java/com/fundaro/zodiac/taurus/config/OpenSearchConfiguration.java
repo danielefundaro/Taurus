@@ -10,6 +10,8 @@ import org.springframework.core.env.Environment;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
+import static com.fundaro.zodiac.taurus.config.Constants.MASTER_CHANGELOG_FILE_PATH;
+
 @Configuration
 public class OpenSearchConfiguration {
 
@@ -30,7 +32,7 @@ public class OpenSearchConfiguration {
         long startTime = System.currentTimeMillis();
 
         changelogService.createChangeLogIndex();
-        changelogService.extractAllResources("/config/opensearch/master.json", null);
+        changelogService.extractAllResources(MASTER_CHANGELOG_FILE_PATH, null);
 
         LOG.debug("OpenSearch Liquibase has updated your indices in {} ms", System.currentTimeMillis() - startTime);
         return null;

@@ -2,14 +2,16 @@
 name: taurus
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.4
+    image: quay.io/keycloak/keycloak:26.5.2 #quay.io/phasetwo/phasetwo-keycloak:26.5.0
     command: 'start-dev --import-realm'
     volumes:
       - ./realm-config:/opt/keycloak/data/import
       - ./realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
+      - ./realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar
+      - ./realm-config/taurus-theme:/opt/keycloak/themes/taurus-theme:ro
     environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
       - KC_DB=postgres
       - KC_DB_URL_HOST=postgresql
       - KC_DB_URL_DATABASE=taurus_keycloak

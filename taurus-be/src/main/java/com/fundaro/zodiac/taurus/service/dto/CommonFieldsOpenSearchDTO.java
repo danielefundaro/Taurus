@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -10,6 +11,7 @@ public class CommonFieldsOpenSearchDTO implements Serializable {
 
     private String id;
 
+    @NotNull
     private String name;
 
     private String description;

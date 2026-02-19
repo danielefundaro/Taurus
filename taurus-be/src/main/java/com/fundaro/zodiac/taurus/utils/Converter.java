@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.utils;
 
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -12,25 +13,32 @@ import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.RangeQuery;
 import org.springframework.lang.NonNull;
+import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Converter {
 
-    public static String camelCaseToKebabCase(String s) {
+    public static String camelCaseToKebabCase(@NonNull String s) {
         return s.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
     }
 
-    public static String camelCaseToSnakeCase(String s) {
+    public static String camelCaseToSnakeCase(@NonNull String s) {
         return s.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    }
+
+    public static String tenantConcatSnakeCase(@NonNull String tenantCode, @NonNull String value) {
+        tenantCode = tenantCode.replaceAll(" ", "").toLowerCase();
+        return  Arrays.stream(new String[]{tenantCode, value}).filter(Strings::isNotBlank).collect(Collectors.joining("_"));
     }
 
     public static List<String> pdfToImage(byte[] content, String filename, String destinationPath) throws IOException {
@@ -54,13 +62,13 @@ public class Converter {
                 String destinationFilePath = String.format("%s/%s.%s", destinationFile.getPath(), page + 1, formatName);
                 BufferedImage bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.GRAY);
 
-                // Remove external bounding box
-                Color avgColor = getAvgColor(bim);
-                Rectangle bounds = getBounds(bim, avgColor);
-                BufferedImage trimmed = bim.getSubimage(bounds.x, bounds.y, bounds.width, bounds.height);
+//                // Remove external bounding box
+//                Color avgColor = getAvgColor(bim);
+//                Rectangle bounds = getBounds(bim, avgColor);
+//                BufferedImage trimmed = bim.getSubimage(bounds.x, bounds.y, bounds.width, bounds.height);
 
                 // Write image into filesystem
-                ImageIOUtil.writeImage(trimmed, destinationFilePath, dpi);
+                ImageIOUtil.writeImage(bim, destinationFilePath, dpi);
                 files.add(destinationFilePath);
             }
         }
@@ -74,6 +82,11 @@ public class Converter {
             ois.writeObject(obj);
             return boas.toByteArray();
         }
+    }
+
+    public static String imageEncodeBase64(String filePath) throws IOException {
+        byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+        return Base64.getEncoder().encodeToString(fileContent);
     }
 
     public static Object bytesToObject(byte[] bytes) throws IOException, ClassNotFoundException {
@@ -124,6 +137,39 @@ public class Converter {
         return queries;
     }
 
+    public static List<Query> booleanFilterToQuery(String fieldName, BooleanFilter fieldValue) {
+        List<Query> queries = new ArrayList<>();
+        List<Query> notQueries = new ArrayList<>();
+
+        if (fieldValue != null && fieldName != null) {
+            String finalFieldName = camelCaseToSnakeCase(fieldName);
+
+            if (Objects.nonNull(fieldValue.getEquals())) {
+                queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.booleanValue(fieldValue.getEquals())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotEquals())) {
+                notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.booleanValue(fieldValue.getNotEquals())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getIn()) && !fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().anyMatch(Objects::isNull)) {
+                List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().booleanValue(v).build()).toList();
+                queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotIn()) && !fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().anyMatch(Objects::isNull)) {
+                List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().booleanValue(v).build()).toList();
+                notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (!notQueries.isEmpty()) {
+                queries.add(Query.of(f -> f.bool(b -> b.mustNot(notQueries))));
+            }
+        }
+
+        return queries;
+    }
+
     public static List<Query> dateFilterToQuery(String fieldName, DateFilter fieldValue) {
         List<Query> queries = new ArrayList<>();
         List<Query> notQueries = new ArrayList<>();
@@ -131,11 +177,11 @@ public class Converter {
         if (fieldValue != null && fieldName != null) {
             String finalFieldName = camelCaseToSnakeCase(fieldName);
 
-            if (!Objects.isNull(fieldValue.getEquals())) {
+            if (Objects.nonNull(fieldValue.getEquals())) {
                 queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getEquals().getTime())))));
             }
 
-            if (!Objects.isNull(fieldValue.getNotEquals())) {
+            if (Objects.nonNull(fieldValue.getNotEquals())) {
                 notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getNotEquals().getTime())))));
             }
 
@@ -159,19 +205,19 @@ public class Converter {
                 !Objects.isNull(fieldValue.getGreaterThan())) {
                 RangeQuery.Builder rangeQueryBuilder = new RangeQuery.Builder().field(finalFieldName);
 
-                if (!Objects.isNull(fieldValue.getLessThanOrEqual())) {
+                if (Objects.nonNull(fieldValue.getLessThanOrEqual())) {
                     rangeQueryBuilder.lte(JsonData.of(fieldValue.getLessThanOrEqual()));
                 }
 
-                if (!Objects.isNull(fieldValue.getGreaterThanOrEqual())) {
+                if (Objects.nonNull(fieldValue.getGreaterThanOrEqual())) {
                     rangeQueryBuilder.gte(JsonData.of(fieldValue.getGreaterThanOrEqual()));
                 }
 
-                if (!Objects.isNull(fieldValue.getLessThan())) {
+                if (Objects.nonNull(fieldValue.getLessThan())) {
                     rangeQueryBuilder.lt(JsonData.of(fieldValue.getLessThan()));
                 }
 
-                if (!Objects.isNull(fieldValue.getGreaterThan())) {
+                if (Objects.nonNull(fieldValue.getGreaterThan())) {
                     rangeQueryBuilder.gt(JsonData.of(fieldValue.getGreaterThan()));
                 }
 
