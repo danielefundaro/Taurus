@@ -1,7 +1,0 @@
-<ngx-file-drop *ngIf="!disabled" (onFileDrop)="dropped($event)" (click)="fileHidden.click()" [directory]="false"
-    [multiple]="multiple" fxFlex>
-    <ng-template ngx-file-drop-content-tmp let-openFileSelector="openFileSelector">
-        <span class="margin-1rem">{{"SHARED.DRAG_OR_CLICK_FILE" | translate}}</span>
-    </ng-template>
-    <input #fileHidden hidden type="file" [multiple]="multiple" (change)="handleClick($event)">
-</ngx-file-drop>
