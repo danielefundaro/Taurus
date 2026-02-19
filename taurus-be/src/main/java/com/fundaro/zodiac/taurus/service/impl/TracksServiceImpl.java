@@ -16,6 +16,7 @@ import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.apache.commons.io.FilenameUtils;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpStatus;
@@ -93,7 +94,13 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 queueUploadFilesDTO.setTrackId(id);
                 return findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken));
             } else {
-                return queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+                TracksDTO tracksDTO = new TracksDTO();
+                tracksDTO.setName(FilenameUtils.removeExtension(filePart.filename()));
+
+                return this.save(tracksDTO, abstractAuthenticationToken).flatMap(t -> {
+                    queueUploadFilesDTO.setTrackId(t.getId());
+                    return queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+                });
             }
         }).then();
     }
