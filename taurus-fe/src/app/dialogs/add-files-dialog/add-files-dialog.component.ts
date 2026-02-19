@@ -34,7 +34,7 @@ import { KeycloakService, TracksService } from '../../service';
 export class AddFilesDialogComponent {
 
     constructor(private readonly tracksService: TracksService,
-            private readonly keycloakService: KeycloakService,) {
+        private readonly keycloakService: KeycloakService,) {
     }
 
     protected trackStream(): string {
