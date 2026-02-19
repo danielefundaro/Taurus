@@ -55,13 +55,13 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
                     if (val instanceof Filter) {
                         Object.entries(req[key]).forEach(([subKey, subVal]) => {
                             if (subVal !== undefined && subVal !== null) {
-                                for (const value of [].concat((req[key][subKey])).filter(v => v !== '')) {
+                                for (const value of [(req[key][subKey])].flat().filter(v => v !== '')) {
                                     options = options.append(`${key}.${subKey}`, value);
                                 }
                             }
                         });
                     } else {
-                        for (const value of [].concat((req[key])).filter(v => v !== '')) {
+                        for (const value of [(req[key])].flat().filter(v => v !== '')) {
                             options = options.append(key, value);
                         }
                     }

@@ -6,6 +6,7 @@
         [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
             <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3">
+                <p-button label="Carica" icon="pi pi-upload" severity="primary" (onClick)="addNewFile()" />
                 <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
                 <p-iconfield>
                     <p-inputicon class="pi pi-search" />

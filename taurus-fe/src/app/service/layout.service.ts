@@ -1,6 +1,6 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
 import { first, of, Subject, switchMap } from 'rxjs';
-import { Preferences, PreferencesCriteria, Page } from '../module';
+import { Preferences, PreferencesCriteria } from '../module';
 import { LocalStorageService } from './local-storage.service';
 import { PreferencesService } from './preferences.service';
 

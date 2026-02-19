@@ -50,7 +50,9 @@ export class HttpInterceptorService implements HttpInterceptor {
         const authReq = this.addTokenHeader(req, token);
 
         return next.handle(authReq).pipe(finalize(() => {
-            this.httpRequestStack.pop();
+            if (!this.excludedRoutes.some(route => authReq.url.includes(route))) {
+                this.httpRequestStack.pop();
+            }
 
             if (this.httpRequestStack.length === 0) {
                 this.loadingService.loading = false;

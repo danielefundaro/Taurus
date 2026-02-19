@@ -5,6 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first } from 'rxjs';
+import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
@@ -70,6 +71,29 @@ export class TracksComponent implements OnInit {
 
     public initials(name?: string | null): string {
         return (name ?? '').split(" ").slice(0, 2).map(s => s[0]).join(" ").toUpperCase();
+    }
+
+    public addNewFile(): void {
+        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddFilesDialogComponent, {
+            header: "Aggiungi traccia",
+            closable: true,
+            draggable: true,
+            resizable: true,
+            modal: true,
+            width: '50vw',
+            breakpoints: { '1199px': '75vw', '575px': '90vw' },
+        });
+
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
+            if (result) {
+                this.tracksService.create(result).pipe(delay(1000), first()).subscribe({
+                    next: (track: Tracks) => {
+                        this.toastService.success("Successo", "Traccia aggiunta con successo");
+                        this.loadElements();
+                    }
+                });
+            }
+        });
     }
 
     public addNew(): void {

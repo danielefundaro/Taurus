@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
@@ -24,7 +24,7 @@ import { InstrumentsService, ToastService } from '../../service';
         DialogService
     ]
 })
-export class InstrumentsComponent {
+export class InstrumentsComponent implements OnInit {
     protected sortOptions!: SelectItem[];
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
@@ -86,7 +86,7 @@ export class InstrumentsComponent {
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Instruments) => {
             if (result) {
                 this.instrumentsService.create(result).pipe(delay(1000), first()).subscribe({
-                    next: (album: Instruments) => {
+                    next: (instrument: Instruments) => {
                         this.toastService.success("Successo", "Strumento aggiunto con successo");
                         this.loadElements();
                     }

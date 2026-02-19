@@ -1,7 +1,8 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
-import { Component, HostBinding, Input } from '@angular/core';
+import { Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { HasRolesDirective } from 'keycloak-angular';
 import { MenuItem } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
 import { Subscription } from 'rxjs';
@@ -13,7 +14,8 @@ import { LayoutService } from '../../service';
     imports: [
         CommonModule,
         RouterModule,
-        RippleModule
+        RippleModule,
+        HasRolesDirective
     ],
     templateUrl: './menu-item.component.html',
     styleUrl: './menu-item.component.scss',
@@ -36,7 +38,7 @@ import { LayoutService } from '../../service';
     ],
     providers: [LayoutService]
 })
-export class MenuItemComponent {
+export class MenuItemComponent implements OnInit, OnDestroy {
     @Input() item!: MenuItem;
 
     @Input() index!: number;

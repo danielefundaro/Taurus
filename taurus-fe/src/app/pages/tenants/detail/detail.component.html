@@ -1,0 +1,37 @@
+<p-fluid>
+    <div class="flex">
+        <div class="card flex flex-col gap-4 w-full">
+            <div class="flex flex-row justify-between items-center">
+                <span class="font-semibold text-xl">Tenant</span>
+                <p-button label="Salva" icon="pi pi-check" severity="primary" class="mr-2" (onClick)="save()" />
+            </div>
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" />
+                    <label for="name">Nome</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code" />
+                    <label for="code">Codice</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" />
+                    <label for="email">Email</label>
+                </p-floatlabel>
+                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" />
+            </div>
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" />
+                    <label for="domain">Dominio</label>
+                </p-floatlabel>
+            </div>
+            <p-floatlabel class="flex" variant="on">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description"></textarea>
+                <label for="description">Descrizione</label>
+            </p-floatlabel>
+        </div>
+    </div>
+
+    <p-scrolltop />
+</p-fluid>

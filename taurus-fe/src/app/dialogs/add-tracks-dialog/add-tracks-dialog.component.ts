@@ -24,7 +24,7 @@ import { Tracks } from '../../module';
         ChipModule,
         TypeHandlerComponent
     ],
-    templateUrl: './add-tracks-dialog.html',
+    templateUrl: './add-tracks-dialog.component.html',
     styleUrl: './add-tracks-dialog.component.scss',
 })
 export class AddTracksDialogComponent {
@@ -36,7 +36,7 @@ export class AddTracksDialogComponent {
     }
 
     protected removeType(currentType: string) {
-        this.track.type?.splice(this.track.type.findIndex(type => type === currentType), 1);
+        this.track.type?.splice(this.track.type.indexOf(currentType), 1);
     }
 
     protected cancel(): void {
