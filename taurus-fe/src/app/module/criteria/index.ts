@@ -6,4 +6,6 @@ export * from "./last-researches-criteria.module";
 export * from "./media-criteria.module";
 export * from "./notices-criteria.module";
 export * from "./preferences-criteria.module";
+export * from "./tenants-criteria.module";
 export * from "./tracks-criteria.module";
+export * from "./users-criteria.module";

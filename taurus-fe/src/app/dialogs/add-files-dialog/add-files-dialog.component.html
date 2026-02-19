@@ -1,0 +1,12 @@
+<p-fluid class="flex flex-col flex-start gap-4 mb-8">
+    <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
+        mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()">
+        <ng-template #empty>
+            <div>Trascina il file qui per caricarlo.</div>
+        </ng-template>
+    </p-fileupload>
+</p-fluid>
+
+<div class="flex justify-end gap-2 mt-2">
+    <p-button label="Chiudi" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
+</div>

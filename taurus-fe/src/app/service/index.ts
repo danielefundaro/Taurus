@@ -8,5 +8,7 @@ export * from "./local-storage.service";
 export * from "./media.service";
 export * from "./notices.service";
 export * from "./printer.service";
+export * from "./tenants.service";
 export * from "./toast.service";
 export * from "./tracks.service";
+export * from "./users.service";

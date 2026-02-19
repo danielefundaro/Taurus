@@ -11,7 +11,7 @@ import { LoadingService } from '../../service';
     ],
     templateUrl: "./loading-spinner.component.html",
     styleUrl: './loading-spinner.component.scss',
-    changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.Default,
 })
 export class LoadingSpinnerComponent {
     protected isLoading: boolean;

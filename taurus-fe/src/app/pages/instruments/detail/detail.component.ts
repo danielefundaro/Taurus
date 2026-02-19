@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { delay, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
-import { ChildrenEntities, Instruments } from '../../../module';
+import { ChildrenEntities, Tenants } from '../../../module';
 import { InstrumentsService, ToastService } from '../../../service';
 
 @Component({
@@ -17,10 +17,10 @@ import { InstrumentsService, ToastService } from '../../../service';
         InstrumentsService
     ],
 })
-export class DetailComponent {
+export class DetailComponent implements OnInit {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
-    public instrument: Instruments = new Instruments();
+    public instrument: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
 
@@ -41,7 +41,7 @@ export class DetailComponent {
 
     public save(): void {
         this.instrumentsService.update(this.instrument.id, this.instrument).pipe(delay(1000), first()).subscribe({
-            next: (instrument: Instruments) => {
+            next: (instrument: Tenants) => {
                 this.toastService.success("Successo", "Strumento aggiornato con successo");
                 this.loadElement(instrument.id);
             }
@@ -50,7 +50,7 @@ export class DetailComponent {
 
     private loadElement(id: string) {
         this.instrumentsService.getById(id).pipe(first()).subscribe({
-            next: (instrument: Instruments) => {
+            next: (instrument: Tenants) => {
                 this.instrument = instrument;
             }
         });

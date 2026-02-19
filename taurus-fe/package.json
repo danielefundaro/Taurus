@@ -1,10 +1,11 @@
 {
-    "name": "sakai-ng",
-    "version": "19.0.0",
+    "name": "taurus-fe",
+    "version": "0.0.1",
     "scripts": {
         "ng": "ng",
         "start": "ng serve",
         "build": "ng build",
+        "update": "ng update",
         "watch": "ng build --watch --configuration development",
         "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
         "test": "ng test"

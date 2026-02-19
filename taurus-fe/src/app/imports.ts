@@ -26,6 +26,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
+import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { SecurePipe } from './pipe/secure.pipe';
@@ -68,6 +69,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         CheckboxModule,
         ScrollTopModule,
         DragDropModule,
+        ToggleButtonModule,
     ],
     exports: [
         NgClass,
@@ -106,6 +108,7 @@ import { SecurePipe } from './pipe/secure.pipe';
         CheckboxModule,
         ScrollTopModule,
         DragDropModule,
+        ToggleButtonModule,
     ],
     providers: [
         SecurePipe,

@@ -50,3 +50,10 @@
 .w-100 {
     width: 100%;
 }
+
+.menu-separator {
+    border-top: 3px solid var(--surface-border);
+    border-radius: 0;
+    padding: 0;
+    margin: 1rem 0;
+}

@@ -10,4 +10,6 @@ export * from "./notices.module";
 export * from "./page.module";
 export * from "./preferences.module";
 export * from "./sheets-music.module";
+export * from "./tenants.module";
 export * from "./tracks.module";
+export * from "./users.module";
