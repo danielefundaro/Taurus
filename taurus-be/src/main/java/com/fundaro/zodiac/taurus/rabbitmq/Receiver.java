@@ -20,7 +20,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RabbitListener(queues = RabbitMQConfig.queueNameListener)
@@ -34,14 +36,11 @@ public class Receiver {
 
     private final TracksService tracksService;
 
-//    private final OllamaHttpClient ollamaHttpClient;
-
     private final String basePath;
 
     public Receiver(QueueUploadFilesService queueUploadFilesService, MediaService mediaService, TracksService tracksService, ApplicationProperties applicationProperties) {
         this.mediaService = mediaService;
         this.tracksService = tracksService;
-//        this.ollamaHttpClient = new OllamaHttpClient("http", "localhost", 11434);
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.basePath = applicationProperties.getBasePath();
@@ -80,64 +79,36 @@ public class Receiver {
                     filesPath = Converter.pdfToImage(inputStream.readAllBytes(), file.getName(), destinationPath);
                 }
 
-                List<Map<String, Object>> responseList = new ArrayList<>();
-
                 if (!filesPath.isEmpty()) {
-                    // Save list of media
-                    Set<ChildrenEntitiesDTO> childrenEntitiesDTOSet = new HashSet<>();
                     long order = 0L;
+                    Set<SheetsMusicDTO> sheetsMusicDTOSet = new HashSet<>();
 
+                    // Save list of media
                     for (String filePath : filesPath) {
-//                        // Get other information from AI
-//                        ResponseEntity<Map<String, Object>> result = ollamaHttpClient.post("Effettua un'estrazione OCR dello spartito musicale per ricavare le informazioni come titolo, sottotitolo, tipo di pezzo musicale, tempo, tonalità, compositore, arrangiatore, elenco degli strumenti. Applica un'attenzione particolare sugli strumenti. Crea un json che abbia questa struttura: " +
-//                            "{\"title\":\"...\", \"subtitle\":\"...\", \"type\", \"composer\":\"...\", \"arranger\":\"...\", \"tempo\":\"...\", \"tonality\":\"...\", \"instruments\":[...]}", Collections.singleton(filePath));
-//
-//                        if (result.getStatusCode().is2xxSuccessful() && result.hasBody() && result.getBody() != null && result.getBody().containsKey("response")) {
-//                            String aiResult = result.getBody().get("response").toString();
-//                            String[] split = aiResult.split("```json");
-//
-//                            if (split.length > 1) {
-//                                aiResult = split[1].split("```")[0];
-//                                ObjectMapper objectMapper = new ObjectMapper();
-//
-//                                TypeReference<Map<String, Object>> typeReference = new TypeReference<>() {
-//                                };
-//                                try {
-//                                    responseList.add(objectMapper.readValue(aiResult.trim(), typeReference));
-//                                } catch (IOException e) {
-//                                    responseList.add(new HashMap<>());
-//                                }
-//                            }
-//                        }
-
                         MediaDTO mediaDTO = new MediaDTO();
                         mediaDTO.setPath(filePath);
                         mediaDTO.setContentType("image/png");
                         mediaDTO.setName(tracksDTO.getName());
                         mediaDTO.setDescription(tracksDTO.getDescription());
                         mediaDTO = mediaService.save(mediaDTO, abstractAuthenticationToken).block();
+                        log.info("Saved media entity");
 
+                        // Save scores
                         if (mediaDTO != null) {
+                            SheetsMusicDTO sheetsMusicDTO = new SheetsMusicDTO();
                             ChildrenEntitiesDTO childrenEntitiesDTO = new ChildrenEntitiesDTO();
                             childrenEntitiesDTO.setIndex(mediaDTO.getId());
                             childrenEntitiesDTO.setName(mediaDTO.getName());
-                            childrenEntitiesDTO.setOrder(++order);
-                            childrenEntitiesDTOSet.add(childrenEntitiesDTO);
+                            childrenEntitiesDTO.setOrder(1L);
+
+                            sheetsMusicDTO.setMedia(Set.of(childrenEntitiesDTO));
+                            sheetsMusicDTO.setOrder(++order);
+                            sheetsMusicDTOSet.add(sheetsMusicDTO);
                         }
                     }
 
-                    // Save scores
-                    log.info("Saved {} media entity", childrenEntitiesDTOSet.size());
-
                     // Update track
-                    SheetsMusicDTO sheetsMusicDTO = new SheetsMusicDTO();
-                    sheetsMusicDTO.setMedia(childrenEntitiesDTOSet);
-
-                    // Get max order value
-                    long sheetMusicOrder = tracksDTO.getScores().stream().map(SheetsMusicDTO::getOrder).max(Long::compareTo).orElse(0L);
-                    sheetsMusicDTO.setOrder(++sheetMusicOrder);
-
-                    tracksDTO.getScores().add(sheetsMusicDTO);
+                    tracksDTO.getScores().addAll(sheetsMusicDTOSet);
                     tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken).block();
                     log.info("Updated {} tracks", tracksDTO);
                 } else {
