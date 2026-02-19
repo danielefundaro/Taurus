@@ -18,10 +18,10 @@ public enum RoleEnum {
         String role = "";
 
         switch (roleEnum) {
-            case ROLE_SUPER_ADMIN -> role = "SuperAdmins";
-            case ROLE_ADMIN -> role = "Admins";
-            case ROLE_ARCHIVIST -> role = "Archivists";
-            case ROLE_USER -> role = "Users";
+            case ROLE_SUPER_ADMIN -> role = "ROLE_SUPER_ADMIN";
+            case ROLE_ADMIN -> role = "ROLE_ADMIN";
+            case ROLE_ARCHIVIST -> role = "ROLE_ARCHIVIST";
+            case ROLE_USER -> role = "ROLE_USER";
         }
 
         return role;

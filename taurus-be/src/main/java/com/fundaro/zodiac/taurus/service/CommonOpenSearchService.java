@@ -50,7 +50,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
      * @param abstractAuthenticationToken the token of the user.
      * @return the list of entities.
      */
-    Mono<Page<D>> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
+    Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
 
     /**
      * Get the "id" entity.

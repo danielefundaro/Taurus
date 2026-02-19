@@ -69,7 +69,8 @@ public class ChangelogFile implements Serializable {
     }
 
     public void setTenantCode(String tenantCode) {
-        this.indexName = String.format("%s-%s", tenantCode, indexName);
+        this.indexName = Converter.tenantConcatSnakeCase(tenantCode, indexName);
+        this.id = Converter.tenantConcatSnakeCase(tenantCode, id);
     }
 
     public boolean isValid() {

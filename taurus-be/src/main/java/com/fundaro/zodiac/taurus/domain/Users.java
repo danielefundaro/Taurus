@@ -22,13 +22,15 @@ public class Users extends CommonFieldsOpenSearch {
 
     private String email;
 
-    private String tenant;
+    private Set<ChildrenEntities> tenants;
 
     private Set<RoleEnum> roles;
 
     private Boolean active;
 
     private Set<ChildrenEntities> instruments;
+
+    private String keycloakId;
 
     public String getLastName() {
         return lastName;
@@ -54,12 +56,12 @@ public class Users extends CommonFieldsOpenSearch {
         this.email = email;
     }
 
-    public String getTenant() {
-        return tenant;
+    public Set<ChildrenEntities> getTenants() {
+        return tenants;
     }
 
-    public void setTenant(String tenant) {
-        this.tenant = tenant;
+    public void setTenants(Set<ChildrenEntities> tenants) {
+        this.tenants = tenants;
     }
 
     public Set<RoleEnum> getRoles() {
@@ -86,6 +88,14 @@ public class Users extends CommonFieldsOpenSearch {
         this.instruments = instruments;
     }
 
+    public String getKeycloakId() {
+        return keycloakId;
+    }
+
+    public void setKeycloakId(String keycloakId) {
+        this.keycloakId = keycloakId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -98,15 +108,16 @@ public class Users extends CommonFieldsOpenSearch {
             Objects.equals(lastName, users.lastName) &&
             Objects.equals(birthDate, users.birthDate) &&
             Objects.equals(email, users.email) &&
-            Objects.equals(tenant, users.tenant) &&
+            Objects.equals(tenants, users.tenants) &&
             Objects.equals(roles, users.roles) &&
             Objects.equals(active, users.active) &&
-            Objects.equals(instruments, users.instruments);
+            Objects.equals(instruments, users.instruments) &&
+            Objects.equals(keycloakId, users.keycloakId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(lastName, birthDate, email, tenant, roles, active, instruments);
+        return Objects.hash(lastName, birthDate, email, tenants, roles, active, instruments, keycloakId);
     }
 
     @Override
@@ -122,11 +133,12 @@ public class Users extends CommonFieldsOpenSearch {
             ", lastName='" + getLastName() + '\'' +
             ", birthDate=" + getBirthDate() +
             ", email='" + getEmail() + '\'' +
-            ", tenant='" + getTenant() + '\'' +
+            ", tenant='" + getTenants() + '\'' +
             ", roles=" + getRoles() +
             ", active=" + getActive() +
             ", description='" + getDescription() + "'" +
             ", instruments=" + getInstruments() +
+            ", keycloakId='" + getKeycloakId() + "'" +
             '}';
     }
 }

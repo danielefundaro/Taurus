@@ -2,10 +2,10 @@ package com.fundaro.zodiac.taurus.domain.criteria;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.StringFilter;
-import tech.jhipster.service.filter.ZonedDateTimeFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -18,7 +18,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
     private StringFilter lastName;
 
     @JsonProperty("birth_date")
-    private ZonedDateTimeFilter birthDate;
+    private DateFilter birthDate;
 
     private StringFilter email;
 
@@ -35,7 +35,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
     public UsersCriteria(UsersCriteria other) {
         super(other);
         this.lastName = other.optionalLastName().map(StringFilter::copy).orElse(null);
-        this.birthDate = other.optionalBirthDate().map(ZonedDateTimeFilter::copy).orElse(null);
+        this.birthDate = other.optionalBirthDate().map(DateFilter::copy).orElse(null);
         this.email = other.optionalEmail().map(StringFilter::copy).orElse(null);
         this.roles = other.optionalRoles().map(StringFilter::copy).orElse(null);
         this.active = other.optionalActive().map(BooleanFilter::copy).orElse(null);
@@ -59,15 +59,15 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.lastName = lastName;
     }
 
-    public ZonedDateTimeFilter getBirthDate() {
+    public DateFilter getBirthDate() {
         return birthDate;
     }
 
-    public Optional<ZonedDateTimeFilter> optionalBirthDate() {
+    public Optional<DateFilter> optionalBirthDate() {
         return Optional.ofNullable(birthDate);
     }
 
-    public void setBirthDate(ZonedDateTimeFilter birthDate) {
+    public void setBirthDate(DateFilter birthDate) {
         this.birthDate = birthDate;
     }
 
