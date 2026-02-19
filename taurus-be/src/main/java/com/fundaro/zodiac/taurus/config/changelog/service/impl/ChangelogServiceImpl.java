@@ -82,7 +82,7 @@ public class ChangelogServiceImpl implements ChangelogService {
     @Override
     public void createIndex(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException {
         if (changelogFile.isValid() && changelogFile.isPropertiesSpecified()) {
-            String md5checkSum = checksum(changelogFile, changelogFile);
+            String md5checkSum = checksum(changelogFile, changelogFile, filename);
 
             if (Strings.isNotBlank(md5checkSum)) {
                 // Create the index for the first time
@@ -108,7 +108,7 @@ public class ChangelogServiceImpl implements ChangelogService {
             Set<Map<String, Object>> dataMapIndex = getMaps(changelogFile.getFile(), dataTypeReference);
 
             if (dataMapIndex != null) {
-                String md5checkSum = checksum(changelogFile, changelogFile);
+                String md5checkSum = checksum(changelogFile, dataMapIndex, filename);
 
                 if (Strings.isNotBlank(md5checkSum)) {
                     for (Map<String, Object> data : dataMapIndex) {
@@ -151,13 +151,13 @@ public class ChangelogServiceImpl implements ChangelogService {
         }
     }
 
-    private <T> String checksum(ChangelogFile loadData, T dataMapIndex) throws IOException, NoSuchAlgorithmException {
+    private <T> String checksum(ChangelogFile changelogFile, T dataMapIndex, String filename) throws IOException, NoSuchAlgorithmException {
         // Check if the index was created
         SearchResponse<ChangelogRecord> dataResult = openSearchService.search(builder -> builder
             .index(CHANGELOGINDEXNAME)
             .from(0)
             .size(1)
-            .query(q -> q.bool(b -> b.must(m -> m.term(t -> t.field("id").value(v -> v.stringValue(loadData.getId())))))), ChangelogRecord.class);
+            .query(q -> q.bool(b -> b.must(m -> m.term(t -> t.field("id").value(v -> v.stringValue(changelogFile.getId())))))), ChangelogRecord.class);
 
         // Obtain md5
         String md5checkSum = ChangelogRecord.calcMd5sum(dataMapIndex);
@@ -169,7 +169,7 @@ public class ChangelogServiceImpl implements ChangelogService {
 
         if (source != null && source.getMd5sum() != null) {
             if (!md5checkSum.equals(source.getMd5sum())) {
-                LOG.error("Something changed in the file {}, before md5checksum was {}, now is {}. Checksum does not match", loadData.getFile(), source.getMd5sum(), md5checkSum);
+                LOG.error("Something changed in the file {}, before md5checksum was {}, now is {}. Checksum does not match", changelogFile.getFile() != null ? changelogFile.getFile() : filename, source.getMd5sum(), md5checkSum);
             }
 
             return null;

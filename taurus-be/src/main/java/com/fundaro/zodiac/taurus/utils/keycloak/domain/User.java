@@ -3,6 +3,8 @@ package com.fundaro.zodiac.taurus.utils.keycloak.domain;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -25,6 +27,8 @@ public class User implements Serializable {
     private Boolean totp;
 
     private Boolean emailVerified;
+
+    private Map<String, List<String>> attributes;
 
     public User() {
         this.enabled = true;
@@ -104,6 +108,14 @@ public class User implements Serializable {
         this.emailVerified = emailVerified;
     }
 
+    public Map<String, List<String>> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, List<String>> attributes) {
+        this.attributes = attributes;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -113,6 +125,9 @@ public class User implements Serializable {
             ", email='" + email + "'" +
             ", groups=" + groups +
             ", enabled=" + enabled +
+            ", totp=" + totp +
+            ", emailVerified=" + emailVerified +
+            ", attributes=" + attributes +
             "}";
     }
 }

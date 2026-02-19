@@ -75,7 +75,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         log.debug("Request to save {} : {}", entityName, dto);
 
         if (dto.getId() != null) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot already have an ID", entityName), entityName, "id.exists"));
+            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists"));
         }
 
         try {
@@ -98,11 +98,11 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     }
 
     @Override
-    public Mono<Page<D>> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
 
         try {
-            return Mono.just(findByCriteria(criteria, pageable));
+            return Mono.just(findByCriteria(criteria, pageable, abstractAuthenticationToken));
         } catch (IOException e) {
             return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
         }
@@ -113,7 +113,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         log.debug("Request to get {} : {}", entityName, id);
 
         try {
-            return Mono.just(mapper.toDto(getById(id)));
+            return Mono.just(mapper.toDto(getById(id, abstractAuthenticationToken)));
         } catch (IOException e) {
             return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
         }
@@ -125,7 +125,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         E entity;
 
         try {
-            entity = getById(id);
+            entity = getById(id, abstractAuthenticationToken);
             entity.setDeleted(true);
             saveEntity(id, entity, abstractAuthenticationToken);
         } catch (IOException e) {
@@ -151,7 +151,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         do {
             Pageable pageable = PageRequest.of(pageNumber++, size);
             try {
-                result = findByCriteria(c, pageable);
+                result = findByCriteria(c, pageable, abstractAuthenticationToken);
             } catch (IOException e) {
 
             }
@@ -164,8 +164,8 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         } while (result.getTotalPages() > pageNumber);
     }
 
-    protected E getById(String id) throws IOException {
-        GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(getIndex(entityName)).id(id), classEntity);
+    protected E getById(String id, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
+        GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(getIndex(entityName, abstractAuthenticationToken)).id(id), classEntity);
         E entity = getResponse.source();
 
         if (entity != null && Objects.equals(entity.getDeleted(), Boolean.FALSE)) {
@@ -199,7 +199,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
         E existingEntity;
         try {
-            existingEntity = getById(id);
+            existingEntity = getById(id, abstractAuthenticationToken);
         } catch (IOException e) {
             return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
         }
@@ -215,7 +215,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     private E saveEntity(String id, E entity, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
         addAuditInfo(entity, abstractAuthenticationToken);
-        IndexRequest<E> indexRequest = new IndexRequest.Builder<E>().index(getIndex(entityName)).document(entity).id(id).build();
+        IndexRequest<E> indexRequest = new IndexRequest.Builder<E>().index(getIndex(entityName, abstractAuthenticationToken)).document(entity).id(id).build();
         IndexResponse indexResponse = openSearchService.index(indexRequest);
 
         if (indexResponse.result() == Result.Created) {
@@ -225,11 +225,11 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return entity;
     }
 
-    private Page<D> findByCriteria(C criteria, Pageable pageable) throws IOException {
+    private Page<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
         List<Query> queries = getQueries(criteria);
 
         SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
-            .index(getIndex(entityName))
+            .index(getIndex(entityName, abstractAuthenticationToken))
             .from(pageable.getPageNumber() * pageable.getPageSize())
             .size(pageable.getPageSize())
             .trackTotalHits(t -> t.enabled(true))
@@ -249,10 +249,14 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return new PageImpl<>(list, pageable, searchResponse.hits().total().value());
     }
 
-    private String getIndex(String indexName) {
-//        String tenant = "tenant1";
-//        return String.format("%s_%s", tenant, indexName.toLowerCase());
-        return Converter.camelCaseToKebabCase(indexName);
+    private String getIndex(String indexName, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+
+        if (tenantId == null) {
+            tenantId = "";
+        }
+
+        return Converter.camelCaseToKebabCase(Converter.tenantConcatSnakeCase(tenantId, indexName));
     }
 
     private void addAuditInfo(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {

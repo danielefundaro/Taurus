@@ -4,13 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import com.fundaro.zodiac.taurus.utils.keycloak.domain.AccessToken;
-import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
+import com.fundaro.zodiac.taurus.utils.keycloak.domain.*;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -34,6 +34,9 @@ public class KeycloakServiceImpl implements KeycloakService {
     private final RestClient restClient;
 
     private final ObjectMapper objectMapper;
+
+    @Value("${spring.security.oauth2.client.registration.oidc.client-id}")
+    private String clientId;
 
     public KeycloakServiceImpl(ApplicationProperties applicationProperties) {
         this.applicationProperties = applicationProperties;
@@ -73,7 +76,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting user with id {} from Keycloak", id);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting users with id %s from Keycloak", id), User.class.getSimpleName(), "get.user");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting user from Keycloak", User.class.getSimpleName(), "get.user");
         }
 
         return response.getBody();
@@ -82,46 +85,139 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public String getUserIdByUsernameOrEmail(String username, String email) {
         String url = String.format("%s/users?username=%s&email=%s&exact=true", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), username, email);
-        ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
+        ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
         };
-        ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+        ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting user with username or email from Keycloak: {}, {}", username, email);
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting user with username or email from Keycloak: %s, %s", username, email), User.class.getSimpleName(), "get.user");
         }
 
-        return response.getBody().getId();
+        return response.getBody().get(0).getId();
     }
 
     @Override
-    public User saveUser(User user) {
+    public void saveUser(User user) {
         String url = String.format("%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), user, typeRef);
 
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+        if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error saving user on Keycloak: {}", user);
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error saving user on Keycloak", User.class.getSimpleName(), "save.user");
+        }
+    }
+
+    @Override
+    public void updateUser(User user) {
+        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), user.getId());
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), user, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error updating user on Keycloak: {}", user);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user on Keycloak", User.class.getSimpleName(), "update.user");
+        }
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error deleting user on Keycloak: {}", userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error deleting user on Keycloak", User.class.getSimpleName(), "delete.user");
+        }
+    }
+
+    @Override
+    public List<Role> getUserRoles(String userId) {
+        String id = getIdByClientId();
+        String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
+        ParameterizedTypeReference<List<Role>> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<List<Role>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error getting roles for user on Keycloak: {}", userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting roles for user on Keycloak", User.class.getSimpleName(), "get.user.roles");
         }
 
         return response.getBody();
     }
 
     @Override
-    public User updateUser(User user) {
-        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), user.getId());
-        ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
-        };
-        ResponseEntity<User> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), user, typeRef);
+    public void saveUserRoles(String userId, List<Role> roles) {
+        handleUserRoles(userId, roles, HttpMethod.POST, "saving");
+    }
 
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            log.error("Error updating user on Keycloak: {}", user);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user on Keycloak", User.class.getSimpleName(), "update.user");
+    @Override
+    public void deleteUserRoles(String userId, List<Role> roles) {
+        handleUserRoles(userId, roles, HttpMethod.DELETE, "deleting");
+    }
+
+    @Override
+    public void saveGroup(Group group) {
+        String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        ParameterizedTypeReference<Group> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<Group> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), group, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error saving group on Keycloak: {}", group);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error saving group on Keycloak", Group.class.getSimpleName(), "save.group");
+
+        }
+    }
+
+    @Override
+    public String getIdByClientId() {
+        String url = String.format("%s/clients?clientId=%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), clientId);
+        ParameterizedTypeReference<List<Client>> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<List<Client>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
+            log.error("Error getting client with clientId from Keycloak: {}", clientId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "get.client");
+        }
+
+        return response.getBody().get(0).getId();
+    }
+
+    @Override
+    public List<Role> getClientRoles() {
+        String id = getIdByClientId();
+        String url = String.format("%s/clients/%s/roles", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        ParameterizedTypeReference<List<Role>> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<List<Role>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
+            log.error("Error getting roles of client with clientId from Keycloak: {}", clientId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting roles of client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "get.client.roles");
         }
 
         return response.getBody();
+    }
+
+    private void handleUserRoles(String userId, List<Role> roles, HttpMethod httpMethod, String action) {
+        String id = getIdByClientId();
+        String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<Void> response = responseEntity(url, httpMethod, getAdminHttpHeaders(), roles, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error {} roles for user on Keycloak: {}", action, userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error %s roles for user on Keycloak", action), User.class.getSimpleName(), "save.user.roles");
+        }
     }
 
     private HttpHeaders getAdminHttpHeaders() {
@@ -178,7 +274,7 @@ public class KeycloakServiceImpl implements KeycloakService {
         }
     }
 
-    private <T> ResponseEntity<T> responseEntity(String url, HttpMethod httpMethod, HttpHeaders httpHeaders, Object body, ParameterizedTypeReference<T> responseType) {
+    private <T> ResponseEntity<T> responseEntity(String url, HttpMethod httpMethod, HttpHeaders httpHeaders, Object body, ParameterizedTypeReference<T> responseType) throws HttpClientErrorException {
         RestClient.RequestBodySpec requestBodySpec = restClient
             .method(httpMethod)
             .uri(url);
@@ -188,7 +284,7 @@ public class KeycloakServiceImpl implements KeycloakService {
                 h.setContentType(httpHeaders.getContentType());
 
                 if (httpHeaders.containsKey("Authorization") && Objects.nonNull(httpHeaders.getFirst("Authorization"))) {
-                    h.setBearerAuth(Objects.requireNonNull(httpHeaders.getFirst("Authorization")));
+                    h.set("Authorization", Objects.requireNonNull(httpHeaders.getFirst("Authorization")));
                 }
             });
         }
@@ -197,8 +293,16 @@ public class KeycloakServiceImpl implements KeycloakService {
             requestBodySpec.body(body);
         }
 
-        return requestBodySpec
-            .retrieve()
-            .toEntity(responseType);
+        try {
+            return requestBodySpec
+                .retrieve()
+                .toEntity(responseType);
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
+                throw new RequestAlertException(HttpStatus.CONFLICT, e.getMessage(), AccessToken.class.getSimpleName(), "conflict.error");
+            }
+
+            throw new RequestAlertException(HttpStatus.valueOf(e.getStatusCode().value()), e.getMessage(), AccessToken.class.getSimpleName(), "generic.error");
+        }
     }
 }

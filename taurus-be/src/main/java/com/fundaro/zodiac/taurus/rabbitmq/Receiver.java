@@ -20,9 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RabbitListener(queues = RabbitMQConfig.queueNameListener)
@@ -36,11 +34,14 @@ public class Receiver {
 
     private final TracksService tracksService;
 
+//    private final OllamaHttpClient ollamaHttpClient;
+
     private final String basePath;
 
     public Receiver(QueueUploadFilesService queueUploadFilesService, MediaService mediaService, TracksService tracksService, ApplicationProperties applicationProperties) {
         this.mediaService = mediaService;
         this.tracksService = tracksService;
+//        this.ollamaHttpClient = new OllamaHttpClient("http", "localhost", 11434);
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.basePath = applicationProperties.getBasePath();
@@ -79,12 +80,36 @@ public class Receiver {
                     filesPath = Converter.pdfToImage(inputStream.readAllBytes(), file.getName(), destinationPath);
                 }
 
+                List<Map<String, Object>> responseList = new ArrayList<>();
+
                 if (!filesPath.isEmpty()) {
                     // Save list of media
                     Set<ChildrenEntitiesDTO> childrenEntitiesDTOSet = new HashSet<>();
                     long order = 0L;
 
                     for (String filePath : filesPath) {
+//                        // Get other information from AI
+//                        ResponseEntity<Map<String, Object>> result = ollamaHttpClient.post("Effettua un'estrazione OCR dello spartito musicale per ricavare le informazioni come titolo, sottotitolo, tipo di pezzo musicale, tempo, tonalità, compositore, arrangiatore, elenco degli strumenti. Applica un'attenzione particolare sugli strumenti. Crea un json che abbia questa struttura: " +
+//                            "{\"title\":\"...\", \"subtitle\":\"...\", \"type\", \"composer\":\"...\", \"arranger\":\"...\", \"tempo\":\"...\", \"tonality\":\"...\", \"instruments\":[...]}", Collections.singleton(filePath));
+//
+//                        if (result.getStatusCode().is2xxSuccessful() && result.hasBody() && result.getBody() != null && result.getBody().containsKey("response")) {
+//                            String aiResult = result.getBody().get("response").toString();
+//                            String[] split = aiResult.split("```json");
+//
+//                            if (split.length > 1) {
+//                                aiResult = split[1].split("```")[0];
+//                                ObjectMapper objectMapper = new ObjectMapper();
+//
+//                                TypeReference<Map<String, Object>> typeReference = new TypeReference<>() {
+//                                };
+//                                try {
+//                                    responseList.add(objectMapper.readValue(aiResult.trim(), typeReference));
+//                                } catch (IOException e) {
+//                                    responseList.add(new HashMap<>());
+//                                }
+//                            }
+//                        }
+
                         MediaDTO mediaDTO = new MediaDTO();
                         mediaDTO.setPath(filePath);
                         mediaDTO.setContentType("image/png");

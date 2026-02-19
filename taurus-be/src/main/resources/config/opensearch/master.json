@@ -1,4 +1,6 @@
 [{
+  "file": "/config/opensearch/changelog/20250312213402_added_index_tenants.json"
+},{
   "file": "/config/opensearch/changelog/20250312213402_added_index_albums.json"
 }, {
   "file": "/config/opensearch/changelog/20250312213402_added_index_instruments.json"
@@ -12,6 +14,4 @@
   "file": "/config/opensearch/changelog/20250312213402_added_data_instruments.json"
 }, {
   "file": "/config/opensearch/changelog/20250312213402_added_index_users.json"
-}, {
-  "file": "/config/opensearch/changelog/20250312213402_added_index_tenants.json"
 }]

@@ -50,7 +50,7 @@
         }
       }
     },
-    "tenant": {
+    "keycloak_id": {
       "type": "text",
       "fields": {
         "keyword": {

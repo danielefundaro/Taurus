@@ -59,7 +59,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     public Mono<Flux<DataBuffer>> streamFile(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         // Return the stream of the media
         try {
-            Media media = getById(id);
+            Media media = getById(id, abstractAuthenticationToken);
             return Mono.just(DataBufferUtils.read(Paths.get(media.getPath()), new DefaultDataBufferFactory(), 1024));
         } catch (IOException e) {
             return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
