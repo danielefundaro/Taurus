@@ -1,12 +1,11 @@
 <div class="card">
-    <p-dataview [value]="tracks" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true"
+    <p-dataview [value]="tenants" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
-        [paginatorPosition]="tracks.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
+        [paginatorPosition]="tenants.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
         [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
         [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
             <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3">
-                <p-button label="Carica" icon="pi pi-upload" severity="primary" (onClick)="addNewFile()" />
                 <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
                 <p-iconfield>
                     <p-inputicon class="pi pi-search" />
@@ -25,41 +24,28 @@
         <ng-template #list let-items>
             <div class="flex flex-col">
                 <ng-container *ngFor="let item of items; let i = index">
-                    <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
+                    <div class="flex flex-row sm:items-center p-6 gap-4"
                         [ngClass]="{ 'border-t border-surface': i !== 0 }">
                         <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
                             <p-avatar class="mr-2" [label]="initials(item.name)" size="xlarge"
                                 shape="circle"></p-avatar>
                         </a>
                         <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
-                            <div>
-                                <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                    {{ item.name }}
-                                </a>
-                                <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
-                                    {{ item.description }}
-                                </span>
-                                <div class="flex flex-row flex-wrap items-start mt-2 gap-2"
-                                    *ngIf="item.type">
-                                    <p-tag [value]="type" [rounded]="true" severity="secondary"
-                                        *ngFor="let type of item.type"></p-tag>
+                            <div class="flex flex-row md:flex-col justify-between items-start gap-2">
+                                <div>
+                                    <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
+                                        {{ item.name }}
+                                    </a>
+                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                        {{ item.description }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="flex flex-col md:items-end gap-2">
-                                <div class="flex flex-col gap-1">
-                                    <span class="text-lg font-medium" *ngIf="item.composer">
-                                        {{ item.composer }}
-                                    </span>
-                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm"
-                                        *ngIf="item.arranger">{{ item.arranger }}
-                                    </span>
-                                </div>
-                                <div class="flex flex-row md:flex-row gap-2">
-                                    <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
-                                        styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
-                                    <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                        (onClick)="deleteElement(item)"></p-button>
-                                </div>
+                            <div class="flex flex-row md:flex-row gap-2">
+                                <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
+                                    styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
+                                <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
+                                    (onClick)="deleteElement(item)"></p-button>
                             </div>
                         </div>
                     </div>
@@ -91,23 +77,11 @@
                                         </span>
                                     </div>
                                 </div>
-                                <div class="flex flex-row flex-wrap mt-2 gap-2" *ngIf="item.type">
-                                    <p-tag [value]="type" [rounded]="true" severity="secondary"
-                                        *ngFor="let type of item.type"></p-tag>
-                                </div>
-                                <div class="flex flex-col gap-2 mt-6">
-                                    <span class="text-lg font-medium" *ngIf="item.composer">
-                                        {{ item.composer }}
-                                    </span>
-                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm"
-                                        *ngIf="item.arranger">{{ item.arranger }}
-                                    </span>
-                                    <div class="flex gap-2">
-                                        <p-button icon="pi pi-pencil" label="Edit" [routerLink]="item.id"
-                                            class="flex-auto whitespace-nowrap" styleClass="w-full"></p-button>
-                                        <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                            (onClick)="deleteElement(item)"></p-button>
-                                    </div>
+                                <div class="flex flex-row gap-2 mt-6">
+                                    <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
+                                        class="flex-auto whitespace-nowrap" styleClass="w-full"></p-button>
+                                    <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
+                                        (onClick)="deleteElement(item)"></p-button>
                                 </div>
                             </div>
                         </div>

@@ -20,7 +20,20 @@
 
     <ul *ngIf="item.items && item.visible !== false" [@children]="submenuAnimation">
         <ng-template ngFor let-child let-i="index" [ngForOf]="item.items">
-            <li app-menuitem [item]="child" [index]="i" [parentKey]="key" [class]="child['badgeClass']"></li>
+            <ng-container *ngIf="!child['hasRoles']; else roleBlock">
+                <li app-menuitem *ngIf="!child.separator; else separatorBlock" [item]="child" [index]="i" [parentKey]="key" [class]="child['badgeClass']"></li>
+                <ng-template #separatorBlock>
+                    <li class="menu-separator"></li>
+                </ng-template>
+            </ng-container>
+            <ng-template #roleBlock>
+                <ng-container *kaHasRoles="child['hasRoles']">
+                    <li app-menuitem *ngIf="!child.separator; else separatorBlock" [item]="child" [index]="i" [parentKey]="key" [class]="child['badgeClass']"></li>
+                    <ng-template #separatorBlock>
+                        <li class="menu-separator"></li>
+                    </ng-template>
+                </ng-container>
+            </ng-template>
         </ng-template>
     </ul>
 </ng-container>

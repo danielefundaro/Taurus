@@ -5,39 +5,39 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first } from 'rxjs';
-import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
+import { AddTenantsDialogComponent } from '../../dialogs/add-tenants-dialog/add-tenants-dialog.component';
 import { ImportsModule } from '../../imports';
-import { Instruments, InstrumentsCriteria, Page } from '../../module';
+import { Page, Tenants, TenantsCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { InstrumentsService, ToastService } from '../../service';
+import { TenantsService, ToastService, UsersService } from '../../service';
 
 @Component({
-    selector: 'app-instruments',
+    selector: 'app-tenants',
     imports: [
         RouterModule,
         ImportsModule,
     ],
-    templateUrl: './instruments.component.html',
-    styleUrl: './instruments.component.scss',
+    templateUrl: './tenants.component.html',
+    styleUrl: './tenants.component.scss',
     providers: [
-        InstrumentsService,
+        UsersService,
         DialogService
     ]
 })
-export class InstrumentsComponent implements OnInit {
+export class TenantsComponent implements OnInit {
     protected sortOptions!: SelectItem[];
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
-    protected instruments: Instruments[];
+    protected tenants: Tenants[];
 
     constructor(
-        private readonly instrumentsService: InstrumentsService,
+        private readonly tenantsService: TenantsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
     ) {
-        this.instruments = [];
+        this.tenants = [];
     }
 
     ngOnInit() {
@@ -73,8 +73,8 @@ export class InstrumentsComponent implements OnInit {
     }
 
     protected addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddInstrumentsDialogComponent, {
-            header: "Aggiungi strumento",
+        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddTenantsDialogComponent, {
+            header: "Aggiungi tenant",
             closable: true,
             draggable: true,
             resizable: true,
@@ -83,11 +83,11 @@ export class InstrumentsComponent implements OnInit {
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Instruments) => {
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tenants) => {
             if (result) {
-                this.instrumentsService.create(result).pipe(delay(1000), first()).subscribe({
-                    next: (instrument: Instruments) => {
-                        this.toastService.success("Successo", "Strumento aggiunto con successo");
+                this.tenantsService.create(result).pipe(delay(1000), first()).subscribe({
+                    next: (tenant: Tenants) => {
+                        this.toastService.success("Successo", "Tenant aggiunto con successo");
                         this.loadElements();
                     }
                 });
@@ -95,29 +95,29 @@ export class InstrumentsComponent implements OnInit {
         });
     }
 
-    protected deleteElement(instrument: Instruments) {
-        this.instrumentsService.delete(instrument.id).pipe(delay(1000), first()).subscribe({
+    protected deleteElement(tenant: Tenants) {
+        this.tenantsService.delete(tenant.id).pipe(delay(1000), first()).subscribe({
             next: (value: any) => {
-                this.toastService.success("Successo", "Strumento eliminato con successo");
+                this.toastService.success("Successo", "Tenant eliminato con successo");
                 this.loadElements();
             }
         });
     }
 
     private loadElements(search?: string) {
-        const instrumentsCriteria: InstrumentsCriteria = new InstrumentsCriteria();
-        instrumentsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
-        instrumentsCriteria.size = this.dataViewLazyLoadEvent.rows;
-        instrumentsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+        const tenantsCriteria: TenantsCriteria = new TenantsCriteria();
+        tenantsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
+        tenantsCriteria.size = this.dataViewLazyLoadEvent.rows;
+        tenantsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
 
         if (search) {
-            instrumentsCriteria.name = new StringFilter();
-            instrumentsCriteria.name.contains = search;
+            tenantsCriteria.name = new StringFilter();
+            tenantsCriteria.name.contains = search;
         }
 
-        this.instrumentsService.getAll(instrumentsCriteria).pipe(first()).subscribe({
-            next: (value: Page<Instruments>) => {
-                this.instruments = value.content;
+        this.tenantsService.getAll(tenantsCriteria).pipe(first()).subscribe({
+            next: (value: Page<Tenants>) => {
+                this.tenants = value.content;
                 this.totalRecords = value.totalElements;
             }
         });

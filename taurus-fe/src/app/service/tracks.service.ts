@@ -10,7 +10,11 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
         return "tracks";
     }
 
-    public stream(id: string): string {
-        return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
+    public stream(id?: string): string {
+        if (id) {
+            return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
+        }
+
+        return `${this.baseUrl}/${this.resourceName()}/stream`;
     }
 }

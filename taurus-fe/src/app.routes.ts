@@ -18,6 +18,18 @@ export const appRoutes: Routes = [
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') },
             {
+                path: 'tenants',
+                loadChildren: () => import('./app/pages/tenants/tenants.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: ['ROLE_SUPER_ADMIN'] },
+            },
+            {
+                path: 'users',
+                loadChildren: () => import('./app/pages/users/users.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: ['ROLE_ADMIN'] },
+            },
+            {
                 path: 'albums',
                 loadChildren: () => import('./app/pages/albums/albums.routes'),
                 canActivate: [canActivateAuthRole],

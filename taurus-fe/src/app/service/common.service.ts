@@ -64,5 +64,5 @@ export abstract class CommonService<D extends CommonFields, C extends CommonCrit
         }
 
         return options;
-    };
+    }
 }

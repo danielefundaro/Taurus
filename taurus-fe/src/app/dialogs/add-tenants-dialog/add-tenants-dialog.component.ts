@@ -1,18 +1,17 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { ChipModule } from 'primeng/chip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { TypeHandlerComponent } from "../../components/type-handler/type-handler.component";
-import { Tracks } from '../../module';
+import { ToggleButtonModule } from 'primeng/togglebutton';
+import { Tenants } from '../../module';
 
 @Component({
-    selector: 'app-add-tracks-dialog',
+    selector: 'app-add-tenants-dialog',
     imports: [
         ButtonModule,
         InputTextModule,
@@ -21,22 +20,17 @@ import { Tracks } from '../../module';
         DatePickerModule,
         FormsModule,
         FluidModule,
-        ChipModule,
-        TypeHandlerComponent
+        ToggleButtonModule,
     ],
-    templateUrl: './add-tracks-dialog.component.html',
-    styleUrl: './add-tracks-dialog.component.scss',
+    templateUrl: './add-tenants-dialog.html',
+    styleUrl: './add-tenants-dialog.component.scss',
 })
-export class AddTracksDialogComponent {
+export class AddTenantsDialogComponent {
 
-    protected track: Tracks;
+    protected tenant: Tenants;
 
-    constructor(private readonly dialogRef: DynamicDialogRef<AddTracksDialogComponent>) {
-        this.track = new Tracks();
-    }
-
-    protected removeType(currentType: string) {
-        this.track.type?.splice(this.track.type.indexOf(currentType), 1);
+    constructor(private readonly dialogRef: DynamicDialogRef<AddTenantsDialogComponent>) {
+        this.tenant = new Tenants();
     }
 
     protected cancel(): void {
@@ -44,6 +38,6 @@ export class AddTracksDialogComponent {
     }
 
     protected save(): void {
-        this.dialogRef.close(this.track);
+        this.dialogRef.close(this.tenant);
     }
 }
