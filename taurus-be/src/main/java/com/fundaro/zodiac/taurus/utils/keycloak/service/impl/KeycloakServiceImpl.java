@@ -163,6 +163,30 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public void sendResetPasswordEmail(String userId) {
+        String url = String.format("%s/users/%s/reset-password-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error sending reset password for user on Keycloak: {}", userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending reset password for user on Keycloak", User.class.getSimpleName(), "send.user.reset.password");
+        }
+    }
+
+    @Override
+    public void sendVerifyEmail(String userId) {
+        String url = String.format("%s/users/%s/send-verify-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error sending verify password for user on Keycloak: {}", userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending verify password for user on Keycloak", User.class.getSimpleName(), "send.user.verify.email");
+        }
+    }
+
+    @Override
     public void saveGroup(Group group) {
         String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<Group> typeRef = new ParameterizedTypeReference<>() {
@@ -216,7 +240,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error {} roles for user on Keycloak: {}", action, userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error %s roles for user on Keycloak", action), User.class.getSimpleName(), "save.user.roles");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error %s roles for user on Keycloak", action), User.class.getSimpleName(), String.format("%s.user.roles", action.replace("ing", "e")));
         }
     }
 
