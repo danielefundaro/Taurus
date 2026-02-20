@@ -26,6 +26,10 @@ public interface KeycloakService {
 
     void deleteUserRoles(String userId, List<Role> roles);
 
+    void sendResetPasswordEmail(String userId);
+
+    void sendVerifyEmail(String userId);
+
     void saveGroup(Group group);
 
     String getIdByClientId();
