@@ -95,10 +95,20 @@
           "type": "object",
           "properties": {
             "index": {
-              "type": "text"
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword"
+                }
+              }
             },
             "name": {
-              "type": "text"
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword"
+                }
+              }
             },
             "order": {
               "type": "long"
@@ -109,10 +119,20 @@
           "type": "object",
           "properties": {
             "index": {
-              "type": "text"
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword"
+                }
+              }
             },
             "name": {
-              "type": "text"
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword"
+                }
+              }
             },
             "order": {
               "type": "long"

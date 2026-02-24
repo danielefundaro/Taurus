@@ -1,5 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
@@ -28,6 +30,9 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter instrumentId;
 
+    @JsonIgnore
+    private StringFilter keycloakId;
+
     public UsersCriteria() {
         super();
     }
@@ -40,6 +45,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.roles = other.optionalRoles().map(StringFilter::copy).orElse(null);
         this.active = other.optionalActive().map(BooleanFilter::copy).orElse(null);
         this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
+        this.keycloakId = other.optionalKeycloakId().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -119,6 +125,18 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.instrumentId = instrumentId;
     }
 
+    public StringFilter getKeycloakId() {
+        return keycloakId;
+    }
+
+    public Optional<StringFilter> optionalKeycloakId() {
+        return Optional.ofNullable(keycloakId);
+    }
+
+    public void setKeycloakId(StringFilter keycloakId) {
+        this.keycloakId = keycloakId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -135,13 +153,14 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
                 Objects.equals(email, that.email) &&
                 Objects.equals(roles, that.roles) &&
                 Objects.equals(active, that.active) &&
-                Objects.equals(instrumentId, that.instrumentId)
+                Objects.equals(instrumentId, that.instrumentId) &&
+                Objects.equals(keycloakId, that.keycloakId)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), lastName, birthDate, email, roles, active, instrumentId);
+        return Objects.hash(super.hashCode(), lastName, birthDate, email, roles, active, instrumentId, keycloakId);
     }
 
     @Override
@@ -156,6 +175,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
             optionalRoles().map(f -> "roles=" + f + ", ").orElse("") +
             optionalActive().map(f -> "active=" + f + ", ").orElse("") +
             optionalInstrumentId().map(f -> "instrument_id=" + f + ", ").orElse("") +
+            optionalKeycloakId().map(f -> "keycloak_id=" + f + ", ").orElse("") +
             "}";
     }
 }

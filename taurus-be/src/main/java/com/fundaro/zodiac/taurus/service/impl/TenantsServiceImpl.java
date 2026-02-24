@@ -74,9 +74,9 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     protected List<Query> getQueries(TenantsCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("code", criteria.getCode()));
-        queries.addAll(Converter.stringFilterToQuery("email", criteria.getEmail()));
-        queries.addAll(Converter.stringFilterToQuery("domain", criteria.getDomain()));
+        queries.addAll(Converter.stringFilterToQuery("code.keyword", criteria.getCode()));
+        queries.addAll(Converter.stringFilterToQuery("email.keyword", criteria.getEmail()));
+        queries.addAll(Converter.stringFilterToQuery("domain.keyword", criteria.getDomain()));
         queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
 
         return queries;
