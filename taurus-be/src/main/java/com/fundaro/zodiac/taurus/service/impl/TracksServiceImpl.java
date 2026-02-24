@@ -120,10 +120,11 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     @Override
     protected List<Query> getQueries(TracksCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("composer", criteria.getComposer()));
-        queries.addAll(Converter.stringFilterToQuery("arranger", criteria.getArranger()));
-        queries.addAll(Converter.stringFilterToQuery("type", criteria.getType()));
-        queries.addAll(Converter.stringFilterToQuery("scores.media.index", criteria.getMediaId()));
+        queries.addAll(Converter.stringFilterToQuery("composer.keyword", criteria.getComposer()));
+        queries.addAll(Converter.stringFilterToQuery("arranger.keyword", criteria.getArranger()));
+        queries.addAll(Converter.stringFilterToQuery("type.keyword", criteria.getType()));
+        queries.addAll(Converter.stringFilterToQuery("scores.media.index.keyword", criteria.getMediaId()));
+        queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
 
         return queries;
     }

@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
@@ -10,11 +11,15 @@ import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.util.List;
 
@@ -64,6 +69,23 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
+    public Mono<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        UsersCriteria usersCriteria = new UsersCriteria();
+        StringFilter keycloakFilter = new StringFilter();
+        keycloakFilter.setEquals(userId);
+        usersCriteria.setKeycloakId(keycloakFilter);
+
+        return findEntitiesByCriteria(usersCriteria, Pageable.ofSize(1), abstractAuthenticationToken).flatMap(page -> {
+            if (page.getContent().isEmpty()) {
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Users.class.getSimpleName(), "id.notFound"));
+            }
+
+            return Mono.just(page.getContent().get(0));
+        });
+    }
+
+    @Override
     protected List<Query> getQueries(UsersCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
         queries.addAll(Converter.stringFilterToQuery("last_name", criteria.getLastName()));
@@ -72,6 +94,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         queries.addAll(Converter.stringFilterToQuery("roles", criteria.getRoles()));
         queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
         queries.addAll(Converter.stringFilterToQuery("instruments.index", criteria.getInstrumentId()));
+        queries.addAll(Converter.stringFilterToQuery("keycloak_id", criteria.getKeycloakId()));
 
         return queries;
     }

@@ -30,6 +30,7 @@ public class Users extends CommonFieldsOpenSearch {
 
     private Set<ChildrenEntities> instruments;
 
+    @JsonProperty("keycloak_id")
     private String keycloakId;
 
     public String getLastName() {

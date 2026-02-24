@@ -13,12 +13,8 @@ export class KeycloakService {
         return this.$isUserLoggedIn.value;
     }
 
-    public get profile(): KeycloakProfile | undefined {
-        return this.keycloak.profile;
-    }
-
-    public get userInfo(): {} | undefined {
-        return this.keycloak.userInfo;
+    public get currentuserRoles(): string[] {
+        return this.keycloak.resourceAccess![this.keycloak.clientId!].roles || [];
     }
 
     public get token(): string | undefined {

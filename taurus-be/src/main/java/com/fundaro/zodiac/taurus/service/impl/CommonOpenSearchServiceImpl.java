@@ -181,7 +181,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         queries.add(Query.of(f -> f.exists(e -> e.field("deleted"))));
         queries.add(Query.of(f -> f.match(m -> m.field("deleted").query(value -> value.booleanValue(false)))));
         queries.addAll(Converter.stringFilterToQuery("_id", criteria.getId()));
-        queries.addAll(Converter.stringFilterToQuery("name", criteria.getName()));
+        queries.addAll(Converter.stringFilterToQuery("name.keyword", criteria.getName()));
         queries.addAll(Converter.stringFilterToQuery("description", criteria.getDescription()));
 
         return queries;

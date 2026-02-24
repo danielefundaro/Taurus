@@ -17,8 +17,11 @@ logging:
   level:
     ROOT: DEBUG
     tech.jhipster: DEBUG
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO
     com.fundaro.zodiac.taurus: DEBUG
+    com.fundaro.zodiac.taurus.repository: INFO
+    com.fundaro.zodiac.taurus.web.rest.PreferencesResource: INFO
+    com.fundaro.zodiac.taurus.service.PreferencesService: INFO
 
 spring:
   devtools:
