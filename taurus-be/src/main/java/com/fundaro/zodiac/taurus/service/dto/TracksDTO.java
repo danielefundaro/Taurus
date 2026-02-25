@@ -1,6 +1,9 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 
 import java.util.Objects;
 import java.util.Set;
@@ -21,9 +24,8 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
 
     private String tone;
 
-    private Boolean complete;
-
-    private String state;
+    @Enumerated(EnumType.STRING)
+    private StateEnum state;
 
     private Set<String> type;
 
@@ -69,19 +71,11 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
         this.tone = tone;
     }
 
-    public Boolean getComplete() {
-        return complete;
-    }
-
-    public void setComplete(Boolean complete) {
-        this.complete = complete;
-    }
-
-    public String getState() {
+    public StateEnum getState() {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(StateEnum state) {
         this.state = state;
     }
 
@@ -115,7 +109,7 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getType(), this.getScores().hashCode());
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getTempo(), this.getTone(), this.getState(), this.getType(), this.getScores().hashCode());
     }
 
     // prettier-ignore
@@ -130,7 +124,6 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
             ", arranger='" + getArranger() + "'" +
             ", tempo='" + getTempo() + "'" +
             ", tone='" + getTone() + "'" +
-            ", complete='" + getComplete() + "'" +
             ", state='" + getState() + "'" +
             ", type=" + getType() +
             ", scores=" + getScores() +

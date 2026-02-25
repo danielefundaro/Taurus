@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fundaro.zodiac.taurus.domain.Albums;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 
 import java.util.Date;
 import java.util.Objects;
@@ -15,7 +16,7 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     private Date date;
 
-    private String state;
+    private StateEnum state;
 
     private Set<ChildrenEntitiesDTO> tracks;
 
@@ -27,11 +28,11 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
         this.date = date;
     }
 
-    public String getState() {
+    public StateEnum getState() {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(StateEnum state) {
         this.state = state;
     }
 
@@ -57,7 +58,7 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getTracks());
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getState(), this.getTracks().hashCode());
     }
 
     // prettier-ignore

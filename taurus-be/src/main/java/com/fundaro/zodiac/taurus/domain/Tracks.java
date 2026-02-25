@@ -2,6 +2,9 @@ package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 
 import java.util.Set;
 
@@ -22,9 +25,8 @@ public class Tracks extends CommonFieldsOpenSearch {
 
     private String tone;
 
-    private Boolean complete;
-
-    private String state;
+    @Enumerated(EnumType.STRING)
+    private StateEnum state;
 
     private Set<String> type;
 
@@ -70,19 +72,11 @@ public class Tracks extends CommonFieldsOpenSearch {
         this.tone = tone;
     }
 
-    public Boolean getComplete() {
-        return complete;
-    }
-
-    public void setComplete(Boolean complete) {
-        this.complete = complete;
-    }
-
-    public String getState() {
+    public StateEnum getState() {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(StateEnum state) {
         this.state = state;
     }
 
@@ -137,7 +131,6 @@ public class Tracks extends CommonFieldsOpenSearch {
             ", arranger='" + getArranger() + "'" +
             ", tempo='" + getTempo() + "'" +
             ", tone='" + getTone() + "'" +
-            ", complete='" + getComplete() + "'" +
             ", state='" + getState() + "'" +
             ", type=" + getType() +
             ", scores=" + getScores() +
