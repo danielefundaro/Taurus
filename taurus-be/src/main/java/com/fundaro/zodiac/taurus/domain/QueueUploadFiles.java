@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import org.springframework.data.relational.core.mapping.Table;
@@ -22,7 +22,7 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
     private String trackId;
 
     @Enumerated(EnumType.STRING)
-    private UploadFileStatus status;
+    private UploadFileStatusEnum status;
 
     private String type;
 
@@ -50,11 +50,11 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
         this.trackId = trackId;
     }
 
-    public UploadFileStatus getStatus() {
+    public UploadFileStatusEnum getStatus() {
         return this.status;
     }
 
-    public void setStatus(UploadFileStatus status) {
+    public void setStatus(UploadFileStatusEnum status) {
         this.status = status;
     }
 

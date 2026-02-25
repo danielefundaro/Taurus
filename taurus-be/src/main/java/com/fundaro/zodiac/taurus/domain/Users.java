@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.Objects;
 import java.util.Set;
 
@@ -18,7 +18,7 @@ public class Users extends CommonFieldsOpenSearch {
     private String lastName;
 
     @JsonProperty("birth_date")
-    private ZonedDateTime birthDate;
+    private Date birthDate;
 
     private String email;
 
@@ -41,11 +41,11 @@ public class Users extends CommonFieldsOpenSearch {
         this.lastName = lastName;
     }
 
-    public ZonedDateTime getBirthDate() {
+    public Date getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(ZonedDateTime birthDate) {
+    public void setBirthDate(Date birthDate) {
         this.birthDate = birthDate;
     }
 

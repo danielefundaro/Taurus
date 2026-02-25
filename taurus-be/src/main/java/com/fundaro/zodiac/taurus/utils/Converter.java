@@ -22,8 +22,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Converter {
@@ -38,7 +38,7 @@ public class Converter {
 
     public static String tenantConcatSnakeCase(@NonNull String tenantCode, @NonNull String value) {
         tenantCode = tenantCode.replaceAll(" ", "").toLowerCase();
-        return  Arrays.stream(new String[]{tenantCode, value}).filter(Strings::isNotBlank).collect(Collectors.joining("_"));
+        return Arrays.stream(new String[]{tenantCode, value}).filter(Strings::isNotBlank).collect(Collectors.joining("_"));
     }
 
     public static List<String> pdfToImage(byte[] content, String filename, String destinationPath) throws IOException {
@@ -228,8 +228,37 @@ public class Converter {
         return queries;
     }
 
-    public static <T> List<Query> generalFilterToQuery(String fieldName, @NonNull Filter<T> fieldValue) {
-        return stringFilterToQuery(fieldName, (StringFilter) fieldValue);
+    public static <T> List<Query> generalFilterToQuery(String fieldName, Filter<T> fieldValue) {
+        List<Query> queries = new ArrayList<>();
+        List<Query> notQueries = new ArrayList<>();
+
+        if (fieldValue != null && fieldName != null) {
+            String finalFieldName = camelCaseToSnakeCase(fieldName);
+
+            if (Objects.nonNull(fieldValue.getEquals()) && Strings.isNotBlank(fieldValue.getEquals().toString())) {
+                queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.stringValue(fieldValue.getEquals().toString())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotEquals()) && Strings.isNotBlank(fieldValue.getNotEquals().toString())) {
+                notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.stringValue(fieldValue.getNotEquals().toString())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getIn()) && !fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().map(Object::toString).anyMatch(Strings::isNotBlank)) {
+                List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().stringValue(v.toString()).build()).toList();
+                queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotIn()) && !fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().map(Object::toString).anyMatch(Strings::isNotBlank)) {
+                List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().stringValue(v.toString()).build()).toList();
+                notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (!notQueries.isEmpty()) {
+                queries.add(Query.of(f -> f.bool(b -> b.mustNot(notQueries))));
+            }
+        }
+
+        return queries;
     }
 
     private static Rectangle getBounds(BufferedImage img, Color fillColor) {

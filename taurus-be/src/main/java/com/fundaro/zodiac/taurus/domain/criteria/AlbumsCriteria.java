@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.domain.criteria;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
@@ -26,6 +27,8 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter trackName;
 
+    private StateFilter state;
+
     @JsonIgnore
     private StringFilter trackId;
 
@@ -37,6 +40,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         super(other);
         this.date = other.optionalDate().map(DateFilter::copy).orElse(null);
         this.trackName = other.optionalTrackName().map(StringFilter::copy).orElse(null);
+        this.state = other.optionalState().map(StateFilter::copy).orElse(null);
         this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
     }
 
@@ -71,6 +75,19 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
+    public StateFilter getState() {
+        return state;
+    }
+
+    public Optional<StateFilter> optionalState() {
+        return Optional.ofNullable(state);
+    }
+
+    public AlbumsCriteria setState(StateFilter state) {
+        this.state = state;
+        return this;
+    }
+
     public StringFilter getTrackId() {
         return trackId;
     }
@@ -95,13 +112,15 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         final AlbumsCriteria that = (AlbumsCriteria) o;
         return (
             super.equals(o) &&
-                Objects.equals(date, that.date)
+                Objects.equals(date, that.date) &&
+                Objects.equals(trackName, that.trackName) &&
+                Objects.equals(state, that.state)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), date);
+        return Objects.hash(super.hashCode(), date, trackName, state);
     }
 
     // prettier-ignore
@@ -113,6 +132,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
             optionalDate().map(f -> "date=" + f + ", ").orElse("") +
             optionalTrackName().map(f -> "trackName=" + f + ", ").orElse("") +
+            optionalState().map(f -> "state=" + f + ", ").orElse("") +
             optionalTrackId().map(f -> "trackId=" + f + ", ").orElse("") +
             "}";
     }

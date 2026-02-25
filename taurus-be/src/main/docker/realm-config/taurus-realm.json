@@ -50,36 +50,9 @@
   "roles": {
     "realm": [
       {
-        "id": "8e986fb5-dafb-43bf-a7c2-7e57572d3d80",
-        "name": "ROLE_ADMIN",
-        "description": "Taurus administrator role",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "taurus",
-        "attributes": {}
-      },
-      {
-        "id": "0193a8ec-d0bd-7665-8cfd-13bb911935e9",
-        "name": "ROLE_ARCHIVIST",
-        "description": "Taurus archivist role",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "taurus",
-        "attributes": {}
-      },
-      {
         "id": "e1b19afd-f612-4a79-bdf8-26a99b89b10b",
         "name": "offline_access",
         "description": "${role_offline-access}",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "taurus",
-        "attributes": {}
-      },
-      {
-        "id": "ec5705e1-fc1d-4d21-8364-abd3bd4efcd0",
-        "name": "ROLE_USER",
-        "description": "Taurus user role",
         "composite": false,
         "clientRole": false,
         "containerId": "taurus",
@@ -332,6 +305,15 @@
       "security-admin-console": [],
       "web_app": [
         {
+          "id": "79815a99-a63e-4db2-a8fa-2cddb2fce8fd",
+          "name": "ROLE_SUPER_ADMIN",
+          "description": "Client role",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "6e8deddb-b4d6-4e2e-b389-b397d3f74fcd",
+          "attributes": {}
+        },
+        {
           "id": "5e7b8771-024c-45cf-8877-818381f6c7c2",
           "name": "ROLE_USER",
           "description": "Client role",
@@ -463,53 +445,7 @@
       ]
     }
   },
-  "groups": [
-    {
-      "id": "afb0c768-ab0f-454c-a8ea-bc9e70b50248",
-      "name": "Admins",
-      "path": "/Admins",
-      "subGroups": [],
-      "attributes": {},
-      "realmRoles": [
-        "ROLE_ADMIN"
-      ],
-      "clientRoles": {
-        "web_app": [
-          "ROLE_ADMIN"
-        ]
-      }
-    },
-    {
-      "id": "6ab3dcf3-ea79-449f-9846-ccf333fc3be8",
-      "name": "Archivists",
-      "path": "/Archivists",
-      "subGroups": [],
-      "attributes": {},
-      "realmRoles": [
-        "ROLE_ARCHIVIST"
-      ],
-      "clientRoles": {
-        "web_app": [
-          "ROLE_ARCHIVIST"
-        ]
-      }
-    },
-    {
-      "id": "672767bb-4ab0-4d37-93a1-9b6c2416b6b2",
-      "name": "Users",
-      "path": "/Users",
-      "subGroups": [],
-      "attributes": {},
-      "realmRoles": [
-        "ROLE_USER"
-      ],
-      "clientRoles": {
-        "web_app": [
-          "ROLE_USER"
-        ]
-      }
-    }
-  ],
+  "groups": [],
   "defaultRole": {
     "id": "d2b73e7b-a2d7-40e9-8ebc-2af00454e8aa",
     "name": "default-roles-taurus",
@@ -518,9 +454,6 @@
     "clientRole": false,
     "containerId": "taurus"
   },
-  "defaultGroups": [
-    "/Users"
-  ],
   "requiredCredentials": [
     "password"
   ],
@@ -1533,8 +1466,9 @@
           "consentRequired": false,
           "config": {
             "user.session.note": "clientHost",
-            "id.token.claim": "true",
             "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "clientHost",
             "jsonType.label": "String"
@@ -1548,8 +1482,9 @@
           "consentRequired": false,
           "config": {
             "user.session.note": "client_id",
-            "id.token.claim": "true",
             "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "client_id",
             "jsonType.label": "String"
@@ -1563,8 +1498,9 @@
           "consentRequired": false,
           "config": {
             "user.session.note": "clientAddress",
-            "id.token.claim": "true",
             "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "clientAddress",
             "jsonType.label": "String"
@@ -1633,8 +1569,9 @@
           "consentRequired": false,
           "config": {
             "user.session.note": "AUTH_TIME",
-            "id.token.claim": "true",
             "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "auth_time",
             "jsonType.label": "long"
@@ -1759,14 +1696,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "saml-role-list-mapper",
-            "saml-user-attribute-mapper",
-            "oidc-usermodel-attribute-mapper",
             "oidc-address-mapper",
-            "oidc-full-name-mapper",
+            "oidc-usermodel-attribute-mapper",
+            "saml-role-list-mapper",
+            "oidc-usermodel-property-mapper",
             "saml-user-property-mapper",
             "oidc-sha256-pairwise-sub-mapper",
-            "oidc-usermodel-property-mapper"
+            "saml-user-attribute-mapper",
+            "oidc-full-name-mapper"
           ]
         }
       },
@@ -1798,14 +1735,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "oidc-full-name-mapper",
-            "saml-user-property-mapper",
-            "saml-user-attribute-mapper",
-            "saml-role-list-mapper",
             "oidc-address-mapper",
-            "oidc-usermodel-property-mapper",
             "oidc-usermodel-attribute-mapper",
-            "oidc-sha256-pairwise-sub-mapper"
+            "saml-user-attribute-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
+            "saml-user-property-mapper",
+            "saml-role-list-mapper",
+            "oidc-usermodel-property-mapper",
+            "oidc-full-name-mapper"
           ]
         }
       },
@@ -1884,7 +1821,6 @@
     ]
   },
   "internationalizationEnabled": false,
-  "supportedLocales": [],
   "authenticationFlows": [
     {
       "id": "491fbbc9-b70b-45bd-8243-2039ae3f115d",
@@ -2541,6 +2477,15 @@
       "config": {}
     },
     {
+      "alias": "idp_link",
+      "name": "Linking Identity Provider",
+      "providerId": "idp_link",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 120,
+      "config": {}
+    },
+    {
       "alias": "update_user_locale",
       "name": "Update User Locale",
       "providerId": "update_user_locale",
@@ -2573,7 +2518,7 @@
     "frontendUrl": "",
     "acr.loa.map": "[]"
   },
-  "keycloakVersion": "26.1.4",
+  "keycloakVersion": "26.5.2",
   "userManagedAccessAllowed": false,
   "organizationsEnabled": false,
   "verifiableCredentialsEnabled": false,

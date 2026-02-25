@@ -13,7 +13,7 @@ export class KeycloakService {
         return this.$isUserLoggedIn.value;
     }
 
-    public get currentuserRoles(): string[] {
+    public get currentUserRoles(): string[] {
         return this.keycloak.resourceAccess![this.keycloak.clientId!].roles || [];
     }
 

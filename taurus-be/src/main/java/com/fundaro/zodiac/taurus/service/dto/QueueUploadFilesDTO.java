@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.codec.multipart.FilePart;
 
@@ -22,7 +22,7 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
     private String trackId;
 
     @NotNull
-    private UploadFileStatus status;
+    private UploadFileStatusEnum status;
 
     private String type;
 
@@ -53,11 +53,11 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
         this.trackId = trackId;
     }
 
-    public UploadFileStatus getStatus() {
+    public UploadFileStatusEnum getStatus() {
         return status;
     }
 
-    public void setStatus(UploadFileStatus status) {
+    public void setStatus(UploadFileStatusEnum status) {
         this.status = status;
     }
 

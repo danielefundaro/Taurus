@@ -35,6 +35,14 @@
       "type": "date",
       "format": "yyyy-MM-dd||epoch_millis||rfc3339_lenient"
     },
+    "state": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
     "tracks": {
       "type": "object",
       "properties": {

@@ -1,3 +1,4 @@
+import { StateEnums } from "../constants";
 import { CommonFieldsOpenSearch } from "./common-fields-open-search.module";
 import { SheetsMusic } from "./sheets-music.module";
 
@@ -7,7 +8,7 @@ export class Tracks extends CommonFieldsOpenSearch {
     arranger?: string;
     tempo?: string;
     tone?: string;
-    complete?: boolean;
+    state?: StateEnums;
     type?: Array<string>;
     scores?: Array<SheetsMusic>;
 }

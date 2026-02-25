@@ -2,6 +2,8 @@ package com.fundaro.zodiac.taurus.service.user.impl;
 
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -59,6 +61,10 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     @Override
     public Mono<TracksDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         return super.findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> usersService.findMe(abstractAuthenticationToken).flatMap(usersDTO -> {
+            if (tracksDTO == null || !(Objects.equals(tracksDTO.getState(), StateEnum.COMPLETE) || Objects.equals(tracksDTO.getState(), StateEnum.PUBLIC))) {
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
+            }
+
             if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
             }
@@ -79,9 +85,15 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         List<Query> queries = super.getQueries(criteria, abstractAuthenticationToken);
         queries.addAll(Converter.stringFilterToQuery("composer.keyword", criteria.getComposer()));
         queries.addAll(Converter.stringFilterToQuery("arranger.keyword", criteria.getArranger()));
+        queries.addAll(Converter.stringFilterToQuery("tempo.keyword", criteria.getTempo()));
+        queries.addAll(Converter.stringFilterToQuery("tone.keyword", criteria.getTone()));
         queries.addAll(Converter.stringFilterToQuery("type.keyword", criteria.getType()));
         queries.addAll(Converter.stringFilterToQuery("scores.media.index.keyword", criteria.getMediaId()));
         queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
+
+        StateFilter stateFilter = new StateFilter();
+        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.COMPLETE, StateEnum.PUBLIC}));
+        queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;
     }

@@ -71,8 +71,13 @@
         }
       }
     },
-    "complete": {
-      "type": "boolean"
+    "state": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
     },
     "type": {
       "type": "text",

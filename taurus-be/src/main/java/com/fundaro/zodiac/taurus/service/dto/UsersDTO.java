@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.Objects;
 import java.util.Set;
 
@@ -13,7 +13,7 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
 
     private String lastName;
 
-    private ZonedDateTime birthDate;
+    private Date birthDate;
 
     private String email;
 
@@ -34,11 +34,11 @@ public class UsersDTO extends CommonFieldsOpenSearchDTO {
         this.lastName = lastName;
     }
 
-    public ZonedDateTime getBirthDate() {
+    public Date getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(ZonedDateTime birthDate) {
+    public void setBirthDate(Date birthDate) {
         this.birthDate = birthDate;
     }
 
