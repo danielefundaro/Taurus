@@ -30,6 +30,7 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
         queries.addAll(Converter.dateFilterToQuery("date", criteria.getDate()));
         queries.addAll(Converter.stringFilterToQuery("tracks.name.keyword", criteria.getTrackName()));
         queries.addAll(Converter.stringFilterToQuery("tracks.index.keyword", criteria.getTrackId()));
+        queries.addAll(Converter.generalFilterToQuery("state.keyword", criteria.getState()));
 
         return queries;
     }

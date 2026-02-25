@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.criteria.QueueUploadFilesCriteria;
-import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
@@ -49,7 +49,7 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
             dataBuffer.read(bytes);
             DataBufferUtils.release(dataBuffer);
 
-            Path path = Paths.get(basePath, UploadFileStatus.TO_PROCESS.toString().toLowerCase(), new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()), fileName);
+            Path path = Paths.get(basePath, UploadFileStatusEnum.TO_PROCESS.toString().toLowerCase(), new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()), fileName);
             try {
                 if (!path.toFile().exists()) {
                     Files.createDirectories(path.getParent());
@@ -60,7 +60,7 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
             }
 
             dto.setPath(path.toString());
-            dto.setStatus(UploadFileStatus.TO_PROCESS);
+            dto.setStatus(UploadFileStatusEnum.TO_PROCESS);
             dto.setName(fileName);
 
             return super.save(dto, abstractAuthenticationToken);

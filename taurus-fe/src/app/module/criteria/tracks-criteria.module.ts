@@ -1,5 +1,5 @@
 import { CommonOpenSearchCriteria } from "./common-open-search-criteria.module";
-import { BooleanFilter, LongFilter, StringFilter } from "./filter";
+import { LongFilter, StateFilter, StringFilter } from "./filter";
 
 export class TracksCriteria extends CommonOpenSearchCriteria {
     subName?: StringFilter;
@@ -7,7 +7,7 @@ export class TracksCriteria extends CommonOpenSearchCriteria {
     arranger?: StringFilter;
     tempo?: StringFilter;
     tone?: StringFilter;
-    complete?: BooleanFilter;
+    state?: StateFilter;
     type?: StringFilter;
     instrumentId?: LongFilter;
 }

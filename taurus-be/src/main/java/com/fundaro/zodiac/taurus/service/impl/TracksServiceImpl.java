@@ -122,6 +122,9 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         List<Query> queries = super.getQueries(criteria);
         queries.addAll(Converter.stringFilterToQuery("composer.keyword", criteria.getComposer()));
         queries.addAll(Converter.stringFilterToQuery("arranger.keyword", criteria.getArranger()));
+        queries.addAll(Converter.stringFilterToQuery("tempo.keyword", criteria.getTempo()));
+        queries.addAll(Converter.stringFilterToQuery("tone.keyword", criteria.getTone()));
+        queries.addAll(Converter.generalFilterToQuery("state.keyword", criteria.getState()));
         queries.addAll(Converter.stringFilterToQuery("type.keyword", criteria.getType()));
         queries.addAll(Converter.stringFilterToQuery("scores.media.index.keyword", criteria.getMediaId()));
         queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));

@@ -15,7 +15,7 @@ export class AlbumsService extends CommonOpenSearchService<Albums, AlbumsCriteri
     }
 
     override resourceName(): string {
-        if (this.keycloakService.currentuserRoles.every(role => role === RoleEnums.USER)) {
+        if (this.keycloakService.currentUserRoles.every(role => role === RoleEnums.USER)) {
             return "user/albums";
         }
 

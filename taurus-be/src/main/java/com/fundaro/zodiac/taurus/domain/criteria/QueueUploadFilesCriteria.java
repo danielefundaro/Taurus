@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
-import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatus;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.UploadFileStatusFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
@@ -17,26 +17,11 @@ import java.util.Optional;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
 
-    public static class StatusFilter extends Filter<UploadFileStatus> {
-
-        public StatusFilter() {
-        }
-
-        public StatusFilter(StatusFilter filter) {
-            super(filter);
-        }
-
-        @Override
-        public StatusFilter copy() {
-            return new StatusFilter(this);
-        }
-    }
-
     private StringFilter userId;
 
     private StringFilter trackId;
 
-    private StatusFilter status;
+    private UploadFileStatusFilter status;
 
     private StringFilter type;
 
@@ -48,7 +33,7 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
         super(other);
         this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
         this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
-        this.status = other.optionalStatus().map(StatusFilter::copy).orElse(null);
+        this.status = other.optionalStatus().map(UploadFileStatusFilter::copy).orElse(null);
         this.type = other.optionalType().map(StringFilter::copy).orElse(null);
     }
 
@@ -65,13 +50,6 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(userId);
     }
 
-    public StringFilter userId() {
-        if (userId == null) {
-            setUserId(new StringFilter());
-        }
-        return userId;
-    }
-
     public void setUserId(StringFilter userId) {
         this.userId = userId;
     }
@@ -84,33 +62,19 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
         return Optional.ofNullable(trackId);
     }
 
-    public StringFilter trackId() {
-        if (trackId == null) {
-            setTrackId(new StringFilter());
-        }
-        return trackId;
-    }
-
     public void setTrackId(StringFilter trackId) {
         this.trackId = trackId;
     }
 
-    public StatusFilter getStatus() {
+    public UploadFileStatusFilter getStatus() {
         return status;
     }
 
-    public Optional<StatusFilter> optionalStatus() {
+    public Optional<UploadFileStatusFilter> optionalStatus() {
         return Optional.ofNullable(status);
     }
 
-    public StatusFilter status() {
-        if (status == null) {
-            setStatus(new StatusFilter());
-        }
-        return status;
-    }
-
-    public void setStatus(StatusFilter status) {
+    public void setStatus(UploadFileStatusFilter status) {
         this.status = status;
     }
 
@@ -120,13 +84,6 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
 
     public Optional<StringFilter> optionalType() {
         return Optional.ofNullable(type);
-    }
-
-    public StringFilter type() {
-        if (type == null) {
-            setTrackId(new StringFilter());
-        }
-        return type;
     }
 
     public void setType(StringFilter type) {

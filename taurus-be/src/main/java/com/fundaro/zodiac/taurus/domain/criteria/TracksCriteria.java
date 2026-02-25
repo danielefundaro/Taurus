@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
@@ -32,7 +33,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter tone;
 
-    private BooleanFilter complete;
+    private StateFilter state;
 
     private StringFilter type;
 
@@ -52,7 +53,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         this.arranger = other.optionalArranger().map(StringFilter::copy).orElse(null);
         this.tempo = other.optionalTempo().map(StringFilter::copy).orElse(null);
         this.tone = other.optionalTone().map(StringFilter::copy).orElse(null);
-        this.complete = other.optionalComplete().map(BooleanFilter::copy).orElse(null);
+        this.state = other.optionalState().map(StateFilter::copy).orElse(null);
         this.type = other.optionalType().map(StringFilter::copy).orElse(null);
         this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
         this.mediaId = other.optionalMediaId().map(StringFilter::copy).orElse(null);
@@ -128,16 +129,16 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
-    public BooleanFilter getComplete() {
-        return complete;
+    public StateFilter getState() {
+        return state;
     }
 
-    public Optional<BooleanFilter> optionalComplete() {
-        return Optional.ofNullable(complete);
+    public Optional<StateFilter> optionalState() {
+        return Optional.ofNullable(state);
     }
 
-    public TracksCriteria setComplete(BooleanFilter complete) {
-        this.complete = complete;
+    public TracksCriteria setState(StateFilter state) {
+        this.state = state;
         return this;
     }
 
@@ -196,7 +197,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
                 Objects.equals(arranger, that.arranger) &&
                 Objects.equals(tempo, that.tempo) &&
                 Objects.equals(tone, that.tone) &&
-                Objects.equals(complete, that.complete) &&
+                Objects.equals(state, that.state) &&
                 Objects.equals(type, that.type) &&
                 Objects.equals(instrumentId, that.instrumentId)
         );
@@ -204,7 +205,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), subName, composer, arranger, tempo, tone, complete, type, instrumentId);
+        return Objects.hash(super.hashCode(), subName, composer, arranger, tempo, tone, state, type, instrumentId);
     }
 
     // prettier-ignore
@@ -219,7 +220,7 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
             optionalArranger().map(f -> "arranger=" + f + ", ").orElse("") +
             optionalTempo().map(f -> "tempo=" + f + ", ").orElse("") +
             optionalTone().map(f -> "tone=" + f + ", ").orElse("") +
-            optionalComplete().map(f -> "complete=" + f + ", ").orElse("") +
+            optionalState().map(f -> "state=" + f + ", ").orElse("") +
             optionalType().map(f -> "type=" + f + ", ").orElse("") +
             optionalInstrumentId().map(f -> "instrumentId=" + f + ", ").orElse("") +
             "}";
