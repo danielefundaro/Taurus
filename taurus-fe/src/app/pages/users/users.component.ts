@@ -77,8 +77,8 @@ export class UsersComponent implements OnInit {
         this.loadElements((event.target as HTMLInputElement).value);
     }
 
-    protected initials(name?: string | null): string {
-        return (name ?? '').split(" ").slice(0, 2).map(s => s[0]).join(" ").toUpperCase();
+    protected initials(name?: string | null, lastName?: string | null): string {
+        return [(name ?? '').slice(0, 1).toUpperCase(), (lastName ?? '').slice(0, 1).toUpperCase()].join(' ');
     }
 
     protected addNew(): void {
