@@ -1,14 +1,17 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { delay, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
+import { StateEnums } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
+import { EnumConverterPipe } from '../../../pipe';
 import { InstrumentsService, KeycloakService, MediaService, ToastService, TracksService } from '../../../service';
 
 @Component({
@@ -33,6 +36,7 @@ export class DetailComponent implements OnInit {
     protected selectedScores: SheetsMusic[];
     protected images: string[];
     protected displayGalleria: boolean;
+    protected autoFilteredStates: Array<StateEnums>;
     protected responsiveOptions: any[] = [
         {
             breakpoint: '1024px',
@@ -51,6 +55,7 @@ export class DetailComponent implements OnInit {
     private instruments: Instruments[];
     private draggedMedia?: ChildrenEntities = undefined;
     private startDraggedScore?: SheetsMusic = undefined;
+    private readonly states: Array<StateEnums>;
 
     constructor(
         private readonly tracksService: TracksService,
@@ -60,12 +65,16 @@ export class DetailComponent implements OnInit {
         private readonly toastService: ToastService,
         private readonly routeService: ActivatedRoute,
         private readonly dialogService: DialogService,
+        private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
         this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
         this.images = [];
         this.displayGalleria = false;
         this.instruments = [];
+
+        this.states = this.enumConverterPipe.transform(StateEnums as unknown as StateEnums);
+        this.autoFilteredStates = this.states;
     }
 
     ngOnInit() {
@@ -97,6 +106,10 @@ export class DetailComponent implements OnInit {
                 this.loadElement(track.id);
             }
         });
+    }
+
+    protected filterStates(event: AutoCompleteCompleteEvent) {
+        this.autoFilteredStates = this.states.filter(state => state?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected trackStream(): string {

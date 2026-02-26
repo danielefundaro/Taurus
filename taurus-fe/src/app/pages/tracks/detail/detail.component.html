@@ -18,6 +18,12 @@
                     <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" />
                     <label for="arranger">Arrangiatore</label>
                 </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <p-autocomplete [(ngModel)]="track!.state" [suggestions]="autoFilteredStates" [virtualScroll]="true"
+                        [virtualScrollItemSize]="34" dropdown display="chip"
+                        (completeMethod)="filterStates($event)" />
+                    <label for="states">Stato</label>
+                </p-floatlabel>
             </div>
             <app-type-handler variant="on" label="Tipo" [(types)]="track!.type"></app-type-handler>
             <p-floatlabel class="flex" variant="on">

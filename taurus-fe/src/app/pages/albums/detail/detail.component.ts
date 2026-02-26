@@ -1,12 +1,15 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
+import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { delay, first, forkJoin, Subscription } from 'rxjs';
+import { StateEnums } from '../../../constants';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
+import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
 import { AlbumsService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
 
 @Component({
@@ -29,8 +32,10 @@ export class DetailComponent implements OnInit, OnDestroy {
     protected album: Albums = new Albums();
     protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
+    protected autoFilteredStates: Array<StateEnums>;
 
     private $subscription?: Subscription;
+    private readonly states: Array<StateEnums>;
 
     constructor(
         private readonly albumsService: AlbumsService,
@@ -40,9 +45,14 @@ export class DetailComponent implements OnInit, OnDestroy {
         private readonly dialogService: DialogService,
         private readonly activatedRouteService: ActivatedRoute,
         private readonly router: Router,
+        private readonly dateConverterPipe: DateConverterPipe,
+        private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
+
+        this.states = this.enumConverterPipe.transform(StateEnums as unknown as StateEnums);
+        this.autoFilteredStates = this.states;
     }
 
     ngOnInit() {
@@ -79,6 +89,10 @@ export class DetailComponent implements OnInit, OnDestroy {
             this.printerService.push(...tracks.flatMap(track => track.scores!))
             this.router.navigate(["preview"]);
         });
+    }
+
+    protected filterStates(event: AutoCompleteCompleteEvent) {
+        this.autoFilteredStates = this.states.filter(state => state?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected deleteSelectedTracks(): void {
@@ -133,6 +147,10 @@ export class DetailComponent implements OnInit, OnDestroy {
         this.albumsService.getById(id).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.album = album;
+
+                if (this.album.date && (typeof this.album.date === 'string' || this.album.date instanceof String)) {
+                    this.album.date = this.dateConverterPipe.transform(this.album.date);
+                }
             }
         });
     }
