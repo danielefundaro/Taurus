@@ -1,9 +1,6 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 
 import java.util.Date;
 import java.util.Set;
@@ -12,12 +9,9 @@ import java.util.Set;
  * A Albums.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Albums extends CommonFieldsOpenSearch {
+public class Albums extends StateFieldsOpenSearch {
 
     private Date date;
-
-    @Enumerated(EnumType.STRING)
-    private StateEnum state;
 
     private Set<ChildrenEntities> tracks;
 
@@ -27,14 +21,6 @@ public class Albums extends CommonFieldsOpenSearch {
 
     public void setDate(Date date) {
         this.date = date;
-    }
-
-    public StateEnum getState() {
-        return state;
-    }
-
-    public void setState(StateEnum state) {
-        this.state = state;
     }
 
     public Set<ChildrenEntities> getTracks() {

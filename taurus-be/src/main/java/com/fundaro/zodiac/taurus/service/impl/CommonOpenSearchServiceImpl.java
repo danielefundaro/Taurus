@@ -1,7 +1,9 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
+import com.fundaro.zodiac.taurus.domain.StateFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
@@ -215,6 +217,13 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     private E saveEntity(String id, E entity, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
         addAuditInfo(entity, abstractAuthenticationToken);
+
+        if (entity instanceof StateFieldsOpenSearch) {
+            if (((StateFieldsOpenSearch) entity).getState() == null) {
+                ((StateFieldsOpenSearch) entity).setState(StateEnum.DRAFT);
+            }
+        }
+
         IndexRequest<E> indexRequest = new IndexRequest.Builder<E>().index(getIndex(entityName, abstractAuthenticationToken)).document(entity).id(id).build();
         IndexResponse indexResponse = openSearchService.index(indexRequest);
 

@@ -1,9 +1,6 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 
 import java.util.Objects;
 import java.util.Set;
@@ -12,7 +9,7 @@ import java.util.Set;
  * A DTO for the {@link com.fundaro.zodiac.taurus.domain.Tracks} entity.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TracksDTO extends CommonFieldsOpenSearchDTO {
+public class TracksDTO extends StateFieldOpenSearchDTO {
 
     private String subName;
 
@@ -23,9 +20,6 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
     private String tempo;
 
     private String tone;
-
-    @Enumerated(EnumType.STRING)
-    private StateEnum state;
 
     private Set<String> type;
 
@@ -71,14 +65,6 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
         this.tone = tone;
     }
 
-    public StateEnum getState() {
-        return state;
-    }
-
-    public void setState(StateEnum state) {
-        this.state = state;
-    }
-
     public Set<String> getType() {
         return type;
     }
@@ -109,7 +95,7 @@ public class TracksDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getTempo(), this.getTone(), this.getState(), this.getType(), this.getScores().hashCode());
+        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getTempo(), this.getTone(), this.getType(), this.getScores().hashCode());
     }
 
     // prettier-ignore
