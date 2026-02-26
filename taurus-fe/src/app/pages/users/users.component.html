@@ -27,18 +27,22 @@
                     <div class="flex flex-row sm:items-center p-6 gap-4"
                         [ngClass]="{ 'border-t border-surface': i !== 0 }">
                         <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
-                            <p-avatar class="mr-2" [label]="initials(item.name)" size="xlarge"
+                            <p-avatar class="mr-2" [label]="initials(item.name, item.lastName)" size="xlarge"
                                 shape="circle"></p-avatar>
                         </a>
                         <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                             <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                 <div>
                                     <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                        {{ item.name }}
+                                        {{ item.name }} {{ item.lastName }}
                                     </a>
                                     <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
                                         {{ item.description }}
                                     </span>
+                                    <div class="flex flex-row flex-wrap items-start mt-2 gap-2" *ngIf="item.instruments">
+                                        <p-tag [value]="instrument.name" [rounded]="true" severity="secondary"
+                                            *ngFor="let instrument of item.instruments"></p-tag>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex flex-row md:flex-row gap-2">
@@ -62,7 +66,7 @@
                             <a class="bg-surface-50 flex justify-center rounded p-6 cursor-pointer block"
                                 [routerLink]="item.id">
                                 <div class="relative mx-auto">
-                                    <p-avatar class="mr-2" [label]="initials(item.name)" size="xlarge"
+                                    <p-avatar class="mr-2" [label]="initials(item.name, item.lastName)" size="xlarge"
                                         shape="circle"></p-avatar>
                                 </div>
                             </a>
@@ -70,12 +74,16 @@
                                 <div class="flex flex-row justify-between items-start gap-2">
                                     <div>
                                         <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                            {{ item.name }}
+                                            {{ item.name }} {{ item.lastName }}
                                         </a>
                                         <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
                                             {{ item.description }}
                                         </span>
                                     </div>
+                                </div>
+                                <div class="flex flex-row flex-wrap mt-2 gap-2" *ngIf="item.instruments">
+                                    <p-tag [value]="instrument.name" [rounded]="true" severity="secondary"
+                                        *ngFor="let instrument of item.instruments"></p-tag>
                                 </div>
                                 <div class="flex flex-row gap-2 mt-6">
                                     <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
