@@ -2,6 +2,7 @@ import { AsyncPipe, CommonModule, DatePipe, NgClass, NgFor, NgIf } from '@angula
 import { NgModule } from "@angular/core";
 import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -29,7 +30,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { SecurePipe } from './pipe/secure.pipe';
+import { DateConverterPipe, EnumConverterPipe, SecurePipe } from './pipe';
 
 @NgModule({
     imports: [
@@ -70,6 +71,9 @@ import { SecurePipe } from './pipe/secure.pipe';
         ScrollTopModule,
         DragDropModule,
         ToggleButtonModule,
+        AutoCompleteModule,
+        DateConverterPipe,
+        EnumConverterPipe,
     ],
     exports: [
         NgClass,
@@ -109,9 +113,14 @@ import { SecurePipe } from './pipe/secure.pipe';
         ScrollTopModule,
         DragDropModule,
         ToggleButtonModule,
+        AutoCompleteModule,
+        DateConverterPipe,
+        EnumConverterPipe,
     ],
     providers: [
         SecurePipe,
+        DateConverterPipe,
+        EnumConverterPipe,
     ]
 })
 export class ImportsModule { }

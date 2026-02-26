@@ -6,6 +6,7 @@ import { delay, first, firstValueFrom } from 'rxjs';
 import { RoleEnums } from '../../../constants';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Users } from '../../../module';
+import { EnumConverterPipe } from '../../../pipe';
 import { InstrumentsService, ToastService, UsersService } from '../../../service';
 import { CommonOpenSearchService } from '../../../service/common-open-search.service';
 
@@ -39,12 +40,13 @@ export class DetailComponent implements OnInit {
         private readonly usersService: UsersService,
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
-        private readonly routeService: ActivatedRoute
+        private readonly routeService: ActivatedRoute,
+        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
 
-        this.roles = RoleEnums ? Object.values(RoleEnums) : [];
+        this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
         this.autoFilteredRoles = this.roles;
 
         this.instruments = [];
