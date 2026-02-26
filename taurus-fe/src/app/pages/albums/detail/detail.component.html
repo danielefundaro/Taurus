@@ -18,6 +18,12 @@
                         [(ngModel)]="album!.date" />
                     <label for="date">Data</label>
                 </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <p-autocomplete [(ngModel)]="album!.state" [suggestions]="autoFilteredStates" [virtualScroll]="true"
+                        [virtualScrollItemSize]="34" dropdown display="chip"
+                        (completeMethod)="filterStates($event)" />
+                    <label for="states">Stato</label>
+                </p-floatlabel>
             </div>
             <p-floatlabel class="flex" variant="on">
                 <textarea pTextarea id="description" rows="4" [(ngModel)]="album!.description"></textarea>

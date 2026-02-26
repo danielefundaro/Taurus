@@ -2,15 +2,16 @@ import { Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { ChildrenEntities, Instruments, Tenants, Users } from '../../module';
 import { RoleEnums } from '../../constants';
-import { CheckboxModule } from 'primeng/checkbox';
+import { ChildrenEntities, Instruments, Users } from '../../module';
+import { EnumConverterPipe } from '../../pipe';
 
 @Component({
     selector: 'app-add-users-dialog',
@@ -40,10 +41,12 @@ export class AddUsersDialogComponent {
     private readonly instrumentsChildrenEntities: ChildrenEntities[];
 
     constructor(private readonly dialogRef: DynamicDialogRef<AddUsersDialogComponent>,
-            private readonly config: DynamicDialogConfig<any, { instruments: Instruments[]}>,) {
+        private readonly config: DynamicDialogConfig<any, { instruments: Instruments[] }>,
+        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>,
+    ) {
         this.user = new Users();
         this.user.active = true;
-        this.roles = RoleEnums ? Object.values(RoleEnums) : [];
+        this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
         this.instruments = this.config.inputValues?.instruments ?? [];
 
         this.autoFilteredRoles = this.roles;
@@ -58,7 +61,7 @@ export class AddUsersDialogComponent {
 
         this.autoFilteredInstruments = this.instrumentsChildrenEntities;
     }
-    
+
     protected filterRoles(event: AutoCompleteCompleteEvent) {
         this.autoFilteredRoles = this.roles.filter(role => role?.toLowerCase()?.includes(event.query.toLowerCase()));
     }

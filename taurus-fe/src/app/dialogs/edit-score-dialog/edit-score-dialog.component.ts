@@ -12,7 +12,7 @@ import { PickListModule } from 'primeng/picklist';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { SelectModule } from 'primeng/select';
 import { ChildrenEntities, Instruments, SheetsMusic } from '../../module';
-import { SecurePipe } from '../../pipe/secure.pipe';
+import { SecurePipe } from '../../pipe';
 import { MediaService } from '../../service';
 
 @Component({
