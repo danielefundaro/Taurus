@@ -2,7 +2,6 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fundaro.zodiac.taurus.domain.Albums;
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 
 import java.util.Date;
 import java.util.Objects;
@@ -12,11 +11,9 @@ import java.util.Set;
  * A DTO for the {@link Albums} entity.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
+public class AlbumsDTO extends StateFieldOpenSearchDTO {
 
     private Date date;
-
-    private StateEnum state;
 
     private Set<ChildrenEntitiesDTO> tracks;
 
@@ -26,14 +23,6 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     public void setDate(Date date) {
         this.date = date;
-    }
-
-    public StateEnum getState() {
-        return state;
-    }
-
-    public void setState(StateEnum state) {
-        this.state = state;
     }
 
     public Set<ChildrenEntitiesDTO> getTracks() {
@@ -58,7 +47,7 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getState(), this.getTracks().hashCode());
+        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getTracks().hashCode());
     }
 
     // prettier-ignore
@@ -68,8 +57,8 @@ public class AlbumsDTO extends CommonFieldsOpenSearchDTO {
             "id=" + getId() +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
-            ", date='" + getDate() + "'" +
             ", state='" + getState() + "'" +
+            ", date='" + getDate() + "'" +
             ", tracks=" + getTracks() +
             "}";
     }
