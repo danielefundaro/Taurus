@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { HasRolesDirective } from 'keycloak-angular';
 import { MenuItem } from 'primeng/api';
+import { RoleEnums } from '../../constants';
 import { MenuItemComponent } from '../menu-item/menu-item.component';
 
 @Component({
@@ -23,7 +24,7 @@ export class MenuComponent implements OnInit {
         this.model = [
             {
                 label: 'Home',
-                'hasRoles': ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN'],
+                'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                 items: [{
                     label: 'Dashboard',
                     icon: 'pi pi-fw pi-home',
@@ -39,17 +40,17 @@ export class MenuComponent implements OnInit {
                         label: 'Tenants',
                         icon: 'pi pi-fw pi-globe',
                         routerLink: ['/tenants'],
-                        'hasRoles': ['ROLE_SUPER_ADMIN'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN],
                     },
                     {
                         label: 'Users',
                         icon: 'pi pi-fw pi-globe',
                         routerLink: ['/users'],
-                        'hasRoles': ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
                     {
                         separator: true,
-                        'hasRoles': ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
                     {
                         label: 'Albums',
@@ -65,7 +66,7 @@ export class MenuComponent implements OnInit {
                         label: 'Instruments',
                         icon: 'pi pi-fw pi-globe',
                         routerLink: ['/instruments'],
-                        'hasRoles': ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_ARCHIVIST'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST],
                     }
                 ]
             }
