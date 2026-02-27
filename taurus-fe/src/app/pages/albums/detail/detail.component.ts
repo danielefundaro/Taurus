@@ -1,6 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HasRolesDirective } from 'keycloak-angular';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -17,7 +16,6 @@ import { AlbumsService, MediaService, PrinterService, ToastService, TracksServic
     selector: 'app-album-detail',
     imports: [
         ImportsModule,
-        HasRolesDirective,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',

@@ -1,7 +1,6 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { HasRolesDirective } from 'keycloak-angular';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
@@ -20,7 +19,6 @@ import { InstrumentsService, KeycloakService, MediaService, ToastService, Tracks
     imports: [
         ImportsModule,
         TypeHandlerComponent,
-        HasRolesDirective,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
@@ -135,7 +133,7 @@ export class DetailComponent implements OnInit {
         this.track.scores.push(score);
     }
 
-    protected deleteSelectedTracks(): void {
+    protected deleteSelectedScores(): void {
         for (let selectedScore of this.selectedScores) {
             this.deleteScore(selectedScore);
         }

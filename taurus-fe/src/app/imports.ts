@@ -31,6 +31,7 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
 import { DateConverterPipe, EnumConverterPipe, SecurePipe } from './pipe';
+import { HasRolesDirective } from 'keycloak-angular';
 
 @NgModule({
     imports: [
@@ -74,6 +75,7 @@ import { DateConverterPipe, EnumConverterPipe, SecurePipe } from './pipe';
         AutoCompleteModule,
         DateConverterPipe,
         EnumConverterPipe,
+        HasRolesDirective,
     ],
     exports: [
         NgClass,
@@ -116,6 +118,7 @@ import { DateConverterPipe, EnumConverterPipe, SecurePipe } from './pipe';
         AutoCompleteModule,
         DateConverterPipe,
         EnumConverterPipe,
+        HasRolesDirective,
     ],
     providers: [
         SecurePipe,
