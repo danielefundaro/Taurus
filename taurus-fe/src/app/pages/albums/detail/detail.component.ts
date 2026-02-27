@@ -1,11 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HasRolesDirective } from 'keycloak-angular';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { delay, first, forkJoin, Subscription } from 'rxjs';
-import { StateEnums } from '../../../constants';
+import { RoleEnums, StateEnums } from '../../../constants';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
@@ -16,6 +17,7 @@ import { AlbumsService, MediaService, PrinterService, ToastService, TracksServic
     selector: 'app-album-detail',
     imports: [
         ImportsModule,
+        HasRolesDirective,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
@@ -33,6 +35,7 @@ export class DetailComponent implements OnInit, OnDestroy {
     protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
     protected autoFilteredStates: Array<StateEnums>;
+    protected RolesEnum: typeof RoleEnums = RoleEnums;
 
     private $subscription?: Subscription;
     private readonly states: Array<StateEnums>;

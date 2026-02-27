@@ -1,13 +1,14 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { HasRolesDirective } from 'keycloak-angular';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { delay, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
-import { StateEnums } from '../../../constants';
+import { RoleEnums, StateEnums } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
@@ -19,6 +20,7 @@ import { InstrumentsService, KeycloakService, MediaService, ToastService, Tracks
     imports: [
         ImportsModule,
         TypeHandlerComponent,
+        HasRolesDirective,
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
@@ -37,6 +39,7 @@ export class DetailComponent implements OnInit {
     protected images: string[];
     protected displayGalleria: boolean;
     protected autoFilteredStates: Array<StateEnums>;
+    protected RolesEnum: typeof RoleEnums = RoleEnums;
     protected responsiveOptions: any[] = [
         {
             breakpoint: '1024px',
