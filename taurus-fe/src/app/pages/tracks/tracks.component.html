@@ -6,8 +6,10 @@
         [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
             <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3">
-                <p-button label="Carica" icon="pi pi-upload" severity="primary" (onClick)="addNewFile()" />
-                <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
+                <p-button label="Carica" icon="pi pi-upload" severity="primary" (onClick)="addNewFile()"
+                    *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()"
+                    *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                 <p-iconfield>
                     <p-inputicon class="pi pi-search" />
                     <input pInputText type="text" (input)="onGlobalFilter($event)" placeholder="Cerca..." />
@@ -39,8 +41,7 @@
                                 <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
                                     {{ item.description }}
                                 </span>
-                                <div class="flex flex-row flex-wrap items-start mt-2 gap-2"
-                                    *ngIf="item.type">
+                                <div class="flex flex-row flex-wrap items-start mt-2 gap-2" *ngIf="item.type">
                                     <p-tag [value]="type" [rounded]="true" severity="secondary"
                                         *ngFor="let type of item.type"></p-tag>
                                 </div>
@@ -56,9 +57,11 @@
                                 </div>
                                 <div class="flex flex-row md:flex-row gap-2">
                                     <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
-                                        styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
+                                        styleClass="flex-auto md:flex-initial whitespace-nowrap"
+                                        *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"></p-button>
                                     <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                        (onClick)="deleteElement(item)"></p-button>
+                                        (onClick)="deleteElement(item)"
+                                        *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"></p-button>
                                 </div>
                             </div>
                         </div>
@@ -103,10 +106,12 @@
                                         *ngIf="item.arranger">{{ item.arranger }}
                                     </span>
                                     <div class="flex gap-2">
-                                        <p-button icon="pi pi-pencil" label="Edit" [routerLink]="item.id"
-                                            class="flex-auto whitespace-nowrap" styleClass="w-full"></p-button>
+                                        <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
+                                            class="flex-auto whitespace-nowrap" styleClass="w-full"
+                                            *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"></p-button>
                                         <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                            (onClick)="deleteElement(item)"></p-button>
+                                            (onClick)="deleteElement(item)"
+                                            *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"></p-button>
                                     </div>
                                 </div>
                             </div>

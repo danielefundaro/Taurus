@@ -5,6 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first } from 'rxjs';
+import { RoleEnums } from '../../constants';
 import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -26,12 +27,13 @@ import { ToastService, TracksService } from '../../service';
     ]
 })
 export class TracksComponent implements OnInit {
-    public sortOptions!: SelectItem[];
-    public layout: 'list' | 'grid' = 'list';
-    public options = ['list', 'grid'];
-    public totalRecords: number = 0;
-    public dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
-    public tracks: Tracks[];
+    protected sortOptions!: SelectItem[];
+    protected layout: 'list' | 'grid' = 'list';
+    protected options = ['list', 'grid'];
+    protected totalRecords: number = 0;
+    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
+    protected tracks: Tracks[];
+    protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
     constructor(
         private readonly tracksService: TracksService,
