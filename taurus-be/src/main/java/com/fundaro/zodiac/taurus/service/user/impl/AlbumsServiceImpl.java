@@ -2,21 +2,31 @@ package com.fundaro.zodiac.taurus.service.user.impl;
 
 import com.fundaro.zodiac.taurus.domain.Albums;
 import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
+import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
 import com.fundaro.zodiac.taurus.service.user.AlbumsService;
+import com.fundaro.zodiac.taurus.service.user.TracksService;
 import com.fundaro.zodiac.taurus.utils.Converter;
+import com.fundaro.zodiac.taurus.web.rest.TracksResource;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import tech.jhipster.service.filter.StringFilter;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service Implementation of ROLE_USER for managing {@link Albums}.
@@ -25,19 +35,38 @@ import java.util.Objects;
 @Transactional
 public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, AlbumsDTO, AlbumsCriteria, AlbumsMapper> implements AlbumsService {
 
-    public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper) {
+    private final TracksService tracksService;
+    private final TracksResource tracksResource;
+
+    public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper, TracksService tracksService, TracksResource tracksResource) {
         super(openSearchService, albumsMapper, AlbumsService.class, Albums.class);
+        this.tracksService = tracksService;
+        this.tracksResource = tracksResource;
     }
 
     @Override
-    protected Albums getById(String id, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
-        Albums albums = super.getById(id, abstractAuthenticationToken);
+    public Mono<AlbumsDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.findOne(id, abstractAuthenticationToken).flatMap(albumsDTO -> {
+            if (albumsDTO == null || !(Objects.equals(albumsDTO.getState(), StateEnum.COMPLETE) || Objects.equals(albumsDTO.getState(), StateEnum.PUBLIC))) {
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound"));
+            }
 
-        if (albums == null || !(Objects.equals(albums.getState(), StateEnum.COMPLETE) || Objects.equals(albums.getState(), StateEnum.PUBLIC))) {
-            throw new IOException();
-        }
+            if (!albumsDTO.getTracks().isEmpty()) {
+                TracksCriteria tracksCriteria = new TracksCriteria();
+                StringFilter idFilter = new StringFilter();
+                idFilter.setIn(albumsDTO.getTracks().stream().map(ChildrenEntitiesDTO::getIndex).toList());
+                tracksCriteria.setId(idFilter);
 
-        return albums;
+                return tracksService.findEntitiesByCriteria(tracksCriteria, Pageable.ofSize(albumsDTO.getTracks().size()), abstractAuthenticationToken).map(tracksDTOS -> {
+                    Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream().filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex()))).collect(Collectors.toSet());
+                    albumsDTO.setTracks(finalList);
+
+                    return albumsDTO;
+                });
+            }
+
+            return Mono.just(albumsDTO);
+        });
     }
 
     @Override
