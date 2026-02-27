@@ -5,6 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first, forkJoin, Subscription } from 'rxjs';
+import { RoleEnums } from '../../constants';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, ChildrenEntities, Page } from '../../module';
@@ -34,6 +35,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     protected albums: Albums[];
+    protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
     private $subscription?: Subscription;
 
