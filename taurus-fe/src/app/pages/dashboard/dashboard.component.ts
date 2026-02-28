@@ -1,20 +1,19 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { HasRolesDirective } from 'keycloak-angular';
 import { first } from 'rxjs';
 import { RoleEnums } from '../../constants';
-import { AlbumsService, KeycloakService, MediaService, TenantsService, TracksService, UsersService } from '../../service';
-import { BestSellingWidget } from './components/bestsellingwidget';
+import { Tracks, TracksCriteria } from '../../module';
+import { AlbumsService, KeycloakService, TenantsService, TracksService, UsersService } from '../../service';
 import { NotificationsWidget } from './components/notificationswidget';
-import { RecentSalesWidget } from './components/recentsaleswidget';
+import { RecentsWidgetComponent } from './components/recents-widget/recents-widget.component';
 import { StatsWidgetComponent } from './components/stats-widget/stats-widget.component';
-import { HasRolesDirective } from 'keycloak-angular';
 
 @Component({
     selector: 'app-dashboard',
     imports: [
-        RecentSalesWidget,
-        BestSellingWidget,
         NotificationsWidget,
         StatsWidgetComponent,
+        RecentsWidgetComponent,
         HasRolesDirective,
     ],
     templateUrl: './dashboard.component.html',
@@ -25,7 +24,6 @@ import { HasRolesDirective } from 'keycloak-angular';
         UsersService,
         AlbumsService,
         TracksService,
-        MediaService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
@@ -34,7 +32,7 @@ export class DashboardComponent implements OnInit {
     protected totalUsers: number = 0;
     protected totalAlbums: number = 0;
     protected totalTracks: number = 0;
-    protected totalMedia: number = 0;
+    protected tracks: Tracks[] = [];
     protected readonly RoleEnums: typeof RoleEnums = RoleEnums;
 
     constructor(
@@ -43,12 +41,16 @@ export class DashboardComponent implements OnInit {
         private readonly usersService: UsersService,
         private readonly albumsService: AlbumsService,
         private readonly tracksService: TracksService,
-        private readonly mediaService: MediaService,
     ) {
     }
 
     ngOnInit(): void {
         this.keycloakService.currentUserRoles.some(role => {
+            const criteria = new TracksCriteria();
+            criteria.page = 0;
+            criteria.size = 10;
+            criteria.sort = ['insertDate,desc'];
+
             switch (role) {
                 case RoleEnums.SUPER_ADMIN:
                     this.tenantsService.getAll().pipe(first()).subscribe(tenants => {
@@ -61,16 +63,13 @@ export class DashboardComponent implements OnInit {
                     });
                     break;
                 case RoleEnums.ARCHIVIST:
-                    this.mediaService.getAll().pipe(first()).subscribe(media => {
-                        this.totalMedia = media.totalElements;
-                    });
-                    break;
                 case RoleEnums.USER:
                     this.albumsService.getAll().pipe(first()).subscribe(albums => {
                         this.totalAlbums = albums.totalElements;
                     });
-                    this.tracksService.getAll().pipe(first()).subscribe(tracks => {
+                    this.tracksService.getAll(criteria).pipe(first()).subscribe(tracks => {
                         this.totalTracks = tracks.totalElements;
+                        this.tracks = tracks.content;
                     });
                     break;
             }
