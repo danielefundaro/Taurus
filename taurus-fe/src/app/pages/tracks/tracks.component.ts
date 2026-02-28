@@ -11,7 +11,7 @@ import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tr
 import { ImportsModule } from '../../imports';
 import { Page, Tracks, TracksCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { ToastService, TracksService } from '../../service';
+import { PrinterService, ToastService, TracksService } from '../../service';
 
 @Component({
     selector: 'app-tracks',
@@ -37,6 +37,7 @@ export class TracksComponent implements OnInit {
 
     constructor(
         private readonly tracksService: TracksService,
+        private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
     ) {
@@ -128,6 +129,10 @@ export class TracksComponent implements OnInit {
                 this.loadElements();
             }
         });
+    }
+
+    public preview(track: Tracks): void {
+        this.printerService.preview(track);
     }
 
     private loadElements(search?: string): void {

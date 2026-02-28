@@ -1,16 +1,16 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first, forkJoin, Subscription } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
-import { Albums, AlbumsCriteria, ChildrenEntities, Page } from '../../module';
+import { Albums, AlbumsCriteria, Page } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { AlbumsService, MediaService, PrinterService, ToastService, TracksService } from '../../service';
+import { AlbumsService, MediaService, PrinterService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-albums',
@@ -22,13 +22,12 @@ import { AlbumsService, MediaService, PrinterService, ToastService, TracksServic
     styleUrl: './albums.component.scss',
     providers: [
         AlbumsService,
-        TracksService,
         MediaService,
         DialogService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
-export class AlbumsComponent implements OnInit, OnDestroy {
+export class AlbumsComponent implements OnInit {
     protected sortOptions!: SelectItem[];
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
@@ -37,15 +36,11 @@ export class AlbumsComponent implements OnInit, OnDestroy {
     protected albums: Albums[];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
-    private $subscription?: Subscription;
-
     constructor(
         private readonly albumsService: AlbumsService,
-        private readonly tracksService: TracksService,
         private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
-        private readonly router: Router,
     ) {
         this.albums = [];
     }
@@ -55,12 +50,6 @@ export class AlbumsComponent implements OnInit, OnDestroy {
             { label: 'Name A-Z', value: 'name.keyword' },
             { label: 'Name Z-A', value: '!name.keyword' },
         ];
-    }
-
-    ngOnDestroy(): void {
-        if (this.$subscription) {
-            this.$subscription.unsubscribe();
-        }
     }
 
     protected onSortChange(event: SelectChangeEvent) {
@@ -121,16 +110,7 @@ export class AlbumsComponent implements OnInit, OnDestroy {
     }
 
     protected preview(album: Albums): void {
-        let childrenEntities: ChildrenEntities[] = [];
-
-        if (album.tracks!.length > 0) {
-            childrenEntities = album.tracks!;
-        }
-
-        this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
-            this.printerService.push(...tracks.flatMap(track => track.scores!))
-            this.router.navigate(["preview"]);
-        });
+        this.printerService.preview(album);
     }
 
     private loadElements(search?: string): void {

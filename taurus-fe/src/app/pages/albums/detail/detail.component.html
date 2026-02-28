@@ -74,11 +74,19 @@
         </ng-template>
         <ng-template #body let-track let-index="rowIndex">
             <tr [pReorderableRow]="index">
+                @if(canReorder()) {
                 <td class="w-12">
                     <p-tableCheckbox [value]="track" pReorderableRowHandle />
                 </td>
                 <td class="minw-8rem" pReorderableRowHandle>{{ track.order }}</td>
                 <td class="minw-8rem" pReorderableRowHandle>{{ track.name }}</td>
+                } @else {
+                <td class="w-12">
+                    <p-tableCheckbox [value]="track" />
+                </td>
+                <td class="minw-8rem">{{ track.order }}</td>
+                <td class="minw-8rem">{{ track.name }}</td>
+                }
                 <td class="minw-2rem">
                     <div class="flex flex-col md:flex-row gap-2">
                         <a [routerLink]="'/tracks/'+track.index">

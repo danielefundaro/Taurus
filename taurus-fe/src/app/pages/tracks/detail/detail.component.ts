@@ -12,7 +12,7 @@ import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edi
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
 import { EnumConverterPipe } from '../../../pipe';
-import { InstrumentsService, KeycloakService, MediaService, ToastService, TracksService } from '../../../service';
+import { InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
@@ -62,6 +62,7 @@ export class DetailComponent implements OnInit {
         private readonly tracksService: TracksService,
         private readonly mediaService: MediaService,
         private readonly instrumentsService: InstrumentsService,
+        private readonly printerService: PrinterService,
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly routeService: ActivatedRoute,
@@ -107,6 +108,10 @@ export class DetailComponent implements OnInit {
                 this.loadElement(track.id);
             }
         });
+    }
+
+    protected preview(): void {
+        this.printerService.preview(this.track);
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent) {

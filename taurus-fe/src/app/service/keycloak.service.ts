@@ -1,6 +1,7 @@
 import { inject, Injectable } from "@angular/core";
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { BehaviorSubject } from "rxjs";
+import { RoleEnums } from "../constants";
 
 @Injectable({
     providedIn: 'root'
@@ -13,8 +14,8 @@ export class KeycloakService {
         return this.$isUserLoggedIn.value;
     }
 
-    public get currentUserRoles(): string[] {
-        return this.keycloak.resourceAccess![this.keycloak.clientId!].roles || [];
+    public get currentUserRoles(): RoleEnums[] {
+        return (this.keycloak.resourceAccess![this.keycloak.clientId!].roles as RoleEnums[]) || [];
     }
 
     public get token(): string | undefined {
