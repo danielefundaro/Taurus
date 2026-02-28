@@ -1,16 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
-import { delay, first, forkJoin, Subscription } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../../constants';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
 import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
-import { AlbumsService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
+import { AlbumsService, KeycloakService, PrinterService, ToastService } from '../../../service';
 
 @Component({
     selector: 'app-album-detail',
@@ -21,12 +21,10 @@ import { AlbumsService, MediaService, PrinterService, ToastService, TracksServic
     styleUrl: './detail.component.scss',
     providers: [
         AlbumsService,
-        TracksService,
-        MediaService,
         DialogService,
     ],
 })
-export class DetailComponent implements OnInit, OnDestroy {
+export class DetailComponent implements OnInit {
     protected sortOptions!: SelectItem[];
     protected totalRecords: number = 0;
     protected album: Albums = new Albums();
@@ -35,17 +33,15 @@ export class DetailComponent implements OnInit, OnDestroy {
     protected autoFilteredStates: Array<StateEnums>;
     protected RolesEnum: typeof RoleEnums = RoleEnums;
 
-    private $subscription?: Subscription;
     private readonly states: Array<StateEnums>;
 
     constructor(
         private readonly albumsService: AlbumsService,
-        private readonly tracksService: TracksService,
+        private readonly keycloakService: KeycloakService,
         private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly activatedRouteService: ActivatedRoute,
-        private readonly router: Router,
         private readonly dateConverterPipe: DateConverterPipe,
         private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
@@ -62,12 +58,6 @@ export class DetailComponent implements OnInit, OnDestroy {
         });
     }
 
-    ngOnDestroy(): void {
-        if (this.$subscription) {
-            this.$subscription.unsubscribe();
-        }
-    }
-
     protected save(): void {
         this.albumsService.update(this.album.id, this.album).pipe(delay(1000), first()).subscribe({
             next: (album: Albums) => {
@@ -78,18 +68,7 @@ export class DetailComponent implements OnInit, OnDestroy {
     }
 
     protected preview(): void {
-        let childrenEntities: ChildrenEntities[] = [];
-
-        if (this.selectedTracks.length > 0) {
-            childrenEntities = this.selectedTracks
-        } else if (this.album.tracks!.length > 0) {
-            childrenEntities = this.album.tracks!;
-        }
-
-        this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
-            this.printerService.push(...tracks.flatMap(track => track.scores!))
-            this.router.navigate(["preview"]);
-        });
+        this.printerService.preview(this.album, this.selectedTracks);
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent) {
@@ -139,6 +118,10 @@ export class DetailComponent implements OnInit, OnDestroy {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
+    protected canReorder(): boolean {
+        return this.keycloakService.currentUserRoles.some(role => [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(role));
+    }
+
     protected deleteTrack(selectedTrack: ChildrenEntities): void {
         this.album.tracks?.splice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
         this.album.tracks?.forEach((track, i) => track.order = i + 1);
@@ -148,10 +131,7 @@ export class DetailComponent implements OnInit, OnDestroy {
         this.albumsService.getById(id).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.album = album;
-
-                if (this.album.date && (typeof this.album.date === 'string' || this.album.date instanceof String)) {
-                    this.album.date = this.dateConverterPipe.transform(this.album.date);
-                }
+                this.album.date = this.dateConverterPipe.transform(this.album.date);
             }
         });
     }
