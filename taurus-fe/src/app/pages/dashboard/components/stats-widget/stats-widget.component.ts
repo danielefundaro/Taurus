@@ -1,13 +1,13 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
-import { ImportsModule } from "../../../../imports";
+import { RouterModule } from "@angular/router";
 
 @Component({
     selector: 'app-stats-widget',
     imports: [
-    CommonModule,
-    ImportsModule
-],
+        CommonModule,
+        RouterModule
+    ],
     templateUrl: './stats-widget.component.html',
     styleUrl: './stats-widget.component.scss',
     host: {

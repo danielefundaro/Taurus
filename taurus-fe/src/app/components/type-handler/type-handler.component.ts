@@ -24,10 +24,10 @@ import { InputTextModule } from 'primeng/inputtext';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TypeHandlerComponent {
-    @Input("types") types?: string[];
-    @Input("variant") variant: 'over' | 'on' | 'in';
-    @Input("label") label: string;
-    @Output("typesChange") typesChange = new EventEmitter<string[]>();
+    @Input() types?: string[];
+    @Input() variant: 'over' | 'on' | 'in';
+    @Input() label: string;
+    @Output() typesChange = new EventEmitter<string[]>();
 
     protected current: string;
 

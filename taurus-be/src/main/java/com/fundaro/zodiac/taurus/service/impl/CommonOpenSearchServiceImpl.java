@@ -243,7 +243,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
             .size(pageable.getPageSize())
             .trackTotalHits(t -> t.enabled(true))
             .query(q -> q.bool(b -> b.must(queries)))
-            .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(sort.getProperty()).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
+            .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(Converter.camelCaseToSnakeCase(sort.getProperty())).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
 
         if (searchResponse == null || searchResponse.hits().hits().isEmpty()) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0L);

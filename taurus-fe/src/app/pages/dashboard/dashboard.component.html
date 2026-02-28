@@ -1,18 +1,13 @@
 <div class="grid grid-cols-12 gap-8">
-    <div class="contents">
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan" [value]="totalTenants" [link]="'tenants'" />
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue" [value]="totalUsers" [link]="'users'" />
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]" label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]" label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST]" label="Media" icon="pi-images" color="pink" [value]="totalMedia" />
-        <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Visite" icon="pi-eye" color="purple" [value]="150" />
-    </div>
-    <div class="col-span-12 xl:col-span-6">
-        <app-recent-sales-widget />
-    </div>
-    <div class="col-span-12 xl:col-span-6">
-        <app-best-selling-widget />
-    </div>
+    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
+        [value]="totalTenants" [link]="'tenants'" />
+    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue"
+        [value]="totalUsers" [link]="'users'" />
+    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+        label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />
+    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+        label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
+    <app-recents-widget [tracks]="tracks" />
     <div class="col-span-12 xl:col-span-6">
         <app-notifications-widget />
     </div>

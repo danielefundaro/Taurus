@@ -1,0 +1,30 @@
+<div class="card !mb-8">
+    <div class="font-semibold text-xl mb-4">Tracce recenti</div>
+    <p-table [value]="tracks" [paginator]="true" [rows]="5" responsiveLayout="scroll">
+        <ng-template #header>
+            <tr>
+                <th scope="col" pSortableColumn="name">Nome <p-sortIcon field="name"></p-sortIcon></th>
+                <th scope="col" pSortableColumn="arranger">Arrangiatore <p-sortIcon field="arranger"></p-sortIcon></th>
+                <th scope="col" pSortableColumn="type">Tipo <p-sortIcon field="type"></p-sortIcon></th>
+                <th scope="col">Visualizza</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-track>
+            <tr>
+                <td class="min-width-7rem">{{ track.name }}</td>
+                <td class="min-width-7rem">{{ track.arranger }}</td>
+                <td class="min-width-7rem">
+                    <div class="flex flex-row flex-wrap gap-2 mt-1" *ngIf="track.type?.length">
+                        <ng-container *ngFor="let type of track.type">
+                            <p-chip class="font-medium text-xs" [label]="type"></p-chip>
+                        </ng-container>
+                    </div>
+                </td>
+                <td>
+                    <button pButton pRipple type="button" icon="pi pi-search" [routerLink]="'tracks/'+track.id"
+                        class="p-button p-component p-button-text p-button-icon-only"></button>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
