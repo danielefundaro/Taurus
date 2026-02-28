@@ -37,8 +37,8 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
         return Optional.ofNullable(id);
     }
 
-    public CommonOpenSearchCriteria setId(StringFilter name) {
-        this.name = name;
+    public CommonOpenSearchCriteria setId(StringFilter id) {
+        this.id = id;
         return this;
     }
 

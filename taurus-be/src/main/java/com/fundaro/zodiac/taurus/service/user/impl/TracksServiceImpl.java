@@ -8,6 +8,7 @@ import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.service.user.TracksService;
 import com.fundaro.zodiac.taurus.utils.Converter;
@@ -54,7 +55,10 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             stringFilter.setIn(usersDTO.getInstruments().stream().map(ChildrenEntitiesDTO::getIndex).toList());
             criteria.setInstrumentId(stringFilter);
 
-            return super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
+            return super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).map(tracksDTOS -> {
+                tracksDTOS.getContent().forEach(tracksDTO -> filterScores(tracksDTO, usersDTO));
+                return tracksDTOS;
+            });
         });
     }
 
@@ -69,12 +73,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
             }
 
-            tracksDTO.setScores(tracksDTO.getScores().stream().filter(Objects::nonNull)
-                .filter(sheetsMusicDTO -> Objects.nonNull(sheetsMusicDTO.getInstruments()) && sheetsMusicDTO.getInstruments().stream()
-                    .anyMatch(childrenEntities -> usersDTO.getInstruments().stream()
-                        .anyMatch(ce -> ce.getIndex().equalsIgnoreCase(childrenEntities.getIndex()))
-                    )
-                ).collect(Collectors.toSet()));
+            filterScores(tracksDTO, usersDTO);
 
             return Mono.just(tracksDTO);
         }));
@@ -96,5 +95,14 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;
+    }
+
+    private static void filterScores(TracksDTO tracksDTO, UsersDTO usersDTO) {
+        tracksDTO.setScores(tracksDTO.getScores().stream().filter(Objects::nonNull)
+            .filter(sheetsMusicDTO -> Objects.nonNull(sheetsMusicDTO.getInstruments()) && sheetsMusicDTO.getInstruments().stream()
+                .anyMatch(childrenEntities -> usersDTO.getInstruments().stream()
+                    .anyMatch(ce -> ce.getIndex().equalsIgnoreCase(childrenEntities.getIndex()))
+                )
+            ).collect(Collectors.toSet()));
     }
 }

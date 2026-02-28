@@ -12,7 +12,6 @@ import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
 import com.fundaro.zodiac.taurus.service.user.AlbumsService;
 import com.fundaro.zodiac.taurus.service.user.TracksService;
 import com.fundaro.zodiac.taurus.utils.Converter;
-import com.fundaro.zodiac.taurus.web.rest.TracksResource;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Pageable;
@@ -23,9 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,12 +33,10 @@ import java.util.stream.Collectors;
 public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, AlbumsDTO, AlbumsCriteria, AlbumsMapper> implements AlbumsService {
 
     private final TracksService tracksService;
-    private final TracksResource tracksResource;
 
-    public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper, TracksService tracksService, TracksResource tracksResource) {
+    public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper, TracksService tracksService) {
         super(openSearchService, albumsMapper, AlbumsService.class, Albums.class);
         this.tracksService = tracksService;
-        this.tracksResource = tracksResource;
     }
 
     @Override
@@ -58,7 +53,11 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
                 tracksCriteria.setId(idFilter);
 
                 return tracksService.findEntitiesByCriteria(tracksCriteria, Pageable.ofSize(albumsDTO.getTracks().size()), abstractAuthenticationToken).map(tracksDTOS -> {
-                    Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream().filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex()))).collect(Collectors.toSet());
+                    Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream()
+                        .filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex())))
+                        .sorted(Comparator.comparingLong(ChildrenEntitiesDTO::getOrder))
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+
                     albumsDTO.setTracks(finalList);
 
                     return albumsDTO;
