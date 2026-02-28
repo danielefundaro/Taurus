@@ -1,0 +1,22 @@
+<div class="card mb-0">
+    <div class="flex justify-between items-center">
+        <div>
+            <div class="block text-muted-color font-medium mb-4">{{label}}</div>
+            <span class="text-surface-900 dark:text-surface-0 font-medium text-xl">Totale </span>
+            <span class="text-primary font-medium text-xl">{{value}}</span>
+        </div>
+        @if (link) {
+        <a [routerLink]="link">
+            <div class="flex items-center justify-center bg-{{color}}-100 dark:bg-{{color}}-400/10 rounded-border"
+                style="width: 2.5rem; height: 2.5rem">
+                <i class="pi {{icon}} text-{{color}}-500 !text-xl"></i>
+            </div>
+        </a>
+        } @else {
+        <div class="flex items-center justify-center bg-{{color}}-100 dark:bg-{{color}}-400/10 rounded-border"
+            style="width: 2.5rem; height: 2.5rem">
+            <i class="pi {{icon}} text-{{color}}-500 !text-xl"></i>
+        </div>
+        }
+    </div>
+</div>
