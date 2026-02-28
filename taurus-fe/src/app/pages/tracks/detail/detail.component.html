@@ -3,10 +3,12 @@
         <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center">
                 <span class="font-semibold text-xl">Traccia</span>
-                <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()"
-                    *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
-                <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
-                    [disabled]="!track.scores?.length" />
+                <div class="flex flex-row gap-2">
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()"
+                        *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                    <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
+                        [disabled]="!track.scores?.length" />
+                </div>
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
