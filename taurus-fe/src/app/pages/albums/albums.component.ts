@@ -11,14 +11,12 @@ import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, Page } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
 import { AlbumsService, MediaService, PrinterService, ToastService } from '../../service';
-import { AutoFocus } from "primeng/autofocus";
 
 @Component({
     selector: 'app-albums',
     imports: [
     RouterModule,
     ImportsModule,
-    AutoFocus
 ],
     templateUrl: './albums.component.html',
     styleUrl: './albums.component.scss',
