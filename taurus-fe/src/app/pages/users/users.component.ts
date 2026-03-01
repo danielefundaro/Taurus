@@ -77,10 +77,6 @@ export class UsersComponent implements OnInit {
         this.loadElements((event.target as HTMLInputElement).value);
     }
 
-    protected initials(name?: string | null, lastName?: string | null): string {
-        return [(name ?? '').slice(0, 1).toUpperCase(), (lastName ?? '').slice(0, 1).toUpperCase()].join(' ');
-    }
-
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddUsersDialogComponent, {
             header: "Aggiungi utente",

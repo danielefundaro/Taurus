@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.Date;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -12,6 +13,10 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     private String email;
 
     private String domain;
+
+    private Long maxUsers;
+
+    private Date expireDate;
 
     private Boolean active;
 
@@ -39,6 +44,22 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
         this.domain = domain;
     }
 
+    public Long getMaxUsers() {
+        return maxUsers;
+    }
+
+    public void setMaxUsers(Long maxUsers) {
+        this.maxUsers = maxUsers;
+    }
+
+    public Date getExpireDate() {
+        return expireDate;
+    }
+
+    public void setExpireDate(Date expireDate) {
+        this.expireDate = expireDate;
+    }
+
     public Boolean getActive() {
         return active;
     }
@@ -59,12 +80,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(code, that.code) &&
             Objects.equals(email, that.email) &&
             Objects.equals(domain, that.domain) &&
+            Objects.equals(maxUsers, that.maxUsers) &&
+            Objects.equals(expireDate, that.expireDate) &&
             Objects.equals(active, that.active);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, active);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active);
     }
 
     @Override
@@ -76,6 +99,8 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", code='" + code + '\'' +
             ", email='" + email + '\'' +
             ", domain='" + domain + '\'' +
+            ", maxUsers=" + maxUsers +
+            ", expireDate=" + expireDate +
             ", active=" + active +
             '}';
     }

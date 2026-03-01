@@ -1,8 +1,10 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
+import tech.jhipster.service.filter.LongFilter;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.util.Objects;
@@ -27,6 +29,10 @@ public class TenantsCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter domain;
 
+    private LongFilter maxUsers;
+
+    private DateFilter expireDate;
+
     private BooleanFilter active;
 
     public TenantsCriteria() {
@@ -38,6 +44,8 @@ public class TenantsCriteria extends CommonOpenSearchCriteria {
         this.code = other.optionalCode().map(StringFilter::copy).orElse(null);
         this.email = other.optionalEmail().map(StringFilter::copy).orElse(null);
         this.domain = other.optionalDomain().map(StringFilter::copy).orElse(null);
+        this.maxUsers = other.optionalMaxUsers().map(LongFilter::copy).orElse(null);
+        this.expireDate = other.optionalExpireDate().map(DateFilter::copy).orElse(null);
         this.active = other.optionalActive().map(BooleanFilter::copy).orElse(null);
     }
 
@@ -85,6 +93,32 @@ public class TenantsCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
+    public LongFilter getMaxUsers() {
+        return maxUsers;
+    }
+
+    public Optional<LongFilter> optionalMaxUsers() {
+        return Optional.ofNullable(maxUsers);
+    }
+
+    public TenantsCriteria setMaxUsers(LongFilter maxUsers) {
+        this.maxUsers = maxUsers;
+        return this;
+    }
+
+    public DateFilter getExpireDate() {
+        return expireDate;
+    }
+
+    public Optional<DateFilter> optionalExpireDate() {
+        return Optional.ofNullable(expireDate);
+    }
+
+    public TenantsCriteria setExpireDate(DateFilter expireDate) {
+        this.expireDate = expireDate;
+        return this;
+    }
+
     public BooleanFilter getActive() {
         return active;
     }
@@ -111,12 +145,14 @@ public class TenantsCriteria extends CommonOpenSearchCriteria {
             Objects.equals(code, that.code) &&
             Objects.equals(email, that.email) &&
             Objects.equals(domain, that.domain) &&
+            Objects.equals(maxUsers, that.maxUsers) &&
+            Objects.equals(expireDate, that.expireDate) &&
             Objects.equals(active, that.active);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, active);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active);
     }
 
     // prettier-ignore
@@ -129,6 +165,8 @@ public class TenantsCriteria extends CommonOpenSearchCriteria {
             optionalCode().map(f -> "code=" + f + ", ").orElse("") +
             optionalEmail().map(f -> "email=" + f + ", ").orElse("") +
             optionalDomain().map(f -> "domain=" + f + ", ").orElse("") +
+            optionalMaxUsers().map(f -> "maxUsers=" + f + ", ").orElse("") +
+            optionalExpireDate().map(f -> "expireDate=" + f + ", ").orElse("") +
             optionalActive().map(f -> "active=" + f + ", ").orElse("") +
             "}";
     }

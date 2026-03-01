@@ -40,6 +40,9 @@
                                         {{ item.description }}
                                     </span>
                                 </div>
+                                <p-tag icon="pi pi-calendar text-yellow-500" severity="secondary"
+                                    value="{{item.expireDate | date:'dd-MM-yyyy'}}" [rounded]="true"
+                                    *ngIf="item.expireDate"></p-tag>
                             </div>
                             <div class="flex flex-row md:flex-row gap-2">
                                 <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
@@ -76,6 +79,9 @@
                                             {{ item.description }}
                                         </span>
                                     </div>
+                                    <p-tag icon="pi pi-calendar text-yellow-500" severity="secondary"
+                                        value="{{item.expireDate | date:'dd-MM-yyyy'}}" [rounded]="true"
+                                        *ngIf="item.expireDate"></p-tag>
                                 </div>
                                 <div class="flex flex-row gap-2 mt-6">
                                     <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"

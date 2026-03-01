@@ -15,9 +15,9 @@ import { AlbumsService, MediaService, PrinterService, ToastService } from '../..
 @Component({
     selector: 'app-albums',
     imports: [
-    RouterModule,
-    ImportsModule,
-],
+        RouterModule,
+        ImportsModule,
+    ],
     templateUrl: './albums.component.html',
     styleUrl: './albums.component.scss',
     providers: [
@@ -71,10 +71,6 @@ export class AlbumsComponent implements OnInit {
 
     protected onGlobalFilter(event: Event): void {
         this.loadElements((event.target as HTMLInputElement).value);
-    }
-
-    protected initials(name?: string | null): string {
-        return (name ?? '').split(" ").slice(0, 2).map(s => s[0]).join(" ").toUpperCase();
     }
 
     protected addNew(): void {
