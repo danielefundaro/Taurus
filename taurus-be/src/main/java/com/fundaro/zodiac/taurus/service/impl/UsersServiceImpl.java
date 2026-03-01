@@ -88,13 +88,13 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     protected List<Query> getQueries(UsersCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("last_name", criteria.getLastName()));
-        queries.addAll(Converter.dateFilterToQuery("birth_date", criteria.getBirthDate()));
+        queries.addAll(Converter.stringFilterToQuery("lastName", criteria.getLastName()));
+        queries.addAll(Converter.dateFilterToQuery("birthDate", criteria.getBirthDate()));
         queries.addAll(Converter.stringFilterToQuery("email", criteria.getEmail()));
         queries.addAll(Converter.stringFilterToQuery("roles", criteria.getRoles()));
         queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
         queries.addAll(Converter.stringFilterToQuery("instruments.index", criteria.getInstrumentId()));
-        queries.addAll(Converter.stringFilterToQuery("keycloak_id", criteria.getKeycloakId()));
+        queries.addAll(Converter.stringFilterToQuery("keycloakId", criteria.getKeycloakId()));
 
         return queries;
     }

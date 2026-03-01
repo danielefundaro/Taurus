@@ -26,6 +26,9 @@ import { EnumConverterPipe } from '../../pipe';
         AutoCompleteModule,
         CheckboxModule,
     ],
+    providers: [
+        EnumConverterPipe,
+    ],
     templateUrl: './add-users-dialog.component.html',
     styleUrl: './add-users-dialog.component.scss',
 })

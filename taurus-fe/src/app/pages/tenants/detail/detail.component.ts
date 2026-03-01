@@ -4,6 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { delay, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Tenants } from '../../../module';
+import { DateConverterPipe } from '../../../pipe';
 import { TenantsService, ToastService } from '../../../service';
 
 @Component({
@@ -27,7 +28,8 @@ export class DetailComponent implements OnInit {
     constructor(
         private readonly tenantsService: TenantsService,
         private readonly toastService: ToastService,
-        private readonly routeService: ActivatedRoute
+        private readonly dateConverterPipe: DateConverterPipe,
+        private readonly routeService: ActivatedRoute,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
@@ -52,6 +54,7 @@ export class DetailComponent implements OnInit {
         this.tenantsService.getById(id).pipe(first()).subscribe({
             next: (tenant: Tenants) => {
                 this.tenant = tenant;
+                this.tenant.expireDate = this.dateConverterPipe.transform(this.tenant.expireDate);
             }
         });
     }

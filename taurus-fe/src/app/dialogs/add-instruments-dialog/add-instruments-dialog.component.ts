@@ -20,7 +20,7 @@ import { Instruments } from '../../module';
         FormsModule,
         FluidModule,
     ],
-    templateUrl: './add-instruments-dialog.html',
+    templateUrl: './add-instruments-dialog.component.html',
     styleUrl: './add-instruments-dialog.component.scss',
 })
 export class AddInstrumentsDialogComponent {

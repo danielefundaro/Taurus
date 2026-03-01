@@ -15,6 +15,7 @@ import org.opensearch.client.opensearch._types.query_dsl.RangeQuery;
 import org.springframework.lang.NonNull;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
+import tech.jhipster.service.filter.LongFilter;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.awt.*;
@@ -222,6 +223,39 @@ public class Converter {
                 }
 
                 queries.add(Query.of(f -> f.range(rangeQueryBuilder.build())));
+            }
+        }
+
+        return queries;
+    }
+
+    public static List<Query> longFilterToQuery(String fieldName, LongFilter fieldValue) {
+        List<Query> queries = new ArrayList<>();
+        List<Query> notQueries = new ArrayList<>();
+
+        if (fieldValue != null && fieldName != null) {
+            String finalFieldName = camelCaseToSnakeCase(fieldName);
+
+            if (Objects.nonNull(fieldValue.getEquals())) {
+                queries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getEquals())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotEquals())) {
+                notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getNotEquals())))));
+            }
+
+            if (Objects.nonNull(fieldValue.getIn()) && !fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().anyMatch(Objects::isNull)) {
+                List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().longValue(v).build()).toList();
+                queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (Objects.nonNull(fieldValue.getNotIn()) && !fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().anyMatch(Objects::isNull)) {
+                List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().longValue(v).build()).toList();
+                notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
+            }
+
+            if (!notQueries.isEmpty()) {
+                queries.add(Query.of(f -> f.bool(b -> b.mustNot(notQueries))));
             }
         }
 

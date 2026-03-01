@@ -72,10 +72,6 @@ export class TracksComponent implements OnInit {
         this.loadElements((event.target as HTMLInputElement).value);
     }
 
-    public initials(name?: string | null): string {
-        return (name ?? '').split(" ").slice(0, 2).map(s => s[0]).join(" ").toUpperCase();
-    }
-
     public addNewFile(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddFilesDialogComponent, {
             header: "Aggiungi traccia",
