@@ -55,6 +55,12 @@
         }
       }
     },
+    "max_users": {
+      "type": "long"
+    },
+    "expire_date": {
+      "type": "date"
+    },
     "active": {
       "type": "boolean"
     }

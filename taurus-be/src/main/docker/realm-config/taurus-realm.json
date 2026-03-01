@@ -929,6 +929,23 @@
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "id": "78033fff-ce21-4f0d-9fb4-1664c89a82b8",
+          "name": "tenant-role-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "tenant-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "lightweight.claim": "false",
+            "tenant.claim.name": "tenant",
+            "role.claim.name": "role",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
       "defaultClientScopes": [
         "web-origins",
         "acr",

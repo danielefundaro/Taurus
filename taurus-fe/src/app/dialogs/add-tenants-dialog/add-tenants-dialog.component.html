@@ -20,6 +20,15 @@
             <label for="domain">Dominio</label>
             <input pInputText id="domain" type="text" [(ngModel)]="tenant.domain" />
         </p-floatlabel>
+        <p-floatlabel class="flex w-full" variant="on">
+            <label for="maxUsers">Numero Massimo Utenti</label>
+            <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant.maxUsers" />
+        </p-floatlabel>
+        <p-floatlabel class="flex w-full" variant="on">
+            <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="yy-mm-dd"
+                [(ngModel)]="tenant!.expireDate" />
+            <label for="date">Data Scadenza</label>
+        </p-floatlabel>
     </div>
     <p-floatlabel class="flex" variant="on">
         <label for="description">Descrizione</label>

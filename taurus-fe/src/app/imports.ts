@@ -2,6 +2,7 @@ import { AsyncPipe, CommonModule, DatePipe, NgClass, NgFor, NgIf } from '@angula
 import { NgModule } from "@angular/core";
 import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
+import { HasRolesDirective } from 'keycloak-angular';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
@@ -30,8 +31,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { DateConverterPipe, EnumConverterPipe, SecurePipe } from './pipe';
-import { HasRolesDirective } from 'keycloak-angular';
+import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from './pipe';
 
 @NgModule({
     imports: [
@@ -76,6 +76,7 @@ import { HasRolesDirective } from 'keycloak-angular';
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
+        InitialsPipe,
     ],
     exports: [
         NgClass,
@@ -119,11 +120,13 @@ import { HasRolesDirective } from 'keycloak-angular';
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
+        InitialsPipe,
     ],
     providers: [
         SecurePipe,
         DateConverterPipe,
         EnumConverterPipe,
+        InitialsPipe,
     ]
 })
 export class ImportsModule { }

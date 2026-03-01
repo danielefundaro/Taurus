@@ -20,7 +20,7 @@ import { FluidModule } from 'primeng/fluid';
         FormsModule,
         FluidModule,
     ],
-    templateUrl: './add-albums-dialog.html',
+    templateUrl: './add-albums-dialog.component.html',
     styleUrl: './add-albums-dialog.component.scss',
 })
 export class AddAlbumsDialogComponent {

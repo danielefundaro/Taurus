@@ -22,7 +22,7 @@ import { Tenants } from '../../module';
         FluidModule,
         ToggleButtonModule,
     ],
-    templateUrl: './add-tenants-dialog.html',
+    templateUrl: './add-tenants-dialog.component.html',
     styleUrl: './add-tenants-dialog.component.scss',
 })
 export class AddTenantsDialogComponent {

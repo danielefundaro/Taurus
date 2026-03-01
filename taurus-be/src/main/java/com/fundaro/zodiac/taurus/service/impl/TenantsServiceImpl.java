@@ -77,6 +77,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         queries.addAll(Converter.stringFilterToQuery("code.keyword", criteria.getCode()));
         queries.addAll(Converter.stringFilterToQuery("email.keyword", criteria.getEmail()));
         queries.addAll(Converter.stringFilterToQuery("domain.keyword", criteria.getDomain()));
+        queries.addAll(Converter.longFilterToQuery("maxUsers", criteria.getMaxUsers()));
+        queries.addAll(Converter.dateFilterToQuery("expireDate", criteria.getExpireDate()));
         queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
 
         return queries;
