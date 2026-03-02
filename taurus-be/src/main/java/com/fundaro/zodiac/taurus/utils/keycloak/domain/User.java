@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User implements Serializable {
@@ -19,8 +18,6 @@ public class User implements Serializable {
     private String lastName;
 
     private String email;
-
-    private Set<String> groups;
 
     private Boolean enabled;
 
@@ -76,14 +73,6 @@ public class User implements Serializable {
         this.email = email;
     }
 
-    public Set<String> getGroups() {
-        return groups;
-    }
-
-    public void setGroups(Set<String> groups) {
-        this.groups = groups;
-    }
-
     public Boolean getEnabled() {
         return enabled;
     }
@@ -123,7 +112,6 @@ public class User implements Serializable {
             ", firstName='" + firstName + "'" +
             ", lastName='" + lastName + "'" +
             ", email='" + email + "'" +
-            ", groups=" + groups +
             ", enabled=" + enabled +
             ", totp=" + totp +
             ", emailVerified=" + emailVerified +
