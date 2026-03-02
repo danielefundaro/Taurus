@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TenantsMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
+import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -26,6 +27,7 @@ import tech.jhipster.service.filter.StringFilter;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Map;
 
 import static com.fundaro.zodiac.taurus.config.Constants.TENANT_CHANGELOG_FILE_PATH;
 
@@ -58,12 +60,23 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             if (tenantsDTOS.getContent().isEmpty()) {
                 return super.save(dto, abstractAuthenticationToken).handle((tenantsDTO, sink) -> {
                     try {
+                        // Save new tenant as keycloak group
                         keycloakService.saveGroup(new Group(tenantsDTO.getCode(), tenantsDTO.getName()));
                         String groupId = keycloakService.getGroupIdByName(tenantsDTO.getCode());
+
+                        // Get access to the new tenant at all super admins
                         List<User> users = keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN);
 
                         for (User user : users) {
+                            // Add super admin into the group
                             keycloakService.updateUserGroup(user.getId(), groupId);
+
+                            // Update attributes for multi role logic
+                            List<Role> roleList = keycloakService.getUserRoles(user.getId());
+                            Map<String, List<String>> currentAttributes = user.getAttributes();
+                            currentAttributes.put(String.format("%s_roles", tenantsDTO.getCode()), roleList.stream().map(Role::getName).toList());
+                            user.setAttributes(currentAttributes);
+                            keycloakService.updateUser(user);
                         }
                         changelogService.extractAllResources(TENANT_CHANGELOG_FILE_PATH, tenantsDTO.getCode());
                     } catch (IOException | NoSuchAlgorithmException e) {
