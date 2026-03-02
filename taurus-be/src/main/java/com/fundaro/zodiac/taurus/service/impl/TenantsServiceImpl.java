@@ -3,12 +3,14 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TenantsMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
+import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
@@ -57,6 +59,12 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
                 return super.save(dto, abstractAuthenticationToken).handle((tenantsDTO, sink) -> {
                     try {
                         keycloakService.saveGroup(new Group(tenantsDTO.getCode(), tenantsDTO.getName()));
+                        String groupId = keycloakService.getGroupIdByName(tenantsDTO.getCode());
+                        List<User> users = keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN);
+
+                        for (User user : users) {
+                            keycloakService.updateUserGroup(user.getId(), groupId);
+                        }
                         changelogService.extractAllResources(TENANT_CHANGELOG_FILE_PATH, tenantsDTO.getCode());
                     } catch (IOException | NoSuchAlgorithmException e) {
                         getLogger().error(e.getMessage());

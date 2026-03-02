@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.utils.keycloak.service;
 
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
@@ -18,6 +19,8 @@ public interface KeycloakService {
 
     void updateUser(User user);
 
+    void updateUserGroup(String userId, String groupId);
+
     void deleteUser(String user);
 
     List<Role> getUserRoles(String userId);
@@ -32,7 +35,11 @@ public interface KeycloakService {
 
     void saveGroup(Group group);
 
+    String getGroupIdByName(String name);
+
     String getIdByClientId();
 
     List<Role> getClientRoles();
+
+    List<User> getUsersByClientRoles(RoleEnum roleEnum);
 }
