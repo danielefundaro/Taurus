@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.*;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -124,6 +125,18 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public void updateUserGroup(String userId, String groupId) {
+        String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error updating user group on Keycloak: {}, {}", userId, groupId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user group on Keycloak", User.class.getSimpleName(), "update.user.group");
+        }
+    }
+
+    @Override
     public void deleteUser(String userId) {
         String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
@@ -201,6 +214,28 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public String getGroupIdByName(String name) {
+        String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
+            log.error("Error getting group with name from Keycloak: {}", name);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "get.group");
+        }
+
+        Group group = response.getBody().stream().filter(g -> g.getName().equals(name)).findFirst().orElse(null);
+
+        if (group == null) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "get.group");
+        }
+
+        return group.getId();
+
+    }
+
+    @Override
     public String getIdByClientId() {
         String url = String.format("%s/clients?clientId=%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), clientId);
         ParameterizedTypeReference<List<Client>> typeRef = new ParameterizedTypeReference<>() {
@@ -226,6 +261,22 @@ public class KeycloakServiceImpl implements KeycloakService {
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting roles of client with clientId from Keycloak: {}", clientId);
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting roles of client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "get.client.roles");
+        }
+
+        return response.getBody();
+    }
+
+    @Override
+    public List<User> getUsersByClientRoles(RoleEnum roleEnum) {
+        String id = getIdByClientId();
+        String url = String.format("%s/clients/%s/roles/%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id, roleEnum.toString());
+        ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
+        };
+        ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
+            log.error("Error getting users by client role from Keycloak: {}", roleEnum);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting users by client role from Keycloak: %s", roleEnum), Client.class.getSimpleName(), "get.users");
         }
 
         return response.getBody();
