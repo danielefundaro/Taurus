@@ -82,7 +82,7 @@ public class TenantRoleMapper extends AbstractOIDCProtocolMapper implements OIDC
         }
 
         if (role != null && !role.isEmpty()) {
-            token.getOtherClaims().put(roleClaimName, List.of(role));
+            token.getOtherClaims().put(roleClaimName, role);
         }
     }
 }
