@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
@@ -45,8 +46,8 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     private final Sender sender;
 
-    public TracksServiceImpl(OpenSearchService openSearchService, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, AlbumsService albumsService, Sender sender) {
-        super(openSearchService, tracksMapper, TracksService.class, Tracks.class);
+    public TracksServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, AlbumsService albumsService, Sender sender) {
+        super(openSearchService, indexResolver, tracksMapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.albumsService = albumsService;
         this.sender = sender;
@@ -82,7 +83,6 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             if (dataBuffer.capacity() == 0) {
                 return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty"));
             }
-
 
             String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
             QueueUploadFilesDTO queueUploadFilesDTO = new QueueUploadFilesDTO();

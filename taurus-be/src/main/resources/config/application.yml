@@ -154,6 +154,9 @@ server:
 springdoc:
   show-actuator: true
 
+opensearch:
+  global-indices: tenants
+
 # Properties to be exposed on the /info management endpoint
 info:
   # Comma separated list of profiles that will trigger the ribbon to show

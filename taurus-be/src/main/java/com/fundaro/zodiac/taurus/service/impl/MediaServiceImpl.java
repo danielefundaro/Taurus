@@ -1,8 +1,10 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
+import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -34,8 +36,8 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
 
     private final TracksService tracksService;
 
-    public MediaServiceImpl(OpenSearchService openSearchService, MediaMapper mediaMapper, TracksService tracksService) {
-        super(openSearchService, mediaMapper, MediaService.class, Media.class);
+    public MediaServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, MediaMapper mediaMapper, TracksService tracksService) {
+        super(openSearchService, indexResolver, mediaMapper, MediaService.class, Media.class);
         this.tracksService = tracksService;
     }
 
@@ -58,12 +60,15 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     @Override
     public Mono<Flux<DataBuffer>> streamFile(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         // Return the stream of the media
-        try {
-            Media media = getById(id, abstractAuthenticationToken);
-            return Mono.just(DataBufferUtils.read(Paths.get(media.getPath()), new DefaultDataBufferFactory(), 1024));
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
-        }
+        return Mono.deferContextual(ctx -> {
+            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
+            try {
+                Media media = getById(id, tenantId);
+                return Mono.just(DataBufferUtils.read(Paths.get(media.getPath()), new DefaultDataBufferFactory(), 1024));
+            } catch (IOException e) {
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+            }
+        });
     }
 
     @Override

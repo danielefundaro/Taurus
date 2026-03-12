@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
@@ -32,15 +34,23 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     public final KeycloakService keycloakService;
 
-    public UsersServiceImpl(OpenSearchService openSearchService, UsersMapper mapper, KeycloakService keycloakService) {
-        super(openSearchService, mapper, UsersService.class, Users.class);
+    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService) {
+        super(openSearchService, indexResolver, mapper, UsersService.class, Users.class);
         this.keycloakService = keycloakService;
     }
 
     @Override
     public Mono<UsersDTO> save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         User user = getMapper().toKeycloakUser(dto);
-        keycloakService.saveUser(user);
+
+        // Check if the user already exists into keycloak
+        try {
+            String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+            user.setId(keycloakId);
+            keycloakService.updateUser(user);
+        } catch (RequestAlertException e) {
+            keycloakService.saveUser(user);
+        }
 
         // Set user's roles on keycloak
         String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
