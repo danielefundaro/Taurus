@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.criteria.InstrumentsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -26,8 +27,8 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
 
     private final TracksService tracksService;
 
-    public InstrumentsServiceImpl(OpenSearchService openSearchService, InstrumentsMapper instrumentsMapper, TracksService tracksService) {
-        super(openSearchService, instrumentsMapper, InstrumentsService.class, Instruments.class);
+    public InstrumentsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, InstrumentsMapper instrumentsMapper, TracksService tracksService) {
+        super(openSearchService, indexResolver, instrumentsMapper, InstrumentsService.class, Instruments.class);
         this.tracksService = tracksService;
     }
 

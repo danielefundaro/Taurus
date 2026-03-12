@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
@@ -42,8 +43,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
 
     private final KeycloakService keycloakService;
 
-    public TenantsServiceImpl(OpenSearchService openSearchService, TenantsMapper mapper, ChangelogService changelogService, KeycloakService keycloakService) {
-        super(openSearchService, mapper, TenantsService.class, Tenants.class);
+    public TenantsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TenantsMapper mapper, ChangelogService changelogService, KeycloakService keycloakService) {
+        super(openSearchService, indexResolver, mapper, TenantsService.class, Tenants.class);
         this.changelogService = changelogService;
         this.keycloakService = keycloakService;
     }
