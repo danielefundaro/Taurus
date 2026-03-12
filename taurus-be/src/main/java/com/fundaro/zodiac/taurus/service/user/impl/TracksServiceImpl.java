@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -38,8 +39,8 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     private final UsersService usersService;
 
-    public TracksServiceImpl(OpenSearchService openSearchService, TracksMapper mapper, UsersService usersService) {
-        super(openSearchService, mapper, TracksService.class, Tracks.class);
+    public TracksServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TracksMapper mapper, UsersService usersService) {
+        super(openSearchService, indexResolver, mapper, TracksService.class, Tracks.class);
         this.usersService = usersService;
     }
 

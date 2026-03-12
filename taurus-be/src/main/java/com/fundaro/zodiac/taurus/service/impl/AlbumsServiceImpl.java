@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Albums;
 import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
@@ -20,8 +21,8 @@ import java.util.List;
 @Transactional
 public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, AlbumsDTO, AlbumsCriteria, AlbumsMapper> implements AlbumsService {
 
-    public AlbumsServiceImpl(OpenSearchService openSearchService, AlbumsMapper albumsMapper) {
-        super(openSearchService, albumsMapper, AlbumsService.class, Albums.class);
+    public AlbumsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, AlbumsMapper albumsMapper) {
+        super(openSearchService, indexResolver, albumsMapper, AlbumsService.class, Albums.class);
     }
 
     @Override

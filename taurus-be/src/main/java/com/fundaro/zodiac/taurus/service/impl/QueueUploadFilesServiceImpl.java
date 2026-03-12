@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.criteria.QueueUploadFilesCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
@@ -36,8 +37,8 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
 
     private final String basePath;
 
-    public QueueUploadFilesServiceImpl(OpenSearchService openSearchService, QueueUploadFilesMapper queueUploadFilesMapper, ApplicationProperties applicationProperties) {
-        super(openSearchService, queueUploadFilesMapper, QueueUploadFilesService.class, QueueUploadFiles.class);
+    public QueueUploadFilesServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, QueueUploadFilesMapper queueUploadFilesMapper, ApplicationProperties applicationProperties) {
+        super(openSearchService, indexResolver, queueUploadFilesMapper, QueueUploadFilesService.class, QueueUploadFiles.class);
         basePath = applicationProperties.getBasePath();
     }
 

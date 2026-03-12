@@ -1,7 +1,9 @@
 package com.fundaro.zodiac.taurus.service.user.impl;
 
+import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
+import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
@@ -32,6 +34,8 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     private final OpenSearchService openSearchService;
 
+    private final IndexResolver indexResolver;
+
     private final Logger log;
 
     private final M mapper;
@@ -40,8 +44,9 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     private final String entityName;
 
-    public <T extends CommonOpenSearchService<E, D, C>> CommonOpenSearchServiceImpl(OpenSearchService openSearchService, M mapper, Class<T> logClass, Class<E> classEntity) {
+    public <T extends CommonOpenSearchService<E, D, C>> CommonOpenSearchServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, M mapper, Class<T> logClass, Class<E> classEntity) {
         this.openSearchService = openSearchService;
+        this.indexResolver = indexResolver;
         this.mapper = mapper;
         this.log = LoggerFactory.getLogger(logClass);
         this.classEntity = classEntity;
@@ -62,28 +67,34 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
 
     @Override
     public Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        log.debug("Request to get all {} by Criteria", entityName);
+        return Mono.deferContextual(ctx -> {
+            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
+            log.debug("Request to get all {} by Criteria", entityName);
 
-        try {
-            return Mono.just(findByCriteria(criteria, pageable, abstractAuthenticationToken));
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
-        }
+            try {
+                return Mono.just(findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId));
+            } catch (IOException e) {
+                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
+            }
+        });
     }
 
     @Override
     public Mono<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        log.debug("Request to get {} : {}", entityName, id);
+        return Mono.deferContextual(ctx -> {
+            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
+            log.debug("Request to get {} : {}", entityName, id);
 
-        try {
-            return Mono.just(mapper.toDto(getById(id, abstractAuthenticationToken)));
-        } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
-        }
+            try {
+                return Mono.just(mapper.toDto(getById(id, tenantId)));
+            } catch (IOException e) {
+                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
+            }
+        });
     }
 
-    protected E getById(String id, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
-        GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(getIndex(entityName, abstractAuthenticationToken)).id(id), classEntity);
+    protected E getById(String id, String tenantId) throws IOException {
+        GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(indexResolver.resolve(entityName, tenantId)).id(id), classEntity);
         E entity = getResponse.source();
 
         if (entity != null && Objects.equals(entity.getDeleted(), Boolean.FALSE)) {
@@ -105,11 +116,11 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return queries;
     }
 
-    private Page<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) throws IOException {
+    private Page<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) throws IOException {
         List<Query> queries = getQueries(criteria, abstractAuthenticationToken);
 
         SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
-            .index(getIndex(entityName, abstractAuthenticationToken))
+            .index(indexResolver.resolve(entityName, tenantId))
             .from(pageable.getPageNumber() * pageable.getPageSize())
             .size(pageable.getPageSize())
             .trackTotalHits(t -> t.enabled(true))
@@ -127,15 +138,5 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         }).toList();
 
         return new PageImpl<>(list, pageable, searchResponse.hits().total().value());
-    }
-
-    private String getIndex(String indexName, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-
-        if (tenantId == null) {
-            tenantId = "";
-        }
-
-        return Converter.camelCaseToKebabCase(Converter.tenantConcatSnakeCase(tenantId, indexName));
     }
 }

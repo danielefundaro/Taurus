@@ -151,7 +151,7 @@ public final class SecurityUtils {
     }
 
     public static String getTenantIdFromAuthentication(AbstractAuthenticationToken authToken) {
-        return getAttributeFromAuthentication("tenants", authToken);
+        return getAttributeFromAuthentication("tenant", authToken);
     }
 
     private static String extractPrincipal(Authentication authentication) {
