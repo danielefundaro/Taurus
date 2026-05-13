@@ -4,117 +4,299 @@
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "flute"
+  "name": "Flauto 1°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "piccolo"
+  "name": "Flauto 2°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "oboe"
+  "name": "Ottavino"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "soprano clarinet"
+  "name": "Oboe"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "Eb clarinet"
+  "name": "Clarinetto soprano solo"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "soprano sax"
+  "name": "Clarinetto soprano 1°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "alto sax"
+  "name": "Clarinetto soprano 2°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "tenor sax"
+  "name": "Clarinetto soprano 3°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "trumpet"
+  "name": "Clarinetto contralto"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "trombone"
+  "name": "Clarinetto basso"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "flugelhorn"
+  "name": "Clarinetto piccolo mib"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "euphonium"
+  "name": "Sax soprano 1°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "horn"
+  "name": "Sax soprano 2°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "bass"
+  "name": "Sax contralto 1°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "drum"
+  "name": "Sax contralto 2°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "bass drum"
+  "name": "Sax tenore 1°"
 }, {
   "deleted": false,
   "insert_by": "init-taurus",
   "insert_date": "2025-03-12T22:13:04",
   "edit_by": "init-taurus",
   "edit_date": "2025-03-12T22:13:04",
-  "name": "cymbals"
+  "name": "Sax tenore 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Sax baritono 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Sax baritono 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Tromba 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Tromba 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Cornetta 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Cornetta 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Trombone 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Trombone 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno soprano 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno soprano 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno sopranino 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno sopranino 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno baritono 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno baritono 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno basso 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Flicorno basso 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Euphonium 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Euphonium 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Corno 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Corno 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Corno 3°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Basso 1°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Basso 2°"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Tamburo"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Gran cassa"
+}, {
+  "deleted": false,
+  "insert_by": "init-taurus",
+  "insert_date": "2025-03-12T22:13:04",
+  "edit_by": "init-taurus",
+  "edit_date": "2025-03-12T22:13:04",
+  "name": "Piatti"
 }]
