@@ -1,8 +1,8 @@
 export const environment = {
     production: true,
-    baseUrl: "http://localhost:8080/api",
+    baseUrl: "http://backend:8080/api",
     keycloak: {
-        baseurl: "http://localhost:8081",
+        baseurl: "http://keycloak:8081",
         realm: "taurus",
         clientId: "web-app",
     }
