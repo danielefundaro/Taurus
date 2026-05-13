@@ -58,17 +58,17 @@ public class TenantIndexAspect {
 
     @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl+.*(..))")
     public Object resolveTenant(ProceedingJoinPoint joinPoint) throws Throwable {
-        Optional<AbstractAuthenticationToken> tokenOpt = Arrays.stream(joinPoint.getArgs())
+        AbstractAuthenticationToken tokenOpt = Arrays.stream(joinPoint.getArgs())
             .filter(arg -> arg instanceof AbstractAuthenticationToken)
             .map(arg -> (AbstractAuthenticationToken) arg)
-            .findFirst();
+            .findFirst().orElse(null);
 
         // Nessun token (es. getQueries, getMapper) — nessuna risoluzione necessaria
-        if (tokenOpt.isEmpty()) {
+        if (tokenOpt == null) {
             return joinPoint.proceed();
         }
 
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(tokenOpt.get());
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(tokenOpt);
         final String resolvedTenant = tenantId != null ? tenantId : "";
         log.debug("Resolved tenantId='{}' for method '{}'", resolvedTenant, joinPoint.getSignature().toShortString());
 
