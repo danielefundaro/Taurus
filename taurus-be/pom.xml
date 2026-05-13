@@ -6,7 +6,7 @@
 
   <groupId>com.fundaro.zodiac.taurus</groupId>
   <artifactId>taurus</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
   <name>Taurus</name>
   <description>Description for Taurus</description>
