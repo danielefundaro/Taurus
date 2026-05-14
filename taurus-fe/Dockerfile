@@ -1,17 +1,17 @@
 # =========================
 # BUILD STAGE
 # =========================
-FROM node:24.12.0-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copia dipendenze
+# Copia package files
 COPY package*.json ./
 
-# Installazione dipendenze
+# Install dipendenze
 RUN npm ci
 
-# Copia progetto
+# Copia sorgenti
 COPY . .
 
 # Build Angular production
@@ -22,14 +22,14 @@ RUN npm run build -- --configuration production
 # =========================
 FROM nginx:1.31.0-alpine3.23-slim
 
-# Pulizia default nginx
+# Pulizia contenuto default
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copia build Angular
 COPY --from=builder /app/dist/sakai-ng/browser /usr/share/nginx/html
 
-# Configurazione nginx
-#COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Config nginx opzionale
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 EXPOSE 443
