@@ -58,19 +58,59 @@ export class HttpInterceptorService implements HttpInterceptor {
                 this.loadingService.loading = false;
             }
         }), catchError((error: HttpErrorResponse) => {
+            let detail = "Errore durante la richiesta";
+
             if (error.status === 401 && !this.isRefresh(authReq)) {
                 return this.handle401Error(authReq, next);
             } else if (error.status === 403) {
                 this.router.navigate(['forbidden']);
             } else if ('error' in error) {
-                if (error.error.message === 'error.id.notFound') {
-                    this.router.navigate(["notfound"]);
+                if ('message' in error.error) {
+                    const message = error.error.message.replace("error.", '').toLowerCase();
+                    
+                    switch (message) {
+                        case 'id.notfound': detail = 'Elemento non trovato'; break;
+                        case 'id.exists': detail = 'Elemento già esistente'; break;
+                        case 'id.null':
+                        case 'id.invalid': detail = 'Elemento non valido'; break;
+                        case 'send.message':
+                        case 'file.upload': detail = 'Errore durante l\'upload del file'; break;
+                        case 'save.tenant': detail = 'Errore durante il salvataggio del tenant'; break;
+                        case 'code.exists': detail = 'Codice già esistente'; break;
+                        // Inizio errori su keycloak
+                        case 'get.users':
+                        case 'users.list': detail = 'Errore durante il recupero della lista utenti'; break;
+                        case 'get.user': detail = 'Errore durante il recupero dell\'utente'; break;
+                        case 'save.user': detail = 'Errore durante il salvataggio dell\'utente'; break;
+                        case 'update.user': detail = 'Errore durante l\'aggiornamento dell\'utente'; break;
+                        case 'delete.user': detail = 'Errore durante l\'eliminazione dell\'utente'; break;
+                        case 'send.user.reset.password': detail = 'Errore durante l\'invio dell\'email per il reset della password'; break;
+                        case 'send.user.verify.email': detail = 'Errore durante l\'invio dell\'email per la verifica dell\'account'; break;
+                        case 'save.group': detail = 'Errore durante il salvataggio del tenant'; break;
+                        case 'get.group': detail = 'Errore durante il recupero del tenant'; break;
+                        case 'get.client':
+                        case 'update.user.group':
+                        case 'get.user.roles':
+                        case 'save.user.roles':
+                        case 'delete.user.roles':
+                        case 'get.client.roles':
+                        case 'token.error':
+                        case 'token.invalid':
+                        case 'conflict.error':
+                        case 'credentials.error':
+                        case 'generic.error': detail = 'Errore durante l\'operazione. Contattare l\'amministratore'; break;
+                        // Fine errori su keycloak
+                    }
+
+                    this.toastService.error('Errore', detail);
+
+                    if (message === 'id.notfound') {
+                        this.router.navigate(["notfound"]);
+                    }
                 } else {
-                    let detail = "Errore durante la richiesta";
                     this.toastService.error('Errore', detail);
                 }
             } else {
-                let detail = "Errore durante la richiesta";
                 this.toastService.error('Errore', detail);
             }
 
