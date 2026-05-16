@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { HasRolesDirective } from 'keycloak-angular';
 import { MenuItem } from 'primeng/api';
 import { RoleEnums } from '../../constants';
+import { HasRolesDirective } from "../../directive/has-role.directive";
 import { MenuItemComponent } from '../menu-item/menu-item.component';
 
 @Component({

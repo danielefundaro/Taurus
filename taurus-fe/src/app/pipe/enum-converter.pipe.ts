@@ -8,6 +8,6 @@ export class EnumConverterPipe<T> implements PipeTransform {
     constructor() { }
 
     transform(enums: T): Array<T> {
-        return enums ? Object.values(enums) : [];
+        return enums ? Object.values(enums).filter((v): v is T => !!v) : [];
     }
 }
