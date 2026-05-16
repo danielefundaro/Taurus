@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { HasRolesDirective } from 'keycloak-angular';
 import { first } from 'rxjs';
 import { RoleEnums } from '../../constants';
+import { HasRolesDirective } from '../../directive';
 import { Tracks, TracksCriteria } from '../../module';
 import { AlbumsService, KeycloakService, TenantsService, TracksService, UsersService } from '../../service';
 import { NotificationsWidget } from './components/notificationswidget';
@@ -45,34 +45,43 @@ export class DashboardComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.keycloakService.currentUserRoles.some(role => {
-            const criteria = new TracksCriteria();
-            criteria.page = 0;
-            criteria.size = 10;
-            criteria.sort = ['insertDate,desc'];
+        const role = this.keycloakService.currentUserRole;
+        const criteria = new TracksCriteria();
+        criteria.page = 0;
+        criteria.size = 10;
+        criteria.sort = ['insertDate,desc'];
 
-            switch (role) {
-                case RoleEnums.SUPER_ADMIN:
-                    this.tenantsService.getAll().pipe(first()).subscribe(tenants => {
-                        this.totalTenants = tenants.totalElements;
-                    });
-                    break;
-                case RoleEnums.ADMIN:
-                    this.usersService.getAll().pipe(first()).subscribe(users => {
-                        this.totalUsers = users.totalElements;
-                    });
-                    break;
-                case RoleEnums.ARCHIVIST:
-                case RoleEnums.USER:
-                    this.albumsService.getAll().pipe(first()).subscribe(albums => {
-                        this.totalAlbums = albums.totalElements;
-                    });
-                    this.tracksService.getAll(criteria).pipe(first()).subscribe(tracks => {
-                        this.totalTracks = tracks.totalElements;
-                        this.tracks = tracks.content;
-                    });
-                    break;
-            }
+        switch (role) {
+            case RoleEnums.SUPER_ADMIN:
+                this.tenantsService.getAll().pipe(first()).subscribe(tenants => {
+                    this.totalTenants = tenants.totalElements;
+                });
+                this.adminMethods(criteria);
+                break;
+            case RoleEnums.ADMIN:
+                this.adminMethods(criteria);
+                break;
+            case RoleEnums.ARCHIVIST:
+            case RoleEnums.USER:
+                this.userMethods(criteria);
+                break;
+        }
+    }
+
+    private adminMethods(criteria: TracksCriteria) {
+        this.usersService.getAll().pipe(first()).subscribe(users => {
+            this.totalUsers = users.totalElements;
+        });
+        this.userMethods(criteria);
+    }
+
+    private userMethods(criteria: TracksCriteria) {
+        this.albumsService.getAll().pipe(first()).subscribe(albums => {
+            this.totalAlbums = albums.totalElements;
+        });
+        this.tracksService.getAll(criteria).pipe(first()).subscribe(tracks => {
+            this.totalTracks = tracks.totalElements;
+            this.tracks = tracks.content;
         });
     }
 }

@@ -1,11 +1,11 @@
 <div class="grid grid-cols-12 gap-8">
-    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
         [value]="totalTenants" [link]="'tenants'" />
-    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue"
         [value]="totalUsers" [link]="'users'" />
-    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />
-    <app-stats-widget *kaHasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
     <app-recents-widget [tracks]="tracks" />
     <div class="col-span-12 xl:col-span-6">

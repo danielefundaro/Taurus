@@ -2,12 +2,12 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { CommonModule } from '@angular/common';
 import { Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
-import { HasRolesDirective } from 'keycloak-angular';
 import { MenuItem } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { LayoutService } from '../../service';
+import { HasRolesDirective } from './../../directive';
 
 @Component({
     selector: '[app-menuitem]',

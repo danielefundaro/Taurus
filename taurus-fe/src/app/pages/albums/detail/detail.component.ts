@@ -119,7 +119,7 @@ export class DetailComponent implements OnInit {
     }
 
     protected canReorder(): boolean {
-        return this.keycloakService.currentUserRoles.some(role => [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(role));
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
     }
 
     protected deleteTrack(selectedTrack: ChildrenEntities): void {
