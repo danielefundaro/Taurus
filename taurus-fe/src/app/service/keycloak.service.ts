@@ -14,12 +14,12 @@ export class KeycloakService {
         return this.$isUserLoggedIn.value;
     }
 
-    public get currentUserRoles(): RoleEnums[] {
-        return (this.keycloak.resourceAccess![this.keycloak.clientId!].roles as RoleEnums[]) || [];
-    }
-
     public get token(): string | undefined {
         return this.keycloak.token;
+    }
+
+    public get currentUserRole(): RoleEnums {
+        return this.keycloak.idTokenParsed?.['role'] as RoleEnums || RoleEnums.UNKNOWN;
     }
 
     constructor() {

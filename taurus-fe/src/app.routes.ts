@@ -12,7 +12,12 @@ export const appRoutes: Routes = [
         path: '',
         component: LayoutComponent,
         children: [
-            { path: '', component: DashboardComponent },
+            {
+                path: '',
+                component: DashboardComponent,
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER] },
+            },
             {
                 path: 'tenants',
                 loadChildren: () => import('./app/pages/tenants/tenants.routes'),

@@ -7,7 +7,7 @@
             </ng-template>
         </ng-container>
         <ng-template #roleBlock>
-            <ng-container *kaHasRoles="item['hasRoles']">
+            <ng-container *hasRoles="item['hasRoles']">
                 <li app-menuitem *ngIf="!item.separator; else separatorBlock" [item]="item" [index]="i" [root]="true"></li>
                 <ng-template #separatorBlock>
                     <li class="menu-separator"></li>

@@ -5,7 +5,7 @@
                 <span class="font-semibold text-xl">Traccia</span>
                 <div class="flex flex-row gap-2">
                     <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()"
-                        *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
                         [disabled]="!track.scores?.length" />
                 </div>
@@ -24,7 +24,7 @@
                     <label for="arranger">Arrangiatore</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on"
-                    *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
                     <p-autocomplete [(ngModel)]="track!.state" [suggestions]="autoFilteredStates" [virtualScroll]="true"
                         [virtualScrollItemSize]="34" dropdown display="chip" (completeMethod)="filterStates($event)" />
                     <label for="states">Stato</label>
@@ -44,7 +44,7 @@
         </div>
     </div>
 
-    <p-toolbar styleClass="mt-10 mb-6" *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+    <p-toolbar styleClass="mt-10 mb-6" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
         <ng-template #start>
             <p-button severity="primary" label="Nuovo" icon="pi pi-plus" class="mr-2" outlined (onClick)="addNew()" />
             <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
@@ -120,10 +120,10 @@
                     <div class="flex flex-col md:flex-row gap-2">
                         <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
                             tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)"
-                            *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                             pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina" (onClick)="deleteScore(score)"
-                            *kaHasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     </div>
                 </td>
             </tr>

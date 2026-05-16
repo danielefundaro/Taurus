@@ -15,7 +15,7 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
     }
 
     override resourceName(): string {
-        if (this.keycloakService.currentUserRoles.every(role => role === RoleEnums.USER)) {
+        if (this.keycloakService.currentUserRole === RoleEnums.USER) {
             return "user/tracks";
         }
 
