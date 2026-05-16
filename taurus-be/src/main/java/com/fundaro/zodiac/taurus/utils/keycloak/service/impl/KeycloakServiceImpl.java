@@ -70,7 +70,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public User getUser(String id) {
-        String url = String.format("%s/user/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);

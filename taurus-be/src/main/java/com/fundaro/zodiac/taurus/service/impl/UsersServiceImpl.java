@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
@@ -19,11 +20,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Service Implementation for managing {@link Users}.
@@ -54,8 +57,8 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
         // Set user's roles on keycloak
         String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-        setUserRolesOnKeycloak(dto, userId);
-
+        user = keycloakService.getUser(userId);
+        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
 
         // Save keycloakId of the user
         dto.setKeycloakId(userId);
@@ -65,7 +68,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public Mono<UsersDTO> update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
-            updateUserOnKeycloak(dto, usersDTO);
+            updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
             return super.update(id, dto, abstractAuthenticationToken);
         });
     }
@@ -73,7 +76,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public Mono<UsersDTO> partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
-            updateUserOnKeycloak(dto, usersDTO);
+            updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
             return super.partialUpdate(id, dto, abstractAuthenticationToken);
         });
     }
@@ -109,34 +112,51 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         return queries;
     }
 
-    private void setUserRolesOnKeycloak(UsersDTO dto, String userId) {
-        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+    private void setUserRolesOnKeycloak(User user, Set<RoleEnum> dtoRoles, String userId, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        String groupId = keycloakService.getGroupIdByName(tenantId);
+        keycloakService.updateUserGroup(userId, groupId);
+        Map<String, List<String>> currentAttributes = user.getAttributes();
+
+        if (dtoRoles != null && !dtoRoles.isEmpty()) {
             List<Role> roles = keycloakService.getClientRoles();
-            roles = roles.stream().filter(role -> dto.getRoles().stream().anyMatch(roleEnum -> role.getName().equalsIgnoreCase(roleEnum.toString()))).toList();
+            roles = roles.stream().filter(role -> dtoRoles.stream().anyMatch(roleEnum -> role.getName().equalsIgnoreCase(roleEnum.toString()))).toList();
 
             if (!roles.isEmpty()) {
-                keycloakService.saveUserRoles(userId, roles);
+                if (currentAttributes == null) {
+                    currentAttributes = new HashMap<>();
+                }
+
+                currentAttributes.put(getAttributeKey(tenantId), roles.stream().map(Role::getName).toList());
+                user.setAttributes(currentAttributes);
             }
         }
+
+        keycloakService.updateUser(user);
     }
 
-    private void updateUserOnKeycloak(UsersDTO dto, UsersDTO usersDTO) {
+    private void updateUserOnKeycloak(UsersDTO dto, UsersDTO usersDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
         User user = getMapper().toKeycloakUser(dto);
         user.setId(usersDTO.getKeycloakId());
         keycloakService.updateUser(user);
 
         // Remove old roles, if any
-        List<Role> userRoles = keycloakService.getUserRoles(user.getId());
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        String userId = user.getId();
+        user = keycloakService.getUser(userId);
+        Map<String, List<String>> currentAttributes = user.getAttributes();
 
-        if (userRoles != null && !userRoles.isEmpty()) {
-            userRoles = userRoles.stream().filter(role -> dto.getRoles().stream().noneMatch(roleEnum -> role.getName().equalsIgnoreCase(roleEnum.toString()))).toList();
-
-            if (!userRoles.isEmpty()) {
-                keycloakService.deleteUserRoles(user.getId(), userRoles);
-            }
+        if (currentAttributes != null && currentAttributes.containsKey(getAttributeKey(tenantId))) {
+            currentAttributes.remove(getAttributeKey(tenantId));
+            user.setAttributes(currentAttributes);
+            keycloakService.updateUser(user);
         }
 
         // Set user's roles on keycloak
-        setUserRolesOnKeycloak(dto, user.getId());
+        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
+    }
+
+    private String getAttributeKey(String tenantId) {
+        return String.format("%s_roles", tenantId);
     }
 }
