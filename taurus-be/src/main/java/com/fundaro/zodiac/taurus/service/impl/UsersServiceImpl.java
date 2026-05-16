@@ -91,7 +91,9 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
         return findEntitiesByCriteria(usersCriteria, Pageable.ofSize(1), abstractAuthenticationToken).flatMap(page -> {
             if (page.getContent().isEmpty()) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Users.class.getSimpleName(), "id.notFound"));
+                UsersDTO usersDTO = new UsersDTO();
+                usersDTO.setKeycloakId(userId);
+                return Mono.just(usersDTO);
             }
 
             return Mono.just(page.getContent().get(0));
