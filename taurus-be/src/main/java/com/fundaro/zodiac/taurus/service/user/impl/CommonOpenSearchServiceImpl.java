@@ -4,7 +4,6 @@ import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.mapper.EntityOpenSearchMapper;

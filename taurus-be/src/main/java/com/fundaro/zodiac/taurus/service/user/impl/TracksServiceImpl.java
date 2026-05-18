@@ -92,7 +92,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
 
         StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.COMPLETE, StateEnum.PUBLIC}));
+        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.PUBLIC}));
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;

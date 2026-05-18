@@ -77,7 +77,7 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
         queries.addAll(Converter.stringFilterToQuery("tracks.index.keyword", criteria.getTrackId()));
 
         StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.COMPLETE, StateEnum.PUBLIC}));
+        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.PUBLIC}));
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;

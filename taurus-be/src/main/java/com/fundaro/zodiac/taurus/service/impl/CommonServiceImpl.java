@@ -55,7 +55,10 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists");
         }
 
-        setUserIdDto(dto, abstractAuthenticationToken);
+        if (dto.getUserId() == null) {
+            setUserIdDto(dto, abstractAuthenticationToken);
+        }
+
         return saveEntity(mapper.toEntity(dto), abstractAuthenticationToken).map(mapper::toDto);
     }
 
