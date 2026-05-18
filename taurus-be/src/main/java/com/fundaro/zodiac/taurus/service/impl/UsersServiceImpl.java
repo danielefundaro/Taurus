@@ -16,7 +16,6 @@ import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -106,7 +105,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         queries.addAll(Converter.stringFilterToQuery("lastName", criteria.getLastName()));
         queries.addAll(Converter.dateFilterToQuery("birthDate", criteria.getBirthDate()));
         queries.addAll(Converter.stringFilterToQuery("email", criteria.getEmail()));
-        queries.addAll(Converter.stringFilterToQuery("roles", criteria.getRoles()));
+        queries.addAll(Converter.generalFilterToQuery("roles", criteria.getRoles()));
         queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
         queries.addAll(Converter.stringFilterToQuery("instruments.index", criteria.getInstrumentId()));
         queries.addAll(Converter.stringFilterToQuery("keycloakId", criteria.getKeycloakId()));

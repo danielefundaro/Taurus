@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.StringFilter;
@@ -24,7 +24,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter email;
 
-    private StringFilter roles;
+    private RoleFilter roles;
 
     private BooleanFilter active;
 
@@ -42,7 +42,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.lastName = other.optionalLastName().map(StringFilter::copy).orElse(null);
         this.birthDate = other.optionalBirthDate().map(DateFilter::copy).orElse(null);
         this.email = other.optionalEmail().map(StringFilter::copy).orElse(null);
-        this.roles = other.optionalRoles().map(StringFilter::copy).orElse(null);
+        this.roles = other.optionalRoles().map(RoleFilter::copy).orElse(null);
         this.active = other.optionalActive().map(BooleanFilter::copy).orElse(null);
         this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
         this.keycloakId = other.optionalKeycloakId().map(StringFilter::copy).orElse(null);
@@ -89,15 +89,15 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.email = email;
     }
 
-    public StringFilter getRoles() {
+    public RoleFilter getRoles() {
         return roles;
     }
 
-    public Optional<StringFilter> optionalRoles() {
+    public Optional<RoleFilter> optionalRoles() {
         return Optional.ofNullable(roles);
     }
 
-    public void setRoles(StringFilter roles) {
+    public void setRoles(RoleFilter roles) {
         this.roles = roles;
     }
 
