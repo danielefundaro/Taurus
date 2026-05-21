@@ -63,6 +63,11 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
             .then(addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken));
     }
 
+    @Override
+    public Mono<Void> addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER}).toList(), abstractAuthenticationToken);
+    }
+
     private Mono<Void> addNoticesByRoles(String name, String message, List<RoleEnum> roles, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersCriteria criteria = new UsersCriteria();
         RoleFilter roleFilter = new RoleFilter();
