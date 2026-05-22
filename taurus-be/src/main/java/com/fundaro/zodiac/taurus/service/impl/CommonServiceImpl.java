@@ -158,7 +158,10 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         entity.setEditBy(userId);
         entity.setEditDate(ZonedDateTime.now());
-        entity.setUserId(userId);
+
+        if (entity.getUserId() == null) {
+            entity.setUserId(userId);
+        }
 
         if (Strings.isBlank(entity.getInsertBy())) {
             entity.setInsertBy(userId);

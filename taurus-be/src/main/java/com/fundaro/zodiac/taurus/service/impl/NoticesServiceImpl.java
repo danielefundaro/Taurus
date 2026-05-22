@@ -10,7 +10,6 @@ import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
-import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -78,27 +78,25 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     }
 
     private Mono<Void> addNoticesSuperAdminsOfKeycloak(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.fromCallable(() -> {
-            try {
-                List<User> users = keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN);
-                return Flux.fromIterable(users).flatMap(user -> {
-                    NoticesDTO notice = new NoticesDTO();
-                    notice.setName(name);
-                    notice.setMessage(message);
-                    notice.setUserId(user.getId());
 
-                    return super.save(notice, abstractAuthenticationToken);
-                }).then();
-            } catch (Exception e) {
-                return Mono.empty();
-            }
-        }).then();
+        return Mono.fromCallable(() -> keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN))
+            .subscribeOn(Schedulers.boundedElastic())
+            .flatMapMany(Flux::fromIterable)
+            .flatMap(user -> {
+                NoticesDTO notice = new NoticesDTO();
+                notice.setName(name);
+                notice.setMessage(message);
+                notice.setUserId(user.getId());
+
+                return super.save(notice, abstractAuthenticationToken);
+            })
+            .then();
     }
 
     private Mono<Void> addNotices(String name, String message, UsersCriteria usersCriteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return usersService.findEntitiesByCriteria(usersCriteria, PageRequest.of(0, Integer.MAX_VALUE), abstractAuthenticationToken)
+        return usersService.findEntitiesByCriteria(usersCriteria, PageRequest.of(0, 1000), abstractAuthenticationToken)
             .flatMapMany(page -> Flux.fromIterable(page.getContent()))
-            .flatMap(user -> {
+            .map(user -> {
                 NoticesDTO notice = new NoticesDTO();
                 notice.setName(name);
                 notice.setMessage(message);

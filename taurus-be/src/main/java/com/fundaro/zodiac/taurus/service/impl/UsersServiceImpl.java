@@ -102,13 +102,13 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     protected List<Query> getQueries(UsersCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("lastName", criteria.getLastName()));
-        queries.addAll(Converter.dateFilterToQuery("birthDate", criteria.getBirthDate()));
-        queries.addAll(Converter.stringFilterToQuery("email", criteria.getEmail()));
-        queries.addAll(Converter.generalFilterToQuery("roles", criteria.getRoles()));
-        queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
+        queries.addAll(Converter.stringFilterToQuery("lastName.keyword", criteria.getLastName()));
+        queries.addAll(Converter.dateFilterToQuery("birthDate.keyword", criteria.getBirthDate()));
+        queries.addAll(Converter.stringFilterToQuery("email.keyword", criteria.getEmail()));
+        queries.addAll(Converter.generalFilterToQuery("roles.keyword", criteria.getRoles()));
+        queries.addAll(Converter.booleanFilterToQuery("active.keyword", criteria.getActive()));
         queries.addAll(Converter.stringFilterToQuery("instruments.index", criteria.getInstrumentId()));
-        queries.addAll(Converter.stringFilterToQuery("keycloakId", criteria.getKeycloakId()));
+        queries.addAll(Converter.stringFilterToQuery("keycloakId.keyword", criteria.getKeycloakId()));
 
         return queries;
     }
