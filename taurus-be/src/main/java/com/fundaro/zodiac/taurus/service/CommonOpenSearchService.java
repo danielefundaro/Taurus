@@ -68,7 +68,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
      * @param abstractAuthenticationToken the token of the user.
      * @return a Mono to signal the deletion
      */
-    Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+    Mono<D> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     /**
      * Update the "childId" entity.

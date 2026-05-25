@@ -151,7 +151,7 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     }
 
     @Override
-    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public Mono<D> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         return Mono.deferContextual(ctx -> {
             String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
             log.debug("Request to delete {} : {}", entityName, id);
@@ -162,10 +162,10 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
                 entity.setDeleted(true);
                 saveEntity(id, entity, abstractAuthenticationToken, tenantId);
             } catch (IOException e) {
-                return Mono.just(false);
+                return Mono.empty();
             }
 
-            return Mono.just(entity.getDeleted());
+            return Mono.just(mapper.toDto(entity));
         });
     }
 

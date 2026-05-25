@@ -1,10 +1,7 @@
 package com.fundaro.zodiac.taurus.aop.notices;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.service.AlbumsService;
-import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
-import com.fundaro.zodiac.taurus.service.NoticesService;
-import com.fundaro.zodiac.taurus.service.TracksService;
+import com.fundaro.zodiac.taurus.service.*;
 import com.fundaro.zodiac.taurus.service.dto.*;
 import org.apache.logging.log4j.util.Strings;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -22,12 +19,21 @@ public class NoticesAspect {
 
     private final NoticesService noticesService;
 
+    private final UsersService usersService;
+
+    private final TenantsService tenantsService;
+
+    private final InstrumentsService instrumentsService;
+
     private final AlbumsService albumsService;
 
     private final TracksService tracksService;
 
-    public NoticesAspect(NoticesService noticesService, AlbumsService albumsService, TracksService tracksService) {
+    public NoticesAspect(NoticesService noticesService, UsersService usersService, TenantsService tenantsService, InstrumentsService instrumentsService, AlbumsService albumsService, TracksService tracksService) {
         this.noticesService = noticesService;
+        this.usersService = usersService;
+        this.tenantsService = tenantsService;
+        this.instrumentsService = instrumentsService;
         this.albumsService = albumsService;
         this.tracksService = tracksService;
     }
@@ -187,7 +193,7 @@ public class NoticesAspect {
     @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.save(..)) || " +
         "execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.update(..)) || " +
         "execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.partialUpdate(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.delete(..))")
+        "execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.save(..))")
     public Object addNoticesOnInstrumentsAction(ProceedingJoinPoint joinPoint) throws Throwable {
         InstrumentsDTO instrumentsDTO = (InstrumentsDTO) getCommonFieldsOpenSearchDTO(joinPoint);
         AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
@@ -215,7 +221,31 @@ public class NoticesAspect {
                 return Mono.just(result);
             }
 
-            return noticesService.addNoticesExcludeRoleUsers(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken).thenReturn(proceed);
+            return noticesService.addNoticesExcludeRoleUsers(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
+                .thenReturn(result);
+        });
+    }
+
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.delete(..))")
+    public Object addNoticesOnInstrumentsDelete(ProceedingJoinPoint joinPoint) throws Throwable {
+        String id = getId(joinPoint);
+        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
+        Object proceed = joinPoint.proceed();
+
+        if (!(proceed instanceof Mono<?> mono) || id == null || abstractAuthenticationToken == null) {
+            return proceed;
+        }
+
+        return mono.flatMap(result -> {
+            InstrumentsDTO instrumentsDTO = (InstrumentsDTO) result;
+            ResultNameMessage resultNameMessage = new ResultNameMessage("Strumento rimosso", String.format("L'utente \"%s\" è stato rimosso", instrumentsDTO.getName()));
+
+            if (Strings.isBlank(resultNameMessage.name()) || Strings.isBlank(resultNameMessage.message())) {
+                return Mono.just(result);
+            }
+
+            return noticesService.addNoticesExcludeRoleUsers(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
+                .thenReturn(result);
         });
     }
 
@@ -250,7 +280,8 @@ public class NoticesAspect {
                 return Mono.just(result);
             }
 
-            return noticesService.addNoticesAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken);
+            return noticesService.addNoticesAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
+                .thenReturn(result);
         });
     }
 
@@ -285,7 +316,8 @@ public class NoticesAspect {
                 return Mono.just(result);
             }
 
-            return noticesService.addNoticesSuperAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken);
+            return noticesService.addNoticesSuperAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
+                .thenReturn(result);
         });
     }
 
