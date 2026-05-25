@@ -96,13 +96,13 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     private Mono<Void> addNotices(String name, String message, UsersCriteria usersCriteria, AbstractAuthenticationToken abstractAuthenticationToken) {
         return usersService.findEntitiesByCriteria(usersCriteria, PageRequest.of(0, 1000), abstractAuthenticationToken)
             .flatMapMany(page -> Flux.fromIterable(page.getContent()))
-            .map(user -> {
+            .flatMap(user -> {
                 NoticesDTO notice = new NoticesDTO();
                 notice.setName(name);
                 notice.setMessage(message);
                 notice.setUserId(user.getKeycloakId());
 
-                return super.save(notice, abstractAuthenticationToken);
+                return super.save(notice, abstractAuthenticationToken).then();
             })
             .then();
     }

@@ -72,28 +72,30 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     }
 
     @Override
-    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).map(b -> {
-            if (b) {
-                // Delete all related information
-                tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setMediaId(stringFilter), (tracksDTO, s) -> {
-                    boolean result = false;
-
-                    if (tracksDTO.getScores() != null) {
-                        for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                            if (sheetsMusicDTO.getMedia() != null) {
-                                result |= sheetsMusicDTO.getMedia().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
-                            }
-                        }
-
-                        result |= tracksDTO.getScores().removeIf(sheetsMusicDTO -> sheetsMusicDTO.getMedia().isEmpty());
-                    }
-
-                    return result;
-                });
+    public Mono<MediaDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
+            if (b == null) {
+                return Mono.empty();
             }
 
-            return b;
+            // Delete all related information
+            tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setMediaId(stringFilter), (tracksDTO, s) -> {
+                boolean result = false;
+
+                if (tracksDTO.getScores() != null) {
+                    for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
+                        if (sheetsMusicDTO.getMedia() != null) {
+                            result |= sheetsMusicDTO.getMedia().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
+                        }
+                    }
+
+                    result |= tracksDTO.getScores().removeIf(sheetsMusicDTO -> sheetsMusicDTO.getMedia().isEmpty());
+                }
+
+                return result;
+            });
+
+            return Mono.just(b);
         });
     }
 

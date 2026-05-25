@@ -49,26 +49,28 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
     }
 
     @Override
-    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).map(b -> {
-            if (b) {
-                // Delete all related information
-                tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
-                    boolean result = false;
-
-                    if (tracksDTO.getScores() != null) {
-                        for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                            if (sheetsMusicDTO.getInstruments() != null) {
-                                result |= sheetsMusicDTO.getInstruments().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
-                            }
-                        }
-                    }
-
-                    return result;
-                });
+    public Mono<InstrumentsDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
+            if (b == null) {
+                return Mono.empty();
             }
 
-            return b;
+            // Delete all related information
+            tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
+                boolean result = false;
+
+                if (tracksDTO.getScores() != null) {
+                    for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
+                        if (sheetsMusicDTO.getInstruments() != null) {
+                            result |= sheetsMusicDTO.getInstruments().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
+                        }
+                    }
+                }
+
+                return result;
+            });
+
+            return Mono.just(b);
         });
     }
 
