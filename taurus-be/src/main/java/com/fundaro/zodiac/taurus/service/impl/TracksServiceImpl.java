@@ -106,14 +106,16 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
-    public Mono<Boolean> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).map(b -> {
-            if (b) {
-                // Delete all related information
-                albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
+    public Mono<TracksDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
+            if (b == null) {
+                return Mono.empty();
             }
 
-            return b;
+            // Delete all related information
+            albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
+
+            return Mono.just(b);
         });
     }
 
