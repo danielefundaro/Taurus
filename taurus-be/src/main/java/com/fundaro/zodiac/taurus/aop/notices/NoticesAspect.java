@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.aop.notices;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.service.*;
 import com.fundaro.zodiac.taurus.service.dto.*;
-import org.apache.logging.log4j.util.Strings;
+import com.fundaro.zodiac.taurus.service.impl.*;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -38,9 +38,8 @@ public class NoticesAspect {
         this.tracksService = tracksService;
     }
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.AlbumsServiceImpl.save(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.save(..))")
-    public Object addNoticesOnSave(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.save(..))")
+    private Object onSave(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
         Object proceed = joinPoint.proceed();
 
@@ -49,42 +48,41 @@ public class NoticesAspect {
         }
 
         return mono.flatMap(result -> {
-            if (!(result instanceof StateFieldOpenSearchDTO stateFieldOpenSearchDTO)) {
+            if (!(result instanceof CommonFieldsOpenSearchDTO commonFieldsOpenSearchDTO)) {
                 return Mono.just(result);
-            }
-
-            String className = joinPoint.getTarget().getClass().getSimpleName();
-            String name, nameWithStatus, message, messageWithStatus;
-
-            if (className.toLowerCase().contains("album")) {
-                name = "Nuovo album creato";
-                nameWithStatus = "Nuovo album pubblicato";
-                message = String.format("L'album \"%s\" è stato creato", stateFieldOpenSearchDTO.getName());
-                messageWithStatus = String.format("Il nuovo album \"%s\" è stato pubblicato", stateFieldOpenSearchDTO.getName());
-            } else {
-                name = "Nuova traccia creata";
-                nameWithStatus = "Nuova traccia pubblicata";
-                message = String.format("La traccia \"%s\" è stata creata", stateFieldOpenSearchDTO.getName());
-                messageWithStatus = String.format("La nuova traccia \"%s\" è stata pubblicata", stateFieldOpenSearchDTO.getName());
             }
 
             Mono<?> noticeMono;
 
-            if (stateFieldOpenSearchDTO.getState() == StateEnum.PUBLIC) {
-                noticeMono = noticesService.addNoticeWholeTenant(name, message, abstractAuthenticationToken);
+            if (commonFieldsOpenSearchDTO instanceof AlbumsDTO albumsDTO) {
+                if (albumsDTO.getState() == StateEnum.PUBLIC) {
+                    noticeMono = noticesService.addNoticeWholeTenant("Nuovo album creato", String.format("L'album \"%s\" è stato creato", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                } else {
+                    noticeMono = noticesService.addNoticesExcludeRoleUsers("Nuovo album creato", String.format("L'album \"%s\" è stato creato", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                }
+            } else if (commonFieldsOpenSearchDTO instanceof TracksDTO tracksDTO) {
+                if (tracksDTO.getState() == StateEnum.PUBLIC) {
+                    noticeMono = noticesService.addNoticeWholeTenant("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                } else {
+                    noticeMono = noticesService.addNoticesExcludeRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                }
+            } else if (commonFieldsOpenSearchDTO instanceof InstrumentsDTO) {
+                noticeMono = noticesService.addNoticesExcludeRoleUsers("Nuovo strumento", String.format("Lo strumento \"%s\" è stato aggiunto", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+            } else if (commonFieldsOpenSearchDTO instanceof UsersDTO usersDTO) {
+                noticeMono = noticesService.addNoticesAdmins("Nuovo utente", String.format("L'utente \"%s %s\" è stato aggiunto", usersDTO.getName(), usersDTO.getLastName()), abstractAuthenticationToken);
+            } else if (commonFieldsOpenSearchDTO instanceof TenantsDTO tenantsDTO) {
+                noticeMono = noticesService.addNoticesSuperAdmins("Nuovo tenant", String.format("Il tenant \"%s\" e codice \"%s\" è stato aggiunto", tenantsDTO.getName(), tenantsDTO.getCode()), abstractAuthenticationToken);
             } else {
-                noticeMono = noticesService.addNoticesExcludeRoleUsers(nameWithStatus, messageWithStatus, abstractAuthenticationToken);
+                return Mono.just(result);
             }
 
             return noticeMono.thenReturn(result);
         });
     }
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.AlbumsServiceImpl.update(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.update(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.AlbumsServiceImpl.partialUpdate(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.partialUpdate(..))")
-    public Object addNoticesOnUpdate(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.update(..)) || " +
+        "execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.partialUpdate(..))")
+    private Object onUpdate(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
         String id = getId(joinPoint);
         Object proceed = joinPoint.proceed();
@@ -93,96 +91,78 @@ public class NoticesAspect {
             return proceed;
         }
 
-        return mono.flatMap(result -> {
-            if (!(result instanceof StateFieldOpenSearchDTO stateFieldOpenSearchDTO)) {
-                return Mono.just(result);
-            }
+        Mono<?> monoFindOne;
 
-            String className = joinPoint.getTarget().getClass().getSimpleName();
-            return getStateFieldOpenSearchDTO(className, id, abstractAuthenticationToken).flatMap(oldState -> {
-                if (oldState == null) {
-                    return Mono.just(result);
-                }
-
-                String nameForUsers, namePublic, nameUpdate, nameDelete, messageForUsers, messagePublic, messageUpdate, messageDelete;
-
-                if (className.toLowerCase().contains("album")) {
-                    nameForUsers = "Nuovo album creato";
-                    namePublic = "Album pubblicato";
-                    nameUpdate = "Album aggiornato";
-                    nameDelete = "Album rimosso";
-                    messageForUsers = String.format("L'album \"%s\" è stato creato", stateFieldOpenSearchDTO.getName());
-                    messagePublic = String.format("L'album \"%s\" è stato pubblicato", stateFieldOpenSearchDTO.getName());
-                    messageUpdate = String.format("L'album \"%s\" è stato aggiornato", stateFieldOpenSearchDTO.getName());
-                    messageDelete = String.format("L'album \"%s\" è stato rimosso", stateFieldOpenSearchDTO.getName());
-                } else {
-                    nameForUsers = "Nuova traccia creata";
-                    namePublic = "Traccia pubblicata";
-                    nameUpdate = "Traccia aggiornata";
-                    nameDelete = "Traccia rimossa";
-                    messageForUsers = String.format("La traccia \"%s\" è stata creata", stateFieldOpenSearchDTO.getName());
-                    messagePublic = String.format("La traccia \"%s\" è stata pubblicata", stateFieldOpenSearchDTO.getName());
-                    messageUpdate = String.format("La traccia \"%s\" è stata aggiornata", stateFieldOpenSearchDTO.getName());
-                    messageDelete = String.format("La traccia \"%s\" è stata rimossa", stateFieldOpenSearchDTO.getName());
-                }
-
-                Mono<?> noticeMono;
-
-                if (oldState.getState() != StateEnum.PUBLIC) {
-                    if (stateFieldOpenSearchDTO.getState() == StateEnum.PUBLIC) {
-                        noticeMono = noticesService.addNoticeOnlyRoleUsers(nameForUsers, messageForUsers, abstractAuthenticationToken)
-                            .then(Mono.fromCallable(() -> noticesService.addNoticesExcludeRoleUsers(namePublic, messagePublic, abstractAuthenticationToken)));
-                    } else {
-                        noticeMono = noticesService.addNoticesExcludeRoleUsers(nameUpdate, messageUpdate, abstractAuthenticationToken);
-                    }
-                } else {
-                    if (stateFieldOpenSearchDTO.getState() == StateEnum.PUBLIC) {
-                        noticeMono = noticesService.addNoticeWholeTenant(nameUpdate, messageUpdate, abstractAuthenticationToken);
-                    } else {
-                        noticeMono = noticesService.addNoticeOnlyRoleUsers(nameDelete, messageDelete, abstractAuthenticationToken)
-                            .then(Mono.fromCallable(() -> noticesService.addNoticesExcludeRoleUsers(nameUpdate, messageUpdate, abstractAuthenticationToken)));
-                    }
-                }
-
-                return noticeMono.thenReturn(result);
-            });
-        });
-    }
-
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.AlbumsServiceImpl.delete(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.delete(..))")
-    public Object addNoticesOnDelete(ProceedingJoinPoint joinPoint) throws Throwable {
-        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
-        String id = getId(joinPoint);
-        Object proceed = joinPoint.proceed();
-
-        if (!(proceed instanceof Mono<?> mono) || abstractAuthenticationToken == null || id == null) {
-            return proceed;
+        if (joinPoint.getTarget() instanceof AlbumsServiceImpl) {
+            monoFindOne = albumsService.findOne(id, abstractAuthenticationToken);
+        } else if (joinPoint.getTarget() instanceof TracksServiceImpl) {
+            monoFindOne = tracksService.findOne(id, abstractAuthenticationToken);
+        } else if (joinPoint.getTarget() instanceof InstrumentsServiceImpl) {
+            monoFindOne = instrumentsService.findOne(id, abstractAuthenticationToken);
+        } else if (joinPoint.getTarget() instanceof UsersServiceImpl) {
+            monoFindOne = usersService.findOne(id, abstractAuthenticationToken);
+        } else if (joinPoint.getTarget() instanceof TenantsServiceImpl) {
+            monoFindOne = tenantsService.findOne(id, abstractAuthenticationToken);
+        } else {
+            monoFindOne = Mono.empty();
         }
 
-        String className = joinPoint.getTarget().getClass().getSimpleName();
-        return getStateFieldOpenSearchDTO(className, id, abstractAuthenticationToken).flatMap(currentState -> {
-            if (currentState == null) {
-                return mono;
+        return monoFindOne.flatMap(o -> {
+            if (!(o instanceof CommonFieldsOpenSearchDTO oldCommonField)) {
+                return Mono.just(o);
             }
 
             return mono.flatMap(result -> {
-                String name, message;
-
-                if (className.toLowerCase().contains("album")) {
-                    name = "Album rimosso";
-                    message = String.format("L'album \"%s\" è stato rimosso", currentState.getName());
-                } else {
-                    name = "Traccia rimossa";
-                    message = String.format("La traccia \"%s\" è stata rimossa", currentState.getName());
+                if (!(result instanceof CommonFieldsOpenSearchDTO commonFieldsOpenSearchDTO)) {
+                    return Mono.just(result);
                 }
 
                 Mono<?> noticeMono;
 
-                if (currentState.getState() == StateEnum.PUBLIC) {
-                    noticeMono = noticesService.addNoticeWholeTenant(name, message, abstractAuthenticationToken);
+                if (commonFieldsOpenSearchDTO instanceof AlbumsDTO albumsDTO) {
+                    AlbumsDTO oldAlbum = (AlbumsDTO) oldCommonField;
+
+                    if (oldAlbum.getState() != StateEnum.PUBLIC) {
+                        if (albumsDTO.getState() != StateEnum.PUBLIC) {
+                            noticeMono = noticesService.addNoticesExcludeRoleUsers("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                        } else {
+                            noticeMono = noticesService.addNoticeOnlyRoleUsers("Nuovo album creato", String.format("L'album \"%s\" è stato creato", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)
+                                .then(Mono.defer(() -> noticesService.addNoticesExcludeRoleUsers("Album pubblicato", String.format("L'album \"%s\" è stato pubblicato", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)));
+                        }
+                    } else {
+                        if (albumsDTO.getState() != StateEnum.PUBLIC) {
+                            noticeMono = noticesService.addNoticeOnlyRoleUsers("Album rimosso", String.format("L'album \"%s\" è stato rimosso", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)
+                                .then(Mono.defer(() -> noticesService.addNoticesExcludeRoleUsers("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)));
+                        } else {
+                            noticeMono = noticesService.addNoticeWholeTenant("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                        }
+                    }
+                } else if (commonFieldsOpenSearchDTO instanceof TracksDTO tracksDTO) {
+                    TracksDTO oldTrack = (TracksDTO) oldCommonField;
+
+                    if (oldTrack.getState() != StateEnum.PUBLIC) {
+                        if (tracksDTO.getState() != StateEnum.PUBLIC) {
+                            noticeMono = noticesService.addNoticesExcludeRoleUsers("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                        } else {
+                            noticeMono = noticesService.addNoticeOnlyRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stato creata", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)
+                                .then(Mono.defer(() -> noticesService.addNoticesExcludeRoleUsers("Traccia pubblicata", String.format("L'album \"%s\" è stata pubblicata", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)));
+                        }
+                    } else {
+                        if (tracksDTO.getState() != StateEnum.PUBLIC) {
+                            noticeMono = noticesService.addNoticeOnlyRoleUsers("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)
+                                .then(Mono.defer(() -> noticesService.addNoticesExcludeRoleUsers("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken)));
+                        } else {
+                            noticeMono = noticesService.addNoticeWholeTenant("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                        }
+                    }
+                } else if (commonFieldsOpenSearchDTO instanceof InstrumentsDTO) {
+                    noticeMono = noticesService.addNoticesExcludeRoleUsers("Strumento aggiornato", String.format("Lo strumento \"%s\" è stato aggiornato", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                } else if (commonFieldsOpenSearchDTO instanceof UsersDTO usersDTO) {
+                    noticeMono = noticesService.addNoticesAdmins("Utente aggiornato", String.format("L'utente \"%s %s\" è stato aggiornato", usersDTO.getName(), usersDTO.getLastName()), abstractAuthenticationToken);
+                } else if (commonFieldsOpenSearchDTO instanceof TenantsDTO tenantsDTO) {
+                    noticeMono = noticesService.addNoticesSuperAdmins("Tenant aggiornato", String.format("Il tenant \"%s\" con codice \"%s\" è stato aggiornato", tenantsDTO.getName(), tenantsDTO.getCode()), abstractAuthenticationToken);
                 } else {
-                    noticeMono = noticesService.addNoticesExcludeRoleUsers(name, message, abstractAuthenticationToken);
+                    return Mono.just(result);
                 }
 
                 return noticeMono.thenReturn(result);
@@ -190,147 +170,47 @@ public class NoticesAspect {
         });
     }
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.save(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.update(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.partialUpdate(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.save(..))")
-    public Object addNoticesOnInstrumentsAction(ProceedingJoinPoint joinPoint) throws Throwable {
-        InstrumentsDTO instrumentsDTO = (InstrumentsDTO) getCommonFieldsOpenSearchDTO(joinPoint);
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.delete(..))")
+    private Object onDelete(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
-        Object proceed = joinPoint.proceed();
-
-        if (!(proceed instanceof Mono<?> mono) || instrumentsDTO == null || abstractAuthenticationToken == null) {
-            return proceed;
-        }
-
-        return mono.flatMap(result -> {
-            String methodName = joinPoint.getSignature().getName();
-            ResultNameMessage resultNameMessage = switch (methodName) {
-                case "save":
-                    yield new ResultNameMessage("Nuovo strumento", String.format("Lo strumento \"%s\" è stato aggiunto", instrumentsDTO.getName()));
-                case "update":
-                case "partialUpdate":
-                    yield new ResultNameMessage("Strumento aggiornato", String.format("Le informazioni dello strumento \"%s\" sono state aggiornate", instrumentsDTO.getName()));
-                case "delete":
-                    yield new ResultNameMessage("Strumento rimosso", String.format("L'utente \"%s\" è stato rimosso", instrumentsDTO.getName()));
-                default:
-                    yield new ResultNameMessage(null, null);
-            };
-
-            if (Strings.isBlank(resultNameMessage.name()) || Strings.isBlank(resultNameMessage.message())) {
-                return Mono.just(result);
-            }
-
-            return noticesService.addNoticesExcludeRoleUsers(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
-                .thenReturn(result);
-        });
-    }
-
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.InstrumentsServiceImpl.delete(..))")
-    public Object addNoticesOnInstrumentsDelete(ProceedingJoinPoint joinPoint) throws Throwable {
         String id = getId(joinPoint);
-        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
         Object proceed = joinPoint.proceed();
 
-        if (!(proceed instanceof Mono<?> mono) || id == null || abstractAuthenticationToken == null) {
+        if (!(proceed instanceof Mono<?> mono) || abstractAuthenticationToken == null || id == null) {
             return proceed;
         }
 
         return mono.flatMap(result -> {
-            InstrumentsDTO instrumentsDTO = (InstrumentsDTO) result;
-            ResultNameMessage resultNameMessage = new ResultNameMessage("Strumento rimosso", String.format("L'utente \"%s\" è stato rimosso", instrumentsDTO.getName()));
-
-            if (Strings.isBlank(resultNameMessage.name()) || Strings.isBlank(resultNameMessage.message())) {
+            if (!(result instanceof CommonFieldsOpenSearchDTO commonFieldsOpenSearchDTO)) {
                 return Mono.just(result);
             }
 
-            return noticesService.addNoticesExcludeRoleUsers(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
-                .thenReturn(result);
-        });
-    }
+            Mono<?> noticeMono;
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.UsersServiceImpl.save(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.UsersServiceImpl.update(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.UsersServiceImpl.partialUpdate(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.UsersServiceImpl.delete(..))")
-    public Object addNoticesOnUsersAction(ProceedingJoinPoint joinPoint) throws Throwable {
-        UsersDTO usersDTO = (UsersDTO) getCommonFieldsOpenSearchDTO(joinPoint);
-        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
-        Object proceed = joinPoint.proceed();
-
-        if (!(proceed instanceof Mono<?> mono) || usersDTO == null || abstractAuthenticationToken == null) {
-            return proceed;
-        }
-
-        return mono.flatMap(result -> {
-            String methodName = joinPoint.getSignature().getName();
-            ResultNameMessage resultNameMessage = switch (methodName) {
-                case "save":
-                    yield new ResultNameMessage("Nuovo utente", String.format("L'utente \"%s %s\" è stato aggiunto", usersDTO.getName(), usersDTO.getLastName()));
-                case "update":
-                case "partialUpdate":
-                    yield new ResultNameMessage("Utente aggiornato", String.format("Le informazioni dell'utente \"%s %s\" sono state aggiornate", usersDTO.getName(), usersDTO.getLastName()));
-                case "delete":
-                    yield new ResultNameMessage("Utente rimosso", String.format("L'utente \"%s %s\" è stato rimosso", usersDTO.getName(), usersDTO.getLastName()));
-                default:
-                    yield new ResultNameMessage(null, null);
-            };
-
-            if (Strings.isBlank(resultNameMessage.name()) || Strings.isBlank(resultNameMessage.message())) {
+            if (commonFieldsOpenSearchDTO instanceof AlbumsDTO albumsDTO) {
+                if (albumsDTO.getState() == StateEnum.PUBLIC) {
+                    noticeMono = noticesService.addNoticeWholeTenant("Album rimosso", String.format("L'album \"%s\" è stato rimosso", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                } else {
+                    noticeMono = noticesService.addNoticesExcludeRoleUsers("Album rimosso", String.format("L'album \"%s\" è stato rimosso", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                }
+            } else if (commonFieldsOpenSearchDTO instanceof TracksDTO tracksDTO) {
+                if (tracksDTO.getState() == StateEnum.PUBLIC) {
+                    noticeMono = noticesService.addNoticeWholeTenant("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                } else {
+                    noticeMono = noticesService.addNoticesExcludeRoleUsers("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+                }
+            } else if (commonFieldsOpenSearchDTO instanceof InstrumentsDTO) {
+                noticeMono = noticesService.addNoticesExcludeRoleUsers("Strumento rimosso", String.format("Lo strumento \"%s\" è stato rimosso", commonFieldsOpenSearchDTO.getName()), abstractAuthenticationToken);
+            } else if (commonFieldsOpenSearchDTO instanceof UsersDTO usersDTO) {
+                noticeMono = noticesService.addNoticesAdmins("Utente rimosso", String.format("L'utente \"%s %s\" è stato rimosso", usersDTO.getName(), usersDTO.getLastName()), abstractAuthenticationToken);
+            } else if (commonFieldsOpenSearchDTO instanceof TenantsDTO tenantsDTO) {
+                noticeMono = noticesService.addNoticesSuperAdmins("Tenant rimosso", String.format("Il tenant \"%s\" con codice \"%s\" è stato rimosso", tenantsDTO.getName(), tenantsDTO.getCode()), abstractAuthenticationToken);
+            } else {
                 return Mono.just(result);
             }
 
-            return noticesService.addNoticesAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
-                .thenReturn(result);
+            return noticeMono.thenReturn(result);
         });
-    }
-
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.TenantsServiceImpl.save(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TenantsServiceImpl.update(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TenantsServiceImpl.partialUpdate(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.impl.TenantsServiceImpl.delete(..))")
-    public Object addNoticesOnTenantsAction(ProceedingJoinPoint joinPoint) throws Throwable {
-        TenantsDTO tenantsDTO = (TenantsDTO) getCommonFieldsOpenSearchDTO(joinPoint);
-        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
-        Object proceed = joinPoint.proceed();
-
-        if (!(proceed instanceof Mono<?> mono) || tenantsDTO == null || abstractAuthenticationToken == null) {
-            return proceed;
-        }
-
-        return mono.flatMap(result -> {
-            String methodName = joinPoint.getSignature().getName();
-            ResultNameMessage resultNameMessage = switch (methodName) {
-                case "save":
-                    yield new ResultNameMessage("Nuovo tenant", String.format("Il tenant \"%s\" e codice \"%s\" è stato aggiunto", tenantsDTO.getName(), tenantsDTO.getCode()));
-                case "update":
-                case "partialUpdate":
-                    yield new ResultNameMessage("Tenant aggiornato", String.format("Le informazioni del tenant \"%s\" e codice \"%s\" sono state aggiornate", tenantsDTO.getName(), tenantsDTO.getCode()));
-                case "delete":
-                    yield new ResultNameMessage("Strumento rimosso", String.format("Il tenant \"%s\" e codice \"%s\" è stato rimosso", tenantsDTO.getName(), tenantsDTO.getCode()));
-                default:
-                    yield new ResultNameMessage(null, null);
-            };
-
-            if (Strings.isBlank(resultNameMessage.name()) || Strings.isBlank(resultNameMessage.message())) {
-                return Mono.just(result);
-            }
-
-            return noticesService.addNoticesSuperAdmins(resultNameMessage.name(), resultNameMessage.message(), abstractAuthenticationToken)
-                .thenReturn(result);
-        });
-    }
-
-    private Mono<StateFieldOpenSearchDTO> getStateFieldOpenSearchDTO(String className, String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        CommonOpenSearchService service = className.toLowerCase().contains("album") ? albumsService : tracksService;
-        return service.findOne(id, abstractAuthenticationToken).cast(StateFieldOpenSearchDTO.class);
-    }
-
-    private static CommonFieldsOpenSearchDTO getCommonFieldsOpenSearchDTO(ProceedingJoinPoint joinPoint) {
-        return Arrays.stream(joinPoint.getArgs())
-            .filter(arg -> arg instanceof CommonFieldsOpenSearchDTO)
-            .map(arg -> (CommonFieldsOpenSearchDTO) arg)
-            .findFirst().orElse(null);
     }
 
     private static AbstractAuthenticationToken getAbstractAuthenticationToken(ProceedingJoinPoint joinPoint) {
@@ -345,8 +225,5 @@ public class NoticesAspect {
             .filter(arg -> arg instanceof String)
             .map(arg -> (String) arg)
             .findFirst().orElse(null);
-    }
-
-    private record ResultNameMessage(String name, String message) {
     }
 }
