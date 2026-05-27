@@ -76,7 +76,7 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
         return sqlHelper;
     }
 
-    protected abstract Condition buildConditions(C criteria, String userId);
+    protected abstract Condition buildConditions(C criteria, String userId, String tenantCode);
 
     @Override
     public Flux<E> findAll() {
@@ -88,10 +88,10 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
         return createQuery(pageable, null).all();
     }
 
-    @Override
-    public Mono<E> findByIdAndUserId(Long id, String userId) {
+    public Mono<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode) {
         Condition whereClause = Conditions.isEqual(entityTable.column("id"), Conditions.just(id.toString()))
-            .and(Conditions.isEqual(entityTable.column("user_id"), Conditions.just(String.format("'%s'", userId))));
+            .and(Conditions.isEqual(entityTable.column("user_id"), Conditions.just(String.format("'%s'", userId))))
+            .and(Conditions.isEqual(entityTable.column("tenant_code"), Conditions.just(String.format("'%s'", tenantCode))));
         return createQuery(null, whereClause).one();
     }
 
@@ -101,26 +101,26 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
     }
 
     @Override
-    public Flux<E> findByCriteria(C criteria, Pageable page, String userId) {
-        return createQuery(page, buildConditions(criteria, userId)).all();
+    public Flux<E> findByCriteria(C criteria, Pageable page, String userId, String tenantCode) {
+        return createQuery(page, buildConditions(criteria, userId, tenantCode)).all();
     }
 
     @Override
-    public Mono<Long> countByCriteria(C criteria, String userId) {
-        return findByCriteria(criteria, null, userId)
+    public Mono<Long> countByCriteria(C criteria, String userId, String tenantCode) {
+        return findByCriteria(criteria, null, userId, tenantCode)
             .collectList()
             .map(collectedList -> collectedList != null ? (long) collectedList.size() : (long) 0);
     }
 
     @Override
-    public Mono<Void> deleteByIdAndUserId(Long id, String userId) {
-        return findByIdAndUserId(id, userId).map(entity -> {
+    public Mono<Void> deleteByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode) {
+        return this.findByIdAndUserIdAndTenantCode(id, userId, tenantCode).map(entity -> {
             entity.setDeleted(true);
             return entity;
         }).flatMap(this::save).then();
     }
 
-    protected ConditionBuilder commonConditions(C criteria, String userId) {
+    protected ConditionBuilder commonConditions(C criteria, String userId, String tenantCode) {
         ConditionBuilder builder = new ConditionBuilder(this.columnConverter);
         List<Condition> allConditions = new ArrayList<Condition>();
         if (criteria != null) {
@@ -130,6 +130,7 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
         }
 
         builder.buildFilterConditionForField(new StringFilter().setEquals(userId), entityTable.column("user_id"));
+        builder.buildFilterConditionForField(new StringFilter().setEquals(tenantCode), entityTable.column("tenant_code"));
         return builder;
     }
 
