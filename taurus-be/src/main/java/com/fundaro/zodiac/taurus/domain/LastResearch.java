@@ -64,6 +64,11 @@ public class LastResearch extends CommonFields {
         return this;
     }
 
+    public LastResearch tenantCode(String tenantCode) {
+        this.setTenantCode(tenantCode);
+        return this;
+    }
+
     public String getValue() {
         return this.value;
     }
@@ -114,6 +119,7 @@ public class LastResearch extends CommonFields {
         return "LastResearch{" +
             "id=" + getId() +
             ", userId='" + getUserId() + "'" +
+            ", tenantCode='" + getTenantCode() + "'" +
             ", value='" + getValue() + "'" +
             ", field='" + getField() + "'" +
             "}";

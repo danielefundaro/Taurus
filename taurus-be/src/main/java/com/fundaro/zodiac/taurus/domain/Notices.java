@@ -68,6 +68,11 @@ public class Notices extends CommonFields {
         return this;
     }
 
+    public Notices tenantCode(String tenantCode) {
+        this.setTenantCode(tenantCode);
+        return this;
+    }
+
     public String getName() {
         return this.name;
     }
@@ -131,6 +136,7 @@ public class Notices extends CommonFields {
         return "Notices{" +
             "id=" + getId() +
             ", userId='" + getUserId() + "'" +
+            ", tenantCode='" + getTenantCode() + "'" +
             ", name='" + getName() + "'" +
             ", message='" + getMessage() + "'" +
             ", readDate='" + getReadDate() + "'" +

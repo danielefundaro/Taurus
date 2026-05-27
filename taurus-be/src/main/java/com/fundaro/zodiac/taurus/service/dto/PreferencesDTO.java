@@ -46,7 +46,6 @@ public class PreferencesDTO extends CommonFieldsDTO {
     public String toString() {
         return "PreferencesDTO{" +
             "id=" + getId() +
-            ", userId='" + getUserId() + "'" +
             ", key='" + getKey() + "'" +
             ", value='" + getValue() + "'" +
             "}";

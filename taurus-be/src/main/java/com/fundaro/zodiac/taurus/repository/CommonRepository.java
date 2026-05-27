@@ -19,10 +19,10 @@ public interface CommonRepository<E extends CommonFields, C extends CommonCriter
     Flux<E> findAll();
 
     @Override
-    Mono<E> findByIdAndUserId(Long id, String userId);
+    Mono<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 
     @Override
-    Mono<Void> deleteByIdAndUserId(Long id, String userId);
+    Mono<Void> deleteByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 }
 
 interface CommonRepositoryInternal<E extends CommonFields, C extends CommonCriteria> {
@@ -32,13 +32,13 @@ interface CommonRepositoryInternal<E extends CommonFields, C extends CommonCrite
 
     Flux<E> findAll();
 
-    Mono<E> findByIdAndUserId(Long id, String userId);
+    Mono<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 
     // this is not supported at the moment because of https://github.com/jhipster/generator-jhipster/issues/18269
     // Flux<E> findAllBy(Pageable pageable, Criteria criteria);
-    Flux<E> findByCriteria(C criteria, Pageable pageable, String userId);
+    Flux<E> findByCriteria(C criteria, Pageable page, String userId, String tenantCode);
 
-    Mono<Long> countByCriteria(C criteria, String userId);
+    Mono<Long> countByCriteria(C criteria, String userId, String tenantCode);
 
-    Mono<Void> deleteByIdAndUserId(Long id, String userId);
+    Mono<Void> deleteByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 }

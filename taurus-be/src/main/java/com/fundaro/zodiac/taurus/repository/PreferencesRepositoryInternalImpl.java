@@ -28,8 +28,8 @@ class PreferencesRepositoryInternalImpl extends CommonRepositoryInternalImpl<Pre
     }
 
     @Override
-    protected Condition buildConditions(PreferencesCriteria criteria, String userId) {
-        ConditionBuilder builder = super.commonConditions(criteria, userId);
+    protected Condition buildConditions(PreferencesCriteria criteria, String userId, String tenantCode) {
+        ConditionBuilder builder = super.commonConditions(criteria, userId, tenantCode);
         if (criteria != null) {
             if (criteria.getUserId() != null) {
                 builder.buildFilterConditionForField(criteria.getUserId(), getEntityTable().column("user_id"));
