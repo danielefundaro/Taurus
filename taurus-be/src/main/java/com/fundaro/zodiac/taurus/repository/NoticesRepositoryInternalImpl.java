@@ -28,8 +28,8 @@ class NoticesRepositoryInternalImpl extends CommonRepositoryInternalImpl<Notices
     }
 
     @Override
-    protected Condition buildConditions(NoticesCriteria criteria, String userId) {
-        ConditionBuilder builder = super.commonConditions(criteria, userId);
+    protected Condition buildConditions(NoticesCriteria criteria, String userId, String tenantCode) {
+        ConditionBuilder builder = super.commonConditions(criteria, userId, tenantCode);
         if (criteria != null) {
             if (criteria.getName() != null) {
                 builder.buildFilterConditionForField(criteria.getName(), getEntityTable().column("name"));

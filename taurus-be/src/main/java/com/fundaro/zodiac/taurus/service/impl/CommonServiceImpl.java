@@ -75,7 +75,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         }
 
         String userId = setUserIdDto(dto, abstractAuthenticationToken);
-        return repository.findByIdAndUserId(id, userId).flatMap(existingEntity -> {
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByIdAndUserIdAndTenantCode(id, userId, tenantCode).flatMap(existingEntity -> {
             if (existingEntity == null) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
@@ -97,7 +98,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         }
 
         String userId = setUserIdDto(dto, abstractAuthenticationToken);
-        return repository.findByIdAndUserId(dto.getId(), userId).flatMap(existingEntity -> {
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByIdAndUserIdAndTenantCode(dto.getId(), userId, tenantCode).flatMap(existingEntity -> {
             if (existingEntity == null) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
             }
@@ -112,7 +114,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public Flux<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        return repository.findByCriteria(criteria, pageable, userId).map(mapper::toDto);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByCriteria(criteria, pageable, userId, tenantCode).map(mapper::toDto);
     }
 
     /**
@@ -125,7 +128,8 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public Mono<Long> countByCriteria(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get the count of all {} by Criteria", entityName);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        return repository.countByCriteria(criteria, userId);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.countByCriteria(criteria, userId, tenantCode);
     }
 
     @Override
@@ -138,24 +142,29 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public Mono<D> findOne(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get {} : {}", entityName, id);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        return repository.findByIdAndUserId(id, userId).map(mapper::toDto);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.findByIdAndUserIdAndTenantCode(id, userId, tenantCode).map(mapper::toDto);
     }
 
     @Override
     public Mono<Void> delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to delete {} : {}", entityName, id);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        return repository.deleteByIdAndUserId(id, userId);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return repository.deleteByIdAndUserIdAndTenantCode(id, userId, tenantCode);
     }
 
     private String setUserIdDto(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         dto.setUserId(userId);
+        dto.setTenantCode(tenantCode);
         return userId;
     }
 
     private Mono<E> saveEntity(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         entity.setEditBy(userId);
         entity.setEditDate(ZonedDateTime.now());
 
@@ -170,6 +179,10 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
 
         if (entity.getDeleted() == null) {
             entity.setDeleted(false);
+        }
+
+        if (Strings.isNotBlank(tenantCode) && Strings.isBlank(entity.getTenantCode())) {
+            entity.setTenantCode(tenantCode);
         }
 
         return repository.save(entity);
