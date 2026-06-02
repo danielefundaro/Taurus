@@ -22,7 +22,6 @@ public class PreferencesRowMapper extends CommonRowMapper<Preferences> {
     @Override
     public Preferences apply(Row row, String prefix) {
         Preferences entity = new Preferences(super.apply(row, prefix));
-        entity.setUserId(getConverter().fromRow(row, prefix + "_user_id", String.class));
         entity.setKey(getConverter().fromRow(row, prefix + "_key", String.class));
         entity.setValue(getConverter().fromRow(row, prefix + "_value", String.class));
         return entity;

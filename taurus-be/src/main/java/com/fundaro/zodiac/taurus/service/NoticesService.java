@@ -19,4 +19,10 @@ public interface NoticesService extends CommonService<Notices, NoticesDTO, Notic
     Mono<Void> addNoticeWholeTenant(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
 
     Mono<Void> addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    Mono<Void> readAll(AbstractAuthenticationToken abstractAuthenticationToken);
+
+    Mono<NoticesDTO> read(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    Mono<Void> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken);
 }

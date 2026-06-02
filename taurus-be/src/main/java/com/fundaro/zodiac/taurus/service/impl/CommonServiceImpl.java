@@ -32,6 +32,14 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
 
     private final String entityName;
 
+    protected R getRepository() {
+        return repository;
+    }
+
+    protected M getMapper() {
+        return mapper;
+    }
+
     public <T extends CommonService<E, D, C>> CommonServiceImpl(R repository, M mapper, Class<T> logClass, String entityName) {
         this.repository = repository;
         this.mapper = mapper;

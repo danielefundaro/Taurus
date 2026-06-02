@@ -8,7 +8,9 @@ import org.springframework.data.r2dbc.convert.R2dbcConverter;
 import org.springframework.data.r2dbc.core.R2dbcEntityOperations;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.sql.Condition;
+import reactor.core.publisher.Flux;
 import tech.jhipster.service.ConditionBuilder;
+import tech.jhipster.service.filter.ZonedDateTimeFilter;
 
 /**
  * Spring Data R2DBC custom repository implementation for the Notices entity.
@@ -25,6 +27,16 @@ class NoticesRepositoryInternalImpl extends CommonRepositoryInternalImpl<Notices
         ColumnConverter columnConverter
     ) {
         super(template, entityManager, new NoticesSqlHelper(), noticesMapper, entityOperations, converter, columnConverter, Notices.class, "notices");
+    }
+
+    @Override
+    public Flux<Notices> findAllUnread(String userId, String tenantCode) {
+        NoticesCriteria criteria = new NoticesCriteria();
+        ZonedDateTimeFilter readFilter = new ZonedDateTimeFilter();
+        readFilter.setSpecified(false);
+        criteria.setReadDate(readFilter);
+
+        return createQuery(null, buildConditions(criteria, userId, tenantCode)).all();
     }
 
     @Override
