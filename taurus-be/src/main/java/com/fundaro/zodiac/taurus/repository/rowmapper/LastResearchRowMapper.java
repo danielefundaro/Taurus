@@ -22,7 +22,6 @@ public class LastResearchRowMapper extends CommonRowMapper<LastResearch> {
     @Override
     public LastResearch apply(Row row, String prefix) {
         LastResearch entity = new LastResearch(super.apply(row, prefix));
-        entity.setUserId(getConverter().fromRow(row, prefix + "_user_id", String.class));
         entity.setValue(getConverter().fromRow(row, prefix + "_value", String.class));
         entity.setField(getConverter().fromRow(row, prefix + "_field", String.class));
         return entity;

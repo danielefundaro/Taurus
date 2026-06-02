@@ -23,8 +23,7 @@ public class NoticesRowMapper extends CommonRowMapper<Notices> {
      */
     @Override
     public Notices apply(Row row, String prefix) {
-        Notices entity = super.apply(row, prefix);
-        entity.setUserId(getConverter().fromRow(row, prefix + "_user_id", String.class));
+        Notices entity = new Notices(super.apply(row, prefix));
         entity.setName(getConverter().fromRow(row, prefix + "_name", String.class));
         entity.setMessage(getConverter().fromRow(row, prefix + "_message", String.class));
         entity.setReadDate(getConverter().fromRow(row, prefix + "_read_date", ZonedDateTime.class));

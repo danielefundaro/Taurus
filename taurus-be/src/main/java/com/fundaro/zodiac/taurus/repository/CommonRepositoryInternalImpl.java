@@ -96,6 +96,13 @@ public abstract class CommonRepositoryInternalImpl<E extends CommonFields, C ext
     }
 
     @Override
+    public Flux<E> findAllByUserIdAndTenantCode(String userId, String tenantCode) {
+        Condition whereClause = Conditions.isEqual(entityTable.column("user_id"), Conditions.just(String.format("'%s'", userId)))
+            .and(Conditions.isEqual(entityTable.column("tenant_code"), Conditions.just(String.format("'%s'", tenantCode))));
+        return createQuery(null, whereClause).all();
+    }
+
+    @Override
     public <S extends E> Mono<S> save(S entity) {
         return super.save(entity);
     }

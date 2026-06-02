@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -66,6 +68,41 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     @Override
     public Mono<Void> addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
         return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER}).toList(), abstractAuthenticationToken);
+    }
+
+    @Override
+    public Mono<Void> readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        ZonedDateTime now = ZonedDateTime.now();
+
+        return getRepository().findAllUnread(userId, tenantCode).flatMap(notice -> {
+            NoticesDTO noticeDTO = getMapper().toDto(notice);
+            noticeDTO.setReadDate(now);
+
+            return this.update(noticeDTO.getId(), noticeDTO, abstractAuthenticationToken).thenEmpty(Mono.empty());
+        }).thenEmpty(Mono.empty());
+    }
+
+    @Override
+    public Mono<NoticesDTO> read(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return findOne(id, abstractAuthenticationToken).flatMap(noticesDTO -> {
+            if (noticesDTO.getReadDate() == null) {
+                noticesDTO.setReadDate(ZonedDateTime.now());
+                return super.update(id, noticesDTO, abstractAuthenticationToken);
+            }
+
+            return Mono.just(noticesDTO);
+        });
+    }
+
+    @Override
+    public Mono<Void> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        return getRepository().findAllByUserIdAndTenantCode(userId, tenantCode)
+            .flatMap(notices -> super.delete(notices.getId(), abstractAuthenticationToken))
+            .thenEmpty(Mono.empty());
     }
 
     private Mono<Void> addNoticesByRoles(String name, String message, List<RoleEnum> roles, AbstractAuthenticationToken abstractAuthenticationToken) {
