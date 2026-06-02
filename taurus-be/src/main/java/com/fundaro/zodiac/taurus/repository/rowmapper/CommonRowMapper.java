@@ -34,6 +34,8 @@ public class CommonRowMapper<E extends CommonFields> implements BiFunction<Row, 
         entity.setInsertDate(converter.fromRow(row, prefix + "_insert_date", ZonedDateTime.class));
         entity.setEditBy(converter.fromRow(row, prefix + "_edit_by", String.class));
         entity.setEditDate(converter.fromRow(row, prefix + "_edit_date", ZonedDateTime.class));
+        entity.setUserId(getConverter().fromRow(row, prefix + "_user_id", String.class));
+        entity.setTenantCode(getConverter().fromRow(row, prefix + "_tenant_code", String.class));
         return entity;
     }
 }
