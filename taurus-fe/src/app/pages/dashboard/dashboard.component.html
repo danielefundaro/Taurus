@@ -9,6 +9,7 @@
         label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
     <app-recents-widget [tracks]="tracks" />
     <div class="col-span-12 xl:col-span-6">
-        <app-notifications-widget />
+        <app-notifications-widget [notices]="notices" (pageChange)="pageChange($event)"
+            (markAsRead)="markNoticesAsRead($event)" (delete)="deleteNotices($event)" />
     </div>
 </div>
