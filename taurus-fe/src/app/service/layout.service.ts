@@ -57,6 +57,8 @@ export class LayoutService {
 
     private readonly resetSource = new Subject();
 
+    private transitionRunning = false;
+
     menuSource$ = this.menuSource.asObservable();
 
     resetSource$ = this.resetSource.asObservable();
@@ -90,7 +92,6 @@ export class LayoutService {
 
             if (config) {
                 this.onConfigUpdate();
-
                 this.saveConfig(config);
             }
         });
@@ -125,15 +126,21 @@ export class LayoutService {
     }
 
     private startViewTransition(config: LayoutConfig): void {
-        const transition = (document as any).startViewTransition(() => {
+        if (this.transitionRunning) {
+            this.toggleDarkMode(config);
+            return;
+        }
+
+        this.transitionRunning = true;
+
+        const transition = document.startViewTransition(() => {
             this.toggleDarkMode(config);
         });
 
-        transition.ready
-            .then(() => {
-                this.onTransitionEnd();
-            })
-            .catch(() => { });
+        transition.finished.finally(() => {
+            this.transitionRunning = false;
+            this.onTransitionEnd();
+        });
     }
 
     toggleDarkMode(config?: LayoutConfig): void {
