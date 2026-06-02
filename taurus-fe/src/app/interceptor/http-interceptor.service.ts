@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 export class HttpInterceptorService implements HttpInterceptor {
     private readonly _nonProtectedRoutes: (RegExp | string)[] = [
     ];
-    private readonly excludedRoutes = ["api/preferences"];
+    private readonly excludedRoutes = ["api/preferences", "api/notices"];
 
     private readonly httpRequestStack = new Array<HttpRequest<any>>();
     private isRefreshing = false;
@@ -67,7 +67,7 @@ export class HttpInterceptorService implements HttpInterceptor {
             } else if ('error' in error) {
                 if ('message' in error.error) {
                     const message = error.error.message.replace("error.", '').toLowerCase();
-                    
+
                     switch (message) {
                         case 'id.notfound': detail = 'Elemento non trovato'; break;
                         case 'id.exists': detail = 'Elemento già esistente'; break;
