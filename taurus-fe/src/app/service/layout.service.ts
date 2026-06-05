@@ -83,6 +83,8 @@ export class LayoutService {
 
     private initialized = false;
 
+    notificationNumber = signal<number>(0);
+
     constructor(
         private readonly preferencesService: PreferencesService,
         private readonly localStorageService: LocalStorageService,

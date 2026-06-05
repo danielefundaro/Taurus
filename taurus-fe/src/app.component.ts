@@ -5,7 +5,7 @@ import { first, switchMap } from 'rxjs';
 import { LoadingSpinnerComponent } from "./app/components/loading-spinner/loading-spinner.component";
 import { ImportsModule } from './app/imports';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
-import { LayoutService, LocalStorageService } from './app/service';
+import { LayoutService, LocalStorageService, NoticesService } from './app/service';
 import { PreferencesService } from './app/service/preferences.service';
 
 @Component({
@@ -26,10 +26,17 @@ export class AppComponent implements OnInit {
     constructor(
         private readonly localStorageService: LocalStorageService,
         private readonly preferencesService: PreferencesService,
+        private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
     ) { }
 
     ngOnInit(): void {
+        setInterval(() => {
+            this.noticesService.countUnread().pipe(first()).subscribe((count) => {
+                this.layoutService.notificationNumber.set(count);
+            });
+        }, 300000); // 5 minutes
+
         this.preferencesService.count().pipe(first(), switchMap((count: any) => {
             const criteria = new PreferencesCriteria();
             criteria.size = count;
