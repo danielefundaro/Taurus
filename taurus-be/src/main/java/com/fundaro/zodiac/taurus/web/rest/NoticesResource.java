@@ -23,6 +23,12 @@ public class NoticesResource extends CommonResource<Notices, NoticesDTO, Notices
         super(noticesService, NoticesResource.class, Notices.class.getSimpleName());
     }
 
+    @GetMapping("/unread/count")
+    public Mono<ResponseEntity<Long>> getUnreadCount(AbstractAuthenticationToken abstractAuthenticationToken) {
+        getLog().info("REST request to get count of unread notices");
+        return getService().countUnread(abstractAuthenticationToken).map(count -> ResponseEntity.ok().body(count));
+    }
+
     @PatchMapping("/read-all")
     public Mono<ResponseEntity<Void>> readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to mark all notices as read");
@@ -45,9 +51,6 @@ public class NoticesResource extends CommonResource<Notices, NoticesDTO, Notices
     @DeleteMapping("delete-all")
     public Mono<ResponseEntity<Void>> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to delete all notices");
-
-        return getService().deleteAll(abstractAuthenticationToken)
-            .then(Mono.just(ResponseEntity.noContent().build())
-        );
+        return getService().deleteAll(abstractAuthenticationToken).then(Mono.just(ResponseEntity.noContent().build()));
     }
 }

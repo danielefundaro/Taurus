@@ -85,6 +85,14 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     }
 
     @Override
+    public Mono<Long> countUnread(AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+
+        return getRepository().countUnread(userId, tenantCode);
+    }
+
+    @Override
     public Mono<NoticesDTO> read(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         return findOne(id, abstractAuthenticationToken).flatMap(noticesDTO -> {
             if (noticesDTO.getReadDate() == null) {
