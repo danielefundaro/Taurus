@@ -84,9 +84,11 @@
                     <i class="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
-                <button type="button" class="layout-topbar-action">
-                    <i class="pi pi-inbox"></i>
-                    <span>Messages</span>
+                <button type="button" class="layout-topbar-action" [routerLink]="['']">
+                    <i class="pi pi-bell"></i>
+                    <p-overlaybadge *ngIf="layoutService.notificationNumber();" class="blink-animation"
+                        [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
+                    <span>Notifications</span>
                 </button>
                 <button type="button" class="layout-topbar-action" (click)="accountManagement()">
                     <i class="pi pi-user"></i>

@@ -5,3 +5,12 @@
 .w-4rem {
     width: 4rem;
 }
+
+.blink-animation {
+  animation: blink 2s infinite cubic-bezier(0.4, 0.13, 0, 0.99);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

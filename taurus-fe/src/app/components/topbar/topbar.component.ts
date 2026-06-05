@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
+import { BadgeModule } from 'primeng/badge';
+import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { StyleClassModule } from 'primeng/styleclass';
 import { KeycloakService, LayoutService } from '../../service';
 import { ConfiguratorComponent } from '../configurator/configurator.component';
@@ -13,7 +15,9 @@ import { ConfiguratorComponent } from '../configurator/configurator.component';
         RouterModule,
         CommonModule,
         StyleClassModule,
-        ConfiguratorComponent
+        BadgeModule,
+        OverlayBadgeModule,
+        ConfiguratorComponent,
     ],
     templateUrl: './topbar.component.html',
     styleUrl: './topbar.component.scss',

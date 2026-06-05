@@ -11,6 +11,10 @@ export class NoticesService extends CommonService<Notices, NoticesCriteria> {
         return "notices";
     }
 
+    public countUnread(): Observable<number> {
+        return this.http.get<number>(`${this.baseUrl}/${this.resourceName()}/unread/count`);
+    }
+
     public markAllAsRead(): Observable<Notices> {
         return this.http.patch<Notices>(`${this.baseUrl}/${this.resourceName()}/read-all`, {});
     }

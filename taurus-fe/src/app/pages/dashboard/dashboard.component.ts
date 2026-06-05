@@ -3,7 +3,7 @@ import { first, forkJoin, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
 import { Notices, NoticesCriteria, Page, Tracks, TracksCriteria } from '../../module';
-import { AlbumsService, KeycloakService, NoticesService, TenantsService, TracksService, UsersService } from '../../service';
+import { AlbumsService, KeycloakService, LayoutService, NoticesService, TenantsService, TracksService, UsersService } from '../../service';
 import { NotificationsWidgetComponent } from './components/notifications-widget/notification-widget.component';
 import { RecentsWidgetComponent } from './components/recents-widget/recents-widget.component';
 import { StatsWidgetComponent } from './components/stats-widget/stats-widget.component';
@@ -45,6 +45,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly albumsService: AlbumsService,
         private readonly tracksService: TracksService,
         private readonly noticesService: NoticesService,
+        private readonly layoutService: LayoutService,
     ) {
     }
 
@@ -145,6 +146,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
         this.noticesService.getAll(noticesCriteria).pipe(first()).subscribe(notices => {
             this.notices = notices;
+        });
+
+        this.noticesService.countUnread().pipe(first()).subscribe(count => {
+            this.layoutService.notificationNumber.set(count);
         });
     }
 }
