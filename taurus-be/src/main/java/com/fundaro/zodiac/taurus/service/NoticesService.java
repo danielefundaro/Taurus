@@ -22,6 +22,8 @@ public interface NoticesService extends CommonService<Notices, NoticesDTO, Notic
 
     Mono<Void> readAll(AbstractAuthenticationToken abstractAuthenticationToken);
 
+    Mono<Long> countUnread(AbstractAuthenticationToken abstractAuthenticationToken);
+
     Mono<NoticesDTO> read(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     Mono<Void> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken);
