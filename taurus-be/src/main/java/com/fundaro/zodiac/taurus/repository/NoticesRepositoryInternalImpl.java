@@ -9,6 +9,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityOperations;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.sql.Condition;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import tech.jhipster.service.ConditionBuilder;
 import tech.jhipster.service.filter.ZonedDateTimeFilter;
 
@@ -37,6 +38,16 @@ class NoticesRepositoryInternalImpl extends CommonRepositoryInternalImpl<Notices
         criteria.setReadDate(readFilter);
 
         return createQuery(null, buildConditions(criteria, userId, tenantCode)).all();
+    }
+
+    @Override
+    public Mono<Long> countUnread(String userId, String tenantCode) {
+        NoticesCriteria criteria = new NoticesCriteria();
+        ZonedDateTimeFilter readFilter = new ZonedDateTimeFilter();
+        readFilter.setSpecified(false);
+        criteria.setReadDate(readFilter);
+
+        return createQuery(null, buildConditions(criteria, userId, tenantCode)).all().count();
     }
 
     @Override
