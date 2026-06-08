@@ -4,9 +4,11 @@ import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.service.*;
 import com.fundaro.zodiac.taurus.service.dto.*;
 import com.fundaro.zodiac.taurus.service.impl.*;
+import org.apache.commons.io.FilenameUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -78,6 +80,27 @@ public class NoticesAspect {
 
             return noticeMono.thenReturn(result);
         });
+    }
+
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.uploadFile(..))")
+    private Object onUploadFile(ProceedingJoinPoint joinPoint) throws Throwable {
+        AbstractAuthenticationToken abstractAuthenticationToken = getAbstractAuthenticationToken(joinPoint);
+        String id = getId(joinPoint);
+        FilePart filePart = getFilePart(joinPoint);
+        Object proceed = joinPoint.proceed();
+
+        if (!(proceed instanceof Mono<?> mono) || abstractAuthenticationToken == null) {
+            return proceed;
+        }
+
+        return mono.then(Mono.defer(() -> {
+            if (id != null) {
+                return tracksService.findOne(id, abstractAuthenticationToken)
+                    .flatMap(tracksDTO -> noticesService.addNoticesExcludeRoleUsers("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", tracksDTO.getName()), abstractAuthenticationToken));
+            }
+
+            return noticesService.addNoticesExcludeRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", FilenameUtils.removeExtension(filePart.filename())), abstractAuthenticationToken);
+        }));
     }
 
     @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.update(..)) || " +
@@ -224,6 +247,13 @@ public class NoticesAspect {
         return Arrays.stream(joinPoint.getArgs())
             .filter(arg -> arg instanceof String)
             .map(arg -> (String) arg)
+            .findFirst().orElse(null);
+    }
+
+    private static FilePart getFilePart(ProceedingJoinPoint joinPoint) {
+        return Arrays.stream(joinPoint.getArgs())
+            .filter(arg -> arg instanceof FilePart)
+            .map(arg -> (FilePart) arg)
             .findFirst().orElse(null);
     }
 }
