@@ -50,6 +50,7 @@ export class AddUsersDialogComponent {
         this.user = new Users();
         this.user.active = true;
         this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
+        this.roles = this.roles.filter(role => role !== RoleEnums.SUPER_ADMIN);
         this.instruments = this.config.inputValues?.instruments ?? [];
 
         this.autoFilteredRoles = this.roles;

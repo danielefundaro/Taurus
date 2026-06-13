@@ -77,6 +77,7 @@ export class HttpInterceptorService implements HttpInterceptor {
                         case 'file.upload': detail = 'Errore durante l\'upload del file'; break;
                         case 'save.tenant': detail = 'Errore durante il salvataggio del tenant'; break;
                         case 'code.exists': detail = 'Codice già esistente'; break;
+                        case 'user.limit.exceeded': detail = 'Limite superato'; break;
                         // Inizio errori su keycloak
                         case 'get.users':
                         case 'users.list': detail = 'Errore durante il recupero della lista utenti'; break;
