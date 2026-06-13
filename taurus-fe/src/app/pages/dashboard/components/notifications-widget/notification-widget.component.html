@@ -12,7 +12,7 @@
         @if (notices) {
         @for (notice of notices.content; track $index) {
         <li class="flex items-center justify-between py-2 cursor-pointer"
-            [ngClass]="!notice.readDate ? 'bg-blue-100 dark:bg-blue-400/5 rounded-border' :'border-b border-surface'"
+            [ngClass]="!notice.readDate ? 'bg-primary-50 dark:bg-primary-400/5 rounded-border' :'border-b border-surface'"
             (click)="mark(notice)" (keydown)="mark(notice)">
             <div class="flex items-center pl-2">
                 <div
