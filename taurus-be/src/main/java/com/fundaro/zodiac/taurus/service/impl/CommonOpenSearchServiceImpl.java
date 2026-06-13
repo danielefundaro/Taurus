@@ -18,10 +18,7 @@ import org.opensearch.client.opensearch._types.Result;
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch.core.GetResponse;
-import org.opensearch.client.opensearch.core.IndexRequest;
-import org.opensearch.client.opensearch.core.IndexResponse;
-import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -146,6 +143,20 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
                 return Mono.just(mapper.toDto(getById(id, tenantId)));
             } catch (IOException e) {
                 return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
+            }
+        });
+    }
+
+    @Override
+    public Mono<Long> count(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return Mono.deferContextual(ctx -> {
+            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
+            log.debug("Request to count all {} by Criteria", entityName);
+
+            try {
+                return Mono.just(countByCriteria(criteria, tenantId));
+            } catch (IOException e) {
+                return Mono.just(0L);
             }
         });
     }
@@ -319,6 +330,17 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         }).toList();
 
         return new PageImpl<>(list, pageable, searchResponse.hits().total().value());
+    }
+
+    private Long countByCriteria(C criteria, String tenantId) throws IOException {
+        List<Query> queries = getQueries(criteria);
+
+        CountResponse countResponse = openSearchService.count(searchRequest -> searchRequest
+            .index(indexResolver.resolve(entityName, tenantId))
+            .query(q -> q.bool(b -> b.must(queries)))
+        );
+
+        return countResponse.count();
     }
 
     /**

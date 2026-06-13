@@ -65,6 +65,11 @@ public class OpenSearchServiceImpl implements OpenSearchService {
         return openSearchClient.search(fn.apply(new SearchRequest.Builder()).build(), documentClass);
     }
 
+    @Override
+    public CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException {
+        return openSearchClient.count(fn.apply(new CountRequest.Builder()).build());
+    }
+
     private void open() {
         // Initialize openSearch client
         HttpHost host = new HttpHost(applicationProperties.getOpenSearch().getHost(), applicationProperties.getOpenSearch().getPort(), applicationProperties.getOpenSearch().getSchema());

@@ -6,7 +6,9 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
+import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
@@ -16,6 +18,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,36 +39,59 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     public final KeycloakService keycloakService;
 
-    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService) {
+    public final TenantsService tenantsService;
+
+    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService) {
         super(openSearchService, indexResolver, mapper, UsersService.class, Users.class);
         this.keycloakService = keycloakService;
+        this.tenantsService = tenantsService;
     }
 
     @Override
     public Mono<UsersDTO> save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        User user = getMapper().toKeycloakUser(dto);
-
-        // Check if the user already exists into keycloak
-        try {
-            String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-            user.setId(keycloakId);
-            keycloakService.updateUser(user);
-        } catch (RequestAlertException e) {
-            keycloakService.saveUser(user);
+        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
         }
 
-        // Set user's roles on keycloak
-        String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-        user = keycloakService.getUser(userId);
-        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
 
-        // Save keycloakId of the user
-        dto.setKeycloakId(userId);
-        return super.save(dto, abstractAuthenticationToken).onErrorContinue((a, b) -> keycloakService.deleteUser(userId));
+        return tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
+            .zipWith(super.count(new UsersCriteria(), abstractAuthenticationToken)).flatMap(zipResult -> {
+                TenantsDTO tenantsDTO = zipResult.getT1();
+                Long usersCount = zipResult.getT2();
+
+                if (usersCount >= tenantsDTO.getMaxUsers()) {
+                    return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", tenantsDTO.getMaxUsers()), getEntityName(), "user.limit.exceeded"));
+                }
+
+                User user = getMapper().toKeycloakUser(dto);
+
+                // Check if the user already exists into keycloak
+                try {
+                    String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+                    user.setId(keycloakId);
+                    keycloakService.updateUser(user);
+                } catch (RequestAlertException e) {
+                    keycloakService.saveUser(user);
+                }
+
+                // Set user's roles on keycloak
+                String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+                user = keycloakService.getUser(userId);
+                setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
+
+                // Save keycloakId of the user
+                dto.setKeycloakId(userId);
+                return super.save(dto, abstractAuthenticationToken).onErrorContinue((a, b) -> keycloakService.deleteUser(userId));
+            });
     }
 
     @Override
     public Mono<UsersDTO> update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
+        }
+
         return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
             updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
             return super.update(id, dto, abstractAuthenticationToken);
@@ -74,6 +100,10 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     @Override
     public Mono<UsersDTO> partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
+        }
+
         return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
             updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
             return super.partialUpdate(id, dto, abstractAuthenticationToken);

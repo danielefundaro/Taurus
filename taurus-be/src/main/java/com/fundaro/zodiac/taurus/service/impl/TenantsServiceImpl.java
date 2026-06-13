@@ -94,6 +94,23 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     }
 
     @Override
+    public Mono<TenantsDTO> findByCode(String code, AbstractAuthenticationToken abstractAuthenticationToken) {
+        TenantsCriteria criteria = new TenantsCriteria();
+        StringFilter filterCode = new StringFilter();
+        filterCode.setEquals(code);
+        criteria.setCode(filterCode);
+        Pageable pageable = PageRequest.of(0, 1);
+
+        return super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).mapNotNull(tenantsDTOS -> {
+            if (tenantsDTOS.isEmpty() || tenantsDTOS.getContent().isEmpty()) {
+                return null;
+            }
+
+            return tenantsDTOS.getContent().get(0);
+        });
+    }
+
+    @Override
     protected List<Query> getQueries(TenantsCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
         queries.addAll(Converter.stringFilterToQuery("code.keyword", criteria.getCode()));
