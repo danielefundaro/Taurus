@@ -62,6 +62,15 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
     Mono<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     /**
+     * Count entities by criteria.
+     *
+     * @param criteria                    filtering criteria.
+     * @param abstractAuthenticationToken the token of the user.
+     * @return the count of entities.
+     */
+    Mono<Long> count(C criteria, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    /**
      * Delete the "id" entity.
      *
      * @param id                          the id of the entity.

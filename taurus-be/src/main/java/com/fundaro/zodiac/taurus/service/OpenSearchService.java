@@ -17,4 +17,6 @@ public interface OpenSearchService {
     <TDocument> GetResponse<TDocument> get(Function<GetRequest.Builder, ObjectBuilder<GetRequest>> fn, Class<TDocument> documentClass) throws IOException;
 
     <TDocument> SearchResponse<TDocument> search(Function<SearchRequest.Builder, ObjectBuilder<SearchRequest>> fn, Class<TDocument> documentClass) throws IOException;
+
+    CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException;
 }
