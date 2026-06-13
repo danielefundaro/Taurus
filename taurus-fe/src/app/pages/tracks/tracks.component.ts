@@ -5,7 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first } from 'rxjs';
-import { RoleEnums } from '../../constants';
+import { RoleEnums, StateEnums } from '../../constants';
 import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -34,6 +34,7 @@ export class TracksComponent implements OnInit {
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
     protected tracks: Tracks[];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
+    protected readonly StateEnum: typeof StateEnums = StateEnums;
 
     constructor(
         private readonly tracksService: TracksService,
