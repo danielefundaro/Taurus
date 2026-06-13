@@ -47,6 +47,7 @@ export class DetailComponent implements OnInit {
         this.selectedTracks = [];
 
         this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
+        this.roles = this.roles.filter(role => role !== RoleEnums.SUPER_ADMIN);
         this.autoFilteredRoles = this.roles;
 
         this.instruments = [];
