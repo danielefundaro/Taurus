@@ -22,12 +22,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -45,39 +45,44 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
-    public Mono<Page<TracksDTO>> findEntitiesByCriteria(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return usersService.findMe(abstractAuthenticationToken).flatMap(usersDTO -> {
-            if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
-                return Mono.just(new PageImpl<>(new ArrayList<>(), pageable, 0L));
-            }
+    public Page<TracksDTO> findEntitiesByCriteria(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO usersDTO = usersService.findMe(abstractAuthenticationToken).orElse(new UsersDTO());
 
-            // Add mandatory instruments filter
-            StringFilter stringFilter = new StringFilter();
-            stringFilter.setIn(usersDTO.getInstruments().stream().map(ChildrenEntitiesDTO::getIndex).toList());
-            criteria.setInstrumentId(stringFilter);
+        if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0L);
+        }
 
-            return super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).map(tracksDTOS -> {
-                tracksDTOS.getContent().forEach(tracksDTO -> filterScores(tracksDTO, usersDTO));
-                return tracksDTOS;
-            });
-        });
+        // Add mandatory instruments filter
+        StringFilter stringFilter = new StringFilter();
+        stringFilter.setIn(usersDTO.getInstruments().stream().map(ChildrenEntitiesDTO::getIndex).toList());
+        criteria.setInstrumentId(stringFilter);
+
+        Page<TracksDTO> tracksDTOS = super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
+        tracksDTOS.getContent().forEach(tracksDTO -> filterScores(tracksDTO, usersDTO));
+        return tracksDTOS;
     }
 
     @Override
-    public Mono<TracksDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> usersService.findMe(abstractAuthenticationToken).flatMap(usersDTO -> {
-            if (tracksDTO == null || !(Objects.equals(tracksDTO.getState(), StateEnum.COMPLETE) || Objects.equals(tracksDTO.getState(), StateEnum.PUBLIC))) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
-            }
+    public Optional<TracksDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        Optional<TracksDTO> tracksDTOOpt = super.findOne(id, abstractAuthenticationToken);
+        if (tracksDTOOpt.isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
+        }
 
-            if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
-            }
+        TracksDTO tracksDTO = tracksDTOOpt.get();
+        if (!(Objects.equals(tracksDTO.getState(), StateEnum.COMPLETE) || Objects.equals(tracksDTO.getState(), StateEnum.PUBLIC))) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
+        }
 
-            filterScores(tracksDTO, usersDTO);
+        UsersDTO usersDTO = usersService.findMe(abstractAuthenticationToken).orElse(new UsersDTO());
 
-            return Mono.just(tracksDTO);
-        }));
+        if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
+        }
+
+        filterScores(tracksDTO, usersDTO);
+
+        return Optional.of(tracksDTO);
     }
 
     @Override

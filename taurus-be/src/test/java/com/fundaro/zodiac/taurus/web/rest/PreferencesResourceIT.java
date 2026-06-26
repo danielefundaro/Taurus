@@ -6,7 +6,9 @@ import static com.fundaro.zodiac.taurus.web.rest.TestUtil.sameInstant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
@@ -25,16 +27,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Integration tests for the {@link PreferencesResource} REST controller.
  */
 @IntegrationTest
-@AutoConfigureWebTestClient(timeout = IntegrationTest.DEFAULT_ENTITY_TIMEOUT)
+@AutoConfigureMockMvc
 @WithMockUser
 class PreferencesResourceIT {
 
@@ -83,7 +86,7 @@ class PreferencesResourceIT {
     private EntityManager em;
 
     @Autowired
-    private WebTestClient webTestClient;
+    private MockMvc restMockMvc;
 
     private Preferences preferences;
 
@@ -134,11 +137,6 @@ class PreferencesResourceIT {
     }
 
     @BeforeEach
-    public void setupCsrf() {
-        webTestClient = webTestClient.mutateWith(csrf());
-    }
-
-    @BeforeEach
     public void initTest() {
         preferences = createEntity();
     }
@@ -157,17 +155,17 @@ class PreferencesResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
         // Create the Preferences
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
-        var returnedPreferencesDTO = webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isCreated()
-            .expectBody(PreferencesDTO.class)
-            .returnResult()
-            .getResponseBody();
+        MvcResult result = restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        PreferencesDTO returnedPreferencesDTO = om.readValue(result.getResponse().getContentAsString(), PreferencesDTO.class);
 
         // Validate the Preferences in the database
         assertIncrementedRepositoryCount(databaseSizeBeforeCreate);
@@ -186,14 +184,14 @@ class PreferencesResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
 
         // An entity with an existing ID cannot be created, so this API call must fail
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeCreate);
@@ -208,14 +206,14 @@ class PreferencesResourceIT {
         // Create the Preferences, which fails.
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         assertSameRepositoryCount(databaseSizeBeforeTest);
     }
@@ -229,92 +227,62 @@ class PreferencesResourceIT {
         // Create the Preferences, which fails.
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         assertSameRepositoryCount(databaseSizeBeforeTest);
     }
 
     @Test
-    void getAllPreferences() {
+    void getAllPreferences() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
         // Get all the preferencesList
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc")
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(preferences.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].key")
-            .value(hasItem(DEFAULT_KEY))
-            .jsonPath("$.[*].value")
-            .value(hasItem(DEFAULT_VALUE));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(preferences.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].key").value(hasItem(DEFAULT_KEY)))
+            .andExpect(jsonPath("$.[*].value").value(hasItem(DEFAULT_VALUE)));
     }
 
     @Test
-    void getPreferences() {
+    void getPreferences() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
         // Get the preferences
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, preferences.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.id")
-            .value(is(preferences.getId().intValue()))
-            .jsonPath("$.deleted")
-            .value(is(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.insertBy")
-            .value(is(DEFAULT_INSERT_BY))
-            .jsonPath("$.insertDate")
-            .value(is(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.editBy")
-            .value(is(DEFAULT_EDIT_BY))
-            .jsonPath("$.editDate")
-            .value(is(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.userId")
-            .value(is(DEFAULT_USER_ID))
-            .jsonPath("$.key")
-            .value(is(DEFAULT_KEY))
-            .jsonPath("$.value")
-            .value(is(DEFAULT_VALUE));
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, preferences.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(is(preferences.getId().intValue())))
+            .andExpect(jsonPath("$.deleted").value(is(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.insertBy").value(is(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.insertDate").value(is(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.editBy").value(is(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.editDate").value(is(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.userId").value(is(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.key").value(is(DEFAULT_KEY)))
+            .andExpect(jsonPath("$.value").value(is(DEFAULT_VALUE)));
     }
 
     @Test
-    void getPreferencesByIdFiltering() {
+    void getPreferencesByIdFiltering() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -328,7 +296,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByDeletedIsEqualToSomething() {
+    void getAllPreferencesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -337,7 +305,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByDeletedIsInShouldWork() {
+    void getAllPreferencesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -346,7 +314,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByDeletedIsNullOrNotNull() {
+    void getAllPreferencesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -355,7 +323,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertByIsEqualToSomething() {
+    void getAllPreferencesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -364,7 +332,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertByIsInShouldWork() {
+    void getAllPreferencesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -373,7 +341,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertByIsNullOrNotNull() {
+    void getAllPreferencesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -382,7 +350,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertByContainsSomething() {
+    void getAllPreferencesByInsertByContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -391,7 +359,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertByNotContainsSomething() {
+    void getAllPreferencesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -400,7 +368,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsEqualToSomething() {
+    void getAllPreferencesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -409,7 +377,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsInShouldWork() {
+    void getAllPreferencesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -421,7 +389,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsNullOrNotNull() {
+    void getAllPreferencesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -430,7 +398,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsGreaterThanOrEqualToSomething() {
+    void getAllPreferencesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -442,7 +410,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsLessThanOrEqualToSomething() {
+    void getAllPreferencesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -454,7 +422,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsLessThanSomething() {
+    void getAllPreferencesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -463,7 +431,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByInsertDateIsGreaterThanSomething() {
+    void getAllPreferencesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -472,7 +440,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditByIsEqualToSomething() {
+    void getAllPreferencesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -481,7 +449,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditByIsInShouldWork() {
+    void getAllPreferencesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -490,7 +458,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditByIsNullOrNotNull() {
+    void getAllPreferencesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -499,7 +467,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditByContainsSomething() {
+    void getAllPreferencesByEditByContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -508,7 +476,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditByNotContainsSomething() {
+    void getAllPreferencesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -517,7 +485,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsEqualToSomething() {
+    void getAllPreferencesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -526,7 +494,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsInShouldWork() {
+    void getAllPreferencesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -535,7 +503,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsNullOrNotNull() {
+    void getAllPreferencesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -544,7 +512,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsGreaterThanOrEqualToSomething() {
+    void getAllPreferencesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -553,7 +521,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsLessThanOrEqualToSomething() {
+    void getAllPreferencesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -562,7 +530,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsLessThanSomething() {
+    void getAllPreferencesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -571,7 +539,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByEditDateIsGreaterThanSomething() {
+    void getAllPreferencesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -580,7 +548,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByUserIdIsEqualToSomething() {
+    void getAllPreferencesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -589,7 +557,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByUserIdIsInShouldWork() {
+    void getAllPreferencesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -598,7 +566,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByUserIdIsNullOrNotNull() {
+    void getAllPreferencesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -607,7 +575,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByUserIdContainsSomething() {
+    void getAllPreferencesByUserIdContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -616,7 +584,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByUserIdNotContainsSomething() {
+    void getAllPreferencesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -625,7 +593,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByKeyIsEqualToSomething() {
+    void getAllPreferencesByKeyIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -634,7 +602,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByKeyIsInShouldWork() {
+    void getAllPreferencesByKeyIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -643,7 +611,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByKeyIsNullOrNotNull() {
+    void getAllPreferencesByKeyIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -652,7 +620,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByKeyContainsSomething() {
+    void getAllPreferencesByKeyContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -661,7 +629,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByKeyNotContainsSomething() {
+    void getAllPreferencesByKeyNotContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -670,7 +638,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByValueIsEqualToSomething() {
+    void getAllPreferencesByValueIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -679,7 +647,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByValueIsInShouldWork() {
+    void getAllPreferencesByValueIsInShouldWork() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -688,7 +656,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByValueIsNullOrNotNull() {
+    void getAllPreferencesByValueIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -697,7 +665,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByValueContainsSomething() {
+    void getAllPreferencesByValueContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -706,7 +674,7 @@ class PreferencesResourceIT {
     }
 
     @Test
-    void getAllPreferencesByValueNotContainsSomething() {
+    void getAllPreferencesByValueNotContainsSomething() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
@@ -714,7 +682,7 @@ class PreferencesResourceIT {
         defaultPreferencesFiltering("value.doesNotContain=" + UPDATED_VALUE, "value.doesNotContain=" + DEFAULT_VALUE);
     }
 
-    private void defaultPreferencesFiltering(String shouldBeFound, String shouldNotBeFound) {
+    private void defaultPreferencesFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
         defaultPreferencesShouldBeFound(shouldBeFound);
         defaultPreferencesShouldNotBeFound(shouldNotBeFound);
     }
@@ -722,95 +690,54 @@ class PreferencesResourceIT {
     /**
      * Executes the search, and checks that the default entity is returned.
      */
-    private void defaultPreferencesShouldBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(preferences.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].key")
-            .value(hasItem(DEFAULT_KEY))
-            .jsonPath("$.[*].value")
-            .value(hasItem(DEFAULT_VALUE));
+    private void defaultPreferencesShouldBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(preferences.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].key").value(hasItem(DEFAULT_KEY)))
+            .andExpect(jsonPath("$.[*].value").value(hasItem(DEFAULT_VALUE)));
 
         // Check, that the count call also returns 1
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(1));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(1)));
     }
 
     /**
      * Executes the search, and checks that the default entity is not returned.
      */
-    private void defaultPreferencesShouldNotBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .isArray()
-            .jsonPath("$")
-            .isEmpty();
+    private void defaultPreferencesShouldNotBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
 
         // Check, that the count call also returns 0
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(0));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(0)));
     }
 
     @Test
-    void getNonExistingPreferences() {
+    void getNonExistingPreferences() throws Exception {
         // Get the preferences
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, Long.MAX_VALUE)
-            .accept(MediaType.APPLICATION_PROBLEM_JSON)
-            .exchange()
-            .expectStatus()
-            .isNotFound();
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE).accept(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -833,14 +760,14 @@ class PreferencesResourceIT {
             .value(UPDATED_VALUE);
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(updatedPreferences);
 
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, preferencesDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, preferencesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -856,14 +783,14 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, preferencesDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, preferencesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -878,14 +805,14 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -900,14 +827,14 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -926,14 +853,14 @@ class PreferencesResourceIT {
 
         partialUpdatedPreferences.editDate(UPDATED_EDIT_DATE).userId(UPDATED_USER_ID);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedPreferences.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedPreferences))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedPreferences.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedPreferences))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Preferences in the database
 
@@ -965,14 +892,14 @@ class PreferencesResourceIT {
             .key(UPDATED_KEY)
             .value(UPDATED_VALUE);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedPreferences.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedPreferences))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedPreferences.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedPreferences))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Preferences in the database
 
@@ -989,14 +916,14 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, preferencesDTO.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, preferencesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1011,14 +938,14 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1033,34 +960,34 @@ class PreferencesResourceIT {
         PreferencesDTO preferencesDTO = preferencesMapper.toDto(preferences);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(preferencesDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(preferencesDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
     @Test
-    void deletePreferences() {
+    void deletePreferences() throws Exception {
         // Initialize the database
         insertedPreferences = preferencesRepository.save(preferences).block();
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
         // Delete the preferences
-        webTestClient
-            .delete()
-            .uri(ENTITY_API_URL_ID, preferences.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isNoContent();
+        restMockMvc
+            .perform(
+                delete(ENTITY_API_URL_ID, preferences.getId())
+                    .with(csrf())
+                    .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNoContent());
 
         // Validate the database contains one less item
         assertDecrementedRepositoryCount(databaseSizeBeforeDelete);

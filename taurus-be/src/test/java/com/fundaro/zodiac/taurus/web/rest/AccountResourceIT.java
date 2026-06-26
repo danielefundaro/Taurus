@@ -2,8 +2,10 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.TEST_USER_LOGIN;
 import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.authenticationToken;
-import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.registerAuthenticationToken;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
@@ -13,30 +15,22 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Integration tests for the {@link AccountResource} REST controller.
  */
-@AutoConfigureWebTestClient(timeout = IntegrationTest.DEFAULT_TIMEOUT)
+@AutoConfigureMockMvc
 @IntegrationTest
 class AccountResourceIT {
 
     private Map<String, Object> claims;
 
     @Autowired
-    private WebTestClient webTestClient;
-
-    @Autowired
-    private ReactiveOAuth2AuthorizedClientService authorizedClientService;
-
-    @Autowired
-    private ClientRegistration clientRegistration;
+    private MockMvc restMockMvc;
 
     @BeforeEach
     public void setup() {
@@ -47,49 +41,42 @@ class AccountResourceIT {
     }
 
     @Test
-    void testGetExistingAccount() {
-        webTestClient
-            .mutateWith(
-                mockAuthentication(registerAuthenticationToken(authorizedClientService, clientRegistration, authenticationToken(claims)))
+    void testGetExistingAccount() throws Exception {
+        restMockMvc
+            .perform(
+                get("/api/account")
+                    .with(csrf())
+                    .with(authentication(authenticationToken(claims)))
+                    .accept(MediaType.APPLICATION_JSON)
             )
-            .mutateWith(csrf())
-            .get()
-            .uri("/api/account")
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .expectBody()
-            .jsonPath("$.login")
-            .isEqualTo("jane")
-            .jsonPath("$.authorities")
-            .isEqualTo(AuthoritiesConstants.ADMIN);
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.login").value("jane"))
+            .andExpect(jsonPath("$.authorities").value(AuthoritiesConstants.ADMIN));
     }
 
     @Test
-    void testGetUnknownAccount() {
-        webTestClient.get().uri("/api/account").accept(MediaType.APPLICATION_JSON).exchange().expectStatus().is3xxRedirection();
+    void testGetUnknownAccount() throws Exception {
+        restMockMvc
+            .perform(get("/api/account").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().is3xxRedirection());
     }
 
     @Test
     @WithUnauthenticatedMockUser
-    void testNonAuthenticatedUser() {
-        webTestClient.get().uri("/api/authenticate").accept(MediaType.TEXT_PLAIN).exchange().expectStatus().isOk().expectBody().isEmpty();
+    void testNonAuthenticatedUser() throws Exception {
+        restMockMvc
+            .perform(get("/api/authenticate").accept(MediaType.TEXT_PLAIN))
+            .andExpect(status().isOk())
+            .andExpect(content().string(""));
     }
 
     @Test
     @WithMockUser(TEST_USER_LOGIN)
-    void testAuthenticatedUser() {
-        webTestClient
-            .get()
-            .uri("/api/authenticate")
-            .accept(MediaType.TEXT_PLAIN)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectBody(String.class)
-            .isEqualTo(TEST_USER_LOGIN);
+    void testAuthenticatedUser() throws Exception {
+        restMockMvc
+            .perform(get("/api/authenticate").accept(MediaType.TEXT_PLAIN))
+            .andExpect(status().isOk())
+            .andExpect(content().string(TEST_USER_LOGIN));
     }
 }

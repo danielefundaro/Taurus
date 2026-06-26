@@ -114,7 +114,7 @@ spring:
     basename: i18n/messages
   main:
     allow-bean-definition-overriding: true
-  webflux:
+  mvc:
     problemdetails:
       enabled: true
   security:

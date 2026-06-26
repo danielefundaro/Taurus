@@ -1,9 +1,9 @@
 package com.fundaro.zodiac.taurus.service.user.impl;
 
-import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.mapper.EntityOpenSearchMapper;
@@ -22,12 +22,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
 
@@ -65,31 +65,27 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     }
 
     @Override
-    public Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to get all {} by Criteria", entityName);
+    public Page<D> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to get all {} by Criteria", entityName);
 
-            try {
-                return Mono.just(findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
-            }
-        });
+        try {
+            return findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId);
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic");
+        }
     }
 
     @Override
-    public Mono<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to get {} : {}", entityName, id);
+    public Optional<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to get {} : {}", entityName, id);
 
-            try {
-                return Mono.just(mapper.toDto(getById(id, tenantId)));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
-            }
-        });
+        try {
+            return Optional.of(mapper.toDto(getById(id, tenantId)));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     protected E getById(String id, String tenantId) throws IOException {

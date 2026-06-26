@@ -15,12 +15,12 @@ import com.fundaro.zodiac.taurus.service.user.TracksService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.util.*;
@@ -41,32 +41,33 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
     }
 
     @Override
-    public Mono<AlbumsDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.findOne(id, abstractAuthenticationToken).flatMap(albumsDTO -> {
-            if (albumsDTO == null || !(Objects.equals(albumsDTO.getState(), StateEnum.COMPLETE) || Objects.equals(albumsDTO.getState(), StateEnum.PUBLIC))) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound"));
-            }
+    public Optional<AlbumsDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        Optional<AlbumsDTO> albumsDTOOpt = super.findOne(id, abstractAuthenticationToken);
+        if (albumsDTOOpt.isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
+        }
 
-            if (!albumsDTO.getTracks().isEmpty()) {
-                TracksCriteria tracksCriteria = new TracksCriteria();
-                StringFilter idFilter = new StringFilter();
-                idFilter.setIn(albumsDTO.getTracks().stream().map(ChildrenEntitiesDTO::getIndex).toList());
-                tracksCriteria.setId(idFilter);
+        AlbumsDTO albumsDTO = albumsDTOOpt.get();
+        if (!(Objects.equals(albumsDTO.getState(), StateEnum.COMPLETE) || Objects.equals(albumsDTO.getState(), StateEnum.PUBLIC))) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
+        }
 
-                return tracksService.findEntitiesByCriteria(tracksCriteria, Pageable.ofSize(albumsDTO.getTracks().size()), abstractAuthenticationToken).map(tracksDTOS -> {
-                    Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream()
-                        .filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex())))
-                        .sorted(Comparator.comparingLong(ChildrenEntitiesDTO::getOrder))
-                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (!albumsDTO.getTracks().isEmpty()) {
+            TracksCriteria tracksCriteria = new TracksCriteria();
+            StringFilter idFilter = new StringFilter();
+            idFilter.setIn(albumsDTO.getTracks().stream().map(ChildrenEntitiesDTO::getIndex).toList());
+            tracksCriteria.setId(idFilter);
 
-                    albumsDTO.setTracks(finalList);
+            Page<com.fundaro.zodiac.taurus.service.dto.TracksDTO> tracksDTOS = tracksService.findEntitiesByCriteria(tracksCriteria, Pageable.ofSize(albumsDTO.getTracks().size()), abstractAuthenticationToken);
+            Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream()
+                .filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex())))
+                .sorted(Comparator.comparingLong(ChildrenEntitiesDTO::getOrder))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
-                    return albumsDTO;
-                });
-            }
+            albumsDTO.setTracks(finalList);
+        }
 
-            return Mono.just(albumsDTO);
-        });
+        return Optional.of(albumsDTO);
     }
 
     @Override

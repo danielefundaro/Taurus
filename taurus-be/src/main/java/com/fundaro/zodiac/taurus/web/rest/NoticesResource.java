@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import reactor.core.publisher.Mono;
 import tech.jhipster.web.util.HeaderUtil;
 
 /**
@@ -24,33 +23,34 @@ public class NoticesResource extends CommonResource<Notices, NoticesDTO, Notices
     }
 
     @GetMapping("/unread/count")
-    public Mono<ResponseEntity<Long>> getUnreadCount(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Long> getUnreadCount(AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to get count of unread notices");
-        return getService().countUnread(abstractAuthenticationToken).map(count -> ResponseEntity.ok().body(count));
+        return ResponseEntity.ok().body(getService().countUnread(abstractAuthenticationToken));
     }
 
     @PatchMapping("/read-all")
-    public Mono<ResponseEntity<Void>> readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to mark all notices as read");
-
-        return getService().readAll(abstractAuthenticationToken)
-            .then(Mono.just(ResponseEntity.noContent().build()));
+        getService().readAll(abstractAuthenticationToken);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/read")
-    public Mono<ResponseEntity<NoticesDTO>> read(@PathVariable Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<NoticesDTO> read(@PathVariable Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to set notice {} as already read", id);
-
-        return getService().read(id, abstractAuthenticationToken).switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND))).map(res ->
-            ResponseEntity.ok()
-                .headers(HeaderUtil.createEntityUpdateAlert(getApplicationName(), false, getEntityName(), res.getId().toString()))
-                .body(res)
-        );
+        NoticesDTO result = getService().read(id, abstractAuthenticationToken);
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(getApplicationName(), false, getEntityName(), result.getId().toString()))
+            .body(result);
     }
 
     @DeleteMapping("delete-all")
-    public Mono<ResponseEntity<Void>> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to delete all notices");
-        return getService().deleteAll(abstractAuthenticationToken).then(Mono.just(ResponseEntity.noContent().build()));
+        getService().deleteAll(abstractAuthenticationToken);
+        return ResponseEntity.noContent().build();
     }
 }

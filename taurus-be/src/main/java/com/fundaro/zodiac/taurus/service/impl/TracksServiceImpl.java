@@ -19,13 +19,11 @@ import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.apache.commons.io.FilenameUtils;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -54,69 +52,63 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
-    public Mono<TracksDTO> save(TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public TracksDTO save(TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         finalizeOrders(dto);
         return super.save(dto, abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<TracksDTO> update(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public TracksDTO update(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         finalizeOrders(dto);
-        return super.update(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
-            updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
-            return tracksDTO;
-        });
+        TracksDTO tracksDTO = super.update(id, dto, abstractAuthenticationToken);
+        updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
+        return tracksDTO;
     }
 
     @Override
-    public Mono<TracksDTO> partialUpdate(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public TracksDTO partialUpdate(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         finalizeOrders(dto);
-        return super.partialUpdate(id, dto, abstractAuthenticationToken).map(tracksDTO -> {
-            updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
-            return tracksDTO;
-        });
+        TracksDTO tracksDTO = super.partialUpdate(id, dto, abstractAuthenticationToken);
+        updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
+        return tracksDTO;
     }
 
     @Override
-    public Mono<Void> uploadFile(String id, FilePart filePart, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return DataBufferUtils.join(filePart.content()).flatMap(dataBuffer -> {
-            if (dataBuffer.capacity() == 0) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty"));
-            }
+    public void uploadFile(String id, MultipartFile file, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (file == null || file.isEmpty()) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
+        }
 
-            String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-            QueueUploadFilesDTO queueUploadFilesDTO = new QueueUploadFilesDTO();
-            queueUploadFilesDTO.setUserId(userId);
-            queueUploadFilesDTO.setFilePart(filePart);
-            queueUploadFilesDTO.setType(getEntityName());
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        QueueUploadFilesDTO queueUploadFilesDTO = new QueueUploadFilesDTO();
+        queueUploadFilesDTO.setUserId(userId);
+        queueUploadFilesDTO.setMultipartFile(file);
+        queueUploadFilesDTO.setType(getEntityName());
 
-            if (id != null) {
-                queueUploadFilesDTO.setTrackId(id);
-                return findOne(id, abstractAuthenticationToken).flatMap(tracksDTO -> queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken));
-            } else {
-                TracksDTO tracksDTO = new TracksDTO();
-                tracksDTO.setName(FilenameUtils.removeExtension(filePart.filename()));
-
-                return this.save(tracksDTO, abstractAuthenticationToken).flatMap(t -> {
-                    queueUploadFilesDTO.setTrackId(t.getId());
-                    return queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
-                });
-            }
-        }).then();
+        if (id != null) {
+            queueUploadFilesDTO.setTrackId(id);
+            findOne(id, abstractAuthenticationToken);
+            queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+        } else {
+            TracksDTO tracksDTO = new TracksDTO();
+            tracksDTO.setName(FilenameUtils.removeExtension(file.getOriginalFilename()));
+            TracksDTO saved = this.save(tracksDTO, abstractAuthenticationToken);
+            queueUploadFilesDTO.setTrackId(saved.getId());
+            queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+        }
     }
 
     @Override
-    public Mono<TracksDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
-            if (b == null) {
-                return Mono.empty();
-            }
+    public TracksDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        TracksDTO b = super.delete(id, abstractAuthenticationToken);
+        if (b == null) {
+            return null;
+        }
 
-            // Delete all related information
-            albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
+        // Delete all related information
+        albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
 
-            return Mono.just(b);
-        });
+        return b;
     }
 
     @Override
@@ -178,15 +170,12 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         }
     }
 
-    private Mono<Object> queueSaveEntity(QueueUploadFilesDTO queueUploadFilesDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken).flatMap(mono -> mono.map(q -> {
-            try {
-                sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message"));
-            }
-
-            return q;
-        }));
+    private void queueSaveEntity(QueueUploadFilesDTO queueUploadFilesDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
+        QueueUploadFilesDTO q = queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken);
+        try {
+            sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message");
+        }
     }
 }

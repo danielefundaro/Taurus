@@ -1,9 +1,10 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.ID_TOKEN;
 import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.authenticationToken;
-import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.registerAuthenticationToken;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
@@ -13,17 +14,17 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Integration tests for the {@link LogoutResource} REST controller.
  */
+@AutoConfigureMockMvc
 @IntegrationTest
 class LogoutResourceIT {
 
@@ -31,15 +32,10 @@ class LogoutResourceIT {
     private ReactiveClientRegistrationRepository registrations;
 
     @Autowired
-    private ApplicationContext context;
-
-    @Autowired
-    private ReactiveOAuth2AuthorizedClientService authorizedClientService;
-
-    @Autowired
     private ClientRegistration clientRegistration;
 
-    private WebTestClient webTestClient;
+    @Autowired
+    private MockMvc restMockMvc;
 
     private Map<String, Object> claims;
 
@@ -48,32 +44,26 @@ class LogoutResourceIT {
         claims = new HashMap<>();
         claims.put("groups", Collections.singletonList(AuthoritiesConstants.USER));
         claims.put("sub", 123);
-
-        this.webTestClient = WebTestClient.bindToApplicationContext(this.context).apply(springSecurity()).configureClient().build();
     }
 
     @Test
-    void getLogoutInformation() {
+    void getLogoutInformation() throws Exception {
         final String ORIGIN_URL = "http://localhost:8080";
         String logoutUrl =
             this.registrations.findByRegistrationId("oidc")
                 .map(oidc -> oidc.getProviderDetails().getConfigurationMetadata().get("end_session_endpoint").toString())
                 .block();
-        logoutUrl = logoutUrl + "?id_token_hint=" + ID_TOKEN + "&post_logout_redirect_uri=" + ORIGIN_URL;
-        this.webTestClient.mutateWith(csrf())
-            .mutateWith(
-                mockAuthentication(registerAuthenticationToken(authorizedClientService, clientRegistration, authenticationToken(claims)))
+        logoutUrl = logoutUrl + "?id_token_hint=" + com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.ID_TOKEN + "&post_logout_redirect_uri=" + ORIGIN_URL;
+
+        restMockMvc
+            .perform(
+                post("http://localhost:8080/api/logout")
+                    .with(csrf())
+                    .with(authentication(authenticationToken(claims)))
+                    .header(HttpHeaders.ORIGIN, ORIGIN_URL)
             )
-            .post()
-            .uri("http://localhost:8080/api/logout")
-            .header(HttpHeaders.ORIGIN, ORIGIN_URL)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .expectBody()
-            .jsonPath("$.logoutUrl")
-            .isEqualTo(logoutUrl);
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.logoutUrl").value(logoutUrl));
     }
 }

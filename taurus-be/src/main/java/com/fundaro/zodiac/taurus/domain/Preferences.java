@@ -1,23 +1,25 @@
 package com.fundaro.zodiac.taurus.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.ZonedDateTime;
 
 /**
  * A Preferences.
  */
-@Table("preferences")
+@Entity
+@Table(name = "preferences")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class Preferences extends CommonFields {
 
     @NotNull(message = "must not be null")
-    @Column("key")
+    @Column(name = "key")
     private String key;
 
-    @Column("value")
+    @Column(name = "value")
     private String value;
 
     public Preferences() {

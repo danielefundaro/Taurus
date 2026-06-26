@@ -16,9 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -42,113 +39,103 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     }
 
     @Override
-    public Mono<Void> addNoticesSuperAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN}).toList(), abstractAuthenticationToken)
-            .then(addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken));
+    public void addNoticesSuperAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN}).toList(), abstractAuthenticationToken);
+        addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<Void> addNoticesAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN, RoleEnum.ROLE_ADMIN}).toList(), abstractAuthenticationToken)
-            .then(addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken));
+    public void addNoticesAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN, RoleEnum.ROLE_ADMIN}).toList(), abstractAuthenticationToken);
+        addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<Void> addNoticesExcludeRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN, RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_ARCHIVIST}).toList(), abstractAuthenticationToken)
-            .then(addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken));
+    public void addNoticesExcludeRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN, RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_ARCHIVIST}).toList(), abstractAuthenticationToken);
+        addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<Void> addNoticeWholeTenant(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return addNotices(name, message, new UsersCriteria(), abstractAuthenticationToken)
-            .then(addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken));
+    public void addNoticeWholeTenant(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        addNotices(name, message, new UsersCriteria(), abstractAuthenticationToken);
+        addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<Void> addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER}).toList(), abstractAuthenticationToken);
+    public void addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER}).toList(), abstractAuthenticationToken);
     }
 
     @Override
-    public Mono<Void> readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public void readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         ZonedDateTime now = ZonedDateTime.now();
 
-        return getRepository().findAllUnread(userId, tenantCode).flatMap(notice -> {
+        getRepository().findAllUnread(userId, tenantCode).forEach(notice -> {
             NoticesDTO noticeDTO = getMapper().toDto(notice);
             noticeDTO.setReadDate(now);
-
-            return this.update(noticeDTO.getId(), noticeDTO, abstractAuthenticationToken).thenEmpty(Mono.empty());
-        }).thenEmpty(Mono.empty());
-    }
-
-    @Override
-    public Mono<Long> countUnread(AbstractAuthenticationToken abstractAuthenticationToken) {
-        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-
-        return getRepository().countUnread(userId, tenantCode);
-    }
-
-    @Override
-    public Mono<NoticesDTO> read(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return findOne(id, abstractAuthenticationToken).flatMap(noticesDTO -> {
-            if (noticesDTO.getReadDate() == null) {
-                noticesDTO.setReadDate(ZonedDateTime.now());
-                return super.update(id, noticesDTO, abstractAuthenticationToken);
-            }
-
-            return Mono.just(noticesDTO);
+            this.update(noticeDTO.getId(), noticeDTO, abstractAuthenticationToken);
         });
     }
 
     @Override
-    public Mono<Void> deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public long countUnread(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        return getRepository().findAllByUserIdAndTenantCode(userId, tenantCode)
-            .flatMap(notices -> super.delete(notices.getId(), abstractAuthenticationToken))
-            .thenEmpty(Mono.empty());
+        return getRepository().countUnread(userId, tenantCode);
     }
 
-    private Mono<Void> addNoticesByRoles(String name, String message, List<RoleEnum> roles, AbstractAuthenticationToken abstractAuthenticationToken) {
+    @Override
+    public NoticesDTO read(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        NoticesDTO noticesDTO = findOne(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Entity not found", "notices", "id.notFound"));
+
+        if (noticesDTO.getReadDate() == null) {
+            noticesDTO.setReadDate(ZonedDateTime.now());
+            return super.update(id, noticesDTO, abstractAuthenticationToken);
+        }
+
+        return noticesDTO;
+    }
+
+    @Override
+    public void deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
+        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        getRepository().findAllByUserIdAndTenantCode(userId, tenantCode)
+            .forEach(notices -> super.delete(notices.getId(), abstractAuthenticationToken));
+    }
+
+    private void addNoticesByRoles(String name, String message, List<RoleEnum> roles, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersCriteria criteria = new UsersCriteria();
         RoleFilter roleFilter = new RoleFilter();
         roleFilter.setIn(roles);
         criteria.setRoles(roleFilter);
-
-        return addNotices(name, message, criteria, abstractAuthenticationToken);
+        addNotices(name, message, criteria, abstractAuthenticationToken);
     }
 
-    private Mono<Void> addNoticesSuperAdminsOfKeycloak(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-
-        return Mono.fromCallable(() -> keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN))
-            .subscribeOn(Schedulers.boundedElastic())
-            .flatMapMany(Flux::fromIterable)
-            .flatMap(user -> {
-                NoticesDTO notice = new NoticesDTO();
-                notice.setName(name);
-                notice.setMessage(message);
-                notice.setUserId(user.getId());
-
-                return super.save(notice, abstractAuthenticationToken);
-            })
-            .then();
+    private void addNoticesSuperAdminsOfKeycloak(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN).forEach(user -> {
+            NoticesDTO notice = new NoticesDTO();
+            notice.setName(name);
+            notice.setMessage(message);
+            notice.setUserId(user.getId());
+            super.save(notice, abstractAuthenticationToken);
+        });
     }
 
-    private Mono<Void> addNotices(String name, String message, UsersCriteria usersCriteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return usersService.findEntitiesByCriteria(usersCriteria, PageRequest.of(0, 1000), abstractAuthenticationToken)
-            .flatMapMany(page -> Flux.fromIterable(page.getContent()))
-            .flatMap(user -> {
+    private void addNotices(String name, String message, UsersCriteria usersCriteria, AbstractAuthenticationToken abstractAuthenticationToken) {
+        usersService.findEntitiesByCriteria(usersCriteria, PageRequest.of(0, 1000), abstractAuthenticationToken)
+            .getContent()
+            .forEach(user -> {
                 NoticesDTO notice = new NoticesDTO();
                 notice.setName(name);
                 notice.setMessage(message);
                 notice.setUserId(user.getKeycloakId());
-
-                return super.save(notice, abstractAuthenticationToken).then();
-            })
-            .then();
+                super.save(notice, abstractAuthenticationToken);
+            });
     }
 }
