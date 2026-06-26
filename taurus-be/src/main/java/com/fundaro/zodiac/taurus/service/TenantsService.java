@@ -4,8 +4,9 @@ import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 public interface TenantsService extends CommonOpenSearchService<Tenants, TenantsDTO, TenantsCriteria> {
-    Mono<TenantsDTO> findByCode(String code, AbstractAuthenticationToken abstractAuthenticationToken);
+    Optional<TenantsDTO> findByCode(String code, AbstractAuthenticationToken abstractAuthenticationToken);
 }

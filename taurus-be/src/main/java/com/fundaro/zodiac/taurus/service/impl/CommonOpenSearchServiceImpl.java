@@ -1,6 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.StateFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
@@ -26,9 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.io.IOException;
@@ -36,20 +33,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
 
     private final OpenSearchService openSearchService;
-
-    // ------------------------------------------------------------------- //
-    //  IndexResolver replaces the old private getIndex() method.          //
-    //  The tenant ID is resolved by TenantIndexAspect before every        //
-    //  public method and stored in TenantContextHolder.                   //
-    // ------------------------------------------------------------------- //
     private final IndexResolver indexResolver;
-
     private final Logger log;
     private final M mapper;
     private final Class<E> classEntity;
@@ -76,148 +67,117 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return log;
     }
 
-    // ================================================================== //
-    //  Public API — TenantIndexAspect intercepts all public methods:  //
-    //    1. Finds the AbstractAuthenticationToken argument                 //
-    //    2. Extracts the tenantId via SecurityUtils                        //
-    //    3. Stores it in TenantContextHolder for the duration of the call  //
-    // ================================================================== //
-
     @Override
-    public Mono<D> save(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to save {} : {}", entityName, dto);
+    public D save(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to save {} : {}", entityName, dto);
 
-            if (dto.getId() != null) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists"));
-            }
+        if (dto.getId() != null) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists");
+        }
 
-            try {
-                return Mono.just(mapper.toDto(saveEntity(null, mapper.toEntity(dto), abstractAuthenticationToken, tenantId)));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while saving %s info.\n%s", entityName, e.getMessage()), entityName, "generic"));
-            }
-        });
+        try {
+            return mapper.toDto(saveEntity(null, mapper.toEntity(dto), abstractAuthenticationToken, tenantId));
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while saving %s info.\n%s", entityName, e.getMessage()), entityName, "generic");
+        }
     }
 
     @Override
-    public Mono<D> update(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to update {} : {}", entityName, dto);
-            return updateDto(id, dto, abstractAuthenticationToken, tenantId);
-        });
+    public D update(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to update {} : {}", entityName, dto);
+        return updateDto(id, dto, abstractAuthenticationToken, tenantId);
     }
 
     @Override
-    public Mono<D> partialUpdate(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to partially update {} : {}", entityName, dto);
-            return updateDto(id, dto, abstractAuthenticationToken, tenantId);
-        });
+    public D partialUpdate(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to partially update {} : {}", entityName, dto);
+        return updateDto(id, dto, abstractAuthenticationToken, tenantId);
     }
 
     @Override
-    public Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to get all {} by Criteria", entityName);
+    public Page<D> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to get all {} by Criteria", entityName);
 
-            try {
-                return Mono.just(findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic"));
-            }
-        });
+        try {
+            return findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId);
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic");
+        }
     }
 
     @Override
-    public Mono<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to get {} : {}", entityName, id);
+    public Optional<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to get {} : {}", entityName, id);
 
-            try {
-                return Mono.just(mapper.toDto(getById(id, tenantId)));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
-            }
-        });
+        try {
+            return Optional.of(mapper.toDto(getById(id, tenantId)));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
-    public Mono<Long> count(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to count all {} by Criteria", entityName);
+    public long count(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to count all {} by Criteria", entityName);
 
-            try {
-                return Mono.just(countByCriteria(criteria, tenantId));
-            } catch (IOException e) {
-                return Mono.just(0L);
-            }
-        });
+        try {
+            return countByCriteria(criteria, tenantId);
+        } catch (IOException e) {
+            return 0L;
+        }
     }
 
     @Override
-    public Mono<D> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            log.debug("Request to delete {} : {}", entityName, id);
-            E entity;
+    public D delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to delete {} : {}", entityName, id);
 
-            try {
-                entity = getById(id, tenantId);
-                entity.setDeleted(true);
-                saveEntity(id, entity, abstractAuthenticationToken, tenantId);
-            } catch (IOException e) {
-                return Mono.empty();
-            }
-
-            return Mono.just(mapper.toDto(entity));
-        });
+        try {
+            E entity = getById(id, tenantId);
+            entity.setDeleted(true);
+            saveEntity(id, entity, abstractAuthenticationToken, tenantId);
+            return mapper.toDto(entity);
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
+        }
     }
 
     @Override
     public void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function) {
-        // Risoluzione diretta dal token — non c'è Reactor Context in un metodo sincrono
         String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-
         if (tenantId == null) {
             tenantId = "";
         }
 
-        String resolvedTenant = tenantId;
-
-        // Create filter
         StringFilter stringFilter = new StringFilter();
         stringFilter.setEquals(childId);
         C c = criteriaFunction.apply(stringFilter);
 
         int pageNumber = 0, size = 20;
-        Page<D> result = new PageImpl<>(new ArrayList<>(), PageRequest.of(pageNumber, size), 0);
+        Page<D> result;
 
         do {
             Pageable pageable = PageRequest.of(pageNumber++, size);
             try {
-                result = findByCriteria(c, pageable, abstractAuthenticationToken, resolvedTenant);
+                result = findByCriteria(c, pageable, abstractAuthenticationToken, tenantId);
             } catch (IOException ignored) {
+                break;
             }
 
+            final String resolvedTenant = tenantId;
             result.getContent().forEach(dto -> {
                 if (function.apply(dto, childId)) {
                     partialUpdateSync(dto.getId(), dto, abstractAuthenticationToken, resolvedTenant);
                 }
             });
-        } while (result.getTotalPages() > pageNumber);
+        } while (result != null && result.getTotalPages() > pageNumber);
     }
-
-    // ================================================================== //
-    //  Protected helpers — token no longer needed here;                   //
-    //  tenant is already in TenantContextHolder when these are called.    //
-    // ================================================================== //
 
     protected E getById(String id, String tenantId) throws IOException {
         GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(indexResolver.resolve(entityName, tenantId)).id(id), classEntity);
@@ -242,40 +202,31 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return queries;
     }
 
-    // ================================================================== //
-    //  Private helpers                                                     //
-    // ================================================================== //
-
-    @NonNull
-    private Mono<D> updateDto(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) {
+    private D updateDto(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) {
         if (dto.getId() == null) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null"));
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null");
         }
 
         if (!Objects.equals(id, dto.getId())) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid"));
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
 
         E existingEntity;
         try {
             existingEntity = getById(id, tenantId);
         } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
         }
 
         mapper.partialUpdate(existingEntity, dto);
 
         try {
-            return Mono.just(mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken, tenantId)));
+            return mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken, tenantId));
         } catch (IOException e) {
-            return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic"));
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic");
         }
     }
 
-    /**
-     * Variante sincrona di partialUpdate usata da {@link #alignChildrenInformation},
-     * che opera in un contesto bloccante senza Reactor Context.
-     */
     private void partialUpdateSync(String id, D dto, AbstractAuthenticationToken token, String tenantId) {
         if (dto.getId() == null || !Objects.equals(id, dto.getId())) return;
         E existingEntity;
@@ -343,10 +294,6 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         return countResponse.count();
     }
 
-    /**
-     * Audit info still uses SecurityUtils directly: we need the user ID (sub),
-     * not the tenant ID — this is intentionally outside the aspect.
-     */
     private void addAuditInfo(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
 

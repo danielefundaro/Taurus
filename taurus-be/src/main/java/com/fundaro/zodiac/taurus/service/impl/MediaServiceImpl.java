@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fundaro.zodiac.taurus.aop.tenant.TenantIndexAspect;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -13,18 +13,14 @@ import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Objects;
 
 /**
@@ -42,61 +38,55 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     }
 
     @Override
-    public Mono<MediaDTO> update(String id, MediaDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.update(id, dto, abstractAuthenticationToken).map(mediaDTO -> {
-            updateRelatedMedia(id, dto, mediaDTO, abstractAuthenticationToken);
-            return mediaDTO;
-        });
+    public MediaDTO update(String id, MediaDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        MediaDTO mediaDTO = super.update(id, dto, abstractAuthenticationToken);
+        updateRelatedMedia(id, dto, mediaDTO, abstractAuthenticationToken);
+        return mediaDTO;
     }
 
     @Override
-    public Mono<MediaDTO> partialUpdate(String id, MediaDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.partialUpdate(id, dto, abstractAuthenticationToken).map(mediaDTO -> {
-            updateRelatedMedia(id, dto, mediaDTO, abstractAuthenticationToken);
-            return mediaDTO;
-        });
+    public MediaDTO partialUpdate(String id, MediaDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        MediaDTO mediaDTO = super.partialUpdate(id, dto, abstractAuthenticationToken);
+        updateRelatedMedia(id, dto, mediaDTO, abstractAuthenticationToken);
+        return mediaDTO;
     }
 
     @Override
-    public Mono<Flux<DataBuffer>> streamFile(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        // Return the stream of the media
-        return Mono.deferContextual(ctx -> {
-            String tenantId = ctx.getOrDefault(TenantIndexAspect.TENANT_CONTEXT_KEY, "");
-            try {
-                Media media = getById(id, tenantId);
-                return Mono.just(DataBufferUtils.read(Paths.get(media.getPath()), new DefaultDataBufferFactory(), 1024));
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
-            }
-        });
+    public Resource streamFile(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        try {
+            Media media = getById(id, tenantId);
+            return new FileSystemResource(media.getPath());
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound");
+        }
     }
 
     @Override
-    public Mono<MediaDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
-            if (b == null) {
-                return Mono.empty();
-            }
+    public MediaDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        MediaDTO b = super.delete(id, abstractAuthenticationToken);
+        if (b == null) {
+            return null;
+        }
 
-            // Delete all related information
-            tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setMediaId(stringFilter), (tracksDTO, s) -> {
-                boolean result = false;
+        // Delete all related information
+        tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setMediaId(stringFilter), (tracksDTO, s) -> {
+            boolean result = false;
 
-                if (tracksDTO.getScores() != null) {
-                    for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                        if (sheetsMusicDTO.getMedia() != null) {
-                            result |= sheetsMusicDTO.getMedia().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
-                        }
+            if (tracksDTO.getScores() != null) {
+                for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
+                    if (sheetsMusicDTO.getMedia() != null) {
+                        result |= sheetsMusicDTO.getMedia().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
                     }
-
-                    result |= tracksDTO.getScores().removeIf(sheetsMusicDTO -> sheetsMusicDTO.getMedia().isEmpty());
                 }
 
-                return result;
-            });
+                result |= tracksDTO.getScores().removeIf(sheetsMusicDTO -> sheetsMusicDTO.getMedia().isEmpty());
+            }
 
-            return Mono.just(b);
+            return result;
         });
+
+        return b;
     }
 
     private void updateRelatedMedia(String id, MediaDTO oldMediaDto, MediaDTO mediaDTO, AbstractAuthenticationToken abstractAuthenticationToken) {

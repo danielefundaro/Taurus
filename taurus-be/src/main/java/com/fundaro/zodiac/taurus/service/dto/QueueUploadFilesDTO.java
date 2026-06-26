@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
 
@@ -27,7 +27,7 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
     private String type;
 
     @JsonIgnore
-    private FilePart filePart;
+    private MultipartFile multipartFile;
 
     public String getUserId() {
         return userId;
@@ -61,12 +61,12 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
         this.status = status;
     }
 
-    public FilePart getFilePart() {
-        return filePart;
+    public MultipartFile getMultipartFile() {
+        return multipartFile;
     }
 
-    public void setFilePart(FilePart filePart) {
-        this.filePart = filePart;
+    public void setMultipartFile(MultipartFile multipartFile) {
+        this.multipartFile = multipartFile;
     }
 
     public String getType() {

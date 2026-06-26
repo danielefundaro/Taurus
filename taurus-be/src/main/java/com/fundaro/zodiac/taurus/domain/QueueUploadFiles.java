@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import org.springframework.data.relational.core.mapping.Table;
 
 /**
  * A QueueUploadFiles.
  */
-@Table("queue_upload_files")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class QueueUploadFiles extends CommonFieldsOpenSearch {
 

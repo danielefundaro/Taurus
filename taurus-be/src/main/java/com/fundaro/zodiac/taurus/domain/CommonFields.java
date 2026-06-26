@@ -1,10 +1,12 @@
 package com.fundaro.zodiac.taurus.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -17,36 +19,37 @@ public class CommonFields implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @Column("id")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequenceGenerator")
     @SequenceGenerator(name = "sequenceGenerator")
+    @Column(name = "id")
     private Long id;
 
     @NotNull(message = "must not be null")
-    @Column("deleted")
+    @Column(name = "deleted")
     private Boolean deleted;
 
     @NotNull(message = "must not be null")
-    @Column("insert_by")
+    @Column(name = "insert_by")
     private String insertBy;
 
     @NotNull(message = "must not be null")
-    @Column("insert_date")
+    @Column(name = "insert_date")
     private ZonedDateTime insertDate;
 
     @NotNull(message = "must not be null")
-    @Column("edit_by")
+    @Column(name = "edit_by")
     private String editBy;
 
     @NotNull(message = "must not be null")
-    @Column("edit_date")
+    @Column(name = "edit_date")
     private ZonedDateTime editDate;
 
     @NotNull(message = "must not be null")
-    @Column("user_id")
+    @Column(name = "user_id")
     private String userId;
 
     @NotNull(message = "must not be null")
-    @Column("tenant_code")
+    @Column(name = "tenant_code")
     private String tenantCode;
 
     public CommonFields() {

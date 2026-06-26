@@ -1,22 +1,24 @@
 package com.fundaro.zodiac.taurus.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.ZonedDateTime;
 
 /**
  * A LastResearch.
  */
-@Table("last_research")
+@Entity
+@Table(name = "last_research")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class LastResearch extends CommonFields {
 
-    @Column("value")
+    @Column(name = "value")
     private String value;
 
-    @Column("field")
+    @Column(name = "field")
     private String field;
 
     public LastResearch() {

@@ -1,26 +1,28 @@
 package com.fundaro.zodiac.taurus.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.ZonedDateTime;
 
 /**
  * A Notices.
  */
-@Table("notices")
+@Entity
+@Table(name = "notices")
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class Notices extends CommonFields {
 
     @NotNull(message = "must not be null")
-    @Column("name")
+    @Column(name = "name")
     private String name;
 
-    @Column("message")
+    @Column(name = "message")
     private String message;
 
-    @Column("read_date")
+    @Column(name = "read_date")
     private ZonedDateTime readDate;
 
     public Notices() {

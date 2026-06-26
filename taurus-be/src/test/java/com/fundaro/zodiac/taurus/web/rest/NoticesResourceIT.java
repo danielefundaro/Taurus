@@ -6,7 +6,9 @@ import static com.fundaro.zodiac.taurus.web.rest.TestUtil.sameInstant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
@@ -25,16 +27,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Integration tests for the {@link NoticesResource} REST controller.
  */
 @IntegrationTest
-@AutoConfigureWebTestClient(timeout = IntegrationTest.DEFAULT_ENTITY_TIMEOUT)
+@AutoConfigureMockMvc
 @WithMockUser
 class NoticesResourceIT {
 
@@ -87,7 +90,7 @@ class NoticesResourceIT {
     private EntityManager em;
 
     @Autowired
-    private WebTestClient webTestClient;
+    private MockMvc restMockMvc;
 
     private Notices notices;
 
@@ -140,11 +143,6 @@ class NoticesResourceIT {
     }
 
     @BeforeEach
-    public void setupCsrf() {
-        webTestClient = webTestClient.mutateWith(csrf());
-    }
-
-    @BeforeEach
     public void initTest() {
         notices = createEntity();
     }
@@ -163,17 +161,17 @@ class NoticesResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
         // Create the Notices
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
-        var returnedNoticesDTO = webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isCreated()
-            .expectBody(NoticesDTO.class)
-            .returnResult()
-            .getResponseBody();
+        MvcResult result = restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        NoticesDTO returnedNoticesDTO = om.readValue(result.getResponse().getContentAsString(), NoticesDTO.class);
 
         // Validate the Notices in the database
         assertIncrementedRepositoryCount(databaseSizeBeforeCreate);
@@ -192,14 +190,14 @@ class NoticesResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
 
         // An entity with an existing ID cannot be created, so this API call must fail
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeCreate);
@@ -214,14 +212,14 @@ class NoticesResourceIT {
         // Create the Notices, which fails.
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         assertSameRepositoryCount(databaseSizeBeforeTest);
     }
@@ -235,96 +233,64 @@ class NoticesResourceIT {
         // Create the Notices, which fails.
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         assertSameRepositoryCount(databaseSizeBeforeTest);
     }
 
     @Test
-    void getAllNotices() {
+    void getAllNotices() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
         // Get all the noticesList
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc")
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(notices.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].name")
-            .value(hasItem(DEFAULT_NAME))
-            .jsonPath("$.[*].message")
-            .value(hasItem(DEFAULT_MESSAGE))
-            .jsonPath("$.[*].readDate")
-            .value(hasItem(sameInstant(DEFAULT_READ_DATE)));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(notices.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
+            .andExpect(jsonPath("$.[*].message").value(hasItem(DEFAULT_MESSAGE)))
+            .andExpect(jsonPath("$.[*].readDate").value(hasItem(sameInstant(DEFAULT_READ_DATE))));
     }
 
     @Test
-    void getNotices() {
+    void getNotices() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
         // Get the notices
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, notices.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.id")
-            .value(is(notices.getId().intValue()))
-            .jsonPath("$.deleted")
-            .value(is(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.insertBy")
-            .value(is(DEFAULT_INSERT_BY))
-            .jsonPath("$.insertDate")
-            .value(is(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.editBy")
-            .value(is(DEFAULT_EDIT_BY))
-            .jsonPath("$.editDate")
-            .value(is(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.userId")
-            .value(is(DEFAULT_USER_ID))
-            .jsonPath("$.name")
-            .value(is(DEFAULT_NAME))
-            .jsonPath("$.message")
-            .value(is(DEFAULT_MESSAGE))
-            .jsonPath("$.readDate")
-            .value(is(sameInstant(DEFAULT_READ_DATE)));
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, notices.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(is(notices.getId().intValue())))
+            .andExpect(jsonPath("$.deleted").value(is(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.insertBy").value(is(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.insertDate").value(is(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.editBy").value(is(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.editDate").value(is(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.userId").value(is(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.name").value(is(DEFAULT_NAME)))
+            .andExpect(jsonPath("$.message").value(is(DEFAULT_MESSAGE)))
+            .andExpect(jsonPath("$.readDate").value(is(sameInstant(DEFAULT_READ_DATE))));
     }
 
     @Test
-    void getNoticesByIdFiltering() {
+    void getNoticesByIdFiltering() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -338,7 +304,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByDeletedIsEqualToSomething() {
+    void getAllNoticesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -347,7 +313,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByDeletedIsInShouldWork() {
+    void getAllNoticesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -356,7 +322,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByDeletedIsNullOrNotNull() {
+    void getAllNoticesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -365,7 +331,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertByIsEqualToSomething() {
+    void getAllNoticesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -374,7 +340,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertByIsInShouldWork() {
+    void getAllNoticesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -383,7 +349,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertByIsNullOrNotNull() {
+    void getAllNoticesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -392,7 +358,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertByContainsSomething() {
+    void getAllNoticesByInsertByContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -401,7 +367,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertByNotContainsSomething() {
+    void getAllNoticesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -410,7 +376,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsEqualToSomething() {
+    void getAllNoticesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -419,7 +385,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsInShouldWork() {
+    void getAllNoticesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -428,7 +394,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsNullOrNotNull() {
+    void getAllNoticesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -437,7 +403,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsGreaterThanOrEqualToSomething() {
+    void getAllNoticesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -449,7 +415,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsLessThanOrEqualToSomething() {
+    void getAllNoticesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -458,7 +424,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsLessThanSomething() {
+    void getAllNoticesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -467,7 +433,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByInsertDateIsGreaterThanSomething() {
+    void getAllNoticesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -476,7 +442,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditByIsEqualToSomething() {
+    void getAllNoticesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -485,7 +451,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditByIsInShouldWork() {
+    void getAllNoticesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -494,7 +460,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditByIsNullOrNotNull() {
+    void getAllNoticesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -503,7 +469,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditByContainsSomething() {
+    void getAllNoticesByEditByContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -512,7 +478,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditByNotContainsSomething() {
+    void getAllNoticesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -521,7 +487,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsEqualToSomething() {
+    void getAllNoticesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -530,7 +496,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsInShouldWork() {
+    void getAllNoticesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -539,7 +505,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsNullOrNotNull() {
+    void getAllNoticesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -548,7 +514,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsGreaterThanOrEqualToSomething() {
+    void getAllNoticesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -557,7 +523,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsLessThanOrEqualToSomething() {
+    void getAllNoticesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -566,7 +532,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsLessThanSomething() {
+    void getAllNoticesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -575,7 +541,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByEditDateIsGreaterThanSomething() {
+    void getAllNoticesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -584,7 +550,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByUserIdIsEqualToSomething() {
+    void getAllNoticesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -593,7 +559,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByUserIdIsInShouldWork() {
+    void getAllNoticesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -602,7 +568,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByUserIdIsNullOrNotNull() {
+    void getAllNoticesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -611,7 +577,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByUserIdContainsSomething() {
+    void getAllNoticesByUserIdContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -620,7 +586,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByUserIdNotContainsSomething() {
+    void getAllNoticesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -629,7 +595,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByNameIsEqualToSomething() {
+    void getAllNoticesByNameIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -638,7 +604,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByNameIsInShouldWork() {
+    void getAllNoticesByNameIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -647,7 +613,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByNameIsNullOrNotNull() {
+    void getAllNoticesByNameIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -656,7 +622,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByNameContainsSomething() {
+    void getAllNoticesByNameContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -665,7 +631,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByNameNotContainsSomething() {
+    void getAllNoticesByNameNotContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -674,7 +640,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByMessageIsEqualToSomething() {
+    void getAllNoticesByMessageIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -683,7 +649,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByMessageIsInShouldWork() {
+    void getAllNoticesByMessageIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -692,7 +658,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByMessageIsNullOrNotNull() {
+    void getAllNoticesByMessageIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -701,7 +667,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByMessageContainsSomething() {
+    void getAllNoticesByMessageContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -710,7 +676,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByMessageNotContainsSomething() {
+    void getAllNoticesByMessageNotContainsSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -719,7 +685,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsEqualToSomething() {
+    void getAllNoticesByReadDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -728,7 +694,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsInShouldWork() {
+    void getAllNoticesByReadDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -737,7 +703,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsNullOrNotNull() {
+    void getAllNoticesByReadDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -746,7 +712,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsGreaterThanOrEqualToSomething() {
+    void getAllNoticesByReadDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -755,7 +721,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsLessThanOrEqualToSomething() {
+    void getAllNoticesByReadDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -764,7 +730,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsLessThanSomething() {
+    void getAllNoticesByReadDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -773,7 +739,7 @@ class NoticesResourceIT {
     }
 
     @Test
-    void getAllNoticesByReadDateIsGreaterThanSomething() {
+    void getAllNoticesByReadDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
@@ -781,7 +747,7 @@ class NoticesResourceIT {
         defaultNoticesFiltering("readDate.greaterThan=" + SMALLER_READ_DATE, "readDate.greaterThan=" + DEFAULT_READ_DATE);
     }
 
-    private void defaultNoticesFiltering(String shouldBeFound, String shouldNotBeFound) {
+    private void defaultNoticesFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
         defaultNoticesShouldBeFound(shouldBeFound);
         defaultNoticesShouldNotBeFound(shouldNotBeFound);
     }
@@ -789,97 +755,55 @@ class NoticesResourceIT {
     /**
      * Executes the search, and checks that the default entity is returned.
      */
-    private void defaultNoticesShouldBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(notices.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].name")
-            .value(hasItem(DEFAULT_NAME))
-            .jsonPath("$.[*].message")
-            .value(hasItem(DEFAULT_MESSAGE))
-            .jsonPath("$.[*].readDate")
-            .value(hasItem(sameInstant(DEFAULT_READ_DATE)));
+    private void defaultNoticesShouldBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(notices.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
+            .andExpect(jsonPath("$.[*].message").value(hasItem(DEFAULT_MESSAGE)))
+            .andExpect(jsonPath("$.[*].readDate").value(hasItem(sameInstant(DEFAULT_READ_DATE))));
 
         // Check, that the count call also returns 1
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(1));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(1)));
     }
 
     /**
      * Executes the search, and checks that the default entity is not returned.
      */
-    private void defaultNoticesShouldNotBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .isArray()
-            .jsonPath("$")
-            .isEmpty();
+    private void defaultNoticesShouldNotBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
 
         // Check, that the count call also returns 0
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(0));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(0)));
     }
 
     @Test
-    void getNonExistingNotices() {
+    void getNonExistingNotices() throws Exception {
         // Get the notices
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, Long.MAX_VALUE)
-            .accept(MediaType.APPLICATION_PROBLEM_JSON)
-            .exchange()
-            .expectStatus()
-            .isNotFound();
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE).accept(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -903,14 +827,14 @@ class NoticesResourceIT {
             .readDate(UPDATED_READ_DATE);
         NoticesDTO noticesDTO = noticesMapper.toDto(updatedNotices);
 
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, noticesDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, noticesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -926,14 +850,14 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, noticesDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, noticesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -948,14 +872,14 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -970,14 +894,14 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -996,14 +920,14 @@ class NoticesResourceIT {
 
         partialUpdatedNotices.editBy(UPDATED_EDIT_BY).message(UPDATED_MESSAGE);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedNotices.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedNotices))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedNotices.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedNotices))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Notices in the database
 
@@ -1033,14 +957,14 @@ class NoticesResourceIT {
             .message(UPDATED_MESSAGE)
             .readDate(UPDATED_READ_DATE);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedNotices.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedNotices))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedNotices.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedNotices))
+            )
+            .andExpect(status().isOk());
 
         // Validate the Notices in the database
 
@@ -1057,14 +981,14 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, noticesDTO.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, noticesDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1079,14 +1003,14 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1101,34 +1025,34 @@ class NoticesResourceIT {
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(noticesDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(noticesDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
     @Test
-    void deleteNotices() {
+    void deleteNotices() throws Exception {
         // Initialize the database
         insertedNotices = noticesRepository.save(notices).block();
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
         // Delete the notices
-        webTestClient
-            .delete()
-            .uri(ENTITY_API_URL_ID, notices.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isNoContent();
+        restMockMvc
+            .perform(
+                delete(ENTITY_API_URL_ID, notices.getId())
+                    .with(csrf())
+                    .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNoContent());
 
         // Validate the database contains one less item
         assertDecrementedRepositoryCount(databaseSizeBeforeDelete);

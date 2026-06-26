@@ -12,12 +12,11 @@ import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,29 +42,23 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
     }
 
     @Override
-    public Mono<Mono<QueueUploadFilesDTO>> saveStream(QueueUploadFilesDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return DataBufferUtils.join(dto.getFilePart().content()).map(dataBuffer -> {
-            String fileName = dto.getFilePart().filename().replaceAll(" ", "_");
-            byte[] bytes = new byte[dataBuffer.readableByteCount()];
-            dataBuffer.read(bytes);
-            DataBufferUtils.release(dataBuffer);
-
+    public QueueUploadFilesDTO saveStream(QueueUploadFilesDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        try {
+            MultipartFile multipartFile = dto.getMultipartFile();
+            String fileName = multipartFile.getOriginalFilename().replaceAll(" ", "_");
+            byte[] bytes = multipartFile.getBytes();
             Path path = Paths.get(basePath, UploadFileStatusEnum.TO_PROCESS.toString().toLowerCase(), new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()), fileName);
-            try {
-                if (!path.toFile().exists()) {
-                    Files.createDirectories(path.getParent());
-                }
-                Files.write(path, bytes, StandardOpenOption.CREATE);
-            } catch (IOException e) {
-                return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while uploading the file", getEntityName(), "file.upload"));
+            if (!path.toFile().exists()) {
+                Files.createDirectories(path.getParent());
             }
-
+            Files.write(path, bytes, StandardOpenOption.CREATE);
             dto.setPath(path.toString());
             dto.setStatus(UploadFileStatusEnum.TO_PROCESS);
             dto.setName(fileName);
-
             return super.save(dto, abstractAuthenticationToken);
-        });
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while uploading the file", getEntityName(), "file.upload");
+        }
     }
 
     @Override

@@ -2,25 +2,22 @@ package com.fundaro.zodiac.taurus.repository;
 
 import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.criteria.NoticesCriteria;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
- * Spring Data R2DBC repository for the Notices entity.
+ * Spring Data JPA repository for the Notices entity.
  */
 @SuppressWarnings("unused")
 @Repository
-public interface NoticesRepository extends CommonRepository<Notices, NoticesCriteria>, NoticesRepositoryInternal {
-    @Override
-    Flux<Notices> findAllUnread(String userId, String tenantCode);
+public interface NoticesRepository extends CommonRepository<Notices, NoticesCriteria> {
 
-    @Override
-    Mono<Long> countUnread(String userId, String tenantCode);
-}
+    @Query("SELECT n FROM Notices n WHERE n.userId = :userId AND n.tenantCode = :tenantCode AND n.readDate IS NULL AND n.deleted = false")
+    List<Notices> findAllUnread(@Param("userId") String userId, @Param("tenantCode") String tenantCode);
 
-interface NoticesRepositoryInternal extends CommonRepositoryInternal<Notices, NoticesCriteria> {
-    Flux<Notices> findAllUnread(String userId, String tenantCode);
-
-    Mono<Long> countUnread(String userId, String tenantCode);
+    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.tenantCode = :tenantCode AND n.readDate IS NULL AND n.deleted = false")
+    long countUnread(@Param("userId") String userId, @Param("tenantCode") String tenantCode);
 }

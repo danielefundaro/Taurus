@@ -17,17 +17,18 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 import tech.jhipster.service.filter.StringFilter;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -48,85 +49,86 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
-    public Mono<UsersDTO> save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public UsersDTO save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
         }
 
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        TenantsDTO tenantsDTO = tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant not found", getEntityName(), "tenant.notFound"));
+        long usersCount = super.count(new UsersCriteria(), abstractAuthenticationToken);
 
-        return tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
-            .zipWith(super.count(new UsersCriteria(), abstractAuthenticationToken)).flatMap(zipResult -> {
-                TenantsDTO tenantsDTO = zipResult.getT1();
-                Long usersCount = zipResult.getT2();
-
-                if (usersCount >= tenantsDTO.getMaxUsers()) {
-                    return Mono.error(new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", tenantsDTO.getMaxUsers()), getEntityName(), "user.limit.exceeded"));
-                }
-
-                User user = getMapper().toKeycloakUser(dto);
-
-                // Check if the user already exists into keycloak
-                try {
-                    String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-                    user.setId(keycloakId);
-                    keycloakService.updateUser(user);
-                } catch (RequestAlertException e) {
-                    keycloakService.saveUser(user);
-                }
-
-                // Set user's roles on keycloak
-                String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-                user = keycloakService.getUser(userId);
-                setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
-
-                // Save keycloakId of the user
-                dto.setKeycloakId(userId);
-                return super.save(dto, abstractAuthenticationToken).onErrorContinue((a, b) -> keycloakService.deleteUser(userId));
-            });
-    }
-
-    @Override
-    public Mono<UsersDTO> update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
+        if (usersCount >= tenantsDTO.getMaxUsers()) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", tenantsDTO.getMaxUsers()), getEntityName(), "user.limit.exceeded");
         }
 
-        return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
-            updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
-            return super.update(id, dto, abstractAuthenticationToken);
-        });
-    }
+        User user = getMapper().toKeycloakUser(dto);
 
-    @Override
-    public Mono<UsersDTO> partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            return Mono.error(new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow"));
+        // Check if the user already exists into keycloak
+        try {
+            String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+            user.setId(keycloakId);
+            keycloakService.updateUser(user);
+        } catch (RequestAlertException e) {
+            keycloakService.saveUser(user);
         }
 
-        return findOne(id, abstractAuthenticationToken).flatMap(usersDTO -> {
-            updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
-            return super.partialUpdate(id, dto, abstractAuthenticationToken);
-        });
+        // Set user's roles on keycloak
+        String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+        user = keycloakService.getUser(userId);
+        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
+
+        // Save keycloakId of the user
+        dto.setKeycloakId(userId);
+        try {
+            return super.save(dto, abstractAuthenticationToken);
+        } catch (Exception e) {
+            keycloakService.deleteUser(userId);
+            throw e;
+        }
     }
 
     @Override
-    public Mono<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken) {
+    public UsersDTO update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
+        }
+
+        UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
+        return super.update(id, dto, abstractAuthenticationToken);
+    }
+
+    @Override
+    public UsersDTO partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
+        }
+
+        UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
+        return super.partialUpdate(id, dto, abstractAuthenticationToken);
+    }
+
+    @Override
+    public Optional<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         UsersCriteria usersCriteria = new UsersCriteria();
         StringFilter keycloakFilter = new StringFilter();
         keycloakFilter.setEquals(userId);
         usersCriteria.setKeycloakId(keycloakFilter);
 
-        return findEntitiesByCriteria(usersCriteria, Pageable.ofSize(1), abstractAuthenticationToken).flatMap(page -> {
-            if (page.getContent().isEmpty()) {
-                UsersDTO usersDTO = new UsersDTO();
-                usersDTO.setKeycloakId(userId);
-                return Mono.just(usersDTO);
-            }
+        Page<UsersDTO> page = findEntitiesByCriteria(usersCriteria, Pageable.ofSize(1), abstractAuthenticationToken);
+        if (page.getContent().isEmpty()) {
+            UsersDTO usersDTO = new UsersDTO();
+            usersDTO.setKeycloakId(userId);
+            return Optional.of(usersDTO);
+        }
 
-            return Mono.just(page.getContent().get(0));
-        });
+        return Optional.of(page.getContent().get(0));
     }
 
     @Override

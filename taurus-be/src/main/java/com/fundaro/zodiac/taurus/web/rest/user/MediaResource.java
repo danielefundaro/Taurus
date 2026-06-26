@@ -4,7 +4,7 @@ import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.user.MediaService;
-import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * REST controller of ROLE_USER for getting {@link Media}.
@@ -34,12 +32,12 @@ public class MediaResource extends CommonOpenSearchResource<Media, MediaDTO, Med
      * @return the {@link ResponseEntity} with status {@code 200 (Ok)} and with body the stream of the file, or with status {@code 400 (Bad Request)} if the media has not exists.
      */
     @GetMapping(value = "/{id}/stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public Mono<ResponseEntity<Flux<DataBuffer>>> streamMedia(@PathVariable(value = "id") final String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Resource> streamMedia(@PathVariable(value = "id") final String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to stream {} : {}", getEntityName(), id);
-        return getService().streamFile(id, abstractAuthenticationToken).map(result ->
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment: image.jpg")
-                .body(result)
-        );
+        Resource resource = getService().streamFile(id, abstractAuthenticationToken);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment: image.jpg")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(resource);
     }
 }
