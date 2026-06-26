@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
@@ -11,20 +12,16 @@ import org.slf4j.LoggerFactory;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.ForwardedHeaderUtils;
-import reactor.core.publisher.Mono;
+import org.springframework.web.util.UriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.PaginationUtil;
-import tech.jhipster.web.util.reactive.ResponseUtil;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -73,18 +70,12 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping({"", "/"})
-    public Mono<ResponseEntity<D>> createEntity(@Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> createEntity(@Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to save {} : {}", entityName, dto);
-
-        return service.save(dto, abstractAuthenticationToken).handle((result, sink) -> {
-            try {
-                sink.next(ResponseEntity.created(new URI(String.format("/api/%s/", entityName) + result.getId()))
-                    .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, entityName, result.getId()))
-                    .body(result));
-            } catch (URISyntaxException e) {
-                sink.error(new RuntimeException(e));
-            }
-        });
+        D result = service.save(dto, abstractAuthenticationToken);
+        return ResponseEntity.created(new URI(String.format("/api/%s/", entityName) + result.getId()))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, entityName, result.getId()))
+            .body(result);
     }
 
     /**
@@ -98,14 +89,15 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<D>> updateEntity(@PathVariable(value = "id", required = false) final String id, @Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> updateEntity(@PathVariable(value = "id", required = false) final String id, @Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to update {} : {}, {}", entityName, id, dto);
-
-        return service.update(id, dto, abstractAuthenticationToken).switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND))).map(result ->
-            ResponseEntity.ok()
-                .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId()))
-                .body(result)
-        );
+        D result = service.update(id, dto, abstractAuthenticationToken);
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId()))
+            .body(result);
     }
 
     /**
@@ -120,38 +112,32 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/{id}", consumes = {"application/json", "application/merge-patch+json"})
-    public Mono<ResponseEntity<D>> partialUpdateEntity(@PathVariable(value = "id", required = false) final String id, @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> partialUpdateEntity(@PathVariable(value = "id", required = false) final String id, @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to partial update {} partially : {}, {}", entityName, id, dto);
-
-        return service.partialUpdate(id, dto, abstractAuthenticationToken).switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND))).map(res ->
-            ResponseEntity.ok()
-                .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, res.getId()))
-                .body(res)
-        );
+        D result = service.partialUpdate(id, dto, abstractAuthenticationToken);
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId()))
+            .body(result);
     }
 
     /**
      * {@code GET  /} : get all the entity.
      *
      * @param pageable the pagination information.
-     * @param request  a {@link ServerHttpRequest} request.
+     * @param request  a {@link HttpServletRequest} request.
      * @param criteria the criteria which the requested entities should match.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entity in body.
      */
     @GetMapping(value = {"", "/"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Page<D>>> getAllEntities(C criteria, @ParameterObject Pageable pageable, ServerHttpRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Page<D>> getAllEntities(C criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} by criteria: {}", entityName, criteria);
-
-        return service.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).map(countWithEntities ->
-            ResponseEntity.ok()
-                .headers(
-                    PaginationUtil.generatePaginationHttpHeaders(
-                        ForwardedHeaderUtils.adaptFromForwardedHeaders(request.getURI(), request.getHeaders()),
-                        new PageImpl<>(countWithEntities.getContent(), pageable, countWithEntities.getTotalElements())
-                    )
-                )
-                .body(new PageImpl<>(countWithEntities.getContent(), pageable, countWithEntities.getTotalElements()))
-        );
+        Page<D> page = service.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
+        return ResponseEntity.ok()
+            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()), page))
+            .body(page);
     }
 
     /**
@@ -161,10 +147,11 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the dto, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<D>> getEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<D> getEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} : {}", entityName, id);
-        Mono<D> dto = service.findOne(id, abstractAuthenticationToken);
-        return ResponseUtil.wrapOrNotFound(dto);
+        return service.findOne(id, abstractAuthenticationToken)
+            .map(ResponseEntity::ok)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     /**
@@ -174,14 +161,11 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> deleteEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> deleteEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to delete {} : {}", entityName, id);
-        return service.delete(id, abstractAuthenticationToken).then(
-            Mono.just(
-                ResponseEntity.noContent()
-                    .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, entityName, id))
-                    .build()
-            )
-        );
+        service.delete(id, abstractAuthenticationToken);
+        return ResponseEntity.noContent()
+            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, entityName, id))
+            .build();
     }
 }

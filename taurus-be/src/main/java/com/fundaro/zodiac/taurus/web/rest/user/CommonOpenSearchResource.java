@@ -4,23 +4,22 @@ import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.user.CommonOpenSearchService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.util.ForwardedHeaderUtils;
-import reactor.core.publisher.Mono;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 import tech.jhipster.web.util.PaginationUtil;
-import tech.jhipster.web.util.reactive.ResponseUtil;
 
 /**
  * REST controller for managing {@link CommonFieldsOpenSearch}.
@@ -62,24 +61,17 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * {@code GET  /} : get all the entity.
      *
      * @param pageable the pagination information.
-     * @param request  a {@link ServerHttpRequest} request.
+     * @param request  a {@link HttpServletRequest} request.
      * @param criteria the criteria which the requested entities should match.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entity in body.
      */
     @GetMapping(value = {"", "/"}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Page<D>>> getAllEntities(C criteria, @ParameterObject Pageable pageable, ServerHttpRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Page<D>> getAllEntities(C criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} by criteria: {}", entityName, criteria);
-
-        return service.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken).map(countWithEntities ->
-            ResponseEntity.ok()
-                .headers(
-                    PaginationUtil.generatePaginationHttpHeaders(
-                        ForwardedHeaderUtils.adaptFromForwardedHeaders(request.getURI(), request.getHeaders()),
-                        new PageImpl<>(countWithEntities.getContent(), pageable, countWithEntities.getTotalElements())
-                    )
-                )
-                .body(new PageImpl<>(countWithEntities.getContent(), pageable, countWithEntities.getTotalElements()))
-        );
+        Page<D> page = service.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
+        return ResponseEntity.ok()
+            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()), page))
+            .body(page);
     }
 
     /**
@@ -89,9 +81,10 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the dto, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<D>> getEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<D> getEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} : {}", entityName, id);
-        Mono<D> dto = service.findOne(id, abstractAuthenticationToken);
-        return ResponseUtil.wrapOrNotFound(dto);
+        return service.findOne(id, abstractAuthenticationToken)
+            .map(ResponseEntity::ok)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 }

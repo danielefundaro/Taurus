@@ -1,22 +1,25 @@
 # This configuration is intended for development purpose, it's **your** responsibility to harden it for production
 name: taurus
+
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.2 #quay.io/phasetwo/phasetwo-keycloak:26.5.0
+    image: quay.io/keycloak/keycloak:26.5.2
+    container_name: keyclaok-container
+    restart: unless-stopped
     command: 'start-dev --import-realm'
     volumes:
-      - ./realm-config:/opt/keycloak/data/import
-      - ./realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
-      - ./realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar
-      - ./realm-config/taurus-theme:/opt/keycloak/themes/taurus-theme:ro
+      - ./keycloak/realm-config:/opt/keycloak/data/import
+      - ./keycloak/realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
+      - ./keycloak/realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar
+      - ./keycloak/realm-config/taurus-theme:/opt/keycloak/themes/taurus-theme:ro
     environment:
-      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
-      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME}
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KC_DB=postgres
       - KC_DB_URL_HOST=postgresql
       - KC_DB_URL_DATABASE=taurus_keycloak
-      - KC_DB_USERNAME=taurus
-      - KC_DB_PASSWORD=password
+      - KC_DB_USERNAME=${KEYCLOAK_DB_USERNAME}
+      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}
       - KC_FEATURES=scripts
       - KC_HTTP_PORT=9080
       - KC_HTTPS_PORT=9443

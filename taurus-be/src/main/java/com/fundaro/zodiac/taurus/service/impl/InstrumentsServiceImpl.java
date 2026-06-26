@@ -14,7 +14,6 @@ import com.fundaro.zodiac.taurus.service.mapper.InstrumentsMapper;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
@@ -33,45 +32,42 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
     }
 
     @Override
-    public Mono<InstrumentsDTO> update(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.update(id, dto, abstractAuthenticationToken).map(instrumentsDTO -> {
-            updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
-            return instrumentsDTO;
-        });
+    public InstrumentsDTO update(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        InstrumentsDTO instrumentsDTO = super.update(id, dto, abstractAuthenticationToken);
+        updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
+        return instrumentsDTO;
     }
 
     @Override
-    public Mono<InstrumentsDTO> partialUpdate(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.partialUpdate(id, dto, abstractAuthenticationToken).map(instrumentsDTO -> {
-            updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
-            return instrumentsDTO;
-        });
+    public InstrumentsDTO partialUpdate(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        InstrumentsDTO instrumentsDTO = super.partialUpdate(id, dto, abstractAuthenticationToken);
+        updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
+        return instrumentsDTO;
     }
 
     @Override
-    public Mono<InstrumentsDTO> delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken).flatMap(b -> {
-            if (b == null) {
-                return Mono.empty();
-            }
+    public InstrumentsDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        InstrumentsDTO b = super.delete(id, abstractAuthenticationToken);
+        if (b == null) {
+            return null;
+        }
 
-            // Delete all related information
-            tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
-                boolean result = false;
+        // Delete all related information
+        tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
+            boolean result = false;
 
-                if (tracksDTO.getScores() != null) {
-                    for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                        if (sheetsMusicDTO.getInstruments() != null) {
-                            result |= sheetsMusicDTO.getInstruments().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
-                        }
+            if (tracksDTO.getScores() != null) {
+                for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
+                    if (sheetsMusicDTO.getInstruments() != null) {
+                        result |= sheetsMusicDTO.getInstruments().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
                     }
                 }
+            }
 
-                return result;
-            });
-
-            return Mono.just(b);
+            return result;
         });
+
+        return b;
     }
 
     private void updateRelatedInstruments(String id, InstrumentsDTO oldInstrumentsDto, InstrumentsDTO instrumentsDTO, AbstractAuthenticationToken abstractAuthenticationToken) {

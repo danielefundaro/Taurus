@@ -53,11 +53,11 @@ public class Receiver {
         AbstractAuthenticationToken abstractAuthenticationToken = uploadFilesPackage.getAbstractAuthenticationToken();
 
         // Get queue from id and check if exists
-        QueueUploadFilesDTO queueUploadFilesDTO = queueUploadFilesService.findOne(uploadFilesPackage.getQueueId(), abstractAuthenticationToken).block();
+        QueueUploadFilesDTO queueUploadFilesDTO = queueUploadFilesService.findOne(uploadFilesPackage.getQueueId(), abstractAuthenticationToken).orElse(null);
 
         if (queueUploadFilesDTO != null) {
             // Get track from id and check if exists
-            TracksDTO tracksDTO = tracksService.findOne(queueUploadFilesDTO.getTrackId(), abstractAuthenticationToken).block();
+            TracksDTO tracksDTO = tracksService.findOne(queueUploadFilesDTO.getTrackId(), abstractAuthenticationToken).orElse(null);
             String sourcePath = queueUploadFilesDTO.getPath();
             String type = Strings.isNotBlank(queueUploadFilesDTO.getType()) ? queueUploadFilesDTO.getType() : "unknowns";
 
@@ -90,7 +90,7 @@ public class Receiver {
                         mediaDTO.setContentType("image/png");
                         mediaDTO.setName(tracksDTO.getName());
                         mediaDTO.setDescription(tracksDTO.getDescription());
-                        mediaDTO = mediaService.save(mediaDTO, abstractAuthenticationToken).block();
+                        mediaDTO = mediaService.save(mediaDTO, abstractAuthenticationToken);
                         log.info("Saved media entity");
 
                         // Save scores
@@ -109,7 +109,7 @@ public class Receiver {
 
                     // Update track
                     tracksDTO.getScores().addAll(sheetsMusicDTOSet);
-                    tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken).block();
+                    tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken);
                     log.info("Updated {} tracks", tracksDTO);
                 } else {
                     log.error("Could not convert any files in {}", sourcePath);

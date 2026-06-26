@@ -2,48 +2,25 @@ package com.fundaro.zodiac.taurus.repository;
 
 import com.fundaro.zodiac.taurus.domain.CommonFields;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonCriteria;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.NoRepositoryBean;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
 
 @NoRepositoryBean
-public interface CommonRepository<E extends CommonFields, C extends CommonCriteria> extends ReactiveCrudRepository<E, Long>, CommonRepositoryInternal<E, C> {
-    Flux<E> findAllBy(Pageable pageable);
+public interface CommonRepository<E extends CommonFields, C extends CommonCriteria>
+    extends JpaRepository<E, Long>, JpaSpecificationExecutor<E> {
 
-    @Override
-    <S extends E> Mono<S> save(S entity);
+    Optional<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 
-    @Override
-    Flux<E> findAll();
+    List<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
 
-    @Override
-    Mono<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
-
-    @Override
-    Flux<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
-
-    @Override
-    Mono<Void> deleteByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
-}
-
-interface CommonRepositoryInternal<E extends CommonFields, C extends CommonCriteria> {
-    <S extends E> Mono<S> save(S entity);
-
-    Flux<E> findAllBy(Pageable pageable);
-
-    Flux<E> findAll();
-
-    Mono<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
-
-    Flux<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
-
-    // this is not supported at the moment because of https://github.com/jhipster/generator-jhipster/issues/18269
-    // Flux<E> findAllBy(Pageable pageable, Criteria criteria);
-    Flux<E> findByCriteria(C criteria, Pageable page, String userId, String tenantCode);
-
-    Mono<Long> countByCriteria(C criteria, String userId, String tenantCode);
-
-    Mono<Void> deleteByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
+    @Modifying
+    @Query("DELETE FROM #{#entityName} e WHERE e.id = :id AND e.userId = :userId AND e.tenantCode = :tenantCode")
+    void deleteByIdAndUserIdAndTenantCode(@Param("id") Long id, @Param("userId") String userId, @Param("tenantCode") String tenantCode);
 }

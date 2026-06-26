@@ -5,12 +5,9 @@ import com.fundaro.zodiac.taurus.domain.criteria.LastResearchCriteria;
 import org.springframework.stereotype.Repository;
 
 /**
- * Spring Data R2DBC repository for the LastResearch entity.
+ * Spring Data JPA repository for the LastResearch entity.
  */
 @SuppressWarnings("unused")
 @Repository
-public interface LastResearchRepository extends CommonRepository<LastResearch, LastResearchCriteria>, LastResearchRepositoryInternal {
-}
-
-interface LastResearchRepositoryInternal extends CommonRepositoryInternal<LastResearch, LastResearchCriteria> {
+public interface LastResearchRepository extends CommonRepository<LastResearch, LastResearchCriteria> {
 }

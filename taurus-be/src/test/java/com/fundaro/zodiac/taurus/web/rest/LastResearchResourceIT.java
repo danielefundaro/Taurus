@@ -6,7 +6,9 @@ import static com.fundaro.zodiac.taurus.web.rest.TestUtil.sameInstant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
@@ -25,16 +27,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Integration tests for the {@link LastResearchResource} REST controller.
  */
 @IntegrationTest
-@AutoConfigureWebTestClient(timeout = IntegrationTest.DEFAULT_ENTITY_TIMEOUT)
+@AutoConfigureMockMvc
 @WithMockUser
 class LastResearchResourceIT {
 
@@ -83,7 +86,7 @@ class LastResearchResourceIT {
     private EntityManager em;
 
     @Autowired
-    private WebTestClient webTestClient;
+    private MockMvc restMockMvc;
 
     private LastResearch lastResearch;
 
@@ -134,11 +137,6 @@ class LastResearchResourceIT {
     }
 
     @BeforeEach
-    public void setupCsrf() {
-        webTestClient = webTestClient.mutateWith(csrf());
-    }
-
-    @BeforeEach
     public void initTest() {
         lastResearch = createEntity();
     }
@@ -157,17 +155,17 @@ class LastResearchResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
         // Create the LastResearch
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
-        var returnedLastResearchDTO = webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isCreated()
-            .expectBody(LastResearchDTO.class)
-            .returnResult()
-            .getResponseBody();
+        MvcResult result = restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        LastResearchDTO returnedLastResearchDTO = om.readValue(result.getResponse().getContentAsString(), LastResearchDTO.class);
 
         // Validate the LastResearch in the database
         assertIncrementedRepositoryCount(databaseSizeBeforeCreate);
@@ -186,14 +184,14 @@ class LastResearchResourceIT {
         long databaseSizeBeforeCreate = getRepositoryCount();
 
         // An entity with an existing ID cannot be created, so this API call must fail
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeCreate);
@@ -208,92 +206,62 @@ class LastResearchResourceIT {
         // Create the LastResearch, which fails.
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
-        webTestClient
-            .post()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                post(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         assertSameRepositoryCount(databaseSizeBeforeTest);
     }
 
     @Test
-    void getAllLastResearches() {
+    void getAllLastResearches() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
         // Get all the lastResearchList
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc")
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(lastResearch.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].value")
-            .value(hasItem(DEFAULT_VALUE))
-            .jsonPath("$.[*].field")
-            .value(hasItem(DEFAULT_FIELD));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(lastResearch.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].value").value(hasItem(DEFAULT_VALUE)))
+            .andExpect(jsonPath("$.[*].field").value(hasItem(DEFAULT_FIELD)));
     }
 
     @Test
-    void getLastResearch() {
+    void getLastResearch() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
         // Get the lastResearch
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, lastResearch.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.id")
-            .value(is(lastResearch.getId().intValue()))
-            .jsonPath("$.deleted")
-            .value(is(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.insertBy")
-            .value(is(DEFAULT_INSERT_BY))
-            .jsonPath("$.insertDate")
-            .value(is(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.editBy")
-            .value(is(DEFAULT_EDIT_BY))
-            .jsonPath("$.editDate")
-            .value(is(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.userId")
-            .value(is(DEFAULT_USER_ID))
-            .jsonPath("$.value")
-            .value(is(DEFAULT_VALUE))
-            .jsonPath("$.field")
-            .value(is(DEFAULT_FIELD));
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, lastResearch.getId()).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(is(lastResearch.getId().intValue())))
+            .andExpect(jsonPath("$.deleted").value(is(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.insertBy").value(is(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.insertDate").value(is(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.editBy").value(is(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.editDate").value(is(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.userId").value(is(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.value").value(is(DEFAULT_VALUE)))
+            .andExpect(jsonPath("$.field").value(is(DEFAULT_FIELD)));
     }
 
     @Test
-    void getLastResearchesByIdFiltering() {
+    void getLastResearchesByIdFiltering() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -307,7 +275,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByDeletedIsEqualToSomething() {
+    void getAllLastResearchesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -316,7 +284,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByDeletedIsInShouldWork() {
+    void getAllLastResearchesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -325,7 +293,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByDeletedIsNullOrNotNull() {
+    void getAllLastResearchesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -334,7 +302,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertByIsEqualToSomething() {
+    void getAllLastResearchesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -343,7 +311,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertByIsInShouldWork() {
+    void getAllLastResearchesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -352,7 +320,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertByIsNullOrNotNull() {
+    void getAllLastResearchesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -361,7 +329,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertByContainsSomething() {
+    void getAllLastResearchesByInsertByContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -370,7 +338,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertByNotContainsSomething() {
+    void getAllLastResearchesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -379,7 +347,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsEqualToSomething() {
+    void getAllLastResearchesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -388,7 +356,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsInShouldWork() {
+    void getAllLastResearchesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -400,7 +368,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsNullOrNotNull() {
+    void getAllLastResearchesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -409,7 +377,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsGreaterThanOrEqualToSomething() {
+    void getAllLastResearchesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -421,7 +389,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsLessThanOrEqualToSomething() {
+    void getAllLastResearchesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -433,7 +401,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsLessThanSomething() {
+    void getAllLastResearchesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -442,7 +410,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByInsertDateIsGreaterThanSomething() {
+    void getAllLastResearchesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -451,7 +419,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditByIsEqualToSomething() {
+    void getAllLastResearchesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -460,7 +428,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditByIsInShouldWork() {
+    void getAllLastResearchesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -469,7 +437,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditByIsNullOrNotNull() {
+    void getAllLastResearchesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -478,7 +446,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditByContainsSomething() {
+    void getAllLastResearchesByEditByContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -487,7 +455,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditByNotContainsSomething() {
+    void getAllLastResearchesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -496,7 +464,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsEqualToSomething() {
+    void getAllLastResearchesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -505,7 +473,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsInShouldWork() {
+    void getAllLastResearchesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -514,7 +482,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsNullOrNotNull() {
+    void getAllLastResearchesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -523,7 +491,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsGreaterThanOrEqualToSomething() {
+    void getAllLastResearchesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -535,7 +503,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsLessThanOrEqualToSomething() {
+    void getAllLastResearchesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -544,7 +512,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsLessThanSomething() {
+    void getAllLastResearchesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -553,7 +521,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByEditDateIsGreaterThanSomething() {
+    void getAllLastResearchesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -562,7 +530,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByUserIdIsEqualToSomething() {
+    void getAllLastResearchesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -571,7 +539,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByUserIdIsInShouldWork() {
+    void getAllLastResearchesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -580,7 +548,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByUserIdIsNullOrNotNull() {
+    void getAllLastResearchesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -589,7 +557,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByUserIdContainsSomething() {
+    void getAllLastResearchesByUserIdContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -598,7 +566,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByUserIdNotContainsSomething() {
+    void getAllLastResearchesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -607,7 +575,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByValueIsEqualToSomething() {
+    void getAllLastResearchesByValueIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -616,7 +584,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByValueIsInShouldWork() {
+    void getAllLastResearchesByValueIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -625,7 +593,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByValueIsNullOrNotNull() {
+    void getAllLastResearchesByValueIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -634,7 +602,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByValueContainsSomething() {
+    void getAllLastResearchesByValueContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -643,7 +611,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByValueNotContainsSomething() {
+    void getAllLastResearchesByValueNotContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -652,7 +620,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByFieldIsEqualToSomething() {
+    void getAllLastResearchesByFieldIsEqualToSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -661,7 +629,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByFieldIsInShouldWork() {
+    void getAllLastResearchesByFieldIsInShouldWork() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -670,7 +638,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByFieldIsNullOrNotNull() {
+    void getAllLastResearchesByFieldIsNullOrNotNull() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -679,7 +647,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByFieldContainsSomething() {
+    void getAllLastResearchesByFieldContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -688,7 +656,7 @@ class LastResearchResourceIT {
     }
 
     @Test
-    void getAllLastResearchesByFieldNotContainsSomething() {
+    void getAllLastResearchesByFieldNotContainsSomething() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
@@ -696,7 +664,7 @@ class LastResearchResourceIT {
         defaultLastResearchFiltering("field.doesNotContain=" + UPDATED_FIELD, "field.doesNotContain=" + DEFAULT_FIELD);
     }
 
-    private void defaultLastResearchFiltering(String shouldBeFound, String shouldNotBeFound) {
+    private void defaultLastResearchFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
         defaultLastResearchShouldBeFound(shouldBeFound);
         defaultLastResearchShouldNotBeFound(shouldNotBeFound);
     }
@@ -704,95 +672,54 @@ class LastResearchResourceIT {
     /**
      * Executes the search, and checks that the default entity is returned.
      */
-    private void defaultLastResearchShouldBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$.[*].id")
-            .value(hasItem(lastResearch.getId().intValue()))
-            .jsonPath("$.[*].deleted")
-            .value(hasItem(DEFAULT_DELETED.booleanValue()))
-            .jsonPath("$.[*].insertBy")
-            .value(hasItem(DEFAULT_INSERT_BY))
-            .jsonPath("$.[*].insertDate")
-            .value(hasItem(sameInstant(DEFAULT_INSERT_DATE)))
-            .jsonPath("$.[*].editBy")
-            .value(hasItem(DEFAULT_EDIT_BY))
-            .jsonPath("$.[*].editDate")
-            .value(hasItem(sameInstant(DEFAULT_EDIT_DATE)))
-            .jsonPath("$.[*].userId")
-            .value(hasItem(DEFAULT_USER_ID))
-            .jsonPath("$.[*].value")
-            .value(hasItem(DEFAULT_VALUE))
-            .jsonPath("$.[*].field")
-            .value(hasItem(DEFAULT_FIELD));
+    private void defaultLastResearchShouldBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(lastResearch.getId().intValue())))
+            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
+            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
+            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
+            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
+            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
+            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
+            .andExpect(jsonPath("$.[*].value").value(hasItem(DEFAULT_VALUE)))
+            .andExpect(jsonPath("$.[*].field").value(hasItem(DEFAULT_FIELD)));
 
         // Check, that the count call also returns 1
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(1));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(1)));
     }
 
     /**
      * Executes the search, and checks that the default entity is not returned.
      */
-    private void defaultLastResearchShouldNotBeFound(String filter) {
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .isArray()
-            .jsonPath("$")
-            .isEmpty();
+    private void defaultLastResearchShouldNotBeFound(String filter) throws Exception {
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
 
         // Check, that the count call also returns 0
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL + "/count?sort=id,desc&" + filter)
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isOk()
-            .expectHeader()
-            .contentType(MediaType.APPLICATION_JSON)
-            .expectBody()
-            .jsonPath("$")
-            .value(is(0));
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").value(is(0)));
     }
 
     @Test
-    void getNonExistingLastResearch() {
+    void getNonExistingLastResearch() throws Exception {
         // Get the lastResearch
-        webTestClient
-            .get()
-            .uri(ENTITY_API_URL_ID, Long.MAX_VALUE)
-            .accept(MediaType.APPLICATION_PROBLEM_JSON)
-            .exchange()
-            .expectStatus()
-            .isNotFound();
+        restMockMvc
+            .perform(get(ENTITY_API_URL_ID, Long.MAX_VALUE).accept(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -815,14 +742,14 @@ class LastResearchResourceIT {
             .field(UPDATED_FIELD);
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(updatedLastResearch);
 
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, lastResearchDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, lastResearchDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isOk());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -838,14 +765,14 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, lastResearchDTO.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, lastResearchDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -860,14 +787,14 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -882,14 +809,14 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .put()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                put(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -908,14 +835,14 @@ class LastResearchResourceIT {
 
         partialUpdatedLastResearch.insertDate(UPDATED_INSERT_DATE).userId(UPDATED_USER_ID).value(UPDATED_VALUE);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedLastResearch.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedLastResearch))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedLastResearch.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedLastResearch))
+            )
+            .andExpect(status().isOk());
 
         // Validate the LastResearch in the database
 
@@ -947,14 +874,14 @@ class LastResearchResourceIT {
             .value(UPDATED_VALUE)
             .field(UPDATED_FIELD);
 
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, partialUpdatedLastResearch.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(partialUpdatedLastResearch))
-            .exchange()
-            .expectStatus()
-            .isOk();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, partialUpdatedLastResearch.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(partialUpdatedLastResearch))
+            )
+            .andExpect(status().isOk());
 
         // Validate the LastResearch in the database
 
@@ -971,14 +898,14 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, lastResearchDTO.getId())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, lastResearchDTO.getId())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -993,14 +920,14 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL_ID, longCount.incrementAndGet())
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isBadRequest();
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL_ID, longCount.incrementAndGet())
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isBadRequest());
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1015,34 +942,34 @@ class LastResearchResourceIT {
         LastResearchDTO lastResearchDTO = lastResearchMapper.toDto(lastResearch);
 
         // If url ID doesn't match entity ID, it will throw BadRequestAlertException
-        webTestClient
-            .patch()
-            .uri(ENTITY_API_URL)
-            .contentType(MediaType.valueOf("application/merge-patch+json"))
-            .bodyValue(om.writeValueAsBytes(lastResearchDTO))
-            .exchange()
-            .expectStatus()
-            .isEqualTo(405);
+        restMockMvc
+            .perform(
+                patch(ENTITY_API_URL)
+                    .with(csrf())
+                    .contentType(MediaType.valueOf("application/merge-patch+json"))
+                    .content(om.writeValueAsBytes(lastResearchDTO))
+            )
+            .andExpect(status().isEqualTo(405));
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
     }
 
     @Test
-    void deleteLastResearch() {
+    void deleteLastResearch() throws Exception {
         // Initialize the database
         insertedLastResearch = lastResearchRepository.save(lastResearch).block();
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
         // Delete the lastResearch
-        webTestClient
-            .delete()
-            .uri(ENTITY_API_URL_ID, lastResearch.getId())
-            .accept(MediaType.APPLICATION_JSON)
-            .exchange()
-            .expectStatus()
-            .isNoContent();
+        restMockMvc
+            .perform(
+                delete(ENTITY_API_URL_ID, lastResearch.getId())
+                    .with(csrf())
+                    .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNoContent());
 
         // Validate the database contains one less item
         assertDecrementedRepositoryCount(databaseSizeBeforeDelete);
@@ -1065,7 +992,7 @@ class LastResearchResourceIT {
     }
 
     protected LastResearch getPersistedLastResearch(LastResearch lastResearch) {
-        return lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "","").block();
+        return lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").block();
     }
 
     protected void assertPersistedLastResearchToMatchAllProperties(LastResearch expectedLastResearch) {

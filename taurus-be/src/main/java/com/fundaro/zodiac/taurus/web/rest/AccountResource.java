@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api")
@@ -41,9 +40,9 @@ public class AccountResource {
      * @throws AccountResourceException {@code 500 (Internal Server Error)} if the user couldn't be returned.
      */
     @GetMapping("/account")
-    public Mono<UserVM> getAccount(Principal principal) {
+    public UserVM getAccount(Principal principal) {
         if (principal instanceof AbstractAuthenticationToken) {
-            return Mono.just(getUserFromAuthentication((AbstractAuthenticationToken) principal));
+            return getUserFromAuthentication((AbstractAuthenticationToken) principal);
         } else {
             throw new AccountResourceException("User could not be found");
         }

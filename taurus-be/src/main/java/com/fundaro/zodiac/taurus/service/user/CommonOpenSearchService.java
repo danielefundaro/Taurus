@@ -6,7 +6,8 @@ import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria> {
     /**
@@ -17,7 +18,7 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
      * @param abstractAuthenticationToken the token of the user.
      * @return the list of entities.
      */
-    Mono<Page<D>> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
+    Page<D> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
 
     /**
      * Get the "id" entity.
@@ -26,5 +27,5 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
      * @param abstractAuthenticationToken the token of the user.
      * @return the entity.
      */
-    Mono<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+    Optional<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 }
