@@ -47,7 +47,7 @@ public class AlbumsDTO extends StateFieldOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getTracks().hashCode());
+        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getDate(), this.getTracks());
     }
 
     // prettier-ignore

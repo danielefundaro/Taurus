@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.LastResearch;
-import com.fundaro.zodiac.taurus.repository.EntityManager;
 import com.fundaro.zodiac.taurus.repository.LastResearchRepository;
 import com.fundaro.zodiac.taurus.service.dto.LastResearchDTO;
 import com.fundaro.zodiac.taurus.service.mapper.LastResearchMapper;
@@ -83,9 +82,6 @@ class LastResearchResourceIT {
     private LastResearchMapper lastResearchMapper;
 
     @Autowired
-    private EntityManager em;
-
-    @Autowired
     private MockMvc restMockMvc;
 
     private LastResearch lastResearch;
@@ -128,9 +124,9 @@ class LastResearchResourceIT {
             .field(UPDATED_FIELD);
     }
 
-    public static void deleteEntities(EntityManager em) {
+    public static void deleteEntities(LastResearchRepository repository) {
         try {
-            em.deleteAll(LastResearch.class).block();
+            repository.deleteAll();
         } catch (Exception e) {
             // It can fail, if other entities are still referring this - it will be removed later.
         }
@@ -144,10 +140,10 @@ class LastResearchResourceIT {
     @AfterEach
     public void cleanup() {
         if (insertedLastResearch != null) {
-            lastResearchRepository.delete(insertedLastResearch).block();
+            lastResearchRepository.delete(insertedLastResearch);
             insertedLastResearch = null;
         }
-        deleteEntities(em);
+        deleteEntities(lastResearchRepository);
     }
 
     @Test
@@ -221,7 +217,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearches() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList
         restMockMvc
@@ -242,7 +238,7 @@ class LastResearchResourceIT {
     @Test
     void getLastResearch() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get the lastResearch
         restMockMvc
@@ -263,7 +259,7 @@ class LastResearchResourceIT {
     @Test
     void getLastResearchesByIdFiltering() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         Long id = lastResearch.getId();
 
@@ -277,7 +273,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where deleted equals to
         defaultLastResearchFiltering("deleted.equals=" + DEFAULT_DELETED, "deleted.equals=" + UPDATED_DELETED);
@@ -286,7 +282,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where deleted in
         defaultLastResearchFiltering("deleted.in=" + DEFAULT_DELETED + "," + UPDATED_DELETED, "deleted.in=" + UPDATED_DELETED);
@@ -295,7 +291,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where deleted is not null
         defaultLastResearchFiltering("deleted.specified=true", "deleted.specified=false");
@@ -304,7 +300,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertBy equals to
         defaultLastResearchFiltering("insertBy.equals=" + DEFAULT_INSERT_BY, "insertBy.equals=" + UPDATED_INSERT_BY);
@@ -313,7 +309,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertBy in
         defaultLastResearchFiltering("insertBy.in=" + DEFAULT_INSERT_BY + "," + UPDATED_INSERT_BY, "insertBy.in=" + UPDATED_INSERT_BY);
@@ -322,7 +318,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertBy is not null
         defaultLastResearchFiltering("insertBy.specified=true", "insertBy.specified=false");
@@ -331,7 +327,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertByContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertBy contains
         defaultLastResearchFiltering("insertBy.contains=" + DEFAULT_INSERT_BY, "insertBy.contains=" + UPDATED_INSERT_BY);
@@ -340,7 +336,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertBy does not contain
         defaultLastResearchFiltering("insertBy.doesNotContain=" + UPDATED_INSERT_BY, "insertBy.doesNotContain=" + DEFAULT_INSERT_BY);
@@ -349,7 +345,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate equals to
         defaultLastResearchFiltering("insertDate.equals=" + DEFAULT_INSERT_DATE, "insertDate.equals=" + UPDATED_INSERT_DATE);
@@ -358,7 +354,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate in
         defaultLastResearchFiltering(
@@ -370,7 +366,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate is not null
         defaultLastResearchFiltering("insertDate.specified=true", "insertDate.specified=false");
@@ -379,7 +375,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate is greater than or equal to
         defaultLastResearchFiltering(
@@ -391,7 +387,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate is less than or equal to
         defaultLastResearchFiltering(
@@ -403,7 +399,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate is less than
         defaultLastResearchFiltering("insertDate.lessThan=" + UPDATED_INSERT_DATE, "insertDate.lessThan=" + DEFAULT_INSERT_DATE);
@@ -412,7 +408,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where insertDate is greater than
         defaultLastResearchFiltering("insertDate.greaterThan=" + SMALLER_INSERT_DATE, "insertDate.greaterThan=" + DEFAULT_INSERT_DATE);
@@ -421,7 +417,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editBy equals to
         defaultLastResearchFiltering("editBy.equals=" + DEFAULT_EDIT_BY, "editBy.equals=" + UPDATED_EDIT_BY);
@@ -430,7 +426,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editBy in
         defaultLastResearchFiltering("editBy.in=" + DEFAULT_EDIT_BY + "," + UPDATED_EDIT_BY, "editBy.in=" + UPDATED_EDIT_BY);
@@ -439,7 +435,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editBy is not null
         defaultLastResearchFiltering("editBy.specified=true", "editBy.specified=false");
@@ -448,7 +444,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditByContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editBy contains
         defaultLastResearchFiltering("editBy.contains=" + DEFAULT_EDIT_BY, "editBy.contains=" + UPDATED_EDIT_BY);
@@ -457,7 +453,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editBy does not contain
         defaultLastResearchFiltering("editBy.doesNotContain=" + UPDATED_EDIT_BY, "editBy.doesNotContain=" + DEFAULT_EDIT_BY);
@@ -466,7 +462,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate equals to
         defaultLastResearchFiltering("editDate.equals=" + DEFAULT_EDIT_DATE, "editDate.equals=" + UPDATED_EDIT_DATE);
@@ -475,7 +471,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate in
         defaultLastResearchFiltering("editDate.in=" + DEFAULT_EDIT_DATE + "," + UPDATED_EDIT_DATE, "editDate.in=" + UPDATED_EDIT_DATE);
@@ -484,7 +480,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate is not null
         defaultLastResearchFiltering("editDate.specified=true", "editDate.specified=false");
@@ -493,7 +489,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate is greater than or equal to
         defaultLastResearchFiltering(
@@ -505,7 +501,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate is less than or equal to
         defaultLastResearchFiltering("editDate.lessThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.lessThanOrEqual=" + SMALLER_EDIT_DATE);
@@ -514,7 +510,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate is less than
         defaultLastResearchFiltering("editDate.lessThan=" + UPDATED_EDIT_DATE, "editDate.lessThan=" + DEFAULT_EDIT_DATE);
@@ -523,7 +519,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where editDate is greater than
         defaultLastResearchFiltering("editDate.greaterThan=" + SMALLER_EDIT_DATE, "editDate.greaterThan=" + DEFAULT_EDIT_DATE);
@@ -532,7 +528,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where userId equals to
         defaultLastResearchFiltering("userId.equals=" + DEFAULT_USER_ID, "userId.equals=" + UPDATED_USER_ID);
@@ -541,7 +537,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where userId in
         defaultLastResearchFiltering("userId.in=" + DEFAULT_USER_ID + "," + UPDATED_USER_ID, "userId.in=" + UPDATED_USER_ID);
@@ -550,7 +546,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where userId is not null
         defaultLastResearchFiltering("userId.specified=true", "userId.specified=false");
@@ -559,7 +555,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByUserIdContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where userId contains
         defaultLastResearchFiltering("userId.contains=" + DEFAULT_USER_ID, "userId.contains=" + UPDATED_USER_ID);
@@ -568,7 +564,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where userId does not contain
         defaultLastResearchFiltering("userId.doesNotContain=" + UPDATED_USER_ID, "userId.doesNotContain=" + DEFAULT_USER_ID);
@@ -577,7 +573,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByValueIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where value equals to
         defaultLastResearchFiltering("value.equals=" + DEFAULT_VALUE, "value.equals=" + UPDATED_VALUE);
@@ -586,7 +582,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByValueIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where value in
         defaultLastResearchFiltering("value.in=" + DEFAULT_VALUE + "," + UPDATED_VALUE, "value.in=" + UPDATED_VALUE);
@@ -595,7 +591,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByValueIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where value is not null
         defaultLastResearchFiltering("value.specified=true", "value.specified=false");
@@ -604,7 +600,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByValueContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where value contains
         defaultLastResearchFiltering("value.contains=" + DEFAULT_VALUE, "value.contains=" + UPDATED_VALUE);
@@ -613,7 +609,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByValueNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where value does not contain
         defaultLastResearchFiltering("value.doesNotContain=" + UPDATED_VALUE, "value.doesNotContain=" + DEFAULT_VALUE);
@@ -622,7 +618,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByFieldIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where field equals to
         defaultLastResearchFiltering("field.equals=" + DEFAULT_FIELD, "field.equals=" + UPDATED_FIELD);
@@ -631,7 +627,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByFieldIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where field in
         defaultLastResearchFiltering("field.in=" + DEFAULT_FIELD + "," + UPDATED_FIELD, "field.in=" + UPDATED_FIELD);
@@ -640,7 +636,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByFieldIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where field is not null
         defaultLastResearchFiltering("field.specified=true", "field.specified=false");
@@ -649,7 +645,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByFieldContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where field contains
         defaultLastResearchFiltering("field.contains=" + DEFAULT_FIELD, "field.contains=" + UPDATED_FIELD);
@@ -658,7 +654,7 @@ class LastResearchResourceIT {
     @Test
     void getAllLastResearchesByFieldNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         // Get all the lastResearchList where field does not contain
         defaultLastResearchFiltering("field.doesNotContain=" + UPDATED_FIELD, "field.doesNotContain=" + DEFAULT_FIELD);
@@ -725,12 +721,12 @@ class LastResearchResourceIT {
     @Test
     void putExistingLastResearch() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the lastResearch
-        LastResearch updatedLastResearch = lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").block();
+        LastResearch updatedLastResearch = lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").orElse(null);
         updatedLastResearch
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -816,7 +812,7 @@ class LastResearchResourceIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(lastResearchDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -825,7 +821,7 @@ class LastResearchResourceIT {
     @Test
     void partialUpdateLastResearchWithPatch() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -856,7 +852,7 @@ class LastResearchResourceIT {
     @Test
     void fullUpdateLastResearchWithPatch() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -949,7 +945,7 @@ class LastResearchResourceIT {
                     .contentType(MediaType.valueOf("application/merge-patch+json"))
                     .content(om.writeValueAsBytes(lastResearchDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the LastResearch in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -958,7 +954,7 @@ class LastResearchResourceIT {
     @Test
     void deleteLastResearch() throws Exception {
         // Initialize the database
-        insertedLastResearch = lastResearchRepository.save(lastResearch).block();
+        insertedLastResearch = lastResearchRepository.save(lastResearch);
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
@@ -976,7 +972,7 @@ class LastResearchResourceIT {
     }
 
     protected long getRepositoryCount() {
-        return lastResearchRepository.count().block();
+        return lastResearchRepository.count();
     }
 
     protected void assertIncrementedRepositoryCount(long countBefore) {
@@ -992,7 +988,7 @@ class LastResearchResourceIT {
     }
 
     protected LastResearch getPersistedLastResearch(LastResearch lastResearch) {
-        return lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").block();
+        return lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").orElse(null);
     }
 
     protected void assertPersistedLastResearchToMatchAllProperties(LastResearch expectedLastResearch) {

@@ -31,7 +31,7 @@ class ExceptionTranslatorIT {
     void testConcurrencyFailure() throws Exception {
         restMockMvc
             .perform(get("/api/exception-translator-test/concurrency-failure").with(csrf()))
-            .andExpect(status().isEqualTo(HttpStatus.CONFLICT.value()))
+            .andExpect(status().is(HttpStatus.CONFLICT.value()))
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.message").value(ErrorConstants.ERR_CONCURRENCY_FAILURE));
     }
@@ -95,7 +95,7 @@ class ExceptionTranslatorIT {
     void testMethodNotSupported() throws Exception {
         restMockMvc
             .perform(post("/api/exception-translator-test/access-denied").with(csrf()))
-            .andExpect(status().isEqualTo(HttpStatus.METHOD_NOT_ALLOWED.value()))
+            .andExpect(status().is(HttpStatus.METHOD_NOT_ALLOWED.value()))
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.message").value("error.http.405"))
             .andExpect(jsonPath("$.detail").value("405 METHOD_NOT_ALLOWED \"Request method 'POST' is not supported.\""));
