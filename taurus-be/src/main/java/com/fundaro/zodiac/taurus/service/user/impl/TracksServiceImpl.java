@@ -65,11 +65,9 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     @Override
     public Optional<TracksDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         Optional<TracksDTO> tracksDTOOpt = super.findOne(id, abstractAuthenticationToken);
-        if (tracksDTOOpt.isEmpty()) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
-        }
-
-        TracksDTO tracksDTO = tracksDTOOpt.get();
+        TracksDTO tracksDTO = tracksDTOOpt.orElseThrow(
+            () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound")
+        );
         if (!(Objects.equals(tracksDTO.getState(), StateEnum.COMPLETE) || Objects.equals(tracksDTO.getState(), StateEnum.PUBLIC))) {
             throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
         }

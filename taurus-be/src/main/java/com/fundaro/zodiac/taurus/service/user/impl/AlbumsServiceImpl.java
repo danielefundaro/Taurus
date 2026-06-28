@@ -43,11 +43,9 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
     @Override
     public Optional<AlbumsDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
         Optional<AlbumsDTO> albumsDTOOpt = super.findOne(id, abstractAuthenticationToken);
-        if (albumsDTOOpt.isEmpty()) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
-        }
-
-        AlbumsDTO albumsDTO = albumsDTOOpt.get();
+        AlbumsDTO albumsDTO = albumsDTOOpt.orElseThrow(
+            () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound")
+        );
         if (!(Objects.equals(albumsDTO.getState(), StateEnum.COMPLETE) || Objects.equals(albumsDTO.getState(), StateEnum.PUBLIC))) {
             throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
         }

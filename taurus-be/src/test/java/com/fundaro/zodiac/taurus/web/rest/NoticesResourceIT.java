@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Notices;
-import com.fundaro.zodiac.taurus.repository.EntityManager;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
@@ -87,9 +86,6 @@ class NoticesResourceIT {
     private NoticesMapper noticesMapper;
 
     @Autowired
-    private EntityManager em;
-
-    @Autowired
     private MockMvc restMockMvc;
 
     private Notices notices;
@@ -134,9 +130,9 @@ class NoticesResourceIT {
             .readDate(UPDATED_READ_DATE);
     }
 
-    public static void deleteEntities(EntityManager em) {
+    public static void deleteEntities(NoticesRepository repository) {
         try {
-            em.deleteAll(Notices.class).block();
+            repository.deleteAll();
         } catch (Exception e) {
             // It can fail, if other entities are still referring this - it will be removed later.
         }
@@ -150,10 +146,10 @@ class NoticesResourceIT {
     @AfterEach
     public void cleanup() {
         if (insertedNotices != null) {
-            noticesRepository.delete(insertedNotices).block();
+            noticesRepository.delete(insertedNotices);
             insertedNotices = null;
         }
-        deleteEntities(em);
+        deleteEntities(noticesRepository);
     }
 
     @Test
@@ -248,7 +244,7 @@ class NoticesResourceIT {
     @Test
     void getAllNotices() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList
         restMockMvc
@@ -270,7 +266,7 @@ class NoticesResourceIT {
     @Test
     void getNotices() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get the notices
         restMockMvc
@@ -292,7 +288,7 @@ class NoticesResourceIT {
     @Test
     void getNoticesByIdFiltering() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         Long id = notices.getId();
 
@@ -306,7 +302,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where deleted equals to
         defaultNoticesFiltering("deleted.equals=" + DEFAULT_DELETED, "deleted.equals=" + UPDATED_DELETED);
@@ -315,7 +311,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where deleted in
         defaultNoticesFiltering("deleted.in=" + DEFAULT_DELETED + "," + UPDATED_DELETED, "deleted.in=" + UPDATED_DELETED);
@@ -324,7 +320,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where deleted is not null
         defaultNoticesFiltering("deleted.specified=true", "deleted.specified=false");
@@ -333,7 +329,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertBy equals to
         defaultNoticesFiltering("insertBy.equals=" + DEFAULT_INSERT_BY, "insertBy.equals=" + UPDATED_INSERT_BY);
@@ -342,7 +338,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertBy in
         defaultNoticesFiltering("insertBy.in=" + DEFAULT_INSERT_BY + "," + UPDATED_INSERT_BY, "insertBy.in=" + UPDATED_INSERT_BY);
@@ -351,7 +347,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertBy is not null
         defaultNoticesFiltering("insertBy.specified=true", "insertBy.specified=false");
@@ -360,7 +356,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertByContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertBy contains
         defaultNoticesFiltering("insertBy.contains=" + DEFAULT_INSERT_BY, "insertBy.contains=" + UPDATED_INSERT_BY);
@@ -369,7 +365,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertBy does not contain
         defaultNoticesFiltering("insertBy.doesNotContain=" + UPDATED_INSERT_BY, "insertBy.doesNotContain=" + DEFAULT_INSERT_BY);
@@ -378,7 +374,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate equals to
         defaultNoticesFiltering("insertDate.equals=" + DEFAULT_INSERT_DATE, "insertDate.equals=" + UPDATED_INSERT_DATE);
@@ -387,7 +383,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate in
         defaultNoticesFiltering("insertDate.in=" + DEFAULT_INSERT_DATE + "," + UPDATED_INSERT_DATE, "insertDate.in=" + UPDATED_INSERT_DATE);
@@ -396,7 +392,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate is not null
         defaultNoticesFiltering("insertDate.specified=true", "insertDate.specified=false");
@@ -405,7 +401,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate is greater than or equal to
         defaultNoticesFiltering(
@@ -417,7 +413,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate is less than or equal to
         defaultNoticesFiltering("insertDate.lessThanOrEqual=" + DEFAULT_INSERT_DATE, "insertDate.lessThanOrEqual=" + SMALLER_INSERT_DATE);
@@ -426,7 +422,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate is less than
         defaultNoticesFiltering("insertDate.lessThan=" + UPDATED_INSERT_DATE, "insertDate.lessThan=" + DEFAULT_INSERT_DATE);
@@ -435,7 +431,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where insertDate is greater than
         defaultNoticesFiltering("insertDate.greaterThan=" + SMALLER_INSERT_DATE, "insertDate.greaterThan=" + DEFAULT_INSERT_DATE);
@@ -444,7 +440,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editBy equals to
         defaultNoticesFiltering("editBy.equals=" + DEFAULT_EDIT_BY, "editBy.equals=" + UPDATED_EDIT_BY);
@@ -453,7 +449,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editBy in
         defaultNoticesFiltering("editBy.in=" + DEFAULT_EDIT_BY + "," + UPDATED_EDIT_BY, "editBy.in=" + UPDATED_EDIT_BY);
@@ -462,7 +458,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editBy is not null
         defaultNoticesFiltering("editBy.specified=true", "editBy.specified=false");
@@ -471,7 +467,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditByContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editBy contains
         defaultNoticesFiltering("editBy.contains=" + DEFAULT_EDIT_BY, "editBy.contains=" + UPDATED_EDIT_BY);
@@ -480,7 +476,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editBy does not contain
         defaultNoticesFiltering("editBy.doesNotContain=" + UPDATED_EDIT_BY, "editBy.doesNotContain=" + DEFAULT_EDIT_BY);
@@ -489,7 +485,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate equals to
         defaultNoticesFiltering("editDate.equals=" + DEFAULT_EDIT_DATE, "editDate.equals=" + UPDATED_EDIT_DATE);
@@ -498,7 +494,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate in
         defaultNoticesFiltering("editDate.in=" + DEFAULT_EDIT_DATE + "," + UPDATED_EDIT_DATE, "editDate.in=" + UPDATED_EDIT_DATE);
@@ -507,7 +503,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate is not null
         defaultNoticesFiltering("editDate.specified=true", "editDate.specified=false");
@@ -516,7 +512,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate is greater than or equal to
         defaultNoticesFiltering("editDate.greaterThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.greaterThanOrEqual=" + UPDATED_EDIT_DATE);
@@ -525,7 +521,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate is less than or equal to
         defaultNoticesFiltering("editDate.lessThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.lessThanOrEqual=" + SMALLER_EDIT_DATE);
@@ -534,7 +530,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate is less than
         defaultNoticesFiltering("editDate.lessThan=" + UPDATED_EDIT_DATE, "editDate.lessThan=" + DEFAULT_EDIT_DATE);
@@ -543,7 +539,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where editDate is greater than
         defaultNoticesFiltering("editDate.greaterThan=" + SMALLER_EDIT_DATE, "editDate.greaterThan=" + DEFAULT_EDIT_DATE);
@@ -552,7 +548,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where userId equals to
         defaultNoticesFiltering("userId.equals=" + DEFAULT_USER_ID, "userId.equals=" + UPDATED_USER_ID);
@@ -561,7 +557,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where userId in
         defaultNoticesFiltering("userId.in=" + DEFAULT_USER_ID + "," + UPDATED_USER_ID, "userId.in=" + UPDATED_USER_ID);
@@ -570,7 +566,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where userId is not null
         defaultNoticesFiltering("userId.specified=true", "userId.specified=false");
@@ -579,7 +575,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByUserIdContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where userId contains
         defaultNoticesFiltering("userId.contains=" + DEFAULT_USER_ID, "userId.contains=" + UPDATED_USER_ID);
@@ -588,7 +584,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where userId does not contain
         defaultNoticesFiltering("userId.doesNotContain=" + UPDATED_USER_ID, "userId.doesNotContain=" + DEFAULT_USER_ID);
@@ -597,7 +593,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByNameIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where name equals to
         defaultNoticesFiltering("name.equals=" + DEFAULT_NAME, "name.equals=" + UPDATED_NAME);
@@ -606,7 +602,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByNameIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where name in
         defaultNoticesFiltering("name.in=" + DEFAULT_NAME + "," + UPDATED_NAME, "name.in=" + UPDATED_NAME);
@@ -615,7 +611,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByNameIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where name is not null
         defaultNoticesFiltering("name.specified=true", "name.specified=false");
@@ -624,7 +620,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByNameContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where name contains
         defaultNoticesFiltering("name.contains=" + DEFAULT_NAME, "name.contains=" + UPDATED_NAME);
@@ -633,7 +629,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByNameNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where name does not contain
         defaultNoticesFiltering("name.doesNotContain=" + UPDATED_NAME, "name.doesNotContain=" + DEFAULT_NAME);
@@ -642,7 +638,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByMessageIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where message equals to
         defaultNoticesFiltering("message.equals=" + DEFAULT_MESSAGE, "message.equals=" + UPDATED_MESSAGE);
@@ -651,7 +647,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByMessageIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where message in
         defaultNoticesFiltering("message.in=" + DEFAULT_MESSAGE + "," + UPDATED_MESSAGE, "message.in=" + UPDATED_MESSAGE);
@@ -660,7 +656,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByMessageIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where message is not null
         defaultNoticesFiltering("message.specified=true", "message.specified=false");
@@ -669,7 +665,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByMessageContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where message contains
         defaultNoticesFiltering("message.contains=" + DEFAULT_MESSAGE, "message.contains=" + UPDATED_MESSAGE);
@@ -678,7 +674,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByMessageNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where message does not contain
         defaultNoticesFiltering("message.doesNotContain=" + UPDATED_MESSAGE, "message.doesNotContain=" + DEFAULT_MESSAGE);
@@ -687,7 +683,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate equals to
         defaultNoticesFiltering("readDate.equals=" + DEFAULT_READ_DATE, "readDate.equals=" + UPDATED_READ_DATE);
@@ -696,7 +692,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate in
         defaultNoticesFiltering("readDate.in=" + DEFAULT_READ_DATE + "," + UPDATED_READ_DATE, "readDate.in=" + UPDATED_READ_DATE);
@@ -705,7 +701,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate is not null
         defaultNoticesFiltering("readDate.specified=true", "readDate.specified=false");
@@ -714,7 +710,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate is greater than or equal to
         defaultNoticesFiltering("readDate.greaterThanOrEqual=" + DEFAULT_READ_DATE, "readDate.greaterThanOrEqual=" + UPDATED_READ_DATE);
@@ -723,7 +719,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate is less than or equal to
         defaultNoticesFiltering("readDate.lessThanOrEqual=" + DEFAULT_READ_DATE, "readDate.lessThanOrEqual=" + SMALLER_READ_DATE);
@@ -732,7 +728,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate is less than
         defaultNoticesFiltering("readDate.lessThan=" + UPDATED_READ_DATE, "readDate.lessThan=" + DEFAULT_READ_DATE);
@@ -741,7 +737,7 @@ class NoticesResourceIT {
     @Test
     void getAllNoticesByReadDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         // Get all the noticesList where readDate is greater than
         defaultNoticesFiltering("readDate.greaterThan=" + SMALLER_READ_DATE, "readDate.greaterThan=" + DEFAULT_READ_DATE);
@@ -809,12 +805,12 @@ class NoticesResourceIT {
     @Test
     void putExistingNotices() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the notices
-        Notices updatedNotices = noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").block();
+        Notices updatedNotices = noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").orElse(null);
         updatedNotices
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -901,7 +897,7 @@ class NoticesResourceIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(noticesDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -910,7 +906,7 @@ class NoticesResourceIT {
     @Test
     void partialUpdateNoticesWithPatch() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -938,7 +934,7 @@ class NoticesResourceIT {
     @Test
     void fullUpdateNoticesWithPatch() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -1032,7 +1028,7 @@ class NoticesResourceIT {
                     .contentType(MediaType.valueOf("application/merge-patch+json"))
                     .content(om.writeValueAsBytes(noticesDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1041,7 +1037,7 @@ class NoticesResourceIT {
     @Test
     void deleteNotices() throws Exception {
         // Initialize the database
-        insertedNotices = noticesRepository.save(notices).block();
+        insertedNotices = noticesRepository.save(notices);
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
@@ -1059,7 +1055,7 @@ class NoticesResourceIT {
     }
 
     protected long getRepositoryCount() {
-        return noticesRepository.count().block();
+        return noticesRepository.count();
     }
 
     protected void assertIncrementedRepositoryCount(long countBefore) {
@@ -1075,7 +1071,7 @@ class NoticesResourceIT {
     }
 
     protected Notices getPersistedNotices(Notices notices) {
-        return noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").block();
+        return noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").orElse(null);
     }
 
     protected void assertPersistedNoticesToMatchAllProperties(Notices expectedNotices) {
