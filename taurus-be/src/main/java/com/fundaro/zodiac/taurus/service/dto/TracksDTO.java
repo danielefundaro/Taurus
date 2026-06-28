@@ -95,7 +95,7 @@ public class TracksDTO extends StateFieldOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getTempo(), this.getTone(), this.getType(), this.getScores().hashCode());
+        return Objects.hash(super.hashCode(), this.getId(), this.getName(), this.getDescription(), this.getComposer(), this.getArranger(), this.getTempo(), this.getTone(), this.getType(), this.getScores());
     }
 
     // prettier-ignore

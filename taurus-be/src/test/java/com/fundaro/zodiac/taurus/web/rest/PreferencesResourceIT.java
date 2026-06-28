@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Preferences;
-import com.fundaro.zodiac.taurus.repository.EntityManager;
 import com.fundaro.zodiac.taurus.repository.PreferencesRepository;
 import com.fundaro.zodiac.taurus.service.dto.PreferencesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.PreferencesMapper;
@@ -83,9 +82,6 @@ class PreferencesResourceIT {
     private PreferencesMapper preferencesMapper;
 
     @Autowired
-    private EntityManager em;
-
-    @Autowired
     private MockMvc restMockMvc;
 
     private Preferences preferences;
@@ -128,9 +124,9 @@ class PreferencesResourceIT {
             .value(UPDATED_VALUE);
     }
 
-    public static void deleteEntities(EntityManager em) {
+    public static void deleteEntities(PreferencesRepository repository) {
         try {
-            em.deleteAll(Preferences.class).block();
+            repository.deleteAll();
         } catch (Exception e) {
             // It can fail, if other entities are still referring this - it will be removed later.
         }
@@ -144,10 +140,10 @@ class PreferencesResourceIT {
     @AfterEach
     public void cleanup() {
         if (insertedPreferences != null) {
-            preferencesRepository.delete(insertedPreferences).block();
+            preferencesRepository.delete(insertedPreferences);
             insertedPreferences = null;
         }
-        deleteEntities(em);
+        deleteEntities(preferencesRepository);
     }
 
     @Test
@@ -242,7 +238,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferences() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList
         restMockMvc
@@ -263,7 +259,7 @@ class PreferencesResourceIT {
     @Test
     void getPreferences() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get the preferences
         restMockMvc
@@ -284,7 +280,7 @@ class PreferencesResourceIT {
     @Test
     void getPreferencesByIdFiltering() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         Long id = preferences.getId();
 
@@ -298,7 +294,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByDeletedIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where deleted equals to
         defaultPreferencesFiltering("deleted.equals=" + DEFAULT_DELETED, "deleted.equals=" + UPDATED_DELETED);
@@ -307,7 +303,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByDeletedIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where deleted in
         defaultPreferencesFiltering("deleted.in=" + DEFAULT_DELETED + "," + UPDATED_DELETED, "deleted.in=" + UPDATED_DELETED);
@@ -316,7 +312,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByDeletedIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where deleted is not null
         defaultPreferencesFiltering("deleted.specified=true", "deleted.specified=false");
@@ -325,7 +321,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertBy equals to
         defaultPreferencesFiltering("insertBy.equals=" + DEFAULT_INSERT_BY, "insertBy.equals=" + UPDATED_INSERT_BY);
@@ -334,7 +330,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertBy in
         defaultPreferencesFiltering("insertBy.in=" + DEFAULT_INSERT_BY + "," + UPDATED_INSERT_BY, "insertBy.in=" + UPDATED_INSERT_BY);
@@ -343,7 +339,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertBy is not null
         defaultPreferencesFiltering("insertBy.specified=true", "insertBy.specified=false");
@@ -352,7 +348,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertByContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertBy contains
         defaultPreferencesFiltering("insertBy.contains=" + DEFAULT_INSERT_BY, "insertBy.contains=" + UPDATED_INSERT_BY);
@@ -361,7 +357,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertBy does not contain
         defaultPreferencesFiltering("insertBy.doesNotContain=" + UPDATED_INSERT_BY, "insertBy.doesNotContain=" + DEFAULT_INSERT_BY);
@@ -370,7 +366,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate equals to
         defaultPreferencesFiltering("insertDate.equals=" + DEFAULT_INSERT_DATE, "insertDate.equals=" + UPDATED_INSERT_DATE);
@@ -379,7 +375,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate in
         defaultPreferencesFiltering(
@@ -391,7 +387,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate is not null
         defaultPreferencesFiltering("insertDate.specified=true", "insertDate.specified=false");
@@ -400,7 +396,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate is greater than or equal to
         defaultPreferencesFiltering(
@@ -412,7 +408,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate is less than or equal to
         defaultPreferencesFiltering(
@@ -424,7 +420,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate is less than
         defaultPreferencesFiltering("insertDate.lessThan=" + UPDATED_INSERT_DATE, "insertDate.lessThan=" + DEFAULT_INSERT_DATE);
@@ -433,7 +429,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByInsertDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where insertDate is greater than
         defaultPreferencesFiltering("insertDate.greaterThan=" + SMALLER_INSERT_DATE, "insertDate.greaterThan=" + DEFAULT_INSERT_DATE);
@@ -442,7 +438,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditByIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editBy equals to
         defaultPreferencesFiltering("editBy.equals=" + DEFAULT_EDIT_BY, "editBy.equals=" + UPDATED_EDIT_BY);
@@ -451,7 +447,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditByIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editBy in
         defaultPreferencesFiltering("editBy.in=" + DEFAULT_EDIT_BY + "," + UPDATED_EDIT_BY, "editBy.in=" + UPDATED_EDIT_BY);
@@ -460,7 +456,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditByIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editBy is not null
         defaultPreferencesFiltering("editBy.specified=true", "editBy.specified=false");
@@ -469,7 +465,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditByContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editBy contains
         defaultPreferencesFiltering("editBy.contains=" + DEFAULT_EDIT_BY, "editBy.contains=" + UPDATED_EDIT_BY);
@@ -478,7 +474,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditByNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editBy does not contain
         defaultPreferencesFiltering("editBy.doesNotContain=" + UPDATED_EDIT_BY, "editBy.doesNotContain=" + DEFAULT_EDIT_BY);
@@ -487,7 +483,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate equals to
         defaultPreferencesFiltering("editDate.equals=" + DEFAULT_EDIT_DATE, "editDate.equals=" + UPDATED_EDIT_DATE);
@@ -496,7 +492,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate in
         defaultPreferencesFiltering("editDate.in=" + DEFAULT_EDIT_DATE + "," + UPDATED_EDIT_DATE, "editDate.in=" + UPDATED_EDIT_DATE);
@@ -505,7 +501,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate is not null
         defaultPreferencesFiltering("editDate.specified=true", "editDate.specified=false");
@@ -514,7 +510,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate is greater than or equal to
         defaultPreferencesFiltering("editDate.greaterThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.greaterThanOrEqual=" + UPDATED_EDIT_DATE);
@@ -523,7 +519,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsLessThanOrEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate is less than or equal to
         defaultPreferencesFiltering("editDate.lessThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.lessThanOrEqual=" + SMALLER_EDIT_DATE);
@@ -532,7 +528,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsLessThanSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate is less than
         defaultPreferencesFiltering("editDate.lessThan=" + UPDATED_EDIT_DATE, "editDate.lessThan=" + DEFAULT_EDIT_DATE);
@@ -541,7 +537,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByEditDateIsGreaterThanSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where editDate is greater than
         defaultPreferencesFiltering("editDate.greaterThan=" + SMALLER_EDIT_DATE, "editDate.greaterThan=" + DEFAULT_EDIT_DATE);
@@ -550,7 +546,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByUserIdIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where userId equals to
         defaultPreferencesFiltering("userId.equals=" + DEFAULT_USER_ID, "userId.equals=" + UPDATED_USER_ID);
@@ -559,7 +555,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByUserIdIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where userId in
         defaultPreferencesFiltering("userId.in=" + DEFAULT_USER_ID + "," + UPDATED_USER_ID, "userId.in=" + UPDATED_USER_ID);
@@ -568,7 +564,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByUserIdIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where userId is not null
         defaultPreferencesFiltering("userId.specified=true", "userId.specified=false");
@@ -577,7 +573,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByUserIdContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where userId contains
         defaultPreferencesFiltering("userId.contains=" + DEFAULT_USER_ID, "userId.contains=" + UPDATED_USER_ID);
@@ -586,7 +582,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByUserIdNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where userId does not contain
         defaultPreferencesFiltering("userId.doesNotContain=" + UPDATED_USER_ID, "userId.doesNotContain=" + DEFAULT_USER_ID);
@@ -595,7 +591,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByKeyIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where key equals to
         defaultPreferencesFiltering("key.equals=" + DEFAULT_KEY, "key.equals=" + UPDATED_KEY);
@@ -604,7 +600,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByKeyIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where key in
         defaultPreferencesFiltering("key.in=" + DEFAULT_KEY + "," + UPDATED_KEY, "key.in=" + UPDATED_KEY);
@@ -613,7 +609,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByKeyIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where key is not null
         defaultPreferencesFiltering("key.specified=true", "key.specified=false");
@@ -622,7 +618,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByKeyContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where key contains
         defaultPreferencesFiltering("key.contains=" + DEFAULT_KEY, "key.contains=" + UPDATED_KEY);
@@ -631,7 +627,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByKeyNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where key does not contain
         defaultPreferencesFiltering("key.doesNotContain=" + UPDATED_KEY, "key.doesNotContain=" + DEFAULT_KEY);
@@ -640,7 +636,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByValueIsEqualToSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where value equals to
         defaultPreferencesFiltering("value.equals=" + DEFAULT_VALUE, "value.equals=" + UPDATED_VALUE);
@@ -649,7 +645,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByValueIsInShouldWork() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where value in
         defaultPreferencesFiltering("value.in=" + DEFAULT_VALUE + "," + UPDATED_VALUE, "value.in=" + UPDATED_VALUE);
@@ -658,7 +654,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByValueIsNullOrNotNull() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where value is not null
         defaultPreferencesFiltering("value.specified=true", "value.specified=false");
@@ -667,7 +663,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByValueContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where value contains
         defaultPreferencesFiltering("value.contains=" + DEFAULT_VALUE, "value.contains=" + UPDATED_VALUE);
@@ -676,7 +672,7 @@ class PreferencesResourceIT {
     @Test
     void getAllPreferencesByValueNotContainsSomething() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         // Get all the preferencesList where value does not contain
         defaultPreferencesFiltering("value.doesNotContain=" + UPDATED_VALUE, "value.doesNotContain=" + DEFAULT_VALUE);
@@ -743,12 +739,12 @@ class PreferencesResourceIT {
     @Test
     void putExistingPreferences() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the preferences
-        Preferences updatedPreferences = preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").block();
+        Preferences updatedPreferences = preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").orElse(null);
         updatedPreferences
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -834,7 +830,7 @@ class PreferencesResourceIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(preferencesDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -843,7 +839,7 @@ class PreferencesResourceIT {
     @Test
     void partialUpdatePreferencesWithPatch() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -874,7 +870,7 @@ class PreferencesResourceIT {
     @Test
     void fullUpdatePreferencesWithPatch() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
@@ -967,7 +963,7 @@ class PreferencesResourceIT {
                     .contentType(MediaType.valueOf("application/merge-patch+json"))
                     .content(om.writeValueAsBytes(preferencesDTO))
             )
-            .andExpect(status().isEqualTo(405));
+            .andExpect(status().is(405));
 
         // Validate the Preferences in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -976,7 +972,7 @@ class PreferencesResourceIT {
     @Test
     void deletePreferences() throws Exception {
         // Initialize the database
-        insertedPreferences = preferencesRepository.save(preferences).block();
+        insertedPreferences = preferencesRepository.save(preferences);
 
         long databaseSizeBeforeDelete = getRepositoryCount();
 
@@ -994,7 +990,7 @@ class PreferencesResourceIT {
     }
 
     protected long getRepositoryCount() {
-        return preferencesRepository.count().block();
+        return preferencesRepository.count();
     }
 
     protected void assertIncrementedRepositoryCount(long countBefore) {
@@ -1010,7 +1006,7 @@ class PreferencesResourceIT {
     }
 
     protected Preferences getPersistedPreferences(Preferences preferences) {
-        return preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").block();
+        return preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").orElse(null);
     }
 
     protected void assertPersistedPreferencesToMatchAllProperties(Preferences expectedPreferences) {

@@ -4,7 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class LogoutResource {
 
-    private final ReactiveClientRegistrationRepository registrations;
+    private final ClientRegistrationRepository registrations;
 
-    public LogoutResource(ReactiveClientRegistrationRepository registrations) {
+    public LogoutResource(ClientRegistrationRepository registrations) {
         this.registrations = registrations;
     }
 
@@ -33,7 +33,7 @@ public class LogoutResource {
         @AuthenticationPrincipal(expression = "idToken") OidcIdToken idToken,
         HttpServletRequest request
     ) {
-        ClientRegistration registration = registrations.findByRegistrationId("oidc").block();
+        ClientRegistration registration = registrations.findByRegistrationId("oidc");
         return prepareLogoutUri(request, registration, idToken);
     }
 

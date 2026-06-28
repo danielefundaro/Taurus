@@ -1,20 +1,21 @@
 package com.fundaro.zodiac.taurus.config;
 
-import java.util.Optional;
-import java.util.concurrent.Executor;
-import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import tech.jhipster.config.JHipsterConstants;
 import tech.jhipster.config.liquibase.AsyncSpringLiquibase;
+
+import javax.sql.DataSource;
+import java.util.Optional;
+import java.util.concurrent.Executor;
 
 @Configuration
 public class LiquibaseConfiguration {
@@ -31,7 +32,7 @@ public class LiquibaseConfiguration {
     public SpringLiquibase liquibase(
         @Qualifier("taskExecutor") Executor executor,
         LiquibaseProperties liquibaseProperties,
-        R2dbcProperties dataSourceProperties
+        DataSourceProperties dataSourceProperties
     ) {
         SpringLiquibase liquibase = new AsyncSpringLiquibase(executor, env);
         liquibase.setDataSource(createLiquibaseDataSource(liquibaseProperties, dataSourceProperties));
@@ -56,7 +57,7 @@ public class LiquibaseConfiguration {
         return liquibase;
     }
 
-    private static DataSource createLiquibaseDataSource(LiquibaseProperties liquibaseProperties, R2dbcProperties dataSourceProperties) {
+    private static DataSource createLiquibaseDataSource(LiquibaseProperties liquibaseProperties, DataSourceProperties dataSourceProperties) {
         String user = Optional.ofNullable(liquibaseProperties.getUser()).orElse(dataSourceProperties.getUsername());
         String password = Optional.ofNullable(liquibaseProperties.getPassword()).orElse(dataSourceProperties.getPassword());
 
