@@ -21,6 +21,6 @@ public interface CommonRepository<E extends CommonFields, C extends CommonCriter
     List<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
 
     @Modifying
-    @Query("DELETE FROM #{#entityName} e WHERE e.id = :id AND e.userId = :userId AND e.tenantCode = :tenantCode")
+    @Query("UPDATE #{#entityName} e SET e.deleted = TRUE WHERE e.id = :id AND e.userId = :userId AND e.tenantCode = :tenantCode")
     void deleteByIdAndUserIdAndTenantCode(@Param("id") Long id, @Param("userId") String userId, @Param("tenantCode") String tenantCode);
 }
