@@ -1,4 +1,5 @@
 export * from "./albums.service";
+export * from "./calendar-events.service";
 export * from "./instruments.service";
 export * from "./keycloak.service";
 export * from "./last-researches.service";

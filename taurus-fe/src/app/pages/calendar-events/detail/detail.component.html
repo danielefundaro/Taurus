@@ -1,0 +1,208 @@
+<p-fluid>
+    <!-- Event info card -->
+    <div class="flex">
+        <div class="card flex flex-col gap-4 w-full">
+            <div class="flex flex-row justify-between items-center">
+                <span class="font-semibold text-xl">Evento</span>
+                <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()"
+                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" />
+            </div>
+
+            <!-- Row 1: name + state -->
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="name" type="text" [(ngModel)]="event.name"
+                        [readonly]="!isAdmin" />
+                    <label for="name">Nome</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on">
+                    <p-autocomplete [(ngModel)]="event.state" [suggestions]="autoFilteredStates"
+                        [virtualScroll]="true" [virtualScrollItemSize]="34" dropdown display="chip"
+                        (completeMethod)="filterStates($event)" [disabled]="!isAdmin" />
+                    <label for="state">Stato</label>
+                </p-floatlabel>
+            </div>
+
+            <!-- Row 1b: start date + end date -->
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full md:w-1/2" variant="on">
+                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true"
+                        [hourFormat]="'24'" inputId="startDate"
+                        dateFormat="dd-mm-yy" [(ngModel)]="event.startDate" [disabled]="!isAdmin" />
+                    <label for="startDate">Data/ora inizio *</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full md:w-1/2" variant="on">
+                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true"
+                        [hourFormat]="'24'" inputId="endDate"
+                        dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" />
+                    <label for="endDate">Data/ora fine</label>
+                </p-floatlabel>
+            </div>
+
+            <!-- Row 2: location + fee -->
+            <div class="flex flex-col md:flex-row gap-6">
+                <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="location" type="text" [(ngModel)]="event.location"
+                        [readonly]="!isAdmin" />
+                    <label for="location">Luogo</label>
+                </p-floatlabel>
+                <p-floatlabel class="flex w-full" variant="on"
+                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                    <p-inputnumber id="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR"
+                        locale="it-IT" [disabled]="!isAdmin" />
+                    <label for="fee">Compenso</label>
+                </p-floatlabel>
+            </div>
+
+            <!-- Description -->
+            <p-floatlabel class="flex" variant="on">
+                <textarea pTextarea id="description" rows="3"
+                    [(ngModel)]="event.description" [readonly]="!isAdmin"></textarea>
+                <label for="description">Descrizione</label>
+            </p-floatlabel>
+        </div>
+    </div>
+
+    <!-- Availability buttons (USER role only) -->
+    <div class="card mt-4" *ngIf="isUser">
+        <div class="flex flex-col gap-3">
+            <span class="font-semibold text-lg">La tua disponibilità</span>
+            <div class="flex gap-3">
+                <p-button label="Sono disponibile" icon="pi pi-check-circle" severity="success"
+                    (onClick)="setAvailability(true)" />
+                <p-button label="Non sono disponibile" icon="pi pi-times-circle" severity="danger"
+                    [outlined]="true" (onClick)="setAvailability(false)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Costs (admin only) -->
+    <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+        <div class="flex flex-row justify-between items-center mb-4">
+            <span class="font-semibold text-lg">Costi</span>
+        </div>
+
+        <!-- Add cost form -->
+        <div class="flex flex-col md:flex-row gap-3 mb-4">
+            <p-floatlabel class="flex w-full" variant="on">
+                <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
+                <label for="costDesc">Descrizione costo</label>
+            </p-floatlabel>
+            <p-floatlabel class="flex w-full md:w-48" variant="on">
+                <p-inputnumber id="costAmount" [(ngModel)]="newCostAmount" mode="currency"
+                    currency="EUR" locale="it-IT" />
+                <label for="costAmount">Importo</label>
+            </p-floatlabel>
+            <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary"
+                (onClick)="addCost()" [disabled]="!newCostDescription" />
+        </div>
+
+        <p-table [value]="event.costs ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col" class="text-right">Importo</th>
+                    <th scope="col" class="w-12"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-cost let-i="rowIndex">
+                <tr>
+                    <td>{{ cost.description }}</td>
+                    <td class="text-right">{{ cost.amount | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                    <td>
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                            [text]="true" (onClick)="removeCost(i)" />
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr><td colspan="3" class="text-center text-surface-400 py-4">Nessun costo</td></tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <!-- Available users -->
+    <div class="card mt-4">
+        <span class="font-semibold text-lg block mb-4">
+            <i class="pi pi-check-circle text-green-500 mr-2"></i>
+            Utenti disponibili ({{ event.availableUsers?.length ?? 0 }})
+        </span>
+        <p-table [value]="event.availableUsers ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Cognome</th>
+                    <th scope="col">Data risposta</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-user>
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.lastName }}</td>
+                    <td>{{ user.responseDate | date:'dd/MM/yyyy HH:mm' }}</td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr><td colspan="3" class="text-center text-surface-400 py-4">Nessun utente disponibile</td></tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <!-- Unavailable users -->
+    <div class="card mt-4">
+        <span class="font-semibold text-lg block mb-4">
+            <i class="pi pi-times-circle text-red-500 mr-2"></i>
+            Utenti non disponibili ({{ event.unavailableUsers?.length ?? 0 }})
+        </span>
+        <p-table [value]="event.unavailableUsers ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Cognome</th>
+                    <th scope="col">Data risposta</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-user>
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.lastName }}</td>
+                    <td>{{ user.responseDate | date:'dd/MM/yyyy HH:mm' }}</td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr><td colspan="3" class="text-center text-surface-400 py-4">Nessun utente non disponibile</td></tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <!-- Present users (admin only for notes) -->
+    <div class="card mt-4">
+        <span class="font-semibold text-lg block mb-4">
+            <i class="pi pi-users text-primary mr-2"></i>
+            Utenti presenti ({{ event.presentUsers?.length ?? 0 }})
+        </span>
+        <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Cognome</th>
+                    <th scope="col">Ora di arrivo</th>
+                    <th scope="col">Note</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-user>
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.lastName }}</td>
+                    <td>{{ user.arrivalTime | date:'HH:mm' }}</td>
+                    <td>{{ user.note }}</td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr><td colspan="4" class="text-center text-surface-400 py-4">Nessun utente presente</td></tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <p-scrolltop />
+</p-fluid>

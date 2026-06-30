@@ -19,4 +19,6 @@ public interface OpenSearchService {
     <TDocument> SearchResponse<TDocument> search(Function<SearchRequest.Builder, ObjectBuilder<SearchRequest>> fn, Class<TDocument> documentClass) throws IOException;
 
     CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException;
+
+    boolean deleteIndex(String indexName) throws IOException;
 }
