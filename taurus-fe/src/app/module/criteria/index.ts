@@ -1,4 +1,5 @@
 export * from "./album-criteria.module";
+export * from "./calendar-events-criteria.module";
 export * from "./common-criteria.module";
 export * from "./common-open-search-criteria.module";
 export * from "./instruments-criteria.module";

@@ -1,0 +1,43 @@
+<div class="card !mb-8">
+    <div class="flex justify-between items-center mb-4">
+        <span class="font-semibold text-xl">Prossimi eventi</span>
+        <a routerLink="/calendar">
+            <i class="pi pi-calendar text-surface-400 hover:text-primary cursor-pointer"></i>
+        </a>
+    </div>
+    <p-table [value]="events" responsiveLayout="scroll">
+        <ng-template #header>
+            <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Luogo</th>
+                <th scope="col"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-event>
+            <tr>
+                <td class="whitespace-nowrap">
+                    <p-tag icon="pi pi-calendar" severity="secondary"
+                        [value]="(event.startDate | date:'dd/MM/yyyy HH:mm') ?? ''" [rounded]="true" />
+                </td>
+                <td class="min-width-7rem font-medium">{{ event.name }}</td>
+                <td class="min-width-7rem text-surface-500 text-sm">
+                    <i class="pi pi-map-marker mr-1"></i>{{ event.location }}
+                </td>
+                <td>
+                    <button pButton pRipple type="button" icon="pi pi-search"
+                        [routerLink]="'/calendar/' + event.id"
+                        class="p-button p-component p-button-text p-button-icon-only"></button>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="4" class="text-center text-surface-400 py-6">
+                    <i class="pi pi-calendar-times text-2xl block mb-2"></i>
+                    Nessun evento in programma
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

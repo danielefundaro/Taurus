@@ -69,6 +69,7 @@ public class ChangelogServiceImpl implements ChangelogService {
 
                         switch (mapIndex.getAction()) {
                             case CREATE_INDEX -> createIndex(mapIndex, filename);
+                            case DELETE_INDEX -> deleteIndex(mapIndex, filename);
                             case LOAD_DATA -> loadData(mapIndex, filename);
                         }
                     } else {
@@ -94,6 +95,21 @@ public class ChangelogServiceImpl implements ChangelogService {
                 } else {
                     LOG.error("Something went wrong when trying to create the index {}", changelogFile.getIndexName());
                 }
+            }
+        } else {
+            missingInformationErrorLog(filename);
+        }
+    }
+
+    @Override
+    public void deleteIndex(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException {
+        if (changelogFile.isValid()) {
+            String md5checkSum = checksum(changelogFile, changelogFile, filename);
+
+            if (Strings.isNotBlank(md5checkSum)) {
+                boolean deleted = openSearchService.deleteIndex(changelogFile.getIndexName());
+                LOG.debug("Index {} {}", changelogFile.getIndexName(), deleted ? "deleted" : "not found, skipping");
+                addRecordToDatabase(changelogFile, filename, md5checkSum, String.format("Delete index %s", changelogFile.getIndexName()), null);
             }
         } else {
             missingInformationErrorLog(filename);

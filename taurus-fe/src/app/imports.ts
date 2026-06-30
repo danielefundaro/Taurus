@@ -17,6 +17,7 @@ import { FluidModule } from 'primeng/fluid';
 import { GalleriaModule } from 'primeng/galleria';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { OrderListModule } from 'primeng/orderlist';
 import { PickListModule } from 'primeng/picklist';
@@ -47,6 +48,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ButtonModule,
         DropdownModule,
         InputTextModule,
+        InputNumberModule,
         SelectModule,
         DataViewModule,
         SelectButtonModule,
@@ -91,6 +93,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ButtonModule,
         DropdownModule,
         InputTextModule,
+        InputNumberModule,
         SelectModule,
         DataViewModule,
         SelectButtonModule,

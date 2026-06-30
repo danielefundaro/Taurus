@@ -70,6 +70,16 @@ public class OpenSearchServiceImpl implements OpenSearchService {
         return openSearchClient.count(fn.apply(new CountRequest.Builder()).build());
     }
 
+    @Override
+    public boolean deleteIndex(String indexName) throws IOException {
+        BooleanResponse exists = openSearchClient.indices().exists(builder -> builder.index(indexName));
+        if (exists.value()) {
+            openSearchClient.indices().delete(builder -> builder.index(indexName));
+            return true;
+        }
+        return false;
+    }
+
     private void open() {
         // Initialize openSearch client
         HttpHost host = new HttpHost(applicationProperties.getOpenSearch().getHost(), applicationProperties.getOpenSearch().getPort(), applicationProperties.getOpenSearch().getSchema());
