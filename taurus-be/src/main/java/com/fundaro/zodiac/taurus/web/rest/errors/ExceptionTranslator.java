@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.ConcurrencyFailureException;
@@ -45,6 +47,8 @@ import tech.jhipster.web.util.HeaderUtil;
 @Component("jhiExceptionTranslator")
 public class ExceptionTranslator extends ResponseEntityExceptionHandler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ExceptionTranslator.class);
+
     private static final String FIELD_ERRORS_KEY = "fieldErrors";
     private static final String MESSAGE_KEY = "message";
     private static final String PATH_KEY = "path";
@@ -62,6 +66,7 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     @ExceptionHandler
     public ResponseEntity<Object> handleAnyException(Throwable ex, WebRequest request) {
         ProblemDetailWithCause pdCause = wrapAndCustomizeProblem(ex, request);
+        logException(ex, pdCause.getStatus());
         return handleExceptionInternal((Exception) ex, pdCause, buildHeaders(ex), HttpStatusCode.valueOf(pdCause.getStatus()), request);
     }
 
@@ -75,7 +80,16 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         WebRequest request
     ) {
         body = body == null ? wrapAndCustomizeProblem((Throwable) ex, request) : body;
+        logException(ex, ((ProblemDetailWithCause) body).getStatus());
         return new ResponseEntity<>(body, updateContentType(headers), HttpStatusCode.valueOf(((ProblemDetailWithCause) body).getStatus()));
+    }
+
+    private void logException(Throwable ex, int status) {
+        if (status >= 500) {
+            LOG.error("Server error: {}", ex.getMessage(), ex);
+        } else {
+            LOG.warn("Client error [{}]: {}", status, ex.getMessage());
+        }
     }
 
     protected ProblemDetailWithCause wrapAndCustomizeProblem(Throwable ex, WebRequest request) {

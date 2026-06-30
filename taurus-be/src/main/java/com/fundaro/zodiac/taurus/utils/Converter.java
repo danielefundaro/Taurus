@@ -186,12 +186,12 @@ public class Converter {
                 notQueries.add(Query.of(f -> f.match(m -> m.field(finalFieldName).query(value -> value.longValue(fieldValue.getNotEquals().getTime())))));
             }
 
-            if (!fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().noneMatch(Objects::isNull)) {
+            if (Objects.nonNull(fieldValue.getIn()) && !fieldValue.getIn().isEmpty() && fieldValue.getIn().stream().noneMatch(Objects::isNull)) {
                 List<FieldValue> values = fieldValue.getIn().stream().map(v -> new FieldValue.Builder().longValue(v.getTime()).build()).toList();
                 queries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
             }
 
-            if (!fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().noneMatch(Objects::isNull)) {
+            if (Objects.nonNull(fieldValue.getNotIn()) && !fieldValue.getNotIn().isEmpty() && fieldValue.getNotIn().stream().noneMatch(Objects::isNull)) {
                 List<FieldValue> values = fieldValue.getNotIn().stream().map(v -> new FieldValue.Builder().longValue(v.getTime()).build()).toList();
                 notQueries.add(Query.of(f -> f.terms(m -> m.field(finalFieldName).terms(a -> a.value(values)))));
             }
@@ -201,7 +201,7 @@ public class Converter {
             }
 
             if (!Objects.isNull(fieldValue.getLessThanOrEqual()) ||
-                !Objects.isNull(fieldValue.getLessThanOrEqual()) ||
+                !Objects.isNull(fieldValue.getGreaterThanOrEqual()) ||
                 !Objects.isNull(fieldValue.getLessThan()) ||
                 !Objects.isNull(fieldValue.getGreaterThan())) {
                 RangeQuery.Builder rangeQueryBuilder = new RangeQuery.Builder().field(finalFieldName);

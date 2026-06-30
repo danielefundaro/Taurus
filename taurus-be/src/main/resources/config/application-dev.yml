@@ -17,11 +17,17 @@ logging:
   level:
     ROOT: DEBUG
     tech.jhipster: DEBUG
+    org.hibernate: INFO
     org.hibernate.SQL: INFO
+    org.hibernate.orm.jdbc.bind: INFO
     com.fundaro.zodiac.taurus: DEBUG
     com.fundaro.zodiac.taurus.repository: INFO
     com.fundaro.zodiac.taurus.web.rest.PreferencesResource: INFO
     com.fundaro.zodiac.taurus.service.PreferencesService: INFO
+    org.opensearch.client: DEBUG
+    org.opensearch.client.RestClient: DEBUG
+    org.apache.http.wire: DEBUG
+    org.apache.http.headers: DEBUG
 
 spring:
   devtools:

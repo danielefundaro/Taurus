@@ -56,13 +56,13 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
                         Object.entries(req[key]).forEach(([subKey, subVal]) => {
                             if (subVal !== undefined && subVal !== null) {
                                 for (const value of [(req[key][subKey])].flat().filter(v => v !== '')) {
-                                    options = options.append(`${key}.${subKey}`, value);
+                                    options = options.append(`${key}.${subKey}`, value instanceof Date ? value.toISOString() : value);
                                 }
                             }
                         });
                     } else {
                         for (const value of [(req[key])].flat().filter(v => v !== '')) {
-                            options = options.append(key, value);
+                            options = options.append(key, value instanceof Date ? value.toISOString() : value);
                         }
                     }
                 }

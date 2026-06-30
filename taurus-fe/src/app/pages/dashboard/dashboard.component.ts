@@ -2,8 +2,10 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/
 import { first, forkJoin, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
-import { Notices, NoticesCriteria, Page, Tracks, TracksCriteria } from '../../module';
-import { AlbumsService, KeycloakService, LayoutService, NoticesService, TenantsService, TracksService, UsersService } from '../../service';
+import { CalendarEvents, CalendarEventsCriteria, Notices, NoticesCriteria, Page, Tracks, TracksCriteria } from '../../module';
+import { DateFilter } from '../../module/criteria/filter';
+import { AlbumsService, CalendarEventsService, KeycloakService, LayoutService, NoticesService, TenantsService, TracksService, UsersService } from '../../service';
+import { CalendarEventsWidgetComponent } from './components/calendar-events-widget/calendar-events-widget.component';
 import { NotificationsWidgetComponent } from './components/notifications-widget/notification-widget.component';
 import { RecentsWidgetComponent } from './components/recents-widget/recents-widget.component';
 import { StatsWidgetComponent } from './components/stats-widget/stats-widget.component';
@@ -14,6 +16,7 @@ import { StatsWidgetComponent } from './components/stats-widget/stats-widget.com
         NotificationsWidgetComponent,
         StatsWidgetComponent,
         RecentsWidgetComponent,
+        CalendarEventsWidgetComponent,
         HasRolesDirective,
     ],
     templateUrl: './dashboard.component.html',
@@ -24,6 +27,7 @@ import { StatsWidgetComponent } from './components/stats-widget/stats-widget.com
         UsersService,
         AlbumsService,
         TracksService,
+        CalendarEventsService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
@@ -33,6 +37,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected totalAlbums: number = 0;
     protected totalTracks: number = 0;
     protected tracks: Tracks[] = [];
+    protected upcomingEvents: CalendarEvents[] = [];
     protected notices?: Page<Notices>;
     protected readonly RoleEnums: typeof RoleEnums = RoleEnums;
     private $readSubscription?: Subscription;
@@ -44,6 +49,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly usersService: UsersService,
         private readonly albumsService: AlbumsService,
         private readonly tracksService: TracksService,
+        private readonly calendarEventsService: CalendarEventsService,
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
     ) {
@@ -128,12 +134,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tracksCriteria.size = 10;
         tracksCriteria.sort = ['insertDate,desc'];
 
+        const upcomingCriteria = new CalendarEventsCriteria();
+        upcomingCriteria.page = 0;
+        upcomingCriteria.size = 10;
+        upcomingCriteria.sort = ['start_date,asc'];
+        upcomingCriteria.startDate = new DateFilter();
+        upcomingCriteria.startDate.greaterThanOrEqual = new Date();
+
         this.albumsService.getAll().pipe(first()).subscribe(albums => {
             this.totalAlbums = albums.totalElements;
         });
         this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe(tracks => {
             this.totalTracks = tracks.totalElements;
             this.tracks = tracks.content;
+        });
+        this.calendarEventsService.getAll(upcomingCriteria).pipe(first()).subscribe(events => {
+            this.upcomingEvents = events.content;
         });
         this.loadNotices();
     }

@@ -67,6 +67,14 @@ export class MenuComponent implements OnInit {
                         icon: 'pi pi-fw pi-sliders-h',
                         routerLink: ['/instruments'],
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST],
+                    },
+                    {
+                        separator: true,
+                    },
+                    {
+                        label: 'Calendario',
+                        icon: 'pi pi-fw pi-calendar',
+                        routerLink: ['/calendar'],
                     }
                 ]
             }
