@@ -9,9 +9,11 @@ import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -23,6 +25,30 @@ public class CalendarEventsServiceImpl extends CommonOpenSearchServiceImpl<Calen
 
     public CalendarEventsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, CalendarEventsMapper mapper) {
         super(openSearchService, indexResolver, mapper, CalendarEventsService.class, CalendarEvents.class);
+    }
+
+    @Override
+    public CalendarEventsDTO save(CalendarEventsDTO dto, AbstractAuthenticationToken token) {
+        applyDefaultEndDate(dto);
+        return super.save(dto, token);
+    }
+
+    @Override
+    public CalendarEventsDTO update(String id, CalendarEventsDTO dto, AbstractAuthenticationToken token) {
+        applyDefaultEndDate(dto);
+        return super.update(id, dto, token);
+    }
+
+    @Override
+    public CalendarEventsDTO partialUpdate(String id, CalendarEventsDTO dto, AbstractAuthenticationToken token) {
+        applyDefaultEndDate(dto);
+        return super.partialUpdate(id, dto, token);
+    }
+
+    private void applyDefaultEndDate(CalendarEventsDTO dto) {
+        if (dto.getEndDate() == null && dto.getStartDate() != null) {
+            dto.setEndDate(new Date(dto.getStartDate().getTime() + 3_600_000L));
+        }
     }
 
     @Override
