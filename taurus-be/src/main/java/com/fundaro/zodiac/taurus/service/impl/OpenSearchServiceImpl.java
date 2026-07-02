@@ -12,6 +12,7 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.PutMappingResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.endpoints.BooleanResponse;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
@@ -68,6 +69,15 @@ public class OpenSearchServiceImpl implements OpenSearchService {
     @Override
     public CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException {
         return openSearchClient.count(fn.apply(new CountRequest.Builder()).build());
+    }
+
+    @Override
+    public PutMappingResponse updateIndexMapping(String indexName, TypeMapping.Builder mappingBuilder) throws IOException {
+        BooleanResponse exists = openSearchClient.indices().exists(builder -> builder.index(indexName));
+        if (exists.value()) {
+            return openSearchClient.indices().putMapping(builder -> builder.index(indexName).properties(mappingBuilder.build().properties()));
+        }
+        return new PutMappingResponse.Builder().acknowledged(false).build();
     }
 
     @Override

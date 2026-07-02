@@ -4,7 +4,7 @@
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         [paginatorPosition]="tenants.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
         [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-        [rowsPerPageOptions]="[5, 10, 20, 30]" (onLazyLoad)="onLazyLoad($event)">
+        [rowsPerPageOptions]="[10, 25, 50]" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
             <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3">
                 <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
@@ -37,7 +37,7 @@
                                     <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
                                         {{ item.name }}
                                     </a>
-                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                    <span class="font-medium text-surface-500 dark:text-surface-400 text-sm text-overflow">
                                         {{ item.description }}
                                     </span>
                                 </div>
@@ -76,7 +76,7 @@
                                         <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
                                             {{ item.name }}
                                         </a>
-                                        <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
+                                        <span class="font-medium text-surface-500 dark:text-surface-400 text-sm text-overflow">
                                             {{ item.description }}
                                         </span>
                                     </div>

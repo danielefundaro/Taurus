@@ -12,6 +12,8 @@ public interface ChangelogService {
 
     void createIndex(ChangelogFile mapIndex, String filename) throws IOException, NoSuchAlgorithmException;
 
+    void updateIndex(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException;
+
     void loadData(ChangelogFile loadData, String filename) throws IOException, NoSuchAlgorithmException;
 
     void deleteIndex(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException;

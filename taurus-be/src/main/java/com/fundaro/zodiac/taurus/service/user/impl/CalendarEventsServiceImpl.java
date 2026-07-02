@@ -83,6 +83,8 @@ public class CalendarEventsServiceImpl
 
         EventUserEntryDTO entry = new EventUserEntryDTO();
         entry.setIndex(userId);
+        entry.setName(SecurityUtils.getFirstNameFromAuthentication(token));
+        entry.setLastName(SecurityUtils.getLastNameFromAuthentication(token));
         entry.setResponseDate(now);
 
         if (available) {
@@ -91,6 +93,27 @@ public class CalendarEventsServiceImpl
         } else {
             if (dto.getUnavailableUsers() == null) dto.setUnavailableUsers(new ArrayList<>());
             dto.getUnavailableUsers().add(entry);
+        }
+
+        return adminCalendarEventsService.update(eventId, dto, token);
+    }
+
+    @Override
+    public CalendarEventsDTO cancelAvailability(String eventId, AbstractAuthenticationToken token) {
+        CalendarEventsDTO dto = findOne(eventId, token)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", CalendarEvents.class.getSimpleName(), "id.notFound"));
+
+        String userId = SecurityUtils.getUserIdFromAuthentication(token);
+
+        if (dto.getAvailableUsers() != null) {
+            dto.setAvailableUsers(dto.getAvailableUsers().stream()
+                .filter(e -> !userId.equals(e.getIndex()))
+                .collect(Collectors.toList()));
+        }
+        if (dto.getUnavailableUsers() != null) {
+            dto.setUnavailableUsers(dto.getUnavailableUsers().stream()
+                .filter(e -> !userId.equals(e.getIndex()))
+                .collect(Collectors.toList()));
         }
 
         return adminCalendarEventsService.update(eventId, dto, token);

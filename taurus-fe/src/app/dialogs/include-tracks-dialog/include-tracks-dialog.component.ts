@@ -33,7 +33,7 @@ import { TracksService } from '../../service';
 })
 export class IncludeTracksDialogComponent {
 
-    protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
+    protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected tracks: Tracks[];
     protected selectedTracks: Tracks[];
     protected totalRecords: number = 0;

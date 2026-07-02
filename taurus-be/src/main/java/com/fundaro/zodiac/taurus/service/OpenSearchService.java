@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
 import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.PutMappingResponse;
 import org.opensearch.client.util.ObjectBuilder;
 
 import java.io.IOException;
@@ -11,6 +12,8 @@ import java.util.function.Function;
 public interface OpenSearchService {
 
     CreateIndexResponse createIndex(String indexName, TypeMapping.Builder builder) throws IOException;
+
+    PutMappingResponse updateIndexMapping(String indexName, TypeMapping.Builder builder) throws IOException;
 
     <TDocument> IndexResponse index(IndexRequest<TDocument> indexRequest) throws IOException;
 

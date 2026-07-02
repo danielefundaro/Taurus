@@ -27,7 +27,7 @@
             [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows"
             [paginator]="true" [paginatorPosition]="events.length > 1 ? 'both' : 'bottom'"
             [totalRecords]="totalRecords" [sortField]="dataViewLazyLoadEvent.sortField"
-            [sortOrder]="dataViewLazyLoadEvent.sortOrder" [rowsPerPageOptions]="[5, 10, 20, 30]"
+            [sortOrder]="dataViewLazyLoadEvent.sortOrder" [rowsPerPageOptions]="[10, 25, 50]"
             (onLazyLoad)="onLazyLoad($event)">
 
             <ng-template #list let-items>

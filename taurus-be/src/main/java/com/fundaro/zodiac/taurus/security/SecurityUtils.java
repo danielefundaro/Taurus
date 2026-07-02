@@ -150,6 +150,14 @@ public final class SecurityUtils {
         return getAttributeFromAuthentication("sub", authToken);
     }
 
+    public static String getFirstNameFromAuthentication(AbstractAuthenticationToken authToken) {
+        return getAttributeFromAuthentication(StandardClaimNames.GIVEN_NAME, authToken);
+    }
+
+    public static String getLastNameFromAuthentication(AbstractAuthenticationToken authToken) {
+        return getAttributeFromAuthentication(StandardClaimNames.FAMILY_NAME, authToken);
+    }
+
     public static String getTenantIdFromAuthentication(AbstractAuthenticationToken authToken) {
         return getAttributeFromAuthentication("tenant", authToken);
     }
