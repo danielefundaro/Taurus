@@ -24,14 +24,16 @@ public class NoticesAspect {
     private final InstrumentsService instrumentsService;
     private final AlbumsService albumsService;
     private final TracksService tracksService;
+    private final CalendarEventsService calendarEventsService;
 
-    public NoticesAspect(NoticesService noticesService, UsersService usersService, TenantsService tenantsService, InstrumentsService instrumentsService, AlbumsService albumsService, TracksService tracksService) {
+    public NoticesAspect(NoticesService noticesService, UsersService usersService, TenantsService tenantsService, InstrumentsService instrumentsService, AlbumsService albumsService, TracksService tracksService, CalendarEventsService calendarEventsService) {
         this.noticesService = noticesService;
         this.usersService = usersService;
         this.tenantsService = tenantsService;
         this.instrumentsService = instrumentsService;
         this.albumsService = albumsService;
         this.tracksService = tracksService;
+        this.calendarEventsService = calendarEventsService;
     }
 
     @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.save(..))")
@@ -44,16 +46,28 @@ public class NoticesAspect {
         }
 
         if (dto instanceof AlbumsDTO albumsDTO) {
+            String name = "Nuovo album creato", message = String.format("L'album \"%s\" è stato creato", dto.getName());
+
             if (albumsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant("Nuovo album creato", String.format("L'album \"%s\" è stato creato", dto.getName()), token);
+                noticesService.addNoticeWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers("Nuovo album creato", String.format("L'album \"%s\" è stato creato", dto.getName()), token);
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
+            String name = "Nuova traccia creata", message = String.format("La traccia \"%s\" è stata creata", dto.getName());
+
             if (tracksDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", dto.getName()), token);
+                noticesService.addNoticeWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", dto.getName()), token);
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+            }
+        } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
+            String name = "Nuovo evento creato", message = String.format("L'evento \"%s\" è stato creato", dto.getName());
+
+            if (calendarEventsDTO.getState() == StateEnum.PUBLIC) {
+                noticesService.addNoticeWholeTenant(name, message, token);
+            } else {
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
             }
         } else if (dto instanceof InstrumentsDTO) {
             noticesService.addNoticesExcludeRoleUsers("Nuovo strumento", String.format("Lo strumento \"%s\" è stato aggiunto", dto.getName()), token);
@@ -100,6 +114,8 @@ public class NoticesAspect {
                 oldDto = albumsService.findOne(id, token).orElse(null);
             } else if (joinPoint.getTarget() instanceof TracksServiceImpl) {
                 oldDto = tracksService.findOne(id, token).orElse(null);
+            } else if (joinPoint.getTarget() instanceof CalendarEventsServiceImpl) {
+                oldDto = calendarEventsService.findOne(id, token).orElse(null);
             } else if (joinPoint.getTarget() instanceof InstrumentsServiceImpl) {
                 oldDto = instrumentsService.findOne(id, token).orElse(null);
             } else if (joinPoint.getTarget() instanceof UsersServiceImpl) {
@@ -119,9 +135,11 @@ public class NoticesAspect {
 
         if (dto instanceof AlbumsDTO albumsDTO) {
             AlbumsDTO oldAlbum = (AlbumsDTO) oldFinal;
+            String name = "Album aggiornato", message = String.format("Le informazioni dell'album \"%s\" sono state aggiornate", dto.getName());
+
             if (oldAlbum.getState() != StateEnum.PUBLIC) {
                 if (albumsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticesExcludeRoleUsers("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
                     noticesService.addNoticeOnlyRoleUsers("Nuovo album creato", String.format("L'album \"%s\" è stato creato", dto.getName()), token);
                     noticesService.addNoticesExcludeRoleUsers("Album pubblicato", String.format("L'album \"%s\" è stato pubblicato", dto.getName()), token);
@@ -129,16 +147,18 @@ public class NoticesAspect {
             } else {
                 if (albumsDTO.getState() != StateEnum.PUBLIC) {
                     noticesService.addNoticeOnlyRoleUsers("Album rimosso", String.format("L'album \"%s\" è stato rimosso", dto.getName()), token);
-                    noticesService.addNoticesExcludeRoleUsers("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
-                    noticesService.addNoticeWholeTenant("Album aggiornato", String.format("Le informazioni dell'album \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticeWholeTenant(name, message, token);
                 }
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
             TracksDTO oldTrack = (TracksDTO) oldFinal;
+            String name = "Traccia aggiornata", message = String.format("Le informazioni della traccia \"%s\" sono state aggiornate", dto.getName());
+
             if (oldTrack.getState() != StateEnum.PUBLIC) {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticesExcludeRoleUsers("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
                     noticesService.addNoticeOnlyRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stato creata", dto.getName()), token);
                     noticesService.addNoticesExcludeRoleUsers("Traccia pubblicata", String.format("L'album \"%s\" è stata pubblicata", dto.getName()), token);
@@ -146,9 +166,28 @@ public class NoticesAspect {
             } else {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
                     noticesService.addNoticeOnlyRoleUsers("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", dto.getName()), token);
-                    noticesService.addNoticesExcludeRoleUsers("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
-                    noticesService.addNoticeWholeTenant("Traccia aggiornata", String.format("Le informazioni della traccia \"%s\" sono state aggiornate", dto.getName()), token);
+                    noticesService.addNoticeWholeTenant(name, message, token);
+                }
+            }
+        } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
+            CalendarEventsDTO oldCalendar = (CalendarEventsDTO) oldFinal;
+            String name = "Evento aggiornata", message = String.format("Le informazioni dell'evento \"%s\" sono state aggiornate", dto.getName());
+
+            if (oldCalendar.getState() != StateEnum.PUBLIC) {
+                if (calendarEventsDTO.getState() != StateEnum.PUBLIC) {
+                    noticesService.addNoticeOnlyRoleUsers(name, message, token);
+                } else {
+                    noticesService.addNoticeOnlyRoleUsers("Nuovo evento creato", String.format("L'evento \"%s\" è stato creato", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers("Evento pubblicato", String.format("L'evento \"%s\" è stato pubblicato", dto.getName()), token);
+                }
+            } else {
+                if (calendarEventsDTO.getState() != StateEnum.PUBLIC) {
+                    noticesService.addNoticeOnlyRoleUsers("Evento rimosso", String.format("L'evento \"%s\" è stato rimosso", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                } else {
+                    noticesService.addNoticeWholeTenant(name, message, token);
                 }
             }
         } else if (dto instanceof InstrumentsDTO) {
@@ -172,16 +211,28 @@ public class NoticesAspect {
         }
 
         if (dto instanceof AlbumsDTO albumsDTO) {
+            String name = "Album rimosso", message = String.format("L'album \"%s\" è stato rimosso", dto.getName());
+
             if (albumsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant("Album rimosso", String.format("L'album \"%s\" è stato rimosso", dto.getName()), token);
+                noticesService.addNoticeWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers("Album rimosso", String.format("L'album \"%s\" è stato rimosso", dto.getName()), token);
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
+            String name = "Traccia rimossa", message = String.format("La traccia \"%s\" è stata rimossa", dto.getName());
+
             if (tracksDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", dto.getName()), token);
+                noticesService.addNoticeWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers("Traccia rimossa", String.format("La traccia \"%s\" è stata rimossa", dto.getName()), token);
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+            }
+        } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
+            String name = "Evento rimosso", message = String.format("L'evento \"%s\" è stato rimosso", dto.getName());
+
+            if (calendarEventsDTO.getState() == StateEnum.PUBLIC) {
+                noticesService.addNoticeWholeTenant(name, message, token);
+            } else {
+                noticesService.addNoticesExcludeRoleUsers(name, message, token);
             }
         } else if (dto instanceof InstrumentsDTO) {
             noticesService.addNoticesExcludeRoleUsers("Strumento rimosso", String.format("Lo strumento \"%s\" è stato rimosso", dto.getName()), token);
