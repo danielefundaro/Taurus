@@ -18,8 +18,20 @@ export class KeycloakService {
         return this.keycloak.token;
     }
 
+    public get currentUserId(): string | undefined {
+        return this.keycloak.tokenParsed?.['sub'] as string | undefined;
+    }
+
     public get currentUserRole(): RoleEnums {
         return this.keycloak.idTokenParsed?.['role'] as RoleEnums || RoleEnums.UNKNOWN;
+    }
+
+    public get isAdmin(): boolean {
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN].includes(this.currentUserRole);
+    }
+
+    public get isUser(): boolean {
+        return [RoleEnums.USER].includes(this.currentUserRole);
     }
 
     constructor() {

@@ -2,12 +2,22 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { Table } from 'primeng/table';
 import { delay, first } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../../constants';
 import { ImportsModule } from '../../../imports';
-import { CalendarEvents, EventCost } from '../../../module';
+import { CalendarEvents, EventCost, EventPresentUser, Users } from '../../../module';
 import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
-import { CalendarEventsService, KeycloakService, ToastService } from '../../../service';
+import { CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
+
+interface UserPresenceRow {
+    id: string;
+    name: string;
+    lastName: string;
+    present: boolean;
+    arrivalTime?: Date;
+    note?: string;
+}
 
 @Component({
     selector: 'app-calendar-event-detail',
@@ -29,10 +39,13 @@ export class DetailComponent implements OnInit {
     protected newCostDescription: string = '';
     protected newCostAmount: number | null = null;
 
+    protected presenceRows: UserPresenceRow[] = [];
+
     private readonly states: StateEnums[];
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
+        private readonly usersService: UsersService,
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly activatedRoute: ActivatedRoute,
@@ -52,11 +65,11 @@ export class DetailComponent implements OnInit {
     }
 
     protected get isAdmin(): boolean {
-        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN].includes(this.keycloakService.currentUserRole);
+        return this.keycloakService.isAdmin;
     }
 
     protected get isUser(): boolean {
-        return this.keycloakService.currentUserRole === RoleEnums.USER;
+        return this.keycloakService.isUser;
     }
 
     protected confirmDelete(): void {
@@ -88,14 +101,66 @@ export class DetailComponent implements OnInit {
         });
     }
 
+    protected get currentUserId(): string | undefined {
+        return this.keycloakService.currentUserId;
+    }
+
+    protected get currentUserAvailability(): boolean | null {
+        const id = this.currentUserId;
+        if (!id) return null;
+        if (this.event.availableUsers?.some(u => u.index === id)) return true;
+        if (this.event.unavailableUsers?.some(u => u.index === id)) return false;
+        return null;
+    }
+
     protected setAvailability(available: boolean): void {
         this.calendarEventsService.setAvailability(this.event.id, available).pipe(delay(500), first()).subscribe({
             next: (updated: CalendarEvents) => {
                 const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
                 this.toastService.success('Successo', msg);
-                this.event = updated;
+                this.updateEventDates(updated);
             },
         });
+    }
+
+    protected cancelAvailability(): void {
+        this.calendarEventsService.cancelAvailability(this.event.id).pipe(delay(500), first()).subscribe({
+            next: (updated: CalendarEvents) => {
+                this.toastService.success('Successo', 'Disponibilità annullata');
+                this.updateEventDates(updated);
+            },
+        });
+    }
+
+    protected onPresenceToggle(row: UserPresenceRow): void {
+        if (row.present && !row.arrivalTime) {
+            row.arrivalTime = new Date();
+        }
+    }
+
+    protected savePresentUsers(): void {
+        const presentUsers: EventPresentUser[] = this.presenceRows
+            .filter(r => r.present)
+            .map(r => {
+                const entry = new EventPresentUser();
+                entry.index = r.id;
+                entry.name = r.name;
+                entry.lastName = r.lastName;
+                entry.arrivalTime = r.arrivalTime;
+                entry.note = r.note;
+                return entry;
+            });
+
+        this.calendarEventsService.setPresentUsers(this.event.id, presentUsers).pipe(first()).subscribe({
+            next: (updated: CalendarEvents) => {
+                this.toastService.success('Successo', 'Presenze salvate');
+                this.updateEventDates(updated);
+            },
+        });
+    }
+
+    protected onGlobalFilter(table: Table, event: Event): void {
+        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent): void {
@@ -136,13 +201,53 @@ export class DetailComponent implements OnInit {
         return (this.event.costs ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
     }
 
+    private updateEventDates(updated: CalendarEvents): void {
+        this.event = updated;
+        this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
+        this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
+        if (this.isAdmin) {
+            this.buildPresenceRows();
+        }
+    }
+
     private loadElement(id: string): void {
         this.calendarEventsService.getById(id).pipe(first()).subscribe({
             next: (ev: CalendarEvents) => {
                 this.event = ev;
                 this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                 this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
+                if (this.isAdmin) {
+                    this.loadAllUsers();
+                }
             },
+        });
+    }
+
+    private loadAllUsers(): void {
+        this.usersService.getAll({ size: 1000, sort: ['name.keyword,asc'] } as any).pipe(first()).subscribe({
+            next: page => {
+                this.buildPresenceRows(page.content ?? []);
+            },
+        });
+    }
+
+    private buildPresenceRows(users?: Users[]): void {
+        const source = users ?? this.presenceRows.map(r => ({
+            id: r.id, name: r.name, lastName: r.lastName,
+        } as any));
+
+        this.presenceRows = source.map((u: Users) => {
+            const existing = this.event.presentUsers?.find(p => p.index === u.id);
+            return {
+                id: u.id,
+                name: u.name ?? '',
+                lastName: u.lastName ?? '',
+                present: !!existing,
+                arrivalTime: existing?.arrivalTime
+                    ? this.dateConverterPipe.transform(existing.arrivalTime as any)
+                    : undefined,
+                note: existing?.note,
+            } as UserPresenceRow;
         });
     }
 }

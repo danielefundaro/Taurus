@@ -8,22 +8,23 @@
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
                         [disabled]="!track.scores?.length" />
-                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()"
+                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true"
+                        (onClick)="confirmDelete()"
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                 </div>
             </div>
             <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="track!.name" />
+                    <input pInputText id="name" type="text" [(ngModel)]="track!.name" [readOnly]="isUser" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="composer" type="text" [(ngModel)]="track!.composer" />
+                    <input pInputText id="composer" type="text" [(ngModel)]="track!.composer" [readOnly]="isUser" />
                     <label for="composer">Compositore</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" />
+                    <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" [readOnly]="isUser" />
                     <label for="arranger">Arrangiatore</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on"
@@ -33,13 +34,15 @@
                     <label for="states">Stato</label>
                 </p-floatlabel>
             </div>
-            <app-type-handler variant="on" label="Tipo" [(types)]="track!.type"></app-type-handler>
+            <app-type-handler variant="on" label="Tipo" [(types)]="track!.type" [readOnly]="isUser" />
             <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description"
+                    [readOnly]="isUser"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
             <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
-                mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()">
+                mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
                 <ng-template #empty>
                     <div>Trascina il file qui per caricarlo.</div>
                 </ng-template>
@@ -125,7 +128,8 @@
                             tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina" (onClick)="confirmDeleteScore(score)"
+                            pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina"
+                            (onClick)="confirmDeleteScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     </div>
                 </td>

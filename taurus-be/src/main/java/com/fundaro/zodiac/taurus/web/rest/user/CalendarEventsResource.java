@@ -20,7 +20,7 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
     }
 
     /**
-     * {@code PUT /api/user/calendar-events/{id}/availability} : set the current user's availability.
+     * {@code PATCH /api/user/calendar-events/{id}/availability} : set the current user's availability.
      *
      * @param id        the id of the event.
      * @param available true if the user is available, false otherwise.
@@ -31,6 +31,13 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
     public ResponseEntity<CalendarEventsDTO> setAvailability(@PathVariable("id") String id, @RequestParam boolean available, AbstractAuthenticationToken token) {
         getLog().debug("REST request to set availability for CalendarEvents : {}, available={}", id, available);
         CalendarEventsDTO result = getService().setAvailability(id, available, token);
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/{id}/availability")
+    public ResponseEntity<CalendarEventsDTO> cancelAvailability(@PathVariable("id") String id, AbstractAuthenticationToken token) {
+        getLog().debug("REST request to cancel availability for CalendarEvents : {}", id);
+        CalendarEventsDTO result = getService().cancelAvailability(id, token);
         return ResponseEntity.ok(result);
     }
 }
