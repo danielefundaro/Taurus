@@ -13,6 +13,7 @@ import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.PutMappingResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,7 @@ public class ChangelogServiceImpl implements ChangelogService {
 
                         switch (mapIndex.getAction()) {
                             case CREATE_INDEX -> createIndex(mapIndex, filename);
+                            case UPDATE_INDEX -> updateIndex(mapIndex, filename);
                             case DELETE_INDEX -> deleteIndex(mapIndex, filename);
                             case LOAD_DATA -> loadData(mapIndex, filename);
                         }
@@ -94,6 +96,26 @@ public class ChangelogServiceImpl implements ChangelogService {
                     addRecordToDatabase(changelogFile, filename, md5checkSum, String.format("Create index %s", changelogFile.getIndexName()), null);
                 } else {
                     LOG.error("Something went wrong when trying to create the index {}", changelogFile.getIndexName());
+                }
+            }
+        } else {
+            missingInformationErrorLog(filename);
+        }
+    }
+
+    @Override
+    public void updateIndex(ChangelogFile changelogFile, String filename) throws IOException, NoSuchAlgorithmException {
+        if (changelogFile.isValid() && changelogFile.isPropertiesSpecified()) {
+            String md5checkSum = checksum(changelogFile, changelogFile, filename);
+
+            if (Strings.isNotBlank(md5checkSum)) {
+                PutMappingResponse response = openSearchService.updateIndexMapping(changelogFile.getIndexName(), new TypeMapping.Builder().properties(getProperties(changelogFile.getProperties())));
+
+                if (Boolean.TRUE.equals(response.acknowledged())) {
+                    LOG.debug("Index {} mapping updated", changelogFile.getIndexName());
+                    addRecordToDatabase(changelogFile, filename, md5checkSum, String.format("Update index %s", changelogFile.getIndexName()), null);
+                } else {
+                    LOG.error("Something went wrong when trying to update the index mapping {}", changelogFile.getIndexName());
                 }
             }
         } else {

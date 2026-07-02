@@ -27,6 +27,7 @@ export class TypeHandlerComponent {
     @Input() types?: string[];
     @Input() variant: 'over' | 'on' | 'in';
     @Input() label: string;
+    @Input() readOnly: boolean = false;
     @Output() typesChange = new EventEmitter<string[]>();
 
     protected current: string;
@@ -35,6 +36,7 @@ export class TypeHandlerComponent {
         this.variant = 'over';
         this.current = "";
         this.label = "Type";
+        this.readOnly = false;
     }
 
     protected inputChange($event: KeyboardEvent): void {

@@ -1,0 +1,15 @@
+:host ::ng-deep {
+    tr.row-current-user-available td {
+        background-color: rgba(22, 163, 74, 0.12) !important;
+        font-weight: 600;
+    }
+
+    tr.row-current-user-unavailable td {
+        background-color: rgba(239, 68, 68, 0.12) !important;
+        font-weight: 600;
+    }
+
+    tr.row-present-user td {
+        background-color: rgba(59, 130, 246, 0.08) !important;
+    }
+}

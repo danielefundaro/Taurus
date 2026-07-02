@@ -31,7 +31,7 @@ export class UsersComponent implements OnInit {
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
     protected totalRecords: number = 0;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 5, sortField: 'name.keyword', sortOrder: 1 };
+    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected users: Users[];
 
     private readonly instruments: Instruments[];

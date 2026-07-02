@@ -105,6 +105,10 @@ export class DetailComponent implements OnInit {
         });
     }
 
+    protected get isUser(): boolean {
+        return this.keycloakService.isUser;
+    }
+
     protected confirmDelete(): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',

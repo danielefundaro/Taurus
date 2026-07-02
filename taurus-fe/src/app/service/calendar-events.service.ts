@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RoleEnums } from '../constants';
-import { CalendarEvents, CalendarEventsCriteria } from '../module';
+import { CalendarEvents, CalendarEventsCriteria, EventPresentUser } from '../module';
 import { CommonOpenSearchService } from './common-open-search.service';
 import { KeycloakService } from './keycloak.service';
 
@@ -26,10 +26,14 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
     }
 
     public setAvailability(id: string, available: boolean): Observable<CalendarEvents> {
-        return this.http.put<CalendarEvents>(
-            `${this.baseUrl}/user/calendar-events/${id}/availability`,
-            null,
-            { params: new HttpParams().set('available', available.toString()) },
-        );
+        return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability`, null, { params: new HttpParams().set('available', available.toString()) });
+    }
+
+    public cancelAvailability(id: string): Observable<CalendarEvents> {
+        return this.http.delete<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability`);
+    }
+
+    public setPresentUsers(id: string, presentUsers: EventPresentUser[]): Observable<CalendarEvents> {
+        return this.http.put<CalendarEvents>(`${this.baseUrl}/calendar-events/${id}/presences`, presentUsers);
     }
 }

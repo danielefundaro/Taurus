@@ -198,11 +198,12 @@ export class LayoutService {
         for (let key of Object.keys(config)) {
             let preference = this.localStorageService.getItem(key);
             const value = config[key];
+            const strValue: string = value == null ? '' : String(value);
 
             if (!preference) {
                 preference = new Preferences();
                 preference.key = key;
-                preference.value = value;
+                preference.value = strValue;
                 this.localStorageService.setItem(key, preference);
 
                 this.preferencesService.count().pipe(first(), switchMap(count => {
@@ -224,8 +225,8 @@ export class LayoutService {
                         }
                     }
                 });
-            } else if (preference.value !== value) {
-                preference.value = value;
+            } else if (preference.value !== strValue) {
+                preference.value = strValue;
                 this.preferencesService.update(preference.id, preference).pipe(first()).subscribe(result => {
                     this.localStorageService.setItem(key, result);
                 });
