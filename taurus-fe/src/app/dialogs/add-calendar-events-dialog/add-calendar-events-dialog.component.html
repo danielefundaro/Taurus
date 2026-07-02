@@ -9,12 +9,12 @@
     <div class="flex flex-col md:flex-row gap-4">
         <p-floatlabel class="flex w-full" variant="on">
             <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
-                inputId="startDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="event.startDate" />
+                inputId="startDate" dateFormat="dd-mm-yy" class="w-full" appendTo="body" [(ngModel)]="event.startDate" />
             <label for="startDate">Data/ora inizio *</label>
         </p-floatlabel>
         <p-floatlabel class="flex w-full" variant="on">
             <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
-                inputId="endDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="event.endDate" />
+                inputId="endDate" dateFormat="dd-mm-yy" class="w-full" appendTo="body" [(ngModel)]="event.endDate" />
             <label for="endDate">Data/ora fine</label>
         </p-floatlabel>
     </div>
