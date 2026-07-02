@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -21,7 +21,8 @@ import { InstrumentsService, ToastService } from '../../service';
     styleUrl: './instruments.component.scss',
     providers: [
         InstrumentsService,
-        DialogService
+        DialogService,
+        ConfirmationService,
     ]
 })
 export class InstrumentsComponent implements OnInit {
@@ -36,6 +37,7 @@ export class InstrumentsComponent implements OnInit {
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.instruments = [];
     }
@@ -91,12 +93,23 @@ export class InstrumentsComponent implements OnInit {
         });
     }
 
-    protected deleteElement(instrument: Instruments) {
-        this.instrumentsService.delete(instrument.id).pipe(delay(1000), first()).subscribe({
-            next: (value: any) => {
-                this.toastService.success("Successo", "Strumento eliminato con successo");
-                this.loadElements();
-            }
+    protected deleteElement(instrument: Instruments): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo strumento?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.instrumentsService.delete(instrument.id).pipe(delay(1000), first()).subscribe({
+                    next: (value: any) => {
+                        this.toastService.success("Successo", "Strumento eliminato con successo");
+                        this.loadElements();
+                    }
+                });
+            },
         });
     }
 

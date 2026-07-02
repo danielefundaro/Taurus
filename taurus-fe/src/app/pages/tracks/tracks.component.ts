@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -24,6 +24,7 @@ import { PrinterService, ToastService, TracksService } from '../../service';
     providers: [
         TracksService,
         DialogService,
+        ConfirmationService,
     ]
 })
 export class TracksComponent implements OnInit {
@@ -41,6 +42,7 @@ export class TracksComponent implements OnInit {
         private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.tracks = [];
     }
@@ -120,11 +122,22 @@ export class TracksComponent implements OnInit {
     }
 
     public deleteElement(track: Tracks): void {
-        this.tracksService.delete(track.id).pipe(delay(1000), first()).subscribe({
-            next: (value: any) => {
-                this.toastService.success("Successo", "Traccia eliminata con successo");
-                this.loadElements();
-            }
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questa traccia?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.tracksService.delete(track.id).pipe(delay(1000), first()).subscribe({
+                    next: (value: any) => {
+                        this.toastService.success("Successo", "Traccia eliminata con successo");
+                        this.loadElements();
+                    }
+                });
+            },
         });
     }
 

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
@@ -22,6 +22,7 @@ import { AlbumsService, KeycloakService, PrinterService, ToastService } from '..
     providers: [
         AlbumsService,
         DialogService,
+        ConfirmationService,
     ],
 })
 export class DetailComponent implements OnInit {
@@ -42,6 +43,8 @@ export class DetailComponent implements OnInit {
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly activatedRouteService: ActivatedRoute,
+        private readonly router: Router,
+        private readonly confirmationService: ConfirmationService,
         private readonly dateConverterPipe: DateConverterPipe,
         private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
@@ -55,6 +58,26 @@ export class DetailComponent implements OnInit {
     ngOnInit() {
         this.activatedRouteService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
+        });
+    }
+
+    protected confirmDelete(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo album?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.albumsService.delete(this.album.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Album eliminato');
+                        this.router.navigate(['/albums']);
+                    },
+                });
+            },
         });
     }
 
@@ -73,6 +96,19 @@ export class DetailComponent implements OnInit {
 
     protected filterStates(event: AutoCompleteCompleteEvent) {
         this.autoFilteredStates = this.states.filter(state => state?.toLowerCase()?.includes(event.query.toLowerCase()));
+    }
+
+    protected confirmDeleteSelectedTracks(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Rimuovere le tracce selezionate dall\'album?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Rimuovi',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.deleteSelectedTracks(),
+        });
     }
 
     protected deleteSelectedTracks(): void {
@@ -120,6 +156,19 @@ export class DetailComponent implements OnInit {
 
     protected canReorder(): boolean {
         return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
+    }
+
+    protected confirmDeleteTrack(track: ChildrenEntities): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Rimuovere questa traccia dall\'album?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Rimuovi',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.deleteTrack(track),
+        });
     }
 
     protected deleteTrack(selectedTrack: ChildrenEntities): void {

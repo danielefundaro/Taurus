@@ -4,9 +4,13 @@
         <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center">
                 <span class="font-semibold text-xl">Evento</span>
-                <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()"
-                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" />
+                <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
+                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true"
+                        (onClick)="confirmDelete()" />
+                </div>
             </div>
+            <p-confirmdialog />
 
             <!-- Row 1: name + state -->
             <div class="flex flex-col md:flex-row gap-6">
@@ -111,13 +115,22 @@
                     <td class="text-right">{{ cost.amount | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                     <td>
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            [text]="true" (onClick)="removeCost(i)" />
+                            [text]="true" (onClick)="confirmRemoveCost(i)" />
                     </td>
                 </tr>
             </ng-template>
             <ng-template #emptymessage>
                 <tr><td colspan="3" class="text-center text-surface-400 py-4">Nessun costo</td></tr>
             </ng-template>
+            @if ((event.costs?.length ?? 0) > 0) {
+                <ng-template #footer>
+                    <tr class="font-semibold">
+                        <td>Totale</td>
+                        <td class="text-right">{{ totalCosts | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
+                        <td></td>
+                    </tr>
+                </ng-template>
+            }
         </p-table>
     </div>
 

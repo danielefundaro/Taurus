@@ -1,6 +1,8 @@
 import { NgClass } from "@angular/common";
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MenuModule } from 'primeng/menu';
 import { PaginatorModule } from "primeng/paginator";
 import { Notices, Page } from '../../../../module';
@@ -10,12 +12,14 @@ import { Notices, Page } from '../../../../module';
     selector: 'app-notifications-widget',
     imports: [
         ButtonModule,
+        ConfirmDialogModule,
         MenuModule,
         NgClass,
         PaginatorModule,
     ],
     templateUrl: './notification-widget.component.html',
     styleUrl: './notification-widget.component.scss',
+    providers: [ConfirmationService],
 })
 export class NotificationsWidgetComponent implements OnChanges {
     protected items: any[] = [];
@@ -28,7 +32,7 @@ export class NotificationsWidgetComponent implements OnChanges {
     @Output() delete: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() pageChange: EventEmitter<{ page: number; size: number }> = new EventEmitter<{ page: number; size: number }>();
 
-    constructor() {
+    constructor(private readonly confirmationService: ConfirmationService) {
         this.items = [
             {
                 label: 'Segna tutti come letti',
@@ -62,7 +66,16 @@ export class NotificationsWidgetComponent implements OnChanges {
     }
 
     protected deleteOne(notice: Notices): void {
-        this.delete.emit([notice.id]);
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare questa notifica?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.delete.emit([notice.id]),
+        });
     }
 
     protected onPageChange(event: any): void {
@@ -79,7 +92,16 @@ export class NotificationsWidgetComponent implements OnChanges {
 
     private deleteAll(): void {
         if (this.notices && this.notices.totalElements > 0) {
-            this.delete.emit();
+            this.confirmationService.confirm({
+                header: 'Conferma eliminazione',
+                message: 'Eliminare tutte le notifiche?',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Elimina',
+                rejectLabel: 'Annulla',
+                acceptButtonProps: { severity: 'danger' },
+                rejectButtonProps: { severity: 'secondary' },
+                accept: () => this.delete.emit(),
+            });
         }
     }
 }

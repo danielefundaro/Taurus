@@ -8,8 +8,11 @@
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
                         [disabled]="!track.scores?.length" />
+                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()"
+                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                 </div>
             </div>
+            <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
                     <input pInputText id="name" type="text" [(ngModel)]="track!.name" />
@@ -48,7 +51,7 @@
         <ng-template #start>
             <p-button severity="primary" label="Nuovo" icon="pi pi-plus" class="mr-2" outlined (onClick)="addNew()" />
             <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
-                (onClick)="deleteSelectedScores()" [disabled]="!selectedScores.length" />
+                (onClick)="confirmDeleteSelectedScores()" [disabled]="!selectedScores.length" />
         </ng-template>
     </p-toolbar>
 
@@ -122,7 +125,7 @@
                             tooltipPosition="top" pTooltip="Modifica" (onClick)="editScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina" (onClick)="deleteScore(score)"
+                            pTooltip="Elimina" tooltipPosition="top" pTooltip="Elimina" (onClick)="confirmDeleteScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     </div>
                 </td>
