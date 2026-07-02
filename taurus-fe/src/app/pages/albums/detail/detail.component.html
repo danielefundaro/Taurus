@@ -8,8 +8,11 @@
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
                         [disabled]="!album.tracks?.length" />
+                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()"
+                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                 </div>
             </div>
+            <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
                     <input pInputText id="name" type="text" [(ngModel)]="album!.name" />
@@ -39,7 +42,7 @@
             <p-button label="Aggiungi traccia" icon="pi pi-plus" severity="secondary" class="mr-2"
                 (onClick)="addNew()" />
             <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
-                (onClick)="deleteSelectedTracks()" [disabled]="!selectedTracks.length" />
+                (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
         </ng-template>
     </p-toolbar>
 
@@ -94,7 +97,7 @@
                                 tooltipPosition="top" />
                         </a>
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            pTooltip="Elimina" tooltipPosition="top" (onClick)="deleteTrack(track)"
+                            pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteTrack(track)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     </div>
                 </td>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { delay, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Tenants } from '../../../module';
@@ -14,7 +14,8 @@ import { InstrumentsService, ToastService } from '../../../service';
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [
-        InstrumentsService
+        InstrumentsService,
+        ConfirmationService,
     ],
 })
 export class DetailComponent implements OnInit {
@@ -27,7 +28,9 @@ export class DetailComponent implements OnInit {
     constructor(
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
-        private readonly routeService: ActivatedRoute
+        private readonly routeService: ActivatedRoute,
+        private readonly router: Router,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
@@ -36,6 +39,26 @@ export class DetailComponent implements OnInit {
     ngOnInit() {
         this.routeService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
+        });
+    }
+
+    public confirmDelete(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo strumento?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.instrumentsService.delete(this.instrument.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Strumento eliminato');
+                        this.router.navigate(['/instruments']);
+                    },
+                });
+            },
         });
     }
 

@@ -5,14 +5,14 @@
             <label for="name">Nome *</label>
             <input pInputText id="name" type="text" [(ngModel)]="event.name" />
         </p-floatlabel>
+    </div>
+    <div class="flex flex-col md:flex-row gap-4">
         <p-floatlabel class="flex w-full" variant="on">
             <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
                 inputId="startDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="event.startDate" />
             <label for="startDate">Data/ora inizio *</label>
         </p-floatlabel>
-    </div>
-    <div class="flex flex-col md:flex-row gap-4">
-        <p-floatlabel class="flex w-full md:w-1/2" variant="on">
+        <p-floatlabel class="flex w-full" variant="on">
             <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
                 inputId="endDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="event.endDate" />
             <label for="endDate">Data/ora fine</label>

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Popover } from 'primeng/popover';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -32,6 +32,7 @@ interface CalendarDay {
     providers: [
         CalendarEventsService,
         DialogService,
+        ConfirmationService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
@@ -61,6 +62,7 @@ export class CalendarEventsComponent implements OnInit {
         private readonly calendarEventsService: CalendarEventsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {}
 
     ngOnInit(): void {
@@ -171,14 +173,25 @@ export class CalendarEventsComponent implements OnInit {
     }
 
     protected deleteElement(event: CalendarEvents): void {
-        this.calendarEventsService.delete(event.id).pipe(delay(1000), first()).subscribe({
-            next: () => {
-                this.toastService.success('Successo', 'Evento eliminato con successo');
-                if (this.layout === 'grid') {
-                    this.loadCalendarMonth();
-                } else {
-                    this.loadElements();
-                }
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo evento?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.calendarEventsService.delete(event.id).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Evento eliminato con successo');
+                        if (this.layout === 'grid') {
+                            this.loadCalendarMonth();
+                        } else {
+                            this.loadElements();
+                        }
+                    },
+                });
             },
         });
     }
@@ -214,9 +227,12 @@ export class CalendarEventsComponent implements OnInit {
         criteria.page = 0;
         criteria.size = 500;
         criteria.sort = ['start_date,asc'];
+        // Fetch events that overlap with the current month:
+        // event starts before or on the last day of the month AND ends on or after the first day
         criteria.startDate = new DateFilter();
-        criteria.startDate.greaterThanOrEqual = new Date(year, month, 1);
         criteria.startDate.lessThanOrEqual = new Date(year, month + 1, 0, 23, 59, 59);
+        criteria.endDate = new DateFilter();
+        criteria.endDate.greaterThanOrEqual = new Date(year, month, 1);
 
         this.calendarEventsService.getAll(criteria).pipe(first()).subscribe({
             next: (page: Page<CalendarEvents>) => {

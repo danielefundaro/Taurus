@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { first, delay } from 'rxjs';
+import { delay, first } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../../constants';
 import { ImportsModule } from '../../../imports';
 import { CalendarEvents, EventCost } from '../../../module';
@@ -17,6 +18,7 @@ import { CalendarEventsService, KeycloakService, ToastService } from '../../../s
     styleUrl: './detail.component.scss',
     providers: [
         CalendarEventsService,
+        ConfirmationService,
     ],
 })
 export class DetailComponent implements OnInit {
@@ -34,6 +36,8 @@ export class DetailComponent implements OnInit {
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly activatedRoute: ActivatedRoute,
+        private readonly router: Router,
+        private readonly confirmationService: ConfirmationService,
         private readonly dateConverterPipe: DateConverterPipe,
         private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
@@ -53,6 +57,26 @@ export class DetailComponent implements OnInit {
 
     protected get isUser(): boolean {
         return this.keycloakService.currentUserRole === RoleEnums.USER;
+    }
+
+    protected confirmDelete(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo evento?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Conferma',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.calendarEventsService.delete(this.event.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Evento eliminato');
+                        this.router.navigate(['/calendar']);
+                    },
+                });
+            },
+        });
     }
 
     protected save(): void {
@@ -91,8 +115,25 @@ export class DetailComponent implements OnInit {
         this.newCostAmount = null;
     }
 
+    protected confirmRemoveCost(index: number): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Rimuovere questo costo dall\'evento?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Rimuovi',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.removeCost(index),
+        });
+    }
+
     protected removeCost(index: number): void {
         this.event.costs?.splice(index, 1);
+    }
+
+    protected get totalCosts(): number {
+        return (this.event.costs ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0);
     }
 
     private loadElement(id: string): void {

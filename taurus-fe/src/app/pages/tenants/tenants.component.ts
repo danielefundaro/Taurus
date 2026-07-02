@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -21,7 +21,8 @@ import { TenantsService, ToastService, UsersService } from '../../service';
     styleUrl: './tenants.component.scss',
     providers: [
         UsersService,
-        DialogService
+        DialogService,
+        ConfirmationService,
     ]
 })
 export class TenantsComponent implements OnInit {
@@ -36,6 +37,7 @@ export class TenantsComponent implements OnInit {
         private readonly tenantsService: TenantsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.tenants = [];
     }
@@ -95,12 +97,23 @@ export class TenantsComponent implements OnInit {
         });
     }
 
-    protected deleteElement(tenant: Tenants) {
-        this.tenantsService.delete(tenant.id).pipe(delay(1000), first()).subscribe({
-            next: (value: any) => {
-                this.toastService.success("Successo", "Tenant eliminato con successo");
-                this.loadElements();
-            }
+    protected deleteElement(tenant: Tenants): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo tenant?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.tenantsService.delete(tenant.id).pipe(delay(1000), first()).subscribe({
+                    next: (value: any) => {
+                        this.toastService.success("Successo", "Tenant eliminato con successo");
+                        this.loadElements();
+                    }
+                });
+            },
         });
     }
 
