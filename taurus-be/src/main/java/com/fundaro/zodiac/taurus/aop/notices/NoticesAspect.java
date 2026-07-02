@@ -173,11 +173,11 @@ public class NoticesAspect {
             }
         } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
             CalendarEventsDTO oldCalendar = (CalendarEventsDTO) oldFinal;
-            String name = "Evento aggiornata", message = String.format("Le informazioni dell'evento \"%s\" sono state aggiornate", dto.getName());
+            String name = "Evento aggiornato", message = String.format("Le informazioni dell'evento \"%s\" sono state aggiornate", dto.getName());
 
             if (oldCalendar.getState() != StateEnum.PUBLIC) {
                 if (calendarEventsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticeOnlyRoleUsers(name, message, token);
+                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
                     noticesService.addNoticeOnlyRoleUsers("Nuovo evento creato", String.format("L'evento \"%s\" è stato creato", dto.getName()), token);
                     noticesService.addNoticesExcludeRoleUsers("Evento pubblicato", String.format("L'evento \"%s\" è stato pubblicato", dto.getName()), token);
