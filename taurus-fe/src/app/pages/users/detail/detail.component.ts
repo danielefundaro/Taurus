@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { delay, first, firstValueFrom } from 'rxjs';
 import { RoleEnums } from '../../../constants';
@@ -19,7 +19,8 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [
-        InstrumentsService
+        InstrumentsService,
+        ConfirmationService,
     ],
 })
 export class DetailComponent implements OnInit {
@@ -41,6 +42,8 @@ export class DetailComponent implements OnInit {
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
         private readonly routeService: ActivatedRoute,
+        private readonly router: Router,
+        private readonly confirmationService: ConfirmationService,
         private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
@@ -62,6 +65,26 @@ export class DetailComponent implements OnInit {
     ngOnInit() {
         this.routeService.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
+        });
+    }
+
+    protected confirmDelete(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo utente?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.usersService.delete(this.user.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Utente eliminato');
+                        this.router.navigate(['/users']);
+                    },
+                });
+            },
         });
     }
 

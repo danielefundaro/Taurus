@@ -1,7 +1,8 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { ConfirmationService } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
@@ -27,6 +28,7 @@ import { InstrumentsService, KeycloakService, MediaService, PrinterService, Toas
         InstrumentsService,
         KeycloakService,
         DialogService,
+        ConfirmationService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
@@ -66,6 +68,8 @@ export class DetailComponent implements OnInit {
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly routeService: ActivatedRoute,
+        private readonly router: Router,
+        private readonly confirmationService: ConfirmationService,
         private readonly dialogService: DialogService,
         private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
@@ -98,6 +102,26 @@ export class DetailComponent implements OnInit {
                 this.instruments.push(...data.content);
                 totalElements = data.totalElements;
             }
+        });
+    }
+
+    protected confirmDelete(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questa traccia?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.tracksService.delete(this.track.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.toastService.success('Successo', 'Traccia eliminata');
+                        this.router.navigate(['/tracks']);
+                    },
+                });
+            },
         });
     }
 
@@ -136,6 +160,19 @@ export class DetailComponent implements OnInit {
         score.instruments = [];
 
         this.track.scores.push(score);
+    }
+
+    protected confirmDeleteSelectedScores(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Rimuovere le parti selezionate dalla traccia?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Rimuovi',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.deleteSelectedScores(),
+        });
     }
 
     protected deleteSelectedScores(): void {
@@ -201,6 +238,19 @@ export class DetailComponent implements OnInit {
             if (result) {
                 this.track.scores = result;
             }
+        });
+    }
+
+    protected confirmDeleteScore(score: SheetsMusic): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Rimuovere questa parte dalla traccia?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Rimuovi',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.deleteScore(score),
         });
     }
 

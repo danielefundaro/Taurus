@@ -18,7 +18,7 @@ import { LayoutService } from '../../service';
         FooterComponent,
     ],
     templateUrl: './layout.component.html',
-    styleUrl: './layout.component.html',
+    styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
     overlayMenuOpenSubscription: Subscription;

@@ -6,6 +6,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DataViewModule } from 'primeng/dataview';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DragDropModule } from 'primeng/dragdrop';
@@ -79,6 +80,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         EnumConverterPipe,
         HasRolesDirective,
         InitialsPipe,
+        ConfirmDialogModule,
     ],
     exports: [
         NgClass,
@@ -124,6 +126,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         EnumConverterPipe,
         HasRolesDirective,
         InitialsPipe,
+        ConfirmDialogModule,
     ],
     providers: [
         SecurePipe,

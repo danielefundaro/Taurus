@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -23,6 +23,7 @@ import { AlbumsService, MediaService, PrinterService, ToastService } from '../..
     providers: [
         AlbumsService,
         MediaService,
+        ConfirmationService,
         DialogService,
     ],
     changeDetection: ChangeDetectionStrategy.Default,
@@ -41,6 +42,7 @@ export class AlbumsComponent implements OnInit {
         private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.albums = [];
     }
@@ -97,11 +99,22 @@ export class AlbumsComponent implements OnInit {
     }
 
     protected deleteElement(albums: Albums): void {
-        this.albumsService.delete(albums.id).pipe(delay(1000), first()).subscribe({
-            next: (value: any) => {
-                this.toastService.success("Successo", "Album eliminato con successo");
-                this.loadElements();
-            }
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo album?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.albumsService.delete(albums.id).pipe(delay(1000), first()).subscribe({
+                    next: (value: any) => {
+                        this.toastService.success("Successo", "Album eliminato con successo");
+                        this.loadElements();
+                    }
+                });
+            },
         });
     }
 

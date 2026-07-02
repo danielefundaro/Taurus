@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { SelectItem } from 'primeng/api';
+import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
@@ -22,7 +22,8 @@ import { CommonOpenSearchService } from '../../service/common-open-search.servic
     styleUrl: './users.component.scss',
     providers: [
         UsersService,
-        DialogService
+        DialogService,
+        ConfirmationService,
     ]
 })
 export class UsersComponent implements OnInit {
@@ -40,6 +41,7 @@ export class UsersComponent implements OnInit {
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly confirmationService: ConfirmationService,
     ) {
         this.users = [];
         this.instruments = [];
@@ -103,12 +105,23 @@ export class UsersComponent implements OnInit {
         });
     }
 
-    protected deleteElement(user: Users) {
-        this.usersService.delete(user.id).pipe(delay(1000), first()).subscribe({
-            next: (value: any) => {
-                this.toastService.success("Successo", "Utente eliminato con successo");
-                this.loadElements();
-            }
+    protected deleteElement(user: Users): void {
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: 'Eliminare definitivamente questo utente?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.usersService.delete(user.id).pipe(delay(1000), first()).subscribe({
+                    next: (value: any) => {
+                        this.toastService.success("Successo", "Utente eliminato con successo");
+                        this.loadElements();
+                    }
+                });
+            },
         });
     }
 
