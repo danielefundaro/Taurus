@@ -2,8 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
-import { delay, first, firstValueFrom } from 'rxjs';
+import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { RoleEnums } from '../../../constants';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Users } from '../../../module';
 import { EnumConverterPipe } from '../../../pipe';
@@ -23,12 +24,14 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
         ConfirmationService,
     ],
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected sortOptions!: SelectItem[];
     protected totalRecords: number = 0;
     protected user: Users = new Users();
     protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
+    isDirty = false;
+    isSaving = false;
 
     protected autoFilteredRoles: Array<string>;
     protected autoFilteredInstruments: ChildrenEntities[] = [];
@@ -80,6 +83,7 @@ export class DetailComponent implements OnInit {
             accept: () => {
                 this.usersService.delete(this.user.id).pipe(first()).subscribe({
                     next: () => {
+                        this.isDirty = false;
                         this.toastService.success('Successo', 'Utente eliminato');
                         this.router.navigate(['/users']);
                     },
@@ -89,8 +93,10 @@ export class DetailComponent implements OnInit {
     }
 
     protected save(): void {
-        this.usersService.update(this.user.id, this.user).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.usersService.update(this.user.id, this.user).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (user: Users) => {
+                this.isDirty = false;
                 this.toastService.success("Successo", "Utente aggiornato con successo");
                 this.loadElement(user.id);
             }
@@ -107,12 +113,14 @@ export class DetailComponent implements OnInit {
 
     protected onReorderInstruments(): void {
         this.user.instruments?.forEach((instrument, i) => instrument.order = i + 1);
+        this.isDirty = true;
     }
 
     private loadElement(id: string) {
         this.usersService.getById(id).pipe(first()).subscribe({
             next: (user: Users) => {
                 this.user = user;
+                this.isDirty = false;
             }
         });
     }

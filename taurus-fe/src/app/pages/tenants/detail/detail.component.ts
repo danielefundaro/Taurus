@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, SelectItem } from 'primeng/api';
-import { delay, first } from 'rxjs';
+import { delay, finalize, first } from 'rxjs';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Tenants } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
@@ -19,12 +20,14 @@ import { TenantsService, ToastService } from '../../../service';
         ConfirmationService,
     ],
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
     public tenant: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
+    isDirty = false;
+    isSaving = false;
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -56,6 +59,7 @@ export class DetailComponent implements OnInit {
             accept: () => {
                 this.tenantsService.delete(this.tenant.id).pipe(first()).subscribe({
                     next: () => {
+                        this.isDirty = false;
                         this.toastService.success('Successo', 'Tenant eliminato');
                         this.router.navigate(['/tenants']);
                     },
@@ -65,8 +69,10 @@ export class DetailComponent implements OnInit {
     }
 
     public save(): void {
-        this.tenantsService.update(this.tenant.id, this.tenant).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.tenantsService.update(this.tenant.id, this.tenant).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (tenant: Tenants) => {
+                this.isDirty = false;
                 this.toastService.success("Successo", "Tenant aggiornato con successo");
                 this.loadElement(tenant.id);
             }
@@ -78,6 +84,7 @@ export class DetailComponent implements OnInit {
             next: (tenant: Tenants) => {
                 this.tenant = tenant;
                 this.tenant.expireDate = this.dateConverterPipe.transform(this.tenant.expireDate);
+                this.isDirty = false;
             }
         });
     }

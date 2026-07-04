@@ -6,7 +6,7 @@ import { ConfirmationService } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
-import { delay, first, firstValueFrom } from 'rxjs';
+import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
 import { RoleEnums, StateEnums } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
@@ -14,6 +14,7 @@ import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
 import { EnumConverterPipe } from '../../../pipe';
 import { InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 
 @Component({
     selector: 'app-track-detail',
@@ -32,7 +33,7 @@ import { InstrumentsService, KeycloakService, MediaService, PrinterService, Toas
     ],
     changeDetection: ChangeDetectionStrategy.Default,
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected track: Tracks = new Tracks();
     protected cols: string[];
     protected selectedScores: SheetsMusic[];
@@ -40,6 +41,7 @@ export class DetailComponent implements OnInit {
     protected displayGalleria: boolean;
     protected autoFilteredStates: Array<StateEnums>;
     protected RolesEnum: typeof RoleEnums = RoleEnums;
+    protected readonly previewTooltip = 'Aggiungi almeno una parte per abilitare l\'anteprima';
     protected responsiveOptions: any[] = [
         {
             breakpoint: '1024px',
@@ -54,6 +56,9 @@ export class DetailComponent implements OnInit {
             numVisible: 3
         }
     ];
+
+    isDirty = false;
+    isSaving = false;
 
     private instruments: Instruments[];
     private draggedMedia?: ChildrenEntities = undefined;
@@ -121,6 +126,7 @@ export class DetailComponent implements OnInit {
             accept: () => {
                 this.tracksService.delete(this.track.id).pipe(first()).subscribe({
                     next: () => {
+                        this.isDirty = false;
                         this.toastService.success('Successo', 'Traccia eliminata');
                         this.router.navigate(['/tracks']);
                     },
@@ -130,8 +136,10 @@ export class DetailComponent implements OnInit {
     }
 
     protected save(): void {
-        this.tracksService.update(this.track.id, this.track).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.tracksService.update(this.track.id, this.track).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (track: Tracks) => {
+                this.isDirty = false;
                 this.toastService.success("Successo", "Traccia aggiornata con successo");
                 this.loadElement(track.id);
             }
@@ -154,6 +162,19 @@ export class DetailComponent implements OnInit {
         return new HttpHeaders({ 'Authorization': `Bearer ${this.keycloakService.token}` });
     }
 
+    protected onTypeChange(types: string[]): void {
+        this.track!.type = types;
+        this.isDirty = true;
+    }
+
+    protected onUploadSuccess(): void {
+        this.toastService.success('Successo', 'File caricato con successo');
+    }
+
+    protected onUploadError(): void {
+        this.toastService.error('Errore', 'Caricamento file fallito');
+    }
+
     protected addNew(): void {
         this.track.scores ??= [];
 
@@ -164,6 +185,7 @@ export class DetailComponent implements OnInit {
         score.instruments = [];
 
         this.track.scores.push(score);
+        this.isDirty = true;
     }
 
     protected confirmDeleteSelectedScores(): void {
@@ -190,6 +212,13 @@ export class DetailComponent implements OnInit {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
+    protected onRowReorder(): void {
+        this.track.scores?.forEach((score, index) => {
+            score.order = index + 1;
+        });
+        this.isDirty = true;
+    }
+
     protected showMedia(media: ChildrenEntities[]) {
         this.displayGalleria = true;
         this.images = media.map(m => this.mediaService.stream(m.index));
@@ -210,6 +239,7 @@ export class DetailComponent implements OnInit {
             this.startDraggedScore?.media?.splice(this.startDraggedScore.media.findIndex(m => m.index === this.draggedMedia!.index), 1);
             this.startDraggedScore = undefined;
             this.draggedMedia = undefined;
+            this.isDirty = true;
         }
     }
 
@@ -241,6 +271,7 @@ export class DetailComponent implements OnInit {
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: SheetsMusic[]) => {
             if (result) {
                 this.track.scores = result;
+                this.isDirty = true;
             }
         });
     }
@@ -261,11 +292,13 @@ export class DetailComponent implements OnInit {
     protected deleteScore(selectedScore: SheetsMusic): void {
         this.track.scores?.splice(this.track.scores.findIndex(score => selectedScore.order === score.order), 1);
         this.track.scores?.sort((a, b) => a.order! < b.order! ? -1 : 1).forEach((score, i) => score.order = i + 1);
+        this.isDirty = true;
     }
 
     private loadElement(id: string) {
         this.tracksService.getById(id).pipe(first()).subscribe(track => {
             this.track = track;
+            this.isDirty = false;
         });
     }
 }
