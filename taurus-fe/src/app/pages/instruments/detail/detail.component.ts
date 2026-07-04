@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, SelectItem } from 'primeng/api';
-import { delay, first } from 'rxjs';
+import { delay, finalize, first } from 'rxjs';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Tenants } from '../../../module';
 import { InstrumentsService, ToastService } from '../../../service';
@@ -18,12 +19,14 @@ import { InstrumentsService, ToastService } from '../../../service';
         ConfirmationService,
     ],
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
     public instrument: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
+    isDirty = false;
+    isSaving = false;
 
     constructor(
         private readonly instrumentsService: InstrumentsService,
@@ -54,6 +57,7 @@ export class DetailComponent implements OnInit {
             accept: () => {
                 this.instrumentsService.delete(this.instrument.id).pipe(first()).subscribe({
                     next: () => {
+                        this.isDirty = false;
                         this.toastService.success('Successo', 'Strumento eliminato');
                         this.router.navigate(['/instruments']);
                     },
@@ -63,8 +67,10 @@ export class DetailComponent implements OnInit {
     }
 
     public save(): void {
-        this.instrumentsService.update(this.instrument.id, this.instrument).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.instrumentsService.update(this.instrument.id, this.instrument).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (instrument: Tenants) => {
+                this.isDirty = false;
                 this.toastService.success("Successo", "Strumento aggiornato con successo");
                 this.loadElement(instrument.id);
             }
@@ -75,6 +81,7 @@ export class DetailComponent implements OnInit {
         this.instrumentsService.getById(id).pipe(first()).subscribe({
             next: (instrument: Tenants) => {
                 this.instrument = instrument;
+                this.isDirty = false;
             }
         });
     }

@@ -2,47 +2,53 @@
     <div class="flex">
         <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center">
-                <span class="font-semibold text-xl">Utente</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-xl">Utente</span>
+                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
+                </div>
                 <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
-                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="user!.name" />
+                    <input pInputText id="name" type="text" [(ngModel)]="user!.name"
+                        (ngModelChange)="isDirty = true" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName" />
+                    <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName"
+                        (ngModelChange)="isDirty = true" />
                     <label for="lastName">Cognome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="email" type="text" [(ngModel)]="user!.email" />
+                    <input pInputText id="email" type="text" [(ngModel)]="user!.email"
+                        (ngModelChange)="isDirty = true" />
                     <label for="email">Email</label>
                 </p-floatlabel>
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="dd-mm-yy"
-                        class="w-full" [(ngModel)]="user!.birthDate" />
-                    <label for="date">Data di nascita</label>
+                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy"
+                        class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
+                    <label for="birthDate">Data di nascita</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete [(ngModel)]="user!.roles" [suggestions]="autoFilteredRoles" [virtualScroll]="true"
+                    <p-autocomplete inputId="roles" [(ngModel)]="user!.roles" [suggestions]="autoFilteredRoles" [virtualScroll]="true"
                         [virtualScrollItemSize]="34" dropdown multiple display="chip"
-                        (completeMethod)="filterRoles($event)" />
+                        (completeMethod)="filterRoles($event)" (ngModelChange)="isDirty = true" />
                     <label for="roles">Ruoli</label>
                 </p-floatlabel>
-                <div class="flex flex-row items-center gap-2 w-full" variant="on">
-                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active"></p-checkbox>
+                <div class="flex flex-row items-center gap-2 w-full">
+                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active"
+                        (ngModelChange)="isDirty = true"></p-checkbox>
                     <label for="active">Attivo</label>
                 </div>
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete [(ngModel)]="user!.instruments" [suggestions]="autoFilteredInstruments"
+                    <p-autocomplete inputId="instruments" [(ngModel)]="user!.instruments" [suggestions]="autoFilteredInstruments"
                         [virtualScroll]="true" [virtualScrollItemSize]="34" optionLabel="name" dropdown multiple
                         display="chip" (completeMethod)="filterInstruments($event)"
                         (ngModelChange)="onReorderInstruments()" />
@@ -50,9 +56,20 @@
                 </p-floatlabel>
             </div>
             <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description"
+                    (ngModelChange)="isDirty = true"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
+        </div>
+    </div>
+
+    <!-- Zona pericolosa -->
+    <div class="card danger-zone mt-8">
+        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
+        <div class="flex flex-row justify-between items-center gap-4">
+            <span class="text-sm text-surface-500">Elimina definitivamente questo utente e tutti i dati associati.</span>
+            <p-button label="Elimina utente" icon="pi pi-trash" severity="danger" [outlined]="true"
+                (onClick)="confirmDelete()" />
         </div>
     </div>
 
