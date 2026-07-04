@@ -4,8 +4,9 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
-import { delay, first } from 'rxjs';
+import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../../constants';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
@@ -25,7 +26,7 @@ import { AlbumsService, KeycloakService, PrinterService, ToastService } from '..
         ConfirmationService,
     ],
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected sortOptions!: SelectItem[];
     protected totalRecords: number = 0;
     protected album: Albums = new Albums();
@@ -33,6 +34,9 @@ export class DetailComponent implements OnInit {
     protected selectedTracks: ChildrenEntities[];
     protected autoFilteredStates: Array<StateEnums>;
     protected RolesEnum: typeof RoleEnums = RoleEnums;
+    protected readonly previewTooltip = 'Aggiungi almeno una traccia per abilitare l\'anteprima';
+    isDirty = false;
+    isSaving = false;
 
     private readonly states: Array<StateEnums>;
 
@@ -73,6 +77,7 @@ export class DetailComponent implements OnInit {
             accept: () => {
                 this.albumsService.delete(this.album.id).pipe(first()).subscribe({
                     next: () => {
+                        this.isDirty = false;
                         this.toastService.success('Successo', 'Album eliminato');
                         this.router.navigate(['/albums']);
                     },
@@ -82,8 +87,10 @@ export class DetailComponent implements OnInit {
     }
 
     protected save(): void {
-        this.albumsService.update(this.album.id, this.album).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.albumsService.update(this.album.id, this.album).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (album: Albums) => {
+                this.isDirty = false;
                 this.toastService.success("Successo", "Album aggiornato con successo");
                 this.loadElement(album.id);
             }
@@ -120,6 +127,7 @@ export class DetailComponent implements OnInit {
 
     protected onRowReorder(): void {
         this.album.tracks?.forEach((track, i) => track.order = i + 1);
+        this.isDirty = true;
     }
 
     protected addNew(): void {
@@ -146,6 +154,7 @@ export class DetailComponent implements OnInit {
                 }));
 
                 this.album.tracks.forEach((track, i) => track.order = i + 1);
+                this.isDirty = true;
             }
         });
     }
@@ -174,6 +183,7 @@ export class DetailComponent implements OnInit {
     protected deleteTrack(selectedTrack: ChildrenEntities): void {
         this.album.tracks?.splice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
         this.album.tracks?.forEach((track, i) => track.order = i + 1);
+        this.isDirty = true;
     }
 
     private loadElement(id: string): void {
@@ -181,6 +191,7 @@ export class DetailComponent implements OnInit {
             next: (album: Albums) => {
                 this.album = album;
                 this.album.date = this.dateConverterPipe.transform(this.album.date);
+                this.isDirty = false;
             }
         });
     }

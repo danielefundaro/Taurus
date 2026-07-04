@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -245,6 +246,57 @@ public class NoticesAspect {
         return result;
     }
 
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.setAvailability(..)) || " +
+        "execution(public * com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl.setAvailability(..))")
+    private Object onSetAvailability(ProceedingJoinPoint joinPoint) throws Throwable {
+        AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
+        Boolean available = getBoolean(joinPoint);
+        Object result = joinPoint.proceed();
+
+        if (!(result instanceof CalendarEventsDTO dto) || token == null) {
+            return result;
+        }
+
+        String userName = getUserDisplayName(token);
+        if (Boolean.TRUE.equals(available)) {
+            noticesService.addNoticesAdmins("Disponibilità confermata", String.format("L'utente \"%s\" ha confermato la disponibilità per l'evento \"%s\"", userName, dto.getName()), token);
+        } else {
+            noticesService.addNoticesAdmins("Utente non disponibile", String.format("L'utente \"%s\" ha dichiarato di non essere disponibile per l'evento \"%s\"", userName, dto.getName()), token);
+        }
+
+        return result;
+    }
+
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.cancelAvailability(..)) || " +
+        "execution(public * com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl.cancelAvailability(..))")
+    private Object onCancelAvailability(ProceedingJoinPoint joinPoint) throws Throwable {
+        AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
+        Object result = joinPoint.proceed();
+
+        if (!(result instanceof CalendarEventsDTO dto) || token == null) {
+            return result;
+        }
+
+        String userName = getUserDisplayName(token);
+        noticesService.addNoticesAdmins("Disponibilità annullata", String.format("L'utente \"%s\" ha annullato la risposta per l'evento \"%s\"", userName, dto.getName()), token);
+
+        return result;
+    }
+
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.setPresentUsers(..))")
+    private Object onSetPresentUsers(ProceedingJoinPoint joinPoint) throws Throwable {
+        AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
+        Object result = joinPoint.proceed();
+
+        if (!(result instanceof CalendarEventsDTO dto) || token == null) {
+            return result;
+        }
+
+        noticesService.addNoticesAdmins("Presenze aggiornate", String.format("Le presenze dell'evento \"%s\" sono state aggiornate", dto.getName()), token);
+
+        return result;
+    }
+
     private static AbstractAuthenticationToken getAbstractAuthenticationToken(ProceedingJoinPoint joinPoint) {
         return Arrays.stream(joinPoint.getArgs())
             .filter(arg -> arg instanceof AbstractAuthenticationToken)
@@ -264,5 +316,25 @@ public class NoticesAspect {
             .filter(arg -> arg instanceof MultipartFile)
             .map(arg -> (MultipartFile) arg)
             .findFirst().orElse(null);
+    }
+
+    private static Boolean getBoolean(ProceedingJoinPoint joinPoint) {
+        return Arrays.stream(joinPoint.getArgs())
+            .filter(arg -> arg instanceof Boolean)
+            .map(arg -> (Boolean) arg)
+            .findFirst().orElse(null);
+    }
+
+    private static String getUserDisplayName(AbstractAuthenticationToken token) {
+        if (token instanceof JwtAuthenticationToken jwtToken) {
+            Object given = jwtToken.getTokenAttributes().get("given_name");
+            Object family = jwtToken.getTokenAttributes().get("family_name");
+            if (given instanceof String g && family instanceof String f) {
+                return g + " " + f;
+            }
+            Object preferred = jwtToken.getTokenAttributes().get("preferred_username");
+            if (preferred instanceof String p) return p;
+        }
+        return token.getName();
     }
 }

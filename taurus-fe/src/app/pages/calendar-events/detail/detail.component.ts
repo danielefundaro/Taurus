@@ -3,8 +3,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
-import { delay, first } from 'rxjs';
+import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../../constants';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { CalendarEvents, EventCost, EventPresentUser, Users } from '../../../module';
 import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
@@ -31,7 +32,19 @@ interface UserPresenceRow {
         ConfirmationService,
     ],
 })
-export class DetailComponent implements OnInit {
+export class DetailComponent implements OnInit, HasUnsavedChanges {
+    private _isDirtyForm = false;
+    isDirtyPresence = false;
+    protected isSaving = false;
+
+    get isDirty(): boolean {
+        return this._isDirtyForm || this.isDirtyPresence;
+    }
+
+    set isDirty(value: boolean) {
+        this._isDirtyForm = value;
+    }
+
     protected event: CalendarEvents = new CalendarEvents();
     protected autoFilteredStates: StateEnums[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
@@ -82,6 +95,8 @@ export class DetailComponent implements OnInit {
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary' },
             accept: () => {
+                this.isDirty = false;
+                this.isDirtyPresence = false;
                 this.calendarEventsService.delete(this.event.id).pipe(first()).subscribe({
                     next: () => {
                         this.toastService.success('Successo', 'Evento eliminato');
@@ -93,8 +108,10 @@ export class DetailComponent implements OnInit {
     }
 
     protected save(): void {
-        this.calendarEventsService.update(this.event.id, this.event).pipe(delay(1000), first()).subscribe({
+        this.isSaving = true;
+        this.calendarEventsService.update(this.event.id, this.event).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
             next: (updated: CalendarEvents) => {
+                this.isDirty = false;
                 this.toastService.success('Successo', 'Evento aggiornato con successo');
                 this.loadElement(updated.id);
             },
@@ -136,6 +153,7 @@ export class DetailComponent implements OnInit {
         if (row.present && !row.arrivalTime) {
             row.arrivalTime = new Date();
         }
+        this.isDirtyPresence = true;
     }
 
     protected savePresentUsers(): void {
@@ -153,6 +171,7 @@ export class DetailComponent implements OnInit {
 
         this.calendarEventsService.setPresentUsers(this.event.id, presentUsers).pipe(first()).subscribe({
             next: (updated: CalendarEvents) => {
+                this.isDirtyPresence = false;
                 this.toastService.success('Successo', 'Presenze salvate');
                 this.updateEventDates(updated);
             },
@@ -176,6 +195,7 @@ export class DetailComponent implements OnInit {
         cost.description = this.newCostDescription;
         cost.amount = this.newCostAmount ?? undefined;
         this.event.costs.push(cost);
+        this.isDirty = true;
         this.newCostDescription = '';
         this.newCostAmount = null;
     }
@@ -195,6 +215,7 @@ export class DetailComponent implements OnInit {
 
     protected removeCost(index: number): void {
         this.event.costs?.splice(index, 1);
+        this.isDirty = true;
     }
 
     protected get totalCosts(): number {
@@ -214,6 +235,8 @@ export class DetailComponent implements OnInit {
         this.calendarEventsService.getById(id).pipe(first()).subscribe({
             next: (ev: CalendarEvents) => {
                 this.event = ev;
+                this.isDirty = false;
+                this.isDirtyPresence = false;
                 this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                 this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
                 if (this.isAdmin) {

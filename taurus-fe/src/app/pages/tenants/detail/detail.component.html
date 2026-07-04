@@ -2,47 +2,66 @@
     <div class="flex">
         <div class="card flex flex-col gap-4 w-full">
             <div class="flex flex-row justify-between items-center">
-                <span class="font-semibold text-xl">Tenant</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-xl">Tenant</span>
+                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
+                </div>
                 <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" (onClick)="save()" />
-                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" />
+                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name"
+                        (ngModelChange)="isDirty = true" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code" />
+                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code"
+                        (ngModelChange)="isDirty = true" />
                     <label for="code">Codice</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" />
+                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email"
+                        (ngModelChange)="isDirty = true" />
                     <label for="email">Email</label>
                 </p-floatlabel>
-                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" />
+                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato"
+                    (ngModelChange)="isDirty = true" />
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" />
+                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain"
+                        (ngModelChange)="isDirty = true" />
                     <label for="domain">Dominio</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
+                    <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1"
+                        [(ngModel)]="tenant!.maxUsers" (ngModelChange)="isDirty = true" />
                     <label for="maxUsers">Numero Massimo Utenti</label>
-                    <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers" />
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="icondisplay" dateFormat="yy-mm-dd"
-                        [(ngModel)]="tenant!.expireDate" />
-                    <label for="date">Data Scadenza</label>
+                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd"
+                        [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
+                    <label for="expireDate">Data Scadenza</label>
                 </p-floatlabel>
             </div>
             <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description"
+                    (ngModelChange)="isDirty = true"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
+        </div>
+    </div>
+
+    <!-- Zona pericolosa -->
+    <div class="card danger-zone mt-8">
+        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
+        <div class="flex flex-row justify-between items-center gap-4">
+            <span class="text-sm text-surface-500">Elimina definitivamente questo tenant e tutti i dati associati.</span>
+            <p-button label="Elimina tenant" icon="pi pi-trash" severity="danger" [outlined]="true"
+                (onClick)="confirmDelete()" />
         </div>
     </div>
 
