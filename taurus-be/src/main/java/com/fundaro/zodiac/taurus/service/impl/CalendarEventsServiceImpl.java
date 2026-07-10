@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
+import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
@@ -30,8 +31,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class CalendarEventsServiceImpl extends CommonOpenSearchServiceImpl<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsMapper> implements CalendarEventsService {
 
-    public CalendarEventsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, CalendarEventsMapper mapper) {
+    private final EventReminderProducer eventReminderProducer;
+
+    public CalendarEventsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, CalendarEventsMapper mapper, EventReminderProducer eventReminderProducer) {
         super(openSearchService, indexResolver, mapper, CalendarEventsService.class, CalendarEvents.class);
+        this.eventReminderProducer = eventReminderProducer;
     }
 
     @Override
@@ -95,7 +99,14 @@ public class CalendarEventsServiceImpl extends CommonOpenSearchServiceImpl<Calen
             dto.getUnavailableUsers().add(entry);
         }
 
-        return update(eventId, dto, token);
+        CalendarEventsDTO result = update(eventId, dto, token);
+
+        if (available) {
+            String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
+            eventReminderProducer.scheduleIfNeeded(result, userId, tenantCode, token);
+        }
+
+        return result;
     }
 
     @Override

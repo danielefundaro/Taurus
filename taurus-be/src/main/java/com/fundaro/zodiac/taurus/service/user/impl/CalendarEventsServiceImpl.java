@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
@@ -38,15 +39,18 @@ public class CalendarEventsServiceImpl
     implements CalendarEventsService {
 
     private final com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService;
+    private final EventReminderProducer eventReminderProducer;
 
     public CalendarEventsServiceImpl(
         OpenSearchService openSearchService,
         IndexResolver indexResolver,
         CalendarEventsMapper mapper,
-        com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService
+        com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService,
+        EventReminderProducer eventReminderProducer
     ) {
         super(openSearchService, indexResolver, mapper, CalendarEventsService.class, CalendarEvents.class);
         this.adminCalendarEventsService = adminCalendarEventsService;
+        this.eventReminderProducer = eventReminderProducer;
     }
 
     @Override
@@ -95,7 +99,14 @@ public class CalendarEventsServiceImpl
             dto.getUnavailableUsers().add(entry);
         }
 
-        return adminCalendarEventsService.update(eventId, dto, token);
+        CalendarEventsDTO result = adminCalendarEventsService.update(eventId, dto, token);
+
+        if (available) {
+            String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
+            eventReminderProducer.scheduleIfNeeded(result, userId, tenantCode, token);
+        }
+
+        return result;
     }
 
     @Override

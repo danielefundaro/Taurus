@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260710000001-1" author="taurus">
+    <createTable tableName="push_reminders">
+      <column name="id" type="bigint" autoIncrement="true" startWith="1">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="event_id" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="event_name" type="varchar(255)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="user_id" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="tenant_code" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="send_at" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sent" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex tableName="push_reminders" indexName="idx_push_reminders_send_at_sent">
+      <column name="sent"/>
+      <column name="send_at"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>

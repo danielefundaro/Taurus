@@ -5,8 +5,7 @@ import { first, switchMap } from 'rxjs';
 import { LoadingSpinnerComponent } from "./app/components/loading-spinner/loading-spinner.component";
 import { ImportsModule } from './app/imports';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
-import { LayoutService, LocalStorageService, NoticesService } from './app/service';
-import { PreferencesService } from './app/service/preferences.service';
+import { LayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService } from './app/service';
 
 @Component({
     selector: 'app-root',
@@ -28,9 +27,12 @@ export class AppComponent implements OnInit {
         private readonly preferencesService: PreferencesService,
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
+        private readonly pushNotificationService: PushNotificationService,
     ) { }
 
     ngOnInit(): void {
+        this.pushNotificationService.init();
+
         setInterval(() => {
             this.noticesService.countUnread().pipe(first()).subscribe((count) => {
                 this.layoutService.notificationNumber.set(count);

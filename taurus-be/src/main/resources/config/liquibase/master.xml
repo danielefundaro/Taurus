@@ -14,6 +14,8 @@
     <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
