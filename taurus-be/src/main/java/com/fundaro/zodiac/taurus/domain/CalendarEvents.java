@@ -30,6 +30,9 @@ public class CalendarEvents extends StateFieldsOpenSearch {
     @JsonProperty("present_users")
     private List<EventPresentUser> presentUsers;
 
+    @JsonProperty("reminder_minutes")
+    private Integer reminderMinutes;
+
     public Date getStartDate() {
         return startDate;
     }
@@ -93,6 +96,9 @@ public class CalendarEvents extends StateFieldsOpenSearch {
     public void setPresentUsers(List<EventPresentUser> presentUsers) {
         this.presentUsers = presentUsers;
     }
+
+    public Integer getReminderMinutes() { return reminderMinutes; }
+    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
 
     @Override
     public boolean equals(Object o) {

@@ -53,6 +53,7 @@
                                 }
                             ],
                             "outputHashing": "all",
+                            "serviceWorker": "ngsw-config.json",
                             "fileReplacements": [
                                 {
                                     "replace": "src/environments/environment.ts",
@@ -63,7 +64,8 @@
                         "development": {
                             "optimization": false,
                             "extractLicenses": false,
-                            "sourceMap": true
+                            "sourceMap": true,
+                            "serviceWorker": "ngsw-config.json"
                         }
                     },
                     "defaultConfiguration": "production"

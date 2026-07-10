@@ -16,6 +16,8 @@ public class ApplicationProperties {
 
     private Keycloak keycloak;
 
+    private VapidProperties vapid = new VapidProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -38,6 +40,14 @@ public class ApplicationProperties {
 
     public void setKeycloak(Keycloak keycloak) {
         this.keycloak = keycloak;
+    }
+
+    public VapidProperties getVapid() {
+        return vapid;
+    }
+
+    public void setVapid(VapidProperties vapid) {
+        this.vapid = vapid;
     }
 
     public static class OpenSearchProperties {
@@ -136,5 +146,20 @@ public class ApplicationProperties {
                 this.password = password;
             }
         }
+    }
+
+    public static class VapidProperties {
+        private String publicKey = "CHANGE_ME";
+        private String privateKey = "CHANGE_ME";
+        private String subject = "mailto:admin@taurus.it";
+
+        public String getPublicKey() { return publicKey; }
+        public void setPublicKey(String publicKey) { this.publicKey = publicKey; }
+
+        public String getPrivateKey() { return privateKey; }
+        public void setPrivateKey(String privateKey) { this.privateKey = privateKey; }
+
+        public String getSubject() { return subject; }
+        public void setSubject(String subject) { this.subject = subject; }
     }
 }

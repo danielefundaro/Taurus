@@ -21,6 +21,7 @@ public class CalendarEventsDTO extends StateFieldOpenSearchDTO {
     private List<EventUserEntryDTO> availableUsers;
     private List<EventUserEntryDTO> unavailableUsers;
     private List<EventPresentUserDTO> presentUsers;
+    private Integer reminderMinutes;
 
     public Date getStartDate() {
         return startDate;
@@ -85,6 +86,9 @@ public class CalendarEventsDTO extends StateFieldOpenSearchDTO {
     public void setPresentUsers(List<EventPresentUserDTO> presentUsers) {
         this.presentUsers = presentUsers;
     }
+
+    public Integer getReminderMinutes() { return reminderMinutes; }
+    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
 
     @Override
     public boolean equals(Object o) {
