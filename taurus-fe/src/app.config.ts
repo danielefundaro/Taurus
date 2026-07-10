@@ -1,7 +1,8 @@
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, isDevMode, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 import Aura from '@primeng/themes/aura';
 import { AutoRefreshTokenService, provideKeycloak, UserActivityService, withAutoRefreshToken } from 'keycloak-angular';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -51,5 +52,6 @@ export const appConfig: ApplicationConfig = {
         ConfirmationService,
         LoadingService,
         { provide: LOCALE_ID, useValue: 'it' },
+        provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode(), registrationStrategy: 'registerWhenStable:30000' }),
     ],
 };

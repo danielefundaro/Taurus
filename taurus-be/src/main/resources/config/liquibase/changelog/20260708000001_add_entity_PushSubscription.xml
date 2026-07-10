@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260708000001-1" author="taurus">
+    <createTable tableName="push_subscriptions">
+      <column name="id" type="bigint" autoIncrement="true" startWith="1">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="true"/>
+      </column>
+      <column name="insert_by" type="varchar(255)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="insert_date" type="${datetimeType}" defaultValueComputed="CURRENT_TIMESTAMP">
+        <constraints nullable="true"/>
+      </column>
+      <column name="edit_by" type="varchar(255)">
+        <constraints nullable="true"/>
+      </column>
+      <column name="edit_date" type="${datetimeType}" defaultValueComputed="CURRENT_TIMESTAMP">
+        <constraints nullable="true"/>
+      </column>
+      <column name="user_id" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="tenant_code" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="endpoint" type="varchar(2048)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="p256dh" type="varchar(512)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="auth" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addUniqueConstraint
+      tableName="push_subscriptions"
+      columnNames="user_id, endpoint"
+      constraintName="uq_push_subscriptions_user_endpoint"/>
+  </changeSet>
+
+</databaseChangeLog>

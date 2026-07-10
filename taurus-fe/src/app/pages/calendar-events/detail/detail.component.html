@@ -56,6 +56,15 @@
                 </p-floatlabel>
             </div>
 
+            <!-- Row 3: reminder (admin only) -->
+            <div class="flex flex-col md:flex-row gap-6" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-floatlabel class="flex w-full md:w-1/3" variant="on">
+                    <p-inputnumber id="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440"
+                        suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                    <label for="reminderMinutes">Promemoria (minuti prima, 0 = nessuno)</label>
+                </p-floatlabel>
+            </div>
+
             <!-- Description -->
             <p-floatlabel class="flex" variant="on">
                 <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description"
@@ -137,6 +146,18 @@
                         (onClick)="cancelAvailability()" />
                 }
             </div>
+            @if (currentUserAvailability === true) {
+                <div class="flex items-center gap-2 text-sm text-surface-500 mt-1">
+                    <i class="pi pi-bell text-primary"></i>
+                    @if (event.reminderMinutes === 0) {
+                        <span>Nessun promemoria impostato per questo evento.</span>
+                    } @else if (event.reminderMinutes) {
+                        <span>Riceverai un promemoria <strong>{{ event.reminderMinutes }} minuti</strong> prima dell'evento.</span>
+                    } @else {
+                        <span>Riceverai un promemoria al tempo predefinito (impostato nelle tue preferenze).</span>
+                    }
+                </div>
+            }
         </div>
     </div>
 

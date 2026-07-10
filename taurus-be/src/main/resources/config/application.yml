@@ -227,3 +227,8 @@ application:
       issuer-uri: http://localhost:9080/admin/realms/taurus
       username: admin
       password: admin
+  vapid:
+    # Generate keys with: npx web-push generate-vapid-keys
+    public-key: BHEmW3uZIG2dS1KLCMqxvEnuA8lk_Tkf_gzVR9Qe7B5gsSRbrPKD903tCBiGCrVqVzfTG-zuiN6MnpN50sbAYfM
+    private-key: ${VAPID_PRIVATE_KEY:CHANGE_ME}
+    subject: mailto:admin@taurus.it
