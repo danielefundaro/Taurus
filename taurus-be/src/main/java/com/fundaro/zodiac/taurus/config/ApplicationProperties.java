@@ -50,6 +50,16 @@ public class ApplicationProperties {
         this.vapid = vapid;
     }
 
+    private TesseractProperties tesseract = new TesseractProperties();
+
+    public TesseractProperties getTesseract() {
+        return tesseract;
+    }
+
+    public void setTesseract(TesseractProperties tesseract) {
+        this.tesseract = tesseract;
+    }
+
     public static class OpenSearchProperties {
         private String host;
         private int port;
@@ -146,6 +156,21 @@ public class ApplicationProperties {
                 this.password = password;
             }
         }
+    }
+
+    public static class TesseractProperties {
+        private boolean enabled = false;
+        private String dataPath = "C:\\Program Files\\Tesseract-OCR\\tessdata";
+        private String language = "ita+eng";
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public String getDataPath() { return dataPath; }
+        public void setDataPath(String dataPath) { this.dataPath = dataPath; }
+
+        public String getLanguage() { return language; }
+        public void setLanguage(String language) { this.language = language; }
     }
 
     public static class VapidProperties {

@@ -19,6 +19,9 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
     }
 
     override resourceName(): string {
+        if (this.keycloakService.currentUserRole === RoleEnums.USER_EXTERNAL) {
+            return 'external/calendar-events';
+        }
         if (this.keycloakService.currentUserRole === RoleEnums.USER) {
             return 'user/calendar-events';
         }

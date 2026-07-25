@@ -16,6 +16,8 @@ public class SheetsMusic implements Serializable {
 
     private Set<ChildrenEntities> instruments;
 
+    private Boolean needsReview;
+
     public String getDescription() {
         return description;
     }
@@ -46,6 +48,14 @@ public class SheetsMusic implements Serializable {
 
     public void setInstruments(Set<ChildrenEntities> instruments) {
         this.instruments = instruments;
+    }
+
+    public Boolean getNeedsReview() {
+        return needsReview;
+    }
+
+    public void setNeedsReview(Boolean needsReview) {
+        this.needsReview = needsReview;
     }
 
     @Override

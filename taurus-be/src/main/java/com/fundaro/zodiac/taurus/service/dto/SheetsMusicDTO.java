@@ -17,6 +17,8 @@ public class SheetsMusicDTO implements Serializable {
 
     private Set<ChildrenEntitiesDTO> instruments;
 
+    private Boolean needsReview;
+
     public String getDescription() {
         return description;
     }
@@ -47,6 +49,14 @@ public class SheetsMusicDTO implements Serializable {
 
     public void setInstruments(Set<ChildrenEntitiesDTO> instruments) {
         this.instruments = instruments;
+    }
+
+    public Boolean getNeedsReview() {
+        return needsReview;
+    }
+
+    public void setNeedsReview(Boolean needsReview) {
+        this.needsReview = needsReview;
     }
 
     @Override

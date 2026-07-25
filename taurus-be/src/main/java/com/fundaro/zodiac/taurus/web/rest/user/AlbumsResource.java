@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.Albums;
 import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.user.AlbumsService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user/albums")
 public class AlbumsResource extends CommonOpenSearchResource<Albums, AlbumsDTO, AlbumsCriteria, AlbumsService> {
 
-    public AlbumsResource(AlbumsService service) {
+    public AlbumsResource(@Qualifier("LowPermissionsAlbumsService") AlbumsService service) {
         super(service, Albums.class.getSimpleName(), AlbumsResource.class);
     }
 }

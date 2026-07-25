@@ -34,6 +34,10 @@ export class KeycloakService {
         return [RoleEnums.USER].includes(this.currentUserRole);
     }
 
+    public get isUserExternal(): boolean {
+        return this.currentUserRole === RoleEnums.USER_EXTERNAL;
+    }
+
     constructor() {
         this.$isUserLoggedIn = new BehaviorSubject(!this.keycloak.isTokenExpired());
     }

@@ -7,7 +7,8 @@ public enum RoleEnum {
     ROLE_SUPER_ADMIN,
     ROLE_ADMIN,
     ROLE_ARCHIVIST,
-    ROLE_USER;
+    ROLE_USER,
+    ROLE_USER_EXTERNAL;
 
     @Override
     public String toString() {
@@ -22,6 +23,7 @@ public enum RoleEnum {
             case ROLE_ADMIN -> role = "ROLE_ADMIN";
             case ROLE_ARCHIVIST -> role = "ROLE_ARCHIVIST";
             case ROLE_USER -> role = "ROLE_USER";
+            case ROLE_USER_EXTERNAL -> role = "ROLE_USER_EXTERNAL";
         }
 
         return role;

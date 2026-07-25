@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/user/calendar-events")
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
-    public CalendarEventsResource(CalendarEventsService service) {
+    public CalendarEventsResource(@Qualifier("LowPermissionsCalendarEventsService") CalendarEventsService service) {
         super(service, CalendarEvents.class.getSimpleName(), CalendarEventsResource.class);
     }
 

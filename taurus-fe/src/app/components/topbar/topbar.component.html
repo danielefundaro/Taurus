@@ -90,7 +90,7 @@
                         [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
                     <span>Notifications</span>
                 </button>
-                <button type="button" class="layout-topbar-action" (click)="accountManagement()">
+                <button type="button" class="layout-topbar-action" [routerLink]="['/profile']">
                     <i class="pi pi-user"></i>
                     <span>Profile</span>
                 </button>

@@ -5,7 +5,7 @@ import { MenuItem } from 'primeng/api';
 import { BadgeModule } from 'primeng/badge';
 import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { StyleClassModule } from 'primeng/styleclass';
-import { KeycloakService, LayoutService } from '../../service';
+import { LayoutService } from '../../service';
 import { ConfiguratorComponent } from '../configurator/configurator.component';
 
 @Component({
@@ -25,10 +25,7 @@ import { ConfiguratorComponent } from '../configurator/configurator.component';
 export class TopbarComponent {
     items!: MenuItem[];
 
-    constructor(
-        protected layoutService: LayoutService,
-        private readonly keycloakService: KeycloakService,
-    ) { }
+    constructor(protected layoutService: LayoutService) { }
 
     protected toggleMenu(): void {
         this.layoutService.onMenuToggle();
@@ -38,7 +35,4 @@ export class TopbarComponent {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
-    protected accountManagement(): void {
-        this.keycloakService.accountManagement();
-    }
 }

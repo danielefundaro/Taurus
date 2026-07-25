@@ -105,11 +105,9 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
                                    String preselectedTenant) {
         LoginFormsProvider form = context.form();
 
-        // Passa la mappa completa al template
         form.setAttribute("tenantRolesMap", tenantRolesMap);
-
-        // Passa i tenant come lista separata per facilitare l'iterazione
         form.setAttribute("tenants", new ArrayList<>(tenantRolesMap.keySet()));
+        form.setAttribute("tenantNamesMap", buildTenantNamesMap(context.getUser(), tenantRolesMap.keySet()));
 
         if (preselectedTenant != null) {
             form.setAttribute("selectedTenant", preselectedTenant);
@@ -122,6 +120,20 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
 
         Response response = form.createForm("tenant-role-selector.ftl");
         context.challenge(response);
+    }
+
+    private Map<String, String> buildTenantNamesMap(UserModel user, Set<String> tenantCodes) {
+        return user.getGroupsStream()
+            .filter(g -> tenantCodes.contains(g.getName()))
+            .collect(Collectors.toMap(
+                GroupModel::getName,
+                g -> {
+                    String description = g.getDescription();
+                    return (description != null && !description.isBlank()) ? description : g.getName();
+                },
+                (a, b) -> a,
+                LinkedHashMap::new
+            ));
     }
 
     private void setTenantAndRole(AuthenticationFlowContext context, String tenant, String role) {
