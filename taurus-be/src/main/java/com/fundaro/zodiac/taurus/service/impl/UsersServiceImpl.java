@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
@@ -91,7 +92,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     @Override
     public UsersDTO update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+        if (dto.getRoles() == null || dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
         }
 
@@ -103,7 +104,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     @Override
     public UsersDTO partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
+        if (dto.getRoles() != null && dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
         }
 
@@ -111,6 +112,30 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
         return super.partialUpdate(id, dto, abstractAuthenticationToken);
+    }
+
+    @Override
+    public UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO currentUser = findMe(abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+
+        if (currentUser.getId() == null) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound");
+        }
+
+        // Fetch full Keycloak user to preserve existing attributes (e.g. tenant roles)
+        User keycloakUser = keycloakService.getUser(currentUser.getKeycloakId());
+        if (dto.getName() != null) keycloakUser.setFirstName(dto.getName());
+        if (dto.getLastName() != null) keycloakUser.setLastName(dto.getLastName());
+        if (dto.getEmail() != null) keycloakUser.setEmail(dto.getEmail());
+        keycloakService.updateUser(keycloakUser);
+
+        UsersDTO partialDto = new UsersDTO();
+        partialDto.setId(currentUser.getId());
+        partialDto.setName(dto.getName());
+        partialDto.setLastName(dto.getLastName());
+        partialDto.setEmail(dto.getEmail());
+        return super.partialUpdate(currentUser.getId(), partialDto, abstractAuthenticationToken);
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.util.Optional;
@@ -12,4 +13,6 @@ import java.util.Optional;
  */
 public interface UsersService extends CommonOpenSearchService<Users, UsersDTO, UsersCriteria> {
     Optional<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken);
+
+    UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken);
 }

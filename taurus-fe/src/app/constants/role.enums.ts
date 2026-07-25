@@ -3,5 +3,6 @@ export enum RoleEnums {
     ADMIN = 'ROLE_ADMIN',
     ARCHIVIST = 'ROLE_ARCHIVIST',
     USER = 'ROLE_USER',
+    USER_EXTERNAL = 'ROLE_USER_EXTERNAL',
     UNKNOWN = '',
 }

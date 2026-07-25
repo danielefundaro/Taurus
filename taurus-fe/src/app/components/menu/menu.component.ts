@@ -24,7 +24,7 @@ export class MenuComponent implements OnInit {
         this.model = [
             {
                 label: 'Home',
-                'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER],
+                'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                 items: [{
                     label: 'Dashboard',
                     icon: 'pi pi-fw pi-home',

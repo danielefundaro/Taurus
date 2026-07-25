@@ -2,10 +2,12 @@ package com.fundaro.zodiac.taurus.rabbitmq;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
-import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
-import com.fundaro.zodiac.taurus.service.dto.*;
+import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
+import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
+import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
@@ -22,7 +24,6 @@ import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RabbitListener(queues = RabbitMQConfig.queueNameListener)
@@ -32,15 +33,20 @@ public class Receiver {
 
     private final QueueUploadFilesService queueUploadFilesService;
 
-    private final MediaService mediaService;
-
     private final TracksService tracksService;
+
+    private final PdfProcessingService pdfProcessingService;
 
     private final String basePath;
 
-    public Receiver(QueueUploadFilesService queueUploadFilesService, MediaService mediaService, TracksService tracksService, ApplicationProperties applicationProperties) {
-        this.mediaService = mediaService;
+    public Receiver(
+        QueueUploadFilesService queueUploadFilesService,
+        TracksService tracksService,
+        PdfProcessingService pdfProcessingService,
+        ApplicationProperties applicationProperties
+    ) {
         this.tracksService = tracksService;
+        this.pdfProcessingService = pdfProcessingService;
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.basePath = applicationProperties.getBasePath();
@@ -52,65 +58,39 @@ public class Receiver {
         UploadFilesPackage uploadFilesPackage = (UploadFilesPackage) Converter.bytesToObject(message);
         AbstractAuthenticationToken abstractAuthenticationToken = uploadFilesPackage.getAbstractAuthenticationToken();
 
-        // Get queue from id and check if exists
-        QueueUploadFilesDTO queueUploadFilesDTO = queueUploadFilesService.findOne(uploadFilesPackage.getQueueId(), abstractAuthenticationToken).orElse(null);
+        QueueUploadFilesDTO queueUploadFilesDTO = queueUploadFilesService
+            .findOne(uploadFilesPackage.getQueueId(), abstractAuthenticationToken).orElse(null);
 
         if (queueUploadFilesDTO != null) {
-            // Get track from id and check if exists
-            TracksDTO tracksDTO = tracksService.findOne(queueUploadFilesDTO.getTrackId(), abstractAuthenticationToken).orElse(null);
+            TracksDTO tracksDTO = tracksService
+                .findOne(queueUploadFilesDTO.getTrackId(), abstractAuthenticationToken).orElse(null);
             String sourcePath = queueUploadFilesDTO.getPath();
             String type = Strings.isNotBlank(queueUploadFilesDTO.getType()) ? queueUploadFilesDTO.getType() : "unknowns";
 
             if (tracksDTO != null) {
-                // if the score list doesn't exists, create one
                 if (tracksDTO.getScores() == null) {
                     tracksDTO.setScores(new HashSet<>());
                 }
 
-                // Get file from path and convert it
                 File file = new File(sourcePath);
-
-                // Convert pdf in images for each page
+                byte[] pdfBytes;
                 List<String> filesPath;
 
                 try (InputStream inputStream = new FileInputStream(file)) {
-                    String destinationPath = Paths.get(basePath, type, file.getParentFile().getName()).toString().toLowerCase();
+                    String destinationPath = Paths.get(basePath, type, file.getParentFile().getName())
+                        .toString().toLowerCase();
                     log.info("Converting pdf2Image file from {} to {}", sourcePath, destinationPath);
-                    filesPath = Converter.pdfToImage(inputStream.readAllBytes(), file.getName(), destinationPath);
+                    pdfBytes = inputStream.readAllBytes();
+                    filesPath = Converter.pdfToImage(pdfBytes, file.getName(), destinationPath);
                 }
 
                 if (!filesPath.isEmpty()) {
-                    long order = 0L;
-                    Set<SheetsMusicDTO> sheetsMusicDTOSet = new HashSet<>();
+                    List<SheetsMusicDTO> sheets =
+                        pdfProcessingService.buildSheets(pdfBytes, filesPath, tracksDTO, abstractAuthenticationToken);
 
-                    // Save list of media
-                    for (String filePath : filesPath) {
-                        MediaDTO mediaDTO = new MediaDTO();
-                        mediaDTO.setPath(filePath);
-                        mediaDTO.setContentType("image/png");
-                        mediaDTO.setName(tracksDTO.getName());
-                        mediaDTO.setDescription(tracksDTO.getDescription());
-                        mediaDTO = mediaService.save(mediaDTO, abstractAuthenticationToken);
-                        log.info("Saved media entity");
-
-                        // Save scores
-                        if (mediaDTO != null) {
-                            SheetsMusicDTO sheetsMusicDTO = new SheetsMusicDTO();
-                            ChildrenEntitiesDTO childrenEntitiesDTO = new ChildrenEntitiesDTO();
-                            childrenEntitiesDTO.setIndex(mediaDTO.getId());
-                            childrenEntitiesDTO.setName(mediaDTO.getName());
-                            childrenEntitiesDTO.setOrder(1L);
-
-                            sheetsMusicDTO.setMedia(Set.of(childrenEntitiesDTO));
-                            sheetsMusicDTO.setOrder(++order);
-                            sheetsMusicDTOSet.add(sheetsMusicDTO);
-                        }
-                    }
-
-                    // Update track
-                    tracksDTO.getScores().addAll(sheetsMusicDTOSet);
+                    tracksDTO.getScores().addAll(sheets);
                     tracksDTO = tracksService.update(tracksDTO.getId(), tracksDTO, abstractAuthenticationToken);
-                    log.info("Updated {} tracks", tracksDTO);
+                    log.info("Updated track with {} sheet music parts", sheets.size());
                 } else {
                     log.error("Could not convert any files in {}", sourcePath);
                 }

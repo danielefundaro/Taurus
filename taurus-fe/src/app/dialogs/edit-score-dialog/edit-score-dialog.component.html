@@ -36,7 +36,7 @@
             <div class="flex flex-col w-full gap-4" *ngIf="false">
                 <p-floatlabel variant="on">
                     <p-select optionLabel="order" [options]="scores" [(ngModel)]="selectedScore">
-                        <ng-template #selectedItem let-selectedOption>
+                        <ng-template #selecteditem let-selectedOption>
                             <span>{{ selectedOption.order }}</span>
                         </ng-template>
                     </p-select>
