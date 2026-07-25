@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 46" fill="none">
+  <!-- Left horn: from bottom center up-left -->
+  <path d="M24 34 C24 22 7 18 7 4"
+        stroke="#1a1a2e" stroke-width="3" stroke-linecap="round"/>
+  <!-- Right horn: from bottom center up-right -->
+  <path d="M24 34 C24 22 41 18 41 4"
+        stroke="#1a1a2e" stroke-width="3" stroke-linecap="round"/>
+  <!-- Chin dot -->
+  <circle cx="24" cy="39" r="4" fill="#1a1a2e"/>
+</svg>

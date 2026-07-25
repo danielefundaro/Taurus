@@ -15,11 +15,13 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
     }
 
     override resourceName(): string {
-        if (this.keycloakService.currentUserRole === RoleEnums.USER) {
-            return "user/tracks";
+        if (this.keycloakService.currentUserRole === RoleEnums.USER_EXTERNAL) {
+            return 'external/tracks';
         }
-
-        return "tracks";
+        if (this.keycloakService.currentUserRole === RoleEnums.USER) {
+            return 'user/tracks';
+        }
+        return 'tracks';
     }
 
     public stream(id?: string): string {

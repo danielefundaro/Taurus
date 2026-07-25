@@ -1,0 +1,510 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #f1f5f9;
+    min-height: 100vh;
+}
+
+/* ─── Page wrapper ─────────────────────────────────────────── */
+.taurus-bg {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+}
+
+/* ─── Card ─────────────────────────────────────────────────── */
+.taurus-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 4px 32px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Green gradient top border */
+.taurus-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981 0%, #22c55e 60%, #10b981 100%);
+}
+
+/* ─── Logo ─────────────────────────────────────────────────── */
+.taurus-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.taurus-logo img {
+    width: 52px;
+    height: auto;
+}
+
+/* ─── Header ────────────────────────────────────────────────── */
+.taurus-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.taurus-title {
+    font-size: 1.625rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.taurus-subtitle {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+/* ─── Alerts ────────────────────────────────────────────────── */
+.taurus-alert {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+}
+
+.taurus-alert-error   { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.taurus-alert-success { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.taurus-alert-warning { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.taurus-alert-info    { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+
+/* ─── Form fields ────────────────────────────────────────────── */
+.taurus-field {
+    margin-bottom: 18px;
+}
+
+.taurus-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.taurus-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    color: #1e293b;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    line-height: 1.4;
+    font-family: inherit;
+}
+
+.taurus-input::placeholder {
+    color: #b0bac8;
+}
+
+.taurus-input:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
+.taurus-input-error {
+    border-color: #f87171;
+}
+
+.taurus-input-error:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.taurus-field-error {
+    display: block;
+    font-size: 0.8rem;
+    color: #ef4444;
+    margin-top: 5px;
+}
+
+/* ─── Password wrapper ───────────────────────────────────────── */
+.taurus-password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.taurus-password-wrapper .taurus-input {
+    padding-right: 42px;
+}
+
+.taurus-eye-btn {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    border-radius: 6px;
+    transition: color 0.15s;
+}
+
+.taurus-eye-btn:hover { color: #475569; }
+
+.taurus-eye-btn svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+/* Eye crossed line — shown when password is visible */
+.taurus-eye-btn .eye-slash { display: none; }
+.taurus-eye-btn[data-visible="true"] .eye-open  { display: none; }
+.taurus-eye-btn[data-visible="true"] .eye-slash  { display: block; }
+
+/* ─── Remember me / forgot password row ─────────────────────── */
+.taurus-options-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.taurus-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.875rem;
+    color: #4b5563;
+    cursor: pointer;
+    user-select: none;
+}
+
+.taurus-checkbox-label input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #22c55e;
+}
+
+.taurus-forgot-link {
+    font-size: 0.875rem;
+    color: #22c55e;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+}
+
+.taurus-forgot-link:hover { color: #16a34a; }
+
+/* ─── Submit button ──────────────────────────────────────────── */
+.taurus-btn-primary {
+    width: 100%;
+    padding: 12px 16px;
+    background: #22c55e;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: background 0.18s, transform 0.1s;
+    font-family: inherit;
+}
+
+.taurus-btn-primary:hover   { background: #16a34a; }
+.taurus-btn-primary:active  { transform: scale(0.99); background: #15803d; }
+.taurus-btn-primary:disabled { background: #86efac; cursor: not-allowed; }
+
+/* ─── Info / register link ───────────────────────────────────── */
+.taurus-info-body {
+    margin-top: 20px;
+}
+
+.taurus-register-row {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.taurus-register-row a {
+    color: #22c55e;
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: 3px;
+}
+
+.taurus-register-row a:hover {
+    color: #16a34a;
+    text-decoration: underline;
+}
+
+/* ─── Social providers ───────────────────────────────────────── */
+.taurus-social-body { margin-top: 4px; }
+
+.taurus-divider {
+    position: relative;
+    text-align: center;
+    margin: 24px 0 16px;
+}
+
+.taurus-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.taurus-divider span {
+    position: relative;
+    background: #ffffff;
+    padding: 0 12px;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+}
+
+.taurus-social-list {
+    list-style: none;
+}
+
+.taurus-social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: border-color 0.18s, background 0.18s;
+    margin-bottom: 8px;
+    font-family: inherit;
+}
+
+.taurus-social-btn:hover {
+    border-color: #22c55e;
+    background: #f0fdf4;
+}
+
+/* ─── Select styling ─────────────────────────────────────────── */
+select.taurus-input {
+    cursor: pointer;
+}
+
+/* ─── Reset password — back link & info ─────────────────────── */
+.taurus-back-row {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.taurus-back-link {
+    font-size: 0.875rem;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.taurus-back-link:hover { color: #22c55e; }
+
+.taurus-reset-info {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.55;
+    text-align: center;
+}
+
+/* ─── TOTP / Authenticator setup ────────────────────────────── */
+.taurus-totp-steps {
+    list-style: none;
+    counter-reset: totp-step;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.taurus-totp-steps > li {
+    counter-increment: totp-step;
+    padding-left: 32px;
+    position: relative;
+}
+
+.taurus-totp-steps > li::before {
+    content: counter(totp-step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 22px;
+    height: 22px;
+    background: #22c55e;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.taurus-totp-step-text {
+    font-size: 0.875rem;
+    color: #374151;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.taurus-totp-apps {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.taurus-totp-apps li {
+    font-size: 0.875rem;
+    color: #1e293b;
+    padding-left: 14px;
+    position: relative;
+}
+
+.taurus-totp-apps li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: 700;
+}
+
+.taurus-qr-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 10px;
+    padding: 12px;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.taurus-qr-img {
+    width: 160px;
+    height: 160px;
+    display: block;
+    image-rendering: pixelated;
+}
+
+.taurus-totp-link {
+    display: inline-block;
+    font-size: 0.8125rem;
+    color: #22c55e;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 4px;
+    transition: color 0.15s;
+}
+.taurus-totp-link:hover { color: #16a34a; text-decoration: underline; }
+
+.taurus-totp-secret-box {
+    margin-top: 12px;
+    padding: 14px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.taurus-totp-manual-label {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.taurus-totp-secret {
+    display: block;
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 0.8125rem;
+    color: #0f172a;
+    word-break: break-all;
+    letter-spacing: 0.04em;
+    background: #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.taurus-totp-info-list {
+    list-style: none;
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.taurus-totp-info-list li {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.taurus-required {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.taurus-logout-check {
+    margin-bottom: 20px;
+    margin-top: 4px;
+}
+
+.taurus-totp-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.taurus-btn-secondary {
+    width: 100%;
+    padding: 11px 16px;
+    background: transparent;
+    color: #64748b;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.18s, color 0.18s;
+}
+.taurus-btn-secondary:hover {
+    border-color: #94a3b8;
+    color: #374151;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 460px) {
+    .taurus-card {
+        padding: 32px 20px;
+        border-radius: 16px;
+    }
+
+    .taurus-title { font-size: 1.4rem; }
+}

@@ -53,10 +53,14 @@ public class CalendarEventsServiceImpl
         this.eventReminderProducer = eventReminderProducer;
     }
 
+    protected List<StateEnum> getVisibleStates() {
+        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
+    }
+
     @Override
     public Optional<CalendarEventsDTO> findOne(String id, AbstractAuthenticationToken token) {
         return super.findOne(id, token)
-            .filter(dto -> dto.getState() == StateEnum.COMPLETE || dto.getState() == StateEnum.PUBLIC)
+            .filter(dto -> getVisibleStates().contains(dto.getState()))
             .map(this::maskSensitiveFields);
     }
 
@@ -135,7 +139,7 @@ public class CalendarEventsServiceImpl
         List<Query> queries = super.getQueries(criteria, token);
 
         StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(List.of(StateEnum.COMPLETE, StateEnum.PUBLIC));
+        stateFilter.setIn(getVisibleStates());
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
         queries.addAll(Converter.dateFilterToQuery("start_date", criteria.getStartDate()));
         queries.addAll(Converter.dateFilterToQuery("end_date", criteria.getEndDate()));

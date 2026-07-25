@@ -51,7 +51,7 @@ export class CalendarEventsComponent implements OnInit {
     protected currentMonth: Date = new Date();
     protected calendarDays: CalendarDay[] = [];
 
-    @ViewChild('monthPicker') private monthPickerRef?: Popover;
+    @ViewChild('monthPicker') private readonly monthPickerRef?: Popover;
     protected readonly DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
     protected readonly MONTH_LABELS = [
         'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',

@@ -64,7 +64,7 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
 
     @Override
     public void addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
-        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER}).toList(), abstractAuthenticationToken);
+        addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_USER, RoleEnum.ROLE_USER_EXTERNAL}).toList(), abstractAuthenticationToken);
     }
 
     @Override

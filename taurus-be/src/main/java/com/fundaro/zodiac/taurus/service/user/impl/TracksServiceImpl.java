@@ -44,6 +44,18 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         this.usersService = usersService;
     }
 
+    protected List<StateEnum> getVisibleStates() {
+        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
+    }
+
+    protected Page<TracksDTO> findEntitiesWithoutInstrumentFilter(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
+        return super.findEntitiesByCriteria(criteria, pageable, token);
+    }
+
+    protected Optional<TracksDTO> findOneWithoutInstrumentFilter(String id, AbstractAuthenticationToken token) {
+        return super.findOne(id, token);
+    }
+
     @Override
     public Page<TracksDTO> findEntitiesByCriteria(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO usersDTO = usersService.findMe(abstractAuthenticationToken).orElse(new UsersDTO());
@@ -68,7 +80,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         TracksDTO tracksDTO = tracksDTOOpt.orElseThrow(
             () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound")
         );
-        if (!(Objects.equals(tracksDTO.getState(), StateEnum.COMPLETE) || Objects.equals(tracksDTO.getState(), StateEnum.PUBLIC))) {
+        if (!getVisibleStates().contains(tracksDTO.getState())) {
             throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
         }
 
@@ -95,7 +107,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
 
         StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.PUBLIC}));
+        stateFilter.setIn(getVisibleStates());
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;

@@ -307,6 +307,14 @@
       <version>5.25.0</version>
     </dependency>
 
+    <!-- OCR via Tesseract (optional, requires tesseract installed on the system) -->
+    <!-- https://mvnrepository.com/artifact/net.sourceforge.tess4j/tess4j -->
+    <dependency>
+      <groupId>net.sourceforge.tess4j</groupId>
+      <artifactId>tess4j</artifactId>
+      <version>5.13.0</version>
+    </dependency>
+
     <!-- Web Push (VAPID) -->
     <dependency>
       <groupId>nl.martijndwars</groupId>

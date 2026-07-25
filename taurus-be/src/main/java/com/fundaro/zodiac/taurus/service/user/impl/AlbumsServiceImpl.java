@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.service.user.TracksService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -35,9 +36,13 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
 
     private final TracksService tracksService;
 
-    public AlbumsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, AlbumsMapper albumsMapper, TracksService tracksService) {
+    public AlbumsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, AlbumsMapper albumsMapper, @Qualifier("LowPermissionsTracksService") TracksService tracksService) {
         super(openSearchService, indexResolver, albumsMapper, AlbumsService.class, Albums.class);
         this.tracksService = tracksService;
+    }
+
+    protected List<StateEnum> getVisibleStates() {
+        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
     }
 
     @Override
@@ -46,7 +51,7 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
         AlbumsDTO albumsDTO = albumsDTOOpt.orElseThrow(
             () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound")
         );
-        if (!(Objects.equals(albumsDTO.getState(), StateEnum.COMPLETE) || Objects.equals(albumsDTO.getState(), StateEnum.PUBLIC))) {
+        if (!getVisibleStates().contains(albumsDTO.getState())) {
             throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
         }
 
@@ -76,7 +81,7 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
         queries.addAll(Converter.stringFilterToQuery("tracks.index.keyword", criteria.getTrackId()));
 
         StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(List.of(new StateEnum[]{StateEnum.PUBLIC}));
+        stateFilter.setIn(getVisibleStates());
         queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
 
         return queries;

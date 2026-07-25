@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.user.TracksService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user/tracks")
 public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, TracksCriteria, TracksService> {
 
-    public TracksResource(TracksService service) {
+    public TracksResource(@Qualifier("LowPermissionsTracksService") TracksService service) {
         super(service, Tracks.class.getSimpleName(), TracksResource.class);
     }
 }
