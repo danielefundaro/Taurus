@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { Popover } from 'primeng/popover';
 import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { Popover } from 'primeng/popover';
 import { SelectChangeEvent } from 'primeng/select';
 import { delay, first } from 'rxjs';
-import { RoleEnums } from '../../constants';
+import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
 import { CalendarEvents, CalendarEventsCriteria, Page } from '../../module';
@@ -63,7 +63,7 @@ export class CalendarEventsComponent implements OnInit {
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmationService: ConfirmationService,
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.sortOptions = [
@@ -194,6 +194,11 @@ export class CalendarEventsComponent implements OnInit {
                 });
             },
         });
+    }
+
+    protected getStateLabel(state: string): string {
+        const stateLabel = StateLabelsMap.find(s => s.code === state);
+        return stateLabel ? stateLabel.name : state;
     }
 
     private loadElements(search?: string): void {

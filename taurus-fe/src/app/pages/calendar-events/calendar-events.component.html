@@ -14,8 +14,7 @@
         <p-select-button [ngModel]="layout" [options]="options" [allowEmpty]="false"
             (ngModelChange)="onLayoutChange($event)">
             <ng-template #item let-option>
-                <i class="pi"
-                    [ngClass]="{ 'pi-bars': option === 'list', 'pi-calendar': option === 'grid' }"
+                <i class="pi" [ngClass]="{ 'pi-bars': option === 'list', 'pi-calendar': option === 'grid' }"
                     [pTooltip]="option === 'list' ? 'Lista' : 'Calendario'"></i>
             </ng-template>
         </p-select-button>
@@ -23,12 +22,11 @@
 
     <!-- LIST VIEW -->
     <ng-container *ngIf="layout === 'list'">
-        <p-dataview [value]="events" [lazy]="true" [lazyLoadOnInit]="true"
-            [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows"
-            [paginator]="true" [paginatorPosition]="events.length > 1 ? 'both' : 'bottom'"
-            [totalRecords]="totalRecords" [sortField]="dataViewLazyLoadEvent.sortField"
-            [sortOrder]="dataViewLazyLoadEvent.sortOrder" [rowsPerPageOptions]="[10, 25, 50]"
-            (onLazyLoad)="onLazyLoad($event)">
+        <p-dataview [value]="events" [lazy]="true" [lazyLoadOnInit]="true" [first]="dataViewLazyLoadEvent.first"
+            [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
+            [paginatorPosition]="events.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
+            [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+            [rowsPerPageOptions]="[10, 25, 50]" (onLazyLoad)="onLazyLoad($event)">
 
             <ng-template #list let-items>
                 <div class="flex flex-col">
@@ -37,7 +35,8 @@
                             [ngClass]="{ 'border-t border-surface': i !== 0 }">
                             <!-- Date circle -->
                             <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
-                                <div class="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-contrast">
+                                <div
+                                    class="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-contrast">
                                     <span class="text-lg font-bold leading-none">{{ item.startDate | date:'dd' }}</span>
                                     <span class="text-xs uppercase">{{ item.startDate | date:'MMM' }}</span>
                                 </div>
@@ -56,9 +55,8 @@
                                         <p-tag icon="pi pi-clock" severity="secondary"
                                             [value]="(item.startDate | date:'HH:mm') ?? ''" [rounded]="true"
                                             *ngIf="item.startDate"></p-tag>
-                                        <p-tag icon="pi pi-tag" severity="secondary"
-                                            value="{{ item.state }}" [rounded]="true"
-                                            *ngIf="item.state"></p-tag>
+                                        <p-tag icon="pi pi-tag" severity="secondary" [value]="getStateLabel(item.state)"
+                                            [rounded]="true" *ngIf="item.state"></p-tag>
                                     </div>
                                 </div>
                                 <div class="flex flex-row gap-2">
@@ -81,24 +79,22 @@
         <!-- Month navigation -->
         <div class="flex items-center justify-between mb-4 px-2 flex-wrap gap-2">
             <div class="flex items-center gap-1">
-                <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true"
-                    severity="secondary" (onClick)="goToToday()" pTooltip="Torna al mese corrente"
+                <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary"
+                    (onClick)="goToToday()" pTooltip="Torna al mese corrente" tooltipPosition="bottom" />
+                <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente"
                     tooltipPosition="bottom" />
-                <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()"
-                    pTooltip="Mese precedente" tooltipPosition="bottom" />
             </div>
 
-            <p-button [label]="currentMonthLabel" [text]="true" icon="pi pi-chevron-down"
-                iconPos="right" styleClass="text-xl! font-semibold!"
-                (onClick)="monthPicker.toggle($event)" />
+            <p-button [label]="currentMonthLabel" [text]="true" icon="pi pi-chevron-down" iconPos="right"
+                styleClass="text-xl! font-semibold!" (onClick)="monthPicker.toggle($event)" />
 
-            <p-button icon="pi pi-chevron-right" [text]="true" (onClick)="nextMonth()"
-                pTooltip="Mese successivo" tooltipPosition="bottom" />
+            <p-button icon="pi pi-chevron-right" [text]="true" (onClick)="nextMonth()" pTooltip="Mese successivo"
+                tooltipPosition="bottom" />
         </div>
 
         <p-popover #monthPicker>
-            <p-datepicker [(ngModel)]="currentMonth" view="month" dateFormat="mm/yy"
-                [inline]="true" (ngModelChange)="onMonthSelected()" />
+            <p-datepicker [(ngModel)]="currentMonth" view="month" dateFormat="mm/yy" [inline]="true"
+                (ngModelChange)="onMonthSelected()" />
         </p-popover>
 
         <!-- Day-of-week headers -->
@@ -110,17 +106,14 @@
 
         <!-- Calendar grid -->
         <div class="calendar-grid">
-            <div *ngFor="let day of calendarDays"
-                class="calendar-day"
-                [class.other-month]="!day.isCurrentMonth"
-                [class.today]="day.isToday"
-                [class.future]="day.isFuture"
-                (dblclick)="openCreateOnDate(day.date)">
+            <div *ngFor="let day of calendarDays" class="calendar-day" [class.other-month]="!day.isCurrentMonth"
+                [class.today]="day.isToday" [class.future]="day.isFuture" (dblclick)="openCreateOnDate(day.date)">
                 <div class="day-number">{{ day.date.getDate() }}</div>
                 <ng-container *ngFor="let event of day.events | slice:0:3">
                     <a [routerLink]="'/calendar/' + event.id" class="calendar-event">
                         <ng-container *ngIf="event.startDate">
-                            <i class="pi pi-clock mr-1" style="font-size:0.6rem"></i>{{ event.startDate | date:'HH:mm' }}
+                            <i class="pi pi-clock mr-1" style="font-size:0.6rem"></i>{{ event.startDate | date:'HH:mm'
+                            }}
                         </ng-container>
                         {{ event.name }}
                     </a>
