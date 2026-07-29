@@ -1,20 +1,19 @@
 import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { ConfirmationService } from 'primeng/api';
+import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
-import { RoleEnums, StateEnums } from '../../../constants';
+import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
-import { EnumConverterPipe } from '../../../pipe';
 import { InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 
 @Component({
     selector: 'app-track-detail',
@@ -39,7 +38,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected selectedScores: SheetsMusic[];
     protected images: string[];
     protected displayGalleria: boolean;
-    protected autoFilteredStates: Array<StateEnums>;
+    protected autoFilteredStatesLabels: StateLabel[];
     protected RolesEnum: typeof RoleEnums = RoleEnums;
     protected readonly previewTooltip = 'Aggiungi almeno una parte per abilitare l\'anteprima';
     protected responsiveOptions: any[] = [
@@ -63,7 +62,6 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     private instruments: Instruments[];
     private draggedMedia?: ChildrenEntities = undefined;
     private startDraggedScore?: SheetsMusic = undefined;
-    private readonly states: Array<StateEnums>;
 
     constructor(
         private readonly tracksService: TracksService,
@@ -76,16 +74,13 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly router: Router,
         private readonly confirmationService: ConfirmationService,
         private readonly dialogService: DialogService,
-        private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
         this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
         this.images = [];
         this.displayGalleria = false;
         this.instruments = [];
-
-        this.states = this.enumConverterPipe.transform(StateEnums as unknown as StateEnums);
-        this.autoFilteredStates = this.states;
+        this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
     ngOnInit() {
@@ -151,7 +146,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredStates = this.states.filter(state => state?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredStatesLabels = StateLabelsMap.filter(state => state.name.toLowerCase().includes(event.query.toLowerCase()) ? state : null).filter(state => state !== null) as StateLabel[];
     }
 
     protected trackStream(): string {

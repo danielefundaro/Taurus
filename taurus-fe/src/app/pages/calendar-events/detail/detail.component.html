@@ -5,10 +5,12 @@
             <div class="flex flex-row justify-between items-center">
                 <div class="flex items-center gap-2">
                     <span class="font-semibold text-xl">Evento</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
+                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
+                        title="Modifiche non salvate"></span>
                 </div>
                 <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty" (onClick)="save()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
+                        [disabled]="!isDirty" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />
@@ -16,13 +18,14 @@
             <!-- Row 1: name + state -->
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+                    <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin"
+                        (ngModelChange)="isDirty = true" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStates" [virtualScroll]="true"
-                        [virtualScrollItemSize]="34" dropdown display="chip" (completeMethod)="filterStates($event)"
-                        (ngModelChange)="isDirty = true" />
+                    <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels"
+                        dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true"
+                        optionValue="code" optionLabel="name" />
                     <label for="state">Stato</label>
                 </p-floatlabel>
             </div>
@@ -46,7 +49,8 @@
             <!-- Row 2: location + fee -->
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+                    <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin"
+                        (ngModelChange)="isDirty = true" />
                     <label for="location">Luogo</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
@@ -67,8 +71,8 @@
 
             <!-- Description -->
             <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description"
-                    [readonly]="!isAdmin" (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description" [readonly]="!isAdmin"
+                    (ngModelChange)="isDirty = true"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
         </div>
@@ -136,27 +140,26 @@
             <span class="font-semibold text-lg">La tua disponibilità</span>
             <div class="flex flex-wrap gap-3">
                 <p-button label="Sono disponibile" icon="pi pi-check-circle" severity="success"
-                    [outlined]="currentUserAvailability !== true"
-                    (onClick)="setAvailability(true)" />
+                    [outlined]="currentUserAvailability !== true" (onClick)="setAvailability(true)" />
                 <p-button label="Non sono disponibile" icon="pi pi-times-circle" severity="danger"
-                    [outlined]="currentUserAvailability !== false"
-                    (onClick)="setAvailability(false)" />
+                    [outlined]="currentUserAvailability !== false" (onClick)="setAvailability(false)" />
                 @if (currentUserAvailability !== null) {
-                    <p-button label="Annulla risposta" icon="pi pi-undo" severity="secondary" [outlined]="true"
-                        (onClick)="cancelAvailability()" />
+                <p-button label="Annulla risposta" icon="pi pi-undo" severity="secondary" [outlined]="true"
+                    (onClick)="cancelAvailability()" />
                 }
             </div>
             @if (currentUserAvailability === true) {
-                <div class="flex items-center gap-2 text-sm text-surface-500 mt-1">
-                    <i class="pi pi-bell text-primary"></i>
-                    @if (event.reminderMinutes === 0) {
-                        <span>Nessun promemoria impostato per questo evento.</span>
-                    } @else if (event.reminderMinutes) {
-                        <span>Riceverai un promemoria <strong>{{ event.reminderMinutes }} minuti</strong> prima dell'evento.</span>
-                    } @else {
-                        <span>Riceverai un promemoria al tempo predefinito (impostato nelle tue preferenze).</span>
-                    }
-                </div>
+            <div class="flex items-center gap-2 text-sm text-surface-500 mt-1">
+                <i class="pi pi-bell text-primary"></i>
+                @if (event.reminderMinutes === 0) {
+                <span>Nessun promemoria impostato per questo evento.</span>
+                } @else if (event.reminderMinutes) {
+                <span>Riceverai un promemoria <strong>{{ event.reminderMinutes }} minuti</strong> prima
+                    dell'evento.</span>
+                } @else {
+                <span>Riceverai un promemoria al tempo predefinito (impostato nelle tue preferenze).</span>
+                }
+            </div>
             }
         </div>
     </div>
@@ -180,7 +183,7 @@
                     <td>
                         {{ user.name }}
                         @if (user.index === currentUserId) {
-                            <i class="pi pi-user ml-2 text-green-500"></i>
+                        <i class="pi pi-user ml-2 text-green-500"></i>
                         }
                     </td>
                     <td>{{ user.lastName }}</td>
@@ -214,7 +217,7 @@
                     <td>
                         {{ user.name }}
                         @if (user.index === currentUserId) {
-                            <i class="pi pi-user ml-2 text-red-500"></i>
+                        <i class="pi pi-user ml-2 text-red-500"></i>
                         }
                     </td>
                     <td>{{ user.lastName }}</td>
@@ -236,19 +239,18 @@
                 <i class="pi pi-users text-primary mr-2"></i>
                 Gestisci presenze
             </span>
-            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
+            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [disabled]="!isDirtyPresence"
+                (onClick)="savePresentUsers()" />
         </div>
-        <p-table #presenceTable [value]="presenceRows" [rowHover]="true"
-            [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]"
-            [showCurrentPageReport]="true"
+        <p-table #presenceTable [value]="presenceRows" [rowHover]="true" [paginator]="true" [rows]="10"
+            [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
             currentPageReportTemplate="Da {first} a {last} di {totalRecords} utenti"
             [globalFilterFields]="['name', 'lastName']">
             <ng-template #caption>
                 <div class="flex items-center justify-end">
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text"
-                            (input)="onGlobalFilter(presenceTable, $event)"
+                        <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)"
                             placeholder="Cerca utente..." />
                     </p-iconfield>
                 </div>
@@ -323,7 +325,8 @@
     <div class="card danger-zone mt-8" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
         <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
         <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questo evento e tutti i dati associati.</span>
+            <span class="text-sm text-surface-500">Elimina definitivamente questo evento e tutti i dati
+                associati.</span>
             <p-button label="Elimina evento" icon="pi pi-trash" severity="danger" [outlined]="true"
                 (onClick)="confirmDelete()" />
         </div>
