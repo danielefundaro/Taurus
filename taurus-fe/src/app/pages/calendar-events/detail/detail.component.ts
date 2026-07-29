@@ -4,11 +4,11 @@ import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
-import { RoleEnums, StateEnums } from '../../../constants';
+import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { CalendarEvents, EventCost, EventPresentUser, Users } from '../../../module';
-import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
+import { DateConverterPipe } from '../../../pipe';
 import { CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
@@ -46,15 +46,13 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected event: CalendarEvents = new CalendarEvents();
-    protected autoFilteredStates: StateEnums[] = [];
+    protected autoFilteredStatesLabels: StateLabel[];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
     protected newCostDescription: string = '';
     protected newCostAmount: number | null = null;
 
     protected presenceRows: UserPresenceRow[] = [];
-
-    private readonly states: StateEnums[];
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
@@ -65,10 +63,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly router: Router,
         private readonly confirmationService: ConfirmationService,
         private readonly dateConverterPipe: DateConverterPipe,
-        private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
-        this.states = this.enumConverterPipe.transform(StateEnums as unknown as StateEnums);
-        this.autoFilteredStates = this.states;
+        this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
     ngOnInit(): void {
@@ -183,9 +179,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent): void {
-        this.autoFilteredStates = this.states.filter(s =>
-            s?.toLowerCase().includes(event.query.toLowerCase()),
-        );
+        this.autoFilteredStatesLabels = StateLabelsMap.filter(state => state.name.toLowerCase().includes(event.query.toLowerCase()) ? state : null).filter(state => state !== null) as StateLabel[];
     }
 
     protected addCost(): void {

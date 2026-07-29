@@ -5,12 +5,12 @@ import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
-import { RoleEnums, StateEnums } from '../../../constants';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
+import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
-import { DateConverterPipe, EnumConverterPipe } from '../../../pipe';
+import { DateConverterPipe } from '../../../pipe';
 import { AlbumsService, KeycloakService, PrinterService, ToastService } from '../../../service';
 
 @Component({
@@ -32,13 +32,11 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected album: Albums = new Albums();
     protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
-    protected autoFilteredStates: Array<StateEnums>;
+    protected autoFilteredStatesLabels: StateLabel[];
     protected RolesEnum: typeof RoleEnums = RoleEnums;
     protected readonly previewTooltip = 'Aggiungi almeno una traccia per abilitare l\'anteprima';
     isDirty = false;
     isSaving = false;
-
-    private readonly states: Array<StateEnums>;
 
     constructor(
         private readonly albumsService: AlbumsService,
@@ -50,13 +48,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly router: Router,
         private readonly confirmationService: ConfirmationService,
         private readonly dateConverterPipe: DateConverterPipe,
-        private readonly enumConverterPipe: EnumConverterPipe<StateEnums>,
     ) {
         this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
-
-        this.states = this.enumConverterPipe.transform(StateEnums as unknown as StateEnums);
-        this.autoFilteredStates = this.states;
+        this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
     ngOnInit() {
@@ -102,7 +97,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredStates = this.states.filter(state => state?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredStatesLabels = StateLabelsMap.filter(state => state.name.toLowerCase().includes(event.query.toLowerCase()) ? state : null).filter(state => state !== null) as StateLabel[];
     }
 
     protected confirmDeleteSelectedTracks(): void {
