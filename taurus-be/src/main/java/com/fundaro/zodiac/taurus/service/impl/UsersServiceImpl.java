@@ -157,6 +157,13 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
+    public void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        keycloakService.sendExecuteActionsEmail(usersDTO.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
+    }
+
+    @Override
     protected List<Query> getQueries(UsersCriteria criteria) {
         List<Query> queries = super.getQueries(criteria);
         queries.addAll(Converter.stringFilterToQuery("lastName.keyword", criteria.getLastName()));

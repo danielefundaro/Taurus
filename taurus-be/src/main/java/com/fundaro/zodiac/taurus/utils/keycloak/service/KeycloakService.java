@@ -33,6 +33,8 @@ public interface KeycloakService {
 
     void sendVerifyEmail(String userId);
 
+    void sendExecuteActionsEmail(String userId, List<String> actions);
+
     void saveGroup(Group group);
 
     String getGroupIdByName(String name);

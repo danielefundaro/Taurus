@@ -37,13 +37,13 @@ export class MenuComponent implements OnInit {
                 routerLink: ['/pages'],
                 items: [
                     {
-                        label: 'Tenants',
+                        label: 'Istanze',
                         icon: 'pi pi-fw pi-building',
                         routerLink: ['/tenants'],
                         'hasRoles': [RoleEnums.SUPER_ADMIN],
                     },
                     {
-                        label: 'Users',
+                        label: 'Utenti',
                         icon: 'pi pi-fw pi-users',
                         routerLink: ['/users'],
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
@@ -53,17 +53,17 @@ export class MenuComponent implements OnInit {
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
                     {
-                        label: 'Albums',
+                        label: 'Album',
                         icon: 'pi pi-fw pi-book',
                         routerLink: ['/albums']
                     },
                     {
-                        label: 'Tracks',
+                        label: 'Tracce',
                         icon: 'pi pi-fw pi-file',
                         routerLink: ['/tracks']
                     },
                     {
-                        label: 'Instruments',
+                        label: 'Strumenti',
                         icon: 'pi pi-fw pi-sliders-h',
                         routerLink: ['/instruments'],
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST],

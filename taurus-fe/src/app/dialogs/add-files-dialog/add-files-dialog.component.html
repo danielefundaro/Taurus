@@ -1,8 +1,48 @@
-<p-fluid class="flex flex-col flex-start gap-4 mb-8">
-    <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
-        mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()">
+<div class="flex flex-col gap-4">
+    <p-fileupload
+        #fu
+        name="file"
+        chooseLabel="Seleziona file"
+        uploadLabel="Carica"
+        cancelLabel="Annulla"
+        mode="advanced"
+        accept="application/pdf"
+        [multiple]="false"
+        [customUpload]="true"
+        [disabled]="uploading"
+        (uploadHandler)="handleUpload($event)"
+        (onSelect)="onFileSelect($event)"
+        (onClear)="onFileClear()">
         <ng-template #empty>
-            <div>Trascina il file qui per caricarlo.</div>
+            <div class="text-center text-muted-color py-4">
+                <i class="pi pi-file-pdf text-4xl block mb-2 opacity-40"></i>
+                Trascina il file PDF qui per caricarlo.
+            </div>
         </ng-template>
     </p-fileupload>
-</p-fluid>
+
+    @if (selectedFile) {
+        <div class="flex align-items-center gap-3">
+            <p-button
+                label="Analizza PDF"
+                icon="pi pi-sliders-h"
+                severity="secondary"
+                [outlined]="true"
+                size="small"
+                (onClick)="openManipulator()" />
+
+            @if (hasAnnotations) {
+                <span class="text-sm flex align-items-center gap-1" style="color: var(--p-green-600)">
+                    <i class="pi pi-check-circle"></i>
+                    Annotazioni applicate
+                    @if (annotations!.excludedPages.length > 0) {
+                        &nbsp;· {{ annotations!.excludedPages.length }} pag. escluse
+                    }
+                    @if (annotations!.cropRegions.length > 0) {
+                        &nbsp;· {{ annotations!.cropRegions.length }} crop
+                    }
+                </span>
+            }
+        </div>
+    }
+</div>

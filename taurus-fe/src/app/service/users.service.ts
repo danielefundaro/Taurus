@@ -17,7 +17,15 @@ export class UsersService extends CommonOpenSearchService<Users, TenantsCriteria
         return "users";
     }
 
+    public getOwn(): Observable<Users> {
+        return this.http.get<Users>(`${this.baseUrl}/${this.resourceName()}/me`);
+    }
+
     public partialUpdateOwn(dto: UsersMeDTO): Observable<Users> {
         return this.http.patch<Users>(`${this.baseUrl}/${this.resourceName()}/me`, dto);
+    }
+
+    public sendSetupEmail(id: string): Observable<void> {
+        return this.http.put<void>(`${this.baseUrl}/${this.resourceName()}/${id}/send-setup-email`, null);
     }
 }

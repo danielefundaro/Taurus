@@ -12,8 +12,7 @@
                         [disabled]="!isDirty" (onClick)="save()"
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
-                        [disabled]="!album.tracks?.length" [pTooltip]="album.tracks?.length ? '' : previewTooltip"
-                        tooltipPosition="top" />
+                        [disabled]="!album.tracks?.length" />
                 </div>
             </div>
             <p-confirmdialog />
@@ -53,6 +52,8 @@
                 <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
                     <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined
                         (onClick)="addNew()" />
+                    <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt" outlined
+                        (onClick)="onRowReorder()" />
                     <p-button severity="secondary" label="Rimuovi selezionati" icon="pi pi-trash" outlined
                         (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
                 </div>

@@ -4,7 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first } from 'rxjs';
+import { delay, first, forkJoin } from 'rxjs';
 import { AddTenantsDialogComponent } from '../../dialogs/add-tenants-dialog/add-tenants-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Page, Tenants, TenantsCriteria } from '../../module';
@@ -32,6 +32,7 @@ export class TenantsComponent implements OnInit {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected tenants: Tenants[];
+    protected selectedTenants: Tenants[] = [];
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -117,7 +118,55 @@ export class TenantsComponent implements OnInit {
         });
     }
 
+    protected isSelected(item: Tenants): boolean {
+        return this.selectedTenants.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: Tenants[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: Tenants): void {
+        if (this.isSelected(item)) {
+            this.selectedTenants = this.selectedTenants.filter(s => s.id !== item.id);
+        } else {
+            this.selectedTenants = [...this.selectedTenants, item];
+        }
+    }
+
+    protected toggleSelectAll(items: Tenants[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedTenants = this.selectedTenants.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedTenants = [...this.selectedTenants, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedTenants.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente i ${count} tenant selezionati?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedTenants.map(item => this.tenantsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedTenants = [];
+                        this.toastService.success('Successo', `${count} tenant eliminati con successo`);
+                        this.loadElements();
+                    }
+                });
+            },
+        });
+    }
+
     private loadElements(search?: string) {
+        this.selectedTenants = [];
         const tenantsCriteria: TenantsCriteria = new TenantsCriteria();
         tenantsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         tenantsCriteria.size = this.dataViewLazyLoadEvent.rows;

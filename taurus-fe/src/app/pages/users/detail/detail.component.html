@@ -7,7 +7,10 @@
                     <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
                 </div>
                 <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty" (onClick)="save()" />
+                    <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary"
+                        [outlined]="true" (onClick)="sendSetupEmail()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
+                        [disabled]="!isDirty" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />

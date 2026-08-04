@@ -71,6 +71,23 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         });
     }
 
+    protected sendSetupEmail(): void {
+        this.confirmationService.confirm({
+            header: 'Invita utente',
+            message: 'Inviare l\'email di configurazione account a questo utente?',
+            icon: 'pi pi-envelope',
+            acceptLabel: 'Invia',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'primary' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.usersService.sendSetupEmail(this.user.id).pipe(first()).subscribe({
+                    next: () => this.toastService.success('Successo', 'Email di configurazione inviata'),
+                });
+            },
+        });
+    }
+
     protected confirmDelete(): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',

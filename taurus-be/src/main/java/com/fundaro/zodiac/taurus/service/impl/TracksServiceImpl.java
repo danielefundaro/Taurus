@@ -74,7 +74,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
-    public void uploadFile(String id, MultipartFile file, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public void uploadFile(String id, MultipartFile file, String annotations, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (file == null || file.isEmpty()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
         }
@@ -84,6 +84,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         queueUploadFilesDTO.setUserId(userId);
         queueUploadFilesDTO.setMultipartFile(file);
         queueUploadFilesDTO.setType(getEntityName());
+        queueUploadFilesDTO.setDescription(annotations);
 
         if (id != null) {
             queueUploadFilesDTO.setTrackId(id);

@@ -58,14 +58,16 @@
 
     <div class="layout-topbar-actions">
         <div class="layout-config-menu">
-            <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
+            <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()"
+                pTooltip="Cambia tema" tooltipPosition="bottom">
                 <i
                     [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
             </button>
             <div class="relative">
                 <button class="layout-topbar-action layout-topbar-action-highlight" pStyleClass="@next"
                     enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden"
-                    leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
+                    leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true"
+                    pTooltip="Configura il tema" tooltipPosition="bottom">
                     <i class="pi pi-palette"></i>
                 </button>
                 <app-configurator />
@@ -80,17 +82,25 @@
 
         <div class="layout-topbar-menu hidden lg:block">
             <div class="layout-topbar-menu-content">
-                <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']">
+                @if (fullName) {
+                    <div class="topbar-user-info">
+                        <span class="topbar-user-welcome">Benvenuto {{ fullName }}</span>
+                    </div>
+                }
+                <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']"
+                    pTooltip="Calendario" tooltipPosition="bottom">
                     <i class="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
-                <button type="button" class="layout-topbar-action" [routerLink]="['']">
+                <button type="button" class="layout-topbar-action" [routerLink]="['']"
+                    pTooltip="Notifiche" tooltipPosition="bottom">
                     <i class="pi pi-bell"></i>
                     <p-overlaybadge *ngIf="layoutService.notificationNumber();" class="blink-animation"
                         [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
                     <span>Notifications</span>
                 </button>
-                <button type="button" class="layout-topbar-action" [routerLink]="['/profile']">
+                <button type="button" class="layout-topbar-action" [routerLink]="['/profile']"
+                    pTooltip="Profilo" tooltipPosition="bottom">
                     <i class="pi pi-user"></i>
                     <span>Profile</span>
                 </button>
