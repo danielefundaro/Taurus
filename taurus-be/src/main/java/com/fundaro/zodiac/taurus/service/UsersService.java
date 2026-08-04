@@ -15,4 +15,6 @@ public interface UsersService extends CommonOpenSearchService<Users, UsersDTO, U
     Optional<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken);
 
     UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 }

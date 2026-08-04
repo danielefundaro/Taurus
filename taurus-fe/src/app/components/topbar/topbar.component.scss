@@ -6,6 +6,24 @@
     width: 4rem;
 }
 
+.topbar-user-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-right: 1rem;
+    border-right: 1px solid var(--surface-border);
+    margin-right: 0.5rem;
+    line-height: 1.3;
+}
+
+.topbar-user-welcome {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+
 .blink-animation {
   animation: blink 2s infinite cubic-bezier(0.4, 0.13, 0, 0.99);
 }

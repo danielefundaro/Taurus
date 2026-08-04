@@ -1,18 +1,19 @@
-import { HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { Popover } from 'primeng/popover';
 import { Table } from 'primeng/table';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from "../../../components/type-handler/type-handler.component";
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
+import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
 import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
+import { PdfAnnotations } from '../../../module/pdf-annotations.module';
 import { InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
 
 @Component({
@@ -58,10 +59,11 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     isDirty = false;
     isSaving = false;
+    protected selectedFile: File | null = null;
+    protected annotations: PdfAnnotations | null = null;
+    protected uploading = false;
 
     private instruments: Instruments[];
-    private draggedMedia?: ChildrenEntities = undefined;
-    private startDraggedScore?: SheetsMusic = undefined;
 
     constructor(
         private readonly tracksService: TracksService,
@@ -74,6 +76,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly router: Router,
         private readonly confirmationService: ConfirmationService,
         private readonly dialogService: DialogService,
+        private readonly http: HttpClient,
     ) {
         this.cols = ["Ordine", "Media", "Strumenti"];
         this.selectedScores = [];
@@ -170,6 +173,73 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.toastService.error('Errore', 'Caricamento file fallito');
     }
 
+    protected onFileSelect(event: any): void {
+        this.selectedFile = event.currentFiles?.[0] ?? event.files?.[0] ?? null;
+        this.annotations = null;
+    }
+
+    protected onFileClear(): void {
+        this.selectedFile = null;
+        this.annotations = null;
+    }
+
+    protected openManipulator(): void {
+        if (!this.selectedFile) return;
+        const ref = this.dialogService.open(PdfManipulatorDialogComponent, {
+            header: 'Manipolazione PDF',
+            width: '90vw',
+            height: '90vh',
+            focusTrap: false,
+            focusOnShow: false,
+            data: { file: this.selectedFile },
+            contentStyle: {
+                overflow: 'hidden',
+                padding: '0',
+                display: 'flex',
+                flexDirection: 'column',
+                height: 'calc(90vh - 54px)',
+            },
+        });
+        ref.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
+            if (result !== null && result !== undefined) {
+                this.annotations = result;
+            }
+        });
+    }
+
+    protected handleUpload(event: any): void {
+        const file: File = event.files?.[0] ?? this.selectedFile;
+        if (!file) return;
+
+        this.uploading = true;
+        const formData = new FormData();
+        formData.append('file', file);
+        if (this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0)) {
+            formData.append('annotations', JSON.stringify(this.annotations));
+        }
+
+        const headers = new HttpHeaders({ 'Authorization': `Bearer ${this.keycloakService.token}` });
+        this.http.post(this.tracksService.stream(this.track.id), formData, { headers }).subscribe({
+            next: () => {
+                this.uploading = false;
+                this.selectedFile = null;
+                this.annotations = null;
+                this.onUploadSuccess();
+            },
+            error: () => {
+                this.uploading = false;
+                this.onUploadError();
+            },
+        });
+    }
+
+    protected get hasAnnotations(): boolean {
+        return !!(this.annotations && (
+            this.annotations.excludedPages.length > 0 ||
+            this.annotations.cropRegions.length > 0
+        ));
+    }
+
     protected addNew(): void {
         this.track.scores ??= [];
 
@@ -203,6 +273,84 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.selectedScores = [];
     }
 
+    protected confirmMergeSelectedScores(): void {
+        this.confirmationService.confirm({
+            header: 'Conferma unione',
+            message: `Unire le ${this.selectedScores.length} parti selezionate in una sola? I media verranno concatenati nell'ordine delle righe.`,
+            icon: 'pi pi-link',
+            acceptLabel: 'Unisci',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'primary' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.mergeSelectedScores(),
+        });
+    }
+
+    protected mergeSelectedScores(): void {
+        if (!this.track.scores || this.selectedScores.length < 2) return;
+
+        const sorted = [...this.selectedScores].sort((a, b) => a.order! - b.order!);
+
+        const mergedMedia: ChildrenEntities[] = sorted
+            .flatMap(s => s.media ?? [])
+            .map((m, i) => ({ index: m.index, name: m.name, order: i + 1 }));
+
+        const seenIndexes = new Set<string>();
+        const mergedInstruments: ChildrenEntities[] = [];
+        for (const s of sorted) {
+            for (const inst of (s.instruments ?? [])) {
+                if (!seenIndexes.has(inst.index)) {
+                    seenIndexes.add(inst.index);
+                    mergedInstruments.push({ index: inst.index, name: inst.name, order: mergedInstruments.length + 1 });
+                }
+            }
+        }
+
+        const merged = new SheetsMusic();
+        merged.order = sorted[0].order!;
+        merged.description = sorted[0].description;
+        merged.media = mergedMedia;
+        merged.instruments = mergedInstruments;
+
+        const selectedOrders = new Set(sorted.map(s => s.order));
+        this.track.scores = this.track.scores.filter(s => !selectedOrders.has(s.order));
+        this.track.scores.push(merged);
+        this.track.scores.sort((a, b) => a.order! - b.order!).forEach((s, i) => s.order = i + 1);
+
+        this.selectedScores = [];
+        this.isDirty = true;
+    }
+
+    protected confirmSplitScore(score: SheetsMusic): void {
+        this.confirmationService.confirm({
+            header: 'Conferma scorporo',
+            message: `Scorporare questa parte in ${score.media?.length} righe separate (una per pagina)?`,
+            icon: 'pi pi-table',
+            acceptLabel: 'Scorporo',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'primary' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.splitScore(score),
+        });
+    }
+
+    protected splitScore(score: SheetsMusic): void {
+        if (!this.track.scores || (score.media?.length ?? 0) <= 1) return;
+
+        const scoreIndex = this.track.scores.findIndex(s => s.order === score.order);
+        const newScores: SheetsMusic[] = (score.media ?? []).map(m => {
+            const s = new SheetsMusic();
+            s.description = score.description;
+            s.media = [{ index: m.index, name: m.name, order: 1 }];
+            s.instruments = structuredClone(score.instruments ?? []);
+            return s;
+        });
+
+        this.track.scores.splice(scoreIndex, 1, ...newScores);
+        this.track.scores.forEach((s, i) => s.order = i + 1);
+        this.isDirty = true;
+    }
+
     protected onGlobalFilter(table: Table<SheetsMusic>, event: Event): void {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
@@ -217,30 +365,6 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected showMedia(media: ChildrenEntities[]) {
         this.displayGalleria = true;
         this.images = media.map(m => this.mediaService.stream(m.index));
-    }
-
-    protected toggleDataTable(op: Popover, event: any) {
-        op.toggle(event);
-    }
-
-    protected dragStart(startDraggedScore: SheetsMusic, media: ChildrenEntities) {
-        this.startDraggedScore = startDraggedScore;
-        this.draggedMedia = media;
-    }
-
-    protected drop(endDraggedScore: SheetsMusic) {
-        if (this.draggedMedia && this.startDraggedScore != endDraggedScore) {
-            endDraggedScore.media?.push(this.draggedMedia);
-            this.startDraggedScore?.media?.splice(this.startDraggedScore.media.findIndex(m => m.index === this.draggedMedia!.index), 1);
-            this.startDraggedScore = undefined;
-            this.draggedMedia = undefined;
-            this.isDirty = true;
-        }
-    }
-
-    protected dragEnd() {
-        this.startDraggedScore = undefined;
-        this.draggedMedia = undefined;
     }
 
     protected mediaStream(media: ChildrenEntities): string {

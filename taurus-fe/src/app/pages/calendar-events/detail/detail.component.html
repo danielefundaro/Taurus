@@ -113,7 +113,7 @@
                     <td class="text-right">{{ cost.amount | currency:'EUR':'symbol':'1.2-2':'it' }}</td>
                     <td>
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" [text]="true"
-                            (onClick)="confirmRemoveCost(i)" />
+                            pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
                     </td>
                 </tr>
             </ng-template>

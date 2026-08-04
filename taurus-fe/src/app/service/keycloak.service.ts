@@ -26,6 +26,18 @@ export class KeycloakService {
         return this.keycloak.idTokenParsed?.['role'] as RoleEnums || RoleEnums.UNKNOWN;
     }
 
+    public get currentUserFirstName(): string {
+        return (this.keycloak.idTokenParsed?.['given_name'] as string) || '';
+    }
+
+    public get currentUserLastName(): string {
+        return (this.keycloak.idTokenParsed?.['family_name'] as string) || '';
+    }
+
+    public get currentUserTenantCode(): string | undefined {
+        return (this.keycloak.tokenParsed?.['tenant'] as string) || undefined;
+    }
+
     public get isAdmin(): boolean {
         return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN].includes(this.currentUserRole);
     }
