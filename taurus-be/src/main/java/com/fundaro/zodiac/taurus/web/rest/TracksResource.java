@@ -28,9 +28,12 @@ public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, 
      * @return the {@link ResponseEntity} with status {@code 200 (Ok)} and with body the stream of the file, or with status {@code 400 (Bad Request)} if the media has not exists.
      */
     @PostMapping(value = "/stream", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadMedia(@RequestParam("file") MultipartFile file, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> uploadMedia(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "annotations", required = false) String annotations,
+            AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to upload media {}", getEntityName());
-        getService().uploadFile(null, file, abstractAuthenticationToken);
+        getService().uploadFile(null, file, annotations, abstractAuthenticationToken);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(getApplicationName(), false, getEntityName(), ""))
             .build();
@@ -43,9 +46,13 @@ public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, 
      * @return the {@link ResponseEntity} with status {@code 200 (Ok)} and with body the stream of the file, or with status {@code 400 (Bad Request)} if the media has not exists.
      */
     @PostMapping(value = "/{id}/stream", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadMedia(@PathVariable(value = "id") final String id, @RequestParam("file") MultipartFile file, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> uploadMedia(
+            @PathVariable(value = "id") final String id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "annotations", required = false) String annotations,
+            AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to upload {} : {}", getEntityName(), id);
-        getService().uploadFile(id, file, abstractAuthenticationToken);
+        getService().uploadFile(id, file, annotations, abstractAuthenticationToken);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(getApplicationName(), false, getEntityName(), id))
             .build();

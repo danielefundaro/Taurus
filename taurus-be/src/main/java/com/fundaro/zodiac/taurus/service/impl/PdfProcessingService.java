@@ -90,11 +90,17 @@ public class PdfProcessingService {
 
             List<String> candidates = parseCandidateLines(textByFirstPage.getOrDefault(group.getFirstPage(), ""));
 
-            if (candidates.isEmpty()
-                && applicationProperties.getTesseract().isEnabled()
-                && group.getFirstPage() < imagePaths.size()
-            ) {
-                candidates = extractViaOcr(imagePaths.get(group.getFirstPage()));
+            if (candidates.isEmpty() && applicationProperties.getTesseract().isEnabled()) {
+                String firstNonNullPath = null;
+                for (int i = group.getFirstPage(); i <= group.getLastPage() && i < imagePaths.size(); i++) {
+                    if (imagePaths.get(i) != null) {
+                        firstNonNullPath = imagePaths.get(i);
+                        break;
+                    }
+                }
+                if (firstNonNullPath != null) {
+                    candidates = extractViaOcr(firstNonNullPath);
+                }
             }
 
             Set<ChildrenEntitiesDTO> suggested = matchInstruments(candidates, allInstruments);
@@ -122,6 +128,7 @@ public class PdfProcessingService {
         Set<ChildrenEntitiesDTO> mediaSet = new HashSet<>();
         long pageOrder = 1L;
         for (int i = group.getFirstPage(); i <= group.getLastPage() && i < imagePaths.size(); i++) {
+            if (imagePaths.get(i) == null) continue; // page was excluded by user annotations
             MediaDTO saved = saveMedia(imagePaths.get(i), track, token);
             if (saved != null) {
                 ChildrenEntitiesDTO child = new ChildrenEntitiesDTO();

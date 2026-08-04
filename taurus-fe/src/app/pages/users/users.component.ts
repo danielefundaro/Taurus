@@ -4,7 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first, firstValueFrom } from 'rxjs';
+import { delay, first, firstValueFrom, forkJoin } from 'rxjs';
 import { AddUsersDialogComponent } from '../../dialogs/add-users-dialog/add-users-dialog.component';
 import { ImportsModule } from '../../imports';
 import { CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Page, Users, UsersCriteria } from '../../module';
@@ -33,6 +33,7 @@ export class UsersComponent implements OnInit {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected users: Users[];
+    protected selectedUsers: Users[] = [];
 
     private readonly instruments: Instruments[];
 
@@ -105,6 +106,23 @@ export class UsersComponent implements OnInit {
         });
     }
 
+    protected sendSetupEmail(user: Users): void {
+        this.confirmationService.confirm({
+            header: 'Invita utente',
+            message: `Inviare l'email di configurazione account a ${user.name} ${user.lastName}?`,
+            icon: 'pi pi-envelope',
+            acceptLabel: 'Invia',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'primary' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.usersService.sendSetupEmail(user.id).pipe(first()).subscribe({
+                    next: () => this.toastService.success('Successo', 'Email di configurazione inviata'),
+                });
+            },
+        });
+    }
+
     protected deleteElement(user: Users): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
@@ -118,6 +136,53 @@ export class UsersComponent implements OnInit {
                 this.usersService.delete(user.id).pipe(delay(1000), first()).subscribe({
                     next: (value: any) => {
                         this.toastService.success("Successo", "Utente eliminato con successo");
+                        this.loadElements();
+                    }
+                });
+            },
+        });
+    }
+
+    protected isSelected(item: Users): boolean {
+        return this.selectedUsers.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: Users[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: Users): void {
+        if (this.isSelected(item)) {
+            this.selectedUsers = this.selectedUsers.filter(s => s.id !== item.id);
+        } else {
+            this.selectedUsers = [...this.selectedUsers, item];
+        }
+    }
+
+    protected toggleSelectAll(items: Users[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedUsers = this.selectedUsers.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedUsers = [...this.selectedUsers, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedUsers.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente i ${count} utenti selezionati?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedUsers.map(item => this.usersService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedUsers = [];
+                        this.toastService.success('Successo', `${count} utenti eliminati con successo`);
                         this.loadElements();
                     }
                 });
@@ -143,6 +208,7 @@ export class UsersComponent implements OnInit {
     }
 
     private loadElements(search?: string) {
+        this.selectedUsers = [];
         const usersCriteria: UsersCriteria = new UsersCriteria();
         usersCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         usersCriteria.size = this.dataViewLazyLoadEvent.rows;

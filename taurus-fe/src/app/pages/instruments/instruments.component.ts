@@ -4,7 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first } from 'rxjs';
+import { delay, first, forkJoin } from 'rxjs';
 import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Instruments, InstrumentsCriteria, Page } from '../../module';
@@ -32,6 +32,7 @@ export class InstrumentsComponent implements OnInit {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected instruments: Instruments[];
+    protected selectedInstruments: Instruments[] = [];
 
     constructor(
         private readonly instrumentsService: InstrumentsService,
@@ -113,7 +114,55 @@ export class InstrumentsComponent implements OnInit {
         });
     }
 
+    protected isSelected(item: Instruments): boolean {
+        return this.selectedInstruments.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: Instruments[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: Instruments): void {
+        if (this.isSelected(item)) {
+            this.selectedInstruments = this.selectedInstruments.filter(s => s.id !== item.id);
+        } else {
+            this.selectedInstruments = [...this.selectedInstruments, item];
+        }
+    }
+
+    protected toggleSelectAll(items: Instruments[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedInstruments = this.selectedInstruments.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedInstruments = [...this.selectedInstruments, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedInstruments.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente i ${count} strumenti selezionati?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedInstruments.map(item => this.instrumentsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedInstruments = [];
+                        this.toastService.success('Successo', `${count} strumenti eliminati con successo`);
+                        this.loadElements();
+                    }
+                });
+            },
+        });
+    }
+
     private loadElements(search?: string) {
+        this.selectedInstruments = [];
         const instrumentsCriteria: InstrumentsCriteria = new InstrumentsCriteria();
         instrumentsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         instrumentsCriteria.size = this.dataViewLazyLoadEvent.rows;

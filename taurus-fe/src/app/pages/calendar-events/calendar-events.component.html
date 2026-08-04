@@ -30,10 +30,27 @@
 
             <ng-template #list let-items>
                 <div class="flex flex-col">
+                    @if (items.length > 0) {
+                    <div class="flex items-center gap-3 px-6 py-2 border-b border-surface"
+                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                        <p-checkbox [binary]="true" [ngModel]="isAllSelected(items)"
+                            (ngModelChange)="toggleSelectAll(items)" />
+                        <span class="text-sm text-surface-500 cursor-pointer select-none" (click)="toggleSelectAll(items)">
+                            @if (selectedEvents.length > 0) { {{ selectedEvents.length }} selezionati } @else { Seleziona tutto }
+                        </span>
+                        @if (selectedEvents.length > 0) {
+                        <p-button label="Elimina selezionati" icon="pi pi-trash" severity="danger" size="small"
+                            [outlined]="true" (onClick)="deleteSelectedElements()" />
+                        }
+                    </div>
+                    }
                     <ng-container *ngFor="let item of items; let i = index">
                         <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
                             [ngClass]="{ 'border-t border-surface': i !== 0 }">
                             <!-- Date circle -->
+                            <p-checkbox [binary]="true" class="self-center flex-shrink-0" [ngModel]="isSelected(item)"
+                                (ngModelChange)="toggleSelection(item)"
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" />
                             <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
                                 <div
                                     class="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-contrast">
@@ -80,7 +97,7 @@
         <div class="flex items-center justify-between mb-4 px-2 flex-wrap gap-2">
             <div class="flex items-center gap-1">
                 <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary"
-                    (onClick)="goToToday()" pTooltip="Torna al mese corrente" tooltipPosition="bottom" />
+                    (onClick)="goToToday()" />
                 <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente"
                     tooltipPosition="bottom" />
             </div>

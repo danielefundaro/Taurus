@@ -200,6 +200,18 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public void sendExecuteActionsEmail(String userId, List<String> actions) {
+        String url = String.format("%s/users/%s/execute-actions-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), actions, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error sending execute actions email for user on Keycloak: {}", userId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending execute actions email for user on Keycloak", User.class.getSimpleName(), "send.user.execute.actions.email");
+        }
+    }
+
+    @Override
     public void saveGroup(Group group) {
         String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<Group> typeRef = new ParameterizedTypeReference<>() {

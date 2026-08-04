@@ -24,9 +24,24 @@
 
         <ng-template #list let-items>
             <div class="flex flex-col">
+                @if (items.length > 0) {
+                <div class="flex items-center gap-3 px-6 py-2 border-b border-surface">
+                    <p-checkbox [binary]="true" [ngModel]="isAllSelected(items)"
+                        (ngModelChange)="toggleSelectAll(items)" />
+                    <span class="text-sm text-surface-500 cursor-pointer select-none" (click)="toggleSelectAll(items)">
+                        @if (selectedUsers.length > 0) { {{ selectedUsers.length }} selezionati } @else { Seleziona tutto }
+                    </span>
+                    @if (selectedUsers.length > 0) {
+                    <p-button label="Elimina selezionati" icon="pi pi-trash" severity="danger" size="small"
+                        [outlined]="true" (onClick)="deleteSelectedElements()" />
+                    }
+                </div>
+                }
                 <ng-container *ngFor="let item of items; let i = index">
                     <div class="flex flex-row sm:items-center p-6 gap-4"
                         [ngClass]="{ 'border-t border-surface': i !== 0 }">
+                        <p-checkbox [binary]="true" class="self-center flex-shrink-0" [ngModel]="isSelected(item)"
+                            (ngModelChange)="toggleSelection(item)" />
                         <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
                             <p-avatar class="mr-2" [label]="item.name | initials: item.lastName" size="xlarge"
                                 shape="circle"></p-avatar>
@@ -49,8 +64,10 @@
                             <div class="flex flex-row md:flex-row gap-2">
                                 <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
                                     styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
-                                <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                    (onClick)="deleteElement(item)"></p-button>
+                                <p-button icon="pi pi-envelope" pTooltip="Invita utente" styleClass="h-full"
+                                    [outlined]="true" severity="secondary" (onClick)="sendSetupEmail(item)"></p-button>
+                                <p-button icon="pi pi-trash" pTooltip="Elimina utente" styleClass="h-full"
+                                    [outlined]="true" (onClick)="deleteElement(item)"></p-button>
                             </div>
                         </div>
                     </div>
@@ -89,8 +106,11 @@
                                 <div class="flex flex-row gap-2 mt-6">
                                     <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id"
                                         class="flex-auto whitespace-nowrap" styleClass="w-full"></p-button>
-                                    <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                        (onClick)="deleteElement(item)"></p-button>
+                                    <p-button icon="pi pi-envelope" pTooltip="Invita utente"
+                                        styleClass="h-full" [outlined]="true" severity="secondary"
+                                        (onClick)="sendSetupEmail(item)"></p-button>
+                                    <p-button icon="pi pi-trash" pTooltip="Elimina utente" styleClass="h-full"
+                                        [outlined]="true" (onClick)="deleteElement(item)"></p-button>
                                 </div>
                             </div>
                         </div>

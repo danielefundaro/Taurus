@@ -84,7 +84,8 @@ public class NoticesAspect {
     @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.TracksServiceImpl.uploadFile(..))")
     private Object onUploadFile(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
-        String id = getId(joinPoint);
+        Object[] args = joinPoint.getArgs();
+        String id = (args.length > 0 && args[0] instanceof String s) ? s : null;
         MultipartFile file = getMultipartFile(joinPoint);
         Object result = joinPoint.proceed();
 

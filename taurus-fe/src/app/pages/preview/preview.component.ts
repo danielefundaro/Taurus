@@ -22,6 +22,12 @@ export class PreviewComponent implements OnInit, OnDestroy {
     protected instruments: { [key: string]: string };
     protected selectedInstruments: { [key: string]: boolean };
     protected selectAll: boolean;
+    protected displayGalleria: boolean = false;
+    protected readonly responsiveOptions = [
+        { breakpoint: '1024px', numVisible: 5 },
+        { breakpoint: '960px', numVisible: 4 },
+        { breakpoint: '768px', numVisible: 3 },
+    ];
 
     constructor(private readonly printerService: PrinterService, private readonly mediaService: MediaService,
         private readonly rounter: Router) {
@@ -69,6 +75,10 @@ export class PreviewComponent implements OnInit, OnDestroy {
 
     protected print(): void {
         window.print();
+    }
+
+    protected openGalleria(): void {
+        this.displayGalleria = true;
     }
 
     private getInstrumentIndices(value: boolean): { [key: string]: boolean } {

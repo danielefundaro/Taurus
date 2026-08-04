@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.utils;
 
 import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
+import com.fundaro.zodiac.taurus.utils.pdf.PdfCropRegion;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.pdfbox.Loader;
@@ -43,38 +45,110 @@ public class Converter {
     }
 
     public static List<String> pdfToImage(byte[] content, String filename, String destinationPath) throws IOException {
+        return pdfToImage(content, filename, destinationPath, null);
+    }
+
+    /**
+     * Converts a PDF to a list of images, one per page.
+     * The returned list is always index-aligned with the PDF page count: excluded pages produce a
+     * {@code null} entry rather than being dropped, so callers can still use 0-based page indices.
+     *
+     * @param annotations optional exclusion and crop instructions produced by the frontend manipulator;
+     *                    {@code null} means "process all pages without cropping"
+     */
+    public static List<String> pdfToImage(byte[] content, String filename, String destinationPath, PdfAnnotations annotations) throws IOException {
         String formatName = "png";
         int dpi = 300;
         List<String> files = new ArrayList<>();
         filename = filename.replace(" ", "_");
 
+        Set<Integer> excludedPages = (annotations != null && annotations.getExcludedPages() != null)
+            ? new HashSet<>(annotations.getExcludedPages())
+            : Collections.emptySet();
+
+        // Group crop regions by page — multiple regions per page are supported
+        Map<Integer, List<PdfCropRegion>> cropMap = new HashMap<>();
+        if (annotations != null && annotations.getCropRegions() != null) {
+            annotations.getCropRegions().forEach(crop ->
+                cropMap.computeIfAbsent(crop.getPage(), k -> new ArrayList<>()).add(crop));
+        }
+
         // Create destination folder
         File destinationFile = new File(Paths.get(destinationPath, filename).toString());
-
         if (!destinationFile.exists()) {
             destinationFile.mkdirs();
         }
 
-        // Read the pdf file and create images for each page
         try (PDDocument pdDocument = Loader.loadPDF(content)) {
             PDFRenderer pdfRenderer = new PDFRenderer(pdDocument);
 
             for (int page = 0; page < pdDocument.getNumberOfPages(); ++page) {
-                String destinationFilePath = String.format("%s/%s.%s", destinationFile.getPath(), page + 1, formatName);
-                BufferedImage bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.GRAY);
+                int pageNum = page + 1; // annotations use 1-based page numbers
 
-//                // Remove external bounding box
-//                Color avgColor = getAvgColor(bim);
-//                Rectangle bounds = getBounds(bim, avgColor);
-//                BufferedImage trimmed = bim.getSubimage(bounds.x, bounds.y, bounds.width, bounds.height);
+                if (excludedPages.contains(pageNum)) {
+                    files.add(null); // null preserves index alignment for buildSheets()
+                    continue;
+                }
 
-                // Write image into filesystem
+                String destinationFilePath = String.format("%s/%s.%s", destinationFile.getPath(), pageNum, formatName);
+                BufferedImage bim;
+                try {
+                    bim = pdfRenderer.renderImageWithDPI(page, dpi, ImageType.GRAY);
+                } catch (RuntimeException e) {
+                    // PDFBox on Windows may throw RuntimeException on the first render while
+                    // the font cache initialises (WindowsFontDirFinder tries to exec cmd.exe).
+                    throw new IOException("PDF rendering failed for page " + pageNum + ": " + e.getMessage(), e);
+                }
+
+                List<PdfCropRegion> crops = cropMap.get(pageNum);
+                if (crops != null && !crops.isEmpty()) {
+                    bim = applyCrops(bim, crops);
+                }
+
                 ImageIOUtil.writeImage(bim, destinationFilePath, dpi);
                 files.add(destinationFilePath);
             }
         }
 
         return files;
+    }
+
+    private static BufferedImage applyCrops(BufferedImage img, List<PdfCropRegion> crops) {
+        if (crops.size() == 1) {
+            return applyCrop(img, crops.get(0));
+        }
+        List<BufferedImage> regions = crops.stream()
+            .map(c -> applyCrop(img, c))
+            .collect(Collectors.toList());
+        return combineVertically(regions);
+    }
+
+    private static BufferedImage combineVertically(List<BufferedImage> images) {
+        int totalHeight = images.stream().mapToInt(BufferedImage::getHeight).sum();
+        int maxWidth = images.stream().mapToInt(BufferedImage::getWidth).max().orElse(0);
+        BufferedImage combined = new BufferedImage(maxWidth, totalHeight, BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D g = combined.createGraphics();
+        int y = 0;
+        for (BufferedImage img : images) {
+            g.drawImage(img, 0, y, null);
+            y += img.getHeight();
+        }
+        g.dispose();
+        return combined;
+    }
+
+    private static BufferedImage applyCrop(BufferedImage img, PdfCropRegion crop) {
+        int imgW = img.getWidth();
+        int imgH = img.getHeight();
+        int x = clamp((int) (crop.getX() * imgW), 0, imgW - 1);
+        int y = clamp((int) (crop.getY() * imgH), 0, imgH - 1);
+        int w = clamp((int) (crop.getWidth() * imgW), 1, imgW - x);
+        int h = clamp((int) (crop.getHeight() * imgH), 1, imgH - y);
+        return img.getSubimage(x, y, w, h);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     public static byte[] objectToBytes(Object obj) throws IOException {

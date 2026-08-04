@@ -5,7 +5,7 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first } from 'rxjs';
+import { delay, first, forkJoin } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -45,6 +45,7 @@ export class CalendarEventsComponent implements OnInit {
         first: 0, rows: 10, sortField: 'start_date', sortOrder: 1,
     };
     protected events: CalendarEvents[] = [];
+    protected selectedEvents: CalendarEvents[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
     // Calendar (grid) mode state
@@ -196,12 +197,64 @@ export class CalendarEventsComponent implements OnInit {
         });
     }
 
+    protected isSelected(item: CalendarEvents): boolean {
+        return this.selectedEvents.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: CalendarEvents[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: CalendarEvents): void {
+        if (this.isSelected(item)) {
+            this.selectedEvents = this.selectedEvents.filter(s => s.id !== item.id);
+        } else {
+            this.selectedEvents = [...this.selectedEvents, item];
+        }
+    }
+
+    protected toggleSelectAll(items: CalendarEvents[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedEvents = this.selectedEvents.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedEvents = [...this.selectedEvents, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedEvents.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente i ${count} eventi selezionati?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedEvents.map(item => this.calendarEventsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedEvents = [];
+                        this.toastService.success('Successo', `${count} eventi eliminati con successo`);
+                        if (this.layout === 'grid') {
+                            this.loadCalendarMonth();
+                        } else {
+                            this.loadElements();
+                        }
+                    }
+                });
+            },
+        });
+    }
+
     protected getStateLabel(state: string): string {
         const stateLabel = StateLabelsMap.find(s => s.code === state);
         return stateLabel ? stateLabel.name : state;
     }
 
     private loadElements(search?: string): void {
+        this.selectedEvents = [];
         const criteria = new CalendarEventsCriteria();
         criteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         criteria.size = this.dataViewLazyLoadEvent.rows;

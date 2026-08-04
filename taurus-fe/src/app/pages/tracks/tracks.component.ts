@@ -4,7 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first } from 'rxjs';
+import { delay, first, forkJoin } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../constants';
 import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
@@ -34,6 +34,7 @@ export class TracksComponent implements OnInit {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected tracks: Tracks[];
+    protected selectedTracks: Tracks[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
     protected readonly StateEnum: typeof StateEnums = StateEnums;
 
@@ -86,14 +87,10 @@ export class TracksComponent implements OnInit {
             breakpoints: { '1199px': '75vw', '575px': '90vw' },
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result: any) => {
             if (result) {
-                this.tracksService.create(result).pipe(delay(1000), first()).subscribe({
-                    next: (track: Tracks) => {
-                        this.toastService.success("Successo", "Traccia aggiunta con successo");
-                        this.loadElements();
-                    }
-                });
+                this.toastService.success("Successo", "Traccia aggiunta con successo");
+                this.loadElements();
             }
         });
     }
@@ -145,7 +142,55 @@ export class TracksComponent implements OnInit {
         this.printerService.preview(track);
     }
 
+    protected isSelected(item: Tracks): boolean {
+        return this.selectedTracks.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: Tracks[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: Tracks): void {
+        if (this.isSelected(item)) {
+            this.selectedTracks = this.selectedTracks.filter(s => s.id !== item.id);
+        } else {
+            this.selectedTracks = [...this.selectedTracks, item];
+        }
+    }
+
+    protected toggleSelectAll(items: Tracks[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedTracks = this.selectedTracks.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedTracks = [...this.selectedTracks, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedTracks.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente le ${count} tracce selezionate?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedTracks.map(item => this.tracksService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedTracks = [];
+                        this.toastService.success('Successo', `${count} tracce eliminate con successo`);
+                        this.loadElements();
+                    }
+                });
+            },
+        });
+    }
+
     private loadElements(search?: string): void {
+        this.selectedTracks = [];
         const tracksCriteria: TracksCriteria = new TracksCriteria();
         tracksCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         tracksCriteria.size = this.dataViewLazyLoadEvent.rows;

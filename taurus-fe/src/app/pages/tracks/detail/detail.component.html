@@ -13,8 +13,7 @@
                         [disabled]="!isDirty" (onClick)="save()"
                         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
                     <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
-                        [disabled]="!track.scores?.length" [pTooltip]="track.scores?.length ? '' : previewTooltip"
-                        tooltipPosition="top" />
+                        [disabled]="!track.scores?.length" />
                 </div>
             </div>
             <p-confirmdialog />
@@ -56,12 +55,23 @@
     <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
         <span class="font-semibold text-lg block mb-4">File pdf</span>
         <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
-            mode="advanced" accept="application/pdf" [headers]="httpHeaders()" [url]="trackStream()"
-            (onUpload)="onUploadSuccess()" (onError)="onUploadError()">
+            mode="advanced" accept="application/pdf" [customUpload]="true" (uploadHandler)="handleUpload($event)"
+            (onSelect)="onFileSelect($event)" (onClear)="onFileClear()" (onRemove)="onFileClear()">
             <ng-template #empty>
                 <div>Trascina il file qui per caricarlo.</div>
             </ng-template>
         </p-fileupload>
+        @if (selectedFile) {
+        <div class="flex items-center gap-3 mt-3">
+            <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" [outlined]="true"
+                (onClick)="openManipulator()" />
+            @if (hasAnnotations) {
+            <span class="flex items-center gap-1 text-sm text-primary font-medium">
+                <i class="pi pi-check-circle"></i>Annotazioni applicate
+            </span>
+            }
+        </div>
+        }
     </div>
 
     <!-- Tabella parti -->
@@ -74,7 +84,9 @@
                 <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
                     <p-button severity="primary" label="Aggiungi parte" icon="pi pi-plus" outlined
                         (onClick)="addNew()" />
-                    <p-button severity="secondary" label="Elimina selezionati" icon="pi pi-trash" outlined
+                    <p-button severity="secondary" label="Unisci selezionati" icon="pi pi-link" outlined
+                        (onClick)="confirmMergeSelectedScores()" [disabled]="selectedScores.length < 2" />
+                    <p-button severity="danger" label="Elimina selezionati" icon="pi pi-trash" outlined
                         (onClick)="confirmDeleteSelectedScores()" [disabled]="!selectedScores.length" />
                 </div>
                 <p-iconfield>
@@ -118,13 +130,9 @@
                         <span class="text-sm text-surface-400 mb-1">
                             {{ score.media?.length ?? 0 }} {{ (score.media?.length ?? 0) === 1 ? 'pagina' : 'pagine' }}
                         </span>
-                        <div pDroppable class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1 w-100"
-                            (onDrop)="drop(score)">
+                        <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1 w-100">
                             <ng-container *ngFor="let media of score!.media">
-                                <div pDraggable class="div-image pi pi-image cursor-pointer"
-                                    (click)="toggleDataTable(op2, $event)" (keydown)="toggleDataTable(op2, $event)"
-                                    (keypress)="toggleDataTable(op2, $event)" (keyup)="toggleDataTable(op2, $event)"
-                                    (onDragStart)="dragStart(score, media)" (onDragEnd)="dragEnd()">
+                                <div class="div-image pi pi-image">
                                     <p-popover #op2 [style]="{width: '50rem'}">
                                         <img [src]="mediaStream(media) | secure | async" class="w-50"
                                             alt="sheet-music-{{media.index}}" />
@@ -133,7 +141,7 @@
                             </ng-container>
                         </div>
                         <p-button icon="pi pi-images" label="Visualizza" (onClick)="showMedia(score.media)"
-                            class="mt-2 block" *ngIf="score!.media?.length >= 3" />
+                            class="mt-2 block" />
                     </div>
                 </td>
                 <td class="minw-8rem">
@@ -147,6 +155,12 @@
                         <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
                             tooltipPosition="top" (onClick)="editScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                        <ng-container *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                            @if ((score.media?.length ?? 0) > 1) {
+                                <p-button icon="pi pi-table" severity="secondary" [rounded]="true" [outlined]="true"
+                                    pTooltip="Scorporo" tooltipPosition="top" (onClick)="confirmSplitScore(score)" />
+                            }
+                        </ng-container>
                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
                             pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteScore(score)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />

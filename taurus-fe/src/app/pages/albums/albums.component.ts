@@ -4,7 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first } from 'rxjs';
+import { delay, first, forkJoin } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -35,6 +35,7 @@ export class AlbumsComponent implements OnInit {
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
     protected albums: Albums[];
+    protected selectedAlbums: Albums[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
 
     constructor(
@@ -122,7 +123,55 @@ export class AlbumsComponent implements OnInit {
         this.printerService.preview(album);
     }
 
+    protected isSelected(item: Albums): boolean {
+        return this.selectedAlbums.some(s => s.id === item.id);
+    }
+
+    protected isAllSelected(items: Albums[]): boolean {
+        return items.length > 0 && items.every(item => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: Albums): void {
+        if (this.isSelected(item)) {
+            this.selectedAlbums = this.selectedAlbums.filter(s => s.id !== item.id);
+        } else {
+            this.selectedAlbums = [...this.selectedAlbums, item];
+        }
+    }
+
+    protected toggleSelectAll(items: Albums[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedAlbums = this.selectedAlbums.filter(s => !items.some(item => item.id === s.id));
+        } else {
+            const notYetSelected = items.filter(item => !this.isSelected(item));
+            this.selectedAlbums = [...this.selectedAlbums, ...notYetSelected];
+        }
+    }
+
+    protected deleteSelectedElements(): void {
+        const count = this.selectedAlbums.length;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Eliminare definitivamente i ${count} album selezionati?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                forkJoin(this.selectedAlbums.map(item => this.albumsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
+                    next: () => {
+                        this.selectedAlbums = [];
+                        this.toastService.success('Successo', `${count} album eliminati con successo`);
+                        this.loadElements();
+                    }
+                });
+            },
+        });
+    }
+
     private loadElements(search?: string): void {
+        this.selectedAlbums = [];
         const albumsCriteria: AlbumsCriteria = new AlbumsCriteria();
         albumsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
         albumsCriteria.size = this.dataViewLazyLoadEvent.rows;

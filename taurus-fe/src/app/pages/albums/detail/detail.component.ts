@@ -148,8 +148,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                     return childrenEntities;
                 }));
 
-                this.album.tracks.forEach((track, i) => track.order = i + 1);
-                this.isDirty = true;
+                this.onRowReorder();
             }
         });
     }
@@ -177,8 +176,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected deleteTrack(selectedTrack: ChildrenEntities): void {
         this.album.tracks?.splice(this.album.tracks.findIndex(track => selectedTrack.index === track.index), 1);
-        this.album.tracks?.forEach((track, i) => track.order = i + 1);
-        this.isDirty = true;
+        this.onRowReorder();
     }
 
     private loadElement(id: string): void {
