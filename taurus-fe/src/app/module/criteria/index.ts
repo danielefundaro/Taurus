@@ -9,4 +9,5 @@ export * from "./notices-criteria.module";
 export * from "./preferences-criteria.module";
 export * from "./tenants-criteria.module";
 export * from "./tracks-criteria.module";
+export * from "./users-calendar-events-criteria.module";
 export * from "./users-criteria.module";

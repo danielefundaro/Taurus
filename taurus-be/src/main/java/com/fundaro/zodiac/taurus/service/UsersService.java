@@ -1,9 +1,13 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.criteria.UserCalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.util.Optional;
@@ -17,4 +21,8 @@ public interface UsersService extends CommonOpenSearchService<Users, UsersDTO, U
     UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken);
 
     void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    Page<CalendarEventsDTO> getUserCalendarEvents(String id, UserCalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    Page<CalendarEventsDTO> getCurrentUserCalendarEvents(UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);
 }

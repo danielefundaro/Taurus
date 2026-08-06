@@ -10,7 +10,7 @@ import { TypeHandlerComponent } from "../../../components/type-handler/type-hand
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';

@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, SelectItem } from 'primeng/api';
-import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
+import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
+import { CalendarEventsTableComponent } from "../../../components/calendar-events-table/calendar-events-table.component";
 import { RoleEnums } from '../../../constants';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Users } from '../../../module';
 import { EnumConverterPipe } from '../../../pipe';
@@ -15,7 +16,7 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
     selector: 'app-user-detail',
     imports: [
         ImportsModule,
-        AutoCompleteModule,
+        CalendarEventsTableComponent
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
@@ -26,9 +27,7 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
 })
 export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected sortOptions!: SelectItem[];
-    protected totalRecords: number = 0;
     protected user: Users = new Users();
-    protected cols: string[];
     protected selectedTracks: ChildrenEntities[];
     isDirty = false;
     isSaving = false;
@@ -49,7 +48,6 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly confirmationService: ConfirmationService,
         private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>,
     ) {
-        this.cols = ["Codice", "Ordine", "Nome"];
         this.selectedTracks = [];
 
         this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);

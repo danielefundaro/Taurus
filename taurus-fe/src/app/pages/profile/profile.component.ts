@@ -2,14 +2,15 @@ import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/cor
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { ConfirmationService } from 'primeng/api';
 import { first } from 'rxjs';
-import { HasUnsavedChanges } from '../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../guard';
 import { ImportsModule } from '../../imports';
 import { KeycloakService, ToastService, UsersService } from '../../service';
+import { CalendarEventsTableComponent } from "../../components/calendar-events-table/calendar-events-table.component";
 
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, CalendarEventsTableComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [ConfirmationService, UsersService],
@@ -68,7 +69,16 @@ export class ProfileComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected logout(): void {
-        this.keycloakService.logout();
+        this.confirmationService.confirm({
+            header: 'Logout',
+            message: "Sei sicuro di voler uscire?",
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Logout',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary', outlined: true },
+            accept: () => this.keycloakService.logout(),
+        });
     }
 
     protected confirmDeleteAccount(): void {

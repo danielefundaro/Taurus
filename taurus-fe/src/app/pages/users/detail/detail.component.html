@@ -4,11 +4,12 @@
             <div class="flex flex-row justify-between items-center">
                 <div class="flex items-center gap-2">
                     <span class="font-semibold text-xl">Utente</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
+                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
+                        title="Modifiche non salvate"></span>
                 </div>
                 <div class="flex gap-2">
-                    <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary"
-                        [outlined]="true" (onClick)="sendSetupEmail()" />
+                    <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" [outlined]="true"
+                        (onClick)="sendSetupEmail()" />
                     <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
                         [disabled]="!isDirty" (onClick)="save()" />
                 </div>
@@ -16,8 +17,7 @@
             <p-confirmdialog />
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="user!.name"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="name" type="text" [(ngModel)]="user!.name" (ngModelChange)="isDirty = true" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
@@ -38,8 +38,8 @@
                     <label for="birthDate">Data di nascita</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete inputId="roles" [(ngModel)]="user!.roles" [suggestions]="autoFilteredRoles" [virtualScroll]="true"
-                        [virtualScrollItemSize]="34" dropdown multiple display="chip"
+                    <p-autocomplete inputId="roles" [(ngModel)]="user!.roles" [suggestions]="autoFilteredRoles"
+                        [virtualScroll]="true" [virtualScrollItemSize]="34" dropdown multiple display="chip"
                         (completeMethod)="filterRoles($event)" (ngModelChange)="isDirty = true" />
                     <label for="roles">Ruoli</label>
                 </p-floatlabel>
@@ -51,9 +51,9 @@
             </div>
             <div class="flex flex-col md:flex-row gap-6">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete inputId="instruments" [(ngModel)]="user!.instruments" [suggestions]="autoFilteredInstruments"
-                        [virtualScroll]="true" [virtualScrollItemSize]="34" optionLabel="name" dropdown multiple
-                        display="chip" (completeMethod)="filterInstruments($event)"
+                    <p-autocomplete inputId="instruments" [(ngModel)]="user!.instruments"
+                        [suggestions]="autoFilteredInstruments" [virtualScroll]="true" [virtualScrollItemSize]="34"
+                        optionLabel="name" dropdown multiple display="chip" (completeMethod)="filterInstruments($event)"
                         (ngModelChange)="onReorderInstruments()" />
                     <label for="instruments">Strumenti</label>
                 </p-floatlabel>
@@ -66,11 +66,21 @@
         </div>
     </div>
 
+    <div class="flex mt-4">
+        <div class="card flex flex-col gap-4 w-full">
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-xl">Eventi a cui ha partecipato</span>
+            </div>
+            <app-calendar-events-table [userId]="user.id" />
+        </div>
+    </div>
+
     <!-- Zona pericolosa -->
     <div class="card danger-zone mt-8">
         <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
         <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questo utente e tutti i dati associati.</span>
+            <span class="text-sm text-surface-500">Elimina definitivamente questo utente e tutti i dati
+                associati.</span>
             <p-button label="Elimina utente" icon="pi pi-trash" severity="danger" [outlined]="true"
                 (onClick)="confirmDelete()" />
         </div>

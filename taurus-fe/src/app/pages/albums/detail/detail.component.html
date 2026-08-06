@@ -43,73 +43,79 @@
         </div>
     </div>
 
-    <p-table #dt class="minw-75rem mt-4" [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true"
-        [globalFilterFields]="['name']" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} tracce" [showCurrentPageReport]="true"
-        [rowsPerPageOptions]="[10, 20, 30]" (onRowReorder)="onRowReorder()">
-        <ng-template #caption>
-            <div class="flex items-center justify-between flex-wrap gap-3">
-                <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                    <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined
-                        (onClick)="addNew()" />
-                    <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt" outlined
-                        (onClick)="onRowReorder()" />
-                    <p-button severity="secondary" label="Rimuovi selezionati" icon="pi pi-trash" outlined
-                        (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
-                </div>
-                <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Cerca traccia..." />
-                </p-iconfield>
-            </div>
-        </ng-template>
-        <ng-template #header>
-            <tr>
-                <th class="w-12" scope="col">
-                    <p-tableHeaderCheckbox />
-                </th>
-                <th class="w-10" scope="col"></th>
-                <th pSortableColumn="order" class="minw-8rem" scope="col">
-                    Ordine
-                    <p-sortIcon field="order" />
-                </th>
-                <th pSortableColumn="name" class="minw-8rem" scope="col">
-                    Nome
-                    <p-sortIcon field="name" />
-                </th>
-                <th class="minw-2rem" scope="col"></th>
-            </tr>
-        </ng-template>
-        <ng-template #body let-track let-index="rowIndex">
-            <tr [pReorderableRow]="index">
-                <td class="w-12">
-                    <p-tableCheckbox [value]="track" />
-                </td>
-                <td class="w-10">
-                    <span *ngIf="canReorder()" class="pi pi-bars text-surface-400" style="cursor: grab"
-                        pReorderableRowHandle></span>
-                </td>
-                <td class="minw-8rem">{{ track.order }}</td>
-                <td class="minw-8rem">{{ track.name }}</td>
-                <td class="minw-2rem">
-                    <div class="flex flex-col md:flex-row gap-2">
-                        <a [routerLink]="'/tracks/'+track.index">
-                            <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza"
-                                tooltipPosition="top" />
-                        </a>
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                            pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteTrack(track)"
-                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+    <div class="flex mt-4">
+        <div class="card flex flex-col gap-4 w-full">
+            <p-table #dt class="mt-4" [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true"
+                [globalFilterFields]="['name']" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
+                currentPageReportTemplate="Da {first} a {last} di {totalRecords} tracce" [showCurrentPageReport]="true"
+                [rowsPerPageOptions]="[10, 20, 30]" (onRowReorder)="onRowReorder()">
+                <ng-template #caption>
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between flex-wrap gap-3">
+                        <div class="flex flex-col md:flex-row gap-2"
+                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                            <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined
+                                (onClick)="addNew()" />
+                            <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt"
+                                outlined (onClick)="onRowReorder()" />
+                            <p-button severity="secondary" label="Rimuovi selezionati" icon="pi pi-trash" outlined
+                                (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
+                        </div>
+                        <p-iconfield>
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input pInputText type="text" (input)="onGlobalFilter(dt, $event)"
+                                placeholder="Cerca traccia..." />
+                        </p-iconfield>
                     </div>
-                </td>
-            </tr>
-        </ng-template>
-        <ng-template #emptymessage>
-            <tr>
-                <td colspan="5" class="text-center py-6 text-color-secondary">Nessuna traccia presente.</td>
-            </tr>
-        </ng-template>
-    </p-table>
+                </ng-template>
+                <ng-template #header>
+                    <tr>
+                        <th class="w-12" scope="col">
+                            <p-tableHeaderCheckbox />
+                        </th>
+                        <th class="w-10" scope="col"></th>
+                        <th pSortableColumn="order" scope="col">
+                            Ordine
+                            <p-sortIcon field="order" />
+                        </th>
+                        <th pSortableColumn="name" scope="col">
+                            Nome
+                            <p-sortIcon field="name" />
+                        </th>
+                        <th scope="col"></th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-track let-index="rowIndex">
+                    <tr [pReorderableRow]="index">
+                        <td class="w-12">
+                            <p-tableCheckbox [value]="track" />
+                        </td>
+                        <td class="w-10">
+                            <span *ngIf="canReorder()" class="pi pi-bars text-surface-400" style="cursor: grab"
+                                pReorderableRowHandle></span>
+                        </td>
+                        <td>{{ track.order }}</td>
+                        <td>{{ track.name }}</td>
+                        <td>
+                            <div class="flex flex-col md:flex-row gap-2">
+                                <a [routerLink]="'/tracks/'+track.index">
+                                    <p-button icon="pi pi-search" [rounded]="true" [outlined]="true"
+                                        pTooltip="Visualizza" tooltipPosition="top" />
+                                </a>
+                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                                    pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteTrack(track)"
+                                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="5" class="text-center py-6 text-color-secondary">Nessuna traccia presente.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
 
     <!-- Zona pericolosa -->
     <div class="card danger-zone mt-8" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">

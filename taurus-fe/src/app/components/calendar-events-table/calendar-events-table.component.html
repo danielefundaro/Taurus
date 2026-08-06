@@ -1,0 +1,38 @@
+<p-table [value]="calendarEvents" [paginator]="true" [rows]="10" [rowHover]="true" dataKey="id"
+    currentPageReportTemplate="Da {first} a {last} di {totalRecords} parti" [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]" [lazy]="true" (onLazyLoad)="onLazyLoadCalendarEvents($event)">
+    <ng-template #caption>
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <p-floatlabel class="flex" variant="on">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="startDate" dateFormat="dd-mm-yy"
+                    [(ngModel)]="startDate" (ngModelChange)="onDateFilter()" />
+                <label for="startDate">Data di inizio</label>
+            </p-floatlabel>
+            <p-floatlabel class="flex" variant="on">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="endDate" dateFormat="dd-mm-yy"
+                    [(ngModel)]="endDate" (ngModelChange)="onDateFilter()" />
+                <label for="endDate">Data di fine</label>
+            </p-floatlabel>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="header">
+        <tr>
+            <th pSortableColumn="name" scope="col">Nome <p-sortIcon field="name"></p-sortIcon></th>
+            <th pSortableColumn="startDate" scope="col">Data inizio <p-sortIcon field="startDate"></p-sortIcon></th>
+            <th pSortableColumn="endDate" scope="col">Data fine <p-sortIcon field="endDate"></p-sortIcon>
+            </th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-event>
+        <tr>
+            <td>{{ event.name }}</td>
+            <td>{{ event.startDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ event.endDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+        <tr>
+            <td colspan="3">Nessun evento trovato.</td>
+        </tr>
+    </ng-template>
+</p-table>

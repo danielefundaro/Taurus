@@ -5,7 +5,7 @@ import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { CalendarEvents, EventCost, EventPresentUser, Users } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';

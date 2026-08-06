@@ -47,10 +47,6 @@
     backdrop-filter: blur(3px);
 }
 
-.w-100 {
-    width: 100%;
-}
-
 .menu-separator {
     border-top: 3px solid var(--surface-border);
     border-radius: 0;
@@ -64,4 +60,16 @@
     line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+.danger-zone {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.danger-zone-label {
+    color: rgb(220, 38, 38);
+}
+
+:host-context(.app-dark) .danger-zone-label {
+    color: rgb(252, 165, 165);
 }

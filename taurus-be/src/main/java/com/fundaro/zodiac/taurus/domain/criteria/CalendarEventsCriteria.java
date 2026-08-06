@@ -16,6 +16,7 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
     private DateFilter endDate;
     private StringFilter location;
     private StateFilter state;
+    private StringFilter presentUserId;
 
     public CalendarEventsCriteria() {
         super();
@@ -27,6 +28,7 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
         this.endDate = other.optionalEndDate().map(DateFilter::copy).orElse(null);
         this.location = other.optionalLocation().map(StringFilter::copy).orElse(null);
         this.state = other.optionalState().map(StateFilter::copy).orElse(null);
+        this.presentUserId = other.optionalPresentUserId().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -86,6 +88,19 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
+    public StringFilter getPresentUserId() {
+        return presentUserId;
+    }
+
+    public Optional<StringFilter> optionalPresentUserId() {
+        return Optional.ofNullable(presentUserId);
+    }
+
+    public CalendarEventsCriteria setPresentUserId(StringFilter presentUserId) {
+        this.presentUserId = presentUserId;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -95,12 +110,13 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
             Objects.equals(startDate, that.startDate) &&
             Objects.equals(endDate, that.endDate) &&
             Objects.equals(location, that.location) &&
-            Objects.equals(state, that.state);
+            Objects.equals(state, that.state) &&
+            Objects.equals(presentUserId, that.presentUserId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), startDate, endDate, location, state);
+        return Objects.hash(super.hashCode(), startDate, endDate, location, state, presentUserId);
     }
 
     // prettier-ignore
@@ -113,6 +129,7 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
             optionalEndDate().map(f -> "endDate=" + f + ", ").orElse("") +
             optionalLocation().map(f -> "location=" + f + ", ").orElse("") +
             optionalState().map(f -> "state=" + f + ", ").orElse("") +
+            optionalPresentUserId().map(f -> "presentUserId=" + f + ", ").orElse("") +
             "}";
     }
 }
