@@ -13,15 +13,3 @@
         background-color: rgba(59, 130, 246, 0.08) !important;
     }
 }
-
-.danger-zone {
-    border-color: rgba(239, 68, 68, 0.4) !important;
-}
-
-.danger-zone-label {
-    color: rgb(220, 38, 38);
-}
-
-:host-context(.app-dark) .danger-zone-label {
-    color: rgb(252, 165, 165);
-}

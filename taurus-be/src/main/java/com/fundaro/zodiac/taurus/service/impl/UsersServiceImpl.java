@@ -1,13 +1,20 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.UserCalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
+import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
@@ -19,6 +26,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -26,11 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.jhipster.service.filter.StringFilter;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Service Implementation for managing {@link Users}.
@@ -43,10 +47,13 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     public final TenantsService tenantsService;
 
-    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService) {
+    public final CalendarEventsService calendarEventsService;
+
+    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService) {
         super(openSearchService, indexResolver, mapper, UsersService.class, Users.class);
         this.keycloakService = keycloakService;
         this.tenantsService = tenantsService;
+        this.calendarEventsService = calendarEventsService;
     }
 
     @Override
@@ -161,6 +168,41 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         keycloakService.sendExecuteActionsEmail(usersDTO.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
+    }
+
+    @Override
+    public Page<CalendarEventsDTO> getUserCalendarEvents(String id, UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        StringFilter userFilter = new StringFilter();
+        StateFilter stateFilter = new StateFilter();
+        DateFilter startDateFilter = new DateFilter(), endDateFilter = new DateFilter();
+        CalendarEventsCriteria criteria = new CalendarEventsCriteria();
+
+        userFilter.setEquals(id);
+        stateFilter.setIn(List.of(StateEnum.COMPLETE, StateEnum.PUBLIC));
+        criteria.setPresentUserId(userFilter).setState(stateFilter);
+
+        if (userCalendarEventsCriteria.getStartDate() != null) {
+            startDateFilter.setGreaterThanOrEqual(userCalendarEventsCriteria.getStartDate());
+            criteria.setStartDate(startDateFilter);
+        }
+
+        if (userCalendarEventsCriteria.getEndDate() != null) {
+            endDateFilter.setLessThanOrEqual(userCalendarEventsCriteria.getEndDate());
+            criteria.setEndDate(endDateFilter);
+        }
+
+        return calendarEventsService.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
+    }
+
+    @Override
+    public Page<CalendarEventsDTO> getCurrentUserCalendarEvents(UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO currentUser = findMe(abstractAuthenticationToken).orElse(null);
+
+        if (currentUser == null) {
+            return new PageImpl<>(new ArrayList<>(), pageable, 0L);
+        }
+
+        return this.getUserCalendarEvents(currentUser.getId(), userCalendarEventsCriteria, pageable, abstractAuthenticationToken);
     }
 
     @Override

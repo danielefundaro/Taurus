@@ -1,32 +1,8 @@
-.profile-wrapper {
-    display: flex;
-    justify-content: center;
-}
-
-.profile-content {
-    width: 100%;
-    max-width: 720px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
 .profile-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    flex-shrink: 0;
+    width: 4.75rem;
+    height: 4.75rem;
 
     i {
         font-size: 1.75rem;
     }
-}
-
-.danger-zone {
-    border: 1px solid var(--red-300);
 }

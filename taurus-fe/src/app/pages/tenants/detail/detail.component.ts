@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { ChildrenEntities, Tenants } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
