@@ -63,6 +63,7 @@ public class CalendarEventsServiceImpl extends CommonOpenSearchServiceImpl<Calen
         queries.addAll(Converter.dateFilterToQuery("end_date", criteria.getEndDate()));
         queries.addAll(Converter.stringFilterToQuery("location.keyword", criteria.getLocation()));
         queries.addAll(Converter.generalFilterToQuery("state.keyword", criteria.getState()));
+        queries.addAll(Converter.stringFilterToQuery("present_users.index", criteria.getPresentUserId()));
         return queries;
     }
 

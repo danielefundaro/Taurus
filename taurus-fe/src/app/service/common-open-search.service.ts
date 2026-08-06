@@ -46,7 +46,7 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this.http.delete<void>(`${this._baseUrl}/${this.resourceName()}/${id}`);
     }
 
-    private createRequestOption(req?: any): HttpParams {
+    protected createRequestOption(req?: any): HttpParams {
         let options: HttpParams = new HttpParams();
 
         if (req) {

@@ -144,6 +144,7 @@ public class CalendarEventsServiceImpl
         queries.addAll(Converter.dateFilterToQuery("start_date", criteria.getStartDate()));
         queries.addAll(Converter.dateFilterToQuery("end_date", criteria.getEndDate()));
         queries.addAll(Converter.stringFilterToQuery("location.keyword", criteria.getLocation()));
+        queries.addAll(Converter.stringFilterToQuery("present_users.index", criteria.getPresentUserId()));
 
         return queries;
     }

@@ -7,7 +7,7 @@ import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { IncludeTracksDialogComponent } from '../../../dialogs/include-tracks-dialog/include-tracks-dialog.component';
-import { HasUnsavedChanges } from '../../../guard/unsaved-changes.guard';
+import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { Albums, ChildrenEntities, Tracks } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
