@@ -24,6 +24,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.apache.logging.log4j.util.Strings;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -196,9 +197,9 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     @Override
     public Page<CalendarEventsDTO> getCurrentUserCalendarEvents(UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        UsersDTO currentUser = findMe(abstractAuthenticationToken).orElse(null);
+        UsersDTO currentUser = findMe(abstractAuthenticationToken).orElse(new UsersDTO());
 
-        if (currentUser == null) {
+        if (Strings.isBlank(currentUser.getId())) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0L);
         }
 
