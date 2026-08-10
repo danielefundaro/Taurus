@@ -1,0 +1,100 @@
+<div class="card">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold m-0">Documenti legali</h1>
+            <p class="text-surface-500 dark:text-surface-400 mt-2 mb-0">Gestisci versioni, collegamenti e documenti attualmente richiesti agli utenti.</p>
+        </div>
+        <p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" />
+    </div>
+
+    <div class="legal-information mb-5">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <span>I documenti già accettati sono immutabili. Per aggiornare il contenuto crea una nuova versione e impostala come attiva.</span>
+    </div>
+
+    <p-table [value]="documents" [loading]="loading" [rowHover]="true" [paginator]="documents.length > 10" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll">
+        <ng-template #header>
+            <tr>
+                <th>Documento</th>
+                <th>Versione</th>
+                <th>Pubblicazione</th>
+                <th>Conferma</th>
+                <th>Obbligatorio</th>
+                <th>Stato</th>
+                <th class="w-24"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-document>
+            <tr>
+                <td>
+                    <div class="font-semibold">{{ document.title }}</div>
+                    <div class="text-sm text-surface-500 mt-1">{{ typeLabel(document.documentType) }}</div>
+                    <a class="document-link" [href]="document.url" target="_blank" rel="noopener noreferrer"> {{ document.url }} <i class="pi pi-external-link"></i> </a>
+                </td>
+                <td>{{ document.version }}</td>
+                <td>{{ document.publishedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ actionLabel(document.action) }}</td>
+                <td>
+                    <p-tag [value]="document.required ? 'Sì' : 'No'" [severity]="document.required ? 'info' : 'secondary'" />
+                </td>
+                <td>
+                    <p-tag [value]="document.active ? 'Attivo' : 'Non attivo'" [severity]="document.active ? 'success' : 'secondary'" />
+                </td>
+                <td class="text-right">
+                    <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" pTooltip="Modifica" (onClick)="editDocument(document)" />
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="7" class="text-center py-8 text-surface-500">Nessun documento configurato.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [draggable]="false" [style]="{ width: '48rem' }" [breakpoints]="{ '960px': '75vw', '640px': '94vw' }" [header]="editingDocument.id ? 'Modifica documento' : 'Nuovo documento'">
+    <p-fluid class="flex flex-col gap-5 pt-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p-floatlabel variant="on">
+                <p-select inputId="documentType" [options]="documentTypes" optionLabel="label" optionValue="value" [(ngModel)]="editingDocument.documentType" (ngModelChange)="documentTypeChanged($event)" appendTo="body" />
+                <label for="documentType">Tipo documento</label>
+            </p-floatlabel>
+            <p-floatlabel variant="on">
+                <input pInputText id="version" [(ngModel)]="editingDocument.version" autocomplete="off" />
+                <label for="version">Versione</label>
+            </p-floatlabel>
+        </div>
+
+        <p-floatlabel variant="on">
+            <input pInputText id="title" [(ngModel)]="editingDocument.title" autocomplete="off" />
+            <label for="title">Titolo</label>
+        </p-floatlabel>
+
+        <p-floatlabel variant="on">
+            <input pInputText id="url" type="url" [(ngModel)]="editingDocument.url" autocomplete="off" />
+            <label for="url">URL pubblico del documento</label>
+        </p-floatlabel>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p-floatlabel variant="on">
+                <p-select inputId="action" [options]="actions" optionLabel="label" optionValue="value" [(ngModel)]="editingDocument.action" appendTo="body" />
+                <label for="action">Modalità di conferma</label>
+            </p-floatlabel>
+            <p-floatlabel variant="on">
+                <p-datepicker inputId="publishedAt" [(ngModel)]="publishedAt" [showIcon]="true" [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body" />
+                <label for="publishedAt">Data di pubblicazione</label>
+            </p-floatlabel>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <p-togglebutton [(ngModel)]="editingDocument.required" onLabel="Obbligatorio" offLabel="Facoltativo" onIcon="pi pi-lock" offIcon="pi pi-lock-open" />
+            <p-togglebutton [(ngModel)]="editingDocument.active" onLabel="Versione attiva" offLabel="Versione non attiva" onIcon="pi pi-check-circle" offIcon="pi pi-circle" />
+        </div>
+    </p-fluid>
+
+    <ng-template #footer>
+        <p-button label="Annulla" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+        <p-button label="Salva" icon="pi pi-check" [loading]="saving" [disabled]="!isValid" (onClick)="saveDocument()" />
+    </ng-template>
+</p-dialog>
