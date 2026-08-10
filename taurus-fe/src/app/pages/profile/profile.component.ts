@@ -95,10 +95,7 @@ export class ProfileComponent implements OnInit, HasUnsavedChanges {
     }
 
     private deleteAccount(): void {
-        const userId = this.keycloakService.currentUserId;
-        if (!userId) return;
-
-        this.usersService.delete(userId).pipe(first()).subscribe({
+        this.usersService.deleteOwn().pipe(first()).subscribe({
             next: () => this.keycloakService.logout(),
             error: () => {
                 this.toastService.error('Errore', "Impossibile eliminare l'account.");

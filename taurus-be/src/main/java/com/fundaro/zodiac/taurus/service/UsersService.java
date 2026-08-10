@@ -20,6 +20,8 @@ public interface UsersService extends CommonOpenSearchService<Users, UsersDTO, U
 
     UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken);
 
+    void deleteOwn(AbstractAuthenticationToken abstractAuthenticationToken);
+
     void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     Page<CalendarEventsDTO> getUserCalendarEvents(String id, UserCalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);

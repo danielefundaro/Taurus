@@ -147,6 +147,21 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
+    public void deleteOwn(AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO currentUser = findMe(abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+
+        if (Strings.isNotBlank(currentUser.getId())) {
+            super.delete(currentUser.getId(), abstractAuthenticationToken);
+        }
+
+        String keycloakId = Strings.isNotBlank(currentUser.getKeycloakId())
+            ? currentUser.getKeycloakId()
+            : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        keycloakService.deleteUser(keycloakId);
+    }
+
+    @Override
     public Optional<UsersDTO> findMe(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         UsersCriteria usersCriteria = new UsersCriteria();

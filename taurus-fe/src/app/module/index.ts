@@ -9,6 +9,7 @@ export * from "./common-fields-open-search.module";
 export * from "./criteria/index";
 export * from "./instruments.module";
 export * from "./last-researches.module";
+export * from "./legal.module";
 export * from "./media.module";
 export * from "./notices.module";
 export * from "./page.module";

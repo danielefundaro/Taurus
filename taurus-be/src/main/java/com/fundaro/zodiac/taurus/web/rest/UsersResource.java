@@ -80,6 +80,16 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
     }
 
     /**
+     * {@code DELETE /me} : Delete the current user's own account.
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteOwnEntity(AbstractAuthenticationToken abstractAuthenticationToken) {
+        getLog().debug("REST request to delete current user account");
+        getService().deleteOwn(abstractAuthenticationToken);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * {@code GET /me/calendar-events} : Get all the calendar events of the current user was present at
      *
      * @param pageable the pagination information.

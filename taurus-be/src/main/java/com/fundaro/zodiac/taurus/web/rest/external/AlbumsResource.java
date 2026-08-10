@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController("ExternalPermissionsAlbumResource")
 @RequestMapping("/api/external/albums")
-@PreAuthorize("hasRole('ROLE_USER_EXTERNAL')")
+@PreAuthorize("hasAuthority('ROLE_USER_EXTERNAL')")
 public class AlbumsResource extends CommonOpenSearchResource<Albums, AlbumsDTO, AlbumsCriteria, AlbumsService> {
 
     public AlbumsResource(@Qualifier("ExternalPermissionsAlbumsService") AlbumsService service) {
