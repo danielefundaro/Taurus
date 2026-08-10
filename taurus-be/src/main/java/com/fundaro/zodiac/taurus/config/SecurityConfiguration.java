@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -88,18 +89,105 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(authz ->
                 // prettier-ignore
                 authz
-                    .requestMatchers("/**").permitAll()
-                    .requestMatchers("/api/authenticate").permitAll()
-                    .requestMatchers("/api/auth-info").permitAll()
-                    .requestMatchers("/api/admin/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    // Public authentication metadata.
+                    .requestMatchers(HttpMethod.GET, "/api/authenticate", "/api/auth-info").permitAll()
+
+                    // Endpoints available to every authenticated user.
+                    .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/logout").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/legal/status").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/legal/acceptances").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/users/me", "/api/users/me/calendar-events").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/api/users/me").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
+                    .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
+                        .authenticated()
+
+                    // All users can get instruments information
+                    .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()
+
+                    // Legal document administration and tenant administration.
+                    .requestMatchers("/api/legal/documents/**", "/api/tenants/**")
+                        .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
+                    .requestMatchers("/api/legal/**").denyAll()
+
+                    // User administration. Self-service endpoints are matched above.
+                    .requestMatchers("/api/users/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+
+                    // Catalogue administration.
+                    .requestMatchers("/api/albums/**", "/api/tracks/**", "/api/instruments/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+
+                    // Read-only catalogue APIs for standard and external users.
+                    .requestMatchers(HttpMethod.GET, "/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**")
+                        .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers("/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**").denyAll()
+                    .requestMatchers(HttpMethod.GET, "/api/external/albums/**", "/api/external/tracks/**")
+                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
+
+                    // Calendar event administration and personal availability.
+                    .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/{id}/availability")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.GET, "/api/calendar-events/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.POST, "/api/calendar-events")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers(HttpMethod.PUT, "/api/calendar-events/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/api/calendar-events/**").denyAll()
+
+                    .requestMatchers(HttpMethod.GET, "/api/user/calendar-events/**")
+                        .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers(HttpMethod.PATCH, "/api/user/calendar-events/{id}/availability")
+                        .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers(HttpMethod.DELETE, "/api/user/calendar-events/{id}/availability")
+                        .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers("/api/user/calendar-events/**").denyAll()
+
+                    .requestMatchers(HttpMethod.GET, "/api/external/calendar-events/**")
+                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers(HttpMethod.PATCH, "/api/external/calendar-events/{id}/availability")
+                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers(HttpMethod.DELETE, "/api/external/calendar-events/{id}/availability")
+                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers("/api/external/calendar-events/**").denyAll()
+
+                    // Media reads are used by every authenticated FE role; writes remain administrative.
+                    .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/media/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.PUT, "/api/media/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.PATCH, "/api/media/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.DELETE, "/api/media/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers("/api/media/**").denyAll()
+
+                    .requestMatchers("/api/admin/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/api/**").authenticated()
                     .requestMatchers("/services/**").authenticated()
-                    .requestMatchers("/v3/api-docs/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/v3/api-docs/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/health").permitAll()
                     .requestMatchers("/management/health/**").permitAll()
                     .requestMatchers("/management/info").permitAll()
-                    .requestMatchers("/management/prometheus").permitAll()
-                    .requestMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/management/prometheus")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/management/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+
+                    // Angular static resources and client-side route fallback. Must remain last.
+                    .requestMatchers("/**").permitAll()
             )
             .oauth2Login(oauth2 -> oauth2.authorizationEndpoint(endpoint ->
                 endpoint.authorizationRequestResolver(authorizationRequestResolver(this.clientRegistrationRepository))

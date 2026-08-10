@@ -1,13 +1,8 @@
 package com.fundaro.zodiac.taurus.security;
 
 import com.fundaro.zodiac.taurus.config.Constants;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -180,12 +175,18 @@ public final class SecurityUtils {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private static Collection<String> getRolesFromClaims(Map<String, Object> claims) {
-        return (Collection<String>) claims.getOrDefault(
-            "groups",
-            claims.getOrDefault("roles", claims.getOrDefault(CLAIMS_NAMESPACE + "roles", new ArrayList<>()))
-        );
+        Set<String> roles = new LinkedHashSet<>();
+
+        addRoles(roles, claims.get("role"));
+        addRoles(roles, claims.get("roles"));
+        addRoles(roles, claims.get("groups"));
+        addRoles(roles, claims.get(CLAIMS_NAMESPACE + "roles"));
+
+        // Compatibilità con il formato standard Keycloak:
+        // resource_access.web_app.roles
+
+        return roles;
     }
 
     private static String getAttributeFromAuthentication(String attributeName, AbstractAuthenticationToken authToken) {
@@ -203,5 +204,16 @@ public final class SecurityUtils {
         }
 
         return attributes.get(attributeName).toString();
+    }
+
+    private static void addRoles(Set<String> roles, Object claim) {
+        if (claim instanceof String role) {
+            roles.add(role);
+        } else if (claim instanceof Collection<?> values) {
+            values.stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .forEach(roles::add);
+        }
     }
 }

@@ -30,6 +30,10 @@ export class UsersService extends CommonOpenSearchService<Users, UsersCriteria> 
         return this.http.patch<Users>(`${this.baseUrl}/${this.resourceName()}/me`, dto);
     }
 
+    public deleteOwn(): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me`);
+    }
+
     public sendSetupEmail(id: string): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/${this.resourceName()}/${id}/send-setup-email`, null);
     }

@@ -94,7 +94,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         let page = 0;
         const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name.keyword,asc'] };
 
-        this.instrumentsService.getAll().pipe(first()).subscribe(async result => {
+        this.instrumentsService.getAll(instrumentsCriteria).pipe(first()).subscribe(async result => {
             let totalElements = result.totalElements;
             this.instruments = result.content;
 

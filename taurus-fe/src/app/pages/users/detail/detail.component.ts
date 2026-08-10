@@ -143,7 +143,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     private preloadEntities<T extends CommonFieldsOpenSearch, T1 extends CommonOpenSearchCriteria>(service: CommonOpenSearchService<T, T1>, criteria: T1, results: T[]): void {
         let page = criteria.page ?? 0;
 
-        service.getAll().pipe(first()).subscribe(async (result) => {
+        service.getAll(criteria).pipe(first()).subscribe(async (result) => {
             let totalElements = result.totalElements;
             results.push(...result.content);
 
@@ -155,7 +155,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 totalElements = data.totalElements;
             }
 
-            this.instrumentsChildrenEntities = this.instruments.map(instrument => {
+            this.instrumentsChildrenEntities = results.map(instrument => {
                 const childrenEntity = new ChildrenEntities();
                 childrenEntity.name = instrument.name;
                 childrenEntity.index = instrument.id;

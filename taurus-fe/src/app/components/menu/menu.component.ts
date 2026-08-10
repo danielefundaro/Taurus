@@ -37,6 +37,12 @@ export class MenuComponent implements OnInit {
                 routerLink: ['/pages'],
                 items: [
                     {
+                        label: 'Documenti legali',
+                        icon: 'pi pi-fw pi-file-check',
+                        routerLink: ['/legal-documents'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN],
+                    },
+                    {
                         label: 'Istanze',
                         icon: 'pi pi-fw pi-building',
                         routerLink: ['/tenants'],
