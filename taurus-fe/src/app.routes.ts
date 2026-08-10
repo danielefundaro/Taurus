@@ -1,18 +1,22 @@
 import { Routes } from '@angular/router';
 import { RoleEnums } from './app/constants';
 import { canActivateAuthRole } from './app/guard/auth-role.guard';
+import { legalDocumentsGuard } from './app/guard/legal-documents.guard';
 import { canDeactivateUnsavedChanges } from './app/guard/unsaved-changes.guard';
 import { DashboardComponent } from './app/pages/dashboard/dashboard.component';
 import { Forbidden } from './app/pages/forbidden/forbidden.component';
 import { LayoutComponent } from './app/pages/layout/layout.component';
+import { LegalAcceptanceComponent } from './app/pages/legal-acceptance/legal-acceptance.component';
 import { Notfound } from './app/pages/notfound/notfound.component';
 import { PreviewComponent } from './app/pages/preview/preview.component';
 import { ProfileComponent } from './app/pages/profile/profile.component';
 
 export const appRoutes: Routes = [
+    { path: 'legal/accept', component: LegalAcceptanceComponent },
     {
         path: '',
         component: LayoutComponent,
+        canActivateChild: [legalDocumentsGuard],
         children: [
             {
                 path: '',
@@ -31,6 +35,12 @@ export const appRoutes: Routes = [
                 loadChildren: () => import('./app/pages/users/users.routes'),
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] },
+            },
+            {
+                path: 'legal-documents',
+                loadChildren: () => import('./app/pages/legal-documents/legal-documents.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN] },
             },
             {
                 path: 'albums',

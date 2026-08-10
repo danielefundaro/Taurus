@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController("ExternalPermissionsTracksResource")
 @RequestMapping("/api/external/tracks")
-@PreAuthorize("hasRole('ROLE_USER_EXTERNAL')")
+@PreAuthorize("hasAuthority('ROLE_USER_EXTERNAL')")
 public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, TracksCriteria, TracksService> {
 
     public TracksResource(@Qualifier("ExternalPermissionsTracksService") TracksService service) {

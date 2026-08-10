@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController("ExternalPermissionsCalendarEventsResource")
 @RequestMapping("/api/external/calendar-events")
-@PreAuthorize("hasRole('ROLE_USER_EXTERNAL')")
+@PreAuthorize("hasAuthority('ROLE_USER_EXTERNAL')")
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
     public CalendarEventsResource(@Qualifier("ExternalPermissionsCalendarEventsService") CalendarEventsService service) {
