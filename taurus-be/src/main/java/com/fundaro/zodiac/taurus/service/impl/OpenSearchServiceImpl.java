@@ -10,6 +10,7 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
+import org.opensearch.client.opensearch._types.Result;
 import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
 import org.opensearch.client.opensearch.indices.PutMappingResponse;
@@ -69,6 +70,12 @@ public class OpenSearchServiceImpl implements OpenSearchService {
     @Override
     public CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException {
         return openSearchClient.count(fn.apply(new CountRequest.Builder()).build());
+    }
+
+    @Override
+    public boolean deleteDocument(String indexName, String id) throws IOException {
+        DeleteResponse response = openSearchClient.delete(builder -> builder.index(indexName).id(id));
+        return response.result() == Result.Deleted;
     }
 
     @Override

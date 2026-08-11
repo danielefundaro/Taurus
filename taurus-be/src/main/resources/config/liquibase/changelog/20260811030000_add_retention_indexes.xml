@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260811030000-1" author="taurus">
+    <createIndex tableName="notices" indexName="idx_notices_retention">
+      <column name="insert_date"/>
+    </createIndex>
+    <createIndex tableName="notices" indexName="idx_notices_user_tenant">
+      <column name="user_id"/>
+      <column name="tenant_code"/>
+    </createIndex>
+
+    <createIndex tableName="last_research" indexName="idx_last_research_retention">
+      <column name="insert_date"/>
+    </createIndex>
+    <createIndex tableName="last_research" indexName="idx_last_research_user_tenant">
+      <column name="user_id"/>
+      <column name="tenant_code"/>
+    </createIndex>
+
+    <createIndex tableName="preferences" indexName="idx_preferences_user_tenant">
+      <column name="user_id"/>
+      <column name="tenant_code"/>
+    </createIndex>
+
+    <createIndex tableName="push_subscriptions" indexName="idx_push_subscriptions_user_tenant">
+      <column name="user_id"/>
+      <column name="tenant_code"/>
+    </createIndex>
+
+    <createIndex tableName="push_reminders" indexName="idx_push_reminders_user_tenant">
+      <column name="user_id"/>
+      <column name="tenant_code"/>
+    </createIndex>
+
+    <createIndex tableName="user_legal_acceptance" indexName="idx_user_legal_acceptance_tenant">
+      <column name="tenant_code"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

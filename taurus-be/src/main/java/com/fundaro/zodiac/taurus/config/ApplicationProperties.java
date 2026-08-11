@@ -2,6 +2,8 @@ package com.fundaro.zodiac.taurus.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.List;
+
 /**
  * Properties specific to Taurus.
  * <p>
@@ -17,6 +19,8 @@ public class ApplicationProperties {
     private Keycloak keycloak;
 
     private VapidProperties vapid = new VapidProperties();
+
+    private RetentionProperties retention = new RetentionProperties();
 
     public String getBasePath() {
         return basePath;
@@ -48,6 +52,14 @@ public class ApplicationProperties {
 
     public void setVapid(VapidProperties vapid) {
         this.vapid = vapid;
+    }
+
+    public RetentionProperties getRetention() {
+        return retention;
+    }
+
+    public void setRetention(RetentionProperties retention) {
+        this.retention = retention;
     }
 
     private TesseractProperties tesseract = new TesseractProperties();
@@ -186,5 +198,40 @@ public class ApplicationProperties {
 
         public String getSubject() { return subject; }
         public void setSubject(String subject) { this.subject = subject; }
+    }
+
+    public static class RetentionProperties {
+        private boolean cleanupEnabled = true;
+        private String cleanupCron = "0 0 3 * * *";
+        private int noticesDays = 365;
+        private int lastResearchDays = 365;
+        private int sentPushRemindersDays = 30;
+        private List<String> tenantIndices = List.of(
+            "albums",
+            "instruments",
+            "media",
+            "queue-upload-files",
+            "tracks",
+            "users",
+            "calendar-events"
+        );
+
+        public boolean isCleanupEnabled() { return cleanupEnabled; }
+        public void setCleanupEnabled(boolean cleanupEnabled) { this.cleanupEnabled = cleanupEnabled; }
+
+        public String getCleanupCron() { return cleanupCron; }
+        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
+
+        public int getNoticesDays() { return noticesDays; }
+        public void setNoticesDays(int noticesDays) { this.noticesDays = noticesDays; }
+
+        public int getLastResearchDays() { return lastResearchDays; }
+        public void setLastResearchDays(int lastResearchDays) { this.lastResearchDays = lastResearchDays; }
+
+        public int getSentPushRemindersDays() { return sentPushRemindersDays; }
+        public void setSentPushRemindersDays(int sentPushRemindersDays) { this.sentPushRemindersDays = sentPushRemindersDays; }
+
+        public List<String> getTenantIndices() { return tenantIndices; }
+        public void setTenantIndices(List<String> tenantIndices) { this.tenantIndices = tenantIndices; }
     }
 }

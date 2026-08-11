@@ -43,10 +43,13 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
 
     private final KeycloakService keycloakService;
 
-    public TenantsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TenantsMapper mapper, ChangelogService changelogService, KeycloakService keycloakService) {
+    private final DataErasureService dataErasureService;
+
+    public TenantsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TenantsMapper mapper, ChangelogService changelogService, KeycloakService keycloakService, DataErasureService dataErasureService) {
         super(openSearchService, indexResolver, mapper, TenantsService.class, Tenants.class);
         this.changelogService = changelogService;
         this.keycloakService = keycloakService;
+        this.dataErasureService = dataErasureService;
     }
 
     @Override
@@ -105,6 +108,21 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         }
 
         return Optional.of(page.getContent().get(0));
+    }
+
+    @Override
+    public TenantsDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        return super.delete(id, abstractAuthenticationToken);
+    }
+
+    @Override
+    public void deleteForGdpr(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        TenantsDTO tenant = findOneIncludingDeleted(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notfound"));
+        String groupId = keycloakService.getGroupIdByName(tenant.getCode());
+        dataErasureService.eraseTenantData(tenant.getCode());
+        keycloakService.deleteGroup(groupId);
+        deletePermanently(id, abstractAuthenticationToken);
     }
 
     @Override

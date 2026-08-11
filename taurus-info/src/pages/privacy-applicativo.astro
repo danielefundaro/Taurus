@@ -1,0 +1,70 @@
+---
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Privacy dell’applicativo" description="Informativa sul trattamento dei dati personali nella piattaforma Taurus.">
+  <section class="legal-hero">
+    <div class="container-shell">
+      <span class="eyebrow">Piattaforma Taurus</span>
+      <h1 class="display-title">Privacy dell’applicativo</h1>
+      <p class="body-large">Versione 1.0 · 11 agosto 2026</p>
+    </div>
+  </section>
+  <section class="legal-content">
+    <article class="container-shell prose-legal">
+      <h2>1. Soggetti e ruoli</h2>
+      <p><strong>Daniele Fundarò</strong>, persona fisica stabilita in Italia e contattabile all’indirizzo <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>, gestisce l’infrastruttura tecnica di Taurus e determina finalità e mezzi dei trattamenti necessari ad account, autenticazione, sicurezza e funzionamento del servizio.</p>
+      <p>Per i dati e i contenuti inseriti nell’ambito di un’organizzazione, il tenant determina finalità, utenti autorizzati e modalità d’uso. Il relativo amministratore opera per conto del tenant; il gestore di Taurus tratta tecnicamente tali dati per consentire l’erogazione del servizio.</p>
+
+      <h2>2. Dati trattati</h2>
+      <ul>
+        <li>dati di account e profilo, inclusi nome, cognome, email, data di nascita, ruoli e identificativo tecnico;</li>
+        <li>dati di autenticazione e autorizzazione gestiti tramite Keycloak;</li>
+        <li>preferenze, notifiche, cronologia delle ricerche e accettazioni dei documenti legali;</li>
+        <li>cataloghi, album, tracce, strumenti, eventi, presenze, documenti, immagini e altri contenuti caricati dal tenant;</li>
+        <li>log tecnici e informazioni necessarie alla sicurezza e alla diagnosi degli errori.</li>
+      </ul>
+
+      <h2>3. Finalità e basi giuridiche</h2>
+      <p>I dati sono trattati per creare e amministrare gli account, fornire le funzionalità richieste, applicare ruoli e isolamento tra tenant, proteggere il servizio, gestire notifiche e documentare le accettazioni legali. Le basi giuridiche dipendono dal trattamento e comprendono esecuzione del servizio, legittimo interesse alla sicurezza, adempimento di obblighi di legge e, quando necessario, consenso.</p>
+
+      <h2>4. Utenti minorenni</h2>
+      <p>Gli account dei minorenni possono essere creati esclusivamente da un amministratore tenant. Il tenant garantisce di essere autorizzato a effettuare la registrazione e di disporre della base giuridica, delle autorizzazioni e degli eventuali consensi richiesti, inclusa l’autorizzazione di chi esercita la responsabilità genitoriale quando necessaria. Le richieste relative ai dati di un minore possono essere inviate all’amministratore tenant o al contatto indicato in questa informativa.</p>
+
+      <h2>5. Destinatari e infrastruttura</h2>
+      <p>I dati sono accessibili agli amministratori e agli utenti autorizzati del tenant secondo i rispettivi ruoli. Il gestore può accedervi solo quando necessario per assistenza, sicurezza o manutenzione. L’infrastruttura è fornita da Contabo; PostgreSQL, OpenSearch, Keycloak e RabbitMQ sono componenti tecnici della piattaforma.</p>
+
+      <h2>6. Conservazione e cancellazione</h2>
+      <ul>
+        <li>account e contenuti sono conservati mentre l’account o il tenant rimangono attivi;</li>
+        <li>notifiche e cronologia delle ricerche sono cancellate automaticamente entro 365 giorni;</li>
+        <li>i promemoria push già inviati sono cancellati entro 30 giorni;</li>
+        <li>i log tecnici sono conservati per un massimo di 5 giorni;</li>
+        <li>le email di assistenza e segnalazione sono cancellate entro 30 giorni, salvo obblighi di legge o necessità di tutela di un diritto;</li>
+        <li>le accettazioni legali sono conservate durante la vita dell’account e cancellate con esso;</li>
+        <li>non vengono effettuati backup applicativi dei dati.</li>
+      </ul>
+      <p>La disattivazione ordinaria degli account e degli utenti e l’archiviazione dei tenant utilizzano il soft-delete: i relativi record vengono esclusi dalle normali viste amministrative, ma le informazioni restano conservate. L’archiviazione del record di un tenant non revoca automaticamente le sessioni Keycloak già attive. La cancellazione fisica avviene soltanto alla scadenza dei periodi di conservazione applicabili o in seguito a un comando esplicito di cancellazione definitiva GDPR.</p>
+      <p>Il comando GDPR dell’account rimuove i dati personali collegati in tutti i tenant, l’identità Keycloak, le code di caricamento e i riferimenti nominativi negli eventi. Il comando GDPR del tenant rimuove indici, dati relazionali, file e gruppo di autorizzazione associati. I contenuti che devono essere conservati per una valida ragione giuridica devono essere preventivamente esportati o anonimizzati dal tenant.</p>
+
+      <h2>7. Sicurezza</h2>
+      <p>Taurus adotta autenticazione centralizzata, autorizzazioni per ruolo, separazione logica dei tenant e controlli di accesso. Nessun sistema può tuttavia garantire sicurezza assoluta; eventuali incidenti vengono gestiti secondo la normativa applicabile.</p>
+
+      <h2>8. Conferimento e decisioni automatizzate</h2>
+      <p>I dati contrassegnati come necessari sono indispensabili per creare l’account e utilizzare il servizio. Taurus non effettua profilazione pubblicitaria né adotta decisioni con effetti giuridici basate esclusivamente su trattamenti automatizzati.</p>
+
+      <h2>9. Diritti e segnalazioni</h2>
+      <p>Nei casi previsti, l’interessato può chiedere accesso, rettifica, cancellazione, limitazione, opposizione o portabilità contattando il proprio amministratore tenant o scrivendo a <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>. È possibile proporre reclamo al <a href="https://www.garanteprivacy.it/" rel="noreferrer">Garante per la protezione dei dati personali</a>.</p>
+
+      <h2>10. Aggiornamenti</h2>
+      <p>Le modifiche sostanziali vengono pubblicate come nuova versione e, quando richiesto, presentate agli utenti per presa visione o accettazione prima di proseguire nell’utilizzo.</p>
+    </article>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-hero { padding: clamp(4.5rem,9vw,8rem) 0 3rem; }
+  .legal-hero .body-large { margin-top: 1rem; font-size: .95rem; }
+  .legal-content { padding: 1rem 0 clamp(5rem,10vw,9rem); }
+</style>

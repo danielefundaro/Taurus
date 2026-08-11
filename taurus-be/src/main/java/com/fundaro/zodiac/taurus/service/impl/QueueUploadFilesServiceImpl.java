@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.criteria.QueueUploadFilesCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
@@ -21,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -34,11 +33,11 @@ import java.util.List;
 @Transactional
 public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<QueueUploadFiles, QueueUploadFilesDTO, QueueUploadFilesCriteria, QueueUploadFilesMapper> implements QueueUploadFilesService {
 
-    private final String basePath;
+    private final TenantStorageService tenantStorageService;
 
-    public QueueUploadFilesServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, QueueUploadFilesMapper queueUploadFilesMapper, ApplicationProperties applicationProperties) {
+    public QueueUploadFilesServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, QueueUploadFilesMapper queueUploadFilesMapper, TenantStorageService tenantStorageService) {
         super(openSearchService, indexResolver, queueUploadFilesMapper, QueueUploadFilesService.class, QueueUploadFiles.class);
-        basePath = applicationProperties.getBasePath();
+        this.tenantStorageService = tenantStorageService;
     }
 
     @Override
@@ -47,7 +46,13 @@ public class QueueUploadFilesServiceImpl extends CommonOpenSearchServiceImpl<Que
             MultipartFile multipartFile = dto.getMultipartFile();
             String fileName = multipartFile.getOriginalFilename().replaceAll(" ", "_");
             byte[] bytes = multipartFile.getBytes();
-            Path path = Paths.get(basePath, UploadFileStatusEnum.TO_PROCESS.toString().toLowerCase(), new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()), fileName);
+            String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+            Path path = tenantStorageService.resolve(
+                tenantCode,
+                UploadFileStatusEnum.TO_PROCESS.toString().toLowerCase(),
+                new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()),
+                fileName
+            );
             if (!path.toFile().exists()) {
                 Files.createDirectories(path.getParent());
             }

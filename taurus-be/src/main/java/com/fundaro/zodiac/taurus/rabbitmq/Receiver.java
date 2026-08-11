@@ -2,14 +2,15 @@ package com.fundaro.zodiac.taurus.rabbitmq;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
+import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import org.apache.logging.log4j.util.Strings;
@@ -24,7 +25,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +41,7 @@ public class Receiver {
 
     private final PdfProcessingService pdfProcessingService;
 
-    private final String basePath;
+    private final TenantStorageService tenantStorageService;
 
     private final ObjectMapper objectMapper;
 
@@ -49,13 +49,13 @@ public class Receiver {
         QueueUploadFilesService queueUploadFilesService,
         TracksService tracksService,
         PdfProcessingService pdfProcessingService,
-        ApplicationProperties applicationProperties
+        TenantStorageService tenantStorageService
     ) {
         this.tracksService = tracksService;
         this.pdfProcessingService = pdfProcessingService;
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
-        this.basePath = applicationProperties.getBasePath();
+        this.tenantStorageService = tenantStorageService;
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -97,7 +97,9 @@ public class Receiver {
                 List<String> filesPath;
 
                 try (InputStream inputStream = new FileInputStream(file)) {
-                    String destinationPath = Paths.get(basePath, type, file.getParentFile().getName())
+                    String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+                    String destinationPath = tenantStorageService
+                        .resolve(tenantCode, type, file.getParentFile().getName())
                         .toString().toLowerCase();
                     log.info("Converting pdf2Image file from {} to {}", sourcePath, destinationPath);
                     pdfBytes = inputStream.readAllBytes();

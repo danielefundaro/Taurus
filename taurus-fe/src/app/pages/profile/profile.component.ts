@@ -83,14 +83,27 @@ export class ProfileComponent implements OnInit, HasUnsavedChanges {
 
     protected confirmDeleteAccount(): void {
         this.confirmationService.confirm({
-            header: 'Elimina account',
-            message: "Sei sicuro di voler eliminare il tuo account? Questa operazione è irreversibile e tutti i tuoi dati verranno persi definitivamente.",
+            header: 'Disattiva account',
+            message: "Vuoi disattivare il tuo account?",
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Disattiva',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'warn' },
+            rejectButtonProps: { severity: 'secondary', outlined: true },
+            accept: () => this.deleteAccount(),
+        });
+    }
+
+    protected confirmGdprDeletion(): void {
+        this.confirmationService.confirm({
+            header: 'Cancellazione definitiva GDPR',
+            message: "La cancellazione ai sensi del GDPR è definitiva e irreversibile.</br>L'account e i dati personali verranno eliminati fisicamente e non sarà possibile recuperarli in futuro.</br>Vuoi procedere?",
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Elimina definitivamente',
             rejectLabel: 'Annulla',
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary', outlined: true },
-            accept: () => this.deleteAccount(),
+            accept: () => this.deleteAccountForGdpr(),
         });
     }
 
@@ -100,6 +113,13 @@ export class ProfileComponent implements OnInit, HasUnsavedChanges {
             error: () => {
                 this.toastService.error('Errore', "Impossibile eliminare l'account.");
             },
+        });
+    }
+
+    private deleteAccountForGdpr(): void {
+        this.usersService.deleteOwnForGdpr().pipe(first()).subscribe({
+            next: () => this.keycloakService.logout(),
+            error: () => this.toastService.error('Errore', "Impossibile completare la cancellazione definitiva dell'account."),
         });
     }
 }
