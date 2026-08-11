@@ -108,6 +108,7 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
         form.setAttribute("tenantRolesMap", tenantRolesMap);
         form.setAttribute("tenants", new ArrayList<>(tenantRolesMap.keySet()));
         form.setAttribute("tenantNamesMap", buildTenantNamesMap(context.getUser(), tenantRolesMap.keySet()));
+        form.setAttribute("roleSelectionRequired", tenantRolesMap.values().stream().anyMatch(roles -> roles.size() > 1));
 
         if (preselectedTenant != null) {
             form.setAttribute("selectedTenant", preselectedTenant);
