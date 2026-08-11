@@ -1,0 +1,118 @@
+---
+import { siteConfig } from '../config/site';
+import Brand from './Brand.astro';
+---
+
+<footer class="site-footer">
+  <div class="container-shell footer-grid">
+    <div class="footer-brand">
+      <Brand light />
+      <p>Uno spazio ordinato per custodire, cercare e condividere il patrimonio musicale.</p>
+    </div>
+    <div>
+      <h2>Esplora</h2>
+      <a href="/#prodotto">Prodotto</a>
+      <a href="/funzionalita/">Funzionalità</a>
+      <a href="/#sicurezza">Sicurezza</a>
+      <a href="/contatti/">Contatti</a>
+    </div>
+    <div>
+      <h2>Informazioni</h2>
+      <a href="/privacy/">Privacy</a>
+      <a href="/termini/">Termini di utilizzo</a>
+      <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>
+    </div>
+    <div class="footer-cta">
+      <h2>Hai già un account?</h2>
+      <a href={siteConfig.appUrl}>Apri Taurus <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+  <div class="container-shell footer-bottom">
+    <span>© {new Date().getFullYear()} Taurus</span>
+    <span>Progettato per archivi musicali vivi.</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding: 4.5rem 0 1.5rem;
+    color: rgba(255, 255, 255, 0.72);
+    background: var(--color-moss-900);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.7fr 0.8fr 1fr 1fr;
+    gap: clamp(2rem, 5vw, 5rem);
+  }
+
+  .footer-brand p {
+    max-width: 25rem;
+    margin: 1.25rem 0 0;
+    line-height: 1.7;
+  }
+
+  h2 {
+    margin: 0 0 1rem;
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  a {
+    display: block;
+    width: fit-content;
+    margin-top: 0.7rem;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: white;
+  }
+
+  .footer-cta a {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 850px) {
+    .footer-grid {
+      grid-template-columns: 1.5fr 1fr 1fr;
+    }
+
+    .footer-brand {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 580px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-cta {
+      grid-column: 1 / -1;
+    }
+
+    .footer-bottom {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>

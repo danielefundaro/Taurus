@@ -1,0 +1,16 @@
+{
+  "name": "Taurus",
+  "short_name": "Taurus",
+  "description": "Il patrimonio musicale, finalmente in armonia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf5",
+  "theme_color": "#173d31",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+---
+import { siteConfig } from '../config/site';
+import Brand from './Brand.astro';
+import Icon from './Icon.astro';
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header" data-header>
+  <div class="container-shell header-inner">
+    <a class="brand-link" href="/" aria-label="Taurus, pagina iniziale"><Brand /></a>
+
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation" data-menu-toggle>
+      <span class="sr-only">Apri il menu</span>
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav id="site-navigation" class="site-navigation" aria-label="Navigazione principale" data-navigation>
+      {siteConfig.navigation.map((item) => (
+        <a class:list={["nav-link", { active: item.href !== '/#prodotto' && currentPath.startsWith(item.href.replace(/\/$/, '')) }]} href={item.href}>{item.label}</a>
+      ))}
+      <a class="button-primary access-link" href={siteConfig.appUrl}>Accedi <Icon name="arrow" size={18} /></a>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const toggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  const navigation = document.querySelector<HTMLElement>('[data-navigation]');
+
+  const closeMenu = () => {
+    toggle?.setAttribute('aria-expanded', 'false');
+    navigation?.classList.remove('open');
+  };
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!isOpen));
+    navigation?.classList.toggle('open', !isOpen);
+  });
+
+  navigation?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+  window.addEventListener('scroll', () => header?.classList.toggle('scrolled', window.scrollY > 16), { passive: true });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    z-index: 50;
+    top: 0;
+    border-bottom: 1px solid transparent;
+    background: rgba(251, 250, 245, 0.86);
+    backdrop-filter: blur(18px);
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .site-header.scrolled {
+    border-color: rgba(23, 61, 49, 0.09);
+    box-shadow: 0 12px 30px rgba(23, 61, 49, 0.05);
+  }
+
+  .header-inner {
+    display: flex;
+    min-height: 5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .brand-link {
+    flex: none;
+    text-decoration: none;
+  }
+
+  .site-navigation {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  .nav-link {
+    position: relative;
+    color: var(--color-ink-600);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .nav-link:hover,
+  .nav-link.active {
+    color: var(--color-moss-900);
+  }
+
+  .nav-link.active::after {
+    position: absolute;
+    right: 0;
+    bottom: -0.5rem;
+    left: 0;
+    height: 2px;
+    border-radius: 2px;
+    content: "";
+    background: var(--color-moss-500);
+  }
+
+  .access-link {
+    min-height: 2.7rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .menu-toggle {
+    display: none;
+    width: 2.8rem;
+    height: 2.8rem;
+    place-content: center;
+    gap: 0.28rem;
+    border: 1px solid rgba(23, 61, 49, 0.14);
+    border-radius: 50%;
+    color: var(--color-moss-900);
+    background: white;
+  }
+
+  .menu-toggle span:not(.sr-only) {
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+
+  @media (max-width: 850px) {
+    .menu-toggle {
+      display: grid;
+    }
+
+    .site-navigation {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      right: 1rem;
+      left: 1rem;
+      display: none;
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.25rem;
+      border: 1px solid rgba(23, 61, 49, 0.1);
+      border-radius: 1.25rem;
+      padding: 0.8rem;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .site-navigation.open {
+      display: flex;
+    }
+
+    .nav-link {
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: var(--color-moss-100);
+    }
+
+    .nav-link.active::after {
+      display: none;
+    }
+  }
+</style>

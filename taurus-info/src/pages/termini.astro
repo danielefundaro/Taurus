@@ -1,0 +1,46 @@
+---
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Termini di utilizzo" description="Condizioni per la consultazione del sito informativo Taurus.">
+  <section class="legal-hero">
+    <div class="container-shell">
+      <span class="eyebrow">Informazioni legali</span>
+      <h1 class="display-title">Termini di utilizzo</h1>
+      <p class="body-large">Ultimo aggiornamento: 11 agosto 2026</p>
+    </div>
+  </section>
+  <section class="legal-content">
+    <article class="container-shell prose-legal">
+      <p>I presenti termini regolano esclusivamente la consultazione del sito informativo Taurus. L’accesso alla piattaforma applicativa può essere soggetto a condizioni ulteriori, presentate all’utente autenticato.</p>
+
+      <h2>1. Contenuto informativo</h2>
+      <p>Le informazioni pubblicate descrivono finalità e funzionalità generali del prodotto. Non costituiscono un’offerta vincolante né sostituiscono accordi commerciali o tecnici specifici.</p>
+
+      <h2>2. Uso del sito</h2>
+      <p>L’utente si impegna a utilizzare il sito in modo lecito e a non tentare di comprometterne disponibilità, integrità o sicurezza. Sono vietati accessi automatizzati abusivi, interferenze con l’infrastruttura e utilizzi contrari alla normativa applicabile.</p>
+
+      <h2>3. Proprietà intellettuale</h2>
+      <p>Marchi, testi, elementi grafici e software presentati sul sito appartengono ai rispettivi titolari. La consultazione non attribuisce licenze ulteriori rispetto a quanto necessario per utilizzare normalmente il sito.</p>
+
+      <h2>4. Collegamenti esterni</h2>
+      <p>Il sito può contenere collegamenti alla piattaforma Taurus o a risorse esterne. Il gestore non controlla contenuti e disponibilità di siti appartenenti a terzi.</p>
+
+      <h2>5. Disponibilità</h2>
+      <p>Il gestore può aggiornare, sospendere o modificare il sito per manutenzione, sicurezza o evoluzione del prodotto. Non viene garantita la disponibilità ininterrotta del sito informativo.</p>
+
+      <h2>6. Limitazione di responsabilità</h2>
+      <p>Nei limiti consentiti dalla legge, il gestore non risponde di decisioni assunte esclusivamente sulla base dei contenuti promozionali del sito o di indisponibilità temporanee non imputabili a dolo o colpa grave.</p>
+
+      <h2>7. Contatti e aggiornamenti</h2>
+      <p>Per chiarimenti è possibile scrivere a <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>. Eventuali aggiornamenti saranno pubblicati in questa pagina con la relativa data.</p>
+    </article>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-hero { padding: clamp(4.5rem,9vw,8rem) 0 3rem; }
+  .legal-hero .body-large { margin-top: 1rem; font-size: .95rem; }
+  .legal-content { padding: 1rem 0 clamp(5rem,10vw,9rem); }
+</style>
