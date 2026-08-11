@@ -1,0 +1,160 @@
+---
+import CallToAction from '../components/CallToAction.astro';
+import DashboardPreview from '../components/DashboardPreview.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import Icon from '../components/Icon.astro';
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const features = [
+  { icon: 'catalogue', title: 'Catalogo connesso', description: 'Album, tracce e partiture restano collegati in una struttura chiara e consultabile.', number: '01' },
+  { icon: 'search', title: 'Ricerca immediata', description: 'Trova rapidamente ciò che serve attraverso criteri, metadati e ricerca full-text sul patrimonio.', number: '02' },
+  { icon: 'instrument', title: 'Strumenti sotto controllo', description: 'Registra strumenti, caratteristiche e relazioni con l’attività musicale della tua organizzazione.', number: '03' },
+  { icon: 'calendar', title: 'Eventi coordinati', description: 'Programma prove e appuntamenti, raccogli disponibilità e conserva presenze e informazioni operative.', number: '04' },
+  { icon: 'users', title: 'Ruoli ben definiti', description: 'Ogni persona accede alle funzioni coerenti con il proprio ruolo e il tenant selezionato.', number: '05' },
+  { icon: 'shield', title: 'Informazioni governate', description: 'Isolamento tra organizzazioni, accesso autenticato e gestione delle accettazioni legali.', number: '06' }
+] as const;
+---
+
+<BaseLayout>
+  <section class="hero">
+    <div class="container-shell hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">Piattaforma per archivi musicali</span>
+        <h1 class="display-title">Il patrimonio musicale, finalmente in armonia.</h1>
+        <p class="body-large">Taurus riunisce catalogo, ricerca, strumenti, persone ed eventi in un unico ambiente progettato per organizzazioni musicali.</p>
+        <div class="hero-actions">
+          <a class="button-primary" href="/funzionalita/">Scopri Taurus <Icon name="arrow" size={19} /></a>
+          <a class="button-secondary" href={siteConfig.appUrl}>Accedi alla piattaforma</a>
+        </div>
+        <div class="hero-points">
+          <span><Icon name="check" size={17} /> Multi-tenant</span>
+          <span><Icon name="check" size={17} /> Ricerca centralizzata</span>
+          <span><Icon name="check" size={17} /> Accessi per ruolo</span>
+        </div>
+      </div>
+      <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+    <div class="preview-wrap"><DashboardPreview /></div>
+  </section>
+
+  <section id="prodotto" class="section-space intro-section">
+    <div class="container-shell intro-grid">
+      <div>
+        <span class="eyebrow">Un'unica fonte affidabile</span>
+        <h2 class="section-title">Meno frammentazione.<br />Più musica da valorizzare.</h2>
+      </div>
+      <div class="intro-copy">
+        <p class="body-large">Quando file, schede e calendari vivono in strumenti separati, trovare un’informazione diventa lavoro. Taurus restituisce contesto a ogni elemento dell’archivio.</p>
+        <a href="/funzionalita/">Esplora tutte le funzionalità <Icon name="arrow" size={18} /></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="feature-section">
+    <div class="container-shell feature-grid">
+      {features.map((feature) => <FeatureCard {...feature} />)}
+    </div>
+  </section>
+
+  <section class="section-space workflow-section">
+    <div class="container-shell workflow-grid">
+      <div class="workflow-copy">
+        <span class="eyebrow">Dal dato all'attività</span>
+        <h2 class="section-title">Ogni informazione trova il suo posto.</h2>
+        <p class="body-large">Il catalogo non è un deposito isolato: alimenta ricerca, preparazione degli eventi e collaborazione tra persone con responsabilità diverse.</p>
+      </div>
+      <ol class="workflow-list">
+        <li><span>01</span><div><h3>Raccogli</h3><p>Centralizza metadati, documenti e contenuti multimediali.</p></div></li>
+        <li><span>02</span><div><h3>Collega</h3><p>Metti in relazione album, tracce, strumenti e utenti.</p></div></li>
+        <li><span>03</span><div><h3>Trova</h3><p>Interroga il patrimonio con filtri e ricerca testuale.</p></div></li>
+        <li><span>04</span><div><h3>Coordina</h3><p>Trasforma le informazioni in appuntamenti e attività condivise.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="sicurezza" class="security-section">
+    <div class="container-shell security-grid">
+      <div class="security-visual" aria-hidden="true">
+        <div class="tenant tenant-a"><span>A</span><strong>Organizzazione A</strong><small>Catalogo isolato</small></div>
+        <div class="security-core"><Icon name="shield" size={40} /><span>Taurus</span></div>
+        <div class="tenant tenant-b"><span>B</span><strong>Organizzazione B</strong><small>Catalogo isolato</small></div>
+      </div>
+      <div>
+        <span class="eyebrow">Sicurezza e separazione</span>
+        <h2 class="section-title">Ogni organizzazione lavora nel proprio spazio.</h2>
+        <p class="body-large">Taurus combina autenticazione centralizzata, ruoli applicativi e separazione logica per mantenere distinti dati e responsabilità.</p>
+        <ul>
+          <li><Icon name="check" size={18} /> Autenticazione OAuth 2.0 / OpenID Connect</li>
+          <li><Icon name="check" size={18} /> Profili Admin, Archivista, Utente e Utente Esterno</li>
+          <li><Icon name="check" size={18} /> Gestione delle versioni dei documenti legali</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <CallToAction />
+</BaseLayout>
+
+<style>
+  .hero { position: relative; overflow: hidden; padding: clamp(4.5rem, 9vw, 8rem) 0 0; }
+  .hero-grid { position: relative; }
+  .hero-copy { position: relative; z-index: 2; max-width: 52rem; }
+  .hero-copy .body-large { max-width: 44rem; margin: 1.8rem 0 0; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2rem; }
+  .hero-points { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 2rem; color: var(--color-ink-600); font-size: .84rem; font-weight: 700; }
+  .hero-points span { display: inline-flex; align-items: center; gap: .35rem; }
+  .hero-points :global(svg) { color: var(--color-moss-500); }
+  .hero-orbit { position: absolute; top: -8rem; right: -8rem; width: 34rem; height: 34rem; border: 1px solid rgba(35,97,77,.12); border-radius: 50%; }
+  .hero-orbit::before, .hero-orbit::after { position: absolute; inset: 4rem; border: 1px solid rgba(35,97,77,.1); border-radius: 50%; content: ''; }
+  .hero-orbit::after { inset: 9rem; }
+  .hero-orbit span { position: absolute; width: .65rem; height: .65rem; border-radius: 50%; background: var(--color-amber-400); box-shadow: 0 0 0 .5rem rgba(231,167,68,.12); }
+  .hero-orbit span:first-child { top: 20%; left: 8%; } .hero-orbit span:nth-child(2) { right: 4%; bottom: 30%; background: var(--color-moss-500); } .hero-orbit span:last-child { right: 40%; bottom: 1%; background: var(--color-coral-400); }
+  .preview-wrap { width: min(92rem, calc(100% - 2rem)); margin: clamp(3.5rem, 8vw, 7rem) auto 0; overflow: hidden; border-radius: 1.75rem 1.75rem 0 0; padding: 1rem 1rem 0; background: linear-gradient(145deg, rgba(185,222,207,.55), rgba(245,241,231,.9)); }
+  .preview-wrap :global(.product-window) { width: 75rem; max-width: 100%; margin-inline: auto; }
+
+  .intro-section { background: white; }
+  .intro-grid { display: grid; grid-template-columns: 1.05fr .7fr; align-items: end; gap: clamp(3rem, 8vw, 8rem); }
+  .intro-copy a { display: inline-flex; align-items: center; gap: .5rem; margin-top: 1.5rem; color: var(--color-moss-700); font-weight: 800; text-decoration: none; }
+  .feature-section { padding-bottom: clamp(4.5rem, 9vw, 8rem); background: white; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+  .workflow-section { background: var(--color-cream-100); }
+  .workflow-grid { display: grid; grid-template-columns: .8fr 1fr; gap: clamp(3rem, 9vw, 9rem); }
+  .workflow-copy { position: sticky; top: 7rem; align-self: start; }
+  .workflow-copy .body-large { margin-top: 1.5rem; }
+  .workflow-list { margin: 0; padding: 0; list-style: none; }
+  .workflow-list li { display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; padding: 2rem 0; border-bottom: 1px solid rgba(23,61,49,.14); }
+  .workflow-list li:first-child { padding-top: 0; }
+  .workflow-list span { color: var(--color-moss-500); font-family: var(--font-display); }
+  .workflow-list h3 { margin: 0; font-family: var(--font-display); font-size: 1.55rem; font-weight: 600; }
+  .workflow-list p { margin: .5rem 0 0; color: var(--color-ink-600); line-height: 1.65; }
+
+  .security-section { padding-block: clamp(5rem, 10vw, 9rem); }
+  .security-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(3rem, 8vw, 8rem); }
+  .security-grid ul { display: grid; gap: .8rem; margin: 1.8rem 0 0; padding: 0; list-style: none; }
+  .security-grid li { display: flex; align-items: center; gap: .6rem; color: var(--color-ink-800); font-weight: 700; }
+  .security-grid li :global(svg) { flex: none; color: var(--color-moss-500); }
+  .security-visual { position: relative; min-height: 29rem; border: 1px solid rgba(23,61,49,.1); border-radius: 2rem; background: radial-gradient(circle, rgba(185,222,207,.75), transparent 58%); }
+  .security-core { position: absolute; top: 50%; left: 50%; display: grid; width: 8rem; height: 8rem; place-items: center; transform: translate(-50%,-50%); border-radius: 50%; color: white; background: var(--color-moss-900); box-shadow: 0 25px 50px rgba(23,61,49,.25); }
+  .security-core span { margin-top: -1.5rem; font-family: var(--font-display); }
+  .tenant { position: absolute; display: grid; grid-template-columns: auto 1fr; column-gap: .7rem; width: 12.5rem; border: 1px solid rgba(23,61,49,.12); border-radius: 1rem; padding: .9rem; background: rgba(255,255,255,.9); box-shadow: var(--shadow-soft); }
+  .tenant > span { display: grid; width: 2.2rem; height: 2.2rem; grid-row: span 2; place-items: center; border-radius: .65rem; color: var(--color-moss-900); font-weight: 900; background: var(--color-moss-100); }
+  .tenant strong { align-self: end; font-size: .72rem; } .tenant small { color: var(--color-ink-600); font-size: .58rem; }
+  .tenant-a { top: 3rem; left: 2rem; } .tenant-b { right: 2rem; bottom: 3rem; }
+
+  @media (max-width: 850px) {
+    .feature-grid { grid-template-columns: repeat(2, 1fr); }
+    .intro-grid, .workflow-grid, .security-grid { grid-template-columns: 1fr; }
+    .workflow-copy { position: static; }
+    .security-visual { order: 2; }
+  }
+  @media (max-width: 600px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .hero-actions :global(a) { width: 100%; }
+    .preview-wrap { overflow-x: auto; }
+    .preview-wrap :global(.product-window) { width: 720px; max-width: none; }
+    .security-visual { min-height: 25rem; }
+    .tenant-a { top: 2rem; left: 1rem; } .tenant-b { right: 1rem; bottom: 2rem; }
+  }
+</style>

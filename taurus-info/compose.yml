@@ -1,0 +1,12 @@
+services:
+  taurus-info:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:-http://localhost:8088}
+        PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:4200}
+        PUBLIC_CONTACT_EMAIL: ${PUBLIC_CONTACT_EMAIL:-admin@taurus.it}
+    image: taurus-info:local
+    ports:
+      - "${TAURUS_INFO_PORT:-8088}:80"
+    restart: unless-stopped

@@ -1,0 +1,114 @@
+---
+import CallToAction from '../components/CallToAction.astro';
+import Icon from '../components/Icon.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const areas = [
+  {
+    icon: 'catalogue',
+    overline: 'Catalogo digitale',
+    title: 'Dalla raccolta alla conoscenza.',
+    text: 'Organizza album e tracce con metadati coerenti, contenuti allegati e relazioni navigabili. Ogni scheda conserva il contesto necessario per capire e riutilizzare il materiale.',
+    points: ['Album e tracce collegati', 'Partiture, PDF', 'Metadati e classificazioni']
+  },
+  {
+    icon: 'search',
+    overline: 'Ricerca',
+    title: 'Il contenuto giusto, senza perdere tempo.',
+    text: 'La ricerca full-text e i criteri strutturati permettono di esplorare il patrimonio anche quando cresce, senza dipendere da cartelle o convenzioni conosciute da poche persone.',
+    points: ['Ricerca testuale', 'Filtri combinabili', 'Ordinamento e paginazione', 'Risultati separati per tenant']
+  },
+  {
+    icon: 'calendar',
+    overline: 'Attività',
+    title: 'Il catalogo incontra il calendario.',
+    text: 'Pianifica prove, concerti e appuntamenti. Raccogli disponibilità, definisci presenze e conserva informazioni operative in un flusso condiviso.',
+    points: ['Eventi e stati operativi', 'Disponibilità degli utenti', 'Presenze e annotazioni']
+  },
+  {
+    icon: 'users',
+    overline: 'Organizzazione',
+    title: 'Responsabilità chiare per ogni persona.',
+    text: 'I ruoli distinguono amministrazione, catalogazione, consultazione e accesso esterno. La stessa identità può lavorare nel contesto del tenant selezionato.',
+    points: ['Gestione utenti', 'Accesso basato sui ruoli', 'Organizzazioni multi-tenant', 'Notifiche e preferenze personali']
+  }
+] as const;
+---
+
+<BaseLayout title="Funzionalità" description="Scopri catalogo, ricerca, strumenti, calendario e gestione multi-tenant della piattaforma Taurus.">
+  <section class="page-hero">
+    <div class="container-shell">
+      <span class="eyebrow">Funzionalità</span>
+      <h1 class="display-title">Un archivio che partecipa al lavoro quotidiano.</h1>
+      <p class="body-large">Taurus trasforma informazioni musicali disperse in un sistema consultabile, connesso e pronto a sostenere le attività dell’organizzazione.</p>
+    </div>
+  </section>
+
+  <section class="area-section">
+    <div class="container-shell">
+      {areas.map((area, index) => (
+        <article class:list={["area-row", { reverse: index % 2 !== 0 }]}>
+          <div class="area-visual">
+            <span class="visual-icon"><Icon name={area.icon} size={48} /></span>
+            <span class="visual-ring ring-one"></span>
+            <span class="visual-ring ring-two"></span>
+            <div class="visual-label"><small>Area {String(index + 1).padStart(2, '0')}</small><strong>{area.overline}</strong></div>
+          </div>
+          <div class="area-copy">
+            <span class="eyebrow">{area.overline}</span>
+            <h2 class="section-title">{area.title}</h2>
+            <p class="body-large">{area.text}</p>
+            <ul>
+              {area.points.map((point) => <li><Icon name="check" size={18} /> {point}</li>)}
+            </ul>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="roles-section">
+    <div class="container-shell">
+      <div class="roles-heading">
+        <span class="eyebrow">Accessi su misura</span>
+        <h2 class="section-title">Lo strumento giusto per ogni ruolo.</h2>
+      </div>
+      <div class="role-grid">
+        <article><span>AD</span><h3>Admin</h3><p>Amministra utenti e attività della propria organizzazione.</p></article>
+        <article><span>AR</span><h3>Archivista</h3><p>Cura catalogo, tracce e strumenti.</p></article>
+        <article><span>UT</span><h3>Utente</h3><p>Consulta il patrimonio e partecipa alle attività.</p></article>
+        <article><span>UE</span><h3>Utente esterno</h3><p>Consulta il patrimonio pubblico e partecipa alle attività.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <CallToAction title="Vuoi vedere Taurus nel tuo contesto?" text="Raccontaci come gestisci oggi catalogo e attività: partiremo dalle esigenze reali della tua organizzazione." />
+</BaseLayout>
+
+<style>
+  .page-hero { padding: clamp(4.5rem, 9vw, 8rem) 0; text-align: center; }
+  .page-hero .display-title { max-width: 14ch; margin-inline: auto; }
+  .page-hero .body-large { max-width: 48rem; margin: 1.8rem auto 0; }
+  .area-section { background: white; }
+  .area-row { display: grid; grid-template-columns: .9fr 1fr; align-items: center; gap: clamp(3rem, 9vw, 9rem); padding-block: clamp(4.5rem, 9vw, 8rem); border-bottom: 1px solid rgba(23,61,49,.1); }
+  .area-row.reverse .area-visual { order: 2; }
+  .area-visual { position: relative; display: grid; min-height: 27rem; place-items: center; overflow: hidden; border-radius: 2rem; color: var(--color-moss-700); background: var(--color-cream-100); }
+  .visual-icon { position: relative; z-index: 2; display: grid; width: 8rem; height: 8rem; place-items: center; border-radius: 2.2rem; background: white; box-shadow: var(--shadow-soft); }
+  .visual-ring { position: absolute; width: 19rem; height: 19rem; border: 1px solid rgba(35,97,77,.14); border-radius: 50%; }
+  .ring-two { width: 28rem; height: 28rem; }
+  .visual-label { position: absolute; right: 1.5rem; bottom: 1.5rem; display: flex; flex-direction: column; border-radius: .9rem; padding: .8rem 1rem; background: rgba(255,255,255,.82); }
+  .visual-label small { color: var(--color-ink-600); font-size: .62rem; } .visual-label strong { margin-top: .15rem; font-size: .8rem; }
+  .area-copy .body-large { margin-top: 1.35rem; }
+  .area-copy ul { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem 1.5rem; margin: 1.8rem 0 0; padding: 0; list-style: none; }
+  .area-copy li { display: flex; align-items: center; gap: .5rem; color: var(--color-ink-800); font-size: .9rem; font-weight: 750; }
+  .area-copy li :global(svg) { flex: none; color: var(--color-moss-500); }
+  .roles-section { padding-block: clamp(4.5rem, 9vw, 8rem); background: var(--color-cream-100); }
+  .roles-heading { max-width: 42rem; }
+  .role-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 3rem; }
+  .role-grid article { border: 1px solid rgba(23,61,49,.1); border-radius: 1.3rem; padding: 1.5rem; background: rgba(255,255,255,.72); }
+  .role-grid span { display: grid; width: 2.8rem; height: 2.8rem; place-items: center; border-radius: .8rem; color: var(--color-moss-900); font-size: .75rem; font-weight: 900; background: var(--color-moss-100); }
+  .role-grid h3 { margin: 2.5rem 0 0; font-family: var(--font-display); font-size: 1.3rem; }
+  .role-grid p { margin: .7rem 0 0; color: var(--color-ink-600); font-size: .9rem; line-height: 1.6; }
+  @media (max-width: 850px) { .area-row { grid-template-columns: 1fr; } .area-row.reverse .area-visual { order: initial; } .role-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 550px) { .area-copy ul, .role-grid { grid-template-columns: 1fr; } .area-visual { min-height: 21rem; } }
+</style>

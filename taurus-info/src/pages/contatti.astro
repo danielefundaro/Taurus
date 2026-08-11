@@ -1,0 +1,48 @@
+---
+import Icon from '../components/Icon.astro';
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Contatti" description="Contatta il team Taurus per informazioni, una presentazione o un confronto sulle esigenze della tua organizzazione musicale.">
+  <section class="contact-section">
+    <div class="container-shell contact-grid">
+      <div>
+        <span class="eyebrow">Contatti</span>
+        <h1 class="display-title">Partiamo dalla tua organizzazione.</h1>
+        <p class="body-large">Descrivici il patrimonio che gestisci, le persone coinvolte e gli strumenti che utilizzi oggi. Ti risponderemo con un percorso concreto.</p>
+      </div>
+      <div class="surface-card contact-card">
+        <span class="contact-icon"><Icon name="mail" size={30} /></span>
+        <small>Scrivici</small>
+        <a href={`mailto:${siteConfig.contactEmail}?subject=Richiesta informazioni Taurus`}>{siteConfig.contactEmail}</a>
+        <p>Per richieste commerciali, dimostrazioni del prodotto o informazioni tecniche.</p>
+        <a class="button-primary" href={`mailto:${siteConfig.contactEmail}?subject=Richiesta informazioni Taurus`}>Invia un messaggio <Icon name="arrow" size={18} /></a>
+      </div>
+    </div>
+  </section>
+  <section class="contact-notes">
+    <div class="container-shell note-grid">
+      <article><strong>01</strong><h2>Racconta</h2><p>Indicaci obiettivi, dimensione del catalogo e modalità di lavoro attuali.</p></article>
+      <article><strong>02</strong><h2>Confronta</h2><p>Valutiamo insieme ruoli, flussi e requisiti specifici della tua realtà.</p></article>
+      <article><strong>03</strong><h2>Scopri</h2><p>Organizziamo una presentazione mirata sulle funzionalità più rilevanti.</p></article>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-section { padding-block: clamp(5rem, 10vw, 9rem); }
+  .contact-grid { display: grid; grid-template-columns: 1.15fr .75fr; align-items: center; gap: clamp(3rem, 9vw, 9rem); }
+  .contact-grid .body-large { max-width: 42rem; margin-top: 1.7rem; }
+  .contact-card { display: flex; align-items: flex-start; flex-direction: column; padding: clamp(1.8rem, 5vw, 3rem); }
+  .contact-icon { display: grid; width: 3.7rem; height: 3.7rem; place-items: center; border-radius: 1.1rem; color: var(--color-moss-700); background: var(--color-moss-100); }
+  .contact-card small { margin-top: 2.5rem; color: var(--color-ink-600); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .contact-card > a:not(.button-primary) { margin-top: .5rem; color: var(--color-moss-900); font-family: var(--font-display); font-size: clamp(1.35rem, 3vw, 2rem); font-weight: 600; text-decoration: none; }
+  .contact-card p { margin: 1rem 0 1.8rem; color: var(--color-ink-600); line-height: 1.7; }
+  .contact-notes { padding-block: clamp(4rem, 8vw, 7rem); background: white; }
+  .note-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; }
+  .note-grid strong { color: var(--color-moss-500); font-family: var(--font-display); font-weight: 500; }
+  .note-grid h2 { margin: 2rem 0 0; font-family: var(--font-display); font-size: 1.55rem; }
+  .note-grid p { color: var(--color-ink-600); line-height: 1.65; }
+  @media (max-width: 800px) { .contact-grid, .note-grid { grid-template-columns: 1fr; } }
+</style>
