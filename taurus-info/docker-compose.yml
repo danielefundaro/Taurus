@@ -1,3 +1,5 @@
+name: taurus-info
+
 services:
   taurus-info:
     build:
