@@ -1,4 +1,4 @@
-<p-table #dt [value]="calendarEvents" [paginator]="true" [rows]="10" [rowHover]="true" dataKey="index"
+<p-table #dt [value]="calendarEvents" [totalRecords]="totalRecords" [paginator]="true" [rows]="10" [rowHover]="true" dataKey="index"
     currentPageReportTemplate="Da {first} a {last} di {totalRecords} eventi" [showCurrentPageReport]="true"
     [rowsPerPageOptions]="[10, 20, 30]" [lazy]="true" (onLazyLoad)="onLazyLoadCalendarEvents($event)">
     <ng-template #caption>
