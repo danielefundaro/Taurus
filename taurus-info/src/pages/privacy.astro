@@ -1,0 +1,52 @@
+---
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Privacy" description="Informazioni sul trattamento dei dati personali durante la navigazione del sito Taurus.">
+  <section class="legal-hero">
+    <div class="container-shell">
+      <span class="eyebrow">Informazioni legali</span>
+      <h1 class="display-title">Privacy del sito</h1>
+      <p class="body-large">Ultimo aggiornamento: 11 agosto 2026</p>
+    </div>
+  </section>
+  <section class="legal-content">
+    <article class="container-shell prose-legal">
+      <p>Questa pagina descrive il trattamento dei dati personali connesso alla consultazione del sito informativo Taurus. Le condizioni applicabili all’utilizzo della piattaforma autenticata sono rese disponibili separatamente all’interno del prodotto.</p>
+
+      <h2>1. Titolare e contatti</h2>
+      <p>Il gestore del servizio Taurus può essere contattato all’indirizzo <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>. Prima della pubblicazione definitiva, i dati identificativi completi del titolare devono essere integrati in questa sezione.</p>
+
+      <h2>2. Dati trattati</h2>
+      <p>Durante la navigazione, il server web può trattare informazioni tecniche necessarie a fornire il sito, come indirizzo IP, data e ora della richiesta, risorsa richiesta, user agent ed eventuali codici di risposta.</p>
+      <p>Se l’utente contatta Taurus via e-mail, vengono trattati l’indirizzo del mittente e le informazioni inserite volontariamente nel messaggio.</p>
+
+      <h2>3. Finalità</h2>
+      <ul>
+        <li>erogare e proteggere il sito;</li>
+        <li>diagnosticare errori e prevenire utilizzi abusivi;</li>
+        <li>rispondere alle richieste inviate volontariamente;</li>
+        <li>adempiere a obblighi di legge, quando applicabili.</li>
+      </ul>
+
+      <h2>4. Cookie e tecnologie simili</h2>
+      <p>Il sito informativo non installa strumenti di profilazione e non utilizza piattaforme di analisi di terze parti nella configurazione iniziale. Qualora vengano aggiunti servizi che richiedono consenso, questa informativa e le modalità di gestione delle preferenze dovranno essere aggiornate prima della loro attivazione.</p>
+
+      <h2>5. Conservazione e destinatari</h2>
+      <p>I log tecnici vengono conservati per il tempo necessario alla sicurezza e al funzionamento del servizio. I messaggi inviati via e-mail sono conservati per il periodo necessario a gestire la richiesta. I dati possono essere trattati da fornitori tecnici nominati secondo la normativa applicabile.</p>
+
+      <h2>6. Diritti dell’interessato</h2>
+      <p>Nei casi previsti dalla legge, l’interessato può chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione al trattamento e può proporre reclamo all’autorità di controllo competente.</p>
+
+      <h2>7. Aggiornamenti</h2>
+      <p>Questa informativa può essere aggiornata in seguito a modifiche tecniche, organizzative o normative. La data indicata in apertura identifica la versione corrente.</p>
+    </article>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-hero { padding: clamp(4.5rem,9vw,8rem) 0 3rem; }
+  .legal-hero .body-large { margin-top: 1rem; font-size: .95rem; }
+  .legal-content { padding: 1rem 0 clamp(5rem,10vw,9rem); }
+</style>

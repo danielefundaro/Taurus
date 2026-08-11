@@ -1,0 +1,43 @@
+---
+interface Props {
+  compact?: boolean;
+  light?: boolean;
+}
+
+const { compact = false, light = false } = Astro.props;
+---
+
+<span class:list={["brand", { light }]} aria-label="Taurus">
+  <span class="brand-mark" aria-hidden="true"></span>
+  {!compact && <span class="brand-name">Taurus</span>}
+</span>
+
+<style>
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--color-moss-900);
+  }
+
+  .brand.light {
+    color: white;
+  }
+
+  .brand-mark {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    background-color: currentColor;
+    -webkit-mask: url("/logo.svg") center / contain no-repeat;
+    mask: url("/logo.svg") center / contain no-repeat;
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+</style>
