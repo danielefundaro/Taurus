@@ -126,7 +126,7 @@ export class UsersComponent implements OnInit {
     protected deleteElement(user: Users): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo utente?',
+            message: 'Eliminare questo utente nel tenant? I dati verranno conservati.',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Elimina',
             rejectLabel: 'Annulla',
@@ -172,7 +172,7 @@ export class UsersComponent implements OnInit {
         const count = this.selectedUsers.length;
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
-            message: `Eliminare definitivamente i ${count} utenti selezionati?`,
+            message: `Eliminare i ${count} utenti selezionati? I dati verranno conservati.`,
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Elimina',
             rejectLabel: 'Annulla',

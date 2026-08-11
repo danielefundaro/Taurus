@@ -100,6 +100,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/users/me", "/api/users/me/calendar-events").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
                         .authenticated()
 
@@ -107,11 +108,15 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()
 
                     // Legal document administration and tenant administration.
+                    .requestMatchers(HttpMethod.DELETE, "/api/tenants/{id}/gdpr")
+                        .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/documents/**", "/api/tenants/**")
                         .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/**").denyAll()
 
                     // User administration. Self-service endpoints are matched above.
+                    .requestMatchers(HttpMethod.DELETE, "/api/users/{id}/gdpr")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/api/users/**")
                         .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
 

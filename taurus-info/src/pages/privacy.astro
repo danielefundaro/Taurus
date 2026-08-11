@@ -3,7 +3,7 @@ import { siteConfig } from '../config/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Privacy" description="Informazioni sul trattamento dei dati personali durante la navigazione del sito Taurus.">
+<BaseLayout title="Privacy" description="Informativa sul trattamento dei dati personali durante la navigazione del sito informativo Taurus.">
   <section class="legal-hero">
     <div class="container-shell">
       <span class="eyebrow">Informazioni legali</span>
@@ -13,33 +13,44 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
   <section class="legal-content">
     <article class="container-shell prose-legal">
-      <p>Questa pagina descrive il trattamento dei dati personali connesso alla consultazione del sito informativo Taurus. Le condizioni applicabili all’utilizzo della piattaforma autenticata sono rese disponibili separatamente all’interno del prodotto.</p>
+      <p>Questa informativa riguarda esclusivamente la consultazione del sito-vetrina Taurus. Il trattamento effettuato dalla piattaforma autenticata è descritto nella <a href="/privacy-applicativo/">privacy dell’applicativo Taurus</a>.</p>
 
-      <h2>1. Titolare e contatti</h2>
-      <p>Il gestore del servizio Taurus può essere contattato all’indirizzo <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>. Prima della pubblicazione definitiva, i dati identificativi completi del titolare devono essere integrati in questa sezione.</p>
+      <h2>1. Titolare del trattamento</h2>
+      <p>Il titolare è <strong>Daniele Fundarò</strong>, persona fisica stabilita in Italia. Per informazioni o per esercitare i propri diritti è possibile scrivere a <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>.</p>
 
       <h2>2. Dati trattati</h2>
-      <p>Durante la navigazione, il server web può trattare informazioni tecniche necessarie a fornire il sito, come indirizzo IP, data e ora della richiesta, risorsa richiesta, user agent ed eventuali codici di risposta.</p>
-      <p>Se l’utente contatta Taurus via e-mail, vengono trattati l’indirizzo del mittente e le informazioni inserite volontariamente nel messaggio.</p>
+      <p>Durante la navigazione il server può trattare dati tecnici necessari a fornire e proteggere il sito, quali indirizzo IP, data e ora della richiesta, risorsa richiesta, user agent e codice di risposta.</p>
+      <p>Quando una persona contatta Taurus via email vengono trattati l’indirizzo del mittente e le informazioni inserite volontariamente nel messaggio.</p>
 
-      <h2>3. Finalità</h2>
+      <h2>3. Finalità e basi giuridiche</h2>
       <ul>
-        <li>erogare e proteggere il sito;</li>
-        <li>diagnosticare errori e prevenire utilizzi abusivi;</li>
-        <li>rispondere alle richieste inviate volontariamente;</li>
-        <li>adempiere a obblighi di legge, quando applicabili.</li>
+        <li>erogazione, sicurezza e diagnosi del sito, sulla base del legittimo interesse del titolare;</li>
+        <li>risposta alle richieste, per l’esecuzione di misure precontrattuali o sulla base del legittimo interesse a gestire le comunicazioni ricevute;</li>
+        <li>adempimento di eventuali obblighi di legge.</li>
       </ul>
 
-      <h2>4. Cookie e tecnologie simili</h2>
-      <p>Il sito informativo non installa strumenti di profilazione e non utilizza piattaforme di analisi di terze parti nella configurazione iniziale. Qualora vengano aggiunti servizi che richiedono consenso, questa informativa e le modalità di gestione delle preferenze dovranno essere aggiornate prima della loro attivazione.</p>
+      <h2>4. Cookie e tracciamento</h2>
+      <p>Il sito-vetrina non utilizza Analytics, pixel pubblicitari, cookie di profilazione o altri strumenti di tracciamento non tecnici. Qualora la configurazione cambi, questa informativa e le modalità di raccolta del consenso verranno aggiornate prima dell’attivazione dei nuovi strumenti.</p>
 
-      <h2>5. Conservazione e destinatari</h2>
-      <p>I log tecnici vengono conservati per il tempo necessario alla sicurezza e al funzionamento del servizio. I messaggi inviati via e-mail sono conservati per il periodo necessario a gestire la richiesta. I dati possono essere trattati da fornitori tecnici nominati secondo la normativa applicabile.</p>
+      <h2>5. Conservazione</h2>
+      <ul>
+        <li>i log tecnici sono conservati per un massimo di 5 giorni;</li>
+        <li>le email ricevute sono cancellate entro 30 giorni, salvo che una conservazione ulteriore sia necessaria per obblighi di legge o per la tutela di un diritto.</li>
+      </ul>
 
-      <h2>6. Diritti dell’interessato</h2>
-      <p>Nei casi previsti dalla legge, l’interessato può chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione al trattamento e può proporre reclamo all’autorità di controllo competente.</p>
+      <h2>6. Destinatari e infrastruttura</h2>
+      <p>Il sito è ospitato su infrastruttura fornita da Contabo. Le comunicazioni inviate all’indirizzo indicato sono gestite tramite il servizio email di Google. I fornitori tecnici trattano i dati nei limiti necessari all’erogazione dei rispettivi servizi e secondo le condizioni applicabili.</p>
 
-      <h2>7. Aggiornamenti</h2>
+      <h2>7. Conferimento dei dati</h2>
+      <p>I dati tecnici sono necessari per utilizzare il sito. L’invio di un’email è facoltativo, ma senza i dati di contatto non sarà possibile rispondere alla richiesta.</p>
+
+      <h2>8. Decisioni automatizzate e minori</h2>
+      <p>Il sito informativo non effettua profilazione né processi decisionali automatizzati e non consente la creazione di account.</p>
+
+      <h2>9. Diritti</h2>
+      <p>Nei casi previsti dalla normativa, l’interessato può chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione al trattamento scrivendo all’indirizzo indicato. È inoltre possibile proporre reclamo al <a href="https://www.garanteprivacy.it/" rel="noreferrer">Garante per la protezione dei dati personali</a>.</p>
+
+      <h2>10. Aggiornamenti</h2>
       <p>Questa informativa può essere aggiornata in seguito a modifiche tecniche, organizzative o normative. La data indicata in apertura identifica la versione corrente.</p>
     </article>
   </section>

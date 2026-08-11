@@ -49,18 +49,39 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     public confirmDelete(): void {
         this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo tenant?',
+            header: 'Archivia tenant',
+            message: "Vuoi archiviare questo tenant?</br><b>Attenzione!</b> L'archiviazione non equivale alla cancellazione.",
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
+            acceptLabel: 'Archivia',
             rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
+            acceptButtonProps: { severity: 'warn' },
             rejectButtonProps: { severity: 'secondary' },
             accept: () => {
                 this.tenantsService.delete(this.tenant.id).pipe(first()).subscribe({
                     next: () => {
                         this.isDirty = false;
                         this.toastService.success('Successo', 'Tenant eliminato');
+                        this.router.navigate(['/tenants']);
+                    },
+                });
+            },
+        });
+    }
+
+    public confirmGdprDeletion(): void {
+        this.confirmationService.confirm({
+            header: 'Cancellazione definitiva GDPR',
+            message: 'La cancellazione del tenant ai sensi del GDPR è definitiva e irreversibile.</br>Tutti i dati, gli indici, i file e le autorizzazioni associati verranno eliminati fisicamente e non sarà possibile recuperarli in futuro.</br>Vuoi procedere?',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina definitivamente',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.tenantsService.deleteForGdpr(this.tenant.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.isDirty = false;
+                        this.toastService.success('Successo', 'Tenant eliminato definitivamente ai sensi del GDPR');
                         this.router.navigate(['/tenants']);
                     },
                 });

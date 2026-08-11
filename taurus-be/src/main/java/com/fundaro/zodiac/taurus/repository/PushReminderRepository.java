@@ -11,4 +11,12 @@ import java.util.List;
 public interface PushReminderRepository extends JpaRepository<PushReminder, Long> {
 
     List<PushReminder> findBySentFalseAndSendAtLessThanEqual(Instant now);
+
+    long deleteAllByUserId(String userId);
+
+    long deleteAllByUserIdAndTenantCode(String userId, String tenantCode);
+
+    long deleteAllByTenantCode(String tenantCode);
+
+    long deleteAllBySentTrueAndSendAtBefore(Instant cutoff);
 }

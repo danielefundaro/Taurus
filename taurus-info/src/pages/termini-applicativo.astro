@@ -1,0 +1,63 @@
+---
+import { siteConfig } from '../config/site';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Termini dell’applicativo" description="Condizioni di utilizzo della piattaforma gratuita Taurus.">
+  <section class="legal-hero">
+    <div class="container-shell">
+      <span class="eyebrow">Piattaforma Taurus</span>
+      <h1 class="display-title">Termini dell’applicativo</h1>
+      <p class="body-large">Versione 1.0 · 11 agosto 2026</p>
+    </div>
+  </section>
+  <section class="legal-content">
+    <article class="container-shell prose-legal">
+      <p>Questi termini disciplinano l’utilizzo gratuito della piattaforma Taurus, sviluppata e gestita da <strong>Daniele Fundarò</strong>, persona fisica stabilita in Italia e contattabile all’indirizzo <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>.</p>
+
+      <h2>1. Accesso e account</h2>
+      <p>L’accesso avviene tramite account associato a un tenant. L’utente deve utilizzare credenziali personali, proteggerle e segnalare tempestivamente accessi non autorizzati. L’amministratore tenant assegna ruoli e permessi ed è responsabile dell’autorizzazione degli utenti invitati.</p>
+
+      <h2>2. Minorenni</h2>
+      <p>Un account appartenente a un minore può essere creato soltanto da un amministratore tenant. Il tenant dichiara di avere l’autorità per registrare il minore e di aver acquisito la base giuridica, le autorizzazioni e gli eventuali consensi richiesti da chi esercita la responsabilità genitoriale.</p>
+
+      <h2>3. Servizio gratuito</h2>
+      <p>Taurus è fornito gratuitamente. Funzionalità, limiti tecnici e disponibilità possono evolvere nel tempo. Il gestore può effettuare manutenzioni, sospendere temporaneamente il servizio o interromperlo, comunicando quando possibile le modifiche rilevanti.</p>
+
+      <h2>4. Contenuti degli utenti</h2>
+      <p>Utenti e tenant sono responsabili dei contenuti caricati, pubblicati o trattati mediante Taurus e garantiscono di disporre dei diritti, delle autorizzazioni e delle basi giuridiche necessarie. Con il caricamento concedono al gestore la sola autorizzazione tecnica necessaria a memorizzare, indicizzare, elaborare e mostrare i contenuti nell’ambito del servizio.</p>
+      <p>Il gestore non effettua un controllo preventivo generalizzato. Può tuttavia limitare l’accesso o rimuovere contenuti quando riceva una segnalazione attendibile, venga a conoscenza della loro illiceità o debba adempiere a un obbligo di legge. Restano ferme le responsabilità che non possono essere escluse dalla normativa applicabile.</p>
+
+      <h2>5. Utilizzi vietati</h2>
+      <ul>
+        <li>caricare contenuti illeciti, lesivi, fraudolenti o privi delle necessarie autorizzazioni;</li>
+        <li>violare diritti d’autore, riservatezza o protezione dei dati personali;</li>
+        <li>aggirare ruoli, autorizzazioni o separazione tra tenant;</li>
+        <li>introdurre codice dannoso, sovraccaricare il servizio o comprometterne la sicurezza;</li>
+        <li>utilizzare dati di altri utenti per finalità estranee a quelle autorizzate dal tenant.</li>
+      </ul>
+
+      <h2>6. Segnalazioni</h2>
+      <p>Contenuti o comportamenti illeciti possono essere segnalati a <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>, indicando il tenant, il contenuto interessato, il motivo e le informazioni necessarie a valutarne la rimozione.</p>
+
+      <h2>7. Cancellazione</h2>
+      <p>La disattivazione ordinaria di un account o di un utente e l’archiviazione di un tenant applicano il soft-delete e conservano le informazioni. L’archiviazione del record del tenant non revoca automaticamente le sessioni Keycloak già attive. La cancellazione fisica avviene soltanto alla scadenza dei periodi di conservazione applicabili oppure mediante l’apposito comando esplicito di cancellazione definitiva GDPR.</p>
+      <p>Il comando GDPR è irreversibile sui sistemi applicativi collegati e non sono disponibili backup applicativi per il ripristino. Prima di utilizzarlo, l’utente o il tenant è responsabile dell’eventuale esportazione dei contenuti di cui necessita.</p>
+
+      <h2>8. Proprietà intellettuale</h2>
+      <p>Il software, il marchio e l’interfaccia Taurus rimangono dei rispettivi titolari. I contenuti caricati restano dei rispettivi aventi diritto e non vengono acquisiti dal gestore.</p>
+
+      <h2>9. Garanzie e responsabilità</h2>
+      <p>Il servizio è fornito secondo disponibilità e senza garanzia di continuità assoluta o assenza di errori. Nei limiti consentiti dalla legge, il gestore non risponde di perdita derivante da uso improprio, credenziali compromesse, contenuti degli utenti o indisponibilità non imputabili a dolo o colpa grave. Restano salvi gli obblighi e le responsabilità inderogabili.</p>
+
+      <h2>10. Legge applicabile e modifiche</h2>
+      <p>I termini sono regolati dalla legge italiana, fatti salvi i diritti inderogabili applicabili. Le modifiche sostanziali vengono versionate e presentate agli utenti per una nuova accettazione quando necessario.</p>
+    </article>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-hero { padding: clamp(4.5rem,9vw,8rem) 0 3rem; }
+  .legal-hero .body-large { margin-top: 1rem; font-size: .95rem; }
+  .legal-content { padding: 1rem 0 clamp(5rem,10vw,9rem); }
+</style>

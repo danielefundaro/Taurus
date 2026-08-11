@@ -22,6 +22,10 @@ public interface UsersService extends CommonOpenSearchService<Users, UsersDTO, U
 
     void deleteOwn(AbstractAuthenticationToken abstractAuthenticationToken);
 
+    void deleteOwnForGdpr(AbstractAuthenticationToken abstractAuthenticationToken);
+
+    void deleteForGdpr(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+
     void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     Page<CalendarEventsDTO> getUserCalendarEvents(String id, UserCalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken);

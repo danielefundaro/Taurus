@@ -12,4 +12,10 @@ public interface UserLegalAcceptanceRepository extends JpaRepository<UserLegalAc
     List<UserLegalAcceptance> findAllByUserIdAndLegalDocument_IdInAndDeletedFalse(String userId, Collection<Long> legalDocumentIds);
 
     boolean existsByLegalDocument_Id(Long legalDocumentId);
+
+    long deleteAllByUserId(String userId);
+
+    long deleteAllByUserIdAndTenantCode(String userId, String tenantCode);
+
+    long deleteAllByTenantCode(String tenantCode);
 }

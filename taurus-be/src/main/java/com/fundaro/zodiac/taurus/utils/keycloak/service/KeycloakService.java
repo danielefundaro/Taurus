@@ -21,6 +21,10 @@ public interface KeycloakService {
 
     void updateUserGroup(String userId, String groupId);
 
+    void deleteUserGroup(String userId, String groupId);
+
+    List<Group> getUserGroups(String userId);
+
     void deleteUser(String user);
 
     List<Role> getUserRoles(String userId);
@@ -36,6 +40,8 @@ public interface KeycloakService {
     void sendExecuteActionsEmail(String userId, List<String> actions);
 
     void saveGroup(Group group);
+
+    void deleteGroup(String groupId);
 
     String getGroupIdByName(String name);
 

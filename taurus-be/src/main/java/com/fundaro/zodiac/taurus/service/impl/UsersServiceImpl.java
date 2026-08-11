@@ -21,6 +21,7 @@ import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
+import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -50,11 +51,14 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
     public final CalendarEventsService calendarEventsService;
 
-    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService) {
+    private final DataErasureService dataErasureService;
+
+    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService, DataErasureService dataErasureService) {
         super(openSearchService, indexResolver, mapper, UsersService.class, Users.class);
         this.keycloakService = keycloakService;
         this.tenantsService = tenantsService;
         this.calendarEventsService = calendarEventsService;
+        this.dataErasureService = dataErasureService;
     }
 
     @Override
@@ -150,15 +154,70 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public void deleteOwn(AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO currentUser = findMe(abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
-
-        if (Strings.isNotBlank(currentUser.getId())) {
-            super.delete(currentUser.getId(), abstractAuthenticationToken);
-        }
-
         String keycloakId = Strings.isNotBlank(currentUser.getKeycloakId())
             ? currentUser.getKeycloakId()
             : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+
+        getTenantCodes(keycloakId, abstractAuthenticationToken)
+            .forEach(tenantCode -> dataErasureService.softDeleteUserAccount(keycloakId, tenantCode));
+
+        User keycloakUser = keycloakService.getUser(keycloakId);
+        keycloakUser.setEnabled(false);
+        keycloakService.updateUser(keycloakUser);
+    }
+
+    @Override
+    public void deleteOwnForGdpr(AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO currentUser = findMe(abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+        String keycloakId = Strings.isNotBlank(currentUser.getKeycloakId())
+            ? currentUser.getKeycloakId()
+            : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+
+        getTenantCodes(keycloakId, abstractAuthenticationToken)
+            .forEach(tenantCode -> dataErasureService.eraseUserData(keycloakId, tenantCode));
         keycloakService.deleteUser(keycloakId);
+    }
+
+    @Override
+    public UsersDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO user = findOne(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        UsersDTO deleted = super.delete(id, abstractAuthenticationToken);
+        removeUserFromTenant(user.getKeycloakId(), tenantCode);
+        return deleted;
+    }
+
+    @Override
+    public void deleteForGdpr(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO user = findOneIncludingDeleted(id, abstractAuthenticationToken)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        dataErasureService.eraseUserData(user.getKeycloakId(), tenantCode);
+        removeUserFromTenant(user.getKeycloakId(), tenantCode);
+    }
+
+    private Set<String> getTenantCodes(String keycloakId, AbstractAuthenticationToken abstractAuthenticationToken) {
+        Set<String> tenantCodes = keycloakService.getUserGroups(keycloakId).stream()
+            .map(Group::getName)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
+        tenantCodes.add(SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken));
+        return tenantCodes.stream()
+            .filter(tenantCode -> tenantCode != null && !tenantCode.isBlank())
+            .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private void removeUserFromTenant(String userId, String tenantCode) {
+        User user = keycloakService.getUser(userId);
+        Map<String, List<String>> attributes = user.getAttributes();
+        if (attributes != null) {
+            attributes.remove(getAttributeKey(tenantCode));
+            user.setAttributes(attributes);
+            keycloakService.updateUser(user);
+        }
+        keycloakService.deleteUserGroup(userId, keycloakService.getGroupIdByName(tenantCode));
     }
 
     @Override

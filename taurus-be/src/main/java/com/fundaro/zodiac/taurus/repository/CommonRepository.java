@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.ZonedDateTime;
 
 @NoRepositoryBean
 public interface CommonRepository<E extends CommonFields, C extends CommonCriteria>
@@ -19,6 +20,14 @@ public interface CommonRepository<E extends CommonFields, C extends CommonCriter
     Optional<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
 
     List<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
+
+    long deleteAllByUserId(String userId);
+
+    long deleteAllByUserIdAndTenantCode(String userId, String tenantCode);
+
+    long deleteAllByTenantCode(String tenantCode);
+
+    long deleteAllByInsertDateBefore(ZonedDateTime cutoff);
 
     @Modifying
     @Query("UPDATE #{#entityName} e SET e.deleted = TRUE WHERE e.id = :id AND e.userId = :userId AND e.tenantCode = :tenantCode")

@@ -148,6 +148,30 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
         }
     }
 
+    protected D deletePermanently(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        log.debug("Request to permanently delete {} : {}", entityName, id);
+
+        try {
+            E entity = getByIdIncludingDeleted(id, tenantId);
+            if (!openSearchService.deleteDocument(indexResolver.resolve(entityName, tenantId), id)) {
+                throw new IOException("Document was not deleted");
+            }
+            return mapper.toDto(entity);
+        } catch (IOException e) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
+        }
+    }
+
+    protected Optional<D> findOneIncludingDeleted(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        try {
+            return Optional.of(mapper.toDto(getByIdIncludingDeleted(id, tenantId)));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
     @Override
     public void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function) {
         String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
@@ -180,10 +204,18 @@ public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D ext
     }
 
     protected E getById(String id, String tenantId) throws IOException {
+        E entity = getByIdIncludingDeleted(id, tenantId);
+        if (!Objects.equals(entity.getDeleted(), Boolean.FALSE)) {
+            throw new IOException(String.format("%s with id %s not found", entityName, id));
+        }
+        return entity;
+    }
+
+    private E getByIdIncludingDeleted(String id, String tenantId) throws IOException {
         GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(indexResolver.resolve(entityName, tenantId)).id(id), classEntity);
         E entity = getResponse.source();
 
-        if (entity != null && Objects.equals(entity.getDeleted(), Boolean.FALSE)) {
+        if (entity != null) {
             entity.setId(id);
             return entity;
         }

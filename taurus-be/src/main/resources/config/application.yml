@@ -235,4 +235,19 @@ application:
     # Generate keys with: npx web-push generate-vapid-keys
     public-key: BHEmW3uZIG2dS1KLCMqxvEnuA8lk_Tkf_gzVR9Qe7B5gsSRbrPKD903tCBiGCrVqVzfTG-zuiN6MnpN50sbAYfM
     private-key: ${VAPID_PRIVATE_KEY:CHANGE_ME}
-    subject: mailto:admin@taurus.it
+    subject: mailto:ing.daniele.fundaro@gmail.com
+  retention:
+    # Cleanup runs every day at 03:00; override with application.retention.cleanup-cron.
+    cleanup-enabled: true
+    cleanup-cron: "0 0 3 * * *"
+    notices-days: 365
+    last-research-days: 365
+    sent-push-reminders-days: 30
+    tenant-indices:
+      - albums
+      - instruments
+      - media
+      - queue-upload-files
+      - tracks
+      - users
+      - calendar-events
