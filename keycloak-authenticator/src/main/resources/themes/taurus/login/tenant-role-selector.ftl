@@ -11,7 +11,14 @@
     </#if>
 
     <#if section = "header">
-        <h1 class="taurus-title">${singleTenant?then(msg("roleSelectionTitle"), msg("tenantRoleSelectionTitle"))}</h1>
+        <#if singleTenant>
+            <#assign selectionTitle = msg("roleSelectionTitle")>
+        <#elseif roleSelectionRequired>
+            <#assign selectionTitle = msg("tenantRoleSelectionTitle")>
+        <#else>
+            <#assign selectionTitle = msg("tenantSelectionTitle")>
+        </#if>
+        <h1 class="taurus-title">${selectionTitle}</h1>
         <p class="taurus-subtitle">&nbsp;</p>
 
     <#elseif section = "form">
