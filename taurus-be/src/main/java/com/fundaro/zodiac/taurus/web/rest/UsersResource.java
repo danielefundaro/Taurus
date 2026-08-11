@@ -90,6 +90,27 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
     }
 
     /**
+     * {@code DELETE /me/gdpr} : Permanently erase the current user's account and personal data.
+     */
+    @DeleteMapping("/me/gdpr")
+    public ResponseEntity<Void> deleteOwnEntityForGdpr(AbstractAuthenticationToken abstractAuthenticationToken) {
+        getLog().info("REST request to permanently erase the current user account under GDPR");
+        getService().deleteOwnForGdpr(abstractAuthenticationToken);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * {@code DELETE /{id}/gdpr} : Permanently erase a user from the current tenant.
+     */
+    @DeleteMapping("/{id}/gdpr")
+    public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") String id,
+                                                     AbstractAuthenticationToken abstractAuthenticationToken) {
+        getLog().info("REST request to permanently erase user {} from the current tenant under GDPR", id);
+        getService().deleteForGdpr(id, abstractAuthenticationToken);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * {@code GET /me/calendar-events} : Get all the calendar events of the current user was present at
      *
      * @param pageable the pagination information.

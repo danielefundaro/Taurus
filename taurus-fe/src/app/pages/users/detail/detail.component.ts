@@ -88,18 +88,39 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected confirmDelete(): void {
         this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo utente?',
+            header: 'Disattiva utente',
+            message: 'Vuoi disattivare questo utente?',
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
+            acceptLabel: 'Disattiva',
             rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
+            acceptButtonProps: { severity: 'warn' },
             rejectButtonProps: { severity: 'secondary' },
             accept: () => {
                 this.usersService.delete(this.user.id).pipe(first()).subscribe({
                     next: () => {
                         this.isDirty = false;
                         this.toastService.success('Successo', 'Utente eliminato');
+                        this.router.navigate(['/users']);
+                    },
+                });
+            },
+        });
+    }
+
+    protected confirmGdprDeletion(): void {
+        this.confirmationService.confirm({
+            header: 'Cancellazione definitiva GDPR',
+            message: "La cancellazione dell'utente ai sensi del GDPR è definitiva e irreversibile.</br>I dati personali associati a questo tenant verranno eliminati fisicamente e non sarà possibile recuperarli in futuro.</br>Vuoi procedere?",
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina definitivamente',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => {
+                this.usersService.deleteForGdpr(this.user.id).pipe(first()).subscribe({
+                    next: () => {
+                        this.isDirty = false;
+                        this.toastService.success('Successo', 'Utente eliminato definitivamente ai sensi del GDPR');
                         this.router.navigate(['/users']);
                     },
                 });

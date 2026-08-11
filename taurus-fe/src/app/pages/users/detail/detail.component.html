@@ -78,11 +78,17 @@
     <!-- Zona pericolosa -->
     <div class="card danger-zone mt-8">
         <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questo utente e tutti i dati
-                associati.</span>
-            <p-button label="Elimina utente" icon="pi pi-trash" severity="danger" [outlined]="true"
-                (onClick)="confirmDelete()" />
+        <div class="flex flex-col gap-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <span class="text-sm text-surface-500">Rimuovi l'utente conservandone i dati.</span>
+                <p-button label="Elimina utente" icon="pi pi-trash" severity="warn" [outlined]="true"
+                    (onClick)="confirmDelete()" />
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
+                <span class="text-sm text-surface-500">Elimina definitivamente i dati personali dell'utente ai sensi del GDPR.</span>
+                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger"
+                    (onClick)="confirmGdprDeletion()" />
+            </div>
         </div>
     </div>
 

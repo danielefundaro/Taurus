@@ -226,6 +226,42 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public void deleteUserGroup(String userId, String groupId) {
+        String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error removing user {} from Keycloak group {}", userId, groupId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error removing user from Keycloak group", Group.class.getSimpleName(), "delete.user.group");
+        }
+    }
+
+    @Override
+    public List<Group> getUserGroups(String userId) {
+        String url = String.format("%s/users/%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting user groups from Keycloak", Group.class.getSimpleName(), "get.user.groups");
+        }
+        return response.getBody();
+    }
+
+    @Override
+    public void deleteGroup(String groupId) {
+        String url = String.format("%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), groupId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("Error deleting group from Keycloak: {}", groupId);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error deleting group from Keycloak", Group.class.getSimpleName(), "delete.group");
+        }
+    }
+
+    @Override
     public String getGroupIdByName(String name) {
         String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {

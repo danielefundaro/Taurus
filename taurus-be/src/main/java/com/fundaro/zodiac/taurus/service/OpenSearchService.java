@@ -23,5 +23,7 @@ public interface OpenSearchService {
 
     CountResponse count(Function<CountRequest.Builder, ObjectBuilder<CountRequest>> fn) throws IOException;
 
+    boolean deleteDocument(String indexName, String id) throws IOException;
+
     boolean deleteIndex(String indexName) throws IOException;
 }

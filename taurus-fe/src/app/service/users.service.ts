@@ -34,6 +34,14 @@ export class UsersService extends CommonOpenSearchService<Users, UsersCriteria> 
         return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me`);
     }
 
+    public deleteOwnForGdpr(): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me/gdpr`);
+    }
+
+    public deleteForGdpr(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/${id}/gdpr`);
+    }
+
     public sendSetupEmail(id: string): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/${this.resourceName()}/${id}/send-setup-email`, null);
     }

@@ -10,9 +10,9 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-ARG SITE_URL=https://www.taurus.it
-ARG PUBLIC_APP_URL=https://app.taurus.it
-ARG PUBLIC_CONTACT_EMAIL=admin@taurus.it
+ARG SITE_URL=https://info-taurus.it
+ARG PUBLIC_APP_URL=https://app-taurus.it
+ARG PUBLIC_CONTACT_EMAIL=ing.daniele.fundaro@gmail.com
 ENV SITE_URL=$SITE_URL \
     PUBLIC_APP_URL=$PUBLIC_APP_URL \
     PUBLIC_CONTACT_EMAIL=$PUBLIC_CONTACT_EMAIL \

@@ -51,9 +51,9 @@ Per una build esplicita:
 
 ```bash
 docker build \
-  --build-arg SITE_URL=https://www.taurus.it \
-  --build-arg PUBLIC_APP_URL=https://app.taurus.it \
-  --build-arg PUBLIC_CONTACT_EMAIL=admin@taurus.it \
+  --build-arg SITE_URL=https://info-taurus.it \
+  --build-arg PUBLIC_APP_URL=https://app-taurus.it \
+  --build-arg PUBLIC_CONTACT_EMAIL=ing.daniele.fundaro@gmail.com \
   -t taurus-info:latest .
 ```
 
@@ -69,6 +69,15 @@ Nginx applica:
 
 Il TLS deve essere terminato dal reverse proxy o dall'ingress dell'ambiente di destinazione.
 
+## Documenti legali dell'applicativo
+
+Il sito pubblica separatamente i documenti destinati agli utenti della web app:
+
+- `/privacy-applicativo/` per l'informativa privacy, da registrare in Taurus come tipo `PRIVACY` e azione `ACKNOWLEDGE`;
+- `/termini-applicativo/` per i termini di utilizzo, da registrare come tipo `TERMS` e azione `ACCEPT`.
+
+Dopo la pubblicazione del sito, un super amministratore deve aprire **Documenti legali** nella web app e creare le due versioni indicando gli URL pubblici completi, la versione, la data di pubblicazione e lo stato attivo. I record non devono essere inseriti manualmente nel database.
+
 ## Verifiche prima della produzione
 
-Le pagine Privacy e Termini contengono una base editoriale coerente con il sito statico. Prima della pubblicazione devono essere revisionate dal referente legale e integrate con i dati identificativi completi del titolare del servizio.
+Le pagine Privacy e Termini costituiscono una base editoriale coerente con le informazioni disponibili. Prima della pubblicazione è comunque opportuna una revisione professionale, soprattutto per i ruoli privacy dei tenant, il trattamento dei dati dei minori e l'ubicazione effettiva dei server Contabo.
