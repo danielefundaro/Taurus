@@ -52,6 +52,16 @@
                     (ngModelChange)="isDirty = true"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <p-floatlabel variant="on"><input pInputText id="address" [(ngModel)]="tenant.address" (ngModelChange)="isDirty = true" /><label for="address">Indirizzo</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="postalCode" [(ngModel)]="tenant.postalCode" (ngModelChange)="isDirty = true" /><label for="postalCode">CAP</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="city" [(ngModel)]="tenant.city" (ngModelChange)="isDirty = true" /><label for="city">Città</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="province" [(ngModel)]="tenant.province" (ngModelChange)="isDirty = true" /><label for="province">Provincia</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="country" [(ngModel)]="tenant.country" (ngModelChange)="isDirty = true" /><label for="country">Paese</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" /><label for="taxCode">Codice fiscale</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="vatNumber" [(ngModel)]="tenant.vatNumber" (ngModelChange)="isDirty = true" /><label for="vatNumber">Partita IVA</label></p-floatlabel>
+                <p-floatlabel variant="on"><input pInputText id="logoUrl" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" /><label for="logoUrl">URL logo</label></p-floatlabel>
+            </div>
         </div>
     </div>
 

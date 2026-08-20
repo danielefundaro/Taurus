@@ -19,6 +19,10 @@ public interface NoticesService extends CommonService<Notices, NoticesDTO, Notic
 
     void addNoticeOnlyRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
 
+    void addNoticeToUser(String userId, String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
+
+    void addNoticeToUser(String userId, String name, String message, String actor);
+
     void readAll(AbstractAuthenticationToken abstractAuthenticationToken);
 
     long countUnread(AbstractAuthenticationToken abstractAuthenticationToken);

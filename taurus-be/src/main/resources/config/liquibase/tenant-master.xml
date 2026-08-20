@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <property name="now" value="current_timestamp" dbms="postgresql"/>
+    <property name="uuidType" value="uuid" dbms="postgresql"/>
+    <property name="datetimeType" value="datetime" dbms="postgresql"/>
+
+    <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260820000001_add_tenant_user_legal_acceptance.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260820000002_remove_tenant_columns.xml" relativeToChangelogFile="false"/>
+</databaseChangeLog>

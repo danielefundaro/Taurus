@@ -9,6 +9,7 @@ import java.time.ZonedDateTime;
 @Entity
 @Table(
     name = "legal_document",
+    schema = "public",
     uniqueConstraints = @UniqueConstraint(name = "uq_legal_document_type_version", columnNames = {"document_type", "version"})
 )
 public class LegalDocument {

@@ -24,9 +24,8 @@ public class PushSubscriptionServiceImpl
     @Override
     public PushSubscriptionDTO subscribe(PushSubscriptionDTO dto, AbstractAuthenticationToken token) {
         String userId = SecurityUtils.getUserIdFromAuthentication(token);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
         // Delete any existing subscription for the same user+endpoint (upsert)
-        getRepository().findByUserIdAndEndpointAndTenantCode(userId, dto.getEndpoint(), tenantCode)
+        getRepository().findByUserIdAndEndpoint(userId, dto.getEndpoint())
             .ifPresent(existing -> getRepository().deleteById(existing.getId()));
         dto.setId(null);
         return save(dto, token);
@@ -35,7 +34,6 @@ public class PushSubscriptionServiceImpl
     @Override
     public void unsubscribe(String endpoint, AbstractAuthenticationToken token) {
         String userId = SecurityUtils.getUserIdFromAuthentication(token);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
-        getRepository().deleteByEndpointAndUserIdAndTenantCode(endpoint, userId, tenantCode);
+        getRepository().deleteByEndpointAndUserId(endpoint, userId);
     }
 }

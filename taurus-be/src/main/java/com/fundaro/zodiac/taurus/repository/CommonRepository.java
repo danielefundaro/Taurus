@@ -17,19 +17,15 @@ import java.time.ZonedDateTime;
 public interface CommonRepository<E extends CommonFields, C extends CommonCriteria>
     extends JpaRepository<E, Long>, JpaSpecificationExecutor<E> {
 
-    Optional<E> findByIdAndUserIdAndTenantCode(Long id, String userId, String tenantCode);
+    Optional<E> findByIdAndUserId(Long id, String userId);
 
-    List<E> findAllByUserIdAndTenantCode(String userId, String tenantCode);
+    List<E> findAllByUserId(String userId);
 
     long deleteAllByUserId(String userId);
-
-    long deleteAllByUserIdAndTenantCode(String userId, String tenantCode);
-
-    long deleteAllByTenantCode(String tenantCode);
 
     long deleteAllByInsertDateBefore(ZonedDateTime cutoff);
 
     @Modifying
-    @Query("UPDATE #{#entityName} e SET e.deleted = TRUE WHERE e.id = :id AND e.userId = :userId AND e.tenantCode = :tenantCode")
-    void deleteByIdAndUserIdAndTenantCode(@Param("id") Long id, @Param("userId") String userId, @Param("tenantCode") String tenantCode);
+    @Query("UPDATE #{#entityName} e SET e.deleted = TRUE WHERE e.id = :id AND e.userId = :userId")
+    void deleteByIdAndUserId(@Param("id") Long id, @Param("userId") String userId);
 }

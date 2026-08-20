@@ -6,12 +6,18 @@ import com.fundaro.zodiac.taurus.domain.ChildrenEntities;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
+import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.LastResearchRepository;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.repository.PreferencesRepository;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.repository.PushSubscriptionRepository;
 import com.fundaro.zodiac.taurus.repository.UserLegalAcceptanceRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRepository;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryErasureRequest;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryErasureStatus;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import org.opensearch.client.opensearch._types.FieldValue;
@@ -22,6 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -51,6 +59,10 @@ public class DataErasureService {
     private final IndexResolver indexResolver;
     private final TenantStorageService tenantStorageService;
     private final ApplicationProperties.RetentionProperties retentionProperties;
+    private final InventoryAssignmentRepository inventoryAssignmentRepository;
+    private final InventoryErasureRequestRepository inventoryErasureRequestRepository;
+    private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
+    private final TenantTransactionExecutor tenantTransactionExecutor;
 
     public DataErasureService(
         NoticesRepository noticesRepository,
@@ -62,7 +74,11 @@ public class DataErasureService {
         OpenSearchService openSearchService,
         IndexResolver indexResolver,
         TenantStorageService tenantStorageService,
-        ApplicationProperties applicationProperties
+        ApplicationProperties applicationProperties,
+        InventoryAssignmentRepository inventoryAssignmentRepository,
+        InventoryErasureRequestRepository inventoryErasureRequestRepository,
+        TenantSchemaProvisioningService tenantSchemaProvisioningService,
+        TenantTransactionExecutor tenantTransactionExecutor
     ) {
         this.noticesRepository = noticesRepository;
         this.lastResearchRepository = lastResearchRepository;
@@ -74,6 +90,54 @@ public class DataErasureService {
         this.indexResolver = indexResolver;
         this.tenantStorageService = tenantStorageService;
         this.retentionProperties = applicationProperties.getRetention();
+        this.inventoryAssignmentRepository = inventoryAssignmentRepository;
+        this.inventoryErasureRequestRepository = inventoryErasureRequestRepository;
+        this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
+        this.tenantTransactionExecutor = tenantTransactionExecutor;
+    }
+
+    public boolean requestInventoryAwareErasure(
+        String userId,
+        String userIndex,
+        String tenantCode,
+        String displayName,
+        String email,
+        String requestedBy
+    ) {
+        return tenantTransactionExecutor.execute(tenantCode, () -> requestInventoryAwareErasureInCurrentTenant(
+            userId, userIndex, tenantCode, displayName, email, requestedBy
+        ));
+    }
+
+    private boolean requestInventoryAwareErasureInCurrentTenant(
+        String userId,
+        String userIndex,
+        String tenantCode,
+        String displayName,
+        String email,
+        String requestedBy
+    ) {
+        boolean outstanding = inventoryAssignmentRepository.hasOutstanding(
+            userId,
+            InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES
+        );
+        if (outstanding && !inventoryErasureRequestRepository.existsByUserKeycloakIdAndStatus(
+            userId,
+            InventoryErasureStatus.PENDING_INVENTORY_RESOLUTION
+        )) {
+            InventoryErasureRequest request = new InventoryErasureRequest();
+            request.initializeAudit(requestedBy);
+            request.setUserIndex(userIndex == null || userIndex.isBlank() ? userId : userIndex);
+            request.setUserKeycloakId(userId);
+            request.setDisplayName(displayName == null || displayName.isBlank() ? "Utente" : displayName);
+            request.setEmail(email);
+            request.setStatus(InventoryErasureStatus.PENDING_INVENTORY_RESOLUTION);
+            request.setRequestedAt(ZonedDateTime.now());
+            request.setRequestedBy(requestedBy);
+            inventoryErasureRequestRepository.save(request);
+        }
+        eraseUserDataInCurrentTenant(userId, tenantCode);
+        return outstanding;
     }
 
     public void eraseUserData(String userId, String tenantCode) {
@@ -81,15 +145,19 @@ public class DataErasureService {
             return;
         }
 
+        tenantTransactionExecutor.execute(tenantCode, () -> eraseUserDataInCurrentTenant(userId, tenantCode));
+    }
+
+    private void eraseUserDataInCurrentTenant(String userId, String tenantCode) {
         eraseOpenSearchUserData(userId, tenantCode);
 
         long deleted = 0;
-        deleted += noticesRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
-        deleted += lastResearchRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
-        deleted += preferencesRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
-        deleted += pushSubscriptionRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
-        deleted += pushReminderRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
-        deleted += userLegalAcceptanceRepository.deleteAllByUserIdAndTenantCode(userId, tenantCode);
+        deleted += noticesRepository.deleteAllByUserId(userId);
+        deleted += lastResearchRepository.deleteAllByUserId(userId);
+        deleted += preferencesRepository.deleteAllByUserId(userId);
+        deleted += pushSubscriptionRepository.deleteAllByUserId(userId);
+        deleted += pushReminderRepository.deleteAllByUserId(userId);
+        deleted += userLegalAcceptanceRepository.deleteAllByUserId(userId);
         log.info("Physically deleted {} relational records for user {} in tenant {}", deleted, userId, tenantCode);
     }
 
@@ -141,14 +209,7 @@ public class DataErasureService {
             throw new IllegalStateException("Unable to delete files for tenant " + tenantCode, e);
         }
 
-        long deleted = 0;
-        deleted += noticesRepository.deleteAllByTenantCode(tenantCode);
-        deleted += lastResearchRepository.deleteAllByTenantCode(tenantCode);
-        deleted += preferencesRepository.deleteAllByTenantCode(tenantCode);
-        deleted += pushSubscriptionRepository.deleteAllByTenantCode(tenantCode);
-        deleted += pushReminderRepository.deleteAllByTenantCode(tenantCode);
-        deleted += userLegalAcceptanceRepository.deleteAllByTenantCode(tenantCode);
-        log.info("Physically deleted {} relational records for tenant {}", deleted, tenantCode);
+        dropTenantSchemaAfterCommit(tenantCode);
     }
 
     public void purgeExpiredData() {
@@ -159,6 +220,19 @@ public class DataErasureService {
             Instant.now().minusSeconds(retentionProperties.getSentPushRemindersDays() * 86_400L)
         );
         log.info("Retention cleanup physically deleted {} notices, {} searches and {} sent reminders", notices, searches, reminders);
+    }
+
+    private void dropTenantSchemaAfterCommit(String tenantCode) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            tenantSchemaProvisioningService.dropSchema(tenantCode);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                tenantSchemaProvisioningService.dropSchema(tenantCode);
+            }
+        });
     }
 
     private void eraseOpenSearchUserData(String userId, String tenantCode) {

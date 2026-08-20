@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!-- Applied only by tenant-master.xml. The legacy public tables retain tenant_code
+       until all pre-schema data has been copied to its owning tenant schema. -->
+  <changeSet id="20260820000002-1" author="taurus" dbms="postgresql">
+    <sql>
+      DROP INDEX IF EXISTS idx_notices_user_tenant;
+      DROP INDEX IF EXISTS idx_last_research_user_tenant;
+      DROP INDEX IF EXISTS idx_preferences_user_tenant;
+      DROP INDEX IF EXISTS idx_push_subscriptions_user_tenant;
+      DROP INDEX IF EXISTS idx_push_reminders_user_tenant;
+      DROP INDEX IF EXISTS idx_user_legal_acceptance_tenant;
+
+      DROP INDEX IF EXISTS uq_inventory_item_number_tenant;
+      DROP INDEX IF EXISTS idx_inventory_item_tenant_active;
+      DROP INDEX IF EXISTS idx_inventory_photo_item;
+      DROP INDEX IF EXISTS idx_inventory_assignment_item;
+      DROP INDEX IF EXISTS idx_inventory_assignment_user;
+      DROP INDEX IF EXISTS idx_inventory_assignment_user_index;
+      DROP INDEX IF EXISTS idx_inventory_return_assignment;
+      DROP INDEX IF EXISTS idx_inventory_return_photo;
+      DROP INDEX IF EXISTS idx_inventory_erasure_pending;
+      DROP INDEX IF EXISTS idx_inventory_report_export_audit;
+
+      ALTER TABLE last_research DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE notices DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE preferences DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE push_subscriptions DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE push_reminders DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE user_legal_acceptance DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_item DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_item_photo DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_assignment DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_return DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_return_photo DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_search_outbox DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_erasure_request DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_report_export DROP COLUMN IF EXISTS tenant_code;
+
+      CREATE INDEX idx_notices_user ON notices (user_id);
+      CREATE INDEX idx_last_research_user ON last_research (user_id);
+      CREATE INDEX idx_preferences_user ON preferences (user_id);
+      CREATE INDEX idx_push_subscriptions_user ON push_subscriptions (user_id);
+      CREATE INDEX idx_push_reminders_user ON push_reminders (user_id);
+
+      CREATE UNIQUE INDEX uq_inventory_item_number ON inventory_item (lower(inventory_number));
+      CREATE INDEX idx_inventory_item_active ON inventory_item (deleted, name);
+      CREATE INDEX idx_inventory_photo_item ON inventory_item_photo (item_id, deleted);
+      CREATE INDEX idx_inventory_assignment_item ON inventory_assignment (item_id, status, deleted);
+      CREATE INDEX idx_inventory_assignment_user ON inventory_assignment (user_keycloak_id, deleted);
+      CREATE INDEX idx_inventory_assignment_user_index ON inventory_assignment (user_index, deleted);
+      CREATE INDEX idx_inventory_return_assignment ON inventory_return (assignment_id, status);
+      CREATE INDEX idx_inventory_return_photo ON inventory_return_photo (return_id, deleted);
+      CREATE INDEX idx_inventory_erasure_pending ON inventory_erasure_request (status, requested_at);
+      CREATE INDEX idx_inventory_report_export_audit ON inventory_report_export (generated_at, requested_user_index);
+    </sql>
+  </changeSet>
+</databaseChangeLog>

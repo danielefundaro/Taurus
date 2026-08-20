@@ -27,7 +27,7 @@ public class EventReminderProducer {
         this.preferencesService = preferencesService;
     }
 
-    public void scheduleIfNeeded(CalendarEventsDTO event, String userId, String tenantCode, AbstractAuthenticationToken token) {
+    public void scheduleIfNeeded(CalendarEventsDTO event, String userId, AbstractAuthenticationToken token) {
         if (event.getStartDate() == null) return;
 
         int minutes = resolveReminderMinutes(event.getReminderMinutes(), token);
@@ -43,7 +43,6 @@ public class EventReminderProducer {
         reminder.setEventId(event.getId());
         reminder.setEventName(event.getName());
         reminder.setUserId(userId);
-        reminder.setTenantCode(tenantCode);
         reminder.setSendAt(sendAt);
         reminder.setSent(false);
 

@@ -103,6 +103,11 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
                         .authenticated()
+                    .requestMatchers("/api/inventory/me/**").authenticated()
+
+                    // Tenant inventory administration. Personal inventory endpoints are matched above.
+                    .requestMatchers("/api/inventory/**")
+                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
 
                     // All users can get instruments information
                     .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()

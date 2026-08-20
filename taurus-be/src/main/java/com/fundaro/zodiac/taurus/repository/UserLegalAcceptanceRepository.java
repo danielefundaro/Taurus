@@ -15,7 +15,4 @@ public interface UserLegalAcceptanceRepository extends JpaRepository<UserLegalAc
 
     long deleteAllByUserId(String userId);
 
-    long deleteAllByUserIdAndTenantCode(String userId, String tenantCode);
-
-    long deleteAllByTenantCode(String tenantCode);
 }

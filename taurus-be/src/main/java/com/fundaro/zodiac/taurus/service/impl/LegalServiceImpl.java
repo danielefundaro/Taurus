@@ -47,7 +47,7 @@ public class LegalServiceImpl implements LegalService {
     @Override
     public LegalStatusDTO accept(LegalAcceptanceRequestDTO request, AbstractAuthenticationToken authenticationToken) {
         String userId = requiredTokenValue(SecurityUtils.getUserIdFromAuthentication(authenticationToken), "user");
-        String tenantCode = requiredTokenValue(SecurityUtils.getTenantIdFromAuthentication(authenticationToken), "tenant");
+        requiredTokenValue(SecurityUtils.getTenantIdFromAuthentication(authenticationToken), "tenant");
         List<LegalDocument> activeDocuments = documentRepository.findAllByActiveTrueOrderByDocumentTypeAsc();
         Set<Long> activeIds = activeDocuments.stream().map(LegalDocument::getId).collect(java.util.stream.Collectors.toSet());
 
@@ -83,7 +83,6 @@ public class LegalServiceImpl implements LegalService {
                 acceptance.setEditBy(userId);
                 acceptance.setEditDate(now);
                 acceptance.setUserId(userId);
-                acceptance.setTenantCode(tenantCode);
                 acceptances.add(acceptance);
             });
         acceptanceRepository.saveAll(acceptances);

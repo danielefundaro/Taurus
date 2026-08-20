@@ -84,8 +84,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         }
 
         String userId = setUserIdDto(dto, abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        E existingEntity = repository.findByIdAndUserIdAndTenantCode(id, userId, tenantCode)
+        E existingEntity = repository.findByIdAndUserId(id, userId)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
 
         mapper.partialUpdate(existingEntity, dto);
@@ -104,8 +103,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         }
 
         String userId = setUserIdDto(dto, abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        E existingEntity = repository.findByIdAndUserIdAndTenantCode(dto.getId(), userId, tenantCode)
+        E existingEntity = repository.findByIdAndUserId(dto.getId(), userId)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound"));
 
         mapper.partialUpdate(existingEntity, dto);
@@ -117,8 +115,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public Page<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get all {} by Criteria", entityName);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        Specification<E> spec = buildSpecification(criteria, userId, tenantCode);
+        Specification<E> spec = buildSpecification(criteria, userId);
         return repository.findAll(spec, pageable).map(mapper::toDto);
     }
 
@@ -126,8 +123,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public long countByCriteria(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get the count of all {} by Criteria", entityName);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        return repository.count(buildSpecification(criteria, userId, tenantCode));
+        return repository.count(buildSpecification(criteria, userId));
     }
 
     @Override
@@ -140,37 +136,31 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
     public Optional<D> findOne(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to get {} : {}", entityName, id);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        return repository.findByIdAndUserIdAndTenantCode(id, userId, tenantCode).map(mapper::toDto);
+        return repository.findByIdAndUserId(id, userId).map(mapper::toDto);
     }
 
     @Override
     public void delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("Request to delete {} : {}", entityName, id);
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        repository.deleteByIdAndUserIdAndTenantCode(id, userId, tenantCode);
+        repository.deleteByIdAndUserId(id, userId);
     }
 
-    protected Specification<E> buildSpecification(C criteria, String userId, String tenantCode) {
+    protected Specification<E> buildSpecification(C criteria, String userId) {
         return (root, query, cb) -> cb.and(
             cb.equal(root.get("userId"), userId),
-            cb.equal(root.get("tenantCode"), tenantCode),
             cb.equal(root.get("deleted"), false)
         );
     }
 
     private String setUserIdDto(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         dto.setUserId(userId);
-        dto.setTenantCode(tenantCode);
         return userId;
     }
 
     protected E saveEntity(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         entity.setEditBy(userId);
         entity.setEditDate(ZonedDateTime.now());
 
@@ -185,10 +175,6 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
 
         if (entity.getDeleted() == null) {
             entity.setDeleted(false);
-        }
-
-        if (Strings.isNotBlank(tenantCode) && Strings.isBlank(entity.getTenantCode())) {
-            entity.setTenantCode(tenantCode);
         }
 
         return repository.save(entity);

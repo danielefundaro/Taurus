@@ -4,6 +4,8 @@ import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningException;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.resolver.IndexResolver;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
@@ -45,11 +47,22 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
 
     private final DataErasureService dataErasureService;
 
-    public TenantsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TenantsMapper mapper, ChangelogService changelogService, KeycloakService keycloakService, DataErasureService dataErasureService) {
+    private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
+
+    public TenantsServiceImpl(
+        OpenSearchService openSearchService,
+        IndexResolver indexResolver,
+        TenantsMapper mapper,
+        ChangelogService changelogService,
+        KeycloakService keycloakService,
+        DataErasureService dataErasureService,
+        TenantSchemaProvisioningService tenantSchemaProvisioningService
+    ) {
         super(openSearchService, indexResolver, mapper, TenantsService.class, Tenants.class);
         this.changelogService = changelogService;
         this.keycloakService = keycloakService;
         this.dataErasureService = dataErasureService;
+        this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
     }
 
     @Override
@@ -65,6 +78,18 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         }
 
         TenantsDTO tenantsDTO = super.save(dto, abstractAuthenticationToken);
+
+        try {
+            tenantSchemaProvisioningService.provision(tenantsDTO.getCode());
+        } catch (TenantSchemaProvisioningException e) {
+            compensateTenantDocument(tenantsDTO, abstractAuthenticationToken, e);
+            throw new RequestAlertException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                String.format("Something went wrong while provisioning tenant %s", tenantsDTO),
+                Tenants.class.getSimpleName(),
+                "save.tenant.schema"
+            );
+        }
 
         try {
             // Save new tenant as keycloak group
@@ -93,6 +118,20 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         }
 
         return tenantsDTO;
+    }
+
+    private void compensateTenantDocument(
+        TenantsDTO tenant,
+        AbstractAuthenticationToken authenticationToken,
+        TenantSchemaProvisioningException provisioningException
+    ) {
+        try {
+            deletePermanently(tenant.getId(), authenticationToken);
+        } catch (RuntimeException compensationException) {
+            provisioningException.addSuppressed(compensationException);
+            getLogger().error("Could not compensate tenant document {} after PostgreSQL provisioning failure", tenant.getId(), compensationException);
+        }
+        getLogger().error("PostgreSQL provisioning failed for tenant {}", tenant.getCode(), provisioningException);
     }
 
     @Override

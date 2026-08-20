@@ -103,8 +103,7 @@ public class CalendarEventsServiceImpl extends CommonOpenSearchServiceImpl<Calen
         CalendarEventsDTO result = update(eventId, dto, token);
 
         if (available) {
-            String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
-            eventReminderProducer.scheduleIfNeeded(result, userId, tenantCode, token);
+            eventReminderProducer.scheduleIfNeeded(result, userId, token);
         }
 
         return result;

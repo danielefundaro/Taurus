@@ -15,9 +15,9 @@ import java.util.List;
 @Repository
 public interface NoticesRepository extends CommonRepository<Notices, NoticesCriteria> {
 
-    @Query("SELECT n FROM Notices n WHERE n.userId = :userId AND n.tenantCode = :tenantCode AND n.readDate IS NULL AND n.deleted = false")
-    List<Notices> findAllUnread(@Param("userId") String userId, @Param("tenantCode") String tenantCode);
+    @Query("SELECT n FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
+    List<Notices> findAllUnread(@Param("userId") String userId);
 
-    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.tenantCode = :tenantCode AND n.readDate IS NULL AND n.deleted = false")
-    long countUnread(@Param("userId") String userId, @Param("tenantCode") String tenantCode);
+    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
+    long countUnread(@Param("userId") String userId);
 }

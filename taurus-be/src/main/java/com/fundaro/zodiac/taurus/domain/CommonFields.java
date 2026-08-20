@@ -42,10 +42,6 @@ public class CommonFields implements Serializable {
     @Column(name = "user_id")
     private String userId;
 
-    @NotNull(message = "must not be null")
-    @Column(name = "tenant_code")
-    private String tenantCode;
-
     public CommonFields() {
     }
 
@@ -57,7 +53,6 @@ public class CommonFields implements Serializable {
         this.editBy = other.editBy;
         this.editDate = other.editDate;
         this.userId = other.userId;
-        this.tenantCode = other.tenantCode;
     }
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
@@ -116,14 +111,6 @@ public class CommonFields implements Serializable {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getTenantCode() {
-        return this.tenantCode;
-    }
-
-    public void setTenantCode(String tenantCode) {
-        this.tenantCode = tenantCode;
     }
 
     @Override
