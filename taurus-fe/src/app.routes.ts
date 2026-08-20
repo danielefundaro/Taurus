@@ -61,6 +61,12 @@ export const appRoutes: Routes = [
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] },
             },
             {
+                path: 'inventory',
+                loadChildren: () => import('./app/pages/inventory/inventory.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] },
+            },
+            {
                 path: 'calendar',
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],

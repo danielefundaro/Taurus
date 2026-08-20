@@ -30,9 +30,6 @@ public class CommonCriteria implements Serializable, Criteria {
     @JsonIgnore
     private StringFilter userId;
 
-    @JsonIgnore
-    private StringFilter tenantCode;
-
     private Boolean distinct;
 
     public CommonCriteria() {
@@ -41,7 +38,6 @@ public class CommonCriteria implements Serializable, Criteria {
     public CommonCriteria(CommonCriteria other) {
         this.id = other.optionalId().map(LongFilter::copy).orElse(null);
         this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
-        this.tenantCode = other.optionalTenantCode().map(StringFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -88,25 +84,6 @@ public class CommonCriteria implements Serializable, Criteria {
         this.userId = userId;
     }
 
-    public StringFilter getTenantCode() {
-        return tenantCode;
-    }
-
-    public Optional<StringFilter> optionalTenantCode() {
-        return Optional.ofNullable(tenantCode);
-    }
-
-    public StringFilter tenantCode() {
-        if (tenantCode == null) {
-            setTenantCode(new StringFilter());
-        }
-        return tenantCode;
-    }
-
-    public void setTenantCode(StringFilter tenantCode) {
-        this.tenantCode = tenantCode;
-    }
-
     public Boolean getDistinct() {
         return distinct;
     }
@@ -139,12 +116,11 @@ public class CommonCriteria implements Serializable, Criteria {
         final CommonCriteria that = (CommonCriteria) o;
         return Objects.equals(id, that.id)
             && Objects.equals(userId, that.userId)
-            && Objects.equals(tenantCode, that.tenantCode)
             && Objects.equals(distinct, that.distinct);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, userId, tenantCode, distinct);
+        return Objects.hash(id, userId, distinct);
     }
 }

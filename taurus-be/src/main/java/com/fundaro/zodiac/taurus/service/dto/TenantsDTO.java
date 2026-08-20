@@ -19,6 +19,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     private Date expireDate;
 
     private Boolean active;
+    private String address;
+    private String postalCode;
+    private String city;
+    private String province;
+    private String country;
+    private String taxCode;
+    private String vatNumber;
+    private String logoUrl;
 
     public String getCode() {
         return code;
@@ -68,6 +76,23 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
         this.active = active;
     }
 
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getProvince() { return province; }
+    public void setProvince(String province) { this.province = province; }
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+    public String getTaxCode() { return taxCode; }
+    public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
+    public String getVatNumber() { return vatNumber; }
+    public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
+    public String getLogoUrl() { return logoUrl; }
+    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -82,12 +107,20 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(domain, that.domain) &&
             Objects.equals(maxUsers, that.maxUsers) &&
             Objects.equals(expireDate, that.expireDate) &&
-            Objects.equals(active, that.active);
+            Objects.equals(active, that.active) &&
+            Objects.equals(address, that.address) &&
+            Objects.equals(postalCode, that.postalCode) &&
+            Objects.equals(city, that.city) &&
+            Objects.equals(province, that.province) &&
+            Objects.equals(country, that.country) &&
+            Objects.equals(taxCode, that.taxCode) &&
+            Objects.equals(vatNumber, that.vatNumber) &&
+            Objects.equals(logoUrl, that.logoUrl);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl);
     }
 
     @Override
@@ -102,6 +135,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", maxUsers=" + maxUsers +
             ", expireDate=" + expireDate +
             ", active=" + active +
+            ", address='" + address + '\'' +
+            ", postalCode='" + postalCode + '\'' +
+            ", city='" + city + '\'' +
+            ", province='" + province + '\'' +
+            ", country='" + country + '\'' +
+            ", taxCode='" + taxCode + '\'' +
+            ", vatNumber='" + vatNumber + '\'' +
+            ", logoUrl='" + logoUrl + '\'' +
             '}';
     }
 }

@@ -4,6 +4,7 @@ import { ConfirmationService, SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { CalendarEventsTableComponent } from "../../../components/calendar-events-table/calendar-events-table.component";
+import { InventoryAssignmentsComponent } from '../../../components/inventory-assignments/inventory-assignments.component';
 import { RoleEnums } from '../../../constants';
 import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
@@ -16,7 +17,8 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
     selector: 'app-user-detail',
     imports: [
         ImportsModule,
-        CalendarEventsTableComponent
+        CalendarEventsTableComponent,
+        InventoryAssignmentsComponent
     ],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',

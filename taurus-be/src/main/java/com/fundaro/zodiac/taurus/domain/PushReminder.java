@@ -27,9 +27,6 @@ public class PushReminder implements Serializable {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @Column(name = "tenant_code", nullable = false)
-    private String tenantCode;
-
     @Column(name = "send_at", nullable = false)
     private Instant sendAt;
 
@@ -47,9 +44,6 @@ public class PushReminder implements Serializable {
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
-
-    public String getTenantCode() { return tenantCode; }
-    public void setTenantCode(String tenantCode) { this.tenantCode = tenantCode; }
 
     public Instant getSendAt() { return sendAt; }
     public void setSendAt(Instant sendAt) { this.sendAt = sendAt; }

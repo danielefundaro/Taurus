@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.PushSubscription;
+import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.PushSubscriptionRepository;
 import com.fundaro.zodiac.taurus.service.PushService;
 import jakarta.annotation.PostConstruct;
@@ -50,16 +51,20 @@ public class PushServiceImpl implements PushService {
     @Async
     public void sendToUser(String userId, String tenantCode, String title, String body) {
         if (pushService == null) return;
-        List<PushSubscription> subs = subscriptionRepository.findByUserIdAndTenantCodeAndDeleted(userId, tenantCode, false);
-        subs.forEach(sub -> doSend(sub, title, body));
+        TenantContext.run(tenantCode, () -> {
+            List<PushSubscription> subs = subscriptionRepository.findByUserIdAndDeleted(userId, false);
+            subs.forEach(sub -> doSend(sub, title, body));
+        });
     }
 
     @Override
     @Async
     public void sendToUsers(List<String> userIds, String tenantCode, String title, String body) {
         if (pushService == null || userIds == null || userIds.isEmpty()) return;
-        List<PushSubscription> subs = subscriptionRepository.findByUserIdInAndTenantCodeAndDeleted(userIds, tenantCode, false);
-        subs.forEach(sub -> doSend(sub, title, body));
+        TenantContext.run(tenantCode, () -> {
+            List<PushSubscription> subs = subscriptionRepository.findByUserIdInAndDeleted(userIds, false);
+            subs.forEach(sub -> doSend(sub, title, body));
+        });
     }
 
     private void doSend(PushSubscription sub, String title, String body) {

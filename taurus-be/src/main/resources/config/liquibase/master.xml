@@ -18,4 +18,6 @@
     <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260810172927_add_entity_UserLegalAcceptance.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

@@ -810,7 +810,7 @@ class NoticesResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the notices
-        Notices updatedNotices = noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").orElse(null);
+        Notices updatedNotices = noticesRepository.findByIdAndUserId(notices.getId(), "").orElse(null);
         updatedNotices
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -1071,7 +1071,7 @@ class NoticesResourceIT {
     }
 
     protected Notices getPersistedNotices(Notices notices) {
-        return noticesRepository.findByIdAndUserIdAndTenantCode(notices.getId(), "", "").orElse(null);
+        return noticesRepository.findByIdAndUserId(notices.getId(), "").orElse(null);
     }
 
     protected void assertPersistedNoticesToMatchAllProperties(Notices expectedNotices) {

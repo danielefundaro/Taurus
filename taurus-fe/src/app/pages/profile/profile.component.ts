@@ -6,11 +6,12 @@ import { HasUnsavedChanges } from '../../guard';
 import { ImportsModule } from '../../imports';
 import { KeycloakService, ToastService, UsersService } from '../../service';
 import { CalendarEventsTableComponent } from "../../components/calendar-events-table/calendar-events-table.component";
+import { InventoryAssignmentsComponent } from '../../components/inventory-assignments/inventory-assignments.component';
 
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule, CalendarEventsTableComponent],
+    imports: [ImportsModule, CalendarEventsTableComponent, InventoryAssignmentsComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [ConfirmationService, UsersService],

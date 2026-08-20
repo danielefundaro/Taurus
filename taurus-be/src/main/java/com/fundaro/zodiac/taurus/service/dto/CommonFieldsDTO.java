@@ -14,9 +14,6 @@ public class CommonFieldsDTO implements Serializable {
     @JsonIgnore
     private String userId;
 
-    @JsonIgnore
-    private String tenantCode;
-
     public Long getId() {
         return id;
     }
@@ -31,14 +28,6 @@ public class CommonFieldsDTO implements Serializable {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getTenantCode() {
-        return tenantCode;
-    }
-
-    public void setTenantCode(String tenantCode) {
-        this.tenantCode = tenantCode;
     }
 
     @Override

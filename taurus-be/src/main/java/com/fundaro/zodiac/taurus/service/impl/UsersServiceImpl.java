@@ -174,9 +174,25 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             ? currentUser.getKeycloakId()
             : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
 
-        getTenantCodes(keycloakId, abstractAuthenticationToken)
-            .forEach(tenantCode -> dataErasureService.eraseUserData(keycloakId, tenantCode));
-        keycloakService.deleteUser(keycloakId);
+        String requestedBy = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
+        boolean deferred = false;
+        for (String tenantCode : getTenantCodes(keycloakId, abstractAuthenticationToken)) {
+            deferred |= dataErasureService.requestInventoryAwareErasure(
+                keycloakId,
+                currentUser.getId(),
+                tenantCode,
+                String.join(" ", Objects.toString(currentUser.getName(), ""), Objects.toString(currentUser.getLastName(), "")).trim(),
+                currentUser.getEmail(),
+                requestedBy
+            );
+        }
+        if (deferred) {
+            User keycloakUser = keycloakService.getUser(keycloakId);
+            keycloakUser.setEnabled(false);
+            keycloakService.updateUser(keycloakUser);
+        } else {
+            keycloakService.deleteUser(keycloakId);
+        }
     }
 
     @Override
@@ -194,8 +210,21 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         UsersDTO user = findOneIncludingDeleted(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        dataErasureService.eraseUserData(user.getKeycloakId(), tenantCode);
-        removeUserFromTenant(user.getKeycloakId(), tenantCode);
+        boolean deferred = dataErasureService.requestInventoryAwareErasure(
+            user.getKeycloakId(),
+            user.getId(),
+            tenantCode,
+            String.join(" ", Objects.toString(user.getName(), ""), Objects.toString(user.getLastName(), "")).trim(),
+            user.getEmail(),
+            SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken)
+        );
+        if (deferred) {
+            User keycloakUser = keycloakService.getUser(user.getKeycloakId());
+            keycloakUser.setEnabled(false);
+            keycloakService.updateUser(keycloakUser);
+        } else {
+            removeUserFromTenant(user.getKeycloakId(), tenantCode);
+        }
     }
 
     private Set<String> getTenantCodes(String keycloakId, AbstractAuthenticationToken abstractAuthenticationToken) {

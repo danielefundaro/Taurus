@@ -75,6 +75,10 @@
         </div>
     </div>
 
+    @if (user.id) {
+        <app-inventory-assignments [userIndex]="user.id" />
+    }
+
     <!-- Zona pericolosa -->
     <div class="card danger-zone mt-8">
         <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>

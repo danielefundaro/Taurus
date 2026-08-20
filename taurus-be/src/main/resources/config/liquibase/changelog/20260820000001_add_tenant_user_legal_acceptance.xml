@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260820000001-1" author="taurus">
+    <createTable tableName="user_legal_acceptance">
+      <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="deleted" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="insert_by" type="varchar(255)"><constraints nullable="false"/></column>
+      <column name="insert_date" type="${datetimeType}" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+      <column name="edit_by" type="varchar(255)"><constraints nullable="false"/></column>
+      <column name="edit_date" type="${datetimeType}" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+      <column name="legal_document_id" type="bigint"><constraints nullable="false"/></column>
+      <column name="accepted_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+      <column name="user_id" type="varchar(255)"><constraints nullable="false"/></column>
+      <column name="tenant_code" type="varchar(255)"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint
+      baseTableName="user_legal_acceptance"
+      baseColumnNames="legal_document_id"
+      referencedTableSchemaName="public"
+      referencedTableName="legal_document"
+      referencedColumnNames="id"
+      constraintName="fk_user_legal_acceptance_document"
+      onDelete="RESTRICT"/>
+    <addUniqueConstraint tableName="user_legal_acceptance" columnNames="user_id,legal_document_id" constraintName="uq_user_legal_document"/>
+    <createIndex tableName="user_legal_acceptance" indexName="idx_user_legal_acceptance_lookup">
+      <column name="user_id"/><column name="legal_document_id"/><column name="deleted"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

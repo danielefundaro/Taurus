@@ -105,7 +105,12 @@ public class OpenSearchServiceImpl implements OpenSearchService {
 
         // Initialize the client with SSL and TLS enabled
         RestClient restClient = RestClient.builder(host)
-            .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)).build();
+            .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider))
+            .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+                .setConnectTimeout(30_000)
+                .setConnectionRequestTimeout(30_000)
+                .setSocketTimeout(30_000))
+            .build();
 
         OpenSearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
         openSearchClient = new OpenSearchClient(transport);

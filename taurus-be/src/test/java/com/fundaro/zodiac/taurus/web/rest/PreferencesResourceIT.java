@@ -744,7 +744,7 @@ class PreferencesResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the preferences
-        Preferences updatedPreferences = preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").orElse(null);
+        Preferences updatedPreferences = preferencesRepository.findByIdAndUserId(preferences.getId(), "").orElse(null);
         updatedPreferences
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -1006,7 +1006,7 @@ class PreferencesResourceIT {
     }
 
     protected Preferences getPersistedPreferences(Preferences preferences) {
-        return preferencesRepository.findByIdAndUserIdAndTenantCode(preferences.getId(), "", "").orElse(null);
+        return preferencesRepository.findByIdAndUserId(preferences.getId(), "").orElse(null);
     }
 
     protected void assertPersistedPreferencesToMatchAllProperties(Preferences expectedPreferences) {

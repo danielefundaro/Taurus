@@ -67,11 +67,6 @@ public class Preferences extends CommonFields {
         return this;
     }
 
-    public Preferences tenantCode(String tenantCode) {
-        this.setTenantCode(tenantCode);
-        return this;
-    }
-
     public String getKey() {
         return this.key;
     }
