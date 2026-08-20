@@ -68,12 +68,35 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     }
 
     @Override
+    public void addNoticeToUser(String userId, String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
+        NoticesDTO notice = new NoticesDTO();
+        notice.setName(name);
+        notice.setMessage(message);
+        notice.setUserId(userId);
+        super.save(notice, abstractAuthenticationToken);
+    }
+
+    @Override
+    public void addNoticeToUser(String userId, String name, String message, String actor) {
+        ZonedDateTime now = ZonedDateTime.now();
+        Notices notice = new Notices();
+        notice.setName(name);
+        notice.setMessage(message);
+        notice.setUserId(userId);
+        notice.setDeleted(false);
+        notice.setInsertBy(actor);
+        notice.setInsertDate(now);
+        notice.setEditBy(actor);
+        notice.setEditDate(now);
+        getRepository().save(notice);
+    }
+
+    @Override
     public void readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         ZonedDateTime now = ZonedDateTime.now();
 
-        getRepository().findAllUnread(userId, tenantCode).forEach(notice -> {
+        getRepository().findAllUnread(userId).forEach(notice -> {
             NoticesDTO noticeDTO = getMapper().toDto(notice);
             noticeDTO.setReadDate(now);
             this.update(noticeDTO.getId(), noticeDTO, abstractAuthenticationToken);
@@ -83,8 +106,7 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     @Override
     public long countUnread(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        return getRepository().countUnread(userId, tenantCode);
+        return getRepository().countUnread(userId);
     }
 
     @Override
@@ -104,8 +126,7 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     @Override
     public void deleteAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        getRepository().findAllByUserIdAndTenantCode(userId, tenantCode)
+        getRepository().findAllByUserId(userId)
             .forEach(notices -> super.delete(notices.getId(), abstractAuthenticationToken));
     }
 

@@ -10,11 +10,11 @@ import java.util.Optional;
 @Repository
 public interface PushSubscriptionRepository extends CommonRepository<PushSubscription, PushSubscriptionCriteria> {
 
-    List<PushSubscription> findByUserIdAndTenantCodeAndDeleted(String userId, String tenantCode, Boolean deleted);
+    List<PushSubscription> findByUserIdAndDeleted(String userId, Boolean deleted);
 
-    List<PushSubscription> findByUserIdInAndTenantCodeAndDeleted(List<String> userIds, String tenantCode, Boolean deleted);
+    List<PushSubscription> findByUserIdInAndDeleted(List<String> userIds, Boolean deleted);
 
-    Optional<PushSubscription> findByUserIdAndEndpointAndTenantCode(String userId, String endpoint, String tenantCode);
+    Optional<PushSubscription> findByUserIdAndEndpoint(String userId, String endpoint);
 
-    void deleteByEndpointAndUserIdAndTenantCode(String endpoint, String userId, String tenantCode);
+    void deleteByEndpointAndUserId(String endpoint, String userId);
 }

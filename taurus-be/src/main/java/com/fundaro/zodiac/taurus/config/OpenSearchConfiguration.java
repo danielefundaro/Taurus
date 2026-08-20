@@ -1,12 +1,14 @@
 package com.fundaro.zodiac.taurus.config;
 
 import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
 
 import java.io.IOException;
@@ -24,14 +26,22 @@ public class OpenSearchConfiguration {
     private final Environment env;
     private final ChangelogService changelogService;
     private final OpenSearchService openSearchService;
+    private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
 
-    public OpenSearchConfiguration(Environment env, ChangelogService changelogService, OpenSearchService openSearchService) {
+    public OpenSearchConfiguration(
+        Environment env,
+        ChangelogService changelogService,
+        OpenSearchService openSearchService,
+        TenantSchemaProvisioningService tenantSchemaProvisioningService
+    ) {
         this.env = env;
         this.changelogService = changelogService;
         this.openSearchService = openSearchService;
+        this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
     }
 
     @Bean
+    @DependsOn("liquibase")
     public Boolean opensearch() throws IOException, NoSuchAlgorithmException {
         LOG.debug("Starting OpenSearch Liquibase asynchronously, your indices might not be ready at startup!");
         long startTime = System.currentTimeMillis();
@@ -62,8 +72,13 @@ public class OpenSearchConfiguration {
             for (var hit : response.hits().hits()) {
                 Map<String, Object> source = hit.source();
                 if (source != null && source.get("code") instanceof String tenantCode) {
-                    LOG.debug("Applying tenant changelog to existing tenant: {}", tenantCode);
-                    changelogService.extractAllResources(TENANT_CHANGELOG_FILE_PATH, tenantCode);
+                    try {
+                        LOG.debug("Applying tenant changelogs to existing tenant: {}", tenantCode);
+                        changelogService.extractAllResources(TENANT_CHANGELOG_FILE_PATH, tenantCode);
+                        tenantSchemaProvisioningService.provision(tenantCode);
+                    } catch (Exception e) {
+                        LOG.error("Could not provision existing tenant {}: {}", tenantCode, e.getMessage(), e);
+                    }
                 }
             }
         } catch (Exception e) {

@@ -726,7 +726,7 @@ class LastResearchResourceIT {
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
         // Update the lastResearch
-        LastResearch updatedLastResearch = lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").orElse(null);
+        LastResearch updatedLastResearch = lastResearchRepository.findByIdAndUserId(lastResearch.getId(), "").orElse(null);
         updatedLastResearch
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -988,7 +988,7 @@ class LastResearchResourceIT {
     }
 
     protected LastResearch getPersistedLastResearch(LastResearch lastResearch) {
-        return lastResearchRepository.findByIdAndUserIdAndTenantCode(lastResearch.getId(), "", "").orElse(null);
+        return lastResearchRepository.findByIdAndUserId(lastResearch.getId(), "").orElse(null);
     }
 
     protected void assertPersistedLastResearchToMatchAllProperties(LastResearch expectedLastResearch) {

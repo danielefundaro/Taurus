@@ -17,3 +17,4 @@ export * from "./tenants.service";
 export * from "./toast.service";
 export * from "./tracks.service";
 export * from "./users.service";
+export * from "./inventory.service";

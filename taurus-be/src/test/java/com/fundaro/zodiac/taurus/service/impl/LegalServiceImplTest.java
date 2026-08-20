@@ -73,7 +73,6 @@ class LegalServiceImplTest {
         assertThat(persisted)
             .hasSize(2)
             .allMatch(acceptance -> "user-1".equals(acceptance.getUserId()))
-            .allMatch(acceptance -> "tenant-a".equals(acceptance.getTenantCode()))
             .allMatch(acceptance -> acceptance.getAcceptedAt() != null);
     }
 

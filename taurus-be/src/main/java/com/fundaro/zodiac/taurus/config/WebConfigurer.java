@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.config;
 
+import com.fundaro.zodiac.taurus.multitenancy.TenantContextInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +13,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import tech.jhipster.config.JHipsterProperties;
 
 import java.util.List;
@@ -26,8 +28,11 @@ public class WebConfigurer implements WebMvcConfigurer {
 
     private final JHipsterProperties jHipsterProperties;
 
-    public WebConfigurer(JHipsterProperties jHipsterProperties) {
+    private final TenantContextInterceptor tenantContextInterceptor;
+
+    public WebConfigurer(JHipsterProperties jHipsterProperties, TenantContextInterceptor tenantContextInterceptor) {
         this.jHipsterProperties = jHipsterProperties;
+        this.tenantContextInterceptor = tenantContextInterceptor;
     }
 
     @Bean
@@ -48,5 +53,10 @@ public class WebConfigurer implements WebMvcConfigurer {
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new PageableHandlerMethodArgumentResolver());
         resolvers.add(new SortHandlerMethodArgumentResolver());
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(tenantContextInterceptor).addPathPatterns("/api/**");
     }
 }
