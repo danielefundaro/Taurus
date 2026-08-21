@@ -6,6 +6,8 @@ import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,8 +18,31 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
     List<InventoryAssignment> findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(Long itemId);
     List<InventoryAssignment> findAllByUserIndexAndDeletedFalseOrderByAssignedAtDesc(String userIndex);
     List<InventoryAssignment> findAllByUserKeycloakIdAndDeletedFalseOrderByAssignedAtDesc(String userId);
+    Page<InventoryAssignment> findAllByUserKeycloakIdAndDeletedFalseAndStatusIn(
+        String userKeycloakId,
+        Collection<InventoryAssignmentStatus> statuses,
+        Pageable pageable
+    );
+    Optional<InventoryAssignment> findByIdAndUserKeycloakIdAndDeletedFalse(Long id, String userKeycloakId);
     Optional<InventoryAssignment> findByIdAndDeletedFalse(Long id);
     boolean existsByItem_IdAndUserKeycloakIdAndDeletedFalse(Long itemId, String userKeycloakId);
+
+    @Query("""
+        select a from InventoryAssignment a
+        where a.userKeycloakId = :userId
+          and a.deleted = false
+          and a.status in :statuses
+          and (
+            lower(a.item.name) like lower(concat('%', :query, '%'))
+            or lower(a.item.inventoryNumber) like lower(concat('%', :query, '%'))
+          )
+        """)
+    Page<InventoryAssignment> searchOwn(
+        @Param("userId") String userId,
+        @Param("query") String query,
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        Pageable pageable
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from InventoryAssignment a where a.id = :id and a.deleted = false")

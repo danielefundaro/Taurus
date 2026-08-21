@@ -1,6 +1,6 @@
 <p-confirmdialog />
 <p-fluid>
-    @if (erasureRequests.length > 0) {
+    @if (isAdmin && !personalView && erasureRequests.length > 0) {
     <div class="card border-l-4 border-amber-500">
         <h3 class="text-lg font-semibold mt-0">Cancellazioni GDPR in attesa di riconsegna</h3>
         <p class="text-sm text-surface-500">La cancellazione può essere completata solo dopo la riconsegna di tutto il
@@ -28,50 +28,82 @@
     }
 
     <div class="card">
-        <p-dataview [value]="items" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
+        <p-dataview [value]="values" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
             [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
-            [paginatorPosition]="items.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
+            [paginatorPosition]="values.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
             [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
             [rowsPerPageOptions]="[10, 25, 50]"
-            currentPageReportTemplate="Da {first} a {last} di {totalRecords} oggetti" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" [showCurrentPageReport]="true"
             (onLazyLoad)="onLazyLoad($event)">
             <ng-template #header>
                 <div class="flex flex-col gap-4">
-                    <div class="flex items-center justify-between gap-3">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                         <div>
-                            <h2 class="text-xl font-semibold m-0">Inventario</h2>
-                            <p class="text-sm text-surface-500 mt-1 mb-0">{{ totalRecords }} oggetti registrati</p>
+                            <h2 class="text-xl font-semibold m-0">{{ personalView ? 'Il mio inventario' : 'Inventario'
+                                }}</h2>
+                            <p class="text-sm text-surface-500 mt-1 mb-0">{{ totalRecords }} {{ personalView ? (scope
+                                === 'POSSESSED' ? 'consegne in possesso' : 'consegne riconsegnate') : 'oggetti
+                                registrati' }}</p>
                         </div>
-                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3">
+                        <div class="flex flex-wrap items-center gap-3">
+                            @if (!personalView) {
                             <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
-                            <p-iconfield>
-                                <p-inputicon class="pi pi-search" />
-                                <input id="globalFilter" pInputText type="search" (input)="onGlobalFilter($event)"
-                                    placeholder="Nome o numero inventariale" />
-                            </p-iconfield>
-                            <label for="globalFilter" class="hidden">Ricerca per nome o numero inventariale</label>
-                            <p-select [options]="sortOptions" placeholder="Ordina per..."
-                                (onChange)="onSortChange($event)" />
-                            <p-select-button [(ngModel)]="layout" [options]="layoutOptions" [allowEmpty]="false">
-                                <ng-template #item let-option>
-                                    <i class="pi"
-                                        [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"
-                                        [pTooltip]="option === 'list' ? 'Lista' : 'Griglia'"></i>
-                                </ng-template>
-                            </p-select-button>
+                            }
+                            @if (isAdmin) {
+                            <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label"
+                                optionValue="value" [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
+                            }
                         </div>
+                    </div>
+
+                    @if (personalView) {
+                    <div
+                        class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3 rounded border border-surface">
+                        <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label"
+                            optionValue="value" [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
+                        <div class="flex flex-wrap items-center gap-3 text-sm">
+                            <label class="flex items-center gap-2" for="assigned"><p-checkbox
+                                    [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
+                            <label class="flex items-center gap-2" for="returned"><p-checkbox
+                                    [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
+                            <label class="flex items-center gap-2" for="photos"><p-checkbox
+                                    [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
+                            <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary"
+                                [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
+                        </div>
+                    </div>
+                    }
+
+                    <div class="flex flex-col sm:flex-row sm:justify-end gap-3">
+                        <p-iconfield>
+                            <p-inputicon class="pi pi-search" />
+                            <label class="sr-only" for="inventory-search">Cerca inventario</label>
+                            <input id="inventory-search" pInputText type="search" [value]="search"
+                                (input)="onGlobalFilter($event)" placeholder="Nome o numero inventariale" />
+                        </p-iconfield>
+                        <p-select [options]="sortOptions" placeholder="Ordina per..."
+                            (onChange)="onSortChange($event)" />
+                        <p-select-button [(ngModel)]="layout" [options]="layoutOptions" [allowEmpty]="false">
+                            <ng-template #item let-option>
+                                <i class="pi"
+                                    [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"
+                                    [pTooltip]="option === 'list' ? 'Lista' : 'Griglia'"></i>
+                            </ng-template>
+                        </p-select-button>
                     </div>
                 </div>
             </ng-template>
 
-            <ng-template #list let-listItems>
+            <ng-template #list let-listValues>
                 <div class="flex flex-col">
-                    @for (item of listItems; track item.id; let first = $first) {
+                    @for (entry of listValues; track entry.id; let first = $first) {
+                    @if (personalView) {
                     <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
                         [ngClass]="{ 'border-t border-surface': !first }">
-                        <a class="inventory-thumb inventory-thumb-list cursor-pointer" [routerLink]="item.id">
-                            @if (photoUrl(item); as url) {
-                            <img [src]="url | secure | async" [alt]="item.name" />
+                        <a class="inventory-thumb inventory-thumb-list cursor-pointer"
+                            [routerLink]="['/inventory/assignments', entry.id]">
+                            @if (assignmentPhotoUrl(entry); as url) {
+                            <img [src]="url | secure | async" [alt]="entry.itemName" />
                             } @else {
                             <i class="pi pi-box text-3xl text-primary"></i>
                             }
@@ -79,73 +111,146 @@
                         <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <a class="text-2xl font-semibold cursor-pointer" [routerLink]="item.id">{{ item.name
-                                        }}</a>
-                                    <p-tag [value]="item.inventoryNumber" severity="secondary" />
-                                    <p-tag [value]="conditionLabel(item.conditionStatus)" severity="info" />
+                                    <a class="text-2xl font-semibold cursor-pointer"
+                                        [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" />
+                                    <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
                                 </div>
-                                <p class="text-surface-500 m-0 text-overflow">{{ item.description || 'Nessuna
+                                <p class="text-surface-500 m-0 text-overflow">{{ entry.itemDescription || 'Nessuna
                                     descrizione' }}</p>
                                 <div class="flex flex-wrap gap-4 mt-3 text-sm">
-                                    <span><strong>{{ item.availableQuantity }}</strong> disponibili</span>
-                                    <span><strong>{{ item.assignedQuantity }}</strong> assegnati</span>
-                                    <span><strong>{{ item.totalQuantity }}</strong> totali</span>
-                                    @if (item.estimatedUnitValue != null) {
-                                    <span>{{ item.estimatedUnitValue | number: '1.2-2' }} {{ item.currency }}</span>
+                                    <span><strong>{{ entry.outstandingQuantity }}</strong> in possesso</span>
+                                    <span><strong>{{ entry.returnedQuantity }}</strong> riconsegnati</span>
+                                    <span>Consegnato il {{ entry.assignedAt | date: 'dd/MM/yyyy' }}</span>
+                                    @if (entry.decision) {
+                                    <p-tag [value]="entry.decision.decision"
+                                        [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
+                                    } @else {
+                                    <p-tag value="PRESA VISIONE IN ATTESA" severity="warn" />
+                                    }
+                                </div>
+                            </div>
+                            <p-button label="Dettaglio" icon="pi pi-eye"
+                                [routerLink]="['/inventory/assignments', entry.id]" />
+                        </div>
+                    </div>
+                    } @else {
+                    <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
+                        [ngClass]="{ 'border-t border-surface': !first }">
+                        <a class="inventory-thumb inventory-thumb-list cursor-pointer"
+                            [routerLink]="['/inventory/items', entry.id]">
+                            @if (itemPhotoUrl(entry); as url) {
+                            <img [src]="url | secure | async" [alt]="entry.name" />
+                            } @else {
+                            <i class="pi pi-box text-3xl text-primary"></i>
+                            }
+                        </a>
+                        <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <a class="text-2xl font-semibold cursor-pointer"
+                                        [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" />
+                                    <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
+                                </div>
+                                <p class="text-surface-500 m-0 text-overflow">{{ entry.description || 'Nessuna
+                                    descrizione' }}</p>
+                                <div class="flex flex-wrap gap-4 mt-3 text-sm">
+                                    <span><strong>{{ entry.availableQuantity }}</strong> disponibili</span>
+                                    <span><strong>{{ entry.assignedQuantity }}</strong> assegnati</span>
+                                    <span><strong>{{ entry.totalQuantity }}</strong> totali</span>
+                                    @if (entry.estimatedUnitValue != null) {
+                                    <span>{{ entry.estimatedUnitValue | number: '1.2-2' }} {{ entry.currency }}</span>
                                     }
                                 </div>
                             </div>
                             <div class="flex gap-2 flex-shrink-0">
-                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" />
+                                <p-button label="Modifica" icon="pi pi-pencil"
+                                    [routerLink]="['/inventory/items', entry.id]" />
                                 <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
-                                    (onClick)="deleteItem(item)" />
+                                    (onClick)="deleteItem(entry)" />
                             </div>
                         </div>
                     </div>
                     }
+                    }
                 </div>
             </ng-template>
 
-            <ng-template #grid let-gridItems>
+            <ng-template #grid let-gridValues>
                 <div class="grid grid-cols-12 gap-4 p-2">
-                    @for (item of gridItems; track item.id) {
+                    @for (entry of gridValues; track entry.id) {
                     <div class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
                         <div class="inventory-card p-5 border border-surface rounded flex flex-col h-full">
-                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer" [routerLink]="item.id">
-                                @if (photoUrl(item); as url) {
-                                <img [src]="url | secure | async" [alt]="item.name" />
+                            @if (personalView) {
+                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer"
+                                [routerLink]="['/inventory/assignments', entry.id]">
+                                @if (assignmentPhotoUrl(entry); as url) {
+                                <img [src]="url | secure | async" [alt]="entry.itemName" />
                                 } @else {
                                 <i class="pi pi-box text-5xl text-primary"></i>
                                 }
                             </a>
                             <div class="flex flex-wrap gap-2 mt-4">
-                                <p-tag [value]="item.inventoryNumber" severity="secondary" />
-                                <p-tag [value]="conditionLabel(item.conditionStatus)" severity="info" />
+                                <p-tag [value]="entry.inventoryNumber" severity="secondary" />
+                                <p-tag [value]="entry.status" severity="info" />
                             </div>
-                            <a class="text-xl font-semibold mt-3 cursor-pointer" [routerLink]="item.id">{{ item.name
-                                }}</a>
-                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ item.description || 'Nessuna
+                            <a class="text-xl font-semibold mt-3 cursor-pointer"
+                                [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ entry.itemDescription ||
+                                'Nessuna descrizione' }}</p>
+                            <div class="grid grid-cols-2 gap-2 text-center my-4">
+                                <div>
+                                    <strong class="block">{{ entry.outstandingQuantity }}</strong><span
+                                        class="text-xs text-surface-500">In possesso</span>
+                                </div>
+                                <div>
+                                    <strong class="block">{{ entry.returnedQuantity }}</strong><span
+                                        class="text-xs text-surface-500">Riconsegnati</span>
+                                </div>
+                            </div>
+                            <p-button label="Dettaglio" icon="pi pi-eye"
+                                [routerLink]="['/inventory/assignments', entry.id]" class="w-full"
+                                styleClass="w-full" />
+                            } @else {
+                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer"
+                                [routerLink]="['/inventory/items', entry.id]">
+                                @if (itemPhotoUrl(entry); as url) {
+                                <img [src]="url | secure | async" [alt]="entry.name" />
+                                } @else {
+                                <i class="pi pi-box text-5xl text-primary"></i>
+                                }
+                            </a>
+                            <div class="flex flex-wrap gap-2 mt-4">
+                                <p-tag [value]="entry.inventoryNumber" severity="secondary" />
+                                <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
+                            </div>
+                            <a class="text-xl font-semibold mt-3 cursor-pointer"
+                                [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ entry.description || 'Nessuna
                                 descrizione' }}</p>
                             <div class="grid grid-cols-3 gap-2 text-center my-4">
                                 <div>
-                                    <strong class="block">{{ item.availableQuantity }}</strong><span
+                                    <strong class="block">{{ entry.availableQuantity }}</strong><span
                                         class="text-xs text-surface-500">Disponibili</span>
                                 </div>
                                 <div>
-                                    <strong class="block">{{ item.assignedQuantity }}</strong><span
+                                    <strong class="block">{{ entry.assignedQuantity }}</strong><span
                                         class="text-xs text-surface-500">Assegnati</span>
                                 </div>
                                 <div>
-                                    <strong class="block">{{ item.totalQuantity }}</strong><span
+                                    <strong class="block">{{ entry.totalQuantity }}</strong><span
                                         class="text-xs text-surface-500">Totali</span>
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" class="flex-auto"
+                                <p-button label="Modifica" icon="pi pi-pencil"
+                                    [routerLink]="['/inventory/items', entry.id]" class="flex-auto"
                                     styleClass="w-full" />
                                 <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
-                                    (onClick)="deleteItem(item)" />
+                                    (onClick)="deleteItem(entry)" />
                             </div>
+                            }
                         </div>
                     </div>
                     }
@@ -155,9 +260,15 @@
             <ng-template #empty>
                 <div class="flex flex-col items-center justify-center py-16 text-center">
                     <i class="pi pi-box text-5xl text-surface-400 mb-4"></i>
-                    <h3 class="m-0">Nessun oggetto trovato</h3>
-                    <p class="text-surface-500">Modifica la ricerca oppure aggiungi il primo oggetto all’inventario.</p>
+                    <h3 class="m-0">{{ personalView ? 'Nessuna consegna trovata' : 'Nessun oggetto trovato' }}</h3>
+                    <p class="text-surface-500">
+                        {{ personalView ? (scope === 'POSSESSED' ? 'Non hai materiale attualmente in possesso.' : 'Non
+                        risultano consegne completamente riconsegnate.') : 'Modifica la ricerca oppure aggiungi il primo
+                        oggetto all’inventario.' }}
+                    </p>
+                    @if (!personalView) {
                     <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+                    }
                 </div>
             </ng-template>
         </p-dataview>

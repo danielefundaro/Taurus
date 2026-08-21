@@ -20,7 +20,7 @@ Non è prevista una tassonomia di categorie: il nome e la descrizione identifica
 | Chiudere una riconsegna | no | sì | sì |
 | Gestire richieste GDPR sospese | no | sì | sì |
 
-Gli endpoint personali sono sotto `/api/inventory/me/**`; quelli amministrativi sotto `/api/inventory/**`. L'ordine delle regole Spring Security garantisce che gli endpoint personali non ereditino il vincolo admin.
+Gli endpoint personali sono sotto `/api/user/inventory/**`; quelli amministrativi sotto `/api/inventory/**`. Le regole Spring Security autorizzano esplicitamente soltanto le operazioni self-service previste e negano tutte le altre chiamate sul namespace personale. Ogni risorsa personale è inoltre verificata rispetto all'identità ricavata dal token.
 
 ## Modello dati relazionale
 
@@ -213,13 +213,14 @@ Endpoint amministrativi principali:
 
 Endpoint personali principali:
 
-- `GET /api/inventory/me/assignments`;
-- `POST /api/inventory/me/assignments/{id}/decision`;
-- `POST /api/inventory/me/assignments/{id}/returns`;
-- `POST /api/inventory/me/returns/{id}/photos`;
-- `GET /api/inventory/me/photos/{id}`;
-- `GET /api/inventory/me/return-photos/{id}`;
-- `GET /api/inventory/me/report`.
+- `GET /api/user/inventory/assignments`, paginato e filtrabile per materiale in possesso o riconsegnato;
+- `GET /api/user/inventory/assignments/{id}`;
+- `POST /api/user/inventory/assignments/{id}/decision`;
+- `POST /api/user/inventory/assignments/{id}/returns`;
+- `POST /api/user/inventory/returns/{id}/photos`;
+- `GET /api/user/inventory/photos/{id}`;
+- `GET /api/user/inventory/return-photos/{id}`;
+- `GET /api/user/inventory/report`.
 
 Tutti gli identificativi sono verificati insieme al tenant ricavato dal token. Gli endpoint personali verificano inoltre la proprietà dell'assegnazione.
 
@@ -229,7 +230,7 @@ La voce `Inventario` è visibile nel menu solo ad admin e super admin. La pagina
 
 - visualizzazione paginata di tutti gli oggetti in modalità lista o griglia;
 - ricerca per nome o numero inventariale e ordinamento;
-- apertura di una pagina di dettaglio dedicata tramite `/inventory/{id}`;
+- apertura del dettaglio amministrativo tramite `/inventory/items/{id}`;
 - ricerca, creazione, modifica e cancellazione logica degli oggetti;
 - controllo quantità totale/disponibile/assegnata;
 - caricamento e rimozione fotografie;
@@ -238,12 +239,11 @@ La voce `Inventario` è visibile nel menu solo ad admin e super admin. La pagina
 - riemissione di una revisione dopo una negazione;
 - gestione delle riconsegne e delle richieste GDPR sospese.
 
-La creazione parte dal pulsante `Nuovo` dell'elenco e utilizza un modale, coerente con Album e Tracce, per raccogliere numero inventariale, nome, quantità, valore e valuta, stato e note di conservazione e descrizione. Dopo il salvataggio, fotografie, assegnazioni, prese visione e riconsegne sono gestite nella pagina di dettaglio `/inventory/{id}`, con protezione dalle modifiche non salvate.
+La creazione parte dal pulsante `Nuovo` dell'elenco e utilizza un modale, coerente con Album e Tracce, per raccogliere numero inventariale, nome, quantità, valore e valuta, stato e note di conservazione e descrizione. Dopo il salvataggio, fotografie, assegnazioni, prese visione e riconsegne sono gestite nella pagina di dettaglio `/inventory/items/{id}`, con protezione dalle modifiche non salvate.
 
-La sezione riutilizzabile `Inventario consegnato` è integrata:
+La voce laterale `Inventario` è disponibile a tutti i ruoli. Admin e super admin possono alternare `Inventario tenant` e `I miei oggetti`; gli altri ruoli accedono direttamente alla propria lista paginata, suddivisa tra materiale in possesso e riconsegnato. Ogni consegna apre `/inventory/assignments/{id}`, da cui l'utente può prendere visione, motivare un rifiuto, avviare una riconsegna, allegare fotografie e scaricare il proforma. La sezione non è più mostrata nel profilo personale.
 
-- nel profilo personale di qualunque ruolo;
-- nella pagina utente consultata da un amministratore.
+La pagina utente consultata da un amministratore mantiene il riepilogo delle assegnazioni e delle decisioni dell'utente.
 
 La vista personale presenta checkbox mutuamente esclusive per accettazione e negazione, richiede una motivazione per la negazione e rimuove i controlli dopo la conferma. La vista amministrativa è in sola lettura sulla decisione dell'utente e abilita la chiusura delle riconsegne.
 

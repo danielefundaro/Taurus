@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoReposi
 import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.math.BigDecimal;
@@ -33,6 +35,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -97,6 +102,37 @@ class InventoryServiceTest {
         service.createItem(request, authentication());
 
         verify(itemRepository).existsByInventoryNumberIgnoreCaseAndDeletedFalse("INV-1");
+    }
+
+    @Test
+    void shouldPageOnlyAssignmentsOwnedByAuthenticatedUser() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(assignmentRepository.findAllByUserKeycloakIdAndDeletedFalseAndStatusIn(eq("user-1"), eq(InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES), eq(pageable)))
+            .thenReturn(Page.empty(pageable));
+
+        service.findOwnAssignments(null, InventoryAssignmentScope.POSSESSED, pageable, authentication());
+
+        verify(assignmentRepository).findAllByUserKeycloakIdAndDeletedFalseAndStatusIn("user-1", InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+    }
+
+    @Test
+    void shouldUseTextSearchOnlyWithANonBlankQuery() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(assignmentRepository.searchOwn("user-1", "leggio", InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES, pageable))
+            .thenReturn(Page.empty(pageable));
+
+        service.findOwnAssignments("  leggio  ", InventoryAssignmentScope.POSSESSED, pageable, authentication());
+
+        verify(assignmentRepository).searchOwn("user-1", "leggio", InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+    }
+
+    @Test
+    void shouldNotExposeAssignmentOwnedByAnotherUser() {
+        when(assignmentRepository.findByIdAndUserKeycloakIdAndDeletedFalse(2L, "user-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.findOwnAssignment(2L, authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Assegnazione non trovata");
     }
 
     @Test

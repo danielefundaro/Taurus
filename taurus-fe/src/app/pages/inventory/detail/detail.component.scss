@@ -1,0 +1,66 @@
+.inventory-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--content-border-radius);
+    background: var(--surface-card);
+
+    strong {
+        font-size: 1.5rem;
+    }
+
+    span {
+        color: var(--text-color-secondary);
+        font-size: 0.8rem;
+    }
+}
+
+.inventory-photo {
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--content-border-radius);
+
+    > img {
+        width: 100%;
+        height: 10rem;
+        object-fit: cover;
+        display: block;
+    }
+}
+
+.photo-name {
+    display: block;
+    overflow: hidden;
+    padding: 0.6rem;
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.empty-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3rem;
+    color: var(--text-color-secondary);
+    border: 1px dashed var(--surface-border);
+    border-radius: var(--content-border-radius);
+
+    i {
+        font-size: 2rem;
+    }
+}
+
+.return-entry {
+    padding: 0.75rem;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--content-border-radius);
+
+    & + & {
+        margin-top: 0.75rem;
+    }
+}
