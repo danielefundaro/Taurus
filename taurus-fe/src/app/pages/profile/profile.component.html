@@ -1,17 +1,13 @@
 <p-confirmdialog />
 
 <p-fluid>
-
     <!-- Avatar + name header -->
     <div class="card flex flex-row items-center gap-4 w-full">
-        <div
-            class="profile-avatar flex items-center justify-center rounded-full bg-primary text-surface-900 dark:text-surface-0">
+        <div class="profile-avatar flex items-center justify-center rounded-full bg-primary text-surface-900 dark:text-surface-0">
             <i class="pi pi-user"></i>
         </div>
         <div class="flex flex-col gap-1">
-            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">
-                {{ firstName }} {{ lastName }}
-            </h2>
+            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ firstName }} {{ lastName }}</h2>
             <span class="text-surface-500 text-sm">&#64;{{ username }}</span>
         </div>
     </div>
@@ -20,24 +16,20 @@
     <div class="card">
         <div class="flex items-center gap-2 mb-4">
             <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">Informazioni personali</h3>
-            <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-                title="Modifiche non salvate"></span>
+            <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div class="flex flex-col gap-2">
                 <label for="firstName" class="font-medium text-sm text-surface-700 dark:text-surface-200">Nome</label>
-                <input pInputText id="firstName" [(ngModel)]="firstName" (ngModelChange)="isDirty = true"
-                    placeholder="Nome" />
+                <input pInputText id="firstName" [(ngModel)]="firstName" (ngModelChange)="isDirty = true" placeholder="Nome" />
             </div>
             <div class="flex flex-col gap-2">
                 <label for="lastName" class="font-medium text-sm text-surface-700 dark:text-surface-200">Cognome</label>
-                <input pInputText id="lastName" [(ngModel)]="lastName" (ngModelChange)="isDirty = true"
-                    placeholder="Cognome" />
+                <input pInputText id="lastName" [(ngModel)]="lastName" (ngModelChange)="isDirty = true" placeholder="Cognome" />
             </div>
             <div class="flex flex-col gap-2">
                 <label for="email" class="font-medium text-sm text-surface-700 dark:text-surface-200">Email</label>
-                <input pInputText id="email" type="email" [(ngModel)]="email" (ngModelChange)="isDirty = true"
-                    placeholder="Email" />
+                <input pInputText id="email" type="email" [(ngModel)]="email" (ngModelChange)="isDirty = true" placeholder="Email" />
             </div>
             <div class="flex flex-col gap-2">
                 <label for="username" class="font-medium text-sm text-surface-400">Nome utente</label>
@@ -57,18 +49,13 @@
         <app-calendar-events-table />
     </div>
 
-    <div class="card">
-        <app-inventory-assignments />
-    </div>
-
     <!-- Security actions -->
     <div class="card">
         <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 mt-0 mb-1">Sicurezza</h3>
         <p class="text-sm text-surface-500 mt-0 mb-4">Gestisci la password e l'autenticazione a due fattori.</p>
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />
-            <p-button label="Configura autenticatore OTP" icon="pi pi-shield" severity="secondary"
-                (onClick)="configureOTP()" />
+            <p-button label="Configura autenticatore OTP" icon="pi pi-shield" severity="secondary" (onClick)="configureOTP()" />
         </div>
     </div>
 
@@ -88,17 +75,12 @@
         <h3 class="text-lg font-semibold text-red-500 mt-0 mb-4">Zona pericolosa</h3>
         <div class="flex flex-col gap-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <p class="text-sm text-surface-500 m-0">Disattiva l'account conservando i dati per un eventuale
-                    ripristino.</p>
-                <p-button label="Disattiva account" icon="pi pi-user-minus" severity="warn" [outlined]="true"
-                    (onClick)="confirmDeleteAccount()" />
+                <p class="text-sm text-surface-500 m-0">Disattiva l'account conservando i dati per un eventuale ripristino.</p>
+                <p-button label="Disattiva account" icon="pi pi-user-minus" severity="warn" [outlined]="true" (onClick)="confirmDeleteAccount()" />
             </div>
-            <div
-                class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
-                <p class="text-sm text-surface-500 m-0">Elimina definitivamente l'account e i dati personali ai sensi
-                    del GDPR.</p>
-                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger"
-                    (onClick)="confirmGdprDeletion()" />
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
+                <p class="text-sm text-surface-500 m-0">Elimina definitivamente l'account e i dati personali ai sensi del GDPR.</p>
+                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger" (onClick)="confirmGdprDeletion()" />
             </div>
         </div>
     </div>

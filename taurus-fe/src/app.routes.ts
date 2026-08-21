@@ -22,69 +22,69 @@ export const appRoutes: Routes = [
                 path: '',
                 component: DashboardComponent,
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'tenants',
                 loadChildren: () => import('./app/pages/tenants/tenants.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN] },
+                data: { role: [RoleEnums.SUPER_ADMIN] }
             },
             {
                 path: 'users',
                 loadChildren: () => import('./app/pages/users/users.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
             },
             {
                 path: 'legal-documents',
                 loadChildren: () => import('./app/pages/legal-documents/legal-documents.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN] },
+                data: { role: [RoleEnums.SUPER_ADMIN] }
             },
             {
                 path: 'albums',
                 loadChildren: () => import('./app/pages/albums/albums.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'tracks',
                 loadChildren: () => import('./app/pages/tracks/tracks.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'instruments',
                 loadChildren: () => import('./app/pages/instruments/instruments.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] }
             },
             {
                 path: 'inventory',
                 loadChildren: () => import('./app/pages/inventory/inventory.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'calendar',
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'preview',
                 component: PreviewComponent,
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'profile',
                 component: ProfileComponent,
                 canActivate: [canActivateAuthRole],
                 canDeactivate: [canDeactivateUnsavedChanges],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] },
-            },
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+            }
         ]
     },
     { path: 'notfound', component: Notfound },

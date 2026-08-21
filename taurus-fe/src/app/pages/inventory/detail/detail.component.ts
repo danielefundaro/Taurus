@@ -1,0 +1,311 @@
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ConfirmationService } from 'primeng/api';
+import { finalize, first } from 'rxjs';
+import { HasUnsavedChanges } from '../../../guard';
+import { ImportsModule } from '../../../imports';
+import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryReturn, Users, UsersCriteria } from '../../../module';
+import { InventoryService, ToastService, UsersService } from '../../../service';
+
+@Component({
+    selector: 'app-inventory-detail',
+    standalone: true,
+    imports: [ImportsModule],
+    templateUrl: './detail.component.html',
+    styleUrl: './detail.component.scss',
+    providers: [ConfirmationService, UsersService]
+})
+export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
+    protected item: InventoryItem = this.emptyItem();
+    protected users: Users[] = [];
+    protected selectedUser?: Users;
+    protected assignmentQuantity = 1;
+    protected assignmentDescription = '';
+    protected assignmentEdits: Record<number, InventoryAssignmentRequest> = {};
+    protected returnQuantities: Record<number, number> = {};
+    protected returnRequestNotes: Record<number, string> = {};
+    protected returnConditions: Record<number, InventoryCondition | undefined> = {};
+    protected returnCompletionNotes: Record<number, string> = {};
+    protected loading = false;
+    protected saving = false;
+    protected readonly conditions: { label: string; value: InventoryCondition }[] = [
+        { label: 'Nuovo', value: 'NEW' },
+        { label: 'Eccellente', value: 'EXCELLENT' },
+        { label: 'Buono', value: 'GOOD' },
+        { label: 'Discreto', value: 'FAIR' },
+        { label: 'Da riparare', value: 'TO_REPAIR' },
+        { label: 'Fuori servizio', value: 'OUT_OF_SERVICE' }
+    ];
+
+    private itemDirty = false;
+    protected readonly dirtyAssignments = new Set<number>();
+
+    constructor(
+        private readonly inventoryService: InventoryService,
+        private readonly usersService: UsersService,
+        private readonly toastService: ToastService,
+        private readonly confirmationService: ConfirmationService,
+        private readonly route: ActivatedRoute,
+        private readonly router: Router
+    ) {}
+
+    get isDirty(): boolean {
+        return this.itemDirty || this.dirtyAssignments.size > 0;
+    }
+
+    protected get isNew(): boolean {
+        return !this.item.id;
+    }
+
+    protected get canSave(): boolean {
+        return this.itemDirty && !!this.item.name?.trim() && !!this.item.inventoryNumber?.trim();
+    }
+
+    ngOnInit(): void {
+        this.loadUsers();
+        this.route.params.pipe(first()).subscribe((params) => {
+            const id = params['id'];
+            if (id === 'new') {
+                this.item = this.emptyItem();
+                this.itemDirty = false;
+                return;
+            }
+            const numericId = Number(id);
+            if (!Number.isInteger(numericId) || numericId < 1) {
+                this.router.navigate(['/inventory']);
+                return;
+            }
+            this.loadItem(numericId);
+        });
+    }
+
+    protected markItemDirty(): void {
+        this.itemDirty = true;
+    }
+
+    protected markAssignmentDirty(id: number): void {
+        this.dirtyAssignments.add(id);
+    }
+
+    protected save(): void {
+        if (!this.canSave) return;
+        this.saving = true;
+        const request = this.item.id ? this.inventoryService.updateItem(this.item.id, this.item) : this.inventoryService.createItem(this.item);
+        request
+            .pipe(
+                first(),
+                finalize(() => (this.saving = false))
+            )
+            .subscribe((value) => {
+                this.itemDirty = false;
+                this.toastService.success('Inventario aggiornato', 'Le modifiche sono state salvate.');
+                if (this.isNew) {
+                    this.router.navigate(['/inventory', value.id]);
+                } else {
+                    this.loadItem(value.id!);
+                }
+            });
+    }
+
+    protected confirmDelete(): void {
+        if (!this.item.id) return;
+        this.confirmationService.confirm({
+            header: 'Conferma eliminazione',
+            message: `Rimuovere “${this.item.name}” dall’inventario?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () =>
+                this.inventoryService
+                    .deleteItem(this.item.id!)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.itemDirty = false;
+                        this.dirtyAssignments.clear();
+                        this.toastService.success('Oggetto eliminato', 'L’oggetto è stato rimosso dall’inventario.');
+                        this.router.navigate(['/inventory']);
+                    })
+        });
+    }
+
+    protected assign(): void {
+        if (!this.item.id || !this.selectedUser?.id) return;
+        const request: InventoryAssignmentRequest = {
+            userIndex: this.selectedUser.id,
+            order: this.item.assignments?.length ?? 0,
+            quantity: this.assignmentQuantity,
+            description: this.assignmentDescription
+        };
+        this.inventoryService
+            .assign(this.item.id, request)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Materiale assegnato', 'L’utente può ora prenderne visione dal profilo.');
+                this.selectedUser = undefined;
+                this.assignmentQuantity = 1;
+                this.assignmentDescription = '';
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected saveAssignment(assignmentId: number): void {
+        const request = this.assignmentEdits[assignmentId];
+        if (!request || request.quantity < 1) return;
+        this.inventoryService
+            .updateAssignment(assignmentId, request)
+            .pipe(first())
+            .subscribe(() => {
+                this.dirtyAssignments.delete(assignmentId);
+                this.toastService.success('Assegnazione aggiornata', 'Quantità, ordine e descrizione sono stati salvati.');
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected reissue(assignmentId: number): void {
+        this.inventoryService
+            .reissue(assignmentId)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Presa visione riemessa', 'È stata creata una nuova revisione.');
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected requestReturn(assignment: InventoryAssignment): void {
+        const quantity = this.returnQuantities[assignment.id] || assignment.outstandingQuantity;
+        this.inventoryService
+            .requestReturn(assignment.id, quantity, this.returnRequestNotes[assignment.id])
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Riconsegna avviata', 'La procedura di riconsegna è stata aperta.');
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected hasOpenReturn(assignment: InventoryAssignment): boolean {
+        return assignment.returns.some((value) => value.status === 'REQUESTED');
+    }
+
+    protected completeReturn(value: InventoryReturn): void {
+        this.inventoryService
+            .completeReturn(value.id, value.quantity, this.returnConditions[value.id], this.returnCompletionNotes[value.id])
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Riconsegna completata', 'Il materiale è stato segnato come riconsegnato.');
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected upload(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file || !this.item.id) return;
+        if (!this.isValidPhoto(file)) {
+            input.value = '';
+            return;
+        }
+        this.inventoryService
+            .uploadPhoto(this.item.id, file)
+            .pipe(first())
+            .subscribe(() => {
+                input.value = '';
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected uploadReturnPhoto(value: InventoryReturn, event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+        if (!this.isValidPhoto(file)) {
+            input.value = '';
+            return;
+        }
+        this.inventoryService
+            .uploadReturnPhoto(value.id, file)
+            .pipe(first())
+            .subscribe(() => {
+                input.value = '';
+                this.loadItem(this.item.id!);
+            });
+    }
+
+    protected removePhoto(id: number): void {
+        this.inventoryService
+            .deletePhoto(id)
+            .pipe(first())
+            .subscribe(() => this.loadItem(this.item.id!));
+    }
+
+    protected photoUrl(id: number): string {
+        return this.inventoryService.photoUrl(id);
+    }
+
+    protected returnPhotoUrl(id: number): string {
+        return this.inventoryService.photoUrl(id).replace('/photos/', '/return-photos/');
+    }
+
+    private loadItem(id: number): void {
+        this.loading = true;
+        this.inventoryService
+            .getItem(id)
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
+            .subscribe((value) => {
+                this.item = value;
+                this.assignmentEdits = Object.fromEntries(
+                    (value.assignments ?? []).map((assignment) => [
+                        assignment.id,
+                        {
+                            userIndex: assignment.userIndex,
+                            order: assignment.order,
+                            quantity: assignment.assignedQuantity,
+                            description: assignment.description
+                        }
+                    ])
+                );
+                (value.assignments ?? []).forEach((assignment) => {
+                    this.returnQuantities[assignment.id] = Math.max(1, assignment.outstandingQuantity);
+                    assignment.returns.forEach((itemReturn) => {
+                        this.returnConditions[itemReturn.id] = itemReturn.condition;
+                        this.returnCompletionNotes[itemReturn.id] = itemReturn.notes ?? '';
+                    });
+                });
+                this.itemDirty = false;
+                this.dirtyAssignments.clear();
+            });
+    }
+
+    private loadUsers(): void {
+        this.usersService
+            .getAll({ page: 0, size: 1000, sort: ['name.keyword,asc'] } as UsersCriteria)
+            .pipe(first())
+            .subscribe((page) => (this.users = page.content));
+    }
+
+    private isValidPhoto(file: File): boolean {
+        const valid = file.size <= 10 * 1024 * 1024 && ['image/jpeg', 'image/png'].includes(file.type);
+        if (!valid) {
+            this.toastService.error('Fotografia non valida', 'Sono ammessi JPEG/PNG fino a 10 MB. WebP non è supportato.');
+        }
+        return valid;
+    }
+
+    private emptyItem(): InventoryItem {
+        return {
+            inventoryNumber: '',
+            name: '',
+            totalQuantity: 0,
+            assignedQuantity: 0,
+            availableQuantity: 0,
+            conditionStatus: 'GOOD',
+            currency: 'EUR',
+            photos: [],
+            assignments: []
+        };
+    }
+}

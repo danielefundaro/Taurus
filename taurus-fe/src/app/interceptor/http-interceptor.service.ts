@@ -64,9 +64,18 @@ export class HttpInterceptorService implements HttpInterceptor {
                 return this.handle401Error(authReq, next);
             } else if (error.status === 403) {
                 this.router.navigate(['forbidden']);
-            } else if ('error' in error) {
-                if ('message' in error.error) {
-                    const message = error.error.message.replace("error.", '').toLowerCase();
+            } else {
+                const responseBody = error.error;
+                const responseMessage =
+                    responseBody !== null &&
+                    typeof responseBody === 'object' &&
+                    'message' in responseBody &&
+                    typeof responseBody.message === 'string'
+                        ? responseBody.message
+                        : undefined;
+
+                if (responseMessage) {
+                    const message = responseMessage.replace("error.", '').toLowerCase();
 
                     switch (message) {
                         case 'id.notfound': detail = 'Elemento non trovato'; break;
@@ -111,8 +120,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                 } else {
                     this.toastService.error('Errore', detail);
                 }
-            } else {
-                this.toastService.error('Errore', detail);
             }
 
             return throwError(() => error);
