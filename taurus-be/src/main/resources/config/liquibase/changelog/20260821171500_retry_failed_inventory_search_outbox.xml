@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260821171500-1" author="taurus">
+        <comment>Retry inventory projections that failed before Java Time support was enabled in the OpenSearch mapper.</comment>
+        <update tableName="inventory_search_outbox">
+            <column name="status" value="PENDING"/>
+            <column name="attempts" valueNumeric="0"/>
+            <column name="next_attempt_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="processed_at" valueComputed="NULL"/>
+            <column name="last_error" valueComputed="NULL"/>
+            <column name="edit_date" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="edit_by" value="inventory-search-recovery"/>
+            <where>status = 'FAILED' AND deleted = FALSE</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>
