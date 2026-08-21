@@ -29,7 +29,7 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
         { label: 'Da riparare', value: 'TO_REPAIR' }, { label: 'Fuori servizio', value: 'OUT_OF_SERVICE' },
     ];
 
-    constructor(private readonly inventoryService: InventoryService, private readonly toastService: ToastService) {}
+    constructor(private readonly inventoryService: InventoryService, private readonly toastService: ToastService) { }
 
     ngOnInit(): void { this.load(); }
     ngOnChanges(changes: SimpleChanges): void { if (!changes['userIndex']?.firstChange) this.load(); }

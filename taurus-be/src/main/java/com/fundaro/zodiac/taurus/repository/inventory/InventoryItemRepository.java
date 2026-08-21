@@ -14,8 +14,8 @@ import org.springframework.data.repository.query.Param;
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, Long> {
     Page<InventoryItem> findAllByDeletedFalse(Pageable pageable);
     Optional<InventoryItem> findByIdAndDeletedFalse(Long id);
-    boolean existsByInventoryNumberIgnoreCase(String inventoryNumber);
-    boolean existsByInventoryNumberIgnoreCaseAndIdNot(String inventoryNumber, Long id);
+    boolean existsByInventoryNumberIgnoreCaseAndDeletedFalse(String inventoryNumber);
+    boolean existsByInventoryNumberIgnoreCaseAndIdNotAndDeletedFalse(String inventoryNumber, Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from InventoryItem i where i.id = :id and i.deleted = false")

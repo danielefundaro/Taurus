@@ -55,6 +55,12 @@ export class MenuComponent implements OnInit {
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
                     {
+                        label: 'Inventario',
+                        icon: 'pi pi-fw pi-box',
+                        routerLink: ['/inventory'],
+                        'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
+                    },
+                    {
                         separator: true,
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
@@ -73,12 +79,6 @@ export class MenuComponent implements OnInit {
                         icon: 'pi pi-fw pi-sliders-h',
                         routerLink: ['/instruments'],
                         'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST],
-                    },
-                    {
-                        label: 'Inventario',
-                        icon: 'pi pi-fw pi-box',
-                        routerLink: ['/inventory'],
-                        'hasRoles': [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
                     },
                     {
                         separator: true,

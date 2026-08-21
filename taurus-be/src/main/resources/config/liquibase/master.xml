@@ -20,4 +20,5 @@
     <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

@@ -99,7 +99,7 @@ public class InventoryReportService {
             PageWriter writer = new PageWriter(document, regular, bold);
             writer.title("Prospetto inventario consegnato e riconsegnato");
             TenantsDTO tenant = tenantsService.findByCode(requiredTenant(token), token).orElse(null);
-            writer.line("Tenant: " + (tenant == null ? requiredTenant(token) : safe(tenant.getName())), true);
+            writer.line((tenant == null ? requiredTenant(token) : safe(tenant.getName())), true);
             if (tenant != null) {
                 writer.line("Sede: " + safe(joinAddress(tenant)), false);
                 writer.line("Codice fiscale: " + safe(tenant.getTaxCode()) + " - Partita IVA: " + safe(tenant.getVatNumber()), false);

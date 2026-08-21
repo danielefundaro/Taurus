@@ -1,119 +1,166 @@
+<p-confirmdialog />
 <p-fluid>
     @if (erasureRequests.length > 0) {
     <div class="card border-l-4 border-amber-500">
         <h3 class="text-lg font-semibold mt-0">Cancellazioni GDPR in attesa di riconsegna</h3>
-        <p class="text-sm text-surface-500">La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale.</p>
+        <p class="text-sm text-surface-500">La cancellazione può essere completata solo dopo la riconsegna di tutto il
+            materiale.</p>
         <p-table [value]="erasureRequests">
-            <ng-template #header><tr><th>Utente</th><th>Email</th><th>Richiesta</th><th></th></tr></ng-template>
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Utente</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Richiesta</th>
+                    <th scope="col"></th>
+                </tr>
+            </ng-template>
             <ng-template #body let-request>
                 <tr>
-                    <td>{{ request.displayName }}</td><td>{{ request.email }}</td><td>{{ request.requestedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                    <td><p-button label="Completa cancellazione" severity="danger" size="small" (onClick)="completeErasure(request)" /></td>
+                    <td>{{ request.displayName }}</td>
+                    <td>{{ request.email }}</td>
+                    <td>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td><p-button label="Completa cancellazione" severity="danger" size="small"
+                            (onClick)="completeErasure(request)" /></td>
                 </tr>
             </ng-template>
         </p-table>
     </div>
     }
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <div class="xl:col-span-4 card">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold m-0">Inventario</h2>
-                <p-button label="Nuovo" icon="pi pi-plus" (onClick)="newItem()" />
-            </div>
-            <p-iconfield class="mb-3">
-                <p-inputicon class="pi pi-search" />
-                <input pInputText [(ngModel)]="search" (keyup.enter)="loadItems()" placeholder="Nome o numero inventariale" />
-            </p-iconfield>
-            <div class="flex flex-col gap-2">
-                @for (item of items; track item.id) {
-                    <button type="button" class="text-left p-3 rounded border border-surface hover:border-primary cursor-pointer bg-transparent"
-                        (click)="selectItem(item)">
-                        <div class="font-semibold">{{ item.inventoryNumber }} - {{ item.name }}</div>
-                        <div class="text-sm text-surface-500">Disponibili {{ item.availableQuantity }} / {{ item.totalQuantity }}</div>
-                    </button>
-                }
-            </div>
-        </div>
 
-        <div class="xl:col-span-8 flex flex-col gap-4">
-            <div class="card">
-                <div class="flex justify-between items-center mb-5">
-                    <h2 class="text-xl font-semibold m-0">{{ form.id ? 'Dettaglio oggetto' : 'Nuovo oggetto' }}</h2>
-                    <div class="flex gap-2">
-                        @if (form.id) { <p-button icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="remove()" /> }
-                        <p-button label="Salva" icon="pi pi-save" [loading]="saving" (onClick)="save()" />
+    <div class="card">
+        <p-dataview [value]="items" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
+            [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
+            [paginatorPosition]="items.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
+            [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+            [rowsPerPageOptions]="[10, 25, 50]"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} oggetti" [showCurrentPageReport]="true"
+            (onLazyLoad)="onLazyLoad($event)">
+            <ng-template #header>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-xl font-semibold m-0">Inventario</h2>
+                            <p class="text-sm text-surface-500 mt-1 mb-0">{{ totalRecords }} oggetti registrati</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3">
+                            <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
+                            <p-iconfield>
+                                <p-inputicon class="pi pi-search" />
+                                <input id="globalFilter" pInputText type="search" (input)="onGlobalFilter($event)"
+                                    placeholder="Nome o numero inventariale" />
+                            </p-iconfield>
+                            <label for="globalFilter" class="hidden">Ricerca per nome o numero inventariale</label>
+                            <p-select [options]="sortOptions" placeholder="Ordina per..."
+                                (onChange)="onSortChange($event)" />
+                            <p-select-button [(ngModel)]="layout" [options]="layoutOptions" [allowEmpty]="false">
+                                <ng-template #item let-option>
+                                    <i class="pi"
+                                        [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"
+                                        [pTooltip]="option === 'list' ? 'Lista' : 'Griglia'"></i>
+                                </ng-template>
+                            </p-select-button>
+                        </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <p-floatlabel variant="on"><input pInputText id="inventoryNumber" [(ngModel)]="form.inventoryNumber" /><label for="inventoryNumber">Numero inventariale *</label></p-floatlabel>
-                    <p-floatlabel variant="on"><input pInputText id="name" [(ngModel)]="form.name" /><label for="name">Nome *</label></p-floatlabel>
-                    <p-floatlabel variant="on"><p-inputnumber inputId="totalQuantity" [(ngModel)]="form.totalQuantity" [min]="0" [showButtons]="true" /><label for="totalQuantity">Quantità totale</label></p-floatlabel>
-                    <p-floatlabel variant="on"><p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="form.conditionStatus" /><label for="condition">Stato di conservazione</label></p-floatlabel>
-                    <p-floatlabel variant="on"><p-inputnumber inputId="value" [(ngModel)]="form.estimatedUnitValue" mode="decimal" [minFractionDigits]="2" /><label for="value">Valore unitario stimato</label></p-floatlabel>
-                    <p-floatlabel variant="on"><input pInputText id="currency" maxlength="3" [(ngModel)]="form.currency" /><label for="currency">Valuta ISO (es. EUR)</label></p-floatlabel>
-                </div>
-                <div class="grid grid-cols-1 gap-4 mt-4">
-                    <p-floatlabel variant="on"><textarea pTextarea id="description" rows="3" [(ngModel)]="form.description"></textarea><label for="description">Descrizione</label></p-floatlabel>
-                    <p-floatlabel variant="on"><textarea pTextarea id="conditionNotes" rows="2" [(ngModel)]="form.conditionNotes"></textarea><label for="conditionNotes">Note di conservazione</label></p-floatlabel>
-                </div>
-            </div>
+            </ng-template>
 
-            @if (form.id) {
-            <div class="card">
-                <h3 class="text-lg font-semibold mt-0">Fotografie</h3>
-                <p class="text-sm text-surface-500">JPEG o PNG, massimo 10 MB. WebP non supportato.</p>
-                <input type="file" accept="image/jpeg,image/png" (change)="upload($event)" />
-                <div class="flex flex-wrap gap-3 mt-4">
-                    @for (photo of form.photos; track photo.id) {
-                        <div class="relative">
-                            <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" class="w-28 h-28 object-cover rounded border border-surface" />
-                            <p-button icon="pi pi-times" severity="danger" size="small" class="absolute top-1 right-1" (onClick)="removePhoto(photo.id)" />
+            <ng-template #list let-listItems>
+                <div class="flex flex-col">
+                    @for (item of listItems; track item.id; let first = $first) {
+                    <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
+                        [ngClass]="{ 'border-t border-surface': !first }">
+                        <a class="inventory-thumb inventory-thumb-list cursor-pointer" [routerLink]="item.id">
+                            @if (photoUrl(item); as url) {
+                            <img [src]="url | secure | async" [alt]="item.name" />
+                            } @else {
+                            <i class="pi pi-box text-3xl text-primary"></i>
+                            }
+                        </a>
+                        <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <a class="text-2xl font-semibold cursor-pointer" [routerLink]="item.id">{{ item.name
+                                        }}</a>
+                                    <p-tag [value]="item.inventoryNumber" severity="secondary" />
+                                    <p-tag [value]="conditionLabel(item.conditionStatus)" severity="info" />
+                                </div>
+                                <p class="text-surface-500 m-0 text-overflow">{{ item.description || 'Nessuna
+                                    descrizione' }}</p>
+                                <div class="flex flex-wrap gap-4 mt-3 text-sm">
+                                    <span><strong>{{ item.availableQuantity }}</strong> disponibili</span>
+                                    <span><strong>{{ item.assignedQuantity }}</strong> assegnati</span>
+                                    <span><strong>{{ item.totalQuantity }}</strong> totali</span>
+                                    @if (item.estimatedUnitValue != null) {
+                                    <span>{{ item.estimatedUnitValue | number: '1.2-2' }} {{ item.currency }}</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="flex gap-2 flex-shrink-0">
+                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" />
+                                <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
+                                    (onClick)="deleteItem(item)" />
+                            </div>
                         </div>
+                    </div>
                     }
                 </div>
-            </div>
+            </ng-template>
 
-            <div class="card">
-                <h3 class="text-lg font-semibold mt-0">Assegna a un utente</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <p-select [options]="users" [(ngModel)]="selectedUser" optionLabel="name" placeholder="Utente" [filter]="true" filterBy="name,lastName" />
-                    <p-inputnumber [(ngModel)]="assignmentQuantity" [min]="1" [max]="form.availableQuantity || 1" [showButtons]="true" />
-                    <p-button label="Assegna" icon="pi pi-user-plus" [disabled]="!selectedUser || assignmentQuantity < 1" (onClick)="assign()" />
-                </div>
-                <textarea pTextarea rows="2" class="w-full mt-3" [(ngModel)]="assignmentDescription" placeholder="Descrizione dell’assegnazione"></textarea>
-            </div>
-
-            <div class="card">
-                <h3 class="text-lg font-semibold mt-0">Assegnazioni</h3>
-                <p-table [value]="form.assignments || []">
-                    <ng-template #header><tr><th>Utente</th><th>Quantità / ordine</th><th>Descrizione</th><th>Stato</th><th>Presa visione</th><th></th></tr></ng-template>
-                    <ng-template #body let-assignment>
-                        <tr>
-                            <td>{{ assignment.userName }} {{ assignment.userLastName }}</td>
-                            <td>
-                                <div class="flex items-center gap-2">
-                                    <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity" [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24" />
-                                    <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].order" [min]="0" [showButtons]="true" class="w-24" />
+            <ng-template #grid let-gridItems>
+                <div class="grid grid-cols-12 gap-4 p-2">
+                    @for (item of gridItems; track item.id) {
+                    <div class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
+                        <div class="inventory-card p-5 border border-surface rounded flex flex-col h-full">
+                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer" [routerLink]="item.id">
+                                @if (photoUrl(item); as url) {
+                                <img [src]="url | secure | async" [alt]="item.name" />
+                                } @else {
+                                <i class="pi pi-box text-5xl text-primary"></i>
+                                }
+                            </a>
+                            <div class="flex flex-wrap gap-2 mt-4">
+                                <p-tag [value]="item.inventoryNumber" severity="secondary" />
+                                <p-tag [value]="conditionLabel(item.conditionStatus)" severity="info" />
+                            </div>
+                            <a class="text-xl font-semibold mt-3 cursor-pointer" [routerLink]="item.id">{{ item.name
+                                }}</a>
+                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ item.description || 'Nessuna
+                                descrizione' }}</p>
+                            <div class="grid grid-cols-3 gap-2 text-center my-4">
+                                <div>
+                                    <strong class="block">{{ item.availableQuantity }}</strong><span
+                                        class="text-xs text-surface-500">Disponibili</span>
                                 </div>
-                                <div class="text-xs text-surface-500 mt-1">Residuo attuale: {{ assignment.outstandingQuantity }}</div>
-                            </td>
-                            <td><textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description"></textarea></td>
-                            <td><p-tag [value]="assignment.status" /></td>
-                            <td>
-                                @if (assignment.decision) {
-                                    <p-tag [value]="assignment.decision.decision" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
-                                    <div class="text-sm">{{ assignment.decision.rejectionReason }}</div>
-                                } @else { <p-tag value="IN ATTESA" severity="warn" /> }
-                            </td>
-                            <td>
-                                <p-button label="Salva" icon="pi pi-save" size="small" [text]="true" (onClick)="saveAssignment(assignment.id)" />
-                                @if (assignment.decision?.decision === 'REJECTED') { <p-button label="Riemetti" size="small" [text]="true" (onClick)="reissue(assignment.id)" /> }
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-table>
-            </div>
-            }
-        </div>
+                                <div>
+                                    <strong class="block">{{ item.assignedQuantity }}</strong><span
+                                        class="text-xs text-surface-500">Assegnati</span>
+                                </div>
+                                <div>
+                                    <strong class="block">{{ item.totalQuantity }}</strong><span
+                                        class="text-xs text-surface-500">Totali</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" class="flex-auto"
+                                    styleClass="w-full" />
+                                <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
+                                    (onClick)="deleteItem(item)" />
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </ng-template>
+
+            <ng-template #empty>
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <i class="pi pi-box text-5xl text-surface-400 mb-4"></i>
+                    <h3 class="m-0">Nessun oggetto trovato</h3>
+                    <p class="text-surface-500">Modifica la ricerca oppure aggiungi il primo oggetto all’inventario.</p>
+                    <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+                </div>
+            </ng-template>
+        </p-dataview>
     </div>
+    <p-scrolltop />
 </p-fluid>

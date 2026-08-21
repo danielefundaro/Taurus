@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260821000000-1" author="taurus" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="inventory_item" columnName="tenant_code"/>
+    </preConditions>
+    <sql>
+      DROP INDEX IF EXISTS uq_inventory_item_number_tenant;
+      CREATE UNIQUE INDEX uq_inventory_item_number_tenant
+        ON inventory_item (tenant_code, lower(inventory_number))
+        WHERE deleted = false;
+    </sql>
+  </changeSet>
+
+  <changeSet id="20260821000000-2" author="taurus" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="inventory_item" columnName="tenant_code"/>
+      </not>
+    </preConditions>
+    <sql>
+      DROP INDEX IF EXISTS uq_inventory_item_number;
+      CREATE UNIQUE INDEX uq_inventory_item_number
+        ON inventory_item (lower(inventory_number))
+        WHERE deleted = false;
+    </sql>
+  </changeSet>
+</databaseChangeLog>

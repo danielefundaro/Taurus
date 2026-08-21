@@ -132,7 +132,7 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         String number = request.inventoryNumber().trim();
-        if (itemRepository.existsByInventoryNumberIgnoreCase(number)) {
+        if (itemRepository.existsByInventoryNumberIgnoreCaseAndDeletedFalse(number)) {
             throw error(HttpStatus.CONFLICT, "Numero inventariale già utilizzato", "inventory.number.exists");
         }
         validateValueCurrency(request.estimatedUnitValue(), request.currency());
@@ -153,7 +153,7 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryItem item = itemRepository.findForUpdate(id).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
-        if (itemRepository.existsByInventoryNumberIgnoreCaseAndIdNot(request.inventoryNumber().trim(), id)) {
+        if (itemRepository.existsByInventoryNumberIgnoreCaseAndIdNotAndDeletedFalse(request.inventoryNumber().trim(), id)) {
             throw error(HttpStatus.CONFLICT, "Numero inventariale già utilizzato", "inventory.number.exists");
         }
         validateValueCurrency(request.estimatedUnitValue(), request.currency());
