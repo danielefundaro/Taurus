@@ -1,5 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import org.apache.http.HttpHost;
@@ -26,11 +28,13 @@ import java.util.function.Function;
 @Service
 public class OpenSearchServiceImpl implements OpenSearchService {
     private final ApplicationProperties applicationProperties;
+    private final ObjectMapper objectMapper;
 
     private OpenSearchClient openSearchClient;
 
-    public OpenSearchServiceImpl(ApplicationProperties applicationProperties) {
+    public OpenSearchServiceImpl(ApplicationProperties applicationProperties, ObjectMapper objectMapper) {
         this.applicationProperties = applicationProperties;
+        this.objectMapper = objectMapper;
         this.open();
     }
 
@@ -112,7 +116,12 @@ public class OpenSearchServiceImpl implements OpenSearchService {
                 .setSocketTimeout(30_000))
             .build();
 
-        OpenSearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+        OpenSearchTransport transport = new RestClientTransport(restClient, createJsonpMapper(objectMapper));
         openSearchClient = new OpenSearchClient(transport);
+    }
+
+    static JacksonJsonpMapper createJsonpMapper(ObjectMapper objectMapper) {
+        ObjectMapper openSearchObjectMapper = objectMapper.copy().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return new JacksonJsonpMapper(openSearchObjectMapper);
     }
 }
