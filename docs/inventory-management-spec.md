@@ -35,7 +35,7 @@ Tabella `inventory_item`:
 - dati di audit: `deleted`, `insert_date`, `insert_by`, `edit_date`, `edit_by`;
 - controllo di concorrenza ottimistico tramite `entity_version`;
 - `tenant_code` obbligatorio;
-- `inventory_number` obbligatorio e univoco nel tenant senza distinzione tra maiuscole e minuscole; il numero non viene riutilizzato dopo una cancellazione logica;
+- `inventory_number` obbligatorio e univoco, senza distinzione tra maiuscole e minuscole, tra gli oggetti attivi del tenant; dopo una cancellazione logica il numero può essere riutilizzato, mantenendo invariati i riferimenti storici all'oggetto eliminato;
 - `name` obbligatorio;
 - `description`;
 - `total_quantity`, intero non negativo;
@@ -227,6 +227,9 @@ Tutti gli identificativi sono verificati insieme al tenant ricavato dal token. G
 
 La voce `Inventario` è visibile nel menu solo ad admin e super admin. La pagina consente:
 
+- visualizzazione paginata di tutti gli oggetti in modalità lista o griglia;
+- ricerca per nome o numero inventariale e ordinamento;
+- apertura di una pagina di dettaglio dedicata tramite `/inventory/{id}`;
 - ricerca, creazione, modifica e cancellazione logica degli oggetti;
 - controllo quantità totale/disponibile/assegnata;
 - caricamento e rimozione fotografie;
@@ -234,6 +237,8 @@ La voce `Inventario` è visibile nel menu solo ad admin e super admin. La pagina
 - consultazione delle assegnazioni e delle prese visione;
 - riemissione di una revisione dopo una negazione;
 - gestione delle riconsegne e delle richieste GDPR sospese.
+
+La creazione parte dal pulsante `Nuovo` dell'elenco e utilizza un modale, coerente con Album e Tracce, per raccogliere numero inventariale, nome, quantità, valore e valuta, stato e note di conservazione e descrizione. Dopo il salvataggio, fotografie, assegnazioni, prese visione e riconsegne sono gestite nella pagina di dettaglio `/inventory/{id}`, con protezione dalle modifiche non salvate.
 
 La sezione riutilizzabile `Inventario consegnato` è integrata:
 

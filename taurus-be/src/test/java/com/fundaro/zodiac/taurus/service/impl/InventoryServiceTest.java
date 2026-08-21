@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,6 +82,21 @@ class InventoryServiceTest {
         assertThatThrownBy(() -> service.updateItem(1L, request, authentication()))
             .isInstanceOf(RequestAlertException.class)
             .hasMessageContaining("quantità totale");
+    }
+
+    @Test
+    void shouldCheckOnlyActiveItemsWhenCreating() {
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null);
+        when(itemRepository.save(any(InventoryItem.class)))
+            .thenAnswer(invocation -> {
+                InventoryItem item = invocation.getArgument(0);
+                item.setId(1L);
+                return item;
+            });
+
+        service.createItem(request, authentication());
+
+        verify(itemRepository).existsByInventoryNumberIgnoreCaseAndDeletedFalse("INV-1");
     }
 
     @Test
