@@ -156,14 +156,14 @@ public class InventoryResource {
         return inventoryErasureService.complete(id, token);
     }
 
-    static ResponseEntity<byte[]> photoResponse(InventoryService.PhotoContent photo) {
+    public static ResponseEntity<byte[]> photoResponse(InventoryService.PhotoContent photo) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(photo.contentType()));
         headers.setContentDisposition(ContentDisposition.inline().filename(photo.fileName()).build());
         return ResponseEntity.ok().headers(headers).body(photo.bytes());
     }
 
-    static ResponseEntity<byte[]> reportResponse(InventoryReportService.ReportContent report) {
+    public static ResponseEntity<byte[]> reportResponse(InventoryReportService.ReportContent report) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(ContentDisposition.attachment().filename(report.fileName()).build());

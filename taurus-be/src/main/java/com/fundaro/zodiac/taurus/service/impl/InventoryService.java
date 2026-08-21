@@ -26,6 +26,8 @@ import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemDTO;
@@ -273,6 +275,32 @@ public class InventoryService {
     }
 
     @Transactional(readOnly = true)
+    public Page<InventoryAssignmentSummaryDTO> findOwnAssignments(
+        String query,
+        InventoryAssignmentScope scope,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        List<InventoryAssignmentStatus> statuses = scope == InventoryAssignmentScope.RETURNED
+            ? List.of(InventoryAssignmentStatus.RETURNED)
+            : OUTSTANDING_ASSIGNMENT_STATUSES;
+        String normalizedQuery = trimToNull(query);
+        Page<InventoryAssignment> assignments = normalizedQuery == null
+            ? assignmentRepository.findAllByUserKeycloakIdAndDeletedFalseAndStatusIn(actor(token), statuses, pageable)
+            : assignmentRepository.searchOwn(actor(token), normalizedQuery, statuses, pageable);
+        return assignments.map(this::toAssignmentSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public InventoryAssignmentDTO findOwnAssignment(long assignmentId, AbstractAuthenticationToken token) {
+        tenant(token);
+        InventoryAssignment assignment = assignmentRepository.findByIdAndUserKeycloakIdAndDeletedFalse(assignmentId, actor(token))
+            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+        return toAssignmentDto(assignment);
+    }
+
+    @Transactional(readOnly = true)
     public List<InventoryAssignmentDTO> findUserAssignments(String userIndex, AbstractAuthenticationToken token) {
         tenant(token);
         return assignmentRepository.findAllByUserIndexAndDeletedFalseOrderByAssignedAtDesc(userIndex)
@@ -510,6 +538,32 @@ public class InventoryService {
             assignment.getItem().getConditionNotes(), assignment.getUserIndex(), assignment.getUserName(), assignment.getUserLastName(), assignment.getDisplayOrder(),
             assignment.getAssignedQuantity(), assignment.getReturnedQuantity(), assignment.getOutstandingQuantity(), assignment.getAssignedAt(), assignment.getDescription(),
             assignment.getStatus(), revision.getRevisionNumber(), revision.getSnapshotHash(), revision.getCreatedAt(), decision == null ? null : toDecisionDto(decision), returns, photos);
+    }
+
+    private InventoryAssignmentSummaryDTO toAssignmentSummaryDto(InventoryAssignment assignment) {
+        InventoryAssignmentRevision revision = currentRevision(assignment);
+        InventoryAssignmentDecision decision = decisionRepository.findByRevision_Id(revision.getId()).orElse(null);
+        InventoryPhotoDTO photo = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(assignment.getItem().getId())
+            .stream().findFirst().map(this::toPhotoDto).orElse(null);
+        return new InventoryAssignmentSummaryDTO(
+            assignment.getId(),
+            assignment.getItem().getId(),
+            assignment.getItem().getInventoryNumber(),
+            assignment.getItem().getName(),
+            assignment.getItem().getDescription(),
+            assignment.getItem().getEstimatedUnitValue(),
+            assignment.getItem().getCurrency(),
+            assignment.getItem().getConditionStatus(),
+            assignment.getAssignedQuantity(),
+            assignment.getReturnedQuantity(),
+            assignment.getOutstandingQuantity(),
+            assignment.getAssignedAt(),
+            assignment.getStatus(),
+            revision.getRevisionNumber(),
+            revision.getCreatedAt(),
+            decision == null ? null : toDecisionDto(decision),
+            photo
+        );
     }
 
     private InventoryDecisionDTO toDecisionDto(InventoryAssignmentDecision decision) {

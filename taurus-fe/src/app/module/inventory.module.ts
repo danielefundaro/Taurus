@@ -2,6 +2,7 @@ export type InventoryCondition = 'NEW' | 'EXCELLENT' | 'GOOD' | 'FAIR' | 'TO_REP
 export type InventoryDecisionType = 'ACCEPTED' | 'REJECTED';
 export type InventoryAssignmentStatus = 'ACTIVE' | 'PARTIALLY_RETURNED' | 'RETURNED' | 'CANCELLED';
 export type InventoryReturnStatus = 'REQUESTED' | 'COMPLETED' | 'CANCELLED';
+export type InventoryAssignmentScope = 'POSSESSED' | 'RETURNED';
 
 export interface InventoryPhoto {
     id: number;
@@ -55,6 +56,26 @@ export interface InventoryAssignment {
     decision?: InventoryDecision;
     returns: InventoryReturn[];
     photos: InventoryPhoto[];
+}
+
+export interface InventoryAssignmentSummary {
+    id: number;
+    itemId: number;
+    inventoryNumber: string;
+    itemName: string;
+    itemDescription?: string;
+    estimatedUnitValue?: number;
+    currency?: string;
+    conditionStatus: InventoryCondition;
+    assignedQuantity: number;
+    returnedQuantity: number;
+    outstandingQuantity: number;
+    assignedAt: string;
+    status: InventoryAssignmentStatus;
+    revision: number;
+    revisionDate: string;
+    decision?: InventoryDecision;
+    photo?: InventoryPhoto;
 }
 
 export interface InventoryItem {

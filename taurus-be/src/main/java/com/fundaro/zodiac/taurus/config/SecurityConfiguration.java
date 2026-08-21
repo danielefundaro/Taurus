@@ -103,7 +103,22 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
                         .authenticated()
-                    .requestMatchers("/api/inventory/me/**").authenticated()
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/user/inventory/assignments/**",
+                        "/api/user/inventory/photos/**",
+                        "/api/user/inventory/return-photos/**",
+                        "/api/user/inventory/report"
+                    )
+                        .authenticated()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/user/inventory/assignments/{id}/decision",
+                        "/api/user/inventory/assignments/{id}/returns",
+                        "/api/user/inventory/returns/{id}/photos"
+                    )
+                        .authenticated()
+                    .requestMatchers("/api/user/inventory/**").denyAll()
 
                     // Tenant inventory administration. Personal inventory endpoints are matched above.
                     .requestMatchers("/api/inventory/**")

@@ -43,6 +43,16 @@ class LegalServiceImplTest {
     }
 
     @Test
+    void shouldBeCompliantWhenThereAreNoActiveDocuments() {
+        when(documentRepository.findAllByActiveTrueOrderByDocumentTypeAsc()).thenReturn(List.of());
+
+        var status = service.getStatus(authentication());
+
+        assertThat(status.compliant()).isTrue();
+        assertThat(status.documents()).isEmpty();
+    }
+
+    @Test
     void shouldRequireEveryActiveDocument() {
         LegalDocument terms = document(1L, LegalDocumentType.TERMS, LegalDocumentAction.ACCEPT);
         LegalDocument privacy = document(2L, LegalDocumentType.PRIVACY, LegalDocumentAction.ACKNOWLEDGE);

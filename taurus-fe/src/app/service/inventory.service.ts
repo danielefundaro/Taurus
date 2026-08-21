@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAssignment, InventoryAssignmentRequest, InventoryDecisionType, InventoryErasureRequest, InventoryItem, InventoryReturn, Page } from '../module';
+import { InventoryAssignment, InventoryAssignmentRequest, InventoryErasureRequest, InventoryItem, InventoryReturn, Page } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
@@ -45,34 +45,25 @@ export class InventoryService {
     deletePhoto(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/photos/${id}`);
     }
-    photoUrl(id: number, own: boolean): string {
-        return `${this.baseUrl}${own ? '/me' : ''}/photos/${id}`;
-    }
-
-    getOwnAssignments(): Observable<InventoryAssignment[]> {
-        return this.http.get<InventoryAssignment[]>(`${this.baseUrl}/me/assignments`);
+    photoUrl(id: number): string {
+        return `${this.baseUrl}/photos/${id}`;
     }
     getUserAssignments(userIndex: string): Observable<InventoryAssignment[]> {
         return this.http.get<InventoryAssignment[]>(`${this.baseUrl}/users/${userIndex}/assignments`);
     }
-    decide(id: number, decision: InventoryDecisionType, revisionHash: string, rejectionReason?: string): Observable<InventoryAssignment> {
-        return this.http.post<InventoryAssignment>(`${this.baseUrl}/me/assignments/${id}/decision`, { decision, revisionHash, rejectionReason });
-    }
-    requestReturn(id: number, quantity: number, notes?: string, own = true): Observable<InventoryReturn> {
-        const prefix = own ? `${this.baseUrl}/me` : this.baseUrl;
-        return this.http.post<InventoryReturn>(`${prefix}/assignments/${id}/returns`, { quantity, notes });
+    requestReturn(id: number, quantity: number, notes?: string): Observable<InventoryReturn> {
+        return this.http.post<InventoryReturn>(`${this.baseUrl}/assignments/${id}/returns`, { quantity, notes });
     }
     completeReturn(returnId: number, quantity: number, condition?: string, notes?: string): Observable<InventoryReturn> {
         return this.http.post<InventoryReturn>(`${this.baseUrl}/returns/${returnId}/complete`, { quantity, condition, notes });
     }
-    uploadReturnPhoto(returnId: number, file: File, own = true): Observable<unknown> {
+    uploadReturnPhoto(returnId: number, file: File): Observable<unknown> {
         const data = new FormData();
         data.append('file', file);
-        const prefix = own ? `${this.baseUrl}/me` : this.baseUrl;
-        return this.http.post(`${prefix}/returns/${returnId}/photos`, data);
+        return this.http.post(`${this.baseUrl}/returns/${returnId}/photos`, data);
     }
-    downloadReport(userIndex?: string, includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
-        const url = userIndex ? `${this.baseUrl}/users/${userIndex}/report` : `${this.baseUrl}/me/report`;
+    downloadReport(userIndex: string, includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
+        const url = `${this.baseUrl}/users/${userIndex}/report`;
         const params = new HttpParams().set('includeAssigned', includeAssigned).set('includeReturned', includeReturned).set('includePhotos', includePhotos);
         return this.http.get(url, { params, responseType: 'blob' });
     }
