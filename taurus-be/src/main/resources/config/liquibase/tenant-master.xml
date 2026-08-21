@@ -17,4 +17,5 @@
     <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260820000002_remove_tenant_columns.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260821171500_retry_failed_inventory_search_outbox.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

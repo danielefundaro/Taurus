@@ -144,7 +144,8 @@ public class InventorySearchProjector {
             .properties("currency", value -> value.keyword(keyword -> keyword))
             .properties("totalQuantity", value -> value.integer(integer -> integer))
             .properties("assignedQuantity", value -> value.integer(integer -> integer))
-            .properties("availableQuantity", value -> value.integer(integer -> integer));
+            .properties("availableQuantity", value -> value.integer(integer -> integer))
+            .properties("editDate", value -> value.date(date -> date));
         openSearchService.createIndex(index, mapping);
     }
 
