@@ -148,7 +148,6 @@
                         <tr>
                             <th>Utente</th>
                             <th>Quantità assegnata</th>
-                            <th>Ordine di visualizzazione</th>
                             <th>Descrizione</th>
                             <th>Presa visione</th>
                             <th>Riconsegne</th>
@@ -165,9 +164,6 @@
                             <td class="min-w-40">
                                 <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity" [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24" (ngModelChange)="markAssignmentDirty(assignment.id)" />
                                 <div class="text-xs text-surface-500 mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
-                            </td>
-                            <td class="min-w-40">
-                                <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].order" [min]="0" [showButtons]="true" class="w-24" (ngModelChange)="markAssignmentDirty(assignment.id)" />
                             </td>
                             <td class="min-w-56">
                                 <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description" (ngModelChange)="markAssignmentDirty(assignment.id)"></textarea>
@@ -240,7 +236,7 @@
                     </ng-template>
                     <ng-template #emptymessage>
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-surface-500">Nessuna assegnazione presente.</td>
+                            <td colspan="6" class="text-center py-8 text-surface-500">Nessuna assegnazione presente.</td>
                         </tr>
                     </ng-template>
                 </p-table>
