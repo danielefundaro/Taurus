@@ -1,20 +1,10 @@
 package com.fundaro.zodiac.taurus.config;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-import static org.springframework.security.oauth2.core.oidc.StandardClaimNames.PREFERRED_USERNAME;
-
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.security.oauth2.AudienceValidator;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +12,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -38,14 +27,26 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.client.RestClient;
 import tech.jhipster.config.JHipsterProperties;
 
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
+import static org.springframework.security.config.Customizer.withDefaults;
+import static org.springframework.security.oauth2.core.oidc.StandardClaimNames.PREFERRED_USERNAME;
+
 @Configuration
-@EnableMethodSecurity
 public class SecurityConfiguration {
 
     private final JHipsterProperties jHipsterProperties;
@@ -102,7 +103,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
-                        .authenticated()
+                    .authenticated()
                     .requestMatchers(
                         HttpMethod.GET,
                         "/api/user/inventory/assignments/**",
@@ -111,106 +112,106 @@ public class SecurityConfiguration {
                         "/api/user/inventory/summary",
                         "/api/user/inventory/report"
                     )
-                        .authenticated()
+                    .authenticated()
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/user/inventory/assignments/{id}/decision",
                         "/api/user/inventory/assignments/{id}/returns",
                         "/api/user/inventory/returns/{id}/photos"
                     )
-                        .authenticated()
+                    .authenticated()
                     .requestMatchers("/api/user/inventory/**").denyAll()
 
                     // Tenant inventory administration. Personal inventory endpoints are matched above.
                     .requestMatchers("/api/inventory/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
 
                     // All users can get instruments information
                     .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()
 
                     // Legal document administration and tenant administration.
                     .requestMatchers(HttpMethod.DELETE, "/api/tenants/{id}/gdpr")
-                        .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
+                    .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/documents/**", "/api/tenants/**")
-                        .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
+                    .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/**").denyAll()
 
                     // User administration. Self-service endpoints are matched above.
                     .requestMatchers(HttpMethod.DELETE, "/api/users/{id}/gdpr")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/api/users/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
 
                     // Catalogue administration.
                     .requestMatchers("/api/albums/**", "/api/tracks/**", "/api/instruments/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
 
                     // Read-only catalogue APIs for standard and external users.
                     .requestMatchers(HttpMethod.GET, "/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**")
-                        .hasAuthority(AuthoritiesConstants.USER)
+                    .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers("/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**").denyAll()
                     .requestMatchers(HttpMethod.GET, "/api/external/albums/**", "/api/external/tracks/**")
-                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
 
                     // Calendar event administration and personal availability.
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/{id}/availability")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.GET, "/api/calendar-events/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.POST, "/api/calendar-events")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers(HttpMethod.PUT, "/api/calendar-events/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/api/calendar-events/**").denyAll()
 
                     .requestMatchers(HttpMethod.GET, "/api/user/calendar-events/**")
-                        .hasAuthority(AuthoritiesConstants.USER)
+                    .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers(HttpMethod.PATCH, "/api/user/calendar-events/{id}/availability")
-                        .hasAuthority(AuthoritiesConstants.USER)
+                    .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers(HttpMethod.DELETE, "/api/user/calendar-events/{id}/availability")
-                        .hasAuthority(AuthoritiesConstants.USER)
+                    .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers("/api/user/calendar-events/**").denyAll()
 
                     .requestMatchers(HttpMethod.GET, "/api/external/calendar-events/**")
-                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers(HttpMethod.PATCH, "/api/external/calendar-events/{id}/availability")
-                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers(HttpMethod.DELETE, "/api/external/calendar-events/{id}/availability")
-                        .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/calendar-events/**").denyAll()
 
                     // Media reads are used by every authenticated FE role; writes remain administrative.
                     .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/media/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.PUT, "/api/media/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.PATCH, "/api/media/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.DELETE, "/api/media/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers("/api/media/**").denyAll()
 
                     .requestMatchers("/api/admin/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/api/**").authenticated()
                     .requestMatchers("/services/**").authenticated()
                     .requestMatchers("/v3/api-docs/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/health").permitAll()
                     .requestMatchers("/management/health/**").permitAll()
                     .requestMatchers("/management/info").permitAll()
                     .requestMatchers("/management/prometheus")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers("/management/**")
-                        .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
 
                     // Angular static resources and client-side route fallback. Must remain last.
                     .requestMatchers("/**").permitAll()
@@ -318,7 +319,8 @@ public class SecurityConfiguration {
             .uri(userInfoUri)
             .header("Authorization", "Bearer " + token)
             .retrieve()
-            .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+            .body(new ParameterizedTypeReference<Map<String, Object>>() {
+            });
 
         String username = userInfo.get("preferred_username").toString();
         if (userInfo.get("sub").toString().contains("|") && username.contains("@")) {

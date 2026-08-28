@@ -6,7 +6,6 @@ import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.user.AlbumsService;
 import com.fundaro.zodiac.taurus.web.rest.user.CommonOpenSearchResource;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController("ExternalPermissionsAlbumResource")
 @RequestMapping("/api/external/albums")
-@PreAuthorize("hasAuthority('ROLE_USER_EXTERNAL')")
 public class AlbumsResource extends CommonOpenSearchResource<Albums, AlbumsDTO, AlbumsCriteria, AlbumsService> {
 
     public AlbumsResource(@Qualifier("ExternalPermissionsAlbumsService") AlbumsService service) {
