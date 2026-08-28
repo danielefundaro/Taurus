@@ -28,6 +28,7 @@ public class EventReminderProducer {
     }
 
     public void scheduleIfNeeded(CalendarEventsDTO event, String userId, AbstractAuthenticationToken token) {
+        cancelPending(event.getId(), userId);
         if (event.getStartDate() == null) return;
 
         int minutes = resolveReminderMinutes(event.getReminderMinutes(), token);
@@ -48,6 +49,10 @@ public class EventReminderProducer {
 
         reminderRepository.save(reminder);
         log.debug("Scheduled reminder for userId={} on event={} at {}", userId, event.getId(), sendAt);
+    }
+
+    public void cancelPending(Long eventId, String userId) {
+        reminderRepository.deleteAllByEventIdAndUserIdAndSentFalse(eventId, userId);
     }
 
     private int resolveReminderMinutes(Integer reminderMinutes, AbstractAuthenticationToken token) {
