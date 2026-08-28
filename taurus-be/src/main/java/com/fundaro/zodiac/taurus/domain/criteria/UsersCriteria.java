@@ -8,6 +8,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
 
     private BooleanFilter active;
 
-    private StringFilter instrumentId;
+    private LongFilter instrumentId;
 
     @JsonIgnore
     private StringFilter keycloakId;
@@ -44,7 +45,7 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.email = other.optionalEmail().map(StringFilter::copy).orElse(null);
         this.roles = other.optionalRoles().map(RoleFilter::copy).orElse(null);
         this.active = other.optionalActive().map(BooleanFilter::copy).orElse(null);
-        this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
+        this.instrumentId = other.optionalInstrumentId().map(LongFilter::copy).orElse(null);
         this.keycloakId = other.optionalKeycloakId().map(StringFilter::copy).orElse(null);
     }
 
@@ -113,15 +114,15 @@ public class UsersCriteria extends CommonOpenSearchCriteria {
         this.active = active;
     }
 
-    public StringFilter getInstrumentId() {
+    public LongFilter getInstrumentId() {
         return instrumentId;
     }
 
-    public Optional<StringFilter> optionalInstrumentId() {
+    public Optional<LongFilter> optionalInstrumentId() {
         return Optional.ofNullable(instrumentId);
     }
 
-    public void setInstrumentId(StringFilter instrumentId) {
+    public void setInstrumentId(LongFilter instrumentId) {
         this.instrumentId = instrumentId;
     }
 

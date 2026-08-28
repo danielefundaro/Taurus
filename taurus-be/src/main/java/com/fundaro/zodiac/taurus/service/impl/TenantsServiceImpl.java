@@ -1,179 +1,115 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fundaro.zodiac.taurus.config.changelog.service.ChangelogService;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningException;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
+import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TenantsMapper;
-import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.ArrayList;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tech.jhipster.service.filter.StringFilter;
 
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static com.fundaro.zodiac.taurus.config.Constants.TENANT_CHANGELOG_FILE_PATH;
-
-/**
- * Service Implementation for managing {@link Tenants}.
- */
 @Service
 @Transactional
-public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, TenantsDTO, TenantsCriteria, TenantsMapper> implements TenantsService {
-
-    private final ChangelogService changelogService;
+public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, TenantsDTO, TenantsCriteria, TenantsMapper, TenantsRepository>
+    implements TenantsService {
 
     private final KeycloakService keycloakService;
-
     private final DataErasureService dataErasureService;
-
-    private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
+    private final TenantSchemaProvisioningService provisioningService;
 
     public TenantsServiceImpl(
-        OpenSearchService openSearchService,
-        IndexResolver indexResolver,
+        TenantsRepository repository,
         TenantsMapper mapper,
-        ChangelogService changelogService,
         KeycloakService keycloakService,
         DataErasureService dataErasureService,
-        TenantSchemaProvisioningService tenantSchemaProvisioningService
+        TenantSchemaProvisioningService provisioningService
     ) {
-        super(openSearchService, indexResolver, mapper, TenantsService.class, Tenants.class);
-        this.changelogService = changelogService;
+        super(repository, mapper, TenantsService.class, Tenants.class);
         this.keycloakService = keycloakService;
         this.dataErasureService = dataErasureService;
-        this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
+        this.provisioningService = provisioningService;
     }
 
     @Override
-    public TenantsDTO save(TenantsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        TenantsCriteria criteria = new TenantsCriteria();
-        StringFilter filterCode = new StringFilter();
-        filterCode.setEquals(dto.getCode());
-        criteria.setCode(filterCode);
-        Page<TenantsDTO> existing = super.findEntitiesByCriteria(criteria, PageRequest.of(0, 1), abstractAuthenticationToken);
-
-        if (!existing.getContent().isEmpty()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing CODE", getEntityName()), getEntityName(), "code.exists");
+    public TenantsDTO save(TenantsDTO dto, AbstractAuthenticationToken token) {
+        if (getRepository().findByCodeAndDeletedFalse(dto.getCode()).isPresent()) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant code already exists", getEntityName(), "code.exists");
         }
-
-        TenantsDTO tenantsDTO = super.save(dto, abstractAuthenticationToken);
-
+        TenantsDTO saved = super.save(dto, token);
         try {
-            tenantSchemaProvisioningService.provision(tenantsDTO.getCode());
-        } catch (TenantSchemaProvisioningException e) {
-            compensateTenantDocument(tenantsDTO, abstractAuthenticationToken, e);
-            throw new RequestAlertException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                String.format("Something went wrong while provisioning tenant %s", tenantsDTO),
-                Tenants.class.getSimpleName(),
-                "save.tenant.schema"
-            );
-        }
-
-        try {
-            // Save new tenant as keycloak group
-            keycloakService.saveGroup(new Group(tenantsDTO.getCode(), tenantsDTO.getName()));
-            String groupId = keycloakService.getGroupIdByName(tenantsDTO.getCode());
-
-            // Get access to the new tenant at all super admins
-            List<User> users = keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN);
-
-            for (User user : users) {
-                // Add super admin into the group
-                keycloakService.updateUserGroup(user.getId(), groupId);
-
-                // Update attributes for multi role logic
-                List<Role> roleList = keycloakService.getUserRoles(user.getId());
-                Map<String, List<String>> currentAttributes = user.getAttributes();
-                currentAttributes.put(String.format("%s_roles", tenantsDTO.getCode()), roleList.stream().map(Role::getName).toList());
-                user.setAttributes(currentAttributes);
-                keycloakService.updateUser(user);
+            provisioningService.provision(saved.getCode());
+            provisioningService.linkTenant(saved.getId(), saved.getCode());
+            provisionKeycloakGroup(saved);
+            return saved;
+        } catch (RuntimeException exception) {
+            getRepository().deleteById(saved.getId());
+            if (exception instanceof TenantSchemaProvisioningException) {
+                throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Tenant schema provisioning failed", getEntityName(), "save.tenant.schema");
             }
-
-            changelogService.extractAllResources(TENANT_CHANGELOG_FILE_PATH, tenantsDTO.getCode());
-        } catch (IOException | NoSuchAlgorithmException e) {
-            getLogger().error(e.getMessage());
-            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, String.format("Something went wrong while creating tenant %s", tenantsDTO), Tenants.class.getSimpleName(), "save.tenant");
+            throw exception;
         }
-
-        return tenantsDTO;
-    }
-
-    private void compensateTenantDocument(
-        TenantsDTO tenant,
-        AbstractAuthenticationToken authenticationToken,
-        TenantSchemaProvisioningException provisioningException
-    ) {
-        try {
-            deletePermanently(tenant.getId(), authenticationToken);
-        } catch (RuntimeException compensationException) {
-            provisioningException.addSuppressed(compensationException);
-            getLogger().error("Could not compensate tenant document {} after PostgreSQL provisioning failure", tenant.getId(), compensationException);
-        }
-        getLogger().error("PostgreSQL provisioning failed for tenant {}", tenant.getCode(), provisioningException);
     }
 
     @Override
-    public Optional<TenantsDTO> findByCode(String code, AbstractAuthenticationToken abstractAuthenticationToken) {
-        TenantsCriteria criteria = new TenantsCriteria();
-        StringFilter filterCode = new StringFilter();
-        filterCode.setEquals(code);
-        criteria.setCode(filterCode);
-
-        Page<TenantsDTO> page = super.findEntitiesByCriteria(criteria, PageRequest.of(0, 1), abstractAuthenticationToken);
-        if (page == null || page.getContent().isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(page.getContent().get(0));
+    @Transactional(readOnly = true)
+    public Optional<TenantsDTO> findByCode(String code, AbstractAuthenticationToken token) {
+        return getRepository().findByCodeAndDeletedFalse(code).map(getMapper()::toDto);
     }
 
     @Override
-    public TenantsDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        return super.delete(id, abstractAuthenticationToken);
+    protected Specification<Tenants> buildSpecification(TenantsCriteria criteria) {
+        return super.buildSpecification(criteria).and((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (criteria == null) return cb.conjunction();
+            addStringFilter(predicates, cb, root.get("code"), criteria.getCode());
+            addStringFilter(predicates, cb, root.get("email"), criteria.getEmail());
+            addStringFilter(predicates, cb, root.get("domain"), criteria.getDomain());
+            addRangeFilter(predicates, cb, root.get("maxUsers"), criteria.getMaxUsers());
+            addRangeFilter(predicates, cb, root.get("expireDate"), criteria.getExpireDate());
+            addFilter(predicates, cb, root.get("active"), criteria.getActive());
+            return cb.and(predicates.toArray(Predicate[]::new));
+        });
     }
 
     @Override
-    public void deleteForGdpr(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        TenantsDTO tenant = findOneIncludingDeleted(id, abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notfound"));
+    public void deleteForGdpr(Long id, AbstractAuthenticationToken token) {
+        Tenants tenant = getRepository().findById(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notFound"));
         String groupId = keycloakService.getGroupIdByName(tenant.getCode());
         dataErasureService.eraseTenantData(tenant.getCode());
         keycloakService.deleteGroup(groupId);
-        deletePermanently(id, abstractAuthenticationToken);
+        getRepository().delete(tenant);
     }
 
-    @Override
-    protected List<Query> getQueries(TenantsCriteria criteria) {
-        List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("code.keyword", criteria.getCode()));
-        queries.addAll(Converter.stringFilterToQuery("email.keyword", criteria.getEmail()));
-        queries.addAll(Converter.stringFilterToQuery("domain.keyword", criteria.getDomain()));
-        queries.addAll(Converter.longFilterToQuery("maxUsers", criteria.getMaxUsers()));
-        queries.addAll(Converter.dateFilterToQuery("expireDate", criteria.getExpireDate()));
-        queries.addAll(Converter.booleanFilterToQuery("active", criteria.getActive()));
-
-        return queries;
+    private void provisionKeycloakGroup(TenantsDTO tenant) {
+        keycloakService.saveGroup(new Group(tenant.getCode(), tenant.getName()));
+        String groupId = keycloakService.getGroupIdByName(tenant.getCode());
+        for (User user : keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN)) {
+            keycloakService.updateUserGroup(user.getId(), groupId);
+            List<Role> roles = keycloakService.getUserRoles(user.getId());
+            Map<String, List<String>> attributes = user.getAttributes();
+            if (attributes != null) {
+                attributes.put(tenant.getCode() + "_roles", roles.stream().map(Role::getName).toList());
+                user.setAttributes(attributes);
+                keycloakService.updateUser(user);
+            }
+        }
     }
 }

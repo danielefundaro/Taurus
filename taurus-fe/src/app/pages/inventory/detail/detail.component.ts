@@ -28,6 +28,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     protected returnCompletionNotes: Record<number, string> = {};
     protected loading = false;
     protected saving = false;
+    protected photoOrderDirty = false;
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },
         { label: 'Eccellente', value: 'EXCELLENT' },
@@ -50,7 +51,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     ) {}
 
     get isDirty(): boolean {
-        return this.itemDirty || this.dirtyAssignments.size > 0;
+        return this.itemDirty || this.photoOrderDirty || this.dirtyAssignments.size > 0;
     }
 
     protected get isNew(): boolean {
@@ -163,6 +164,47 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             });
     }
 
+    protected confirmDeleteAssignment(assignment: InventoryAssignment): void {
+        this.confirmationService.confirm({
+            header: 'Elimina assegnazione',
+            message: `Eliminare l’assegnazione a ${assignment.userName} ${assignment.userLastName} e tutte le relative riconsegne?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () =>
+                this.inventoryService
+                    .deleteAssignment(assignment.id)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.dirtyAssignments.delete(assignment.id);
+                        this.toastService.success('Assegnazione eliminata', 'L’assegnazione e le relative riconsegne sono state eliminate.');
+                        this.loadItem(this.item.id!);
+                    })
+        });
+    }
+
+    protected confirmDeleteReturn(assignment: InventoryAssignment, itemReturn: InventoryReturn): void {
+        this.confirmationService.confirm({
+            header: 'Elimina riconsegna',
+            message: `Eliminare la procedura di riconsegna di ${itemReturn.quantity} unità per ${assignment.userName} ${assignment.userLastName}?`,
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () =>
+                this.inventoryService
+                    .deleteReturn(itemReturn.id)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success('Riconsegna eliminata', 'La procedura di riconsegna è stata eliminata.');
+                        this.loadItem(this.item.id!);
+                    })
+        });
+    }
+
     protected reissue(assignmentId: number): void {
         this.inventoryService
             .reissue(assignmentId)
@@ -239,6 +281,39 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             .subscribe(() => this.loadItem(this.item.id!));
     }
 
+    protected movePhoto(index: number, offset: number): void {
+        const photos = [...(this.item.photos ?? [])];
+        const destination = index + offset;
+        if (destination < 0 || destination >= photos.length) return;
+        const [photo] = photos.splice(index, 1);
+        photos.splice(destination, 0, photo);
+        this.item.photos = photos;
+        this.photoOrderDirty = true;
+    }
+
+    protected savePhotoOrder(): void {
+        if (!this.item.id || !this.photoOrderDirty || !this.item.photos?.length) return;
+        this.inventoryService
+            .reorderPhotos(this.item.id, this.item.photos.map((photo) => photo.id))
+            .pipe(first())
+            .subscribe((photos) => {
+                this.item.photos = photos;
+                this.photoOrderDirty = false;
+                this.toastService.success('Ordine aggiornato', 'Il nuovo ordine delle fotografie è stato salvato.');
+            });
+    }
+
+    protected setPreviewPhoto(photoId: number): void {
+        if (!this.item.id || this.photoOrderDirty) return;
+        this.inventoryService
+            .setPreviewPhoto(this.item.id, photoId)
+            .pipe(first())
+            .subscribe((photos) => {
+                this.item.photos = photos;
+                this.toastService.success('Anteprima aggiornata', 'La fotografia selezionata verrà usata come anteprima.');
+            });
+    }
+
     protected photoUrl(id: number): string {
         return this.inventoryService.photoUrl(id);
     }
@@ -276,13 +351,14 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
                     });
                 });
                 this.itemDirty = false;
+                this.photoOrderDirty = false;
                 this.dirtyAssignments.clear();
             });
     }
 
     private loadUsers(): void {
         this.usersService
-            .getAll({ page: 0, size: 1000, sort: ['name.keyword,asc'] } as UsersCriteria)
+            .getAll({ page: 0, size: 1000, sort: ['name,asc'] } as UsersCriteria)
             .pipe(first())
             .subscribe((page) => (this.users = page.content));
     }

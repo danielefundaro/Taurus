@@ -7,5 +7,5 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 public interface MediaService extends CommonOpenSearchService<Media, MediaDTO, MediaCriteria> {
-    Resource streamFile(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+    Resource streamFile(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 }

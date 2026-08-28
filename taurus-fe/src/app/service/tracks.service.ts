@@ -24,7 +24,7 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
         return 'tracks';
     }
 
-    public stream(id?: string): string {
+    public stream(id?: number): string {
         if (id) {
             return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
         }

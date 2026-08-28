@@ -47,14 +47,14 @@ public class TracksResource extends CommonOpenSearchResource<Tracks, TracksDTO, 
      */
     @PostMapping(value = "/{id}/stream", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadMedia(
-            @PathVariable(value = "id") final String id,
+            @PathVariable(value = "id") final Long id,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "annotations", required = false) String annotations,
             AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to upload {} : {}", getEntityName(), id);
         getService().uploadFile(id, file, annotations, abstractAuthenticationToken);
         return ResponseEntity.noContent()
-            .headers(HeaderUtil.createEntityDeletionAlert(getApplicationName(), false, getEntityName(), id))
+            .headers(HeaderUtil.createEntityDeletionAlert(getApplicationName(), false, getEntityName(), id.toString()))
             .build();
     }
 }

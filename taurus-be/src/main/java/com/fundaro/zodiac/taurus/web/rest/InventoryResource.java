@@ -1,10 +1,12 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAdminSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
@@ -52,6 +54,11 @@ public class InventoryResource {
         return inventoryService.findItems(query, pageable, token);
     }
 
+    @GetMapping("/summary")
+    public InventoryAdminSummaryDTO getSummary(AbstractAuthenticationToken token) {
+        return inventoryService.getAdminSummary(token);
+    }
+
     @GetMapping("/items/{id}")
     public InventoryItemDTO getItem(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryService.findItem(id, token);
@@ -83,13 +90,19 @@ public class InventoryResource {
         return inventoryService.updateAssignment(id, request, token);
     }
 
+    @DeleteMapping("/assignments/{id}")
+    public ResponseEntity<Void> deleteAssignment(@PathVariable long id, AbstractAuthenticationToken token) {
+        inventoryService.deleteAssignment(id, token);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/assignments/{id}/reissue")
     public InventoryAssignmentDTO reissue(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryService.reissue(id, token);
     }
 
     @GetMapping("/users/{userIndex}/assignments")
-    public List<InventoryAssignmentDTO> getUserAssignments(@PathVariable String userIndex, AbstractAuthenticationToken token) {
+    public List<InventoryAssignmentDTO> getUserAssignments(@PathVariable Long userIndex, AbstractAuthenticationToken token) {
         return inventoryService.findUserAssignments(userIndex, token);
     }
 
@@ -106,6 +119,12 @@ public class InventoryResource {
     @PostMapping("/returns/{id}/cancel")
     public InventoryReturnDTO cancelReturn(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryService.cancelReturn(id, token);
+    }
+
+    @DeleteMapping("/returns/{id}")
+    public ResponseEntity<Void> deleteReturn(@PathVariable long id, AbstractAuthenticationToken token) {
+        inventoryService.deleteReturn(id, token);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/items/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -134,9 +153,27 @@ public class InventoryResource {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/items/{id}/photos/order")
+    public List<InventoryPhotoDTO> reorderPhotos(
+        @PathVariable long id,
+        @Valid @RequestBody InventoryPhotoOrderRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        return inventoryService.reorderPhotos(id, request, token);
+    }
+
+    @PutMapping("/items/{itemId}/photos/{photoId}/preview")
+    public List<InventoryPhotoDTO> setPreviewPhoto(
+        @PathVariable long itemId,
+        @PathVariable long photoId,
+        AbstractAuthenticationToken token
+    ) {
+        return inventoryService.setPreviewPhoto(itemId, photoId, token);
+    }
+
     @GetMapping(value = "/users/{userIndex}/report", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> getUserReport(
-        @PathVariable String userIndex,
+        @PathVariable Long userIndex,
         @RequestParam(defaultValue = "true") boolean includeAssigned,
         @RequestParam(defaultValue = "true") boolean includeReturned,
         @RequestParam(defaultValue = "true") boolean includePhotos,

@@ -3,11 +3,8 @@ package com.fundaro.zodiac.taurus.service.user.external.impl;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
-import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,12 +25,10 @@ import java.util.Optional;
 public class TracksServiceImpl extends com.fundaro.zodiac.taurus.service.user.impl.TracksServiceImpl {
 
     public TracksServiceImpl(
-        OpenSearchService openSearchService,
-        IndexResolver indexResolver,
-        TracksMapper mapper,
+        com.fundaro.zodiac.taurus.service.TracksService tracksService,
         UsersService usersService
     ) {
-        super(openSearchService, indexResolver, mapper, usersService);
+        super(tracksService, usersService);
     }
 
     @Override
@@ -47,7 +42,7 @@ public class TracksServiceImpl extends com.fundaro.zodiac.taurus.service.user.im
     }
 
     @Override
-    public Optional<TracksDTO> findOne(String id, AbstractAuthenticationToken token) {
+    public Optional<TracksDTO> findOne(Long id, AbstractAuthenticationToken token) {
         TracksDTO tracksDTO = findOneWithoutInstrumentFilter(id, token)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
         if (!getVisibleStates().contains(tracksDTO.getState())) {

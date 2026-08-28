@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAssignment, InventoryAssignmentRequest, InventoryErasureRequest, InventoryItem, InventoryReturn, Page } from '../module';
+import { InventoryAdminSummary, InventoryAssignment, InventoryAssignmentRequest, InventoryErasureRequest, InventoryItem, InventoryPhoto, InventoryReturn, Page } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
@@ -14,6 +14,10 @@ export class InventoryService {
         let params = new HttpParams().set('page', page).set('size', size).set('sort', sort);
         if (query.trim()) params = params.set('query', query.trim());
         return this.http.get<Page<InventoryItem>>(`${this.baseUrl}/items`, { params });
+    }
+
+    getSummary(): Observable<InventoryAdminSummary> {
+        return this.http.get<InventoryAdminSummary>(`${this.baseUrl}/summary`);
     }
 
     getItem(id: number): Observable<InventoryItem> {
@@ -34,6 +38,9 @@ export class InventoryService {
     updateAssignment(id: number, request: InventoryAssignmentRequest): Observable<InventoryAssignment> {
         return this.http.put<InventoryAssignment>(`${this.baseUrl}/assignments/${id}`, request);
     }
+    deleteAssignment(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/assignments/${id}`);
+    }
     reissue(id: number): Observable<InventoryAssignment> {
         return this.http.post<InventoryAssignment>(`${this.baseUrl}/assignments/${id}/reissue`, null);
     }
@@ -45,10 +52,16 @@ export class InventoryService {
     deletePhoto(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/photos/${id}`);
     }
+    reorderPhotos(itemId: number, photoIds: number[]): Observable<InventoryPhoto[]> {
+        return this.http.put<InventoryPhoto[]>(`${this.baseUrl}/items/${itemId}/photos/order`, { photoIds });
+    }
+    setPreviewPhoto(itemId: number, photoId: number): Observable<InventoryPhoto[]> {
+        return this.http.put<InventoryPhoto[]>(`${this.baseUrl}/items/${itemId}/photos/${photoId}/preview`, null);
+    }
     photoUrl(id: number): string {
         return `${this.baseUrl}/photos/${id}`;
     }
-    getUserAssignments(userIndex: string): Observable<InventoryAssignment[]> {
+    getUserAssignments(userIndex: number): Observable<InventoryAssignment[]> {
         return this.http.get<InventoryAssignment[]>(`${this.baseUrl}/users/${userIndex}/assignments`);
     }
     requestReturn(id: number, quantity: number, notes?: string): Observable<InventoryReturn> {
@@ -57,12 +70,15 @@ export class InventoryService {
     completeReturn(returnId: number, quantity: number, condition?: string, notes?: string): Observable<InventoryReturn> {
         return this.http.post<InventoryReturn>(`${this.baseUrl}/returns/${returnId}/complete`, { quantity, condition, notes });
     }
+    deleteReturn(returnId: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/returns/${returnId}`);
+    }
     uploadReturnPhoto(returnId: number, file: File): Observable<unknown> {
         const data = new FormData();
         data.append('file', file);
         return this.http.post(`${this.baseUrl}/returns/${returnId}/photos`, data);
     }
-    downloadReport(userIndex: string, includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
+    downloadReport(userIndex: number, includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
         const url = `${this.baseUrl}/users/${userIndex}/report`;
         const params = new HttpParams().set('includeAssigned', includeAssigned).set('includeReturned', includeReturned).set('includePhotos', includePhotos);
         return this.http.get(url, { params, responseType: 'blob' });

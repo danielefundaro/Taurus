@@ -1,0 +1,143 @@
+<div class="card inventory-widget">
+    <div class="flex items-center justify-between gap-4 p-5 border-b border-surface">
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="inventory-title-icon" aria-hidden="true"><i class="pi pi-box"></i></span>
+            <div class="min-w-0">
+                <h2 class="text-xl font-semibold m-0">{{ isAdmin ? 'Inventario' : 'Il mio inventario' }}</h2>
+                <p class="text-sm text-surface-500 mt-1 mb-0">
+                    {{ isAdmin ? 'Situazione del materiale del tenant' : 'Il materiale attualmente affidato a te' }}
+                </p>
+            </div>
+        </div>
+        <a class="flex items-center gap-2 text-primary font-semibold whitespace-nowrap" routerLink="/inventory" [queryParams]="isAdmin ? null : { view: 'mine' }">
+            <span class="hidden sm:inline">{{ isAdmin ? 'Apri inventario' : 'I miei oggetti' }}</span>
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </a>
+    </div>
+
+    @if (loading) {
+        <div class="flex items-center justify-center gap-3 min-h-32 p-6 text-surface-500" role="status">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            <span>Caricamento inventario...</span>
+        </div>
+    } @else if (isAdmin) {
+        <div class="grid grid-cols-3 p-5 pb-4" aria-label="Riepilogo inventario">
+            <div class="pr-3 sm:pr-5">
+                <span class="block text-xs text-surface-500">Oggetti registrati</span>
+                <strong class="block text-2xl sm:text-3xl font-semibold text-primary mt-1">{{ adminSummary?.registeredItems ?? 0 }}</strong>
+            </div>
+            <div class="px-3 sm:px-5 border-l border-surface">
+                <span class="block text-xs text-surface-500">Disponibili</span>
+                <strong class="block text-2xl sm:text-3xl font-semibold text-primary mt-1">{{ adminSummary?.availableQuantity ?? 0 }}</strong>
+            </div>
+            <div class="pl-3 sm:pl-5 border-l border-surface">
+                <span class="block text-xs text-surface-500">Assegnati</span>
+                <strong class="block text-2xl sm:text-3xl font-semibold text-primary mt-1">{{ adminSummary?.assignedQuantity ?? 0 }}</strong>
+            </div>
+        </div>
+
+        <div class="px-5 pb-5">
+            <div class="flex items-center justify-between gap-3 text-xs text-surface-500">
+                <span>Distribuzione quantità</span>
+                <span
+                    ><strong class="text-surface-900 dark:text-surface-0">{{ availabilityPercentage }}%</strong> disponibile</span
+                >
+            </div>
+            <div class="inventory-progress" role="progressbar" aria-label="Quantità disponibile" [attr.aria-valuenow]="availabilityPercentage" aria-valuemin="0" aria-valuemax="100">
+                <span class="inventory-progress-available" [style.width.%]="availabilityPercentage"></span>
+                <span class="inventory-progress-assigned" [style.width.%]="100 - availabilityPercentage"></span>
+            </div>
+            <div class="flex gap-5 text-xs text-surface-500">
+                <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-available"></i>Disponibili</span>
+                <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-assigned"></i>Assegnati</span>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 px-5 py-3 border-y border-surface bg-surface-50 dark:bg-surface-800 text-sm font-semibold">
+            <span>Da gestire</span><span class="text-surface-500 font-normal">{{ adminActivities }} attività</span>
+        </div>
+        @if (adminActivities > 0) {
+            <div class="px-5">
+                @if ((adminSummary?.pendingDecisions ?? 0) > 0) {
+                    <a class="flex items-center gap-3 py-3 border-b border-surface text-color" routerLink="/inventory">
+                        <span class="flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300"><i class="pi pi-clipboard"></i></span>
+                        <span class="flex-1 min-w-0"
+                            ><strong class="block font-semibold">{{ adminSummary?.pendingDecisions }} {{ adminSummary?.pendingDecisions === 1 ? 'presa visione in attesa' : 'prese visione in attesa' }}</strong
+                            ><small class="block text-surface-500 mt-1">Assegnazioni non ancora confermate</small></span
+                        >
+                        <i class="pi pi-chevron-right text-surface-400" aria-hidden="true"></i>
+                    </a>
+                }
+                @if ((adminSummary?.pendingReturns ?? 0) > 0) {
+                    <a class="flex items-center gap-3 py-3 text-color" routerLink="/inventory">
+                        <span class="flex items-center justify-center w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"><i class="pi pi-replay"></i></span>
+                        <span class="flex-1 min-w-0"
+                            ><strong class="block font-semibold">{{ adminSummary?.pendingReturns }} {{ adminSummary?.pendingReturns === 1 ? 'richiesta di riconsegna' : 'richieste di riconsegna' }}</strong
+                            ><small class="block text-surface-500 mt-1">Da verificare e chiudere</small></span
+                        >
+                        <i class="pi pi-chevron-right text-surface-400" aria-hidden="true"></i>
+                    </a>
+                }
+            </div>
+        } @else {
+            <div class="flex items-center justify-center gap-3 min-h-20 p-5 text-green-600"><i class="pi pi-check-circle" aria-hidden="true"></i><span>Nessuna attività in attesa</span></div>
+        }
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-t border-surface bg-surface-50 dark:bg-surface-800 text-xs text-surface-500">
+            <span><i class="pi pi-clock" aria-hidden="true"></i> Aggiornato pochi istanti fa</span>
+            <p-button label="Nuovo oggetto" icon="pi pi-plus" routerLink="/inventory" [queryParams]="{ action: 'new' }" />
+        </div>
+    } @else {
+        <div class="grid grid-cols-1 md:grid-cols-[minmax(12rem,.65fr)_minmax(18rem,1.35fr)] gap-5 p-5">
+            <div class="pb-4 md:pb-0 md:pr-5 border-b md:border-b-0 md:border-r border-surface">
+                <span class="block text-xs text-surface-500">In tuo possesso</span>
+                <strong class="block text-3xl font-semibold text-primary my-1">{{ userSummary?.possessedItems ?? 0 }} <small class="text-sm">oggetti</small></strong>
+                <small class="text-xs text-surface-500">{{ userSummary?.outstandingQuantity ?? 0 }} unità complessive</small>
+            </div>
+            @if ((userSummary?.pendingDecisions ?? 0) > 0) {
+                <a class="flex items-center gap-3 p-4 rounded-border border border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-500/40 dark:bg-yellow-500/10 dark:text-yellow-300" routerLink="/inventory" [queryParams]="{ view: 'mine' }">
+                    <i class="pi pi-exclamation-circle text-xl" aria-hidden="true"></i>
+                    <span
+                        ><strong class="block font-semibold">{{ userSummary?.pendingDecisions }} {{ userSummary?.pendingDecisions === 1 ? 'presa visione richiesta' : 'prese visione richieste' }}</strong
+                        ><small class="block text-surface-500 mt-1">Apri l’inventario per confermare le consegne</small></span
+                    >
+                </a>
+            } @else {
+                <div class="flex items-center gap-3 p-4 rounded-border border border-green-300 bg-green-50 text-green-800 dark:border-green-500/40 dark:bg-green-500/10 dark:text-green-300">
+                    <i class="pi pi-check-circle text-xl" aria-hidden="true"></i>
+                    <span><strong class="block font-semibold">Tutto confermato</strong><small class="block text-surface-500 mt-1">Nessuna presa visione in attesa</small></span>
+                </div>
+            }
+        </div>
+
+        <div class="flex items-center justify-between gap-4 px-5 py-3 border-y border-surface bg-surface-50 dark:bg-surface-800 text-sm font-semibold">
+            <span>Materiale recente</span><a class="text-primary" routerLink="/inventory" [queryParams]="{ view: 'mine' }">Vedi tutti</a>
+        </div>
+        @if (recentAssignments.length > 0) {
+            <div class="px-5">
+                @for (assignment of recentAssignments; track assignment.id) {
+                    <a class="flex flex-wrap sm:flex-nowrap items-center gap-3 py-3 border-b last:border-b-0 border-surface text-color" [routerLink]="['/inventory/assignments', assignment.id]">
+                        <span class="flex items-center justify-center w-10 h-10 shrink-0 rounded-border bg-surface-100 dark:bg-surface-800 text-primary"><i class="pi pi-box" aria-hidden="true"></i></span>
+                        <span class="flex-1 min-w-0"
+                            ><strong class="block font-semibold truncate">{{ assignment.itemName }}</strong
+                            ><small class="block text-surface-500 mt-1 truncate">{{ assignment.inventoryNumber }} · {{ assignment.outstandingQuantity }} in possesso</small></span
+                        >
+                        <p-tag [value]="decisionLabel(assignment.decision?.decision)" [severity]="decisionSeverity(assignment.decision?.decision)" />
+                    </a>
+                }
+            </div>
+        } @else {
+            <div class="flex items-center justify-center gap-3 min-h-24 p-5 text-surface-500"><i class="pi pi-box" aria-hidden="true"></i><span>Non hai materiale attualmente in possesso.</span></div>
+        }
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-t border-surface bg-surface-50 dark:bg-surface-800 text-xs text-surface-500">
+            <span
+                ><i class="pi pi-clock" aria-hidden="true"></i>
+                @if (userSummary?.lastAssignedAt) {
+                    Ultima consegna: {{ userSummary?.lastAssignedAt | date: 'dd MMMM yyyy' }}
+                } @else {
+                    Nessuna consegna registrata
+                }
+            </span>
+            <p-button label="Scarica proforma" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadReport()" />
+        </div>
+    }
+</div>

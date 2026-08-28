@@ -20,13 +20,21 @@ public class TenantSchemaRegistry {
 
     public List<String> findActiveTenantCodes() {
         try {
-            return jdbcTemplate.queryForList(
-                "SELECT tenant_code FROM public.tenant_schema_registry WHERE status = 'ACTIVE' ORDER BY tenant_code",
-                String.class
-            );
+            return queryActiveTenantCodes();
         } catch (DataAccessException exception) {
             log.debug("Tenant schema registry is not ready yet", exception);
             return List.of();
         }
+    }
+
+    public List<String> requireActiveTenantCodes() {
+        return queryActiveTenantCodes();
+    }
+
+    private List<String> queryActiveTenantCodes() {
+        return jdbcTemplate.queryForList(
+            "SELECT tenant_code FROM public.tenant_schema_registry WHERE status = 'ACTIVE' ORDER BY tenant_code",
+            String.class
+        );
     }
 }

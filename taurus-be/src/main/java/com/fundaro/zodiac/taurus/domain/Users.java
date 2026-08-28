@@ -3,35 +3,74 @@ package com.fundaro.zodiac.taurus.domain;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.persistence.Transient;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
  * A Users.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "app_user")
 public class Users extends CommonFieldsOpenSearch {
 
     @JsonProperty("last_name")
+    @Column(name = "last_name")
     private String lastName;
 
     @JsonProperty("birth_date")
+    @Column(name = "birth_date")
+    @Temporal(TemporalType.DATE)
     private Date birthDate;
 
+    @Column(name = "email")
     private String email;
 
+    @Transient
     private Set<ChildrenEntities> tenants;
 
-    private Set<RoleEnum> roles;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "app_user_role", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private Set<RoleEnum> roles = new LinkedHashSet<>();
 
+    @Column(name = "active", nullable = false)
     private Boolean active;
 
-    private Set<ChildrenEntities> instruments;
+    @ManyToMany
+    @JoinTable(name = "user_instrument", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "instrument_id"))
+    @OrderColumn(name = "display_order")
+    private List<Instruments> instruments = new ArrayList<>();
 
     @JsonProperty("keycloak_id")
+    @Column(name = "keycloak_id", nullable = false, unique = true)
     private String keycloakId;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_identity_id", nullable = false, unique = true)
+    private UserIdentity userIdentity;
 
     public String getLastName() {
         return lastName;
@@ -81,11 +120,11 @@ public class Users extends CommonFieldsOpenSearch {
         this.active = active;
     }
 
-    public Set<ChildrenEntities> getInstruments() {
+    public List<Instruments> getInstruments() {
         return instruments;
     }
 
-    public void setInstruments(Set<ChildrenEntities> instruments) {
+    public void setInstruments(List<Instruments> instruments) {
         this.instruments = instruments;
     }
 
@@ -96,6 +135,9 @@ public class Users extends CommonFieldsOpenSearch {
     public void setKeycloakId(String keycloakId) {
         this.keycloakId = keycloakId;
     }
+
+    public UserIdentity getUserIdentity() { return userIdentity; }
+    public void setUserIdentity(UserIdentity userIdentity) { this.userIdentity = userIdentity; }
 
     @Override
     public boolean equals(Object o) {

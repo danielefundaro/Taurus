@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -30,7 +31,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
     private StateFilter state;
 
     @JsonIgnore
-    private StringFilter trackId;
+    private LongFilter trackId;
 
     public AlbumsCriteria() {
         super();
@@ -41,7 +42,7 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         this.date = other.optionalDate().map(DateFilter::copy).orElse(null);
         this.trackName = other.optionalTrackName().map(StringFilter::copy).orElse(null);
         this.state = other.optionalState().map(StateFilter::copy).orElse(null);
-        this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
+        this.trackId = other.optionalTrackId().map(LongFilter::copy).orElse(null);
     }
 
     @Override
@@ -88,15 +89,15 @@ public class AlbumsCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
-    public StringFilter getTrackId() {
+    public LongFilter getTrackId() {
         return trackId;
     }
 
-    public Optional<StringFilter> optionalTrackId() {
+    public Optional<LongFilter> optionalTrackId() {
         return Optional.ofNullable(trackId);
     }
 
-    public AlbumsCriteria setTrackId(StringFilter trackId) {
+    public AlbumsCriteria setTrackId(LongFilter trackId) {
         this.trackId = trackId;
         return this;
     }

@@ -18,7 +18,7 @@ public class InventoryItem extends TenantAuditedEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description", length = 4000)
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
     @Column(name = "total_quantity", nullable = false)

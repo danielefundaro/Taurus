@@ -1,22 +1,22 @@
-<div class="card mb-0">
-    <div class="flex justify-between items-center">
-        <div>
-            <div class="block text-muted-color font-medium mb-4">{{label}}</div>
-            <span class="text-surface-900 dark:text-surface-0 font-medium text-xl">Totale </span>
-            <span class="text-primary font-medium text-xl">{{value}}</span>
-        </div>
+<ng-template #cardContent>
+    <span class="stat-card__copy">
+        <small>{{ label }}</small>
+        <strong>{{ value }}</strong>
         @if (link) {
-        <a [routerLink]="link">
-            <div class="flex items-center justify-center bg-{{color}}-100 dark:bg-{{color}}-400/10 rounded-border"
-                style="width: 2.5rem; height: 2.5rem">
-                <i class="pi {{icon}} text-{{color}}-500 !text-xl"></i>
-            </div>
-        </a>
-        } @else {
-        <div class="flex items-center justify-center bg-{{color}}-100 dark:bg-{{color}}-400/10 rounded-border"
-            style="width: 2.5rem; height: 2.5rem">
-            <i class="pi {{icon}} text-{{color}}-500 !text-xl"></i>
-        </div>
+            <span class="stat-card__action">{{ actionLabel }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
         }
+    </span>
+    <span class="stat-card__icon" [ngClass]="'stat-card__icon--' + color">
+        <i class="pi {{ icon }}" aria-hidden="true"></i>
+    </span>
+</ng-template>
+
+@if (link) {
+    <a class="card stat-card" [routerLink]="link" [attr.aria-label]="actionLabel">
+        <ng-container [ngTemplateOutlet]="cardContent" />
+    </a>
+} @else {
+    <div class="card stat-card stat-card--static">
+        <ng-container [ngTemplateOutlet]="cardContent" />
     </div>
-</div>
+}

@@ -28,15 +28,15 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
         return 'calendar-events';
     }
 
-    public setAvailability(id: string, available: boolean): Observable<CalendarEvents> {
+    public setAvailability(id: number, available: boolean): Observable<CalendarEvents> {
         return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability`, null, { params: new HttpParams().set('available', available.toString()) });
     }
 
-    public cancelAvailability(id: string): Observable<CalendarEvents> {
+    public cancelAvailability(id: number): Observable<CalendarEvents> {
         return this.http.delete<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability`);
     }
 
-    public setPresentUsers(id: string, presentUsers: EventPresentUser[]): Observable<CalendarEvents> {
+    public setPresentUsers(id: number, presentUsers: EventPresentUser[]): Observable<CalendarEvents> {
         return this.http.put<CalendarEvents>(`${this.baseUrl}/calendar-events/${id}/presences`, presentUsers);
     }
 }

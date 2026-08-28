@@ -179,8 +179,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.onRowReorder();
     }
 
-    private loadElement(id: string): void {
-        this.albumsService.getById(id).pipe(first()).subscribe({
+    private loadElement(id: number | string): void {
+        this.albumsService.getById(Number(id)).pipe(first()).subscribe({
             next: (album: Albums) => {
                 this.album = album;
                 this.album.date = this.dateConverterPipe.transform(this.album.date);

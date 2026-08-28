@@ -92,7 +92,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         });
 
         let page = 0;
-        const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name.keyword,asc'] };
+        const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name,asc'] };
 
         this.instrumentsService.getAll(instrumentsCriteria).pipe(first()).subscribe(async result => {
             let totalElements = result.totalElements;
@@ -295,7 +295,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
             .flatMap(s => s.media ?? [])
             .map((m, i) => ({ index: m.index, name: m.name, order: i + 1 }));
 
-        const seenIndexes = new Set<string>();
+        const seenIndexes = new Set<number>();
         const mergedInstruments: ChildrenEntities[] = [];
         for (const s of sorted) {
             for (const inst of (s.instruments ?? [])) {
@@ -414,8 +414,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.isDirty = true;
     }
 
-    private loadElement(id: string) {
-        this.tracksService.getById(id).pipe(first()).subscribe(track => {
+    private loadElement(id: number | string) {
+        this.tracksService.getById(Number(id)).pipe(first()).subscribe(track => {
             this.track = track;
             this.isDirty = false;
         });

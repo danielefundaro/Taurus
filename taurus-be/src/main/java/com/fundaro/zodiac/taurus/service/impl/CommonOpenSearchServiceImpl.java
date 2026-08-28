@@ -4,344 +4,197 @@ import com.fundaro.zodiac.taurus.domain.CommonFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.StateFieldsOpenSearch;
 import com.fundaro.zodiac.taurus.domain.criteria.CommonOpenSearchCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.repository.CatalogRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CommonOpenSearchService;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.mapper.EntityOpenSearchMapper;
-import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.apache.logging.log4j.util.Strings;
-import org.opensearch.client.opensearch._types.Result;
-import org.opensearch.client.opensearch._types.SortOptions;
-import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch.core.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import tech.jhipster.service.filter.StringFilter;
-
-import java.io.IOException;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.transaction.annotation.Transactional;
+import tech.jhipster.service.filter.Filter;
+import tech.jhipster.service.filter.RangeFilter;
+import tech.jhipster.service.filter.StringFilter;
 
-public class CommonOpenSearchServiceImpl<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria, M extends EntityOpenSearchMapper<D, E>> implements CommonOpenSearchService<E, D, C> {
+/**
+ * Transitional generic relational CRUD for the catalog entities formerly stored in OpenSearch.
+ * The class name is retained temporarily so existing resources can move without an API break.
+ */
+@Transactional
+public class CommonOpenSearchServiceImpl<
+    E extends CommonFieldsOpenSearch,
+    D extends CommonFieldsOpenSearchDTO,
+    C extends CommonOpenSearchCriteria,
+    M extends EntityOpenSearchMapper<D, E>,
+    R extends CatalogRepository<E>
+> implements CommonOpenSearchService<E, D, C> {
 
-    private final OpenSearchService openSearchService;
-    private final IndexResolver indexResolver;
     private final Logger log;
+    private final R repository;
     private final M mapper;
-    private final Class<E> classEntity;
     private final String entityName;
 
-    public <T extends CommonOpenSearchService<E, D, C>> CommonOpenSearchServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, M mapper, Class<T> logClass, Class<E> classEntity) {
-        this.openSearchService = openSearchService;
-        this.indexResolver = indexResolver;
+    protected CommonOpenSearchServiceImpl(R repository, M mapper, Class<?> logClass, Class<E> entityClass) {
+        this.repository = repository;
         this.mapper = mapper;
         this.log = LoggerFactory.getLogger(logClass);
-        this.classEntity = classEntity;
-        this.entityName = classEntity.getSimpleName();
+        this.entityName = entityClass.getSimpleName();
     }
 
-    public String getEntityName() {
-        return entityName;
-    }
+    protected R getRepository() { return repository; }
+    public M getMapper() { return mapper; }
+    public Logger getLogger() { return log; }
+    public String getEntityName() { return entityName; }
 
-    public M getMapper() {
-        return mapper;
-    }
-
-    public Logger getLogger() {
-        return log;
+    protected D saveEntity(E entity, AbstractAuthenticationToken token, boolean created) {
+        prepareForSave(entity, token, created);
+        return mapper.toDto(repository.save(entity));
     }
 
     @Override
-    public D save(D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to save {} : {}", entityName, dto);
-
+    public D save(D dto, AbstractAuthenticationToken token) {
         if (dto.getId() != null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "A new entity cannot already have an ID", entityName, "id.exists");
         }
-
-        try {
-            return mapper.toDto(saveEntity(null, mapper.toEntity(dto), abstractAuthenticationToken, tenantId));
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while saving %s info.\n%s", entityName, e.getMessage()), entityName, "generic");
-        }
+        E entity = mapper.toEntity(dto);
+        prepareForSave(entity, token, true);
+        return mapper.toDto(repository.save(entity));
     }
 
     @Override
-    public D update(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to update {} : {}", entityName, dto);
-        return updateDto(id, dto, abstractAuthenticationToken, tenantId);
+    public D update(Long id, D dto, AbstractAuthenticationToken token) {
+        validateId(id, dto);
+        E entity = repository.findByIdAndDeletedFalse(id)
+            .orElseThrow(() -> notFound());
+        mapper.partialUpdate(entity, dto);
+        prepareForSave(entity, token, false);
+        return mapper.toDto(repository.save(entity));
     }
 
     @Override
-    public D partialUpdate(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to partially update {} : {}", entityName, dto);
-        return updateDto(id, dto, abstractAuthenticationToken, tenantId);
+    public D partialUpdate(Long id, D dto, AbstractAuthenticationToken token) {
+        return update(id, dto, token);
     }
 
     @Override
-    public Page<D> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to get all {} by Criteria", entityName);
-
-        try {
-            return findByCriteria(criteria, pageable, abstractAuthenticationToken, tenantId);
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while getting information of %s: %s", entityName, e.getMessage()), entityName, "generic");
-        }
+    @Transactional(readOnly = true)
+    public Page<D> findEntitiesByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken token) {
+        return repository.findAll(buildSpecification(criteria), JpaPageableUtils.normalize(pageable)).map(mapper::toDto);
     }
 
     @Override
-    public Optional<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to get {} : {}", entityName, id);
+    @Transactional(readOnly = true)
+    public Optional<D> findOne(Long id, AbstractAuthenticationToken token) {
+        return repository.findByIdAndDeletedFalse(id).map(mapper::toDto);
+    }
 
-        try {
-            return Optional.of(mapper.toDto(getById(id, tenantId)));
-        } catch (IOException e) {
-            return Optional.empty();
-        }
+    @Transactional(readOnly = true)
+    protected Optional<D> findOneIncludingDeleted(Long id) {
+        return repository.findById(id).map(mapper::toDto);
     }
 
     @Override
-    public long count(C criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to count all {} by Criteria", entityName);
-
-        try {
-            return countByCriteria(criteria, tenantId);
-        } catch (IOException e) {
-            return 0L;
-        }
+    @Transactional(readOnly = true)
+    public long count(C criteria, AbstractAuthenticationToken token) {
+        return repository.count(buildSpecification(criteria));
     }
 
     @Override
-    public D delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to delete {} : {}", entityName, id);
-
-        try {
-            E entity = getById(id, tenantId);
-            entity.setDeleted(true);
-            saveEntity(id, entity, abstractAuthenticationToken, tenantId);
-            return mapper.toDto(entity);
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
-        }
+    public D delete(Long id, AbstractAuthenticationToken token) {
+        E entity = repository.findByIdAndDeletedFalse(id).orElseThrow(() -> notFound());
+        entity.setDeleted(true);
+        prepareForSave(entity, token, false);
+        return mapper.toDto(repository.save(entity));
     }
 
-    protected D deletePermanently(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        log.debug("Request to permanently delete {} : {}", entityName, id);
-
-        try {
-            E entity = getByIdIncludingDeleted(id, tenantId);
-            if (!openSearchService.deleteDocument(indexResolver.resolve(entityName, tenantId), id)) {
-                throw new IOException("Document was not deleted");
+    protected Specification<E> buildSpecification(C criteria) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isFalse(root.get("deleted")));
+            if (criteria != null) {
+                addFilter(predicates, cb, root.get("id"), criteria.getId());
+                addStringFilter(predicates, cb, root.get("name"), criteria.getName());
+                addStringFilter(predicates, cb, root.get("description"), criteria.getDescription());
             }
-            return mapper.toDto(entity);
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
-        }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
-    protected Optional<D> findOneIncludingDeleted(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        try {
-            return Optional.of(mapper.toDto(getByIdIncludingDeleted(id, tenantId)));
-        } catch (IOException e) {
-            return Optional.empty();
-        }
+    protected void addStringFilter(
+        List<Predicate> predicates,
+        jakarta.persistence.criteria.CriteriaBuilder cb,
+        Expression<String> path,
+        StringFilter filter
+    ) {
+        if (filter == null) return;
+        if (filter.getEquals() != null) predicates.add(cb.equal(path, filter.getEquals()));
+        if (filter.getNotEquals() != null) predicates.add(cb.notEqual(path, filter.getNotEquals()));
+        if (filter.getContains() != null) predicates.add(cb.like(cb.lower(path), "%" + filter.getContains().toLowerCase() + "%"));
+        if (filter.getDoesNotContain() != null) predicates.add(cb.notLike(cb.lower(path), "%" + filter.getDoesNotContain().toLowerCase() + "%"));
+        if (filter.getIn() != null && !filter.getIn().isEmpty()) predicates.add(path.in(filter.getIn()));
     }
 
-    @Override
-    public void alignChildrenInformation(String childId, AbstractAuthenticationToken abstractAuthenticationToken, Function<StringFilter, C> criteriaFunction, BiFunction<D, String, Boolean> function) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        if (tenantId == null) {
-            tenantId = "";
-        }
-
-        StringFilter stringFilter = new StringFilter();
-        stringFilter.setEquals(childId);
-        C c = criteriaFunction.apply(stringFilter);
-
-        int pageNumber = 0, size = 20;
-        Page<D> result;
-
-        do {
-            Pageable pageable = PageRequest.of(pageNumber++, size);
-            try {
-                result = findByCriteria(c, pageable, abstractAuthenticationToken, tenantId);
-            } catch (IOException ignored) {
-                break;
-            }
-
-            final String resolvedTenant = tenantId;
-            result.getContent().forEach(dto -> {
-                if (function.apply(dto, childId)) {
-                    partialUpdateSync(dto.getId(), dto, abstractAuthenticationToken, resolvedTenant);
-                }
-            });
-        } while (result != null && result.getTotalPages() > pageNumber);
+    protected <X> void addFilter(
+        List<Predicate> predicates,
+        jakarta.persistence.criteria.CriteriaBuilder cb,
+        Expression<X> path,
+        Filter<X> filter
+    ) {
+        if (filter == null) return;
+        if (filter.getEquals() != null) predicates.add(cb.equal(path, filter.getEquals()));
+        if (filter.getNotEquals() != null) predicates.add(cb.notEqual(path, filter.getNotEquals()));
+        if (filter.getIn() != null && !filter.getIn().isEmpty()) predicates.add(path.in(filter.getIn()));
     }
 
-    protected E getById(String id, String tenantId) throws IOException {
-        E entity = getByIdIncludingDeleted(id, tenantId);
-        if (!Objects.equals(entity.getDeleted(), Boolean.FALSE)) {
-            throw new IOException(String.format("%s with id %s not found", entityName, id));
-        }
-        return entity;
+    protected <X extends Comparable<? super X>> void addRangeFilter(
+        List<Predicate> predicates,
+        jakarta.persistence.criteria.CriteriaBuilder cb,
+        Expression<X> path,
+        RangeFilter<X> filter
+    ) {
+        addFilter(predicates, cb, path, filter);
+        if (filter == null) return;
+        if (filter.getGreaterThan() != null) predicates.add(cb.greaterThan(path, filter.getGreaterThan()));
+        if (filter.getGreaterThanOrEqual() != null) predicates.add(cb.greaterThanOrEqualTo(path, filter.getGreaterThanOrEqual()));
+        if (filter.getLessThan() != null) predicates.add(cb.lessThan(path, filter.getLessThan()));
+        if (filter.getLessThanOrEqual() != null) predicates.add(cb.lessThanOrEqualTo(path, filter.getLessThanOrEqual()));
     }
 
-    private E getByIdIncludingDeleted(String id, String tenantId) throws IOException {
-        GetResponse<E> getResponse = openSearchService.get(builder -> builder.index(indexResolver.resolve(entityName, tenantId)).id(id), classEntity);
-        E entity = getResponse.source();
-
-        if (entity != null) {
-            entity.setId(id);
-            return entity;
-        }
-
-        throw new IOException();
-    }
-
-    protected List<Query> getQueries(C criteria) {
-        List<Query> queries = new ArrayList<>();
-        queries.add(Query.of(f -> f.exists(e -> e.field("deleted"))));
-        queries.add(Query.of(f -> f.match(m -> m.field("deleted").query(value -> value.booleanValue(false)))));
-        queries.addAll(Converter.stringFilterToQuery("_id", criteria.getId()));
-        queries.addAll(Converter.stringFilterToQuery("name.keyword", criteria.getName()));
-        queries.addAll(Converter.stringFilterToQuery("description", criteria.getDescription()));
-
-        return queries;
-    }
-
-    private D updateDto(String id, D dto, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) {
-        if (dto.getId() == null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid id", entityName, "id.null");
-        }
-
-        if (!Objects.equals(id, dto.getId())) {
+    private void validateId(Long id, D dto) {
+        if (id == null || dto.getId() == null || !Objects.equals(id, dto.getId())) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid ID", entityName, "id.invalid");
         }
-
-        E existingEntity;
-        try {
-            existingEntity = getById(id, tenantId);
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
-        }
-
-        mapper.partialUpdate(existingEntity, dto);
-
-        try {
-            return mapper.toDto(saveEntity(id, existingEntity, abstractAuthenticationToken, tenantId));
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error occurred while update %s info.\n%s", entityName, e.getMessage()), entityName, "generic");
-        }
     }
 
-    private void partialUpdateSync(String id, D dto, AbstractAuthenticationToken token, String tenantId) {
-        if (dto.getId() == null || !Objects.equals(id, dto.getId())) return;
-        E existingEntity;
-        try {
-            existingEntity = getById(id, tenantId);
-        } catch (IOException e) {
-            return;
+    private void prepareForSave(E entity, AbstractAuthenticationToken token, boolean created) {
+        String actor = SecurityUtils.getUserIdFromAuthentication(token);
+        Date now = new Date();
+        entity.setEditBy(actor);
+        entity.setEditDate(now);
+        if (created) {
+            entity.setInsertBy(actor);
+            entity.setInsertDate(now);
+            entity.setDeleted(false);
         }
-        mapper.partialUpdate(existingEntity, dto);
-        try {
-            saveEntity(id, existingEntity, token, tenantId);
-        } catch (IOException ignored) {
-        }
-    }
-
-    private E saveEntity(String id, E entity, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) throws IOException {
-        addAuditInfo(entity, abstractAuthenticationToken);
-
         if (entity instanceof StateFieldsOpenSearch stateEntity && stateEntity.getState() == null) {
             stateEntity.setState(StateEnum.DRAFT);
         }
-
-        IndexRequest<E> indexRequest = new IndexRequest.Builder<E>().index(indexResolver.resolve(entityName, tenantId)).document(entity).id(id).build();
-        IndexResponse indexResponse = openSearchService.index(indexRequest);
-
-        if (indexResponse.result() == Result.Created) {
-            entity.setId(indexResponse.id());
-        }
-
-        return entity;
     }
 
-    private Page<D> findByCriteria(C criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken, String tenantId) throws IOException {
-        List<Query> queries = getQueries(criteria);
-
-        SearchResponse<E> searchResponse = openSearchService.search(searchRequest -> searchRequest
-            .index(indexResolver.resolve(entityName, tenantId))
-            .from(pageable.getPageNumber() * pageable.getPageSize())
-            .size(pageable.getPageSize())
-            .trackTotalHits(t -> t.enabled(true))
-            .query(q -> q.bool(b -> b.must(queries)))
-            .sort(pageable.getSort().get().map(sort -> SortOptions.of(fn -> fn.field(fs -> fs.field(Converter.camelCaseToSnakeCase(sort.getProperty())).order(sort.isAscending() ? SortOrder.Asc : SortOrder.Desc)))).toList()), classEntity);
-
-        if (searchResponse == null || searchResponse.hits().hits().isEmpty()) {
-            return new PageImpl<>(new ArrayList<>(), pageable, 0L);
-        }
-
-        List<D> list = searchResponse.hits().hits().stream().map(hit -> {
-            D dto = mapper.toDto(hit.source());
-            dto.setId(hit.id());
-            return dto;
-        }).toList();
-
-        return new PageImpl<>(list, pageable, searchResponse.hits().total().value());
-    }
-
-    private Long countByCriteria(C criteria, String tenantId) throws IOException {
-        List<Query> queries = getQueries(criteria);
-
-        CountResponse countResponse = openSearchService.count(searchRequest -> searchRequest
-            .index(indexResolver.resolve(entityName, tenantId))
-            .query(q -> q.bool(b -> b.must(queries)))
-        );
-
-        return countResponse.count();
-    }
-
-    private void addAuditInfo(E entity, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-
-        if (Strings.isNotBlank(userId)) {
-            Date now = new Date();
-            entity.setEditBy(userId);
-            entity.setEditDate(now);
-
-            if (Strings.isBlank(entity.getInsertBy())) {
-                entity.setInsertBy(userId);
-                entity.setInsertDate(now);
-            }
-
-            if (entity.getDeleted() == null) {
-                entity.setDeleted(false);
-            }
-        }
+    private RequestAlertException notFound() {
+        return new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", entityName, "id.notFound");
     }
 }

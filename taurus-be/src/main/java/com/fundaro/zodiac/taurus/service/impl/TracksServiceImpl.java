@@ -1,182 +1,201 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
+import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
-import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.security.SecurityUtils;
-import com.fundaro.zodiac.taurus.service.AlbumsService;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
+import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
+import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 import org.apache.commons.io.FilenameUtils;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-
-/**
- * Service Implementation for managing {@link Tracks}.
- */
 @Service
 @Transactional
-public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, TracksDTO, TracksCriteria, TracksMapper> implements TracksService {
+public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, TracksDTO, TracksCriteria, TracksMapper, TracksRepository>
+    implements TracksService {
 
     private final QueueUploadFilesService queueUploadFilesService;
-
-    private final AlbumsService albumsService;
-
+    private final MediaRepository mediaRepository;
+    private final InstrumentsRepository instrumentsRepository;
     private final Sender sender;
 
-    public TracksServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TracksMapper tracksMapper, QueueUploadFilesService queueUploadFilesService, AlbumsService albumsService, Sender sender) {
-        super(openSearchService, indexResolver, tracksMapper, TracksService.class, Tracks.class);
+    public TracksServiceImpl(
+        TracksRepository repository,
+        TracksMapper mapper,
+        QueueUploadFilesService queueUploadFilesService,
+        MediaRepository mediaRepository,
+        InstrumentsRepository instrumentsRepository,
+        Sender sender
+    ) {
+        super(repository, mapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
-        this.albumsService = albumsService;
+        this.mediaRepository = mediaRepository;
+        this.instrumentsRepository = instrumentsRepository;
         this.sender = sender;
     }
 
     @Override
-    public TracksDTO save(TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public TracksDTO save(TracksDTO dto, AbstractAuthenticationToken token) {
         finalizeOrders(dto);
-        return super.save(dto, abstractAuthenticationToken);
+        Tracks entity = getMapper().toEntity(dto);
+        entity.setScores(resolveScores(dto));
+        return saveEntity(entity, token, true);
     }
 
     @Override
-    public TracksDTO update(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public TracksDTO update(Long id, TracksDTO dto, AbstractAuthenticationToken token) {
         finalizeOrders(dto);
-        TracksDTO tracksDTO = super.update(id, dto, abstractAuthenticationToken);
-        updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
-        return tracksDTO;
+        Tracks entity = getRepository().findByIdAndDeletedFalse(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        getMapper().partialUpdate(entity, dto);
+        entity.getScores().clear();
+        getRepository().flush();
+        entity.getScores().addAll(resolveScores(dto));
+        return saveEntity(entity, token, false);
     }
 
     @Override
-    public TracksDTO partialUpdate(String id, TracksDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        finalizeOrders(dto);
-        TracksDTO tracksDTO = super.partialUpdate(id, dto, abstractAuthenticationToken);
-        updateRelatedTracks(id, dto, tracksDTO, abstractAuthenticationToken);
-        return tracksDTO;
+    public TracksDTO partialUpdate(Long id, TracksDTO dto, AbstractAuthenticationToken token) {
+        return update(id, dto, token);
     }
 
     @Override
-    public void uploadFile(String id, MultipartFile file, String annotations, AbstractAuthenticationToken abstractAuthenticationToken) {
+    protected Specification<Tracks> buildSpecification(TracksCriteria criteria) {
+        return super.buildSpecification(criteria).and((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (criteria == null) return cb.conjunction();
+            addStringFilter(predicates, cb, root.get("subName"), criteria.getSubName());
+            addStringFilter(predicates, cb, root.get("composer"), criteria.getComposer());
+            addStringFilter(predicates, cb, root.get("arranger"), criteria.getArranger());
+            addStringFilter(predicates, cb, root.get("tempo"), criteria.getTempo());
+            addStringFilter(predicates, cb, root.get("tone"), criteria.getTone());
+            addFilter(predicates, cb, root.get("state"), criteria.getState());
+            if (criteria.getType() != null) {
+                query.distinct(true);
+                addStringFilter(predicates, cb, root.join("type"), criteria.getType());
+            }
+            if (criteria.getInstrumentId() != null || criteria.getMediaId() != null) {
+                query.distinct(true);
+                var score = root.join("scores");
+                if (criteria.getInstrumentId() != null) {
+                    addFilter(predicates, cb, score.join("instruments").get("id"), criteria.getInstrumentId());
+                }
+                if (criteria.getMediaId() != null) {
+                    addFilter(predicates, cb, score.join("media").get("id"), criteria.getMediaId());
+                }
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        });
+    }
+
+    @Override
+    public void uploadFile(Long id, MultipartFile file, String annotations, AbstractAuthenticationToken token) {
         if (file == null || file.isEmpty()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
         }
-
-        String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
-        QueueUploadFilesDTO queueUploadFilesDTO = new QueueUploadFilesDTO();
-        queueUploadFilesDTO.setUserId(userId);
-        queueUploadFilesDTO.setMultipartFile(file);
-        queueUploadFilesDTO.setType(getEntityName());
-        queueUploadFilesDTO.setDescription(annotations);
-
-        if (id != null) {
-            queueUploadFilesDTO.setTrackId(id);
-            findOne(id, abstractAuthenticationToken);
-            queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
-        } else {
-            TracksDTO tracksDTO = new TracksDTO();
-            tracksDTO.setName(FilenameUtils.removeExtension(file.getOriginalFilename()));
-            TracksDTO saved = this.save(tracksDTO, abstractAuthenticationToken);
-            queueUploadFilesDTO.setTrackId(saved.getId());
-            queueSaveEntity(queueUploadFilesDTO, abstractAuthenticationToken);
+        QueueUploadFilesDTO upload = new QueueUploadFilesDTO();
+        upload.setMultipartFile(file);
+        upload.setType(getEntityName());
+        upload.setDescription(annotations);
+        if (id == null) {
+            TracksDTO track = new TracksDTO();
+            track.setName(FilenameUtils.removeExtension(file.getOriginalFilename()));
+            id = save(track, token).getId();
+        } else if (findOne(id, token).isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound");
+        }
+        upload.setTrackId(id);
+        QueueUploadFilesDTO queued = queueUploadFilesService.saveStream(upload, token);
+        try {
+            byte[] message = Converter.objectToBytes(new UploadFilesPackage(queued.getId(), token));
+            sendAfterCommit(message);
+        } catch (Exception exception) {
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "queue.error");
         }
     }
 
-    @Override
-    public TracksDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        TracksDTO b = super.delete(id, abstractAuthenticationToken);
-        if (b == null) {
-            return null;
+    private void sendAfterCommit(byte[] message) {
+        if (
+            !TransactionSynchronizationManager.isActualTransactionActive() ||
+            !TransactionSynchronizationManager.isSynchronizationActive()
+        ) {
+            sender.send(message);
+            return;
         }
-
-        // Delete all related information
-        albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> albumsDTO.getTracks().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s)));
-
-        return b;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    sender.send(message);
+                } catch (RuntimeException exception) {
+                    getLogger().error("Unable to publish the committed upload job", exception);
+                }
+            }
+        });
     }
 
-    @Override
-    protected List<Query> getQueries(TracksCriteria criteria) {
-        List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("composer.keyword", criteria.getComposer()));
-        queries.addAll(Converter.stringFilterToQuery("arranger.keyword", criteria.getArranger()));
-        queries.addAll(Converter.stringFilterToQuery("tempo.keyword", criteria.getTempo()));
-        queries.addAll(Converter.stringFilterToQuery("tone.keyword", criteria.getTone()));
-        queries.addAll(Converter.generalFilterToQuery("state.keyword", criteria.getState()));
-        queries.addAll(Converter.stringFilterToQuery("type.keyword", criteria.getType()));
-        queries.addAll(Converter.stringFilterToQuery("scores.media.index.keyword", criteria.getMediaId()));
-        queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
+    private List<SheetsMusic> resolveScores(TracksDTO dto) {
+        if (dto.getScores() == null) return new ArrayList<>();
+        return dto.getScores().stream()
+            .sorted(Comparator.comparing(score -> score.getOrder() == null ? Long.MAX_VALUE : score.getOrder()))
+            .map(this::resolveScore)
+            .toList();
+    }
 
-        return queries;
+    private SheetsMusic resolveScore(SheetsMusicDTO dto) {
+        SheetsMusic score = new SheetsMusic();
+        score.setDescription(dto.getDescription());
+        score.setNeedsReview(Boolean.TRUE.equals(dto.getNeedsReview()));
+        score.setMedia(dto.getMedia() == null ? List.of() : dto.getMedia().stream()
+            .sorted(Comparator.comparing(this::orderOf))
+            .map(ref -> mediaRepository.getReferenceById(ref.getIndex())).toList());
+        score.setInstruments(dto.getInstruments() == null ? List.of() : dto.getInstruments().stream()
+            .sorted(Comparator.comparing(this::orderOf))
+            .map(ref -> instrumentsRepository.getReferenceById(ref.getIndex())).toList());
+        return score;
+    }
+
+    private Long orderOf(ChildrenEntitiesDTO ref) {
+        return ref.getOrder() == null ? Long.MAX_VALUE : ref.getOrder();
     }
 
     private void finalizeOrders(TracksDTO dto) {
-        if (dto.getScores() != null && !dto.getScores().isEmpty()) {
-            AtomicLong i = new AtomicLong(0L);
-            dto.getScores().stream()
-                .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
-                .forEach(score -> score.setOrder(i.incrementAndGet()));
-
-            dto.getScores().forEach(score -> {
-                if (score.getMedia() != null && !score.getMedia().isEmpty()) {
-                    AtomicLong j = new AtomicLong(0L);
-                    score.getMedia().stream()
-                        .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
-                        .forEach(media -> media.setOrder(j.incrementAndGet()));
-                }
-
-                if (score.getInstruments() != null && !score.getInstruments().isEmpty()) {
-                    AtomicLong j = new AtomicLong(0L);
-                    score.getInstruments().stream()
-                        .sorted((a, b) -> Objects.compare(a.getOrder(), b.getOrder(), Comparator.naturalOrder()))
-                        .forEach(instrument -> instrument.setOrder(j.incrementAndGet()));
-                }
+        if (dto.getScores() == null) return;
+        AtomicLong scoreOrder = new AtomicLong();
+        dto.getScores().stream().sorted(Comparator.comparing(score -> score.getOrder() == null ? Long.MAX_VALUE : score.getOrder()))
+            .forEach(score -> {
+                score.setOrder(scoreOrder.incrementAndGet());
+                normalizeOrder(score.getMedia());
+                normalizeOrder(score.getInstruments());
             });
-        }
     }
 
-    private void updateRelatedTracks(String id, TracksDTO oldTracksDto, TracksDTO tracksDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (Objects.equals(oldTracksDto.getName(), tracksDTO.getName())) {
-            albumsService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new AlbumsCriteria().setTrackId(stringFilter), (albumsDTO, s) -> {
-                boolean result = false;
-
-                if (albumsDTO.getTracks() != null) {
-                    for (ChildrenEntitiesDTO childrenEntitiesDTO : albumsDTO.getTracks()) {
-                        if (childrenEntitiesDTO.getIndex().equals(s)) {
-                            childrenEntitiesDTO.setName(tracksDTO.getName());
-                            result = true;
-                        }
-                    }
-                }
-
-                return result;
-            });
-        }
-    }
-
-    private void queueSaveEntity(QueueUploadFilesDTO queueUploadFilesDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
-        QueueUploadFilesDTO q = queueUploadFilesService.saveStream(queueUploadFilesDTO, abstractAuthenticationToken);
-        try {
-            sender.send(Converter.objectToBytes(new UploadFilesPackage(q.getId(), abstractAuthenticationToken)));
-        } catch (IOException e) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while sending message", getEntityName(), "send.message");
-        }
+    private void normalizeOrder(java.util.Set<ChildrenEntitiesDTO> refs) {
+        if (refs == null) return;
+        AtomicLong order = new AtomicLong();
+        refs.stream().sorted(Comparator.comparing(this::orderOf)).forEach(ref -> ref.setOrder(order.incrementAndGet()));
     }
 }

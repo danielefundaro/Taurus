@@ -1,6 +1,9 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.UserIdentity;
+import com.fundaro.zodiac.taurus.domain.TenantUserMembership;
+import com.fundaro.zodiac.taurus.domain.TenantUserMembershipId;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UserCalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
@@ -8,10 +11,13 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
+import com.fundaro.zodiac.taurus.repository.UserIdentityRepository;
+import com.fundaro.zodiac.taurus.repository.UsersRepository;
+import com.fundaro.zodiac.taurus.repository.TenantUserMembershipRepository;
+import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
@@ -19,14 +25,12 @@ import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
-import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.apache.logging.log4j.util.Strings;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -35,15 +39,19 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service Implementation for managing {@link Users}.
  */
 @Service
 @Transactional
-public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDTO, UsersCriteria, UsersMapper> implements UsersService {
+public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDTO, UsersCriteria, UsersMapper, UsersRepository> implements UsersService {
 
     public final KeycloakService keycloakService;
 
@@ -52,13 +60,21 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public final CalendarEventsService calendarEventsService;
 
     private final DataErasureService dataErasureService;
+    private final UserIdentityRepository userIdentityRepository;
+    private final InstrumentsRepository instrumentsRepository;
+    private final TenantUserMembershipRepository membershipRepository;
+    private final TenantsRepository tenantsRepository;
 
-    public UsersServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService, DataErasureService dataErasureService) {
-        super(openSearchService, indexResolver, mapper, UsersService.class, Users.class);
+    public UsersServiceImpl(UsersRepository repository, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService, DataErasureService dataErasureService, UserIdentityRepository userIdentityRepository, InstrumentsRepository instrumentsRepository, TenantUserMembershipRepository membershipRepository, TenantsRepository tenantsRepository) {
+        super(repository, mapper, UsersService.class, Users.class);
         this.keycloakService = keycloakService;
         this.tenantsService = tenantsService;
         this.calendarEventsService = calendarEventsService;
         this.dataErasureService = dataErasureService;
+        this.userIdentityRepository = userIdentityRepository;
+        this.instrumentsRepository = instrumentsRepository;
+        this.membershipRepository = membershipRepository;
+        this.tenantsRepository = tenantsRepository;
     }
 
     @Override
@@ -95,7 +111,21 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         // Save keycloakId of the user
         dto.setKeycloakId(userId);
         try {
-            return super.save(dto, abstractAuthenticationToken);
+            Users entity = getMapper().toEntity(dto);
+            UserIdentity identity = userIdentityRepository.findByKeycloakId(userId).orElseGet(() -> {
+                UserIdentity created = new UserIdentity();
+                created.setKeycloakId(userId);
+                return userIdentityRepository.save(created);
+            });
+            entity.setUserIdentity(identity);
+            entity.setInstruments(resolveInstruments(dto));
+            UsersDTO saved = saveEntity(entity, abstractAuthenticationToken, true);
+            TenantUserMembership membership = new TenantUserMembership();
+            membership.setId(new TenantUserMembershipId(tenantsDTO.getId(), identity.getId()));
+            membership.setActive(true);
+            membership.setJoinedAt(java.time.ZonedDateTime.now());
+            membershipRepository.save(membership);
+            return saved;
         } catch (Exception e) {
             keycloakService.deleteUser(userId);
             throw e;
@@ -103,7 +133,29 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
-    public UsersDTO update(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    protected Specification<Users> buildSpecification(UsersCriteria criteria) {
+        return super.buildSpecification(criteria).and((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (criteria == null) return cb.conjunction();
+            addStringFilter(predicates, cb, root.get("lastName"), criteria.getLastName());
+            addRangeFilter(predicates, cb, root.get("birthDate"), criteria.getBirthDate());
+            addStringFilter(predicates, cb, root.get("email"), criteria.getEmail());
+            addFilter(predicates, cb, root.get("active"), criteria.getActive());
+            addStringFilter(predicates, cb, root.get("keycloakId"), criteria.getKeycloakId());
+            if (criteria.getRoles() != null) {
+                query.distinct(true);
+                addFilter(predicates, cb, root.join("roles"), criteria.getRoles());
+            }
+            if (criteria.getInstrumentId() != null) {
+                query.distinct(true);
+                addFilter(predicates, cb, root.join("instruments").get("id"), criteria.getInstrumentId());
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        });
+    }
+
+    @Override
+    public UsersDTO update(Long id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles() == null || dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
         }
@@ -111,11 +163,22 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
-        return super.update(id, dto, abstractAuthenticationToken);
+        Users entity = getRepository().findByIdAndDeletedFalse(id).orElseThrow();
+        getMapper().partialUpdate(entity, dto);
+        if (dto.getInstruments() != null) {
+            List<com.fundaro.zodiac.taurus.domain.Instruments> instruments = resolveInstruments(dto);
+            if (entity.getInstruments() == null) {
+                entity.setInstruments(instruments);
+            } else {
+                entity.getInstruments().clear();
+                entity.getInstruments().addAll(instruments);
+            }
+        }
+        return saveEntity(entity, abstractAuthenticationToken, false);
     }
 
     @Override
-    public UsersDTO partialUpdate(String id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public UsersDTO partialUpdate(Long id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles() != null && dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
         }
@@ -123,7 +186,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
-        return super.partialUpdate(id, dto, abstractAuthenticationToken);
+        return update(id, dto, abstractAuthenticationToken);
     }
 
     @Override
@@ -196,7 +259,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
-    public UsersDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public UsersDTO delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO user = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
@@ -206,8 +269,8 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
-    public void deleteForGdpr(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        UsersDTO user = findOneIncludingDeleted(id, abstractAuthenticationToken)
+    public void deleteForGdpr(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
+        UsersDTO user = findOneIncludingDeleted(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         boolean deferred = dataErasureService.requestInventoryAwareErasure(
@@ -239,6 +302,15 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     private void removeUserFromTenant(String userId, String tenantCode) {
+        userIdentityRepository.findByKeycloakId(userId).ifPresent(identity ->
+            tenantsRepository.findByCodeAndDeletedFalse(tenantCode).ifPresent(tenant ->
+                membershipRepository.findById(new TenantUserMembershipId(tenant.getId(), identity.getId())).ifPresent(membership -> {
+                    membership.setActive(false);
+                    membership.setLeftAt(java.time.ZonedDateTime.now());
+                    membershipRepository.save(membership);
+                })
+            )
+        );
         User user = keycloakService.getUser(userId);
         Map<String, List<String>> attributes = user.getAttributes();
         if (attributes != null) {
@@ -268,15 +340,15 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Override
-    public void sendSetupEmail(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public void sendSetupEmail(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         keycloakService.sendExecuteActionsEmail(usersDTO.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
     }
 
     @Override
-    public Page<CalendarEventsDTO> getUserCalendarEvents(String id, UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        StringFilter userFilter = new StringFilter();
+    public Page<CalendarEventsDTO> getUserCalendarEvents(Long id, UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
+        LongFilter userFilter = new LongFilter();
         StateFilter stateFilter = new StateFilter();
         DateFilter startDateFilter = new DateFilter(), endDateFilter = new DateFilter();
         CalendarEventsCriteria criteria = new CalendarEventsCriteria();
@@ -302,25 +374,19 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public Page<CalendarEventsDTO> getCurrentUserCalendarEvents(UserCalendarEventsCriteria userCalendarEventsCriteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO currentUser = findMe(abstractAuthenticationToken).orElse(new UsersDTO());
 
-        if (Strings.isBlank(currentUser.getId())) {
+        if (currentUser.getId() == null) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0L);
         }
 
         return this.getUserCalendarEvents(currentUser.getId(), userCalendarEventsCriteria, pageable, abstractAuthenticationToken);
     }
 
-    @Override
-    protected List<Query> getQueries(UsersCriteria criteria) {
-        List<Query> queries = super.getQueries(criteria);
-        queries.addAll(Converter.stringFilterToQuery("lastName.keyword", criteria.getLastName()));
-        queries.addAll(Converter.dateFilterToQuery("birthDate.keyword", criteria.getBirthDate()));
-        queries.addAll(Converter.stringFilterToQuery("email.keyword", criteria.getEmail()));
-        queries.addAll(Converter.generalFilterToQuery("roles.keyword", criteria.getRoles()));
-        queries.addAll(Converter.booleanFilterToQuery("active.keyword", criteria.getActive()));
-        queries.addAll(Converter.stringFilterToQuery("instruments.index", criteria.getInstrumentId()));
-        queries.addAll(Converter.stringFilterToQuery("keycloakId.keyword", criteria.getKeycloakId()));
-
-        return queries;
+    private List<com.fundaro.zodiac.taurus.domain.Instruments> resolveInstruments(UsersDTO dto) {
+        if (dto.getInstruments() == null) return new ArrayList<>();
+        return dto.getInstruments().stream()
+            .sorted(Comparator.comparing(ref -> ref.getOrder() == null ? Long.MAX_VALUE : ref.getOrder()))
+            .map(ref -> instrumentsRepository.getReferenceById(ref.getIndex()))
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void setUserRolesOnKeycloak(User user, Set<RoleEnum> dtoRoles, String userId, AbstractAuthenticationToken abstractAuthenticationToken) {

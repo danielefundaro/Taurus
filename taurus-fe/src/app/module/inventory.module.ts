@@ -10,6 +10,7 @@ export interface InventoryPhoto {
     contentType: string;
     fileSize: number;
     displayOrder: number;
+    preview: boolean;
     insertDate: string;
 }
 
@@ -40,7 +41,7 @@ export interface InventoryAssignment {
     currency?: string;
     conditionStatus: InventoryCondition;
     conditionNotes?: string;
-    userIndex: string;
+    userIndex: number;
     userName: string;
     userLastName: string;
     order: number;
@@ -96,7 +97,7 @@ export interface InventoryItem {
 }
 
 export interface InventoryAssignmentRequest {
-    userIndex: string;
+    userIndex: number;
     order: number;
     quantity: number;
     description?: string;
@@ -104,9 +105,25 @@ export interface InventoryAssignmentRequest {
 
 export interface InventoryErasureRequest {
     id: number;
-    userIndex: string;
+    userIndex: number;
     displayName: string;
     email?: string;
     status: 'PENDING_INVENTORY_RESOLUTION' | 'COMPLETED';
     requestedAt: string;
+}
+
+export interface InventoryAdminSummary {
+    registeredItems: number;
+    totalQuantity: number;
+    assignedQuantity: number;
+    availableQuantity: number;
+    pendingDecisions: number;
+    pendingReturns: number;
+}
+
+export interface InventoryUserSummary {
+    possessedItems: number;
+    outstandingQuantity: number;
+    pendingDecisions: number;
+    lastAssignedAt?: string | null;
 }

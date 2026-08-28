@@ -25,11 +25,11 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this.http.post<D>(`${this._baseUrl}/${this.resourceName()}`, d);
     }
 
-    public update(id: string, d: D): Observable<D> {
+    public update(id: number, d: D): Observable<D> {
         return this.http.put<D>(`${this._baseUrl}/${this.resourceName()}/${id}`, d);
     }
 
-    public partialUpdate(id: string, d: D): Observable<D> {
+    public partialUpdate(id: number, d: D): Observable<D> {
         return this.http.patch<D>(`${this._baseUrl}/${this.resourceName()}/${id}`, d);
     }
 
@@ -38,11 +38,11 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this.http.get<Page<D>>(`${this._baseUrl}/${this.resourceName()}`, { params: options, observe: 'body' });
     }
 
-    public getById(id: string): Observable<D> {
+    public getById(id: number): Observable<D> {
         return this.http.get<D>(`${this._baseUrl}/${this.resourceName()}/${id}`);
     }
 
-    public delete(id: string): Observable<void> {
+    public delete(id: number): Observable<void> {
         return this.http.delete<void>(`${this._baseUrl}/${this.resourceName()}/${id}`);
     }
 

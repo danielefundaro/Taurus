@@ -21,7 +21,7 @@ public class SenderImpl implements Sender {
 
     @Override
     public void send(byte[] message) {
-        log.debug("Send message: {}", message);
+        log.debug("Send RabbitMQ message ({} bytes)", message.length);
         template.convertAndSend(RabbitMQConfig.topicExchangeName, RabbitMQConfig.queueNameListener, message);
     }
 }

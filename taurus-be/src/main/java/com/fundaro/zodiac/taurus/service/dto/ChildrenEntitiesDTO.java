@@ -8,17 +8,17 @@ import java.util.Objects;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChildrenEntitiesDTO implements Serializable {
 
-    private String index;
+    private Long index;
 
     private String name;
 
     private Long order;
 
-    public String getIndex() {
+    public Long getIndex() {
         return index;
     }
 
-    public void setIndex(String index) {
+    public void setIndex(Long index) {
         this.index = index;
     }
 

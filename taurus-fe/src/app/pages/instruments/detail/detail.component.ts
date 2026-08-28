@@ -77,8 +77,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         });
     }
 
-    private loadElement(id: string) {
-        this.instrumentsService.getById(id).pipe(first()).subscribe({
+    private loadElement(id: number | string) {
+        this.instrumentsService.getById(Number(id)).pipe(first()).subscribe({
             next: (instrument: Tenants) => {
                 this.instrument = instrument;
                 this.isDirty = false;

@@ -65,19 +65,19 @@ public class InventoryReportService {
     @Transactional
     public ReportContent createOwn(boolean includeAssigned, boolean includeReturned, boolean includePhotos, AbstractAuthenticationToken token) {
         UsersDTO user = usersService.findMe(token).orElseThrow(() -> notFound("Utente autenticato non trovato"));
-        String requestedUserIndex = Objects.requireNonNullElse(user.getId(), token.getName());
+        Long requestedUserIndex = Objects.requireNonNull(user.getId());
         return generate(user, requestedUserIndex, inventoryService.findOwnAssignments(token), includeAssigned, includeReturned, includePhotos, true, token);
     }
 
     @Transactional
-    public ReportContent createForUser(String userIndex, boolean includeAssigned, boolean includeReturned, boolean includePhotos, AbstractAuthenticationToken token) {
+    public ReportContent createForUser(Long userIndex, boolean includeAssigned, boolean includeReturned, boolean includePhotos, AbstractAuthenticationToken token) {
         UsersDTO user = usersService.findOne(userIndex, token).orElseThrow(() -> notFound("Utente non trovato"));
         return generate(user, userIndex, inventoryService.findUserAssignments(userIndex, token), includeAssigned, includeReturned, includePhotos, false, token);
     }
 
     private ReportContent generate(
         UsersDTO user,
-        String requestedUserIndex,
+        Long requestedUserIndex,
         List<InventoryAssignmentDTO> source,
         boolean includeAssigned,
         boolean includeReturned,
@@ -181,7 +181,7 @@ public class InventoryReportService {
     }
 
     private void auditExport(
-        String requestedUserIndex,
+        Long requestedUserIndex,
         boolean includeAssigned,
         boolean includeReturned,
         boolean includePhotos,

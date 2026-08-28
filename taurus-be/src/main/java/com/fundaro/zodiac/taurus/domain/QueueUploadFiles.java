@@ -4,32 +4,53 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 /**
  * A QueueUploadFiles.
  */
 @SuppressWarnings("common-java:DuplicatedBlocks")
+@Entity
+@Table(name = "upload_job")
 public class QueueUploadFiles extends CommonFieldsOpenSearch {
 
-    @JsonProperty("user_id")
-    private String userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Users user;
 
+    @Column(name = "path", nullable = false, length = 2048)
     private String path;
 
-    @JsonProperty("track_id")
-    private String trackId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "track_id")
+    private Tracks track;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private UploadFileStatusEnum status;
 
+    @Column(name = "type")
     private String type;
 
-    public String getUserId() {
-        return this.userId;
+    @Transient
+    public Long getUserId() {
+        return user == null ? null : user.getId();
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public Users getUser() { return user; }
+    public void setUser(Users user) { this.user = user; }
+
+    public void setUserId(Long userId) {
+        if (userId == null) { this.user = null; return; }
+        Users reference = new Users();
+        reference.setId(userId);
+        this.user = reference;
     }
 
     public String getPath() {
@@ -40,12 +61,19 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
         this.path = path;
     }
 
-    public String getTrackId() {
-        return this.trackId;
+    @Transient
+    public Long getTrackId() {
+        return track == null ? null : track.getId();
     }
 
-    public void setTrackId(String trackId) {
-        this.trackId = trackId;
+    public Tracks getTrack() { return track; }
+    public void setTrack(Tracks track) { this.track = track; }
+
+    public void setTrackId(Long trackId) {
+        if (trackId == null) { this.track = null; return; }
+        Tracks reference = new Tracks();
+        reference.setId(trackId);
+        this.track = reference;
     }
 
     public UploadFileStatusEnum getStatus() {

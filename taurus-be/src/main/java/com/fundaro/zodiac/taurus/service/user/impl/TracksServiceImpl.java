@@ -4,121 +4,67 @@ import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.UsersService;
-import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
-import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.service.user.TracksService;
-import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tech.jhipster.service.filter.StringFilter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-/**
- * Service Implementation for managing {@link Tracks}.
- */
 @Service("LowPermissionsTracksService")
-@Transactional
-public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, TracksDTO, TracksCriteria, TracksMapper> implements TracksService {
-
+public class TracksServiceImpl implements TracksService {
+    private final com.fundaro.zodiac.taurus.service.TracksService delegate;
     private final UsersService usersService;
 
-    public TracksServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, TracksMapper mapper, UsersService usersService) {
-        super(openSearchService, indexResolver, mapper, TracksService.class, Tracks.class);
-        this.usersService = usersService;
+    public TracksServiceImpl(com.fundaro.zodiac.taurus.service.TracksService delegate, UsersService usersService) {
+        this.delegate = delegate; this.usersService = usersService;
     }
 
-    protected List<StateEnum> getVisibleStates() {
-        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
-    }
+    protected List<StateEnum> getVisibleStates() { return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC); }
 
     protected Page<TracksDTO> findEntitiesWithoutInstrumentFilter(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
-        return super.findEntitiesByCriteria(criteria, pageable, token);
+        StateFilter state = new StateFilter(); state.setIn(getVisibleStates()); criteria.setState(state);
+        return delegate.findEntitiesByCriteria(criteria, pageable, token);
     }
 
-    protected Optional<TracksDTO> findOneWithoutInstrumentFilter(String id, AbstractAuthenticationToken token) {
-        return super.findOne(id, token);
-    }
-
-    @Override
-    public Page<TracksDTO> findEntitiesByCriteria(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken abstractAuthenticationToken) {
-        UsersDTO usersDTO = usersService.findMe(abstractAuthenticationToken).orElse(new UsersDTO());
-
-        if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
-            return new PageImpl<>(new ArrayList<>(), pageable, 0L);
-        }
-
-        // Add mandatory instruments filter
-        StringFilter stringFilter = new StringFilter();
-        stringFilter.setIn(usersDTO.getInstruments().stream().map(ChildrenEntitiesDTO::getIndex).toList());
-        criteria.setInstrumentId(stringFilter);
-
-        Page<TracksDTO> tracksDTOS = super.findEntitiesByCriteria(criteria, pageable, abstractAuthenticationToken);
-        tracksDTOS.getContent().forEach(tracksDTO -> filterScores(tracksDTO, usersDTO));
-        return tracksDTOS;
+    protected Optional<TracksDTO> findOneWithoutInstrumentFilter(Long id, AbstractAuthenticationToken token) {
+        return delegate.findOne(id, token).filter(track -> getVisibleStates().contains(track.getState()));
     }
 
     @Override
-    public Optional<TracksDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        Optional<TracksDTO> tracksDTOOpt = super.findOne(id, abstractAuthenticationToken);
-        TracksDTO tracksDTO = tracksDTOOpt.orElseThrow(
-            () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound")
-        );
-        if (!getVisibleStates().contains(tracksDTO.getState())) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
-        }
-
-        UsersDTO usersDTO = usersService.findMe(abstractAuthenticationToken).orElse(new UsersDTO());
-
-        if (usersDTO.getInstruments() == null || usersDTO.getInstruments().isEmpty()) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
-        }
-
-        filterScores(tracksDTO, usersDTO);
-
-        return Optional.of(tracksDTO);
+    public Page<TracksDTO> findEntitiesByCriteria(TracksCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
+        UsersDTO user = usersService.findMe(token).orElse(new UsersDTO());
+        if (user.getInstruments() == null || user.getInstruments().isEmpty()) return new PageImpl<>(new ArrayList<>(), pageable, 0);
+        Page<TracksDTO> page = findEntitiesWithoutInstrumentFilter(criteria, pageable, token);
+        page.getContent().forEach(track -> filterScores(track, user));
+        return page;
     }
 
     @Override
-    protected List<Query> getQueries(TracksCriteria criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        List<Query> queries = super.getQueries(criteria, abstractAuthenticationToken);
-        queries.addAll(Converter.stringFilterToQuery("composer.keyword", criteria.getComposer()));
-        queries.addAll(Converter.stringFilterToQuery("arranger.keyword", criteria.getArranger()));
-        queries.addAll(Converter.stringFilterToQuery("tempo.keyword", criteria.getTempo()));
-        queries.addAll(Converter.stringFilterToQuery("tone.keyword", criteria.getTone()));
-        queries.addAll(Converter.stringFilterToQuery("type.keyword", criteria.getType()));
-        queries.addAll(Converter.stringFilterToQuery("scores.media.index.keyword", criteria.getMediaId()));
-        queries.addAll(Converter.stringFilterToQuery("scores.instruments.index.keyword", criteria.getInstrumentId()));
-
-        StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(getVisibleStates());
-        queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
-
-        return queries;
+    public Optional<TracksDTO> findOne(Long id, AbstractAuthenticationToken token) {
+        TracksDTO track = findOneWithoutInstrumentFilter(id, token)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound"));
+        UsersDTO user = usersService.findMe(token).orElse(new UsersDTO());
+        if (user.getInstruments() == null || user.getInstruments().isEmpty()) throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Tracks.class.getSimpleName(), "id.notFound");
+        filterScores(track, user);
+        return Optional.of(track);
     }
 
-    private static void filterScores(TracksDTO tracksDTO, UsersDTO usersDTO) {
-        tracksDTO.setScores(tracksDTO.getScores().stream().filter(Objects::nonNull)
-            .filter(sheetsMusicDTO -> Objects.nonNull(sheetsMusicDTO.getInstruments()) && sheetsMusicDTO.getInstruments().stream()
-                .anyMatch(childrenEntities -> usersDTO.getInstruments().stream()
-                    .anyMatch(ce -> ce.getIndex().equalsIgnoreCase(childrenEntities.getIndex()))
-                )
-            ).collect(Collectors.toSet()));
+    private static void filterScores(TracksDTO track, UsersDTO user) {
+        if (track.getScores() == null) return;
+        track.setScores(track.getScores().stream().filter(Objects::nonNull)
+            .filter(score -> score.getInstruments() != null && score.getInstruments().stream()
+                .anyMatch(instrument -> user.getInstruments().stream().anyMatch(owned -> Objects.equals(owned.getIndex(), instrument.getIndex()))))
+            .collect(Collectors.toSet()));
     }
 }

@@ -33,7 +33,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      * {@code PUT /:id/send-setup-email} : Send account setup email to the user.
      */
     @PutMapping("/{id}/send-setup-email")
-    public ResponseEntity<Void> sendSetupEmail(@PathVariable(value = "id") final String id,
+    public ResponseEntity<Void> sendSetupEmail(@PathVariable(value = "id") final Long id,
                                                AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to send setup email to user {}", id);
         getService().sendSetupEmail(id, abstractAuthenticationToken);
@@ -50,7 +50,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entity in body.
      */
     @GetMapping("/{id}/calendar-events")
-    public ResponseEntity<Page<CalendarEventsDTO>> getUserCalendarEvents(@PathVariable(value = "id") String id, UserCalendarEventsCriteria criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Page<CalendarEventsDTO>> getUserCalendarEvents(@PathVariable(value = "id") Long id, UserCalendarEventsCriteria criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to get calendar events for user {}", id);
         Page<CalendarEventsDTO> page = getService().getUserCalendarEvents(id, criteria, pageable, abstractAuthenticationToken);
         return ResponseEntity.ok()
@@ -103,7 +103,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      * {@code DELETE /{id}/gdpr} : Permanently erase a user from the current tenant.
      */
     @DeleteMapping("/{id}/gdpr")
-    public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") String id,
+    public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") Long id,
                                                      AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to permanently erase user {} from the current tenant under GDPR", id);
         getService().deleteForGdpr(id, abstractAuthenticationToken);

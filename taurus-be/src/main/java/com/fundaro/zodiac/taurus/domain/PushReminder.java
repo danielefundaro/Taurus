@@ -19,7 +19,7 @@ public class PushReminder implements Serializable {
     private Long id;
 
     @Column(name = "event_id", nullable = false)
-    private String eventId;
+    private Long eventId;
 
     @Column(name = "event_name")
     private String eventName;
@@ -36,8 +36,8 @@ public class PushReminder implements Serializable {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getEventId() { return eventId; }
-    public void setEventId(String eventId) { this.eventId = eventId; }
+    public Long getEventId() { return eventId; }
+    public void setEventId(Long eventId) { this.eventId = eventId; }
 
     public String getEventName() { return eventName; }
     public void setEventName(String eventName) { this.eventName = eventName; }

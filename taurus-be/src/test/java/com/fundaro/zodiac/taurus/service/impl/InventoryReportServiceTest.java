@@ -40,6 +40,7 @@ class InventoryReportServiceTest {
     @Test
     void shouldCreateReadablePdfForCurrentUser() throws Exception {
         UsersDTO user = new UsersDTO();
+        user.setId(42L);
         user.setName("Mario");
         user.setLastName("Rossi");
         user.setEmail("mario.rossi@example.test");
@@ -50,7 +51,7 @@ class InventoryReportServiceTest {
         InventoryAssignmentDTO assignment = new InventoryAssignmentDTO(
             1L, 10L, "INV-2026-001", "Leggio orchestrale", "Leggio pieghevole in metallo con custodia protettiva",
             new java.math.BigDecimal("85.50"), "EUR", InventoryCondition.GOOD, "Normali segni d'uso",
-            "user-index", "Mario", "Rossi", 1, 2, 1, 1, now.minusMonths(2), "Consegnato per prove e concerti",
+            42L, "Mario", "Rossi", 1, 2, 1, 1, now.minusMonths(2), "Consegnato per prove e concerti",
             InventoryAssignmentStatus.PARTIALLY_RETURNED, 3, "a".repeat(64), now.minusDays(2),
             new InventoryDecisionDTO(InventoryDecisionType.ACCEPTED, null, now.minusDays(1)),
             List.of(new InventoryReturnDTO(2L, 1, InventoryReturnStatus.COMPLETED, now.minusDays(5), now.minusDays(4), InventoryCondition.GOOD, "Riconsegnato integro", List.of())),

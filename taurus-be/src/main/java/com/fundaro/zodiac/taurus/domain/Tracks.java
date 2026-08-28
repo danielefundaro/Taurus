@@ -2,29 +2,54 @@ package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
  * A Tracks.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "track")
 public class Tracks extends StateFieldsOpenSearch {
 
     @JsonProperty("sub_name")
+    @Column(name = "sub_name")
     private String subName;
 
+    @Column(name = "composer")
     private String composer;
 
+    @Column(name = "arranger")
     private String arranger;
 
+    @Column(name = "tempo")
     private String tempo;
 
+    @Column(name = "tone")
     private String tone;
 
-    private Set<String> type;
+    @ElementCollection
+    @CollectionTable(name = "track_type", joinColumns = @JoinColumn(name = "track_id"))
+    @Column(name = "type")
+    private Set<String> type = new LinkedHashSet<>();
 
-    private Set<SheetsMusic> scores;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "track_id", nullable = false)
+    @OrderColumn(name = "display_order")
+    private List<SheetsMusic> scores = new ArrayList<>();
 
     public String getSubName() {
         return subName;
@@ -74,11 +99,11 @@ public class Tracks extends StateFieldsOpenSearch {
         this.type = type;
     }
 
-    public Set<SheetsMusic> getScores() {
+    public List<SheetsMusic> getScores() {
         return scores;
     }
 
-    public void setScores(Set<SheetsMusic> scores) {
+    public void setScores(List<SheetsMusic> scores) {
         this.scores = scores;
     }
 

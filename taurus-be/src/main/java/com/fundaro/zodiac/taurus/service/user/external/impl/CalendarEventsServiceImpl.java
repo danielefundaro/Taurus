@@ -2,10 +2,6 @@ package com.fundaro.zodiac.taurus.service.user.external.impl;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
-import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +16,9 @@ import java.util.List;
 public class CalendarEventsServiceImpl extends com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl {
 
     public CalendarEventsServiceImpl(
-        OpenSearchService openSearchService,
-        IndexResolver indexResolver,
-        CalendarEventsMapper mapper,
-        com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService,
-        EventReminderProducer eventReminderProducer
+        com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService
     ) {
-        super(openSearchService, indexResolver, mapper, adminCalendarEventsService, eventReminderProducer);
+        super(adminCalendarEventsService);
     }
 
     @Override
