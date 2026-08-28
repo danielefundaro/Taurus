@@ -7,7 +7,6 @@ import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
 import com.fundaro.zodiac.taurus.web.rest.user.CommonOpenSearchResource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController("ExternalPermissionsCalendarEventsResource")
 @RequestMapping("/api/external/calendar-events")
-@PreAuthorize("hasAuthority('ROLE_USER_EXTERNAL')")
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
     public CalendarEventsResource(@Qualifier("ExternalPermissionsCalendarEventsService") CalendarEventsService service) {
