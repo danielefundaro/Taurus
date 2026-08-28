@@ -29,14 +29,14 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
      * @return the updated {@link CalendarEventsDTO}.
      */
     @PatchMapping("/{id}/availability")
-    public ResponseEntity<CalendarEventsDTO> setAvailability(@PathVariable("id") String id, @RequestParam boolean available, AbstractAuthenticationToken token) {
+    public ResponseEntity<CalendarEventsDTO> setAvailability(@PathVariable("id") Long id, @RequestParam boolean available, AbstractAuthenticationToken token) {
         getLog().debug("REST request to set availability for CalendarEvents : {}, available={}", id, available);
         CalendarEventsDTO result = getService().setAvailability(id, available, token);
         return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/{id}/availability")
-    public ResponseEntity<CalendarEventsDTO> cancelAvailability(@PathVariable("id") String id, AbstractAuthenticationToken token) {
+    public ResponseEntity<CalendarEventsDTO> cancelAvailability(@PathVariable("id") Long id, AbstractAuthenticationToken token) {
         getLog().debug("REST request to cancel availability for CalendarEvents : {}", id);
         CalendarEventsDTO result = getService().cancelAvailability(id, token);
         return ResponseEntity.ok(result);

@@ -100,8 +100,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         });
     }
 
-    private loadElement(id: string) {
-        this.tenantsService.getById(id).pipe(first()).subscribe({
+    private loadElement(id: number | string) {
+        this.tenantsService.getById(Number(id)).pipe(first()).subscribe({
             next: (tenant: Tenants) => {
                 this.tenant = tenant;
                 this.tenant.expireDate = this.dateConverterPipe.transform(this.tenant.expireDate);

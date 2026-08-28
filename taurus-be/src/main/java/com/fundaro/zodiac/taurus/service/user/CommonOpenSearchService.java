@@ -27,5 +27,5 @@ public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D ext
      * @param abstractAuthenticationToken the token of the user.
      * @return the entity.
      */
-    Optional<D> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken);
+    Optional<D> findOne(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 }

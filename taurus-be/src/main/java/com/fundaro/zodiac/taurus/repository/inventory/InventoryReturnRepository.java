@@ -6,11 +6,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface InventoryReturnRepository extends JpaRepository<InventoryReturn, Long> {
-    List<InventoryReturn> findAllByAssignment_IdOrderByRequestedAtDesc(Long assignmentId);
-    @Query("select coalesce(sum(r.quantity), 0) from InventoryReturn r where r.assignment.id = :assignmentId and r.status in :statuses")
+    List<InventoryReturn> findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(Long assignmentId);
+    Optional<InventoryReturn> findByIdAndDeletedFalse(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from InventoryReturn r where r.id = :id and r.deleted = false")
+    Optional<InventoryReturn> findForUpdate(@Param("id") Long id);
+
+    long countByDeletedFalseAndStatus(InventoryReturnStatus status);
+    @Query("select coalesce(sum(r.quantity), 0) from InventoryReturn r where r.assignment.id = :assignmentId and r.deleted = false and r.status in :statuses")
     long sumQuantities(@Param("assignmentId") Long assignmentId, @Param("statuses") Collection<InventoryReturnStatus> statuses);
 }

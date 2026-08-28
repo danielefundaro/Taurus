@@ -87,6 +87,7 @@ export class HttpInterceptorService implements HttpInterceptor {
                         case 'save.tenant': detail = 'Errore durante il salvataggio del tenant'; break;
                         case 'code.exists': detail = 'Codice già esistente'; break;
                         case 'user.limit.exceeded': detail = 'Limite superato'; break;
+                        case 'inventory.return.materialreassigned': detail = 'La riconsegna non può essere eliminata perché il materiale è già stato riassegnato'; break;
                         // Inizio errori su keycloak
                         case 'get.users':
                         case 'users.list': detail = 'Errore durante il recupero della lista utenti'; break;

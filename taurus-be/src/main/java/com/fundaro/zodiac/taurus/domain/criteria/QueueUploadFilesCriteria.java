@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.UploadFileStatusFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -17,9 +18,9 @@ import java.util.Optional;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
 
-    private StringFilter userId;
+    private LongFilter userId;
 
-    private StringFilter trackId;
+    private LongFilter trackId;
 
     private UploadFileStatusFilter status;
 
@@ -31,8 +32,8 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
 
     public QueueUploadFilesCriteria(QueueUploadFilesCriteria other) {
         super(other);
-        this.userId = other.optionalUserId().map(StringFilter::copy).orElse(null);
-        this.trackId = other.optionalTrackId().map(StringFilter::copy).orElse(null);
+        this.userId = other.optionalUserId().map(LongFilter::copy).orElse(null);
+        this.trackId = other.optionalTrackId().map(LongFilter::copy).orElse(null);
         this.status = other.optionalStatus().map(UploadFileStatusFilter::copy).orElse(null);
         this.type = other.optionalType().map(StringFilter::copy).orElse(null);
     }
@@ -42,27 +43,27 @@ public class QueueUploadFilesCriteria extends CommonOpenSearchCriteria {
         return new QueueUploadFilesCriteria(this);
     }
 
-    public StringFilter getUserId() {
+    public LongFilter getUserId() {
         return userId;
     }
 
-    public Optional<StringFilter> optionalUserId() {
+    public Optional<LongFilter> optionalUserId() {
         return Optional.ofNullable(userId);
     }
 
-    public void setUserId(StringFilter userId) {
+    public void setUserId(LongFilter userId) {
         this.userId = userId;
     }
 
-    public StringFilter getTrackId() {
+    public LongFilter getTrackId() {
         return trackId;
     }
 
-    public Optional<StringFilter> optionalTrackId() {
+    public Optional<LongFilter> optionalTrackId() {
         return Optional.ofNullable(trackId);
     }
 
-    public void setTrackId(StringFilter trackId) {
+    public void setTrackId(LongFilter trackId) {
         this.trackId = trackId;
     }
 

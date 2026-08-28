@@ -28,13 +28,16 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentSummaryDTO;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAdminSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -47,6 +50,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,7 +88,6 @@ public class InventoryService {
     private final UsersService usersService;
     private final TenantStorageService tenantStorageService;
     private final ObjectMapper objectMapper;
-    private final InventorySearchProjector searchProjector;
     private final NoticesService noticesService;
 
     public InventoryService(
@@ -98,7 +101,6 @@ public class InventoryService {
         UsersService usersService,
         TenantStorageService tenantStorageService,
         ObjectMapper objectMapper,
-        InventorySearchProjector searchProjector,
         NoticesService noticesService
     ) {
         this.itemRepository = itemRepository;
@@ -111,7 +113,6 @@ public class InventoryService {
         this.usersService = usersService;
         this.tenantStorageService = tenantStorageService;
         this.objectMapper = objectMapper;
-        this.searchProjector = searchProjector;
         this.noticesService = noticesService;
     }
 
@@ -122,6 +123,25 @@ public class InventoryService {
             ? itemRepository.findAllByDeletedFalse(pageable)
             : itemRepository.search(query.trim(), pageable);
         return page.map(item -> toItemDto(item, false));
+    }
+
+    @Transactional(readOnly = true)
+    public InventoryAdminSummaryDTO getAdminSummary(AbstractAuthenticationToken token) {
+        tenant(token);
+        long registeredItems = itemRepository.countByDeletedFalse();
+        long totalQuantity = itemRepository.sumTotalQuantity();
+        long assignedQuantity = assignmentRepository.sumOutstanding(OUTSTANDING_ASSIGNMENT_STATUSES);
+        long availableQuantity = Math.max(0, totalQuantity - assignedQuantity);
+        long pendingDecisions = decisionRepository.countPendingCurrentRevisions(OUTSTANDING_ASSIGNMENT_STATUSES);
+        long pendingReturns = returnRepository.countByDeletedFalseAndStatus(InventoryReturnStatus.REQUESTED);
+        return new InventoryAdminSummaryDTO(
+            registeredItems,
+            totalQuantity,
+            assignedQuantity,
+            availableQuantity,
+            pendingDecisions,
+            pendingReturns
+        );
     }
 
     @Transactional(readOnly = true)
@@ -147,7 +167,6 @@ public class InventoryService {
         item.setEditBy(actor);
         apply(item, request);
         itemRepository.save(item);
-        searchProjector.enqueue(item.getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         return toItemDto(item, true);
     }
 
@@ -170,7 +189,6 @@ public class InventoryService {
         if (relevantChange) {
             reviseOutstandingAssignments(item, InventoryRevisionReason.ITEM_UPDATED, actor);
         }
-        searchProjector.enqueue(item.getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         return toItemDto(item, true);
     }
 
@@ -183,7 +201,6 @@ public class InventoryService {
         item.setDeleted(true);
         touch(item, actor(token));
         itemRepository.save(item);
-        searchProjector.enqueue(item.getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.DELETE);
     }
 
     public InventoryAssignmentDTO assign(long itemId, InventoryAssignmentRequest request, AbstractAuthenticationToken token) {
@@ -220,7 +237,6 @@ public class InventoryService {
         assignment.setCurrentRevision(0);
         assignmentRepository.save(assignment);
         createRevision(assignment, InventoryRevisionReason.INITIAL_ASSIGNMENT, actor);
-        searchProjector.enqueue(item.getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         return toAssignmentDto(assignment);
     }
 
@@ -250,8 +266,19 @@ public class InventoryService {
         if (relevant && assignment.getStatus() != InventoryAssignmentStatus.RETURNED) {
             createRevision(assignment, InventoryRevisionReason.ASSIGNMENT_UPDATED, actor);
         }
-        searchProjector.enqueue(assignment.getItem().getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         return toAssignmentDto(assignment);
+    }
+
+    public void deleteAssignment(long assignmentId, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
+            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+        List<InventoryReturn> returns = returnRepository.findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(assignmentId);
+        returns.forEach(value -> softDeleteReturn(value, actor));
+        assignment.setDeleted(true);
+        touch(assignment, actor);
+        assignmentRepository.save(assignment);
     }
 
     public InventoryAssignmentDTO reissue(long assignmentId, AbstractAuthenticationToken token) {
@@ -293,6 +320,20 @@ public class InventoryService {
     }
 
     @Transactional(readOnly = true)
+    public InventoryUserSummaryDTO getOwnSummary(AbstractAuthenticationToken token) {
+        tenant(token);
+        String userId = actor(token);
+        long possessedItems = assignmentRepository.countByUserKeycloakIdAndDeletedFalseAndStatusIn(
+            userId,
+            OUTSTANDING_ASSIGNMENT_STATUSES
+        );
+        long outstandingQuantity = assignmentRepository.sumOutstandingForUser(userId, OUTSTANDING_ASSIGNMENT_STATUSES);
+        long pendingDecisions = decisionRepository.countPendingCurrentRevisionsForUser(userId, OUTSTANDING_ASSIGNMENT_STATUSES);
+        ZonedDateTime lastAssignedAt = assignmentRepository.findLatestAssignedAtForUser(userId, OUTSTANDING_ASSIGNMENT_STATUSES);
+        return new InventoryUserSummaryDTO(possessedItems, outstandingQuantity, pendingDecisions, lastAssignedAt);
+    }
+
+    @Transactional(readOnly = true)
     public InventoryAssignmentDTO findOwnAssignment(long assignmentId, AbstractAuthenticationToken token) {
         tenant(token);
         InventoryAssignment assignment = assignmentRepository.findByIdAndUserKeycloakIdAndDeletedFalse(assignmentId, actor(token))
@@ -301,7 +342,7 @@ public class InventoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<InventoryAssignmentDTO> findUserAssignments(String userIndex, AbstractAuthenticationToken token) {
+    public List<InventoryAssignmentDTO> findUserAssignments(Long userIndex, AbstractAuthenticationToken token) {
         tenant(token);
         return assignmentRepository.findAllByUserIndexAndDeletedFalseOrderByAssignedAtDesc(userIndex)
             .stream().map(this::toAssignmentDto).toList();
@@ -372,13 +413,15 @@ public class InventoryService {
     public InventoryReturnDTO completeReturn(long returnId, InventoryReturnRequest completion, AbstractAuthenticationToken token) {
         String tenant = tenant(token);
         String actor = actor(token);
-        InventoryReturn inventoryReturn = returnRepository.findById(returnId)
+        InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+        InventoryAssignment assignment = assignmentRepository.findForUpdate(candidate.getAssignment().getId())
+            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+        InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
             .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
         if (inventoryReturn.getStatus() != InventoryReturnStatus.REQUESTED) {
             throw error(HttpStatus.CONFLICT, "La procedura di riconsegna è già chiusa", "inventory.return.closed");
         }
-        InventoryAssignment assignment = assignmentRepository.findForUpdate(inventoryReturn.getAssignment().getId())
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
         int completedQuantity = completion == null ? inventoryReturn.getQuantity() : completion.quantity();
         if (completedQuantity < 1 || completedQuantity > inventoryReturn.getQuantity() || completedQuantity > assignment.getOutstandingQuantity()) {
             throw error(HttpStatus.CONFLICT, "Quantità riconsegnata non valida", "inventory.return.quantityInvalid");
@@ -396,7 +439,6 @@ public class InventoryService {
         refreshAssignmentStatus(assignment);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
-        searchProjector.enqueue(assignment.getItem().getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         noticesService.addNoticeToUser(assignment.getUserKeycloakId(), "Inventario: riconsegna completata",
             "La riconsegna di " + completedQuantity + " unità di " + assignment.getItem().getName() + " è stata completata.", token);
         return toReturnDto(returnRepository.save(inventoryReturn));
@@ -404,7 +446,11 @@ public class InventoryService {
 
     public InventoryReturnDTO cancelReturn(long returnId, AbstractAuthenticationToken token) {
         tenant(token);
-        InventoryReturn inventoryReturn = returnRepository.findById(returnId)
+        InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+        assignmentRepository.findForUpdate(candidate.getAssignment().getId())
+            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+        InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
             .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
         if (inventoryReturn.getStatus() != InventoryReturnStatus.REQUESTED) {
             throw error(HttpStatus.CONFLICT, "La procedura di riconsegna è già chiusa", "inventory.return.closed");
@@ -414,10 +460,36 @@ public class InventoryService {
         return toReturnDto(returnRepository.save(inventoryReturn));
     }
 
+    public void deleteReturn(long returnId, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+        InventoryAssignment assignment = assignmentRepository.findForUpdate(candidate.getAssignment().getId())
+            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+        InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+        if (inventoryReturn.getStatus() == InventoryReturnStatus.COMPLETED) {
+            long restoredOutstanding = outstanding(assignment.getItem().getId()) + inventoryReturn.getQuantity();
+            if (restoredOutstanding > assignment.getItem().getTotalQuantity()) {
+                throw error(
+                    HttpStatus.CONFLICT,
+                    "La riconsegna non può essere eliminata perché il materiale è già stato riassegnato",
+                    "inventory.return.materialReassigned"
+                );
+            }
+            assignment.setReturnedQuantity(assignment.getReturnedQuantity() - inventoryReturn.getQuantity());
+            refreshAssignmentStatus(assignment);
+            touch(assignment, actor);
+            assignmentRepository.save(assignment);
+        }
+        softDeleteReturn(inventoryReturn, actor);
+    }
+
     public InventoryPhotoDTO addReturnPhoto(long returnId, MultipartFile file, boolean ownerRequired, AbstractAuthenticationToken token) throws IOException {
         String tenant = tenant(token);
         String actor = actor(token);
-        InventoryReturn inventoryReturn = returnRepository.findById(returnId)
+        InventoryReturn inventoryReturn = returnRepository.findByIdAndDeletedFalse(returnId)
             .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
         if (ownerRequired && !inventoryReturn.getAssignment().getUserKeycloakId().equals(actor)) {
             throw error(HttpStatus.FORBIDDEN, "La riconsegna non appartiene all'utente autenticato", "inventory.return.forbidden");
@@ -479,10 +551,11 @@ public class InventoryService {
         photo.setStoragePath(path.toString());
         photo.setContentDigest(digest);
         photo.setFileSize(normalized.length);
-        photo.setDisplayOrder((int) photoRepository.countByItem_IdAndDeletedFalse(itemId));
+        long activePhotoCount = photoRepository.countByItem_IdAndDeletedFalse(itemId);
+        photo.setDisplayOrder((int) activePhotoCount);
+        photo.setPreview(activePhotoCount == 0);
         photoRepository.save(photo);
         reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
-        searchProjector.enqueue(item.getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
         return toPhotoDto(photo);
     }
 
@@ -503,11 +576,73 @@ public class InventoryService {
         String actor = actor(token);
         InventoryItemPhoto photo = photoRepository.findByIdAndDeletedFalse(photoId)
             .orElseThrow(() -> notFound("Fotografia non trovata"));
+        InventoryItem item = itemRepository.findForUpdate(photo.getItem().getId())
+            .orElseThrow(() -> notFound("Oggetto inventario non trovato"));
         photo.setDeleted(true);
         photo.touchAudit(actor);
         photoRepository.save(photo);
-        reviseOutstandingAssignments(photo.getItem(), InventoryRevisionReason.PHOTO_UPDATED, actor);
-        searchProjector.enqueue(photo.getItem().getId(), com.fundaro.zodiac.taurus.domain.inventory.InventoryOutboxOperation.UPSERT);
+        if (photo.isPreview()) {
+            photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(item.getId()).stream().findFirst().ifPresent(next -> {
+                next.setPreview(true);
+                next.touchAudit(actor);
+                photoRepository.save(next);
+            });
+        }
+        reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
+    }
+
+    public List<InventoryPhotoDTO> reorderPhotos(
+        long itemId,
+        InventoryPhotoOrderRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        List<InventoryItemPhoto> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(itemId);
+        List<Long> requestedIds = request.photoIds();
+        if (requestedIds.size() != photos.size() || new HashSet<>(requestedIds).size() != requestedIds.size()
+            || !new HashSet<>(requestedIds).equals(photos.stream().map(InventoryItemPhoto::getId).collect(java.util.stream.Collectors.toSet()))) {
+            throw error(HttpStatus.BAD_REQUEST, "L'ordine deve contenere tutte e sole le fotografie attive dell'oggetto", "inventory.photo.order.invalid");
+        }
+        Map<Long, InventoryItemPhoto> photosById = photos.stream().collect(java.util.stream.Collectors.toMap(InventoryItemPhoto::getId, value -> value));
+        List<InventoryItemPhoto> ordered = new ArrayList<>(requestedIds.size());
+        for (int index = 0; index < requestedIds.size(); index++) {
+            InventoryItemPhoto photo = photosById.get(requestedIds.get(index));
+            photo.setDisplayOrder(index);
+            photo.touchAudit(actor);
+            ordered.add(photo);
+        }
+        photoRepository.saveAll(ordered);
+        reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
+        return ordered.stream().map(this::toPhotoDto).toList();
+    }
+
+    public List<InventoryPhotoDTO> setPreviewPhoto(
+        long itemId,
+        long photoId,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItemPhoto selected = photoRepository.findByIdAndItem_IdAndDeletedFalse(photoId, itemId)
+            .orElseThrow(() -> notFound("Fotografia non trovata"));
+        List<InventoryItemPhoto> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(itemId);
+        boolean changed = false;
+        for (InventoryItemPhoto photo : photos) {
+            boolean preview = Objects.equals(photo.getId(), selected.getId());
+            if (photo.isPreview() != preview) {
+                photo.setPreview(preview);
+                photo.touchAudit(actor);
+                changed = true;
+            }
+        }
+        if (changed) {
+            photoRepository.saveAll(photos);
+            reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
+        }
+        return photos.stream().map(this::toPhotoDto).toList();
     }
 
     @Transactional(readOnly = true)
@@ -530,7 +665,7 @@ public class InventoryService {
     private InventoryAssignmentDTO toAssignmentDto(InventoryAssignment assignment) {
         InventoryAssignmentRevision revision = currentRevision(assignment);
         InventoryAssignmentDecision decision = decisionRepository.findByRevision_Id(revision.getId()).orElse(null);
-        List<InventoryReturnDTO> returns = returnRepository.findAllByAssignment_IdOrderByRequestedAtDesc(assignment.getId()).stream().map(this::toReturnDto).toList();
+        List<InventoryReturnDTO> returns = returnRepository.findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(assignment.getId()).stream().map(this::toReturnDto).toList();
         List<InventoryPhotoDTO> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(assignment.getItem().getId())
             .stream().map(this::toPhotoDto).toList();
         return new InventoryAssignmentDTO(assignment.getId(), assignment.getItem().getId(), assignment.getItem().getInventoryNumber(), assignment.getItem().getName(),
@@ -543,8 +678,9 @@ public class InventoryService {
     private InventoryAssignmentSummaryDTO toAssignmentSummaryDto(InventoryAssignment assignment) {
         InventoryAssignmentRevision revision = currentRevision(assignment);
         InventoryAssignmentDecision decision = decisionRepository.findByRevision_Id(revision.getId()).orElse(null);
-        InventoryPhotoDTO photo = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(assignment.getItem().getId())
-            .stream().findFirst().map(this::toPhotoDto).orElse(null);
+        List<InventoryItemPhoto> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(assignment.getItem().getId());
+        InventoryPhotoDTO photo = photos.stream().filter(InventoryItemPhoto::isPreview).findFirst()
+            .or(() -> photos.stream().findFirst()).map(this::toPhotoDto).orElse(null);
         return new InventoryAssignmentSummaryDTO(
             assignment.getId(),
             assignment.getItem().getId(),
@@ -576,12 +712,24 @@ public class InventoryService {
         return new InventoryReturnDTO(value.getId(), value.getQuantity(), value.getStatus(), value.getRequestedAt(), value.getCompletedAt(), value.getReturnCondition(), value.getNotes(), photos);
     }
 
+    private void softDeleteReturn(InventoryReturn inventoryReturn, String actor) {
+        List<InventoryReturnPhoto> photos = returnPhotoRepository.findAllByInventoryReturn_IdAndDeletedFalseOrderByIdAsc(inventoryReturn.getId());
+        photos.forEach(photo -> {
+            photo.setDeleted(true);
+            photo.touchAudit(actor);
+        });
+        returnPhotoRepository.saveAll(photos);
+        inventoryReturn.setDeleted(true);
+        inventoryReturn.touchAudit(actor);
+        returnRepository.save(inventoryReturn);
+    }
+
     private InventoryPhotoDTO toPhotoDto(InventoryItemPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), photo.getDisplayOrder(), photo.getInsertDate());
+        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), photo.getDisplayOrder(), photo.isPreview(), photo.getInsertDate());
     }
 
     private InventoryPhotoDTO toPhotoDto(InventoryReturnPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), 0, photo.getInsertDate());
+        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), 0, false, photo.getInsertDate());
     }
 
     private InventoryAssignmentRevision currentRevision(InventoryAssignment assignment) {
@@ -624,10 +772,12 @@ public class InventoryService {
         root.put("assignedQuantity", assignment.getAssignedQuantity());
         root.put("assignmentDescription", assignment.getDescription());
         List<Map<String, Object>> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(item.getId())
-            .stream().sorted(java.util.Comparator.comparing(InventoryItemPhoto::getId)).map(photo -> {
+            .stream().map(photo -> {
                 Map<String, Object> value = new LinkedHashMap<>();
                 value.put("id", photo.getId());
                 value.put("digest", photo.getContentDigest());
+                value.put("displayOrder", photo.getDisplayOrder());
+                value.put("preview", photo.isPreview());
                 return value;
             }).toList();
         root.put("photos", photos);

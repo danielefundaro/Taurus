@@ -29,7 +29,7 @@ export class MenuComponent implements OnInit {
                 ]
             },
             {
-                label: 'Pages',
+                label: 'Pagine',
                 icon: 'pi pi-fw pi-briefcase',
                 routerLink: ['/pages'],
                 items: [
@@ -59,7 +59,7 @@ export class MenuComponent implements OnInit {
                     },
                     {
                         separator: true,
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Album',

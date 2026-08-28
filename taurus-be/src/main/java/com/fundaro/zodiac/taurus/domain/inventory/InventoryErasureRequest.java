@@ -10,7 +10,7 @@ import java.time.ZonedDateTime;
 @Entity
 @Table(name = "inventory_erasure_request")
 public class InventoryErasureRequest extends AuditedEntity {
-    @Column(name = "user_index", nullable = false) private String userIndex;
+    @Column(name = "user_index", nullable = false) private Long userIndex;
     @Column(name = "user_keycloak_id", nullable = false) private String userKeycloakId;
     @Column(name = "display_name", nullable = false) private String displayName;
     @Column(name = "email") private String email;
@@ -20,8 +20,8 @@ public class InventoryErasureRequest extends AuditedEntity {
     @Column(name = "resolved_at") private ZonedDateTime resolvedAt;
     @Column(name = "resolved_by") private String resolvedBy;
 
-    public String getUserIndex() { return userIndex; }
-    public void setUserIndex(String userIndex) { this.userIndex = userIndex; }
+    public Long getUserIndex() { return userIndex; }
+    public void setUserIndex(Long userIndex) { this.userIndex = userIndex; }
     public String getUserKeycloakId() { return userKeycloakId; }
     public void setUserKeycloakId(String userKeycloakId) { this.userKeycloakId = userKeycloakId; }
     public String getDisplayName() { return displayName; }

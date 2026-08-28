@@ -59,7 +59,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.instruments = [];
 
         // Preload all instruments
-        const instrumentsCriteria: InstrumentsCriteria = { page: 0, sort: ['name.keyword,asc'] };
+        const instrumentsCriteria: InstrumentsCriteria = { page: 0, sort: ['name,asc'] };
         this.preloadEntities(this.instrumentsService, instrumentsCriteria, this.instruments);
         this.autoFilteredInstruments = [];
         this.instrumentsChildrenEntities = [];
@@ -154,8 +154,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.isDirty = true;
     }
 
-    private loadElement(id: string) {
-        this.usersService.getById(id).pipe(first()).subscribe({
+    private loadElement(id: number | string) {
+        this.usersService.getById(Number(id)).pipe(first()).subscribe({
             next: (user: Users) => {
                 this.user = user;
                 this.isDirty = false;

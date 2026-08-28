@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.NoticesCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.NoticesService;
@@ -32,16 +33,38 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
 
     private final KeycloakService keycloakService;
 
-    public NoticesServiceImpl(NoticesRepository noticesRepository, NoticesMapper noticesMapper, UsersService usersService, KeycloakService keycloakService) {
+    private final TenantTransactionExecutor tenantTransactionExecutor;
+
+    public NoticesServiceImpl(
+        NoticesRepository noticesRepository,
+        NoticesMapper noticesMapper,
+        UsersService usersService,
+        KeycloakService keycloakService,
+        TenantTransactionExecutor tenantTransactionExecutor
+    ) {
         super(noticesRepository, noticesMapper, NoticesService.class, Notices.class.getSimpleName());
         this.usersService = usersService;
         this.keycloakService = keycloakService;
+        this.tenantTransactionExecutor = tenantTransactionExecutor;
     }
 
     @Override
     public void addNoticesSuperAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {
         addNoticesByRoles(name, message, Arrays.stream(new RoleEnum[]{RoleEnum.ROLE_SUPER_ADMIN}).toList(), abstractAuthenticationToken);
         addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken);
+    }
+
+    @Override
+    public void addNoticesSuperAdminsForTenant(
+        String tenantCode,
+        String name,
+        String message,
+        AbstractAuthenticationToken abstractAuthenticationToken
+    ) {
+        tenantTransactionExecutor.execute(
+            tenantCode,
+            () -> addNoticesSuperAdminsOfKeycloak(name, message, abstractAuthenticationToken)
+        );
     }
 
     @Override

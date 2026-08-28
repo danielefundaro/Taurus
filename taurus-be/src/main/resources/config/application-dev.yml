@@ -24,8 +24,6 @@ logging:
     com.fundaro.zodiac.taurus.repository: INFO
     com.fundaro.zodiac.taurus.web.rest.PreferencesResource: INFO
     com.fundaro.zodiac.taurus.service.PreferencesService: INFO
-#    org.opensearch.client: DEBUG
-#    org.opensearch.client.RestClient: DEBUG
 #    org.apache.http.wire: DEBUG
 #    org.apache.http.headers: DEBUG
 

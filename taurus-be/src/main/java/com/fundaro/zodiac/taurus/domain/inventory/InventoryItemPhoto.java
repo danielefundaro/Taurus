@@ -25,6 +25,8 @@ public class InventoryItemPhoto extends AuditedEntity {
     private long fileSize;
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
+    @Column(name = "preview", nullable = false)
+    private boolean preview;
     public InventoryItem getItem() { return item; }
     public void setItem(InventoryItem item) { this.item = item; }
     public String getFileName() { return fileName; }
@@ -39,4 +41,6 @@ public class InventoryItemPhoto extends AuditedEntity {
     public void setFileSize(long fileSize) { this.fileSize = fileSize; }
     public int getDisplayOrder() { return displayOrder; }
     public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
+    public boolean isPreview() { return preview; }
+    public void setPreview(boolean preview) { this.preview = preview; }
 }

@@ -7,17 +7,17 @@ import java.io.Serializable;
 
 public class UploadFilesPackage implements Serializable {
     @JsonProperty("queue_id")
-    private String queueId;
+    private Long queueId;
 
     @JsonProperty("user_token")
     private AbstractAuthenticationToken abstractAuthenticationToken;
 
-    public UploadFilesPackage(String queueId, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public UploadFilesPackage(Long queueId, AbstractAuthenticationToken abstractAuthenticationToken) {
         this.queueId = queueId;
         this.abstractAuthenticationToken = abstractAuthenticationToken;
     }
 
-    public String getQueueId() {
+    public Long getQueueId() {
         return queueId;
     }
 

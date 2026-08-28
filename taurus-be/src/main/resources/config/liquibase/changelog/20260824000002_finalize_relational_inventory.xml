@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260824000002-1" author="taurus" dbms="postgresql">
+    <comment>Development data is intentionally discarded while string user references become relational BIGINT keys.</comment>
+    <sql splitStatements="false"><![CDATA[
+      TRUNCATE TABLE inventory_assignment CASCADE;
+      TRUNCATE TABLE inventory_erasure_request CASCADE;
+      TRUNCATE TABLE inventory_report_export CASCADE;
+      TRUNCATE TABLE push_reminders CASCADE;
+
+      ALTER TABLE inventory_assignment
+        ALTER COLUMN user_index TYPE BIGINT USING NULLIF(user_index, '')::BIGINT;
+      ALTER TABLE inventory_erasure_request
+        ALTER COLUMN user_index TYPE BIGINT USING NULLIF(user_index, '')::BIGINT;
+      ALTER TABLE inventory_report_export
+        ALTER COLUMN requested_user_index TYPE BIGINT USING NULLIF(requested_user_index, '')::BIGINT;
+      ALTER TABLE push_reminders
+        ALTER COLUMN event_id TYPE BIGINT USING NULLIF(event_id, '')::BIGINT;
+
+      ALTER TABLE inventory_assignment
+        ADD CONSTRAINT fk_inventory_assignment_user
+        FOREIGN KEY (user_index) REFERENCES app_user(id) ON DELETE RESTRICT;
+      ALTER TABLE inventory_erasure_request
+        ADD CONSTRAINT fk_inventory_erasure_user
+        FOREIGN KEY (user_index) REFERENCES app_user(id) ON DELETE RESTRICT;
+      ALTER TABLE inventory_report_export
+        ADD CONSTRAINT fk_inventory_report_user
+        FOREIGN KEY (requested_user_index) REFERENCES app_user(id) ON DELETE RESTRICT;
+      ALTER TABLE push_reminders
+        ADD CONSTRAINT fk_push_reminder_event
+        FOREIGN KEY (event_id) REFERENCES calendar_event(id) ON DELETE CASCADE;
+
+      DROP TABLE IF EXISTS inventory_search_outbox;
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>

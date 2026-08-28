@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -16,7 +17,7 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
     private DateFilter endDate;
     private StringFilter location;
     private StateFilter state;
-    private StringFilter presentUserId;
+    private LongFilter presentUserId;
 
     public CalendarEventsCriteria() {
         super();
@@ -28,7 +29,7 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
         this.endDate = other.optionalEndDate().map(DateFilter::copy).orElse(null);
         this.location = other.optionalLocation().map(StringFilter::copy).orElse(null);
         this.state = other.optionalState().map(StateFilter::copy).orElse(null);
-        this.presentUserId = other.optionalPresentUserId().map(StringFilter::copy).orElse(null);
+        this.presentUserId = other.optionalPresentUserId().map(LongFilter::copy).orElse(null);
     }
 
     @Override
@@ -88,15 +89,15 @@ public class CalendarEventsCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
-    public StringFilter getPresentUserId() {
+    public LongFilter getPresentUserId() {
         return presentUserId;
     }
 
-    public Optional<StringFilter> optionalPresentUserId() {
+    public Optional<LongFilter> optionalPresentUserId() {
         return Optional.ofNullable(presentUserId);
     }
 
-    public CalendarEventsCriteria setPresentUserId(StringFilter presentUserId) {
+    public CalendarEventsCriteria setPresentUserId(LongFilter presentUserId) {
         this.presentUserId = presentUserId;
         return this;
     }

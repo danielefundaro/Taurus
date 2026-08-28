@@ -8,7 +8,12 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,8 +22,33 @@ import java.util.stream.Collectors;
  */
 @Mapper(componentModel = "spring")
 public interface UsersMapper extends EntityOpenSearchMapper<UsersDTO, Users> {
-    @Mapping(target = "instruments", source = "instruments", qualifiedByName = "orderChildrenToDto")
+    @Mapping(target = "instruments", expression = "java(toInstrumentRefs(s.getInstruments()))")
     UsersDTO toDto(Users s);
+
+    @Override
+    @Mapping(target = "instruments", ignore = true)
+    @Mapping(target = "tenants", ignore = true)
+    @Mapping(target = "userIdentity", ignore = true)
+    Users toEntity(UsersDTO dto);
+
+    @Override
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "instruments", ignore = true)
+    @Mapping(target = "tenants", ignore = true)
+    @Mapping(target = "userIdentity", ignore = true)
+    void partialUpdate(@MappingTarget Users entity, UsersDTO dto);
+
+    default Set<ChildrenEntitiesDTO> toInstrumentRefs(List<com.fundaro.zodiac.taurus.domain.Instruments> instruments) {
+        if (instruments == null) return null;
+        final long[] order = {0L};
+        return instruments.stream().map(instrument -> {
+            ChildrenEntitiesDTO ref = new ChildrenEntitiesDTO();
+            ref.setIndex(instrument.getId());
+            ref.setName(instrument.getName());
+            ref.setOrder(++order[0]);
+            return ref;
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
+    }
 
     @Mapping(target = "id", source = "keycloakId")
     @Mapping(target = "firstName", source = "name")

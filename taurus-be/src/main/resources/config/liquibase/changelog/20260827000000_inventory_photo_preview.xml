@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260827000000-1" author="codex" dbms="postgresql">
+        <comment>Add an explicitly selectable preview photo to inventory items</comment>
+        <addColumn tableName="inventory_item_photo">
+            <column name="preview" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <sql>
+            UPDATE inventory_item_photo photo
+            SET preview = true
+            WHERE photo.id IN (
+                SELECT DISTINCT ON (item_id) id
+                FROM inventory_item_photo
+                WHERE deleted = false
+                ORDER BY item_id, display_order, id
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

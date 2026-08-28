@@ -26,7 +26,7 @@ public class TenantsResource extends CommonOpenSearchResource<Tenants, TenantsDT
      * {@code DELETE /{id}/gdpr} : Permanently erase a tenant and all associated data.
      */
     @DeleteMapping("/{id}/gdpr")
-    public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") String id,
+    public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") Long id,
                                                      AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to permanently erase tenant {} under GDPR", id);
         getService().deleteForGdpr(id, abstractAuthenticationToken);

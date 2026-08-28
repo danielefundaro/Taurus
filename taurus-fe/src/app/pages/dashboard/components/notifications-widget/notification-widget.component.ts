@@ -1,29 +1,21 @@
-import { NgClass } from "@angular/common";
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MenuModule } from 'primeng/menu';
-import { PaginatorModule } from "primeng/paginator";
 import { Notices, Page } from '../../../../module';
 
 @Component({
     standalone: true,
     selector: 'app-notifications-widget',
-    imports: [
-        ButtonModule,
-        ConfirmDialogModule,
-        MenuModule,
-        NgClass,
-        PaginatorModule,
-    ],
+    imports: [ButtonModule, ConfirmDialogModule, MenuModule],
     templateUrl: './notification-widget.component.html',
     styleUrl: './notification-widget.component.scss',
-    providers: [ConfirmationService],
+    providers: [ConfirmationService]
 })
 export class NotificationsWidgetComponent implements OnChanges {
     protected items: any[] = [];
-    protected first: number = 0;
+    protected currentPage: number = 0;
     protected rows: number = 10;
     protected totalRecords: number = 0;
 
@@ -35,28 +27,43 @@ export class NotificationsWidgetComponent implements OnChanges {
     constructor(private readonly confirmationService: ConfirmationService) {
         this.items = [
             {
-                label: 'Segna tutti come letti',
-                icon: 'pi pi-fw pi-check-square',
-                disabled: true,
-                name: 'markAll',
-                command: () => this.markAll(),
-            },
-            {
                 label: 'Elimina tutti',
                 icon: 'pi pi-fw pi-trash',
                 disabled: true,
                 name: 'deleteAll',
-                command: () => this.deleteAll(),
-            },
+                command: () => this.deleteAll()
+            }
         ];
     }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (this.notices) {
             this.totalRecords = this.notices.totalElements;
-            this.items.find(item => item.name === 'deleteAll')!.disabled = this.totalRecords === 0;
-            this.items.find(item => item.name === 'markAll')!.disabled = this.totalRecords === 0 || this.notices.content.every(notice => notice.readDate);
+            this.currentPage = this.notices.number;
+            this.rows = this.notices.size || this.rows;
+            this.items.find((item) => item.name === 'deleteAll')!.disabled = this.totalRecords === 0;
+            this.items.find((item) => item.name === 'markAll')!.disabled = this.totalRecords === 0 || this.notices.content.every((notice) => notice.readDate);
         }
+    }
+
+    protected get unreadCount(): number {
+        return this.notices?.content.filter((notice) => !notice.readDate).length ?? 0;
+    }
+
+    protected get firstRecord(): number {
+        return this.totalRecords === 0 ? 0 : this.currentPage * this.rows + 1;
+    }
+
+    protected get lastRecord(): number {
+        return Math.min((this.currentPage + 1) * this.rows, this.totalRecords);
+    }
+
+    protected get canGoBack(): boolean {
+        return this.currentPage > 0;
+    }
+
+    protected get canGoForward(): boolean {
+        return this.notices ? !this.notices.last : false;
     }
 
     protected mark(notice: Notices): void {
@@ -74,19 +81,25 @@ export class NotificationsWidgetComponent implements OnChanges {
             rejectLabel: 'Annulla',
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary' },
-            accept: () => this.delete.emit([notice.id]),
+            accept: () => this.delete.emit([notice.id])
         });
     }
 
-    protected onPageChange(event: any): void {
-        this.first = event.page;
-        this.rows = event.rows;
-        this.pageChange.emit({ page: this.first, size: this.rows });
+    protected previousPage(): void {
+        if (this.canGoBack) {
+            this.pageChange.emit({ page: this.currentPage - 1, size: this.rows });
+        }
     }
 
-    private markAll(): void {
+    protected nextPage(): void {
+        if (this.canGoForward) {
+            this.pageChange.emit({ page: this.currentPage + 1, size: this.rows });
+        }
+    }
+
+    protected markAll(): void {
         if (this.notices && this.notices.totalElements > 0) {
-            this.markAsRead.emit();
+            this.markAsRead.emit(null);
         }
     }
 
@@ -100,7 +113,7 @@ export class NotificationsWidgetComponent implements OnChanges {
                 rejectLabel: 'Annulla',
                 acceptButtonProps: { severity: 'danger' },
                 rejectButtonProps: { severity: 'secondary' },
-                accept: () => this.delete.emit(),
+                accept: () => this.delete.emit(null)
             });
         }
     }

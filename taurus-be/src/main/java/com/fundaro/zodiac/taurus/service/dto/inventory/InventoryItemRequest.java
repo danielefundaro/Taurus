@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 public record InventoryItemRequest(
     @NotBlank @Size(max = 128) String inventoryNumber,
     @NotBlank @Size(max = 255) String name,
-    @Size(max = 4000) String description,
+    String description,
     @Min(0) int totalQuantity,
     @DecimalMin("0.0") BigDecimal estimatedUnitValue,
     @Pattern(regexp = "[A-Za-z]{3}") String currency,

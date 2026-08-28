@@ -2,94 +2,19 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.criteria.InstrumentsCriteria;
-import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
+import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
-import com.fundaro.zodiac.taurus.service.TracksService;
-import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
-import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.mapper.InstrumentsMapper;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
-
-/**
- * Service Implementation for managing {@link Instruments}.
- */
 @Service
 @Transactional
-public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instruments, InstrumentsDTO, InstrumentsCriteria, InstrumentsMapper> implements InstrumentsService {
+public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instruments, InstrumentsDTO, InstrumentsCriteria, InstrumentsMapper, InstrumentsRepository>
+    implements InstrumentsService {
 
-    private final TracksService tracksService;
-
-    public InstrumentsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, InstrumentsMapper instrumentsMapper, TracksService tracksService) {
-        super(openSearchService, indexResolver, instrumentsMapper, InstrumentsService.class, Instruments.class);
-        this.tracksService = tracksService;
-    }
-
-    @Override
-    public InstrumentsDTO update(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        InstrumentsDTO instrumentsDTO = super.update(id, dto, abstractAuthenticationToken);
-        updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
-        return instrumentsDTO;
-    }
-
-    @Override
-    public InstrumentsDTO partialUpdate(String id, InstrumentsDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
-        InstrumentsDTO instrumentsDTO = super.partialUpdate(id, dto, abstractAuthenticationToken);
-        updateRelatedInstruments(id, dto, instrumentsDTO, abstractAuthenticationToken);
-        return instrumentsDTO;
-    }
-
-    @Override
-    public InstrumentsDTO delete(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        InstrumentsDTO b = super.delete(id, abstractAuthenticationToken);
-        if (b == null) {
-            return null;
-        }
-
-        // Delete all related information
-        tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
-            boolean result = false;
-
-            if (tracksDTO.getScores() != null) {
-                for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                    if (sheetsMusicDTO.getInstruments() != null) {
-                        result |= sheetsMusicDTO.getInstruments().removeIf(childrenEntitiesDTO -> childrenEntitiesDTO.getIndex().equals(s));
-                    }
-                }
-            }
-
-            return result;
-        });
-
-        return b;
-    }
-
-    private void updateRelatedInstruments(String id, InstrumentsDTO oldInstrumentsDto, InstrumentsDTO instrumentsDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
-        if (Objects.equals(oldInstrumentsDto.getName(), instrumentsDTO.getName())) {
-            tracksService.alignChildrenInformation(id, abstractAuthenticationToken, stringFilter -> new TracksCriteria().setInstrumentId(stringFilter), (tracksDTO, s) -> {
-                boolean result = false;
-
-                if (tracksDTO.getScores() != null) {
-                    for (SheetsMusicDTO sheetsMusicDTO : tracksDTO.getScores()) {
-                        if (sheetsMusicDTO.getInstruments() != null) {
-                            for (ChildrenEntitiesDTO childrenEntitiesDTO : sheetsMusicDTO.getInstruments()) {
-                                if (childrenEntitiesDTO.getIndex().equals(s)) {
-                                    childrenEntitiesDTO.setName(instrumentsDTO.getName());
-                                    result = true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return result;
-            });
-        }
+    public InstrumentsServiceImpl(InstrumentsRepository repository, InstrumentsMapper mapper) {
+        super(repository, mapper, InstrumentsService.class, Instruments.class);
     }
 }

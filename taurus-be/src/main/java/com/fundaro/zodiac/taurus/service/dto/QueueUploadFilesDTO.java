@@ -13,13 +13,12 @@ import java.util.Objects;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
 
-    @NotNull
-    private String userId;
+    private Long userId;
 
     @JsonIgnore
     private String path;
 
-    private String trackId;
+    private Long trackId;
 
     @NotNull
     private UploadFileStatusEnum status;
@@ -29,11 +28,11 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
     @JsonIgnore
     private MultipartFile multipartFile;
 
-    public String getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
@@ -45,11 +44,11 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
         this.path = path;
     }
 
-    public String getTrackId() {
+    public Long getTrackId() {
         return trackId;
     }
 
-    public void setTrackId(String trackId) {
+    public void setTrackId(Long trackId) {
         this.trackId = trackId;
     }
 

@@ -90,20 +90,31 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                     <div>
                         <h3 class="text-lg font-semibold m-0">Fotografie</h3>
-                        <p class="text-sm text-surface-500 mt-1 mb-0">JPEG o PNG, massimo 10 MB. WebP non supportato.</p>
+                        <p class="text-sm text-surface-500 mt-1 mb-0">JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima.</p>
                     </div>
-                    <label class="p-button p-component p-button-secondary cursor-pointer">
-                        <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
-                        <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
-                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty" (onClick)="savePhotoOrder()" />
+                        <label class="p-button p-component p-button-secondary cursor-pointer">
+                            <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
+                            <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
+                        </label>
+                    </div>
                 </div>
                 @if (item.photos?.length) {
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                        @for (photo of item.photos; track photo.id) {
-                            <div class="inventory-photo relative">
+                        @for (photo of item.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
+                            <div class="inventory-photo relative" [class.inventory-photo-preview]="photo.preview">
                                 <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" />
+                                @if (photo.preview) {
+                                    <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
+                                }
                                 <p-button icon="pi pi-times" severity="danger" size="small" [rounded]="true" class="absolute top-2 right-2" pTooltip="Rimuovi fotografia" (onClick)="removePhoto(photo.id)" />
                                 <span class="photo-name">{{ photo.fileName }}</span>
+                                <div class="photo-actions">
+                                    <p-button icon="pi pi-arrow-left" severity="secondary" size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima" (onClick)="movePhoto(index, -1)" />
+                                    <p-button icon="pi pi-star" severity="secondary" size="small" [text]="!photo.preview" [disabled]="photo.preview || photoOrderDirty" [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'" (onClick)="setPreviewPhoto(photo.id)" />
+                                    <p-button icon="pi pi-arrow-right" severity="secondary" size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo" (onClick)="movePhoto(index, 1)" />
+                                </div>
                             </div>
                         }
                     </div>
@@ -186,7 +197,10 @@
                                             <span
                                                 ><strong>{{ itemReturn.quantity }}</strong> unità</span
                                             >
-                                            <p-tag [value]="itemReturn.status" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
+                                            <div class="flex items-center gap-1">
+                                                <p-tag [value]="itemReturn.status" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
+                                                <p-button icon="pi pi-trash" severity="danger" size="small" [text]="true" pTooltip="Elimina riconsegna" (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
+                                            </div>
                                         </div>
                                         <div class="text-xs text-surface-500 mt-1">
                                             Richiesta {{ itemReturn.requestedAt | date: 'dd/MM/yyyy HH:mm' }}
@@ -227,6 +241,7 @@
                             <td class="min-w-32">
                                 <div class="flex flex-col gap-2">
                                     <p-button label="Salva" icon="pi pi-save" size="small" [text]="true" [disabled]="!dirtyAssignments.has(assignment.id)" (onClick)="saveAssignment(assignment.id)" />
+                                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" size="small" [text]="true" (onClick)="confirmDeleteAssignment(assignment)" />
                                     @if (assignment.decision?.decision === 'REJECTED') {
                                         <p-button label="Riemetti" icon="pi pi-refresh" size="small" [text]="true" (onClick)="reissue(assignment.id)" />
                                     }

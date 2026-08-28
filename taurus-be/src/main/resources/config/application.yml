@@ -158,9 +158,6 @@ server:
 springdoc:
   show-actuator: true
 
-opensearch:
-  global-indices: tenants
-
 # Properties to be exposed on the /info management endpoint
 info:
   # Comma separated list of profiles that will trigger the ribbon to show
@@ -215,12 +212,6 @@ jhipster:
 
 application:
   base-path: D:\data
-  opensearch:
-    host: localhost
-    port: 9200
-    schema: http
-    username: admin
-    password: ${OPENSEARCH_ADMIN_PASSWORD}
   keycloak:
     master-uri: http://localhost:9080/realms/master
     admin:

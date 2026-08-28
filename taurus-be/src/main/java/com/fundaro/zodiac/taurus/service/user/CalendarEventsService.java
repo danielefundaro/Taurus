@@ -18,7 +18,7 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      * @param token     the authentication token of the calling user.
      * @return the updated event DTO.
      */
-    CalendarEventsDTO setAvailability(String eventId, boolean available, AbstractAuthenticationToken token);
+    CalendarEventsDTO setAvailability(Long eventId, boolean available, AbstractAuthenticationToken token);
 
     /**
      * Cancel the current user's availability response for an event.
@@ -27,5 +27,5 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      * @param token   the authentication token of the calling user.
      * @return the updated event DTO.
      */
-    CalendarEventsDTO cancelAvailability(String eventId, AbstractAuthenticationToken token);
+    CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token);
 }

@@ -2,88 +2,37 @@ package com.fundaro.zodiac.taurus.service.user.impl;
 
 import com.fundaro.zodiac.taurus.domain.Albums;
 import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
-import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
-import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
-import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
 import com.fundaro.zodiac.taurus.service.user.AlbumsService;
-import com.fundaro.zodiac.taurus.service.user.TracksService;
-import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.springframework.beans.factory.annotation.Qualifier;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tech.jhipster.service.filter.StringFilter;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-/**
- * Service Implementation of ROLE_USER for managing {@link Albums}.
- */
 @Service("LowPermissionsAlbumsService")
-@Transactional
-public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, AlbumsDTO, AlbumsCriteria, AlbumsMapper> implements AlbumsService {
+public class AlbumsServiceImpl implements AlbumsService {
+    private final com.fundaro.zodiac.taurus.service.AlbumsService delegate;
 
-    private final TracksService tracksService;
+    public AlbumsServiceImpl(com.fundaro.zodiac.taurus.service.AlbumsService delegate) { this.delegate = delegate; }
 
-    public AlbumsServiceImpl(OpenSearchService openSearchService, IndexResolver indexResolver, AlbumsMapper albumsMapper, @Qualifier("LowPermissionsTracksService") TracksService tracksService) {
-        super(openSearchService, indexResolver, albumsMapper, AlbumsService.class, Albums.class);
-        this.tracksService = tracksService;
-    }
+    protected List<StateEnum> getVisibleStates() { return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC); }
 
-    protected List<StateEnum> getVisibleStates() {
-        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
+    @Override
+    public Page<AlbumsDTO> findEntitiesByCriteria(AlbumsCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
+        StateFilter state = new StateFilter(); state.setIn(getVisibleStates()); criteria.setState(state);
+        return delegate.findEntitiesByCriteria(criteria, pageable, token);
     }
 
     @Override
-    public Optional<AlbumsDTO> findOne(String id, AbstractAuthenticationToken abstractAuthenticationToken) {
-        Optional<AlbumsDTO> albumsDTOOpt = super.findOne(id, abstractAuthenticationToken);
-        AlbumsDTO albumsDTO = albumsDTOOpt.orElseThrow(
-            () -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound")
-        );
-        if (!getVisibleStates().contains(albumsDTO.getState())) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound");
-        }
-
-        if (!albumsDTO.getTracks().isEmpty()) {
-            TracksCriteria tracksCriteria = new TracksCriteria();
-            StringFilter idFilter = new StringFilter();
-            idFilter.setIn(albumsDTO.getTracks().stream().map(ChildrenEntitiesDTO::getIndex).toList());
-            tracksCriteria.setId(idFilter);
-
-            Page<com.fundaro.zodiac.taurus.service.dto.TracksDTO> tracksDTOS = tracksService.findEntitiesByCriteria(tracksCriteria, Pageable.ofSize(albumsDTO.getTracks().size()), abstractAuthenticationToken);
-            Set<ChildrenEntitiesDTO> finalList = albumsDTO.getTracks().stream()
-                .filter(childrenEntitiesDTO -> tracksDTOS.stream().anyMatch(tracksDTO -> Objects.equals(tracksDTO.getId(), childrenEntitiesDTO.getIndex())))
-                .sorted(Comparator.comparingLong(ChildrenEntitiesDTO::getOrder))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
-            albumsDTO.setTracks(finalList);
-        }
-
-        return Optional.of(albumsDTO);
-    }
-
-    @Override
-    protected List<Query> getQueries(AlbumsCriteria criteria, AbstractAuthenticationToken abstractAuthenticationToken) {
-        List<Query> queries = super.getQueries(criteria, abstractAuthenticationToken);
-        queries.addAll(Converter.dateFilterToQuery("date", criteria.getDate()));
-        queries.addAll(Converter.stringFilterToQuery("tracks.name.keyword", criteria.getTrackName()));
-        queries.addAll(Converter.stringFilterToQuery("tracks.index.keyword", criteria.getTrackId()));
-
-        StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(getVisibleStates());
-        queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
-
-        return queries;
+    public Optional<AlbumsDTO> findOne(Long id, AbstractAuthenticationToken token) {
+        AlbumsDTO dto = delegate.findOne(id, token).filter(album -> getVisibleStates().contains(album.getState()))
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", Albums.class.getSimpleName(), "id.notFound"));
+        return Optional.of(dto);
     }
 }

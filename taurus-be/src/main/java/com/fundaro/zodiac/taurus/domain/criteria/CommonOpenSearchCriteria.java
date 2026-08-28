@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.domain.criteria;
 
 import tech.jhipster.service.Criteria;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,7 +10,7 @@ import java.util.Optional;
 
 public class CommonOpenSearchCriteria implements Serializable, Criteria {
 
-    private StringFilter id;
+    private LongFilter id;
 
     private StringFilter name;
 
@@ -19,9 +20,9 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
     }
 
     public CommonOpenSearchCriteria(CommonOpenSearchCriteria other) {
-        this.id = other.optionalId().map(StringFilter::copy).orElse(null);
-        this.name = other.optionalId().map(StringFilter::copy).orElse(null);
-        this.description = other.optionalId().map(StringFilter::copy).orElse(null);
+        this.id = other.optionalId().map(LongFilter::copy).orElse(null);
+        this.name = other.optionalName().map(StringFilter::copy).orElse(null);
+        this.description = other.optionalDescription().map(StringFilter::copy).orElse(null);
     }
 
     @Override
@@ -29,15 +30,15 @@ public class CommonOpenSearchCriteria implements Serializable, Criteria {
         return new CommonOpenSearchCriteria(this);
     }
 
-    public StringFilter getId() {
+    public LongFilter getId() {
         return id;
     }
 
-    public Optional<StringFilter> optionalId() {
+    public Optional<LongFilter> optionalId() {
         return Optional.ofNullable(id);
     }
 
-    public CommonOpenSearchCriteria setId(StringFilter id) {
+    public CommonOpenSearchCriteria setId(LongFilter id) {
         this.id = id;
         return this;
     }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260826000002-1" author="codex" dbms="postgresql">
+        <comment>Remove the length limit from every tenant description column</comment>
+        <modifyDataType tableName="app_user" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="instrument" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="album" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="track" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="sheet_music" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="media" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="calendar_event" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="calendar_event_cost" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="upload_job" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="inventory_item" columnName="description" newDataType="text"/>
+        <modifyDataType tableName="inventory_assignment" columnName="description" newDataType="text"/>
+    </changeSet>
+</databaseChangeLog>

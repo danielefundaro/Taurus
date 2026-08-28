@@ -108,6 +108,7 @@ public class SecurityConfiguration {
                         "/api/user/inventory/assignments/**",
                         "/api/user/inventory/photos/**",
                         "/api/user/inventory/return-photos/**",
+                        "/api/user/inventory/summary",
                         "/api/user/inventory/report"
                     )
                         .authenticated()

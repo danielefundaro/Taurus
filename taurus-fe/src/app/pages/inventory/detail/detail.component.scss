@@ -30,6 +30,33 @@
     }
 }
 
+.inventory-photo-preview {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.preview-label {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 999px;
+    color: var(--primary-contrast-color);
+    background: var(--primary-color);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.photo-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.35rem 0.35rem;
+}
+
 .photo-name {
     display: block;
     overflow: hidden;
