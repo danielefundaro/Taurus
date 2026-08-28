@@ -10,11 +10,11 @@ export class MediaService extends CommonOpenSearchService<Media, MediaCriteria> 
         return "media";
     }
 
-    public stream(id: string): string {
+    public stream(id: number): string {
         return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
     }
 
-    public streamImage(id: string) {
+    public streamImage(id: number) {
         return this.http.get<any>(`${this.baseUrl}/${this.resourceName()}/${id}/stream`);
     }
 }

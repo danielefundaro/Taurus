@@ -11,15 +11,8 @@
     <property name="datetimeType" value="datetime" dbms="postgresql"/>
 
     <include file="config/liquibase/changelog/00000000000000_initial_schema.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260810172927_add_entity_UserLegalAcceptance.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260821171500_retry_failed_inventory_search_outbox.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260824000000_add_relational_identity.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260826000001_unlimited_public_descriptions.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

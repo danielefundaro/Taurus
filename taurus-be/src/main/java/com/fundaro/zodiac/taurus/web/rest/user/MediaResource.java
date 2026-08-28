@@ -32,7 +32,7 @@ public class MediaResource extends CommonOpenSearchResource<Media, MediaDTO, Med
      * @return the {@link ResponseEntity} with status {@code 200 (Ok)} and with body the stream of the file, or with status {@code 400 (Bad Request)} if the media has not exists.
      */
     @GetMapping(value = "/{id}/stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public ResponseEntity<Resource> streamMedia(@PathVariable(value = "id") final String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Resource> streamMedia(@PathVariable(value = "id") final Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to stream {} : {}", getEntityName(), id);
         Resource resource = getService().streamFile(id, abstractAuthenticationToken);
         return ResponseEntity.ok()

@@ -3,13 +3,37 @@ package com.fundaro.zodiac.taurus.domain;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "calendar_event_cost")
 public class EventCost implements Serializable {
 
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "description", nullable = false, columnDefinition = "text")
     private String description;
-    private Double amount;
+
+    @Column(name = "amount", precision = 19, scale = 4)
+    private BigDecimal amount;
+
+    @Transient
+    private Long order;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getOrder() { return order; }
+    public void setOrder(Long order) { this.order = order; }
 
     public String getDescription() {
         return description;
@@ -19,11 +43,11 @@ public class EventCost implements Serializable {
         this.description = description;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

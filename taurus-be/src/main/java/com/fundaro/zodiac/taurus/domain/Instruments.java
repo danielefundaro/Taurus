@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 import java.util.Date;
 
@@ -8,6 +10,8 @@ import java.util.Date;
  * A Instruments.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "instrument")
 public class Instruments extends CommonFieldsOpenSearch {
 
     @Override

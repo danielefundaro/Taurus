@@ -31,7 +31,7 @@ export class UsersComponent implements OnInit {
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
     protected totalRecords: number = 0;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
+    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };
     protected users: Users[];
     protected selectedUsers: Users[] = [];
 
@@ -48,14 +48,14 @@ export class UsersComponent implements OnInit {
         this.instruments = [];
 
         // Preload all instruments
-        const instrumentsCriteria: InstrumentsCriteria = { page: 0, sort: ['name.keyword,asc'] };
+        const instrumentsCriteria: InstrumentsCriteria = { page: 0, sort: ['name,asc'] };
         this.preloadEntities(this.instrumentsService, instrumentsCriteria, this.instruments);
     }
 
     ngOnInit() {
         this.sortOptions = [
-            { label: 'Name A-Z', value: 'name.keyword' },
-            { label: 'Name Z-A', value: '!name.keyword' },
+            { label: 'Name A-Z', value: 'name' },
+            { label: 'Name Z-A', value: '!name' },
         ];
     }
 

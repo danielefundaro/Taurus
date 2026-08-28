@@ -11,6 +11,8 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 public interface NoticesService extends CommonService<Notices, NoticesDTO, NoticesCriteria> {
     void addNoticesSuperAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
 
+    void addNoticesSuperAdminsForTenant(String tenantCode, String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
+
     void addNoticesAdmins(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);
 
     void addNoticesExcludeRoleUsers(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken);

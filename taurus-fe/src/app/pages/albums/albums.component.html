@@ -41,7 +41,7 @@
                 }
                 <ng-container *ngFor="let item of items; let i = index">
                     <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                        [ngClass]="{ 'border-t border-surface': i !== 0 }">
+                        [ngClass]="{ 'border-t border-surface': i !== 0, 'bg-primary-50 dark:bg-primary-400/5': item.state === StateEnum.PUBLIC }">
                         <p-checkbox [binary]="true" class="self-center flex-shrink-0" [ngModel]="isSelected(item)"
                             (ngModelChange)="toggleSelection(item)"
                             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
@@ -52,9 +52,12 @@
                         <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
                             <div class="flex flex-row md:flex-col justify-between items-start gap-2">
                                 <div>
-                                    <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                        {{ item.name }}
-                                    </a>
+                                    <div class="flex flex-row items-center gap-3">
+                                        <i class="pi pi-star-fill text-yellow-500" *ngIf="item.state === StateEnum.PUBLIC"></i>
+                                        <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
+                                            {{ item.name }}
+                                        </a>
+                                    </div>
                                     <span class="font-medium text-surface-500 dark:text-surface-400 text-sm text-overflow">
                                         {{ item.description }}
                                     </span>
@@ -83,8 +86,8 @@
             <div class="grid grid-cols-12 gap-4">
                 <ng-container *ngFor="let item of items; let i = index">
                     <div class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
-                        <div
-                            class="p-6 border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-900 rounded flex flex-col">
+                        <div [ngClass]="item.state === StateEnum.PUBLIC ? 'bg-primary-50 dark:bg-primary-400/5' : 'bg-surface-0 dark:bg-surface-900'"
+                            class="p-6 border border-surface-200 dark:border-surface-700 rounded flex flex-col">
                             <a class="border border-surface-200 dark:border-surface-700  bg-surface-0 dark:bg-surface-900 flex justify-center rounded p-6 cursor-pointer block"
                                 [routerLink]="item.id">
                                 <div class="relative mx-auto">
@@ -95,9 +98,12 @@
                             <div class="pt-12">
                                 <div class="flex flex-row justify-between items-start gap-2">
                                     <div>
-                                        <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                            {{ item.name }}
-                                        </a>
+                                        <div class="flex flex-row items-center gap-3">
+                                            <i class="pi pi-star-fill text-yellow-500" *ngIf="item.state === StateEnum.PUBLIC"></i>
+                                            <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
+                                                {{ item.name }}
+                                            </a>
+                                        </div>
                                         <span class="font-medium text-surface-500 dark:text-surface-400 text-sm text-overflow">
                                             {{ item.description }}
                                         </span>

@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, Long> {
     Page<InventoryItem> findAllByDeletedFalse(Pageable pageable);
+    long countByDeletedFalse();
     Optional<InventoryItem> findByIdAndDeletedFalse(Long id);
     boolean existsByInventoryNumberIgnoreCaseAndDeletedFalse(String inventoryNumber);
     boolean existsByInventoryNumberIgnoreCaseAndIdNotAndDeletedFalse(String inventoryNumber, Long id);
@@ -23,6 +24,9 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
 
     @Query("select i from InventoryItem i where i.deleted = false and (lower(i.name) like lower(concat('%', :query, '%')) or lower(i.inventoryNumber) like lower(concat('%', :query, '%')))")
     Page<InventoryItem> search(@Param("query") String query, Pageable pageable);
+
+    @Query("select coalesce(sum(i.totalQuantity), 0) from InventoryItem i where i.deleted = false")
+    long sumTotalQuantity();
 
     List<InventoryItem> findAllByDeletedFalse();
 }

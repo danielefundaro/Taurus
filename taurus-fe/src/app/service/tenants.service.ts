@@ -11,7 +11,7 @@ export class TenantsService extends CommonOpenSearchService<Tenants, TenantsCrit
         return "tenants";
     }
 
-    public deleteForGdpr(id: string): Observable<void> {
+    public deleteForGdpr(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/${id}/gdpr`);
     }
 }

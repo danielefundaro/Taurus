@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
 import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import jakarta.validation.Valid;
@@ -46,6 +47,11 @@ public class InventoryResource {
         AbstractAuthenticationToken token
     ) {
         return inventoryService.findOwnAssignments(query, scope, pageable, token);
+    }
+
+    @GetMapping("/summary")
+    public InventoryUserSummaryDTO getSummary(AbstractAuthenticationToken token) {
+        return inventoryService.getOwnSummary(token);
     }
 
     @GetMapping("/assignments/{id}")

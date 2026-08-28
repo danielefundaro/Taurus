@@ -30,7 +30,7 @@ export class TenantsComponent implements OnInit {
     protected layout: 'list' | 'grid' = 'list';
     protected options = ['list', 'grid'];
     protected totalRecords: number = 0;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
+    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };
     protected tenants: Tenants[];
     protected selectedTenants: Tenants[] = [];
 
@@ -45,8 +45,8 @@ export class TenantsComponent implements OnInit {
 
     ngOnInit() {
         this.sortOptions = [
-            { label: 'Name A-Z', value: 'name.keyword' },
-            { label: 'Name Z-A', value: '!name.keyword' },
+            { label: 'Name A-Z', value: 'name' },
+            { label: 'Name Z-A', value: '!name' },
         ];
     }
 

@@ -42,7 +42,7 @@ export class CalendarEventsComponent implements OnInit {
     protected options = ['list', 'grid'];
     protected totalRecords: number = 0;
     protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = {
-        first: 0, rows: 10, sortField: 'start_date', sortOrder: 1,
+        first: 0, rows: 10, sortField: 'startDate', sortOrder: 1,
     };
     protected events: CalendarEvents[] = [];
     protected selectedEvents: CalendarEvents[] = [];
@@ -68,10 +68,10 @@ export class CalendarEventsComponent implements OnInit {
 
     ngOnInit(): void {
         this.sortOptions = [
-            { label: 'Data ↑', value: 'start_date' },
-            { label: 'Data ↓', value: '!start_date' },
-            { label: 'Nome A-Z', value: 'name.keyword' },
-            { label: 'Nome Z-A', value: '!name.keyword' },
+            { label: 'Data ↑', value: 'startDate' },
+            { label: 'Data ↓', value: '!startDate' },
+            { label: 'Nome A-Z', value: 'name' },
+            { label: 'Nome Z-A', value: '!name' },
         ];
         if (this.layout === 'grid') {
             this.loadCalendarMonth();
@@ -284,7 +284,7 @@ export class CalendarEventsComponent implements OnInit {
         const criteria = new CalendarEventsCriteria();
         criteria.page = 0;
         criteria.size = 500;
-        criteria.sort = ['start_date,asc'];
+        criteria.sort = ['startDate,asc'];
         // Fetch events that overlap with the current month:
         // event starts before or on the last day of the month AND ends on or after the first day
         criteria.startDate = new DateFilter();

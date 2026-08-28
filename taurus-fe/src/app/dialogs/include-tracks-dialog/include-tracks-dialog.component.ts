@@ -33,7 +33,7 @@ import { TracksService } from '../../service';
 })
 export class IncludeTracksDialogComponent {
 
-    protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'name.keyword', sortOrder: 1 };
+    protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };
     protected tracks: Tracks[];
     protected selectedTracks: Tracks[];
     protected totalRecords: number = 0;
@@ -68,7 +68,7 @@ export class IncludeTracksDialogComponent {
         const tracksCriteria: TracksCriteria = new TracksCriteria();
         tracksCriteria.page = this.tableLazyLoadEvent.first! / this.tableLazyLoadEvent.rows!;
         tracksCriteria.size = this.tableLazyLoadEvent.rows!;
-        tracksCriteria.sort = ['name.keyword,asc'];
+        tracksCriteria.sort = ['name,asc'];
 
         if (this.search.name) {
             tracksCriteria.name = new StringFilter();

@@ -11,7 +11,7 @@ import { InventoryService, ToastService } from '../../service';
     templateUrl: './inventory-assignments.component.html'
 })
 export class InventoryAssignmentsComponent implements OnInit, OnChanges {
-    @Input({ required: true }) userIndex!: string;
+    @Input({ required: true }) userIndex!: number;
 
     protected assignments: InventoryAssignment[] = [];
     protected loading = false;
@@ -116,7 +116,7 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     }
 
     private load(): void {
-        if (this.userIndex === '') return;
+        if (!this.userIndex) return;
         this.loading = true;
         this.inventoryService
             .getUserAssignments(this.userIndex)

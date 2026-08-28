@@ -3,39 +3,60 @@ package com.fundaro.zodiac.taurus.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Version;
 
 import java.io.Serializable;
 import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@MappedSuperclass
 public class CommonFieldsOpenSearch implements Serializable {
 
     @JsonIgnore
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, nullable = false)
+    private Long id;
 
+    @Column(name = "deleted", nullable = false)
     private Boolean deleted;
 
     @JsonProperty("insert_by")
+    @Column(name = "insert_by")
     private String insertBy;
 
     @JsonProperty("insert_date")
+    @Column(name = "insert_date", nullable = false)
     private Date insertDate;
 
     @JsonProperty("edit_by")
+    @Column(name = "edit_by")
     private String editBy;
 
     @JsonProperty("edit_date")
+    @Column(name = "edit_date", nullable = false)
     private Date editDate;
 
+    @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
-    public String getId() {
+    @Version
+    @Column(name = "entity_version", nullable = false)
+    private Long entityVersion;
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -93,6 +114,14 @@ public class CommonFieldsOpenSearch implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getEntityVersion() {
+        return entityVersion;
+    }
+
+    public void setEntityVersion(Long entityVersion) {
+        this.entityVersion = entityVersion;
     }
 
     @Override

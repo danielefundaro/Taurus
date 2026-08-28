@@ -1,0 +1,56 @@
+:host {
+    display: block;
+    width: 100%;
+}
+
+.inventory-widget {
+    padding: 0;
+    overflow: hidden;
+}
+
+.inventory-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 2.75rem;
+    border-radius: var(--content-border-radius);
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+
+    i {
+        font-size: 1.25rem;
+    }
+}
+
+.inventory-progress {
+    display: flex;
+    height: 0.5rem;
+    margin: 0.625rem 0;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--p-surface-200);
+}
+
+.inventory-progress-available {
+    background: var(--primary-color);
+}
+
+.inventory-progress-assigned {
+    background: var(--p-surface-400);
+}
+
+.inventory-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+}
+
+.inventory-dot-available {
+    background: var(--primary-color);
+}
+
+.inventory-dot-assigned {
+    background: var(--p-surface-400);
+}

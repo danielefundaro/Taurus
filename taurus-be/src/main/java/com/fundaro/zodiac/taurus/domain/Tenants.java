@@ -1,6 +1,9 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 import java.util.Date;
 import java.util.Objects;
@@ -9,27 +12,43 @@ import java.util.Objects;
  * A Users.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "tenant", schema = "public")
 public class Tenants extends CommonFieldsOpenSearch {
 
+    @Column(name = "code", nullable = false, unique = true)
     private String code;
 
+    @Column(name = "email")
     private String email;
 
+    @Column(name = "domain")
     private String domain;
 
+    @Column(name = "max_users")
     private Long maxUsers;
 
+    @Column(name = "expire_date")
     private Date expireDate;
 
+    @Column(name = "active", nullable = false)
     private Boolean active;
 
+    @Column(name = "address", length = 500)
     private String address;
+    @Column(name = "postal_code")
     private String postalCode;
+    @Column(name = "city")
     private String city;
+    @Column(name = "province")
     private String province;
+    @Column(name = "country", length = 2)
     private String country;
+    @Column(name = "tax_code", length = 32)
     private String taxCode;
+    @Column(name = "vat_number", length = 32)
     private String vatNumber;
+    @Column(name = "logo_url", length = 2048)
     private String logoUrl;
 
     public String getCode() {

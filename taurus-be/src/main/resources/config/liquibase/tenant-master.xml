@@ -17,5 +17,9 @@
     <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260820000002_remove_tenant_columns.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260821171500_retry_failed_inventory_search_outbox.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260824000001_add_relational_catalog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260824000002_finalize_relational_inventory.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260826000000_allow_super_admin_upload.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260826000002_unlimited_tenant_descriptions.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260827000000_inventory_photo_preview.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

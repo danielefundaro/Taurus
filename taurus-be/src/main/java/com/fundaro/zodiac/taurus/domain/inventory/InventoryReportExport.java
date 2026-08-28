@@ -10,7 +10,7 @@ import java.time.ZonedDateTime;
 public class InventoryReportExport extends AuditedEntity {
 
     @Column(name = "requested_user_index", nullable = false)
-    private String requestedUserIndex;
+    private Long requestedUserIndex;
 
     @Column(name = "generated_by", nullable = false)
     private String generatedBy;
@@ -33,8 +33,8 @@ public class InventoryReportExport extends AuditedEntity {
     @Column(name = "content_digest", nullable = false, length = 64)
     private String contentDigest;
 
-    public String getRequestedUserIndex() { return requestedUserIndex; }
-    public void setRequestedUserIndex(String requestedUserIndex) { this.requestedUserIndex = requestedUserIndex; }
+    public Long getRequestedUserIndex() { return requestedUserIndex; }
+    public void setRequestedUserIndex(Long requestedUserIndex) { this.requestedUserIndex = requestedUserIndex; }
     public String getGeneratedBy() { return generatedBy; }
     public void setGeneratedBy(String generatedBy) { this.generatedBy = generatedBy; }
     public ZonedDateTime getGeneratedAt() { return generatedAt; }

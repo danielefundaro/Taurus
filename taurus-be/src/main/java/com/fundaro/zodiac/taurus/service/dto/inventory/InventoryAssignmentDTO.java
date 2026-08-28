@@ -16,7 +16,7 @@ public record InventoryAssignmentDTO(
     String currency,
     InventoryCondition conditionStatus,
     String conditionNotes,
-    String userIndex,
+    Long userIndex,
     String userName,
     String userLastName,
     int order,

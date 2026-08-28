@@ -1,5 +1,5 @@
 export class ChildrenEntities {
-    index!: string;
+    index!: number;
     name?: string;
     order?: number;
 }

@@ -62,18 +62,18 @@ class TenantSchemaProvisioningServiceIT {
     }
 
     @Test
-    void provisionsIdempotentlyAndCopiesOnlyTheSelectedLegacyTenant() throws Exception {
+    void provisionsRelationalTenantSchemaIdempotently() throws Exception {
         String tenantCode = "Acme'; DROP SCHEMA public; --";
-        String otherTenant = "other";
-        insertLegacyPreference(tenantCode, "selected");
-        insertLegacyPreference(otherTenant, "not-selected");
+        long tenantId = insertTenant(tenantCode);
 
         provisioningService.provision(tenantCode);
+        provisioningService.linkTenant(tenantId, tenantCode);
         provisioningService.provision(tenantCode);
+        provisioningService.migrateExistingSchema(tenantCode);
 
         String schemaName = schemaNameResolver.resolve(tenantCode);
         assertThat(queryBoolean("SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = ?)", schemaName)).isTrue();
-        assertThat(queryLong("SELECT COUNT(*) FROM " + quote(schemaName) + ".preferences")).isEqualTo(1);
+        assertThat(queryLong("SELECT COUNT(*) FROM " + quote(schemaName) + ".preferences")).isZero();
         assertThat(queryString("SELECT status FROM public.tenant_schema_registry WHERE tenant_code = ?", tenantCode)).isEqualTo("ACTIVE");
         assertThat(queryBoolean("SELECT to_regclass(?) IS NOT NULL", schemaName + ".inventory_item")).isTrue();
         assertThat(queryBoolean(
@@ -82,13 +82,15 @@ class TenantSchemaProvisioningServiceIT {
         )).isFalse();
     }
 
-    private static void insertLegacyPreference(String tenantCode, String value) throws Exception {
+    private static long insertTenant(String tenantCode) throws Exception {
         try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement(
-            "INSERT INTO public.preferences(deleted, key, value, user_id, tenant_code) VALUES (false, 'test', ?, 'user', ?)"
+            "INSERT INTO public.tenant(deleted, name, code, active) VALUES (false, 'Test', ?, true) RETURNING id"
         )) {
-            statement.setString(1, value);
-            statement.setString(2, tenantCode);
-            statement.executeUpdate();
+            statement.setString(1, tenantCode);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getLong(1);
+            }
         }
     }
 

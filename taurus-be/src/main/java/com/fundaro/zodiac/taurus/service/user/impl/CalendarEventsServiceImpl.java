@@ -1,156 +1,25 @@
 package com.fundaro.zodiac.taurus.service.user.impl;
 
-import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
-import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
-import com.fundaro.zodiac.taurus.resolver.IndexResolver;
-import com.fundaro.zodiac.taurus.security.SecurityUtils;
-import com.fundaro.zodiac.taurus.service.OpenSearchService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
-import com.fundaro.zodiac.taurus.service.dto.EventUserEntryDTO;
-import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
-import com.fundaro.zodiac.taurus.utils.Converter;
-import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.stereotype.Service;
 
-/**
- * Service Implementation of ROLE_USER for managing {@link CalendarEvents}.
- */
 @Service("LowPermissionsCalendarEventsService")
-@Transactional
-public class CalendarEventsServiceImpl
-    extends CommonOpenSearchServiceImpl<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsMapper>
-    implements CalendarEventsService {
-
-    private final com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService;
-    private final EventReminderProducer eventReminderProducer;
-
-    public CalendarEventsServiceImpl(
-        OpenSearchService openSearchService,
-        IndexResolver indexResolver,
-        CalendarEventsMapper mapper,
-        com.fundaro.zodiac.taurus.service.CalendarEventsService adminCalendarEventsService,
-        EventReminderProducer eventReminderProducer
-    ) {
-        super(openSearchService, indexResolver, mapper, CalendarEventsService.class, CalendarEvents.class);
-        this.adminCalendarEventsService = adminCalendarEventsService;
-        this.eventReminderProducer = eventReminderProducer;
-    }
-
-    protected List<StateEnum> getVisibleStates() {
-        return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC);
-    }
-
-    @Override
-    public Optional<CalendarEventsDTO> findOne(String id, AbstractAuthenticationToken token) {
-        return super.findOne(id, token)
-            .filter(dto -> getVisibleStates().contains(dto.getState()))
-            .map(this::maskSensitiveFields);
-    }
-
-    @Override
-    public Page<CalendarEventsDTO> findEntitiesByCriteria(CalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
-        return super.findEntitiesByCriteria(criteria, pageable, token)
-            .map(this::maskSensitiveFields);
-    }
-
-    @Override
-    public CalendarEventsDTO setAvailability(String eventId, boolean available, AbstractAuthenticationToken token) {
-        CalendarEventsDTO dto = findOne(eventId, token)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", CalendarEvents.class.getSimpleName(), "id.notFound"));
-
-        String userId = SecurityUtils.getUserIdFromAuthentication(token);
-        Date now = new Date();
-
-        if (dto.getAvailableUsers() != null) {
-            dto.setAvailableUsers(dto.getAvailableUsers().stream()
-                .filter(e -> !userId.equals(e.getIndex()))
-                .collect(Collectors.toList()));
-        }
-        if (dto.getUnavailableUsers() != null) {
-            dto.setUnavailableUsers(dto.getUnavailableUsers().stream()
-                .filter(e -> !userId.equals(e.getIndex()))
-                .collect(Collectors.toList()));
-        }
-
-        EventUserEntryDTO entry = new EventUserEntryDTO();
-        entry.setIndex(userId);
-        entry.setName(SecurityUtils.getFirstNameFromAuthentication(token));
-        entry.setLastName(SecurityUtils.getLastNameFromAuthentication(token));
-        entry.setResponseDate(now);
-
-        if (available) {
-            if (dto.getAvailableUsers() == null) dto.setAvailableUsers(new ArrayList<>());
-            dto.getAvailableUsers().add(entry);
-        } else {
-            if (dto.getUnavailableUsers() == null) dto.setUnavailableUsers(new ArrayList<>());
-            dto.getUnavailableUsers().add(entry);
-        }
-
-        CalendarEventsDTO result = adminCalendarEventsService.update(eventId, dto, token);
-
-        if (available) {
-            eventReminderProducer.scheduleIfNeeded(result, userId, token);
-        }
-
-        return result;
-    }
-
-    @Override
-    public CalendarEventsDTO cancelAvailability(String eventId, AbstractAuthenticationToken token) {
-        CalendarEventsDTO dto = findOne(eventId, token)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", CalendarEvents.class.getSimpleName(), "id.notFound"));
-
-        String userId = SecurityUtils.getUserIdFromAuthentication(token);
-
-        if (dto.getAvailableUsers() != null) {
-            dto.setAvailableUsers(dto.getAvailableUsers().stream()
-                .filter(e -> !userId.equals(e.getIndex()))
-                .collect(Collectors.toList()));
-        }
-        if (dto.getUnavailableUsers() != null) {
-            dto.setUnavailableUsers(dto.getUnavailableUsers().stream()
-                .filter(e -> !userId.equals(e.getIndex()))
-                .collect(Collectors.toList()));
-        }
-
-        return adminCalendarEventsService.update(eventId, dto, token);
-    }
-
-    @Override
-    protected List<Query> getQueries(CalendarEventsCriteria criteria, AbstractAuthenticationToken token) {
-        List<Query> queries = super.getQueries(criteria, token);
-
-        StateFilter stateFilter = new StateFilter();
-        stateFilter.setIn(getVisibleStates());
-        queries.addAll(Converter.generalFilterToQuery("state.keyword", stateFilter));
-        queries.addAll(Converter.dateFilterToQuery("start_date", criteria.getStartDate()));
-        queries.addAll(Converter.dateFilterToQuery("end_date", criteria.getEndDate()));
-        queries.addAll(Converter.stringFilterToQuery("location.keyword", criteria.getLocation()));
-        queries.addAll(Converter.stringFilterToQuery("present_users.index", criteria.getPresentUserId()));
-
-        return queries;
-    }
-
-    private CalendarEventsDTO maskSensitiveFields(CalendarEventsDTO dto) {
-        dto.setFee(null);
-        dto.setCosts(null);
-        return dto;
-    }
+public class CalendarEventsServiceImpl implements CalendarEventsService {
+    private final com.fundaro.zodiac.taurus.service.CalendarEventsService delegate;
+    public CalendarEventsServiceImpl(com.fundaro.zodiac.taurus.service.CalendarEventsService delegate) { this.delegate = delegate; }
+    protected List<StateEnum> getVisibleStates() { return List.of(StateEnum.COMPLETE, StateEnum.PUBLIC); }
+    public Optional<CalendarEventsDTO> findOne(Long id, AbstractAuthenticationToken token) { return delegate.findOne(id, token).filter(dto -> getVisibleStates().contains(dto.getState())).map(this::mask); }
+    public Page<CalendarEventsDTO> findEntitiesByCriteria(CalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) { StateFilter state = new StateFilter(); state.setIn(getVisibleStates()); criteria.setState(state); return delegate.findEntitiesByCriteria(criteria, pageable, token).map(this::mask); }
+    public CalendarEventsDTO setAvailability(Long eventId, boolean available, AbstractAuthenticationToken token) { return mask(delegate.setAvailability(eventId, available, token)); }
+    public CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token) { return mask(delegate.cancelAvailability(eventId, token)); }
+    private CalendarEventsDTO mask(CalendarEventsDTO dto) { dto.setFee(null); dto.setCosts(null); return dto; }
 }

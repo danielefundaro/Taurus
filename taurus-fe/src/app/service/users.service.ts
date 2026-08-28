@@ -38,15 +38,15 @@ export class UsersService extends CommonOpenSearchService<Users, UsersCriteria> 
         return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me/gdpr`);
     }
 
-    public deleteForGdpr(id: string): Observable<void> {
+    public deleteForGdpr(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/${id}/gdpr`);
     }
 
-    public sendSetupEmail(id: string): Observable<void> {
+    public sendSetupEmail(id: number): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/${this.resourceName()}/${id}/send-setup-email`, null);
     }
 
-    public getUserCalendarEvents(id: string, criteria?: UsersCalendarEventsCriteria): Observable<Page<CalendarEvents>> {
+    public getUserCalendarEvents(id: number, criteria?: UsersCalendarEventsCriteria): Observable<Page<CalendarEvents>> {
         const options = this.createRequestOption(criteria);
         return this.http.get<Page<CalendarEvents>>(`${this.baseUrl}/${this.resourceName()}/${id}/calendar-events`, { params: options, observe: 'body' });
     }

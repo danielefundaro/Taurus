@@ -12,7 +12,7 @@ import { DateConverterPipe } from '../../../pipe';
 import { CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
-    id: string;
+    id: number;
     name: string;
     lastName: string;
     present: boolean;
@@ -53,6 +53,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected newCostAmount: number | null = null;
 
     protected presenceRows: UserPresenceRow[] = [];
+    protected currentUserId?: number;
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
@@ -71,6 +72,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         this.activatedRoute.params.pipe(first()).subscribe(params => {
             this.loadElement(params['id']);
         });
+        this.usersService.getOwn().pipe(first()).subscribe(user => this.currentUserId = user.id);
     }
 
     protected get isAdmin(): boolean {
@@ -112,10 +114,6 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 this.loadElement(updated.id);
             },
         });
-    }
-
-    protected get currentUserId(): string | undefined {
-        return this.keycloakService.currentUserId;
     }
 
     protected get currentUserAvailability(): boolean | null {
@@ -225,8 +223,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         }
     }
 
-    private loadElement(id: string): void {
-        this.calendarEventsService.getById(id).pipe(first()).subscribe({
+    private loadElement(id: number | string): void {
+        this.calendarEventsService.getById(Number(id)).pipe(first()).subscribe({
             next: (ev: CalendarEvents) => {
                 this.event = ev;
                 this.isDirty = false;
@@ -241,7 +239,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     private loadAllUsers(): void {
-        this.usersService.getAll({ size: 1000, sort: ['name.keyword,asc'] } as any).pipe(first()).subscribe({
+        this.usersService.getAll({ size: 1000, sort: ['name,asc'] } as any).pipe(first()).subscribe({
             next: page => {
                 this.buildPresenceRows(page.content ?? []);
             },

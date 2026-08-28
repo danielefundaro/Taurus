@@ -75,7 +75,12 @@ public class NoticesAspect {
         } else if (dto instanceof UsersDTO usersDTO) {
             noticesService.addNoticesAdmins("Nuovo utente", String.format("L'utente \"%s %s\" è stato aggiunto", usersDTO.getName(), usersDTO.getLastName()), token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdmins("Nuovo tenant", String.format("Il tenant \"%s\" e codice \"%s\" è stato aggiunto", tenantsDTO.getName(), tenantsDTO.getCode()), token);
+            noticesService.addNoticesSuperAdminsForTenant(
+                tenantsDTO.getCode(),
+                "Nuovo tenant",
+                String.format("Il tenant \"%s\" e codice \"%s\" è stato aggiunto", tenantsDTO.getName(), tenantsDTO.getCode()),
+                token
+            );
         }
 
         return result;
@@ -85,7 +90,7 @@ public class NoticesAspect {
     private Object onUploadFile(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         Object[] args = joinPoint.getArgs();
-        String id = (args.length > 0 && args[0] instanceof String s) ? s : null;
+        Long id = (args.length > 0 && args[0] instanceof Long value) ? value : null;
         MultipartFile file = getMultipartFile(joinPoint);
         Object result = joinPoint.proceed();
 
@@ -108,7 +113,7 @@ public class NoticesAspect {
         "execution(public * com.fundaro.zodiac.taurus.service.impl.CommonOpenSearchServiceImpl.partialUpdate(..))")
     private Object onUpdate(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
-        String id = getId(joinPoint);
+        Long id = getId(joinPoint);
 
         CommonFieldsOpenSearchDTO oldDto = null;
         if (token != null && id != null) {
@@ -197,7 +202,12 @@ public class NoticesAspect {
         } else if (dto instanceof UsersDTO usersDTO) {
             noticesService.addNoticesAdmins("Utente aggiornato", String.format("L'utente \"%s %s\" è stato aggiornato", usersDTO.getName(), usersDTO.getLastName()), token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdmins("Tenant aggiornato", String.format("Il tenant \"%s\" con codice \"%s\" è stato aggiornato", tenantsDTO.getName(), tenantsDTO.getCode()), token);
+            noticesService.addNoticesSuperAdminsForTenant(
+                tenantsDTO.getCode(),
+                "Tenant aggiornato",
+                String.format("Il tenant \"%s\" con codice \"%s\" è stato aggiornato", tenantsDTO.getName(), tenantsDTO.getCode()),
+                token
+            );
         }
 
         return result;
@@ -241,7 +251,12 @@ public class NoticesAspect {
         } else if (dto instanceof UsersDTO usersDTO) {
             noticesService.addNoticesAdmins("Utente rimosso", String.format("L'utente \"%s %s\" è stato rimosso", usersDTO.getName(), usersDTO.getLastName()), token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdmins("Tenant rimosso", String.format("Il tenant \"%s\" con codice \"%s\" è stato rimosso", tenantsDTO.getName(), tenantsDTO.getCode()), token);
+            noticesService.addNoticesSuperAdminsForTenant(
+                tenantsDTO.getCode(),
+                "Tenant rimosso",
+                String.format("Il tenant \"%s\" con codice \"%s\" è stato rimosso", tenantsDTO.getName(), tenantsDTO.getCode()),
+                token
+            );
         }
 
         return result;
@@ -305,10 +320,10 @@ public class NoticesAspect {
             .findFirst().orElse(null);
     }
 
-    private static String getId(ProceedingJoinPoint joinPoint) {
+    private static Long getId(ProceedingJoinPoint joinPoint) {
         return Arrays.stream(joinPoint.getArgs())
-            .filter(arg -> arg instanceof String)
-            .map(arg -> (String) arg)
+            .filter(arg -> arg instanceof Long)
+            .map(arg -> (Long) arg)
             .findFirst().orElse(null);
     }
 

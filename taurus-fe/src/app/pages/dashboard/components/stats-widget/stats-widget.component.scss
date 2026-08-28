@@ -2,3 +2,102 @@
     display: block;
     width: 100%;
 }
+
+.stat-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 8rem;
+    margin: 0;
+    color: inherit;
+    text-decoration: none;
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+
+    &:not(.stat-card--static):hover {
+        border-color: color-mix(in srgb, var(--primary-color) 35%, var(--surface-border));
+        box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary-color) 9%, transparent);
+        transform: translateY(-2px);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+}
+
+.stat-card__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+
+    small {
+        color: var(--p-text-muted-color);
+        font-size: 0.78rem;
+        font-weight: 500;
+    }
+
+    strong {
+        margin-top: 0.3rem;
+        color: var(--p-text-color);
+        font-size: 1.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.stat-card__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.9rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.72rem;
+
+    i {
+        font-size: 0.65rem;
+        transition: transform 160ms ease;
+    }
+}
+
+.stat-card:hover .stat-card__action i {
+    transform: translateX(0.15rem);
+}
+
+.stat-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    flex: 0 0 2.55rem;
+    border-radius: 0.7rem;
+
+    i {
+        font-size: 1.15rem;
+    }
+}
+
+.stat-card__icon--cyan {
+    background: color-mix(in srgb, var(--p-cyan-500) 14%, transparent);
+    color: var(--p-cyan-500);
+}
+
+.stat-card__icon--blue {
+    background: color-mix(in srgb, var(--p-blue-500) 14%, transparent);
+    color: var(--p-blue-500);
+}
+
+.stat-card__icon--orange {
+    background: color-mix(in srgb, var(--p-orange-500) 14%, transparent);
+    color: var(--p-orange-500);
+}
+
+.stat-card__icon--green {
+    background: color-mix(in srgb, var(--p-green-500) 14%, transparent);
+    color: var(--p-green-500);
+}

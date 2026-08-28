@@ -1,6 +1,6 @@
 <p-fluid class="flex flex-col flex-start gap-4 mb-8">
     <span class="text-surface-500 dark:text-surface-400 block mb-8">Inserisci le informazioni.</span>
-    <div class="flex flex-col md:flex-row gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <p-floatlabel class="flex w-full" variant="on">
             <label for="name">Nome</label>
             <input pInputText id="name" type="text" [(ngModel)]="tenant.name" />
@@ -13,9 +13,6 @@
             <label for="email">Email</label>
             <input pInputText id="email" type="text" [(ngModel)]="tenant.email" />
         </p-floatlabel>
-        <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" />
-    </div>
-    <div class="flex flex-row gap-4">
         <p-floatlabel class="flex w-full" variant="on">
             <label for="domain">Dominio</label>
             <input pInputText id="domain" type="text" [(ngModel)]="tenant.domain" />
@@ -29,6 +26,7 @@
                 [(ngModel)]="tenant!.expireDate" />
             <label for="date">Data Scadenza</label>
         </p-floatlabel>
+        <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" />
     </div>
     <p-floatlabel class="flex" variant="on">
         <label for="description">Descrizione</label>

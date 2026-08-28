@@ -9,8 +9,8 @@ public class InventoryAssignment extends TenantAuditedEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "item_id", nullable = false)
     private InventoryItem item;
-    @Column(name = "user_index", nullable = false, length = 255)
-    private String userIndex;
+    @Column(name = "user_index", nullable = false)
+    private Long userIndex;
     @Column(name = "user_keycloak_id", nullable = false, length = 255)
     private String userKeycloakId;
     @Column(name = "user_name", nullable = false)
@@ -25,7 +25,7 @@ public class InventoryAssignment extends TenantAuditedEntity {
     private int returnedQuantity;
     @Column(name = "assigned_at", nullable = false)
     private ZonedDateTime assignedAt;
-    @Column(name = "description", length = 2000)
+    @Column(name = "description", columnDefinition = "text")
     private String description;
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
@@ -35,8 +35,8 @@ public class InventoryAssignment extends TenantAuditedEntity {
 
     public InventoryItem getItem() { return item; }
     public void setItem(InventoryItem item) { this.item = item; }
-    public String getUserIndex() { return userIndex; }
-    public void setUserIndex(String userIndex) { this.userIndex = userIndex; }
+    public Long getUserIndex() { return userIndex; }
+    public void setUserIndex(Long userIndex) { this.userIndex = userIndex; }
     public String getUserKeycloakId() { return userKeycloakId; }
     public void setUserKeycloakId(String userKeycloakId) { this.userKeycloakId = userKeycloakId; }
     public String getUserName() { return userName; }

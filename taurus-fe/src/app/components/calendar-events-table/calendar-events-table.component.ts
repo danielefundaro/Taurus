@@ -29,10 +29,10 @@ export class CalendarEventsTableComponent {
     protected endDate?: Date;
     protected calendarEvents: CalendarEvents[] = [];
 
-    private _userId?: string;
+    private _userId?: number;
     private tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'startDate', sortOrder: -1 };
 
-    @Input() set userId(value: string | undefined) {
+    @Input() set userId(value: number | undefined) {
         this._userId = value;
         this.loadCalendarEvents();
     }
@@ -57,10 +57,6 @@ export class CalendarEventsTableComponent {
         criteria.page = this.tableLazyLoadEvent.first! / this.tableLazyLoadEvent.rows!;
         criteria.size = this.tableLazyLoadEvent.rows!;
         criteria.sort = this.tableLazyLoadEvent.sortField ? [`${this.tableLazyLoadEvent.sortField},${this.tableLazyLoadEvent.sortOrder === 1 ? 'asc' : 'desc'}`] : ['startDate,desc'];
-
-        if (criteria?.sort[0]?.startsWith('name')) {
-            criteria.sort = [`${criteria.sort[0].replace('name', 'name.keyword')}`];
-        }
 
         let observable = this._userId ? this.usersService.getUserCalendarEvents(this._userId, criteria) : this.usersService.getOwnCalendarEvents(criteria);
 

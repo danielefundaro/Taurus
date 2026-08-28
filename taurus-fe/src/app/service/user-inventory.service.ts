@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryReturn, Page } from '../module';
+import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryReturn, InventoryUserSummary, Page } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class UserInventoryService {
@@ -14,6 +14,10 @@ export class UserInventoryService {
         let params = new HttpParams().set('scope', scope).set('page', page).set('size', size).set('sort', sort);
         if (query.trim()) params = params.set('query', query.trim());
         return this.http.get<Page<InventoryAssignmentSummary>>(`${this.baseUrl}/assignments`, { params });
+    }
+
+    getSummary(): Observable<InventoryUserSummary> {
+        return this.http.get<InventoryUserSummary>(`${this.baseUrl}/summary`);
     }
 
     getAssignment(id: number): Observable<InventoryAssignment> {

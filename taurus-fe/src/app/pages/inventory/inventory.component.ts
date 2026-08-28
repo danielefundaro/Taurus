@@ -90,6 +90,15 @@ export class InventoryComponent implements OnInit {
         this.viewMode = this.isAdmin && this.route.snapshot.queryParamMap.get('view') !== 'mine' ? 'TENANT' : 'MINE';
         this.configureSortOptions();
         if (this.isAdmin) this.loadErasureRequests();
+        if (this.isAdmin && this.route.snapshot.queryParamMap.get('action') === 'new') {
+            this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { action: null },
+                queryParamsHandling: 'merge',
+                replaceUrl: true
+            });
+            this.addNew();
+        }
     }
 
     protected onLazyLoad(event: DataViewLazyLoadEvent): void {
@@ -195,7 +204,7 @@ export class InventoryComponent implements OnInit {
     }
 
     protected itemPhotoUrl(item: InventoryItem): string | undefined {
-        const photo = item.photos?.[0];
+        const photo = item.photos?.find((value) => value.preview) ?? item.photos?.[0];
         return photo ? this.inventoryService.photoUrl(photo.id) : undefined;
     }
 

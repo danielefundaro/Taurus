@@ -8,5 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface InventoryItemPhotoRepository extends JpaRepository<InventoryItemPhoto, Long> {
     List<InventoryItemPhoto> findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(Long itemId);
     Optional<InventoryItemPhoto> findByIdAndDeletedFalse(Long id);
+    Optional<InventoryItemPhoto> findByIdAndItem_IdAndDeletedFalse(Long id, Long itemId);
     long countByItem_IdAndDeletedFalse(Long itemId);
 }

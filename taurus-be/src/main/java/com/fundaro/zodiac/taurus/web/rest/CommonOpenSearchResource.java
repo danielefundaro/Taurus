@@ -74,7 +74,7 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
         log.debug("REST request to save {} : {}", entityName, dto);
         D result = service.save(dto, abstractAuthenticationToken);
         return ResponseEntity.created(new URI(String.format("/api/%s/", entityName) + result.getId()))
-            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, entityName, result.getId()))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, entityName, result.getId().toString()))
             .body(result);
     }
 
@@ -89,14 +89,14 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<D> updateEntity(@PathVariable(value = "id", required = false) final String id, @Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> updateEntity(@PathVariable(value = "id", required = false) final Long id, @Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to update {} : {}, {}", entityName, id, dto);
         D result = service.update(id, dto, abstractAuthenticationToken);
         if (result == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId()))
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId().toString()))
             .body(result);
     }
 
@@ -112,14 +112,14 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/{id}", consumes = {"application/json", "application/merge-patch+json"})
-    public ResponseEntity<D> partialUpdateEntity(@PathVariable(value = "id", required = false) final String id, @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> partialUpdateEntity(@PathVariable(value = "id", required = false) final Long id, @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to partial update {} partially : {}, {}", entityName, id, dto);
         D result = service.partialUpdate(id, dto, abstractAuthenticationToken);
         if (result == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         return ResponseEntity.ok()
-            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId()))
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, entityName, result.getId().toString()))
             .body(result);
     }
 
@@ -147,7 +147,7 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the dto, or with status {@code 404 (Not Found)}.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<D> getEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<D> getEntity(@PathVariable("id") Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to get {} : {}", entityName, id);
         return service.findOne(id, abstractAuthenticationToken)
             .map(ResponseEntity::ok)
@@ -161,11 +161,11 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEntity(@PathVariable("id") String id, AbstractAuthenticationToken abstractAuthenticationToken) {
+    public ResponseEntity<Void> deleteEntity(@PathVariable("id") Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         log.debug("REST request to delete {} : {}", entityName, id);
         service.delete(id, abstractAuthenticationToken);
         return ResponseEntity.noContent()
-            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, entityName, id))
+            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, entityName, id.toString()))
             .build();
     }
 }

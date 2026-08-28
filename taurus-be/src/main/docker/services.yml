@@ -7,87 +7,58 @@ services:
       service: postgresql
     networks:
       taurus-network:
-        ipv4_address: 172.180.0.2
+        ipv4_address: 172.28.0.2
   keycloak:
     extends:
       file: ./keycloak.yml
       service: keycloak
     networks:
       taurus-network:
-        ipv4_address: 172.180.0.3
-  opensearch-node1:
-    extends:
-      file: ./opensearch.yml
-      service: opensearch-node1
-    networks:
-      taurus-network:
-        ipv4_address: 172.180.0.4
-  opensearch-node2:
-    extends:
-      file: ./opensearch.yml
-      service: opensearch-node2
-    networks:
-      taurus-network:
-        ipv4_address: 172.180.0.5
-  opensearch-dashboards:
-    extends:
-      file: ./opensearch.yml
-      service: opensearch-dashboards
-    networks:
-      taurus-network:
-        ipv4_address: 172.180.0.6
+        ipv4_address: 172.28.0.3
   rabbitmq:
     extends:
       file: ./rabbitmq.yml
       service: rabbitmq
     networks:
       taurus-network:
-        ipv4_address: 172.180.0.7
-  backend:
-    image: fundanie/taurus-backend:1.0.0
-    container_name: backend-container
-    restart: unless-stopped
-    depends_on:
-      postgresql:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-      opensearch-node1:
-        condition: service_started
-      opensearch-node2:
-        condition: service_started
-      rabbitmq:
-        condition: service_started
-    networks:
-      taurus-network:
-        ipv4_address: 172.180.0.8
-  nginx:
-    image: fundanie/taurus-frontend:1.0.0
-    container_name: nginx-container
-    restart: unless-stopped
-    depends_on:
-      postgresql:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-      opensearch-node1:
-        condition: service_started
-      opensearch-node2:
-        condition: service_started
-      rabbitmq:
-        condition: service_started
-    ports:
-      - 80:80
-      - 443:443
-    networks:
-      taurus-network:
-        ipv4_address: 172.180.0.9
+        ipv4_address: 172.28.0.4
+#  backend:
+#    image: fundanie/taurus-backend:1.0.0
+#    container_name: backend-container
+#    restart: unless-stopped
+#    depends_on:
+#      postgresql:
+#        condition: service_healthy
+#      keycloak:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_started
+#    networks:
+#      taurus-network:
+#        ipv4_address: 172.28.0.5
+#  nginx:
+#    image: fundanie/taurus-frontend:1.0.0
+#    container_name: nginx-container
+#    restart: unless-stopped
+#    depends_on:
+#      postgresql:
+#        condition: service_healthy
+#      keycloak:
+#        condition: service_healthy
+#      backend:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_started
+#    ports:
+#      - 80:80
+#      - 443:443
+#    networks:
+#      taurus-network:
+#        ipv4_address: 172.28.0.6
 
 networks:
   taurus-network:
     ipam:
       driver: default
       config:
-        - subnet: 172.180.0.0/24
+        - subnet: 172.28.0.0/24

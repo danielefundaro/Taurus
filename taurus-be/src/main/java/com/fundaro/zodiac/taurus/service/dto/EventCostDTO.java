@@ -3,13 +3,14 @@ package com.fundaro.zodiac.taurus.service.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class EventCostDTO implements Serializable {
 
     private String description;
-    private Double amount;
+    private BigDecimal amount;
 
     public String getDescription() {
         return description;
@@ -19,11 +20,11 @@ public class EventCostDTO implements Serializable {
         this.description = description;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 

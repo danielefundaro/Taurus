@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +17,7 @@ public class CalendarEventsDTO extends StateFieldOpenSearchDTO {
     private Date startDate;
     private Date endDate;
     private String location;
-    private Double fee;
+    private BigDecimal fee;
     private List<EventCostDTO> costs;
     private List<EventUserEntryDTO> availableUsers;
     private List<EventUserEntryDTO> unavailableUsers;
@@ -47,11 +48,11 @@ public class CalendarEventsDTO extends StateFieldOpenSearchDTO {
         this.location = location;
     }
 
-    public Double getFee() {
+    public BigDecimal getFee() {
         return fee;
     }
 
-    public void setFee(Double fee) {
+    public void setFee(BigDecimal fee) {
         this.fee = fee;
     }
 

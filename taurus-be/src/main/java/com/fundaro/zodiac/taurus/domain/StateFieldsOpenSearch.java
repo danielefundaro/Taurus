@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.MappedSuperclass;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@MappedSuperclass
 public class StateFieldsOpenSearch extends CommonFieldsOpenSearch {
 
     @Enumerated(EnumType.STRING)

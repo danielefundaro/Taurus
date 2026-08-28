@@ -3,13 +3,20 @@ package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Entity
+@Table(name = "media")
 public class Media extends CommonFieldsOpenSearch {
 
+    @Column(name = "path", nullable = false, length = 2048)
     private String path;
 
     @JsonProperty("content_type")
+    @Column(name = "content_type")
     private String contentType;
 
     public String getPath() {

@@ -17,7 +17,7 @@ public class SheetsMusicDTO implements Serializable {
 
     private Set<ChildrenEntitiesDTO> instruments;
 
-    private Boolean needsReview;
+    private Boolean needsReview = Boolean.FALSE;
 
     public String getDescription() {
         return description;
@@ -56,7 +56,7 @@ public class SheetsMusicDTO implements Serializable {
     }
 
     public void setNeedsReview(Boolean needsReview) {
-        this.needsReview = needsReview;
+        this.needsReview = Boolean.TRUE.equals(needsReview);
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
+import tech.jhipster.service.filter.LongFilter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -37,10 +38,10 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
 
     private StringFilter type;
 
-    private StringFilter instrumentId;
+    private LongFilter instrumentId;
 
     @JsonIgnore
-    private StringFilter mediaId;
+    private LongFilter mediaId;
 
     public TracksCriteria() {
         super();
@@ -55,8 +56,8 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         this.tone = other.optionalTone().map(StringFilter::copy).orElse(null);
         this.state = other.optionalState().map(StateFilter::copy).orElse(null);
         this.type = other.optionalType().map(StringFilter::copy).orElse(null);
-        this.instrumentId = other.optionalInstrumentId().map(StringFilter::copy).orElse(null);
-        this.mediaId = other.optionalMediaId().map(StringFilter::copy).orElse(null);
+        this.instrumentId = other.optionalInstrumentId().map(LongFilter::copy).orElse(null);
+        this.mediaId = other.optionalMediaId().map(LongFilter::copy).orElse(null);
     }
 
     @Override
@@ -155,28 +156,28 @@ public class TracksCriteria extends CommonOpenSearchCriteria {
         return this;
     }
 
-    public StringFilter getInstrumentId() {
+    public LongFilter getInstrumentId() {
         return instrumentId;
     }
 
-    public Optional<StringFilter> optionalInstrumentId() {
+    public Optional<LongFilter> optionalInstrumentId() {
         return Optional.ofNullable(instrumentId);
     }
 
-    public TracksCriteria setInstrumentId(StringFilter instrumentId) {
+    public TracksCriteria setInstrumentId(LongFilter instrumentId) {
         this.instrumentId = instrumentId;
         return this;
     }
 
-    public StringFilter getMediaId() {
+    public LongFilter getMediaId() {
         return mediaId;
     }
 
-    public Optional<StringFilter> optionalMediaId() {
+    public Optional<LongFilter> optionalMediaId() {
         return Optional.ofNullable(mediaId);
     }
 
-    public TracksCriteria setMediaId(StringFilter mediaId) {
+    public TracksCriteria setMediaId(LongFilter mediaId) {
         this.mediaId = mediaId;
         return this;
     }
