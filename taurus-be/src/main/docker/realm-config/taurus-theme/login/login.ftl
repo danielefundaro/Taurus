@@ -80,7 +80,7 @@
             <div class="taurus-options-row">
                 <#if realm.rememberMe>
                 <label class="taurus-checkbox-label">
-                    <input type="checkbox" name="rememberMe"<#if login.rememberMe?? && login.rememberMe> checked</#if>>
+                    <input type="checkbox" name="rememberMe"<#if login.rememberMe??> checked</#if>>
                     <span>${msg("rememberMe")}</span>
                 </label>
                 <#else>
