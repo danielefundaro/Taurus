@@ -3,17 +3,21 @@ package com.fundaro.zodiac.taurus.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEventAvailability;
+import com.fundaro.zodiac.taurus.domain.CalendarEventPresence;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
+import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -84,18 +88,66 @@ class CalendarEventsServiceImplTest {
         assertThat(reminderProducer.cancelled).isEqualTo(1);
     }
 
+    @Test
+    void deletesExistingPresencesBeforeInsertingTheirReplacements() {
+        Users user = user();
+        CalendarEvents event = event();
+        CalendarEventPresence existingPresence = new CalendarEventPresence();
+        existingPresence.setId(10L);
+        existingPresence.setUser(user);
+        event.getPresences().add(existingPresence);
+        AtomicBoolean flushedWithEmptyPresences = new AtomicBoolean();
+        CalendarEventsServiceImpl service = service(
+            event,
+            user,
+            new RecordingReminderProducer(),
+            () -> flushedWithEmptyPresences.set(event.getPresences().isEmpty())
+        );
+        EventPresentUserDTO replacement = new EventPresentUserDTO();
+        replacement.setIndex(user.getId());
+        replacement.setArrivalTime(new Date());
+
+        service.setPresentUsers(event.getId(), List.of(replacement), authentication());
+
+        assertThat(flushedWithEmptyPresences).isTrue();
+        assertThat(event.getPresences()).hasSize(1);
+        assertThat(event.getPresences().get(0).getId()).isNull();
+        assertThat(event.getPresences().get(0).getUser().getId()).isEqualTo(user.getId());
+    }
+
     private static CalendarEventsServiceImpl service(CalendarEvents event, Users user, EventReminderProducer reminderProducer) {
+        return service(event, user, reminderProducer, () -> {});
+    }
+
+    private static CalendarEventsServiceImpl service(
+        CalendarEvents event,
+        Users user,
+        EventReminderProducer reminderProducer,
+        Runnable onFlush
+    ) {
         CalendarEventsRepository eventsRepository = proxy(
             CalendarEventsRepository.class,
             (methodName, args) -> switch (methodName) {
                 case "findByIdAndDeletedFalse" -> Optional.of(event);
                 case "save" -> args[0];
+                case "flush" -> {
+                    onFlush.run();
+                    yield null;
+                }
                 default -> null;
             }
         );
         UsersRepository usersRepository = proxy(
             UsersRepository.class,
-            (methodName, args) -> "findByKeycloakIdAndDeletedFalse".equals(methodName) ? Optional.of(user) : null
+            (methodName, args) -> switch (methodName) {
+                case "findByKeycloakIdAndDeletedFalse" -> Optional.of(user);
+                case "getReferenceById" -> {
+                    Users referencedUser = new Users();
+                    referencedUser.setId((Long) args[0]);
+                    yield referencedUser;
+                }
+                default -> null;
+            }
         );
         CalendarEventsMapper mapper = proxy(
             CalendarEventsMapper.class,
