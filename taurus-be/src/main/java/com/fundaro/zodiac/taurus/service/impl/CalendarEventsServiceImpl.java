@@ -90,16 +90,25 @@ public class CalendarEventsServiceImpl
     public CalendarEventsDTO setAvailability(Long eventId, boolean available, AbstractAuthenticationToken token) {
         CalendarEvents event = findEntity(eventId);
         Users user = currentUser(token);
-        event.getAvailabilities().removeIf(entry -> entry.getUser().getId().equals(user.getId()));
-        CalendarEventAvailability response = new CalendarEventAvailability();
-        response.setUser(user);
+        CalendarEventAvailability response = event.getAvailabilities().stream()
+            .filter(entry -> entry.getUser().getId().equals(user.getId()))
+            .findFirst()
+            .orElseGet(() -> {
+                CalendarEventAvailability newResponse = new CalendarEventAvailability();
+                newResponse.setUser(user);
+                event.getAvailabilities().add(newResponse);
+                return newResponse;
+            });
         response.setAvailability(available
             ? CalendarEventAvailability.Availability.AVAILABLE
             : CalendarEventAvailability.Availability.UNAVAILABLE);
         response.setResponseDate(new Date());
-        event.getAvailabilities().add(response);
         CalendarEventsDTO result = saveEntity(event, token, false);
-        if (available) reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), token);
+        if (available) {
+            reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), token);
+        } else {
+            reminderProducer.cancelPending(eventId, user.getKeycloakId());
+        }
         return result;
     }
 
@@ -108,7 +117,9 @@ public class CalendarEventsServiceImpl
         CalendarEvents event = findEntity(eventId);
         Users user = currentUser(token);
         event.getAvailabilities().removeIf(entry -> entry.getUser().getId().equals(user.getId()));
-        return saveEntity(event, token, false);
+        CalendarEventsDTO result = saveEntity(event, token, false);
+        reminderProducer.cancelPending(eventId, user.getKeycloakId());
+        return result;
     }
 
     @Override
