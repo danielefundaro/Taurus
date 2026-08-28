@@ -4,39 +4,32 @@
             <div class="flex flex-row justify-between items-center">
                 <div class="flex items-center gap-2">
                     <span class="font-semibold text-xl">Tenant</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-                        title="Modifiche non salvate"></span>
+                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
                 </div>
                 <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
-                        [disabled]="!isDirty" (onClick)="save()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
                     <label for="name">Nome</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code" (ngModelChange)="isDirty = true" />
                     <label for="code">Codice</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" (ngModelChange)="isDirty = true" />
                     <label for="email">Email</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers" (ngModelChange)="isDirty = true" />
                     <label for="maxUsers">Numero Massimo Utenti</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd"
-                        [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
+                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd" [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
                     <label for="expireDate">Data Scadenza</label>
                 </p-floatlabel>
                 <p-floatlabel variant="on">
@@ -44,8 +37,7 @@
                     <label for="address">Indirizzo</label>
                 </p-floatlabel>
                 <p-floatlabel variant="on">
-                    <input pInputText id="postalCode" [(ngModel)]="tenant.postalCode"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="postalCode" [(ngModel)]="tenant.postalCode" (ngModelChange)="isDirty = true" />
                     <label for="postalCode">CAP</label>
                 </p-floatlabel>
                 <p-floatlabel variant="on">
@@ -56,10 +48,13 @@
                     <input pInputText id="province" [(ngModel)]="tenant.province" (ngModelChange)="isDirty = true" />
                     <label for="province">Provincia</label>
                 </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="country" [(ngModel)]="tenant.country" (ngModelChange)="isDirty = true" />
-                    <label for="country">Paese</label>
-                </p-floatlabel>
+                <div class="flex flex-col gap-1">
+                    <p-floatlabel variant="on">
+                        <input pInputText id="country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="IT" title="Codice Paese di due lettere, ad esempio IT" [(ngModel)]="tenant.country" (ngModelChange)="onCountryChange($event)" />
+                        <label for="country">Paese (codice ISO)</label>
+                    </p-floatlabel>
+                    <small *ngIf="countryInvalid" class="text-red-500">Inserisci un codice Paese di due lettere, ad esempio IT.</small>
+                </div>
                 <p-floatlabel variant="on">
                     <input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" />
                     <label for="taxCode">Codice fiscale</label>
@@ -69,20 +64,20 @@
                     <label for="vatNumber">Partita IVA</label>
                 </p-floatlabel>
                 <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain"
-                        (ngModelChange)="isDirty = true" />
+                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" (ngModelChange)="isDirty = true" />
                     <label for="domain">Dominio</label>
                 </p-floatlabel>
-                <p-floatlabel variant="on"><input pInputText id="logoUrl" [(ngModel)]="tenant.logoUrl"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="logoUrl">URL logo</label>
-                </p-floatlabel>
-                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato"
-                    (ngModelChange)="isDirty = true" />
+                <div class="flex flex-col gap-1">
+                    <p-floatlabel variant="on">
+                        <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+" placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" />
+                        <label for="logoUrl">URL logo</label>
+                    </p-floatlabel>
+                    <small *ngIf="logoUrlInvalid" class="text-red-500">Inserisci un URL completo che inizi con http:// o https://.</small>
+                </div>
+                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" (ngModelChange)="isDirty = true" />
             </div>
             <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description"
-                    (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description" (ngModelChange)="isDirty = true"></textarea>
                 <label for="description">Descrizione</label>
             </p-floatlabel>
         </div>
@@ -93,17 +88,12 @@
         <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
         <div class="flex flex-col gap-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span class="text-sm text-surface-500">Elimina il tenant conservando dati, indici, file e
-                    autorizzazioni.</span>
-                <p-button label="Elimina tenant" icon="pi pi-trash" severity="warn" [outlined]="true"
-                    (onClick)="confirmDelete()" />
+                <span class="text-sm text-surface-500">Elimina il tenant conservando dati, indici, file e autorizzazioni.</span>
+                <p-button label="Elimina tenant" icon="pi pi-trash" severity="warn" [outlined]="true" (onClick)="confirmDelete()" />
             </div>
-            <div
-                class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
-                <span class="text-sm text-surface-500">Elimina definitivamente il tenant e tutti i dati associati ai
-                    sensi del GDPR.</span>
-                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger"
-                    (onClick)="confirmGdprDeletion()" />
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
+                <span class="text-sm text-surface-500">Elimina definitivamente il tenant e tutti i dati associati ai sensi del GDPR.</span>
+                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger" (onClick)="confirmGdprDeletion()" />
             </div>
         </div>
     </div>

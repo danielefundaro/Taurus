@@ -87,9 +87,10 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         TenantsDTO tenantsDTO = tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant not found", getEntityName(), "tenant.notFound"));
         long usersCount = super.count(new UsersCriteria(), abstractAuthenticationToken);
+        Long maxUsers = tenantsDTO.getMaxUsers();
 
-        if (usersCount >= tenantsDTO.getMaxUsers()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", tenantsDTO.getMaxUsers()), getEntityName(), "user.limit.exceeded");
+        if (maxUsers != null && maxUsers >= 0 && usersCount >= maxUsers) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", maxUsers), getEntityName(), "user.limit.exceeded");
         }
 
         User user = getMapper().toKeycloakUser(dto);

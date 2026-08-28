@@ -112,7 +112,7 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/{id}", consumes = {"application/json", "application/merge-patch+json"})
-    public ResponseEntity<D> partialUpdateEntity(@PathVariable(value = "id", required = false) final Long id, @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
+    public ResponseEntity<D> partialUpdateEntity(@PathVariable(value = "id", required = false) final Long id, @Valid @NotNull @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to partial update {} partially : {}, {}", entityName, id, dto);
         D result = service.partialUpdate(id, dto, abstractAuthenticationToken);
         if (result == null) {
