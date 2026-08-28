@@ -1,6 +1,9 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 
 import java.util.Date;
 import java.util.Objects;
@@ -23,9 +26,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     private String postalCode;
     private String city;
     private String province;
+
+    @Pattern(regexp = "[A-Z]{2}", message = "must be a two-letter uppercase country code")
     private String country;
     private String taxCode;
     private String vatNumber;
+
+    @URL(regexp = "https?://.*", message = "must be a valid HTTP or HTTPS URL")
+    @Size(max = 2048)
     private String logoUrl;
 
     public String getCode() {

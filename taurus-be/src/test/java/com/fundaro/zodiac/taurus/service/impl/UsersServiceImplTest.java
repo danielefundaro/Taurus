@@ -1,9 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.Instruments;
+import com.fundaro.zodiac.taurus.domain.TenantUserMembership;
+import com.fundaro.zodiac.taurus.domain.UserIdentity;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
@@ -14,6 +17,7 @@ import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
@@ -28,8 +32,12 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -106,6 +114,40 @@ class UsersServiceImplTest {
         assertThat(entity.getInstruments()).isSameAs(managedInstruments).containsExactly(resolvedInstrument);
         entity.getInstruments().clear();
         assertThat(entity.getInstruments()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(longs = -1L)
+    void shouldAllowSavingWhenTenantHasNoUserLimit(Long maxUsers) {
+        UsersDTO input = new UsersDTO();
+        input.setEmail("new-user@example.com");
+        input.setRoles(Set.of());
+
+        TenantsDTO tenant = new TenantsDTO();
+        tenant.setId(1L);
+        tenant.setMaxUsers(maxUsers);
+
+        User keycloakUser = new User();
+        Users entity = new Users();
+        UsersDTO saved = new UsersDTO();
+        saved.setId(2L);
+        UserIdentity identity = new UserIdentity();
+        identity.setId(3L);
+        JwtAuthenticationToken authentication = authentication();
+
+        when(tenantsService.findByCode("BMCDG", authentication)).thenReturn(Optional.of(tenant));
+        when(usersRepository.count(org.mockito.ArgumentMatchers.<Specification<Users>>any())).thenReturn(100L);
+        when(usersMapper.toKeycloakUser(input)).thenReturn(keycloakUser);
+        when(keycloakService.getUserIdByUsernameOrEmail(input.getEmail(), input.getEmail())).thenReturn("keycloak-user-2");
+        when(keycloakService.getUser("keycloak-user-2")).thenReturn(keycloakUser);
+        when(usersMapper.toEntity(input)).thenReturn(entity);
+        when(userIdentityRepository.findByKeycloakId("keycloak-user-2")).thenReturn(Optional.of(identity));
+        when(usersRepository.save(entity)).thenReturn(entity);
+        when(usersMapper.toDto(entity)).thenReturn(saved);
+        when(membershipRepository.save(any(TenantUserMembership.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(service.save(input, authentication)).isSameAs(saved);
     }
 
     private JwtAuthenticationToken authentication() {

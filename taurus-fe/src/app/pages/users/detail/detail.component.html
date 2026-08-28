@@ -76,7 +76,9 @@
     </div>
 
     @if (user.id) {
-        <app-inventory-assignments [userIndex]="user.id" />
+        <div class="mt-4">
+            <app-inventory-assignments [userIndex]="user.id"/>
+        </div>
     }
 
     <!-- Zona pericolosa -->
