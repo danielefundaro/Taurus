@@ -126,6 +126,9 @@ public class CalendarEventsServiceImpl
     public CalendarEventsDTO setPresentUsers(Long eventId, List<EventPresentUserDTO> presentUsers, AbstractAuthenticationToken token) {
         CalendarEvents event = findEntity(eventId);
         event.getPresences().clear();
+        // Flush orphan removals before inserting the replacement rows. Otherwise
+        // Hibernate can insert first and violate the unique (event_id, user_id) constraint.
+        getRepository().flush();
         if (presentUsers != null) {
             presentUsers.forEach(dto -> {
                 CalendarEventPresence presence = new CalendarEventPresence();
