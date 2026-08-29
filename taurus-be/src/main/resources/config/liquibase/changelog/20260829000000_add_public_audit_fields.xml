@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260829000000-1" author="taurus" dbms="postgresql">
+    <comment>Add the standard persistence-only audit fields to every public application table that does not have them.</comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER TABLE public.legal_document
+        ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+      ALTER TABLE public.tenant_schema_registry
+        ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+      ALTER TABLE public.tenant_user_membership
+        ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+      ALTER TABLE public.user_identity
+        ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+        ADD COLUMN edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+      CREATE OR REPLACE FUNCTION public.taurus_touch_audit()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.edit_date = CURRENT_TIMESTAMP;
+        IF NEW.edit_by IS NULL OR BTRIM(NEW.edit_by) = '' THEN
+          NEW.edit_by = COALESCE(OLD.edit_by, 'system');
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER trg_legal_document_touch_audit BEFORE UPDATE ON public.legal_document
+        FOR EACH ROW EXECUTE FUNCTION public.taurus_touch_audit();
+      CREATE TRIGGER trg_tenant_schema_registry_touch_audit BEFORE UPDATE ON public.tenant_schema_registry
+        FOR EACH ROW EXECUTE FUNCTION public.taurus_touch_audit();
+      CREATE TRIGGER trg_tenant_user_membership_touch_audit BEFORE UPDATE ON public.tenant_user_membership
+        FOR EACH ROW EXECUTE FUNCTION public.taurus_touch_audit();
+      CREATE TRIGGER trg_user_identity_touch_audit BEFORE UPDATE ON public.user_identity
+        FOR EACH ROW EXECUTE FUNCTION public.taurus_touch_audit();
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>

@@ -12,7 +12,7 @@ import java.time.ZonedDateTime;
     schema = "public",
     uniqueConstraints = @UniqueConstraint(name = "uq_legal_document_type_version", columnNames = {"document_type", "version"})
 )
-public class LegalDocument {
+public class LegalDocument extends AuditFields {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

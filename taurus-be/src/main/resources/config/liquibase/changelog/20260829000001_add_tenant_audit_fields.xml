@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260829000001-1" author="taurus" dbms="postgresql">
+    <comment>Add the standard persistence-only audit fields to tenant-owned entities, child records and association tables.</comment>
+    <sql splitStatements="false"><![CDATA[
+      DO $$
+      DECLARE
+        target_table TEXT;
+      BEGIN
+        FOREACH target_table IN ARRAY ARRAY[
+          'album_track',
+          'app_user_role',
+          'calendar_event_availability',
+          'calendar_event_cost',
+          'calendar_event_presence',
+          'push_reminders',
+          'sheet_music',
+          'sheet_music_instrument',
+          'sheet_music_media',
+          'track_type',
+          'user_instrument'
+        ]
+        LOOP
+          EXECUTE format(
+            'ALTER TABLE %I ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE, ADD COLUMN insert_by VARCHAR(255) NOT NULL DEFAULT %L, ADD COLUMN insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, ADD COLUMN edit_by VARCHAR(255) NOT NULL DEFAULT %L, ADD COLUMN edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            target_table,
+            'system',
+            'system'
+          );
+        END LOOP;
+      END;
+      $$;
+
+      CREATE OR REPLACE FUNCTION taurus_touch_audit()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.edit_date = CURRENT_TIMESTAMP;
+        IF NEW.edit_by IS NULL OR BTRIM(NEW.edit_by) = '' THEN
+          NEW.edit_by = COALESCE(OLD.edit_by, 'system');
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      DO $$
+      DECLARE
+        target_table TEXT;
+      BEGIN
+        FOREACH target_table IN ARRAY ARRAY[
+          'album_track',
+          'app_user_role',
+          'calendar_event_availability',
+          'calendar_event_cost',
+          'calendar_event_presence',
+          'push_reminders',
+          'sheet_music',
+          'sheet_music_instrument',
+          'sheet_music_media',
+          'track_type',
+          'user_instrument'
+        ]
+        LOOP
+          EXECUTE format(
+            'CREATE TRIGGER %I BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION taurus_touch_audit()',
+            'trg_' || target_table || '_touch_audit',
+            target_table
+          );
+        END LOOP;
+      END;
+      $$;
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>

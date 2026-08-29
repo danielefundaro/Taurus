@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "tenant_user_membership", schema = "public")
-public class TenantUserMembership {
+public class TenantUserMembership extends AuditFields {
     @EmbeddedId
     private TenantUserMembershipId id;
 

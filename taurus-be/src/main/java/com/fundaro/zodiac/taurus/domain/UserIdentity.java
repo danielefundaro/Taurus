@@ -11,7 +11,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "user_identity", schema = "public")
-public class UserIdentity implements Serializable {
+public class UserIdentity extends AuditFields implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

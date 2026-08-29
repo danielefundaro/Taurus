@@ -147,7 +147,12 @@ public class TenantSchemaProvisioningService {
                     status varchar(32) NOT NULL,
                     last_error varchar(2000),
                     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    updated_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    deleted boolean NOT NULL DEFAULT false,
+                    insert_by varchar(255) NOT NULL DEFAULT 'system',
+                    insert_date timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    edit_by varchar(255) NOT NULL DEFAULT 'system',
+                    edit_date timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """);
         }

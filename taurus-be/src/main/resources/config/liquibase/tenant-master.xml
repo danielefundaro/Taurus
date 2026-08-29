@@ -22,4 +22,5 @@
     <include file="config/liquibase/changelog/20260826000000_allow_super_admin_upload.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260826000002_unlimited_tenant_descriptions.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260827000000_inventory_photo_preview.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260829000001_add_tenant_audit_fields.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>
