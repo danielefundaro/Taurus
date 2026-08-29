@@ -16,7 +16,7 @@ import java.util.Objects;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Entity
 @Table(name = "calendar_event_cost")
-public class EventCost implements Serializable {
+public class EventCost extends AuditFields implements Serializable {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

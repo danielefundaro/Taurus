@@ -8,7 +8,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "push_reminders")
-public class PushReminder implements Serializable {
+public class PushReminder extends AuditFields implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

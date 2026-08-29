@@ -13,7 +13,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "calendar_event_presence")
-public class CalendarEventPresence {
+public class CalendarEventPresence extends AuditFields {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
