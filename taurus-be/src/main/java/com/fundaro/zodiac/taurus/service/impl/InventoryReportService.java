@@ -33,6 +33,8 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InventoryReportService {
 
+    private static final Logger log = LoggerFactory.getLogger(InventoryReportService.class);
     private static final long MAX_PDF_SIZE = 100L * 1024 * 1024;
     private static final Duration MAX_GENERATION_TIME = Duration.ofSeconds(120);
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -49,17 +52,20 @@ public class InventoryReportService {
     private final UsersService usersService;
     private final TenantsService tenantsService;
     private final InventoryReportExportRepository reportExportRepository;
+    private final TenantLogoLoader tenantLogoLoader;
 
     public InventoryReportService(
         InventoryService inventoryService,
         UsersService usersService,
         TenantsService tenantsService,
-        InventoryReportExportRepository reportExportRepository
+        InventoryReportExportRepository reportExportRepository,
+        TenantLogoLoader tenantLogoLoader
     ) {
         this.inventoryService = inventoryService;
         this.usersService = usersService;
         this.tenantsService = tenantsService;
         this.reportExportRepository = reportExportRepository;
+        this.tenantLogoLoader = tenantLogoLoader;
     }
 
     @Transactional
@@ -97,8 +103,12 @@ public class InventoryReportService {
             PDFont regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
             PDFont bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
             PageWriter writer = new PageWriter(document, regular, bold);
-            writer.title("Prospetto inventario consegnato e riconsegnato");
             TenantsDTO tenant = tenantsService.findByCode(requiredTenant(token), token).orElse(null);
+            if (tenant != null && tenant.getLogoUrl() != null && !tenant.getLogoUrl().isBlank()) {
+                boolean logoIncluded = tenantLogoLoader.load(tenant.getLogoUrl()).map(writer::headerLogo).orElse(false);
+                if (!logoIncluded) log.warn("Tenant logo could not be included in inventory report for tenant {}", tenant.getCode());
+            }
+            writer.title("Prospetto inventario consegnato e riconsegnato");
             writer.line((tenant == null ? requiredTenant(token) : safe(tenant.getName())), true);
             if (tenant != null) {
                 writer.line("Sede: " + safe(joinAddress(tenant)), false);
@@ -271,6 +281,8 @@ public class InventoryReportService {
     private static final class PageWriter {
         private static final float MARGIN = 48;
         private static final float BOTTOM = 44;
+        private static final float HEADER_LOGO_TOP_MARGIN = 10;
+        private static final float HEADER_LOGO_BOTTOM_SPACING = 20;
         private final PDDocument document;
         private final PDFont regular;
         private final PDFont bold;
@@ -313,6 +325,24 @@ public class InventoryReportService {
             y -= height + 4;
             writeWrapped("Foto: " + caption, regular, 8, 11, 0, 85, 85, 85, 85);
             y -= 6;
+        }
+
+        boolean headerLogo(byte[] bytes) {
+            try {
+                PDImageXObject image = PDImageXObject.createFromByteArray(document, bytes, "Logo tenant");
+                float maxWidth = 120;
+                float maxHeight = 56;
+                float scale = Math.min(1, Math.min(maxWidth / image.getWidth(), maxHeight / image.getHeight()));
+                float width = image.getWidth() * scale;
+                float height = image.getHeight() * scale;
+                float x = (page.getMediaBox().getWidth() - width) / 2;
+                float logoTop = page.getMediaBox().getHeight() - HEADER_LOGO_TOP_MARGIN;
+                stream.drawImage(image, x, logoTop - height, width, height);
+                y = logoTop - height - HEADER_LOGO_BOTTOM_SPACING;
+                return true;
+            } catch (IOException | IllegalArgumentException exception) {
+                return false;
+            }
         }
 
         void closeCurrentPage() throws IOException {

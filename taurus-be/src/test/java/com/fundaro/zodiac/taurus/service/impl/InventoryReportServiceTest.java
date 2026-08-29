@@ -9,6 +9,7 @@ import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReportExportRepository;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
@@ -20,7 +21,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.time.ZonedDateTime;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +40,7 @@ class InventoryReportServiceTest {
     @Mock UsersService usersService;
     @Mock TenantsService tenantsService;
     @Mock InventoryReportExportRepository reportExportRepository;
+    @Mock TenantLogoLoader tenantLogoLoader;
     @InjectMocks InventoryReportService reportService;
 
     @Test
@@ -75,6 +81,43 @@ class InventoryReportServiceTest {
             export.getEditDate() != null &&
             !export.isDeleted()
         ));
+    }
+
+    @Test
+    void shouldIncludeTenantLogoInPdfHeader() throws Exception {
+        UsersDTO user = new UsersDTO();
+        user.setId(42L);
+        user.setName("Mario");
+        user.setLastName("Rossi");
+        JwtAuthenticationToken token = authentication();
+        TenantsDTO tenant = new TenantsDTO();
+        tenant.setCode("tenant-a");
+        tenant.setName("Tenant A");
+        tenant.setLogoUrl("https://example.test/logo.png");
+
+        when(usersService.findMe(token)).thenReturn(Optional.of(user));
+        when(inventoryService.findOwnAssignments(token)).thenReturn(List.of());
+        when(tenantsService.findByCode("tenant-a", token)).thenReturn(Optional.of(tenant));
+        when(tenantLogoLoader.load(tenant.getLogoUrl())).thenReturn(Optional.of(logoPng()));
+
+        var report = reportService.createOwn(true, true, false, token);
+
+        try (var document = Loader.loadPDF(report.bytes())) {
+            boolean containsLogo = false;
+            for (var name : document.getPage(0).getResources().getXObjectNames()) {
+                containsLogo |= document.getPage(0).getResources().getXObject(name) instanceof PDImageXObject;
+            }
+            assertThat(containsLogo).isTrue();
+        }
+        verify(tenantLogoLoader).load(tenant.getLogoUrl());
+    }
+
+    private byte[] logoPng() throws Exception {
+        BufferedImage image = new BufferedImage(20, 10, BufferedImage.TYPE_INT_RGB);
+        image.setRGB(0, 0, java.awt.Color.BLUE.getRGB());
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 
     private JwtAuthenticationToken authentication() {
