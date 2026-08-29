@@ -1,9 +1,3 @@
-.mw-max-content {
-    max-width: max-content;
-}
-
-.image-galleria {
-    max-height: 90vh;
-    max-width: 90vw;
-    object-fit: contain;
+:host {
+    display: block;
 }
