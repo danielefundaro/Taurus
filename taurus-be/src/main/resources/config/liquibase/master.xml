@@ -15,4 +15,5 @@
     <include file="config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260824000000_add_relational_identity.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260826000001_unlimited_public_descriptions.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260829000000_add_public_audit_fields.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

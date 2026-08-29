@@ -46,6 +46,11 @@ public interface CalendarEventsMapper extends EntityOpenSearchMapper<CalendarEve
 
     EventCostDTO toCostDto(EventCost cost);
 
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "insertBy", ignore = true)
+    @Mapping(target = "insertDate", ignore = true)
+    @Mapping(target = "editBy", ignore = true)
+    @Mapping(target = "editDate", ignore = true)
     EventCost toCostEntity(EventCostDTO dto);
 
     EventUserEntryDTO toUserEntryDto(EventUserEntry entry);

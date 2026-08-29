@@ -659,7 +659,7 @@ public class InventoryService {
             : List.of();
         return new InventoryItemDTO(item.getId(), item.getInventoryNumber(), item.getName(), item.getDescription(), item.getTotalQuantity(), assigned,
             item.getTotalQuantity() - assigned, item.getEstimatedUnitValue(), item.getCurrency(), item.getConditionStatus(), item.getConditionNotes(),
-            item.isDeleted(), item.getInsertDate(), item.getInsertBy(), item.getEditDate(), item.getEditBy(), item.getEntityVersion(), photos, assignments);
+            item.getEntityVersion(), photos, assignments);
     }
 
     private InventoryAssignmentDTO toAssignmentDto(InventoryAssignment assignment) {
@@ -725,11 +725,11 @@ public class InventoryService {
     }
 
     private InventoryPhotoDTO toPhotoDto(InventoryItemPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), photo.getDisplayOrder(), photo.isPreview(), photo.getInsertDate());
+        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), photo.getDisplayOrder(), photo.isPreview());
     }
 
     private InventoryPhotoDTO toPhotoDto(InventoryReturnPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), 0, false, photo.getInsertDate());
+        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), 0, false);
     }
 
     private InventoryAssignmentRevision currentRevision(InventoryAssignment assignment) {

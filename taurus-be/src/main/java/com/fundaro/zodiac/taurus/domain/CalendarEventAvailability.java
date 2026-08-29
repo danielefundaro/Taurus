@@ -15,7 +15,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "calendar_event_availability")
-public class CalendarEventAvailability {
+public class CalendarEventAvailability extends AuditFields {
     public enum Availability { AVAILABLE, UNAVAILABLE }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

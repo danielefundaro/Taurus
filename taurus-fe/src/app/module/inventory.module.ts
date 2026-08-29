@@ -11,7 +11,6 @@ export interface InventoryPhoto {
     fileSize: number;
     displayOrder: number;
     preview: boolean;
-    insertDate: string;
 }
 
 export interface InventoryDecision {
