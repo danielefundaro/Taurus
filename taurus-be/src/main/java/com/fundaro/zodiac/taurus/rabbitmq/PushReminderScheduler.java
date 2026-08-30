@@ -42,7 +42,7 @@ public class PushReminderScheduler {
     }
 
     private void processCurrentTenantReminders() {
-        reminderRepository.findBySentFalseAndSendAtLessThanEqual(Instant.now()).forEach(reminder -> {
+        reminderRepository.findByDeletedFalseAndSentFalseAndSendAtLessThanEqual(Instant.now()).forEach(reminder -> {
             log.debug("Sending reminder for userId={}, event={}", reminder.getUserId(), reminder.getEventId());
             String body = String.format("L'evento \"%s\" sta per iniziare", reminder.getEventName());
             pushService.sendToUser(reminder.getUserId(), TenantContext.getTenantCode().orElseThrow(), "Promemoria evento", body);

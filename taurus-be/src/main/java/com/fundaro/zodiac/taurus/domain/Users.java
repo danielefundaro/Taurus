@@ -19,6 +19,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.persistence.Transient;
+import org.hibernate.annotations.SoftDelete;
 
 import java.util.Date;
 import java.util.Objects;
@@ -54,6 +55,7 @@ public class Users extends CommonFieldsOpenSearch {
     @CollectionTable(name = "app_user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
+    @SoftDelete(columnName = "deleted")
     private Set<RoleEnum> roles = new LinkedHashSet<>();
 
     @Column(name = "active", nullable = false)
@@ -62,6 +64,7 @@ public class Users extends CommonFieldsOpenSearch {
     @ManyToMany
     @JoinTable(name = "user_instrument", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "instrument_id"))
     @OrderColumn(name = "display_order")
+    @SoftDelete(columnName = "deleted")
     private List<Instruments> instruments = new ArrayList<>();
 
     @JsonProperty("keycloak_id")

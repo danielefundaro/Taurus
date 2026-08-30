@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260830000000-1" author="taurus" dbms="postgresql">
+    <comment>Cascade logical deletion to owned records, active associations and pending technical work.</comment>
+    <sql splitStatements="false"><![CDATA[
+      CREATE OR REPLACE FUNCTION taurus_cascade_soft_delete()
+      RETURNS TRIGGER AS $$
+      DECLARE
+        actor TEXT := COALESCE(NULLIF(BTRIM(NEW.edit_by), ''), 'system');
+      BEGIN
+        IF OLD.deleted = FALSE AND NEW.deleted = TRUE THEN
+          IF TG_TABLE_NAME = 'album' THEN
+            UPDATE album_track
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE album_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'track' THEN
+            UPDATE album_track
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE track_id = NEW.id AND deleted = FALSE;
+            UPDATE track_type
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE track_id = NEW.id AND deleted = FALSE;
+            UPDATE sheet_music
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE track_id = NEW.id AND deleted = FALSE;
+            UPDATE upload_job
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP,
+                entity_version = entity_version + 1
+            WHERE track_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'sheet_music' THEN
+            UPDATE sheet_music_media
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE sheet_music_id = NEW.id AND deleted = FALSE;
+            UPDATE sheet_music_instrument
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE sheet_music_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'calendar_event' THEN
+            UPDATE calendar_event_cost
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE event_id = NEW.id AND deleted = FALSE;
+            UPDATE calendar_event_availability
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE event_id = NEW.id AND deleted = FALSE;
+            UPDATE calendar_event_presence
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE event_id = NEW.id AND deleted = FALSE;
+            UPDATE push_reminders
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE event_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'app_user' THEN
+            UPDATE app_user_role
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE user_id = NEW.id AND deleted = FALSE;
+            UPDATE user_instrument
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE user_id = NEW.id AND deleted = FALSE;
+            UPDATE calendar_event_availability
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE user_id = NEW.id AND deleted = FALSE;
+            UPDATE calendar_event_presence
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE user_id = NEW.id AND deleted = FALSE;
+            UPDATE upload_job
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP,
+                entity_version = entity_version + 1
+            WHERE user_id = NEW.id AND deleted = FALSE;
+            UPDATE push_reminders
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE user_id = NEW.keycloak_id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'instrument' THEN
+            UPDATE user_instrument
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE instrument_id = NEW.id AND deleted = FALSE;
+            UPDATE sheet_music_instrument
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE instrument_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'media' THEN
+            UPDATE sheet_music_media
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE media_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'inventory_item' THEN
+            UPDATE inventory_item_photo
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE item_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'inventory_assignment' THEN
+            UPDATE inventory_return
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE assignment_id = NEW.id AND deleted = FALSE;
+
+          ELSIF TG_TABLE_NAME = 'inventory_return' THEN
+            UPDATE inventory_return_photo
+            SET deleted = TRUE, edit_by = actor, edit_date = CURRENT_TIMESTAMP
+            WHERE return_id = NEW.id AND deleted = FALSE;
+          END IF;
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER trg_album_cascade_soft_delete
+        AFTER UPDATE OF deleted ON album FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_track_cascade_soft_delete
+        AFTER UPDATE OF deleted ON track FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_sheet_music_cascade_soft_delete
+        AFTER UPDATE OF deleted ON sheet_music FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_calendar_event_cascade_soft_delete
+        AFTER UPDATE OF deleted ON calendar_event FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_app_user_cascade_soft_delete
+        AFTER UPDATE OF deleted ON app_user FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_instrument_cascade_soft_delete
+        AFTER UPDATE OF deleted ON instrument FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_media_cascade_soft_delete
+        AFTER UPDATE OF deleted ON media FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_inventory_item_cascade_soft_delete
+        AFTER UPDATE OF deleted ON inventory_item FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_inventory_assignment_cascade_soft_delete
+        AFTER UPDATE OF deleted ON inventory_assignment FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+      CREATE TRIGGER trg_inventory_return_cascade_soft_delete
+        AFTER UPDATE OF deleted ON inventory_return FOR EACH ROW EXECUTE FUNCTION taurus_cascade_soft_delete();
+
+      UPDATE album_track child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM album parent
+      WHERE child.album_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE album_track child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM track parent
+      WHERE child.track_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE track_type child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM track parent
+      WHERE child.track_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE sheet_music child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM track parent
+      WHERE child.track_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE upload_job child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP,
+          entity_version = child.entity_version + 1
+      FROM track parent
+      WHERE child.track_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE sheet_music_media child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM sheet_music parent
+      WHERE child.sheet_music_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE sheet_music_instrument child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM sheet_music parent
+      WHERE child.sheet_music_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE calendar_event_cost child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM calendar_event parent
+      WHERE child.event_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE calendar_event_availability child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM calendar_event parent
+      WHERE child.event_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE calendar_event_presence child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM calendar_event parent
+      WHERE child.event_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE push_reminders child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM calendar_event parent
+      WHERE child.event_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE app_user_role child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM app_user parent
+      WHERE child.user_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE user_instrument child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM app_user parent
+      WHERE child.user_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE calendar_event_availability child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM app_user parent
+      WHERE child.user_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE calendar_event_presence child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM app_user parent
+      WHERE child.user_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE upload_job child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP,
+          entity_version = child.entity_version + 1
+      FROM app_user parent
+      WHERE child.user_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE push_reminders child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM app_user parent
+      WHERE child.user_id = parent.keycloak_id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE user_instrument child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM instrument parent
+      WHERE child.instrument_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE sheet_music_instrument child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM instrument parent
+      WHERE child.instrument_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE sheet_music_media child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM media parent
+      WHERE child.media_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+
+      UPDATE inventory_item_photo child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM inventory_item parent
+      WHERE child.item_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE inventory_return child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM inventory_assignment parent
+      WHERE child.assignment_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+      UPDATE inventory_return_photo child
+      SET deleted = TRUE,
+          edit_by = COALESCE(NULLIF(BTRIM(parent.edit_by), ''), 'system'),
+          edit_date = CURRENT_TIMESTAMP
+      FROM inventory_return parent
+      WHERE child.return_id = parent.id AND parent.deleted = TRUE AND child.deleted = FALSE;
+    ]]></sql>
+  </changeSet>
+
+  <changeSet id="20260830000000-2" author="taurus" dbms="postgresql">
+    <comment>Bind the cascade function to the tenant schema used by this Liquibase run.</comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER FUNCTION taurus_cascade_soft_delete() SET search_path FROM CURRENT;
+    ]]></sql>
+  </changeSet>
+
+  <changeSet id="20260830000000-3" author="taurus" dbms="postgresql">
+    <comment>Resolve the cascade target schema from the row that fired the trigger, including on reused connections.</comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER FUNCTION taurus_cascade_soft_delete() RESET search_path;
+
+      CREATE OR REPLACE FUNCTION taurus_prepare_soft_delete_cascade()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF OLD.deleted = FALSE AND NEW.deleted = TRUE THEN
+          PERFORM set_config(
+            'search_path',
+            quote_ident(TG_TABLE_SCHEMA) || ', pg_catalog',
+            TRUE
+          );
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      DO $$
+      DECLARE
+        parent_table TEXT;
+      BEGIN
+        FOREACH parent_table IN ARRAY ARRAY[
+          'album',
+          'track',
+          'sheet_music',
+          'calendar_event',
+          'app_user',
+          'instrument',
+          'media',
+          'inventory_item',
+          'inventory_assignment',
+          'inventory_return'
+        ]
+        LOOP
+          EXECUTE format(
+            'CREATE TRIGGER trg_%s_prepare_soft_delete_cascade '
+            || 'BEFORE UPDATE OF deleted ON %I FOR EACH ROW '
+            || 'EXECUTE FUNCTION taurus_prepare_soft_delete_cascade()',
+            parent_table,
+            parent_table
+          );
+        END LOOP;
+      END;
+      $$;
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>

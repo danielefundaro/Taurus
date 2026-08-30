@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TenantSchemaProvisioningService {
@@ -97,6 +98,23 @@ public class TenantSchemaProvisioningService {
         );
     }
 
+    @Transactional
+    public void deactivate(String tenantCode, String actor) {
+        int updated = new JdbcTemplate(dataSource).update(
+            """
+            UPDATE public.tenant_schema_registry
+            SET status = 'DELETED', deleted = TRUE, edit_by = ?,
+                updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
+            WHERE tenant_code = ? AND status = 'ACTIVE' AND deleted = FALSE
+            """,
+            actor == null || actor.isBlank() ? "system" : actor,
+            tenantCode
+        );
+        if (updated != 1) {
+            throw new TenantSchemaProvisioningException("Active PostgreSQL schema registry not found for tenant " + tenantCode, null);
+        }
+    }
+
     public void dropSchema(String tenantCode) {
         String schemaName = schemaNameResolver.resolve(tenantCode);
         schemaNameResolver.requireSafeSchemaName(schemaName);
@@ -107,7 +125,12 @@ public class TenantSchemaProvisioningService {
             try (Statement statement = connection.createStatement()) {
                 statement.execute("DROP SCHEMA IF EXISTS " + quoteIdentifier(schemaName) + " CASCADE");
                 try (PreparedStatement update = connection.prepareStatement(
-                    "UPDATE public.tenant_schema_registry SET status = 'DELETED', updated_at = CURRENT_TIMESTAMP WHERE tenant_code = ?"
+                    """
+                    UPDATE public.tenant_schema_registry
+                    SET status = 'DELETED', deleted = TRUE, edit_by = 'system',
+                        updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
+                    WHERE tenant_code = ?
+                    """
                 )) {
                     update.setString(1, tenantCode);
                     update.executeUpdate();
@@ -163,7 +186,8 @@ public class TenantSchemaProvisioningService {
             INSERT INTO public.tenant_schema_registry(tenant_code, schema_name, status, last_error)
             VALUES (?, ?, 'PROVISIONING', NULL)
             ON CONFLICT (tenant_code) DO UPDATE
-            SET schema_name = EXCLUDED.schema_name, status = 'PROVISIONING', last_error = NULL, updated_at = CURRENT_TIMESTAMP
+            SET schema_name = EXCLUDED.schema_name, status = 'PROVISIONING', last_error = NULL,
+                deleted = FALSE, edit_by = 'system', updated_at = CURRENT_TIMESTAMP
             """)) {
             statement.setString(1, tenantCode);
             statement.setString(2, schemaName);
@@ -174,7 +198,8 @@ public class TenantSchemaProvisioningService {
     private void markActive(Connection connection, String tenantCode, String schemaName) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
             UPDATE public.tenant_schema_registry
-            SET schema_name = ?, status = 'ACTIVE', last_error = NULL, updated_at = CURRENT_TIMESTAMP
+            SET schema_name = ?, status = 'ACTIVE', last_error = NULL, deleted = FALSE,
+                edit_by = 'system', updated_at = CURRENT_TIMESTAMP
             WHERE tenant_code = ?
             """)) {
             statement.setString(1, schemaName);

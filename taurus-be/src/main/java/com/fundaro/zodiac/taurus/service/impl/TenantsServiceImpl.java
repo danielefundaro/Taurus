@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningException;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TenantsMapper;
@@ -71,6 +72,17 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Transactional(readOnly = true)
     public Optional<TenantsDTO> findByCode(String code, AbstractAuthenticationToken token) {
         return getRepository().findByCodeAndDeletedFalse(code).map(getMapper()::toDto);
+    }
+
+    @Override
+    public TenantsDTO delete(Long id, AbstractAuthenticationToken token) {
+        Tenants tenant = getRepository().findByIdAndDeletedFalse(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notFound"));
+        String groupId = keycloakService.getGroupIdByName(tenant.getCode());
+        TenantsDTO deleted = super.delete(id, token);
+        provisioningService.deactivate(tenant.getCode(), SecurityUtils.getUserIdFromAuthentication(token));
+        keycloakService.deleteGroup(groupId);
+        return deleted;
     }
 
     @Override
