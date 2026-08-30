@@ -60,7 +60,7 @@ Regole applicate:
 - normalizzazione server-side del contenuto;
 - soft delete per preservare la verificabilità delle revisioni storiche.
 
-I file sono salvati nello storage configurato dall'applicazione, sotto un percorso separato per tenant. Il database conserva solamente metadati, digest e percorso.
+I file sono salvati nello storage filesystem configurato dall'applicazione, sotto un percorso separato per tenant. La gestione target usa la tabella tenant-scoped `media_asset`, descritta nella [specifica centralizzata dei media](media-asset-spec.md), e conserva nel database soltanto metadati e chiave relativa dello storage; nessun contenuto binario viene salvato nel database.
 
 ### Assegnazione
 
@@ -146,7 +146,7 @@ Limiti applicati:
 
 Il timeout evita che un documento particolarmente pesante occupi indefinitamente thread e memoria del server. Se viene superato, la richiesta termina in modo controllato e può essere ripetuta con filtri più restrittivi, ad esempio senza fotografie.
 
-Ogni esportazione riuscita è tracciata in `inventory_report_export`: tenant, utente oggetto del report, richiedente autenticato, filtri, data, dimensione e digest SHA-256 del PDF. Il PDF non viene duplicato nel database.
+Ogni esportazione riuscita è tracciata in `inventory_report_export`: tenant, utente oggetto del report, richiedente autenticato, filtri, data e riferimento `media_asset_id`. Il PDF viene conservato sul filesystem nella categoria `inventory-reports`; dimensione, MIME type, chiave relativa e digest SHA-256 sono registrati nel relativo `media_asset`. Il contenuto binario non viene duplicato nel database.
 
 ## OpenSearch
 

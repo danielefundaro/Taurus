@@ -10,6 +10,7 @@ import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import org.hibernate.annotations.SoftDelete;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +31,7 @@ public class Albums extends StateFieldsOpenSearch {
     @ManyToMany
     @JoinTable(name = "album_track", joinColumns = @JoinColumn(name = "album_id"), inverseJoinColumns = @JoinColumn(name = "track_id"))
     @OrderColumn(name = "display_order")
+    @SoftDelete(columnName = "deleted")
     private List<Tracks> tracks = new ArrayList<>();
 
     public Date getDate() {

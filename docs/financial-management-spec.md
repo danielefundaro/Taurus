@@ -295,14 +295,12 @@ Campi proposti:
 
 - `id BIGINT`;
 - `movement_id BIGINT` obbligatorio;
-- `original_filename VARCHAR(500)`;
-- `storage_path VARCHAR(2048)`;
-- `media_type VARCHAR(255)`;
-- `file_size BIGINT`;
-- `sha256 CHAR(64)`;
+- `media_asset_id BIGINT` obbligatorio, foreign key verso il catalogo tenant-scoped `media_asset` definito nella [specifica centralizzata dei media](media-asset-spec.md);
 - `description VARCHAR(1000)`;
 - `active BOOLEAN`;
 - campi di audit.
+
+Nome originale, MIME type, dimensione, digest SHA-256 e chiave relativa dello storage sono proprietà del record `media_asset` e non vengono duplicati nell'allegato finanziario.
 
 Gli allegati sono sempre facoltativi e possono essere più di uno per movimento.
 
@@ -313,7 +311,7 @@ Politica iniziale consigliata:
 - massimo 20 allegati per movimento;
 - verifica server-side del tipo reale del contenuto;
 - digest SHA-256 obbligatorio;
-- storage separato per tenant e movimento;
+- storage filesystem separato per tenant e gestito tramite `media_asset`;
 - nessun contenuto binario nel database;
 - download esclusivamente tramite endpoint autenticato che verifica tenant e ruolo.
 

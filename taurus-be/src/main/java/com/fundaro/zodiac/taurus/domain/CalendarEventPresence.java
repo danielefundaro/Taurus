@@ -10,9 +10,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Date;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "calendar_event_presence")
+@SQLDelete(sql = "UPDATE calendar_event_presence SET deleted = true WHERE id = ? AND deleted = false")
+@SQLRestriction("deleted = false")
 public class CalendarEventPresence extends AuditFields {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
