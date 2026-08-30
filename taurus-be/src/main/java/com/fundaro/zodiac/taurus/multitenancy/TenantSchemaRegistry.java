@@ -33,7 +33,7 @@ public class TenantSchemaRegistry {
 
     private List<String> queryActiveTenantCodes() {
         return jdbcTemplate.queryForList(
-            "SELECT tenant_code FROM public.tenant_schema_registry WHERE status = 'ACTIVE' ORDER BY tenant_code",
+            "SELECT tenant_code FROM public.tenant_schema_registry WHERE status = 'ACTIVE' AND deleted = FALSE ORDER BY tenant_code",
             String.class
         );
     }

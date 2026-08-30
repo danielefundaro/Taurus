@@ -12,9 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Date;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "calendar_event_availability")
+@SQLDelete(sql = "UPDATE calendar_event_availability SET deleted = true WHERE id = ? AND deleted = false")
+@SQLRestriction("deleted = false")
 public class CalendarEventAvailability extends AuditFields {
     public enum Availability { AVAILABLE, UNAVAILABLE }
 

@@ -12,10 +12,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import java.util.Objects;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Entity
 @Table(name = "calendar_event_cost")
+@SQLDelete(sql = "UPDATE calendar_event_cost SET deleted = true WHERE id = ? AND deleted = false")
+@SQLRestriction("deleted = false")
 public class EventCost extends AuditFields implements Serializable {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

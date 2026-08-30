@@ -12,6 +12,9 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.SoftDelete;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -20,6 +23,8 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Entity
 @Table(name = "sheet_music")
+@SQLDelete(sql = "UPDATE sheet_music SET deleted = true WHERE id = ? AND deleted = false")
+@SQLRestriction("deleted = false")
 public class SheetsMusic extends AuditFields implements Serializable {
 
     @Id
@@ -35,11 +40,13 @@ public class SheetsMusic extends AuditFields implements Serializable {
     @ManyToMany
     @JoinTable(name = "sheet_music_media", joinColumns = @JoinColumn(name = "sheet_music_id"), inverseJoinColumns = @JoinColumn(name = "media_id"))
     @OrderColumn(name = "display_order")
+    @SoftDelete(columnName = "deleted")
     private List<Media> media = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(name = "sheet_music_instrument", joinColumns = @JoinColumn(name = "sheet_music_id"), inverseJoinColumns = @JoinColumn(name = "instrument_id"))
     @OrderColumn(name = "display_order")
+    @SoftDelete(columnName = "deleted")
     private List<Instruments> instruments = new ArrayList<>();
 
     @Column(name = "needs_review", nullable = false)

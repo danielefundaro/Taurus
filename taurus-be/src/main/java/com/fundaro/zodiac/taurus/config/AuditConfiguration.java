@@ -1,22 +1,29 @@
 package com.fundaro.zodiac.taurus.config;
 
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
-@EnableJpaAuditing(auditorAwareRef = "auditorProvider")
+@EnableJpaAuditing(auditorAwareRef = "auditorProvider", dateTimeProviderRef = "auditDateTimeProvider")
 public class AuditConfiguration {
 
     @Bean
     AuditorAware<String> auditorProvider() {
         return () -> Optional.of(resolveActor());
+    }
+
+    @Bean
+    DateTimeProvider auditDateTimeProvider() {
+        return () -> Optional.of(ZonedDateTime.now());
     }
 
     private static String resolveActor() {

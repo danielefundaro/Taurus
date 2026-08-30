@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SoftDelete;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -44,6 +45,7 @@ public class Tracks extends StateFieldsOpenSearch {
     @ElementCollection
     @CollectionTable(name = "track_type", joinColumns = @JoinColumn(name = "track_id"))
     @Column(name = "type")
+    @SoftDelete(columnName = "deleted")
     private Set<String> type = new LinkedHashSet<>();
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
