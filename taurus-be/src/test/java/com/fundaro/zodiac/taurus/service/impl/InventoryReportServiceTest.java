@@ -2,12 +2,18 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReportExportRepository;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
+import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
@@ -27,6 +33,7 @@ import javax.imageio.ImageIO;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -41,7 +48,20 @@ class InventoryReportServiceTest {
     @Mock TenantsService tenantsService;
     @Mock InventoryReportExportRepository reportExportRepository;
     @Mock TenantLogoLoader tenantLogoLoader;
+    @Mock MediaService mediaService;
+    @Mock MediaRepository mediaRepository;
     @InjectMocks InventoryReportService reportService;
+
+    private final Media storedMedia = new Media();
+
+    @BeforeEach
+    void setUp() {
+        storedMedia.setId(99L);
+        MediaDTO media = new MediaDTO();
+        media.setId(99L);
+        when(mediaService.store(any(byte[].class), anyString(), anyString(), anyString(), any())).thenReturn(media);
+        when(mediaRepository.getReferenceById(99L)).thenReturn(storedMedia);
+    }
 
     @Test
     void shouldCreateReadablePdfForCurrentUser() throws Exception {
@@ -73,8 +93,7 @@ class InventoryReportServiceTest {
             assertThat(document.getNumberOfPages()).isEqualTo(1);
         }
         verify(reportExportRepository).save(argThat(export ->
-            export.getFileSize() == report.bytes().length &&
-            export.getContentDigest().length() == 64 &&
+            export.getMediaAsset() == storedMedia &&
             export.getInsertBy().equals("user-1") &&
             export.getEditBy().equals("user-1") &&
             export.getInsertDate() != null &&

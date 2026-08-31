@@ -10,7 +10,6 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.LastResearchRepository;
-import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.repository.PreferencesRepository;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
@@ -20,6 +19,7 @@ import com.fundaro.zodiac.taurus.repository.UserLegalAcceptanceRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRepository;
+import com.fundaro.zodiac.taurus.service.MediaService;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -47,7 +47,7 @@ public class DataErasureService {
     private final UsersRepository usersRepository;
     private final QueueUploadFilesRepository uploadRepository;
     private final CalendarEventsRepository calendarRepository;
-    private final MediaRepository mediaRepository;
+    private final MediaService mediaService;
     private final TenantStorageService tenantStorageService;
     private final ApplicationProperties.RetentionProperties retentionProperties;
     private final InventoryAssignmentRepository inventoryAssignmentRepository;
@@ -65,7 +65,7 @@ public class DataErasureService {
         UsersRepository usersRepository,
         QueueUploadFilesRepository uploadRepository,
         CalendarEventsRepository calendarRepository,
-        MediaRepository mediaRepository,
+        MediaService mediaService,
         TenantStorageService tenantStorageService,
         ApplicationProperties applicationProperties,
         InventoryAssignmentRepository inventoryAssignmentRepository,
@@ -82,7 +82,7 @@ public class DataErasureService {
         this.usersRepository = usersRepository;
         this.uploadRepository = uploadRepository;
         this.calendarRepository = calendarRepository;
-        this.mediaRepository = mediaRepository;
+        this.mediaService = mediaService;
         this.tenantStorageService = tenantStorageService;
         this.retentionProperties = applicationProperties.getRetention();
         this.inventoryAssignmentRepository = inventoryAssignmentRepository;
@@ -141,10 +141,6 @@ public class DataErasureService {
     }
 
     public void eraseTenantData(String tenantCode) {
-        tenantTransactionExecutor.execute(tenantCode, () -> {
-            mediaRepository.findAll().forEach(media -> deleteManagedFile(media.getPath()));
-            uploadRepository.findAll().forEach(upload -> deleteManagedFile(upload.getPath()));
-        });
         try {
             tenantStorageService.deleteTenantDirectory(tenantCode);
         } catch (IOException exception) {
@@ -165,8 +161,12 @@ public class DataErasureService {
 
     private void eraseUserDataInCurrentTenant(String userId) {
         List<QueueUploadFiles> uploads = uploadRepository.findAllByUser_KeycloakId(userId);
-        uploads.forEach(upload -> deleteManagedFile(upload.getPath()));
+        List<Long> sourceMediaIds = uploads.stream().map(QueueUploadFiles::getSourceMediaAssetId).filter(java.util.Objects::nonNull).toList();
         uploadRepository.deleteAll(uploads);
+        uploadRepository.flush();
+        String tenantCode = com.fundaro.zodiac.taurus.multitenancy.TenantContext.getTenantCode()
+            .orElseThrow(() -> new IllegalStateException("Tenant context is required for data erasure"));
+        sourceMediaIds.forEach(id -> mediaService.deleteIfUnreferenced(id, tenantCode, userId));
 
         Users user = usersRepository.findByKeycloakIdAndDeletedFalse(userId).orElse(null);
         if (user != null) {
@@ -208,14 +208,6 @@ public class DataErasureService {
                 tenantSchemaProvisioningService.dropSchema(tenantCode);
             }
         });
-    }
-
-    private void deleteManagedFile(String path) {
-        try {
-            tenantStorageService.deleteFileIfManaged(path);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Unable to delete managed file", exception);
-        }
     }
 
     private static boolean isBlank(String value) {

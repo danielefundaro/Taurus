@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 
 import java.util.Objects;
 
@@ -10,25 +11,74 @@ import java.util.Objects;
 public class MediaDTO extends CommonFieldsOpenSearchDTO {
 
     @JsonIgnore
-    private String path;
+    private String storageKey;
 
-    @JsonIgnore
-    private String contentType;
+    private String originalFilename;
 
-    public String getPath() {
-        return path;
+    private String mimeType;
+
+    private String fileExtension;
+
+    private Long fileSize;
+
+    private String sha256;
+
+    private MediaAssetStatus status;
+
+    public String getStorageKey() {
+        return storageKey;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public void setStorageKey(String storageKey) {
+        this.storageKey = storageKey;
     }
 
-    public String getContentType() {
-        return contentType;
+    public String getOriginalFilename() {
+        return originalFilename;
     }
 
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
+    public void setOriginalFilename(String originalFilename) {
+        this.originalFilename = originalFilename;
+    }
+
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public void setMimeType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public String getFileExtension() {
+        return fileExtension;
+    }
+
+    public void setFileExtension(String fileExtension) {
+        this.fileExtension = fileExtension;
+    }
+
+    public Long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public String getSha256() {
+        return sha256;
+    }
+
+    public void setSha256(String sha256) {
+        this.sha256 = sha256;
+    }
+
+    public MediaAssetStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MediaAssetStatus status) {
+        this.status = status;
     }
 
     @Override
@@ -46,18 +96,19 @@ public class MediaDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getPath(), getContentType());
+        return Objects.hash(this.getId(), this.getStorageKey());
     }
 
     // prettier-ignore
     @Override
     public String toString() {
-        return "QueueUploadFilesDTO{" +
+        return "MediaDTO{" +
             "id=" + getId() +
             ", name='" + getName() + "'" +
-            ", path='" + getPath() + "'" +
-            ", contentType='" + getContentType() + "'" +
-            ", description='" + getDescription() + "'" +
+            ", originalFilename='" + getOriginalFilename() + "'" +
+            ", mimeType='" + getMimeType() + "'" +
+            ", fileSize=" + getFileSize() +
+            ", status=" + getStatus() +
             "}";
     }
 }

@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
@@ -14,10 +15,8 @@ import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -38,19 +37,22 @@ public class Receiver {
     private final TracksService tracksService;
     private final PdfProcessingService pdfProcessingService;
     private final TenantStorageService tenantStorageService;
+    private final MediaService mediaService;
     private final ObjectMapper objectMapper;
 
     public Receiver(
         QueueUploadFilesService queueUploadFilesService,
         TracksService tracksService,
         PdfProcessingService pdfProcessingService,
-        TenantStorageService tenantStorageService
+        TenantStorageService tenantStorageService,
+        MediaService mediaService
     ) {
         this.tracksService = tracksService;
         this.pdfProcessingService = pdfProcessingService;
         this.log = LoggerFactory.getLogger(Receiver.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.tenantStorageService = tenantStorageService;
+        this.mediaService = mediaService;
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -85,31 +87,24 @@ public class Receiver {
             track.setScores(new HashSet<>());
         }
 
-        String sourcePath = upload.getPath();
-        String type = Strings.isNotBlank(upload.getType()) ? upload.getType() : "unknowns";
         PdfAnnotations annotations = parseAnnotations(upload.getDescription());
-        File file = new File(sourcePath);
-        byte[] pdfBytes;
-        List<String> filesPath;
+        MediaService.MediaContent source = mediaService.getContent(upload.getSourceMediaAssetId(), token);
+        Path temporaryDirectory = tenantStorageService.createTemporaryDirectory(tenantCode, "pdf-processing");
+        try {
+            log.info("Converting uploaded media asset {} in tenant {}", upload.getSourceMediaAssetId(), tenantCode);
+            List<String> filesPath = Converter.pdfToImage(source.bytes(), source.fileName(), temporaryDirectory.toString(), annotations);
+            if (filesPath.stream().noneMatch(Objects::nonNull)) {
+                log.error("Could not convert uploaded media asset {}", upload.getSourceMediaAssetId());
+                return;
+            }
 
-        try (InputStream inputStream = new FileInputStream(file)) {
-            String destinationPath = tenantStorageService
-                .resolve(tenantCode, type, file.getParentFile().getName())
-                .toString().toLowerCase();
-            log.info("Converting pdf2Image file from {} to {}", sourcePath, destinationPath);
-            pdfBytes = inputStream.readAllBytes();
-            filesPath = Converter.pdfToImage(pdfBytes, file.getName(), destinationPath, annotations);
+            List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
+            track.getScores().addAll(sheets);
+            tracksService.update(track.getId(), track, token);
+            log.info("Updated track with {} sheet music parts", sheets.size());
+        } finally {
+            tenantStorageService.deleteDirectoryIfManaged(tenantCode, temporaryDirectory);
         }
-
-        if (filesPath.stream().noneMatch(Objects::nonNull)) {
-            log.error("Could not convert any files in {}", sourcePath);
-            return;
-        }
-
-        List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(pdfBytes, filesPath, track, token);
-        track.getScores().addAll(sheets);
-        tracksService.update(track.getId(), track, token);
-        log.info("Updated track with {} sheet music parts", sheets.size());
     }
 
     private PdfAnnotations parseAnnotations(String description) {

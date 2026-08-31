@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260831000000-1" author="taurus" dbms="postgresql">
+    <comment>Centralize tenant-scoped filesystem metadata in media_asset and replace absolute paths with storage keys.</comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER TABLE media RENAME TO media_asset;
+      ALTER TABLE media_asset RENAME COLUMN path TO storage_key;
+      ALTER TABLE media_asset RENAME COLUMN content_type TO mime_type;
+      ALTER TABLE sheet_music_media RENAME COLUMN media_id TO media_asset_id;
+
+      ALTER TABLE media_asset
+        ADD COLUMN original_filename VARCHAR(500),
+        ADD COLUMN file_extension VARCHAR(32),
+        ADD COLUMN file_size BIGINT,
+        ADD COLUMN sha256 CHAR(64),
+        ADD COLUMN status VARCHAR(32);
+
+      CREATE OR REPLACE FUNCTION taurus_relative_storage_key(raw_path TEXT)
+      RETURNS TEXT AS $$
+      DECLARE
+        normalized TEXT := regexp_replace(replace(COALESCE(raw_path, ''), E'\\', '/'), '/+', '/', 'g');
+        tenant_code TEXT;
+        safe_tenant TEXT;
+        marker TEXT;
+        marker_position INTEGER;
+      BEGIN
+        SELECT registry.tenant_code
+          INTO tenant_code
+          FROM public.tenant_schema_registry registry
+         WHERE registry.schema_name = current_schema()
+         LIMIT 1;
+
+        safe_tenant := lower(regexp_replace(btrim(COALESCE(tenant_code, '')), '[^a-z0-9._-]', '_', 'g'));
+        marker := '/' || safe_tenant || '/';
+        marker_position := strpos(lower(normalized), marker);
+
+        IF safe_tenant <> '' AND marker_position > 0 THEN
+          RETURN substring(normalized FROM marker_position + char_length(marker));
+        END IF;
+        IF normalized !~ '^([A-Za-z]:/|/)' THEN
+          RETURN ltrim(normalized, '/');
+        END IF;
+        RETURN 'legacy-unresolved/' || md5(normalized) || '/' || regexp_replace(normalized, '^.*/', '');
+      END;
+      $$ LANGUAGE plpgsql STABLE;
+
+      UPDATE media_asset
+         SET storage_key = taurus_relative_storage_key(storage_key),
+             original_filename = COALESCE(NULLIF(name, ''), regexp_replace(storage_key, '^.*[\\/]', '')),
+             mime_type = COALESCE(NULLIF(mime_type, ''), 'application/octet-stream'),
+             file_extension = CASE
+               WHEN COALESCE(NULLIF(name, ''), storage_key) ~* '\.[a-z0-9]{1,31}$'
+                 THEN lower(regexp_replace(COALESCE(NULLIF(name, ''), storage_key), '^.*\.([a-z0-9]{1,31})$', '\1', 'i'))
+               ELSE 'bin'
+             END,
+             file_size = 0,
+             sha256 = repeat('0', 64),
+             status = 'MIGRATION_PENDING';
+
+      ALTER TABLE media_asset
+        ALTER COLUMN original_filename SET NOT NULL,
+        ALTER COLUMN mime_type SET NOT NULL,
+        ALTER COLUMN file_extension SET NOT NULL,
+        ALTER COLUMN file_size SET NOT NULL,
+        ALTER COLUMN sha256 SET NOT NULL,
+        ALTER COLUMN status SET NOT NULL;
+      ALTER TABLE media_asset
+        ADD CONSTRAINT ck_media_asset_storage_key CHECK (
+          btrim(storage_key) <> ''
+          AND left(storage_key, 1) <> '/'
+          AND position(chr(92) IN storage_key) = 0
+          AND storage_key !~ '(^|/)\.\.(/|$)'
+          AND storage_key !~ '^[A-Za-z]:'
+        ),
+        ADD CONSTRAINT ck_media_asset_file_size CHECK (file_size >= 0),
+        ADD CONSTRAINT ck_media_asset_sha256 CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+        ADD CONSTRAINT ck_media_asset_status CHECK (status IN ('UPLOADING', 'PROCESSING', 'READY', 'INVALID', 'FAILED', 'DELETED', 'MIGRATION_PENDING'));
+      CREATE UNIQUE INDEX uq_media_asset_storage_key ON media_asset(storage_key);
+
+      ALTER TABLE inventory_item_photo ADD COLUMN media_asset_id BIGINT;
+      INSERT INTO media_asset (
+        deleted, insert_by, insert_date, edit_by, edit_date, entity_version, name, description,
+        storage_key, original_filename, mime_type, file_extension, file_size, sha256, status
+      )
+      SELECT DISTINCT ON (taurus_relative_storage_key(photo.storage_path))
+        FALSE, photo.insert_by, photo.insert_date, photo.edit_by, photo.edit_date, 0,
+        photo.file_name, NULL, taurus_relative_storage_key(photo.storage_path), photo.file_name,
+        photo.content_type,
+        CASE WHEN photo.file_name ~* '\.[a-z0-9]{1,31}$'
+          THEN lower(regexp_replace(photo.file_name, '^.*\.([a-z0-9]{1,31})$', '\1', 'i'))
+          WHEN photo.content_type = 'image/png' THEN 'png' ELSE 'jpg' END,
+        photo.file_size,
+        CASE WHEN lower(photo.content_digest) ~ '^[0-9a-f]{64}$' THEN lower(photo.content_digest) ELSE repeat('0', 64) END,
+        CASE WHEN lower(photo.content_digest) ~ '^[0-9a-f]{64}$' THEN 'READY' ELSE 'MIGRATION_PENDING' END
+      FROM inventory_item_photo photo
+      ON CONFLICT (storage_key) DO NOTHING;
+      UPDATE inventory_item_photo photo
+         SET media_asset_id = asset.id
+        FROM media_asset asset
+       WHERE asset.storage_key = taurus_relative_storage_key(photo.storage_path);
+      ALTER TABLE inventory_item_photo ALTER COLUMN media_asset_id SET NOT NULL;
+      ALTER TABLE inventory_item_photo
+        ADD CONSTRAINT fk_inventory_item_photo_media_asset
+        FOREIGN KEY (media_asset_id) REFERENCES media_asset(id) ON DELETE RESTRICT;
+      CREATE INDEX idx_inventory_item_photo_media_asset ON inventory_item_photo(media_asset_id);
+      ALTER TABLE inventory_item_photo
+        DROP COLUMN file_name,
+        DROP COLUMN content_type,
+        DROP COLUMN storage_path,
+        DROP COLUMN content_digest,
+        DROP COLUMN file_size;
+
+      ALTER TABLE inventory_return_photo ADD COLUMN media_asset_id BIGINT;
+      INSERT INTO media_asset (
+        deleted, insert_by, insert_date, edit_by, edit_date, entity_version, name, description,
+        storage_key, original_filename, mime_type, file_extension, file_size, sha256, status
+      )
+      SELECT DISTINCT ON (taurus_relative_storage_key(photo.storage_path))
+        FALSE, photo.insert_by, photo.insert_date, photo.edit_by, photo.edit_date, 0,
+        photo.file_name, NULL, taurus_relative_storage_key(photo.storage_path), photo.file_name,
+        photo.content_type,
+        CASE WHEN photo.file_name ~* '\.[a-z0-9]{1,31}$'
+          THEN lower(regexp_replace(photo.file_name, '^.*\.([a-z0-9]{1,31})$', '\1', 'i'))
+          WHEN photo.content_type = 'image/png' THEN 'png' ELSE 'jpg' END,
+        photo.file_size,
+        CASE WHEN lower(photo.content_digest) ~ '^[0-9a-f]{64}$' THEN lower(photo.content_digest) ELSE repeat('0', 64) END,
+        CASE WHEN lower(photo.content_digest) ~ '^[0-9a-f]{64}$' THEN 'READY' ELSE 'MIGRATION_PENDING' END
+      FROM inventory_return_photo photo
+      ON CONFLICT (storage_key) DO NOTHING;
+      UPDATE inventory_return_photo photo
+         SET media_asset_id = asset.id
+        FROM media_asset asset
+       WHERE asset.storage_key = taurus_relative_storage_key(photo.storage_path);
+      ALTER TABLE inventory_return_photo ALTER COLUMN media_asset_id SET NOT NULL;
+      ALTER TABLE inventory_return_photo
+        ADD CONSTRAINT fk_inventory_return_photo_media_asset
+        FOREIGN KEY (media_asset_id) REFERENCES media_asset(id) ON DELETE RESTRICT;
+      CREATE INDEX idx_inventory_return_photo_media_asset ON inventory_return_photo(media_asset_id);
+      ALTER TABLE inventory_return_photo
+        DROP COLUMN file_name,
+        DROP COLUMN content_type,
+        DROP COLUMN storage_path,
+        DROP COLUMN content_digest,
+        DROP COLUMN file_size;
+
+      ALTER TABLE upload_job ADD COLUMN source_media_asset_id BIGINT;
+      INSERT INTO media_asset (
+        deleted, insert_by, insert_date, edit_by, edit_date, entity_version, name, description,
+        storage_key, original_filename, mime_type, file_extension, file_size, sha256, status
+      )
+      SELECT DISTINCT ON (taurus_relative_storage_key(job.path))
+        FALSE, COALESCE(job.insert_by, 'system'), job.insert_date, COALESCE(job.edit_by, 'system'), job.edit_date, 0,
+        COALESCE(NULLIF(job.name, ''), 'upload.pdf'), NULL, taurus_relative_storage_key(job.path),
+        COALESCE(NULLIF(job.name, ''), 'upload.pdf'), 'application/pdf', 'pdf', 0, repeat('0', 64), 'MIGRATION_PENDING'
+      FROM upload_job job
+      ON CONFLICT (storage_key) DO NOTHING;
+      UPDATE upload_job job
+         SET source_media_asset_id = asset.id
+        FROM media_asset asset
+       WHERE asset.storage_key = taurus_relative_storage_key(job.path);
+      ALTER TABLE upload_job ALTER COLUMN source_media_asset_id SET NOT NULL;
+      ALTER TABLE upload_job
+        ADD CONSTRAINT fk_upload_job_source_media_asset
+        FOREIGN KEY (source_media_asset_id) REFERENCES media_asset(id) ON DELETE RESTRICT;
+      CREATE INDEX idx_upload_job_source_media_asset ON upload_job(source_media_asset_id);
+      ALTER TABLE upload_job DROP COLUMN path;
+
+      ALTER TABLE inventory_report_export ADD COLUMN media_asset_id BIGINT;
+      ALTER TABLE inventory_report_export
+        ADD CONSTRAINT fk_inventory_report_export_media_asset
+        FOREIGN KEY (media_asset_id) REFERENCES media_asset(id) ON DELETE RESTRICT;
+      CREATE INDEX idx_inventory_report_export_media_asset ON inventory_report_export(media_asset_id);
+      ALTER TABLE inventory_report_export
+        DROP COLUMN file_size,
+        DROP COLUMN content_digest;
+
+      DROP TRIGGER IF EXISTS trg_media_prepare_soft_delete_cascade ON media_asset;
+      DROP TRIGGER IF EXISTS trg_media_cascade_soft_delete ON media_asset;
+
+      CREATE OR REPLACE FUNCTION taurus_cascade_media_asset_soft_delete()
+      RETURNS TRIGGER AS $$
+      DECLARE
+        actor TEXT := COALESCE(NULLIF(BTRIM(NEW.edit_by), ''), 'system');
+      BEGIN
+        IF OLD.deleted = FALSE AND NEW.deleted = TRUE THEN
+          EXECUTE format(
+            'UPDATE %I.sheet_music_media '
+            || 'SET deleted = TRUE, edit_by = $1, edit_date = CURRENT_TIMESTAMP '
+            || 'WHERE media_asset_id = $2 AND deleted = FALSE',
+            TG_TABLE_SCHEMA
+          ) USING actor, NEW.id;
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER trg_media_asset_cascade_soft_delete
+        AFTER UPDATE OF deleted ON media_asset
+        FOR EACH ROW EXECUTE FUNCTION taurus_cascade_media_asset_soft_delete();
+
+      DROP FUNCTION taurus_relative_storage_key(TEXT);
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>

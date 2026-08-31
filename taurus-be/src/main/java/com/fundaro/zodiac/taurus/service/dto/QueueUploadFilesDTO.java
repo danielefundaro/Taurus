@@ -15,8 +15,7 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
 
     private Long userId;
 
-    @JsonIgnore
-    private String path;
+    private Long sourceMediaAssetId;
 
     private Long trackId;
 
@@ -36,12 +35,12 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
         this.userId = userId;
     }
 
-    public String getPath() {
-        return path;
+    public Long getSourceMediaAssetId() {
+        return sourceMediaAssetId;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public void setSourceMediaAssetId(Long sourceMediaAssetId) {
+        this.sourceMediaAssetId = sourceMediaAssetId;
     }
 
     public Long getTrackId() {
@@ -90,7 +89,7 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getUserId(), this.getTrackId(), this.getStatus(), this.getType(), this.getPath());
+        return Objects.hash(this.getId(), this.getName(), this.getDescription(), this.getUserId(), this.getTrackId(), this.getStatus(), this.getType(), this.getSourceMediaAssetId());
     }
 
     // prettier-ignore

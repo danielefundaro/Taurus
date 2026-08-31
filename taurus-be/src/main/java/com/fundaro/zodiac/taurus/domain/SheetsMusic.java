@@ -38,7 +38,7 @@ public class SheetsMusic extends AuditFields implements Serializable {
     private Long order;
 
     @ManyToMany
-    @JoinTable(name = "sheet_music_media", joinColumns = @JoinColumn(name = "sheet_music_id"), inverseJoinColumns = @JoinColumn(name = "media_id"))
+    @JoinTable(name = "sheet_music_media", joinColumns = @JoinColumn(name = "sheet_music_id"), inverseJoinColumns = @JoinColumn(name = "media_asset_id"))
     @OrderColumn(name = "display_order")
     @SoftDelete(columnName = "deleted")
     private List<Media> media = new ArrayList<>();

@@ -39,6 +39,26 @@ class TenantStorageServiceTest {
     }
 
     @Test
+    void resolvesRelativeStorageKeysInsideTheSelectedTenantOnly() throws Exception {
+        String key = "inventory/550e8400-e29b-41d4-a716-446655440000/digest.jpg";
+
+        service.writeAtomically("Tenant A", key, new byte[] { 1, 2, 3 });
+
+        Path tenantAFile = tempDirectory.resolve("tenant_a").resolve(key.replace('/', java.io.File.separatorChar));
+        Path tenantBFile = tempDirectory.resolve("tenant_b").resolve(key.replace('/', java.io.File.separatorChar));
+        assertThat(tenantAFile).hasBinaryContent(new byte[] { 1, 2, 3 });
+        assertThat(tenantBFile).doesNotExist();
+    }
+
+    @Test
+    void rejectsAbsoluteAndTraversingStorageKeys() {
+        assertThatThrownBy(() -> service.resolveStorageKey("tenant", "../other-tenant/document.pdf"))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.resolveStorageKey("tenant", tempDirectory.resolve("document.pdf").toString()))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void physicallyDeletesTheTenantDirectory() throws Exception {
         Path file = service.resolve("tenant", "media", "document.pdf");
         Files.createDirectories(file.getParent());

@@ -11,15 +11,12 @@ import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import jakarta.persistence.criteria.Predicate;
@@ -36,19 +33,22 @@ public class QueueUploadFilesServiceImpl
     extends CommonOpenSearchServiceImpl<QueueUploadFiles, QueueUploadFilesDTO, QueueUploadFilesCriteria, QueueUploadFilesMapper, QueueUploadFilesRepository>
     implements QueueUploadFilesService {
 
-    private final TenantStorageService tenantStorageService;
+    private final MediaService mediaService;
+    private final MediaRepository mediaRepository;
     private final UsersRepository usersRepository;
     private final TracksRepository tracksRepository;
 
     public QueueUploadFilesServiceImpl(
         QueueUploadFilesRepository repository,
         QueueUploadFilesMapper mapper,
-        TenantStorageService tenantStorageService,
+        MediaService mediaService,
+        MediaRepository mediaRepository,
         UsersRepository usersRepository,
         TracksRepository tracksRepository
     ) {
         super(repository, mapper, QueueUploadFilesService.class, QueueUploadFiles.class);
-        this.tenantStorageService = tenantStorageService;
+        this.mediaService = mediaService;
+        this.mediaRepository = mediaRepository;
         this.usersRepository = usersRepository;
         this.tracksRepository = tracksRepository;
     }
@@ -67,6 +67,11 @@ public class QueueUploadFilesServiceImpl
         dto.setUserId(user == null ? null : user.getId());
         QueueUploadFiles upload = getMapper().toEntity(dto);
         upload.setUser(user);
+        if (dto.getSourceMediaAssetId() == null) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Source media asset is required", getEntityName(), "media.required");
+        }
+        upload.setSourceMediaAsset(mediaRepository.findByIdAndDeletedFalse(dto.getSourceMediaAssetId())
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Source media asset not found", getEntityName(), "media.notFound")));
         if (dto.getTrackId() != null) {
             Tracks track = tracksRepository.findByIdAndDeletedFalse(dto.getTrackId())
                 .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Track not found", getEntityName(), "track.notFound"));
@@ -93,21 +98,22 @@ public class QueueUploadFilesServiceImpl
         try {
             MultipartFile multipartFile = dto.getMultipartFile();
             String originalName = multipartFile.getOriginalFilename();
-            String fileName = originalName == null ? "upload" : originalName.replaceAll(" ", "_");
-            String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
-            Path path = tenantStorageService.resolve(
-                tenantCode,
-                UploadFileStatusEnum.TO_PROCESS.toString().toLowerCase(),
-                new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()),
-                fileName
+            String fileName = originalName == null ? "upload.pdf" : originalName;
+            MediaDTO media = mediaService.store(
+                multipartFile.getBytes(),
+                fileName,
+                multipartFile.getContentType(),
+                "uploads",
+                token
             );
-            Files.createDirectories(path.getParent());
-            Files.write(path, multipartFile.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            dto.setPath(path.toString());
+            if (!"application/pdf".equals(media.getMimeType())) {
+                throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Only PDF uploads are supported", getEntityName(), "file.unsupported");
+            }
+            dto.setSourceMediaAssetId(media.getId());
             dto.setStatus(UploadFileStatusEnum.TO_PROCESS);
             dto.setName(fileName);
             return save(dto, token);
-        } catch (IOException exception) {
+        } catch (java.io.IOException exception) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while uploading the file", getEntityName(), "file.upload");
         }
     }
