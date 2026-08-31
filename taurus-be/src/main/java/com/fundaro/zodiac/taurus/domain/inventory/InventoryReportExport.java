@@ -1,7 +1,11 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
+import com.fundaro.zodiac.taurus.domain.Media;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.ZonedDateTime;
 
@@ -27,11 +31,9 @@ public class InventoryReportExport extends AuditedEntity {
     @Column(name = "include_photos", nullable = false)
     private boolean includePhotos;
 
-    @Column(name = "file_size", nullable = false)
-    private long fileSize;
-
-    @Column(name = "content_digest", nullable = false, length = 64)
-    private String contentDigest;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "media_asset_id")
+    private Media mediaAsset;
 
     public Long getRequestedUserIndex() { return requestedUserIndex; }
     public void setRequestedUserIndex(Long requestedUserIndex) { this.requestedUserIndex = requestedUserIndex; }
@@ -45,8 +47,6 @@ public class InventoryReportExport extends AuditedEntity {
     public void setIncludeReturned(boolean includeReturned) { this.includeReturned = includeReturned; }
     public boolean isIncludePhotos() { return includePhotos; }
     public void setIncludePhotos(boolean includePhotos) { this.includePhotos = includePhotos; }
-    public long getFileSize() { return fileSize; }
-    public void setFileSize(long fileSize) { this.fileSize = fileSize; }
-    public String getContentDigest() { return contentDigest; }
-    public void setContentDigest(String contentDigest) { this.contentDigest = contentDigest; }
+    public Media getMediaAsset() { return mediaAsset; }
+    public void setMediaAsset(Media mediaAsset) { this.mediaAsset = mediaAsset; }
 }

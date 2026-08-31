@@ -10,7 +10,6 @@ import org.mapstruct.Mapping;
  */
 @Mapper(componentModel = "spring")
 public interface QueueUploadFilesMapper extends EntityOpenSearchMapper<QueueUploadFilesDTO, QueueUploadFiles> {
-    @Mapping(target = "path", source = "path")
     @Mapping(target = "status", source = "status")
     QueueUploadFilesDTO toDto(QueueUploadFiles queueUploadFiles);
 }

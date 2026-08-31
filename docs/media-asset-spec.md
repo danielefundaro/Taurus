@@ -2,9 +2,9 @@
 
 ## Stato del documento
 
-Specifica approvata per lo sviluppo. Implementazione non avviata.
+Specifica approvata e implementata per i flussi applicativi esistenti. La migrazione mantiene la compatibilità con i file storici tramite uno stato tecnico transitorio, descritto di seguito.
 
-Il documento definisce il modello target per i file gestiti da Taurus. Le decisioni qui riportate non descrivono necessariamente il comportamento del codice attuale fino al completamento della relativa migrazione.
+Il documento definisce il modello adottato per i file gestiti da Taurus.
 
 ## Obiettivo
 
@@ -139,6 +139,7 @@ Stati iniziali:
 - `INVALID`: contenuto rifiutato o non valido;
 - `FAILED`: scrittura o elaborazione fallita;
 - `DELETED`: contenuto cancellato logicamente.
+- `MIGRATION_PENDING`: record storico migrato, i cui metadati di integrità vengono verificati e completati alla prima lettura.
 
 Lo stato tecnico del file non sostituisce lo stato delle entità applicative. Ad esempio, lo stato di `upload_job` continua a descrivere il processo di importazione dello spartito.
 

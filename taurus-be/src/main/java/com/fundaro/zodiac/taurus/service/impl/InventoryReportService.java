@@ -2,9 +2,12 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReportExport;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReportExportRepository;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
+import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
@@ -13,15 +16,12 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -53,19 +53,25 @@ public class InventoryReportService {
     private final TenantsService tenantsService;
     private final InventoryReportExportRepository reportExportRepository;
     private final TenantLogoLoader tenantLogoLoader;
+    private final MediaService mediaService;
+    private final MediaRepository mediaRepository;
 
     public InventoryReportService(
         InventoryService inventoryService,
         UsersService usersService,
         TenantsService tenantsService,
         InventoryReportExportRepository reportExportRepository,
-        TenantLogoLoader tenantLogoLoader
+        TenantLogoLoader tenantLogoLoader,
+        MediaService mediaService,
+        MediaRepository mediaRepository
     ) {
         this.inventoryService = inventoryService;
         this.usersService = usersService;
         this.tenantsService = tenantsService;
         this.reportExportRepository = reportExportRepository;
         this.tenantLogoLoader = tenantLogoLoader;
+        this.mediaService = mediaService;
+        this.mediaRepository = mediaRepository;
     }
 
     @Transactional
@@ -182,9 +188,11 @@ public class InventoryReportService {
             checkTimeout(startedAt);
             if (output.size() > MAX_PDF_SIZE) throw reportTooLarge("Il PDF generato supera il limite di 100 MB");
             byte[] bytes = output.toByteArray();
-            auditExport(requestedUserIndex, includeAssigned, includeReturned, includePhotos, bytes, token);
             String surname = safe(user.getLastName()).replaceAll("[^A-Za-z0-9_-]", "_");
-            return new ReportContent("prospetto-inventario-" + surname + ".pdf", bytes);
+            String fileName = "prospetto-inventario-" + surname + ".pdf";
+            MediaDTO media = mediaService.store(bytes, fileName, "application/pdf", "inventory-reports", token);
+            auditExport(requestedUserIndex, includeAssigned, includeReturned, includePhotos, media.getId(), token);
+            return new ReportContent(fileName, bytes);
         } catch (IOException e) {
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile generare il prospetto PDF", "inventoryReport", "inventory.report.generationFailed");
         }
@@ -195,7 +203,7 @@ public class InventoryReportService {
         boolean includeAssigned,
         boolean includeReturned,
         boolean includePhotos,
-        byte[] bytes,
+        Long mediaAssetId,
         AbstractAuthenticationToken token
     ) {
         InventoryReportExport export = new InventoryReportExport();
@@ -207,17 +215,8 @@ public class InventoryReportService {
         export.setIncludeAssigned(includeAssigned);
         export.setIncludeReturned(includeReturned);
         export.setIncludePhotos(includePhotos);
-        export.setFileSize(bytes.length);
-        export.setContentDigest(sha256(bytes));
+        export.setMediaAsset(mediaRepository.getReferenceById(mediaAssetId));
         reportExportRepository.save(export);
-    }
-
-    private static String sha256(byte[] bytes) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 non disponibile", e);
-        }
     }
 
     private static void addFooters(PDDocument document, PDFont font) throws IOException {

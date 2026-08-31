@@ -25,4 +25,5 @@
     <include file="config/liquibase/changelog/20260829000001_add_tenant_audit_fields.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260829000002_enable_relational_soft_delete.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260830000000_cascade_soft_delete.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260831000000_media_asset.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

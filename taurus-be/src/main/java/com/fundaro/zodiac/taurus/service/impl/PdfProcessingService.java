@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -143,12 +145,9 @@ public class PdfProcessingService {
 
     private MediaDTO saveMedia(String filePath, TracksDTO track, AbstractAuthenticationToken token) {
         try {
-            MediaDTO dto = new MediaDTO();
-            dto.setPath(filePath);
-            dto.setContentType("image/png");
-            dto.setName(track.getName());
-            dto.setDescription(track.getDescription());
-            return mediaService.save(dto, token);
+            Path path = Path.of(filePath);
+            String originalFilename = track.getName() + "-" + path.getFileName();
+            return mediaService.store(Files.readAllBytes(path), originalFilename, "image/png", "scores", token);
         } catch (Exception e) {
             log.error("Failed to save media for path {}: {}", filePath, e.getMessage());
             return null;

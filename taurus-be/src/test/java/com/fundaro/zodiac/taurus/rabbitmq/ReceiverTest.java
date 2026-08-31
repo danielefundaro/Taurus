@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
@@ -26,7 +27,8 @@ class ReceiverTest {
             queueUploadFilesService,
             tracksService,
             mock(PdfProcessingService.class),
-            mock(TenantStorageService.class)
+            mock(TenantStorageService.class),
+            mock(MediaService.class)
         );
         JwtAuthenticationToken token = authentication();
         when(queueUploadFilesService.findOne(3L, token)).thenAnswer(invocation -> {
