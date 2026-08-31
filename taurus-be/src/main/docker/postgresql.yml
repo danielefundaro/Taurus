@@ -3,6 +3,8 @@ name: taurus
 services:
   postgresql:
     image: postgres:17.0
+    container_name: postgresql-container
+    restart: unless-stopped
     volumes:
 #      - ./postgresql/:/var/lib/postgresql/data/
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d

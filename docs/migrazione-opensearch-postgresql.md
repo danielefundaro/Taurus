@@ -57,7 +57,7 @@
 | Area | Tabelle |
 |---|---|
 | Utenti | `app_user`, `app_user_role`, `user_instrument` |
-| Catalogo musicale | `instrument`, `album`, `track`, `track_type`, `album_track`, `sheet_music`, `media`, `sheet_music_media`, `sheet_music_instrument` |
+| Catalogo musicale | `instrument`, `album`, `track`, `track_type`, `album_track`, `sheet_music`, `media_asset`, `sheet_music_media`, `sheet_music_instrument` |
 | Calendario | `calendar_event`, `calendar_event_cost`, `calendar_event_availability`, `calendar_event_presence` |
 | Elaborazioni | `upload_job` |
 | Preferenze e comunicazioni | `last_research`, `notices`, `preferences`, `push_subscriptions`, `push_reminders` |

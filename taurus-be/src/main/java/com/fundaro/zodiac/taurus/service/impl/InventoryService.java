@@ -20,9 +20,12 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoReposito
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
@@ -44,8 +47,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
@@ -86,7 +87,8 @@ public class InventoryService {
     private final InventoryReturnRepository returnRepository;
     private final InventoryReturnPhotoRepository returnPhotoRepository;
     private final UsersService usersService;
-    private final TenantStorageService tenantStorageService;
+    private final MediaService mediaService;
+    private final MediaRepository mediaRepository;
     private final ObjectMapper objectMapper;
     private final NoticesService noticesService;
 
@@ -99,7 +101,8 @@ public class InventoryService {
         InventoryReturnRepository returnRepository,
         InventoryReturnPhotoRepository returnPhotoRepository,
         UsersService usersService,
-        TenantStorageService tenantStorageService,
+        MediaService mediaService,
+        MediaRepository mediaRepository,
         ObjectMapper objectMapper,
         NoticesService noticesService
     ) {
@@ -111,7 +114,8 @@ public class InventoryService {
         this.returnRepository = returnRepository;
         this.returnPhotoRepository = returnPhotoRepository;
         this.usersService = usersService;
-        this.tenantStorageService = tenantStorageService;
+        this.mediaService = mediaService;
+        this.mediaRepository = mediaRepository;
         this.objectMapper = objectMapper;
         this.noticesService = noticesService;
     }
@@ -500,19 +504,12 @@ public class InventoryService {
         }
         String type = file.getContentType().toLowerCase(Locale.ROOT);
         byte[] normalized = normalizeImage(file.getBytes(), type);
-        String digest = sha256(normalized);
         String extension = type.equals("image/png") ? ".png" : ".jpg";
-        Path path = tenantStorageService.resolve(tenant, "inventory", "returns", Long.toString(returnId), digest + extension);
-        Files.createDirectories(path.getParent());
-        Files.write(path, normalized);
+        MediaDTO media = mediaService.store(normalized, safeFileName(file.getOriginalFilename(), extension), type, "inventory-returns", token);
         InventoryReturnPhoto photo = new InventoryReturnPhoto();
         photo.initializeAudit(actor);
         photo.setInventoryReturn(inventoryReturn);
-        photo.setFileName(safeFileName(file.getOriginalFilename(), extension));
-        photo.setContentType(type);
-        photo.setStoragePath(path.toString());
-        photo.setContentDigest(digest);
-        photo.setFileSize(normalized.length);
+        photo.setMediaAsset(mediaRepository.getReferenceById(media.getId()));
         returnPhotoRepository.save(photo);
         return toPhotoDto(photo);
     }
@@ -525,7 +522,8 @@ public class InventoryService {
         if (ownerRequired && !photo.getInventoryReturn().getAssignment().getUserKeycloakId().equals(actor(token))) {
             throw error(HttpStatus.FORBIDDEN, "La fotografia non appartiene all'utente autenticato", "inventory.photo.forbidden");
         }
-        return new PhotoContent(photo.getFileName(), photo.getContentType(), Files.readAllBytes(Path.of(photo.getStoragePath())));
+        MediaService.MediaContent content = mediaService.getContent(photo.getMediaAsset().getId(), token);
+        return new PhotoContent(content.fileName(), content.mimeType(), content.bytes());
     }
 
     public InventoryPhotoDTO addPhoto(long itemId, MultipartFile file, AbstractAuthenticationToken token) throws IOException {
@@ -538,19 +536,12 @@ public class InventoryService {
             throw error(HttpStatus.CONFLICT, "Numero massimo di fotografie raggiunto", "inventory.photo.limit");
         }
         byte[] normalized = normalizeImage(file.getBytes(), type);
-        String digest = sha256(normalized);
         String extension = type.equals("image/png") ? ".png" : ".jpg";
-        Path path = tenantStorageService.resolve(tenant, "inventory", "items", Long.toString(itemId), digest + extension);
-        Files.createDirectories(path.getParent());
-        Files.write(path, normalized);
+        MediaDTO media = mediaService.store(normalized, safeFileName(file.getOriginalFilename(), extension), type, "inventory", token);
         InventoryItemPhoto photo = new InventoryItemPhoto();
         photo.initializeAudit(actor);
         photo.setItem(item);
-        photo.setFileName(safeFileName(file.getOriginalFilename(), extension));
-        photo.setContentType(type);
-        photo.setStoragePath(path.toString());
-        photo.setContentDigest(digest);
-        photo.setFileSize(normalized.length);
+        photo.setMediaAsset(mediaRepository.getReferenceById(media.getId()));
         long activePhotoCount = photoRepository.countByItem_IdAndDeletedFalse(itemId);
         photo.setDisplayOrder((int) activePhotoCount);
         photo.setPreview(activePhotoCount == 0);
@@ -568,7 +559,8 @@ public class InventoryService {
             photo.getItem().getId(), actor(token))) {
             throw error(HttpStatus.FORBIDDEN, "La fotografia non appartiene a materiale assegnato all'utente", "inventory.photo.forbidden");
         }
-        return new PhotoContent(photo.getFileName(), photo.getContentType(), Files.readAllBytes(Path.of(photo.getStoragePath())));
+        MediaService.MediaContent content = mediaService.getContent(photo.getMediaAsset().getId(), token);
+        return new PhotoContent(content.fileName(), content.mimeType(), content.bytes());
     }
 
     public void deletePhoto(long photoId, AbstractAuthenticationToken token) {
@@ -725,11 +717,13 @@ public class InventoryService {
     }
 
     private InventoryPhotoDTO toPhotoDto(InventoryItemPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), photo.getDisplayOrder(), photo.isPreview());
+        var media = photo.getMediaAsset();
+        return new InventoryPhotoDTO(photo.getId(), media.getOriginalFilename(), media.getMimeType(), media.getFileSize(), photo.getDisplayOrder(), photo.isPreview());
     }
 
     private InventoryPhotoDTO toPhotoDto(InventoryReturnPhoto photo) {
-        return new InventoryPhotoDTO(photo.getId(), photo.getFileName(), photo.getContentType(), photo.getFileSize(), 0, false);
+        var media = photo.getMediaAsset();
+        return new InventoryPhotoDTO(photo.getId(), media.getOriginalFilename(), media.getMimeType(), media.getFileSize(), 0, false);
     }
 
     private InventoryAssignmentRevision currentRevision(InventoryAssignment assignment) {
@@ -775,7 +769,7 @@ public class InventoryService {
             .stream().map(photo -> {
                 Map<String, Object> value = new LinkedHashMap<>();
                 value.put("id", photo.getId());
-                value.put("digest", photo.getContentDigest());
+                value.put("digest", photo.getMediaAsset().getSha256());
                 value.put("displayOrder", photo.getDisplayOrder());
                 value.put("preview", photo.isPreview());
                 return value;

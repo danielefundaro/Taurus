@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,7 +93,13 @@ class RelationalSoftDeleteIT {
             tenantCode,
             () -> {
                 Media media = audited(new Media(), "Media");
-                media.setPath("soft-delete-test.pdf");
+                media.setStorageKey("scores/" + UUID.randomUUID() + "/" + "a".repeat(64) + ".pdf");
+                media.setOriginalFilename("soft-delete-test.pdf");
+                media.setMimeType("application/pdf");
+                media.setFileExtension("pdf");
+                media.setFileSize(1);
+                media.setSha256("a".repeat(64));
+                media.setStatus(MediaAssetStatus.READY);
                 entityManager.persist(media);
                 Instruments instrument = audited(new Instruments(), "Instrument");
                 entityManager.persist(instrument);
@@ -193,7 +200,10 @@ class RelationalSoftDeleteIT {
     private void verifyParentSoftDeleteCascades() {
         String schema = quote(schemaNameResolver.resolve(tenantCode));
         Long mediaId = insertReturningId(
-            "INSERT INTO " + schema + ".media (name, path, insert_by, edit_by) VALUES ('Cascade media', 'cascade-media.pdf', 'test', 'test') RETURNING id"
+            "INSERT INTO " + schema + ".media_asset " +
+            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+            "VALUES ('Cascade media', 'scores/cascade/" + "b".repeat(64) + ".pdf', 'cascade-media.pdf', " +
+            "'application/pdf', 'pdf', 1, '" + "b".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
         );
         Long instrumentId = insertReturningId(
             "INSERT INTO " + schema + ".instrument (name, insert_by, edit_by) VALUES ('Cascade instrument', 'test', 'test') RETURNING id"
@@ -207,7 +217,7 @@ class RelationalSoftDeleteIT {
             trackId
         );
         jdbcTemplate.update(
-            "INSERT INTO " + schema + ".sheet_music_media (sheet_music_id, media_id, display_order) VALUES (?, ?, 0)",
+            "INSERT INTO " + schema + ".sheet_music_media (sheet_music_id, media_asset_id, display_order) VALUES (?, ?, 0)",
             scoreId,
             mediaId
         );
@@ -257,7 +267,7 @@ class RelationalSoftDeleteIT {
             secondTrackId
         );
         jdbcTemplate.update(
-            "INSERT INTO " + schema + ".sheet_music_media (sheet_music_id, media_id, display_order) VALUES (?, ?, 0)",
+            "INSERT INTO " + schema + ".sheet_music_media (sheet_music_id, media_asset_id, display_order) VALUES (?, ?, 0)",
             secondScoreId,
             mediaId
         );
@@ -277,7 +287,7 @@ class RelationalSoftDeleteIT {
 
         softDelete(schema, "album", secondAlbumId, "album-deleter");
         assertCounts(schema, "album_track", "album_id", secondAlbumId, 0L, 1L);
-        softDelete(schema, "media", mediaId, "media-deleter");
+        softDelete(schema, "media_asset", mediaId, "media-deleter");
         assertCounts(schema, "sheet_music_media", "sheet_music_id", secondScoreId, 0L, 1L);
         softDelete(schema, "instrument", instrumentId, "instrument-deleter");
         assertCounts(schema, "sheet_music_instrument", "sheet_music_id", secondScoreId, 0L, 1L);
@@ -307,9 +317,16 @@ class RelationalSoftDeleteIT {
             userEventId,
             userId
         );
+        Long uploadMediaId = insertReturningId(
+            "INSERT INTO " + schema + ".media_asset " +
+            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+            "VALUES ('Upload', 'uploads/cascade/" + "c".repeat(64) + ".pdf', 'upload.pdf', 'application/pdf', 'pdf', 1, '" +
+            "c".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
+        );
         Long uploadId = insertReturningId(
-            "INSERT INTO " + schema + ".upload_job (user_id, name, path, status) VALUES (?, 'Upload', 'upload.tmp', 'TO_PROCESS') RETURNING id",
-            userId
+            "INSERT INTO " + schema + ".upload_job (user_id, name, source_media_asset_id, status) VALUES (?, 'Upload', ?, 'TO_PROCESS') RETURNING id",
+            userId,
+            uploadMediaId
         );
         Long userReminderId = insertReturningId(
             "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, sent) " +
@@ -331,11 +348,18 @@ class RelationalSoftDeleteIT {
             "(inventory_number, name, total_quantity, condition_status, insert_by, edit_by) " +
             "VALUES ('CASCADE-1', 'Cascade item', 1, 'GOOD', 'test', 'test') RETURNING id"
         );
+        Long photoMediaId = insertReturningId(
+            "INSERT INTO " + schema + ".media_asset " +
+            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+            "VALUES ('photo.jpg', 'inventory/cascade/" + "d".repeat(64) + ".jpg', 'photo.jpg', 'image/jpeg', 'jpg', 1, '" +
+            "d".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
+        );
         Long photoId = insertReturningId(
             "INSERT INTO " + schema + ".inventory_item_photo " +
-            "(item_id, file_name, content_type, storage_path, content_digest, file_size, display_order, insert_by, edit_by, preview) " +
-            "VALUES (?, 'photo.jpg', 'image/jpeg', 'photo.jpg', 'digest', 1, 0, 'test', 'test', TRUE) RETURNING id",
-            itemId
+            "(item_id, media_asset_id, display_order, insert_by, edit_by, preview) " +
+            "VALUES (?, ?, 0, 'test', 'test', TRUE) RETURNING id",
+            itemId,
+            photoMediaId
         );
         softDelete(schema, "inventory_item", itemId, "inventory-deleter");
         assertRowDeleted(schema, "inventory_item_photo", photoId, "inventory-deleter");

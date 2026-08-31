@@ -7,13 +7,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
+import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.repository.QueueUploadFilesRepository;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -34,7 +37,8 @@ class QueueUploadFilesServiceImplTest {
 
     @Mock QueueUploadFilesRepository repository;
     @Mock QueueUploadFilesMapper mapper;
-    @Mock TenantStorageService tenantStorageService;
+    @Mock MediaService mediaService;
+    @Mock MediaRepository mediaRepository;
     @Mock UsersRepository usersRepository;
     @Mock TracksRepository tracksRepository;
 
@@ -42,7 +46,7 @@ class QueueUploadFilesServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new QueueUploadFilesServiceImpl(repository, mapper, tenantStorageService, usersRepository, tracksRepository);
+        service = new QueueUploadFilesServiceImpl(repository, mapper, mediaService, mediaRepository, usersRepository, tracksRepository);
     }
 
     @Test
@@ -58,10 +62,14 @@ class QueueUploadFilesServiceImplTest {
         request.setName("score.pdf");
         request.setStatus(UploadFileStatusEnum.TO_PROCESS);
         request.setTrackId(2L);
+        request.setSourceMediaAssetId(30L);
         QueueUploadFilesDTO response = new QueueUploadFilesDTO();
+        Media media = new Media();
+        media.setId(30L);
 
         when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.of(user));
         when(tracksRepository.findByIdAndDeletedFalse(2L)).thenReturn(Optional.of(track));
+        when(mediaRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(media));
         when(mapper.toEntity(request)).thenReturn(upload);
         when(repository.save(upload)).thenReturn(upload);
         when(mapper.toDto(upload)).thenReturn(response);
@@ -70,6 +78,7 @@ class QueueUploadFilesServiceImplTest {
 
         assertThat(upload.getUser()).isSameAs(user);
         assertThat(upload.getTrack()).isSameAs(track);
+        assertThat(upload.getSourceMediaAsset()).isSameAs(media);
         assertThat(upload.getEntityVersion()).isNull();
         verify(repository).save(same(upload));
     }
@@ -80,9 +89,13 @@ class QueueUploadFilesServiceImplTest {
         QueueUploadFilesDTO request = new QueueUploadFilesDTO();
         request.setName("score.pdf");
         request.setStatus(UploadFileStatusEnum.TO_PROCESS);
+        request.setSourceMediaAssetId(31L);
         QueueUploadFilesDTO response = new QueueUploadFilesDTO();
+        Media media = new Media();
+        media.setId(31L);
 
         when(usersRepository.findByKeycloakIdAndDeletedFalse("super-admin-1")).thenReturn(Optional.empty());
+        when(mediaRepository.findByIdAndDeletedFalse(31L)).thenReturn(Optional.of(media));
         when(mapper.toEntity(request)).thenReturn(upload);
         when(repository.save(upload)).thenReturn(upload);
         when(mapper.toDto(upload)).thenReturn(response);

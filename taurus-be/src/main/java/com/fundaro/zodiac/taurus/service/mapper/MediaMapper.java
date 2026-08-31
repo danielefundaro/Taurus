@@ -10,7 +10,5 @@ import org.mapstruct.Mapping;
  */
 @Mapper(componentModel = "spring")
 public interface MediaMapper extends EntityOpenSearchMapper<MediaDTO, Media> {
-    @Mapping(target = "path", source = "path")
-    @Mapping(target = "contentType", source = "contentType")
     MediaDTO toDto(Media s);
 }

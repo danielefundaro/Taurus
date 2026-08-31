@@ -24,8 +24,9 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
     @JoinColumn(name = "user_id")
     private Users user;
 
-    @Column(name = "path", nullable = false, length = 2048)
-    private String path;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "source_media_asset_id", nullable = false)
+    private Media sourceMediaAsset;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "track_id")
@@ -53,12 +54,24 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
         this.user = reference;
     }
 
-    public String getPath() {
-        return this.path;
+    @Transient
+    public Long getSourceMediaAssetId() {
+        return sourceMediaAsset == null ? null : sourceMediaAsset.getId();
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public Media getSourceMediaAsset() {
+        return sourceMediaAsset;
+    }
+
+    public void setSourceMediaAsset(Media sourceMediaAsset) {
+        this.sourceMediaAsset = sourceMediaAsset;
+    }
+
+    public void setSourceMediaAssetId(Long mediaAssetId) {
+        if (mediaAssetId == null) { this.sourceMediaAsset = null; return; }
+        Media reference = new Media();
+        reference.setId(mediaAssetId);
+        this.sourceMediaAsset = reference;
     }
 
     @Transient
@@ -118,7 +131,7 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
             "id=" + getId() +
             ", name='" + getName() + "'" +
             ", userId='" + getUserId() + "'" +
-            ", path='" + getPath() + "'" +
+            ", sourceMediaAssetId='" + getSourceMediaAssetId() + "'" +
             ", trackId='" + getTrackId() + "'" +
             ", status='" + getStatus() + "'" +
             ", type='" + getType() + "'" +

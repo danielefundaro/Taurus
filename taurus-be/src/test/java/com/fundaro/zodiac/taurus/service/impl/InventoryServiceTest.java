@@ -18,6 +18,9 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturn;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnPhoto;
+import com.fundaro.zodiac.taurus.domain.Media;
+import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
@@ -26,6 +29,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
@@ -59,7 +63,8 @@ class InventoryServiceTest {
     @Mock InventoryReturnRepository returnRepository;
     @Mock InventoryReturnPhotoRepository returnPhotoRepository;
     @Mock UsersService usersService;
-    @Mock TenantStorageService storageService;
+    @Mock MediaService mediaService;
+    @Mock MediaRepository mediaRepository;
     @Mock NoticesService noticesService;
 
     private InventoryService service;
@@ -75,7 +80,8 @@ class InventoryServiceTest {
             returnRepository,
             returnPhotoRepository,
             usersService,
-            storageService,
+            mediaService,
+            mediaRepository,
             new ObjectMapper(),
             noticesService
         );
@@ -328,9 +334,15 @@ class InventoryServiceTest {
         photo.setItem(item);
         photo.setDisplayOrder(displayOrder);
         photo.setPreview(preview);
-        photo.setFileName("photo-" + id + ".jpg");
-        photo.setContentType("image/jpeg");
-        photo.setFileSize(100);
+        Media media = new Media();
+        media.setId(1000L + id);
+        media.setOriginalFilename("photo-" + id + ".jpg");
+        media.setMimeType("image/jpeg");
+        media.setFileExtension("jpg");
+        media.setFileSize(100);
+        media.setSha256("a".repeat(64));
+        media.setStatus(MediaAssetStatus.READY);
+        photo.setMediaAsset(media);
         photo.setInsertDate(ZonedDateTime.now());
         return photo;
     }
