@@ -9,11 +9,7 @@ Modules are built independently:
 - `keycloak-authenticator/`: Java 17 Keycloak provider and custom themes, following the standard Maven `src/main`/`src/test` layout.
 - `taurus-info/`: Astro marketing site; pages, components, and layouts are in `src`, with public assets in `public`.
 
-Cross-cutting design notes and specifications belong in `docs/`.
-
 ## Build, Test, and Development Commands
-
-Run commands from the relevant module directory.
 
 - Backend: `./mvnw` starts the API; `./mvnw verify` runs checks/tests; `docker compose -f src/main/docker/services.yml up --wait` starts dependencies.
 - Frontend: `npm ci`, then `npm start` for development, `npm run build` for production, and `npm test` for Karma/Jasmine tests.
@@ -23,6 +19,8 @@ Run commands from the relevant module directory.
 ## Coding Style & Naming Conventions
 
 Honor module-local configuration. Angular uses strict TypeScript, four-space indentation, single quotes, semicolons, and Prettier (`npm run format`). Name Angular files in kebab case with role suffixes, for example `inventory.service.ts`. Java uses four-space indentation and standard package/class naming; backend formatting is enforced by Spotless/Prettier. Keep Astro TypeScript strict and follow existing two-space formatting.
+
+For PrimeNG UI changes in `taurus-fe/`, consult `docs/llms-full.md` and read only the sections relevant to the component.
 
 ## Testing Guidelines
 

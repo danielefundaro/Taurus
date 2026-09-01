@@ -222,20 +222,25 @@ Campi proposti:
 - `system_defined BOOLEAN`;
 - `display_order INTEGER`.
 
-Categorie iniziali suggerite:
+Categorie iniziali e relativa direzione:
 
-- Compensi eventi;
-- Quote associative;
-- Donazioni;
-- Rimborsi;
-- Acquisto materiali;
-- Trasporti;
-- Affitto locali;
-- Manutenzione;
-- Utenze;
-- Spese bancarie;
-- Altro incasso;
-- Altra spesa.
+| Categoria | Direzione | Utilizzo |
+| --- | --- | --- |
+| Compensi eventi | `INCOME` | Incassi dei compensi associati agli eventi |
+| Quote associative | `INCOME` | Quote versate dai soci |
+| Donazioni | `INCOME` | Somme ricevute senza controprestazione |
+| Rimborsi ricevuti | `INCOME` | Restituzioni da fornitori o recuperi di spese anticipate |
+| Rimborsi erogati | `EXPENSE` | Somme restituite a soci, collaboratori o clienti |
+| Acquisto materiali | `EXPENSE` | Acquisto di beni e materiali di consumo |
+| Trasporti | `EXPENSE` | Viaggi, carburante, noleggi e spedizioni |
+| Affitto locali | `EXPENSE` | Affitto di sale, depositi o sedi |
+| Manutenzione | `EXPENSE` | Riparazione e manutenzione di beni |
+| Utenze | `EXPENSE` | Energia, telefono, Internet e servizi analoghi |
+| Spese bancarie | `EXPENSE` | Commissioni e costi dei conti correnti |
+| Altro incasso | `INCOME` | Entrate occasionali non classificabili diversamente |
+| Altra spesa | `EXPENSE` | Uscite occasionali non classificabili diversamente |
+
+Nessuna categoria iniziale usa `BOTH`. Admin, Tesoriere e Super Admin possono comunque creare categorie bidirezionali quando la stessa causale genera realmente sia entrate sia uscite, per esempio cauzioni o anticipi. Per i rimborsi si mantengono due categorie distinte per rendere più chiari filtri e rendiconti.
 
 Le categorie usate non vengono eliminate fisicamente ma archiviate. Il nome può essere modificato; lo storico delle modifiche rimane nei campi di audit.
 
@@ -333,8 +338,9 @@ Admin, Tesoriere e Super Admin possono in qualunque momento:
 - correggere conto, direzione, importo, data, categoria, evento, descrizione e note;
 - aggiungere, sostituire o rimuovere allegati;
 - segnare o togliere la riconciliazione;
-- eliminare logicamente il movimento;
-- ripristinare un movimento eliminato, se viene prevista la relativa azione nell'interfaccia.
+- eliminare logicamente il movimento.
+
+Il soft-delete è definitivo dal punto di vista applicativo: un movimento eliminato non può essere ripristinato e non contribuisce più a saldi e rendiconti. I dati rimangono nel database esclusivamente per tracciabilità. Se l'eliminazione è avvenuta per errore, l'utente deve creare un nuovo movimento; l'interfaccia deve quindi richiedere una conferma esplicita prima di eliminare.
 
 La correzione avviene direttamente sul movimento. Non è obbligatorio e non è previsto come flusso standard creare uno storno o una scrittura opposta.
 
@@ -410,16 +416,18 @@ residuo da pagare = costi previsti - pagato
 
 I residui possono essere negativi e in tal caso rappresentano un incasso o una spesa superiore al preventivo.
 
-Stati economici derivati suggeriti:
+Stati economici derivati approvati:
 
-- `NO_BUDGET`: nessun compenso e nessun costo previsto;
-- `NO_MOVEMENTS`: preventivo presente ma nessun consuntivo;
-- `OPEN`: residui ancora presenti;
-- `PARTIALLY_SETTLED`: almeno un movimento presente, ma posizione non saldata;
-- `SETTLED`: residui pari a zero secondo la precisione monetaria;
-- `OVERPAID_OR_OVERRUN`: almeno un residuo negativo.
+- `NO_BUDGET`: nessun compenso, nessun costo previsto e nessun movimento;
+- `UNPLANNED_MOVEMENTS`: nessun compenso e nessun costo previsto, ma almeno un movimento associato;
+- `NO_MOVEMENTS`: preventivo presente ma nessun movimento associato;
+- `OVERPAID_OR_OVERRUN`: almeno un residuo negativo;
+- `SETTLED`: tutti i residui sono pari a zero secondo la precisione monetaria;
+- `PARTIALLY_SETTLED`: almeno un movimento presente e posizione non saldata, senza superamento del preventivo.
 
-Questi stati non devono essere salvati come booleani sull'evento: vengono calcolati per evitare disallineamenti.
+La valutazione deve seguire esattamente l'ordine sopra indicato e fermarsi al primo stato applicabile. In particolare, il superamento del preventivo ha priorità rispetto alla posizione parzialmente saldata. Lo stato generico `OPEN` non viene utilizzato perché si sovrapporrebbe a `NO_MOVEMENTS` e `PARTIALLY_SETTLED`.
+
+Questi stati non devono essere salvati sull'evento: vengono calcolati per evitare disallineamenti.
 
 ### Evoluzione futura facoltativa
 
@@ -525,7 +533,6 @@ ROLE_TREASURER
 - `GET /api/finance/movements/{id}`;
 - `PUT /api/finance/movements/{id}`, corregge qualsiasi movimento;
 - `DELETE /api/finance/movements/{id}`, cancellazione logica sempre consentita;
-- `POST /api/finance/movements/{id}/restore`, ripristino facoltativo di un movimento eliminato;
 - `PATCH /api/finance/movements/{id}/reconciliation`, imposta o rimuove la riconciliazione;
 - `POST /api/finance/transfers`.
 
@@ -787,7 +794,8 @@ Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema p
 ### Esperienza utente nella gestione
 
 - pulsante `Salva` con normale modifica del movimento;
-- azioni `Modifica`, `Elimina` e, se prevista, `Ripristina` sempre disponibili agli utenti autorizzati;
+- azioni `Modifica` ed `Elimina` sempre disponibili agli utenti autorizzati;
+- conferma esplicita prima dell'eliminazione, indicando che il movimento non potrà essere ripristinato;
 - conferma prima della cancellazione logica;
 - controllo facoltativo `Riconciliato` che può essere attivato o rimosso;
 - warning per saldo negativo;
@@ -859,7 +867,7 @@ Un rollback applicativo deve preservare tabelle, movimenti e allegati. Non devon
 ## Audit, conservazione e cancellazioni
 
 - tutti i movimenti possono essere modificati;
-- tutti i movimenti possono essere cancellati logicamente e, se previsto, ripristinati;
+- tutti i movimenti possono essere cancellati logicamente, senza possibilità di ripristino applicativo;
 - conti e categorie usati: archiviati, non cancellati;
 - tutti gli allegati possono essere aggiunti, sostituiti o rimossi logicamente;
 - ogni modifica conserva almeno ultimo autore, data e versione;
@@ -873,7 +881,7 @@ Taurus è uno strumento gestionale di supporto e non sostituisce la contabilità
 
 Registrare log applicativi strutturati per:
 
-- movimento creato, modificato, eliminato, ripristinato o riconciliato;
+- movimento creato, modificato, eliminato o riconciliato;
 - trasferimento creato o fallito;
 - allegato caricato o invalidato;
 - esercizio creato o riportato all'anno successivo;
@@ -968,6 +976,8 @@ Metriche utili:
 - esclusione trasferimenti dai totali consolidati;
 - esclusione aperture da ricavi/costi annuali;
 - formule preventivo/consuntivo evento;
+- assegnazione univoca dello stato economico secondo la precedenza approvata;
+- validazione della direzione consentita dalla categoria;
 - validazione valuta e importi;
 - riconciliazione attivabile e rimovibile senza bloccare la modifica;
 - aggiornamento diretto senza generazione di storni.
@@ -998,6 +1008,7 @@ Metriche utili:
 - Admin e Tesoriere vedono gli stessi controlli economici;
 - il Tesoriere non vede i controlli operativi amministrativi;
 - form di modifica disponibile per qualsiasi movimento;
+- conferma di eliminazione senza azione di ripristino;
 - caricamento allegati facoltativo;
 - riepiloghi evento coerenti con le risposte API;
 - warning saldo negativo e ricalcolo degli anni successivi.
@@ -1022,10 +1033,12 @@ Metriche utili:
 - ogni conto mostra un saldo riproducibile dai movimenti;
 - ogni movimento attivo influenza immediatamente i saldi;
 - ogni movimento può essere modificato o cancellato logicamente;
+- un movimento cancellato logicamente non può essere ripristinato dall'applicazione e non partecipa ai calcoli;
 - una correzione aggiorna direttamente il movimento senza richiedere uno storno;
 - un trasferimento genera sempre due scritture coerenti oppure nessuna;
 - gli allegati sono facoltativi, protetti per tenant e verificati server-side;
 - preventivo e consuntivo evento rimangono separati;
+- ogni evento espone un solo stato economico, calcolato secondo la precedenza approvata;
 - un movimento creato dall'evento conserva automaticamente il collegamento;
 - gli eventi esistenti con compensi/costi compaiono senza migrazione distruttiva;
 - i report non contano aperture come ricavi né trasferimenti come entrate consolidate;
@@ -1091,7 +1104,7 @@ I nomi precisi possono essere adattati alle convenzioni applicative osservate du
 4. provisioning idempotente `ROLE_TREASURER` sul realm esistente;
 5. smoke test con Admin, Tesoriere, Utente e Utente esterno;
 6. test di caricamento e download PDF/JPEG/PNG;
-7. prova completa creazione-modifica-riconciliazione-eliminazione-ripristino;
+7. prova completa creazione-modifica-riconciliazione-eliminazione e verifica dell'impossibilità di ripristino;
 8. prova trasferimento cassa-conto corrente;
 9. prova evento con preventivo, incasso parziale, costo e saldo;
 10. simulazione cambio anno e riporto saldi;
