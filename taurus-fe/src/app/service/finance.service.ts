@@ -30,7 +30,7 @@ export class FinanceService {
     }
 
     archiveAccount(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.baseUrl}/accounts/${id}`);
+        return this.http.patch<void>(`${this.baseUrl}/accounts/${id}/archive`, {});
     }
 
     getCategories(includeArchived = false): Observable<FinancialCategory[]> {
@@ -46,7 +46,7 @@ export class FinanceService {
     }
 
     archiveCategory(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.baseUrl}/categories/${id}`);
+        return this.http.patch<void>(`${this.baseUrl}/categories/${id}/archive`, {});
     }
 
     getMovements(options: {

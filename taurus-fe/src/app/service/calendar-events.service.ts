@@ -33,7 +33,7 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
     }
 
     public cancelAvailability(id: number): Observable<CalendarEvents> {
-        return this.http.delete<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability`);
+        return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability/cancel`, {});
     }
 
     public setPresentUsers(id: number, presentUsers: EventPresentUser[]): Observable<CalendarEvents> {
@@ -47,6 +47,6 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
     }
 
     public cancelSeriesAvailability(seriesId: number): Observable<BulkAvailabilityResult> {
-        return this.http.delete<BulkAvailabilityResult>(`${this.baseUrl}/${this.resourceName()}/series/${seriesId}/availability`);
+        return this.http.patch<BulkAvailabilityResult>(`${this.baseUrl}/${this.resourceName()}/series/${seriesId}/availability/cancel`, {});
     }
 }

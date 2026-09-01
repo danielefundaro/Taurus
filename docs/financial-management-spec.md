@@ -517,7 +517,7 @@ ROLE_TREASURER
 - `POST /api/finance/accounts`;
 - `GET /api/finance/accounts/{id}`;
 - `PUT /api/finance/accounts/{id}`;
-- `DELETE /api/finance/accounts/{id}`, con semantica di archiviazione;
+- `PATCH /api/finance/accounts/{id}/archive`, imposta `active = false`; il conto resta consultabile e viene riattivato salvandolo di nuovo con `PUT`;
 - `GET /api/finance/accounts/{id}/balance?date=YYYY-MM-DD`;
 - `GET /api/finance/accounts/{id}/statement`.
 
@@ -526,7 +526,7 @@ ROLE_TREASURER
 - `GET /api/finance/categories`;
 - `POST /api/finance/categories`;
 - `PUT /api/finance/categories/{id}`;
-- `DELETE /api/finance/categories/{id}`, con semantica di archiviazione.
+- `PATCH /api/finance/categories/{id}/archive`, imposta `active = false`; la categoria resta consultabile e viene riattivata salvandola di nuovo con `PUT`.
 
 ### Movimenti
 

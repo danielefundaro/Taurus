@@ -38,7 +38,7 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
         return ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/{id}/availability")
+    @PatchMapping("/{id}/availability/cancel")
     public ResponseEntity<CalendarEventsDTO> cancelAvailability(@PathVariable("id") Long id, AbstractAuthenticationToken token) {
         getLog().debug("REST request to cancel availability for CalendarEvents : {}", id);
         CalendarEventsDTO result = getService().cancelAvailability(id, token);
@@ -61,7 +61,7 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
         return ResponseEntity.ok(getService().setSeriesAvailability(seriesId, available, null, token));
     }
 
-    @DeleteMapping("/series/{seriesId}/availability")
+    @PatchMapping("/series/{seriesId}/availability/cancel")
     public ResponseEntity<BulkAvailabilityResultDTO> cancelSeriesAvailability(
         @PathVariable Long seriesId,
         AbstractAuthenticationToken token
