@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Spring Data JPA repository for the Notices entity.
@@ -20,4 +21,6 @@ public interface NoticesRepository extends CommonRepository<Notices, NoticesCrit
 
     @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
     long countUnread(@Param("userId") String userId);
+
+    Optional<Notices> findBySourceEventKeyAndUserId(String sourceEventKey, String userId);
 }

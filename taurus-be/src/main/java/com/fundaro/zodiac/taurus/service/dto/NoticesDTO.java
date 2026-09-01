@@ -17,6 +17,14 @@ public class NoticesDTO extends CommonFieldsDTO {
 
     private ZonedDateTime readDate;
 
+    private String source;
+
+    private String severity;
+
+    private String targetPath;
+
+    private String sourceEventKey;
+
     public String getName() {
         return name;
     }
@@ -40,6 +48,22 @@ public class NoticesDTO extends CommonFieldsDTO {
     public void setReadDate(ZonedDateTime readDate) {
         this.readDate = readDate;
     }
+
+    public String getSource() { return source; }
+
+    public void setSource(String source) { this.source = source; }
+
+    public String getSeverity() { return severity; }
+
+    public void setSeverity(String severity) { this.severity = severity; }
+
+    public String getTargetPath() { return targetPath; }
+
+    public void setTargetPath(String targetPath) { this.targetPath = targetPath; }
+
+    public String getSourceEventKey() { return sourceEventKey; }
+
+    public void setSourceEventKey(String sourceEventKey) { this.sourceEventKey = sourceEventKey; }
 
     @Override
     public boolean equals(Object o) {

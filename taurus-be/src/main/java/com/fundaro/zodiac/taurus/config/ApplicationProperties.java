@@ -75,6 +75,8 @@ public class ApplicationProperties {
     public static class Keycloak {
         private String masterUri;
 
+        private boolean provisionRoles;
+
         private final Admin admin = new Admin();
 
         public String getMasterUri() {
@@ -83,6 +85,14 @@ public class ApplicationProperties {
 
         public void setMasterUri(String masterUri) {
             this.masterUri = masterUri;
+        }
+
+        public boolean isProvisionRoles() {
+            return provisionRoles;
+        }
+
+        public void setProvisionRoles(boolean provisionRoles) {
+            this.provisionRoles = provisionRoles;
         }
 
         public Admin getAdmin() {

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260901000003-1" author="codex">
+        <comment>Add reliable tenant-scoped finance notification delivery and navigable notices.</comment>
+        <sql>
+            ALTER TABLE notices
+                ADD COLUMN source VARCHAR(32) NOT NULL DEFAULT 'GENERAL',
+                ADD COLUMN severity VARCHAR(16) NOT NULL DEFAULT 'INFO',
+                ADD COLUMN target_path VARCHAR(500),
+                ADD COLUMN source_event_key VARCHAR(160);
+
+            ALTER TABLE notices
+                ADD CONSTRAINT ck_notices_severity CHECK (severity IN ('INFO', 'SUCCESS', 'WARNING'));
+
+            CREATE UNIQUE INDEX uq_notices_source_event_user
+                ON notices(source_event_key, user_id)
+                WHERE source_event_key IS NOT NULL;
+
+            CREATE TABLE finance_notification_outbox (
+                id BIGSERIAL PRIMARY KEY,
+                event_key VARCHAR(160) NOT NULL,
+                aggregate_type VARCHAR(32) NOT NULL,
+                aggregate_id BIGINT,
+                operation VARCHAR(64) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                message VARCHAR(255) NOT NULL,
+                severity VARCHAR(16) NOT NULL DEFAULT 'INFO',
+                target_path VARCHAR(500),
+                actor_id VARCHAR(255) NOT NULL,
+                actor_display_name VARCHAR(255) NOT NULL,
+                recipient_roles VARCHAR(255) NOT NULL,
+                occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                next_attempt_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                delivered_at TIMESTAMP WITH TIME ZONE,
+                last_error VARCHAR(1000),
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT uq_finance_notification_event_key UNIQUE (event_key),
+                CONSTRAINT ck_finance_notification_severity CHECK (severity IN ('INFO', 'SUCCESS', 'WARNING')),
+                CONSTRAINT ck_finance_notification_status CHECK (status IN ('PENDING', 'DELIVERED', 'FAILED')),
+                CONSTRAINT ck_finance_notification_attempts CHECK (attempts &gt;= 0)
+            );
+
+            CREATE INDEX idx_finance_notification_pending
+                ON finance_notification_outbox(next_attempt_at, id)
+                WHERE deleted = FALSE AND status = 'PENDING';
+        </sql>
+    </changeSet>
+</databaseChangeLog>

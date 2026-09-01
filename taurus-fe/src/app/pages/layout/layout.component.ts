@@ -5,20 +5,14 @@ import { filter, Subscription } from 'rxjs';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../components/topbar/topbar.component';
-import { LayoutService } from '../../service';
+import { LayoutService, NotificationCenterService } from '../../service';
 
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [
-        CommonModule,
-        TopbarComponent,
-        SidebarComponent,
-        RouterModule,
-        FooterComponent,
-    ],
+    imports: [CommonModule, TopbarComponent, SidebarComponent, RouterModule, FooterComponent],
     templateUrl: './layout.component.html',
-    styleUrl: './layout.component.scss',
+    styleUrl: './layout.component.scss'
 })
 export class LayoutComponent {
     overlayMenuOpenSubscription: Subscription;
@@ -31,9 +25,11 @@ export class LayoutComponent {
 
     constructor(
         public layoutService: LayoutService,
+        private readonly notificationCenter: NotificationCenterService,
         public renderer: Renderer2,
         public router: Router
     ) {
+        this.notificationCenter.start();
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
             this.menuOutsideClickListener ??= this.renderer.listen('document', 'click', (event) => {
                 if (this.isOutsideClicked(event)) {
@@ -95,6 +91,7 @@ export class LayoutComponent {
     }
 
     ngOnDestroy() {
+        this.notificationCenter.stop();
         if (this.overlayMenuOpenSubscription) {
             this.overlayMenuOpenSubscription.unsubscribe();
         }

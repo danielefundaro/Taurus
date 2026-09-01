@@ -5,10 +5,14 @@ import com.fundaro.zodiac.taurus.domain.criteria.NoticesCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.finance.FinanceNotificationOutbox;
+import com.fundaro.zodiac.taurus.domain.finance.FinanceNotificationStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
+import com.fundaro.zodiac.taurus.repository.finance.FinanceNotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.NoticesService.FinanceNoticeCommand;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
@@ -19,8 +23,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service Implementation for managing {@link com.fundaro.zodiac.taurus.domain.Notices}.
@@ -29,23 +36,28 @@ import java.util.List;
 @Transactional
 public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, NoticesCriteria, NoticesMapper, NoticesRepository> implements NoticesService {
 
+    private static final int MAX_NOTICE_TEXT = 255;
+
     private final UsersService usersService;
 
     private final KeycloakService keycloakService;
 
     private final TenantTransactionExecutor tenantTransactionExecutor;
+    private final FinanceNotificationOutboxRepository financeNotificationOutboxRepository;
 
     public NoticesServiceImpl(
         NoticesRepository noticesRepository,
         NoticesMapper noticesMapper,
         UsersService usersService,
         KeycloakService keycloakService,
-        TenantTransactionExecutor tenantTransactionExecutor
+        TenantTransactionExecutor tenantTransactionExecutor,
+        FinanceNotificationOutboxRepository financeNotificationOutboxRepository
     ) {
         super(noticesRepository, noticesMapper, NoticesService.class, Notices.class.getSimpleName());
         this.usersService = usersService;
         this.keycloakService = keycloakService;
         this.tenantTransactionExecutor = tenantTransactionExecutor;
+        this.financeNotificationOutboxRepository = financeNotificationOutboxRepository;
     }
 
     @Override
@@ -115,6 +127,60 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     }
 
     @Override
+    public void addFinanceNoticeToUser(
+        String userId,
+        String eventKey,
+        String name,
+        String message,
+        String severity,
+        String targetPath,
+        String actor
+    ) {
+        if (getRepository().findBySourceEventKeyAndUserId(eventKey, userId).isPresent()) return;
+        ZonedDateTime now = ZonedDateTime.now();
+        Notices notice = new Notices();
+        notice.setName(name);
+        notice.setMessage(message);
+        notice.setUserId(userId);
+        notice.setSource("FINANCE");
+        notice.setSeverity(severity);
+        notice.setTargetPath(targetPath);
+        notice.setSourceEventKey(eventKey);
+        notice.setDeleted(false);
+        notice.setInsertBy(actor);
+        notice.setInsertDate(now);
+        notice.setEditBy(actor);
+        notice.setEditDate(now);
+        getRepository().save(notice);
+    }
+
+    @Override
+    public void enqueueFinanceNotice(FinanceNoticeCommand notice) {
+        ZonedDateTime now = ZonedDateTime.now();
+        FinanceNotificationOutbox event = new FinanceNotificationOutbox();
+        event.initializeAudit(notice.actorId());
+        event.setEventKey(value(notice.eventKey(), UUID.randomUUID().toString()));
+        event.setAggregateType(notice.aggregateType());
+        event.setAggregateId(notice.aggregateId());
+        event.setOperation(notice.operation());
+        event.setTitle(limit(notice.title()));
+        event.setMessage(limitMessage(notice.message()));
+        event.setSeverity(notice.severity());
+        event.setTargetPath(notice.targetPath());
+        event.setActorId(notice.actorId());
+        event.setActorDisplayName(notice.actorDisplayName());
+        event.setRecipientRoles(notice.recipientRoles().stream()
+            .sorted(Comparator.comparing(Enum::name))
+            .map(Enum::name)
+            .collect(Collectors.joining(",")));
+        event.setOccurredAt(now);
+        event.setStatus(FinanceNotificationStatus.PENDING);
+        event.setAttempts(0);
+        event.setNextAttemptAt(now);
+        financeNotificationOutboxRepository.save(event);
+    }
+
+    @Override
     public void readAll(AbstractAuthenticationToken abstractAuthenticationToken) {
         String userId = SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
         ZonedDateTime now = ZonedDateTime.now();
@@ -159,6 +225,20 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
         roleFilter.setIn(roles);
         criteria.setRoles(roleFilter);
         addNotices(name, message, criteria, abstractAuthenticationToken);
+    }
+
+    private static String limit(String value) {
+        if (value == null || value.length() <= MAX_NOTICE_TEXT) return value;
+        return value.substring(0, MAX_NOTICE_TEXT - 1) + "…";
+    }
+
+    private static String limitMessage(String value) {
+        if (value == null || value.length() <= MAX_NOTICE_TEXT) return value;
+        return value.substring(0, MAX_NOTICE_TEXT - 2) + "….";
+    }
+
+    private static String value(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
     }
 
     private void addNoticesSuperAdminsOfKeycloak(String name, String message, AbstractAuthenticationToken abstractAuthenticationToken) {

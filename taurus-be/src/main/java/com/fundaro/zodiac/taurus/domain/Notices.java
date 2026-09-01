@@ -25,6 +25,18 @@ public class Notices extends CommonFields {
     @Column(name = "read_date")
     private ZonedDateTime readDate;
 
+    @Column(name = "source", nullable = false, length = 32)
+    private String source = "GENERAL";
+
+    @Column(name = "severity", nullable = false, length = 16)
+    private String severity = "INFO";
+
+    @Column(name = "target_path", length = 500)
+    private String targetPath;
+
+    @Column(name = "source_event_key", length = 160)
+    private String sourceEventKey;
+
     public Notices() {
         super();
     }
@@ -108,6 +120,22 @@ public class Notices extends CommonFields {
     public void setReadDate(ZonedDateTime readDate) {
         this.readDate = readDate;
     }
+
+    public String getSource() { return source; }
+
+    public void setSource(String source) { this.source = source; }
+
+    public String getSeverity() { return severity; }
+
+    public void setSeverity(String severity) { this.severity = severity; }
+
+    public String getTargetPath() { return targetPath; }
+
+    public void setTargetPath(String targetPath) { this.targetPath = targetPath; }
+
+    public String getSourceEventKey() { return sourceEventKey; }
+
+    public void setSourceEventKey(String sourceEventKey) { this.sourceEventKey = sourceEventKey; }
 
     @Override
     public boolean equals(Object o) {
