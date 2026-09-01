@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -27,6 +28,8 @@ public class InventoryAssignment extends TenantAuditedEntity {
     private ZonedDateTime assignedAt;
     @Column(name = "description", columnDefinition = "text")
     private String description;
+    @Column(name = "expiration_date")
+    private LocalDate expirationDate;
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
     private InventoryAssignmentStatus status;
@@ -53,6 +56,8 @@ public class InventoryAssignment extends TenantAuditedEntity {
     public void setAssignedAt(ZonedDateTime assignedAt) { this.assignedAt = assignedAt; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public LocalDate getExpirationDate() { return expirationDate; }
+    public void setExpirationDate(LocalDate expirationDate) { this.expirationDate = expirationDate; }
     public InventoryAssignmentStatus getStatus() { return status; }
     public void setStatus(InventoryAssignmentStatus status) { this.status = status; }
     public int getCurrentRevision() { return currentRevision; }

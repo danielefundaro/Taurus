@@ -37,6 +37,7 @@
                 <td>
                     <strong>{{ assignment.inventoryNumber }} - {{ assignment.itemName }}</strong>
                     <div class="text-sm text-surface-500">{{ assignment.itemDescription }}</div>
+                    <app-inventory-expiration-badge [expirationDate]="assignment.expirationDate" />
                     <div class="text-xs text-surface-400">Revisione {{ assignment.revision }} del {{
                         assignment.revisionDate | date: 'dd/MM/yyyy HH:mm' }}</div>
                 </td>

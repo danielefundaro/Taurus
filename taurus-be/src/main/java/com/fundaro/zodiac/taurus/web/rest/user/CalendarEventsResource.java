@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest.user;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
@@ -40,5 +41,22 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
         getLog().debug("REST request to cancel availability for CalendarEvents : {}", id);
         CalendarEventsDTO result = getService().cancelAvailability(id, token);
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/series/{seriesId}/availability")
+    public ResponseEntity<BulkAvailabilityResultDTO> setSeriesAvailability(
+        @PathVariable Long seriesId,
+        @RequestParam boolean available,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.ok(getService().setSeriesAvailability(seriesId, available, token));
+    }
+
+    @DeleteMapping("/series/{seriesId}/availability")
+    public ResponseEntity<BulkAvailabilityResultDTO> cancelSeriesAvailability(
+        @PathVariable Long seriesId,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.ok(getService().setSeriesAvailability(seriesId, null, token));
     }
 }

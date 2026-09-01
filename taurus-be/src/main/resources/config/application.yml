@@ -211,6 +211,9 @@ jhipster:
 # application:
 
 application:
+  calendar:
+    recurrence:
+      max-occurrences: 500
   base-path: D:\data
   keycloak:
     master-uri: http://localhost:9080/realms/master

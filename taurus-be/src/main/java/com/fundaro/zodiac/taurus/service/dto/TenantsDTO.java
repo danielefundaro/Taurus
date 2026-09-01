@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 
@@ -35,6 +36,10 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     @URL(regexp = "https?://.*", message = "must be a valid HTTP or HTTPS URL")
     @Size(max = 2048)
     private String logoUrl;
+
+    @NotBlank
+    @Size(max = 64)
+    private String timeZone = "Europe/Rome";
 
     public String getCode() {
         return code;
@@ -100,6 +105,8 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+    public String getTimeZone() { return timeZone; }
+    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
 
     @Override
     public boolean equals(Object o) {
@@ -123,12 +130,13 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(country, that.country) &&
             Objects.equals(taxCode, that.taxCode) &&
             Objects.equals(vatNumber, that.vatNumber) &&
-            Objects.equals(logoUrl, that.logoUrl);
+            Objects.equals(logoUrl, that.logoUrl) &&
+            Objects.equals(timeZone, that.timeZone);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone);
     }
 
     @Override
@@ -151,6 +159,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", taxCode='" + taxCode + '\'' +
             ", vatNumber='" + vatNumber + '\'' +
             ", logoUrl='" + logoUrl + '\'' +
+            ", timeZone='" + timeZone + '\'' +
             '}';
     }
 }

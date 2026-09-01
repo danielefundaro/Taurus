@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { finalize, first } from 'rxjs';
+import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryReturn, Users, UsersCriteria } from '../../../module';
@@ -10,7 +11,7 @@ import { InventoryService, ToastService, UsersService } from '../../../service';
 @Component({
     selector: 'app-inventory-detail',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [ConfirmationService, UsersService]
@@ -21,7 +22,9 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     protected selectedUser?: Users;
     protected assignmentQuantity = 1;
     protected assignmentDescription = '';
+    protected assignmentExpirationDate?: Date | null;
     protected assignmentEdits: Record<number, InventoryAssignmentRequest> = {};
+    protected assignmentExpirationDateEdits: Record<number, Date | null | undefined> = {};
     protected returnQuantities: Record<number, number> = {};
     protected returnRequestNotes: Record<number, string> = {};
     protected returnConditions: Record<number, InventoryCondition | undefined> = {};
@@ -137,7 +140,8 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             userIndex: this.selectedUser.id,
             order: this.item.assignments?.length ?? 0,
             quantity: this.assignmentQuantity,
-            description: this.assignmentDescription
+            description: this.assignmentDescription,
+            expirationDate: this.toLocalDate(this.assignmentExpirationDate)
         };
         this.inventoryService
             .assign(this.item.id, request)
@@ -147,13 +151,18 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
                 this.selectedUser = undefined;
                 this.assignmentQuantity = 1;
                 this.assignmentDescription = '';
+                this.assignmentExpirationDate = undefined;
                 this.loadItem(this.item.id!);
             });
     }
 
     protected saveAssignment(assignmentId: number): void {
-        const request = this.assignmentEdits[assignmentId];
-        if (!request || request.quantity < 1) return;
+        const edit = this.assignmentEdits[assignmentId];
+        if (!edit || edit.quantity < 1) return;
+        const request: InventoryAssignmentRequest = {
+            ...edit,
+            expirationDate: this.toLocalDate(this.assignmentExpirationDateEdits[assignmentId])
+        };
         this.inventoryService
             .updateAssignment(assignmentId, request)
             .pipe(first())
@@ -294,7 +303,10 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     protected savePhotoOrder(): void {
         if (!this.item.id || !this.photoOrderDirty || !this.item.photos?.length) return;
         this.inventoryService
-            .reorderPhotos(this.item.id, this.item.photos.map((photo) => photo.id))
+            .reorderPhotos(
+                this.item.id,
+                this.item.photos.map((photo) => photo.id)
+            )
             .pipe(first())
             .subscribe((photos) => {
                 this.item.photos = photos;
@@ -339,10 +351,12 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
                             userIndex: assignment.userIndex,
                             order: assignment.order,
                             quantity: assignment.assignedQuantity,
-                            description: assignment.description
+                            description: assignment.description,
+                            expirationDate: assignment.expirationDate
                         }
                     ])
                 );
+                this.assignmentExpirationDateEdits = Object.fromEntries((value.assignments ?? []).map((assignment) => [assignment.id, this.fromLocalDate(assignment.expirationDate)]));
                 (value.assignments ?? []).forEach((assignment) => {
                     this.returnQuantities[assignment.id] = Math.max(1, assignment.outstandingQuantity);
                     assignment.returns.forEach((itemReturn) => {
@@ -369,6 +383,20 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             this.toastService.error('Fotografia non valida', 'Sono ammessi JPEG/PNG fino a 10 MB. WebP non è supportato.');
         }
         return valid;
+    }
+
+    private toLocalDate(value?: Date | null): string | undefined {
+        if (!value) return undefined;
+        const year = value.getFullYear();
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    private fromLocalDate(value?: string): Date | undefined {
+        if (!value) return undefined;
+        const [year, month, day] = value.split('-').map(Number);
+        return new Date(year, month - 1, day);
     }
 
     private emptyItem(): InventoryItem {

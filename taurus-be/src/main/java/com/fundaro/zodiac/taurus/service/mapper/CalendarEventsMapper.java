@@ -25,6 +25,7 @@ public interface CalendarEventsMapper extends EntityOpenSearchMapper<CalendarEve
     @Mapping(target = "availableUsers", ignore = true)
     @Mapping(target = "unavailableUsers", ignore = true)
     @Mapping(target = "presentUsers", ignore = true)
+    @Mapping(target = "seriesId", source = "series.id")
     CalendarEventsDTO toDto(CalendarEvents calendarEvents);
 
     @Mapping(target = "availabilities", ignore = true)
@@ -32,6 +33,11 @@ public interface CalendarEventsMapper extends EntityOpenSearchMapper<CalendarEve
     @Mapping(target = "availableUsers", ignore = true)
     @Mapping(target = "unavailableUsers", ignore = true)
     @Mapping(target = "presentUsers", ignore = true)
+    @Mapping(target = "series", ignore = true)
+    @Mapping(target = "originalStartDate", ignore = true)
+    @Mapping(target = "seriesSequence", ignore = true)
+    @Mapping(target = "seriesException", ignore = true)
+    @Mapping(target = "seriesExcluded", ignore = true)
     CalendarEvents toEntity(CalendarEventsDTO dto);
 
     @Override
@@ -42,6 +48,11 @@ public interface CalendarEventsMapper extends EntityOpenSearchMapper<CalendarEve
     @Mapping(target = "availableUsers", ignore = true)
     @Mapping(target = "unavailableUsers", ignore = true)
     @Mapping(target = "presentUsers", ignore = true)
+    @Mapping(target = "series", ignore = true)
+    @Mapping(target = "originalStartDate", ignore = true)
+    @Mapping(target = "seriesSequence", ignore = true)
+    @Mapping(target = "seriesException", ignore = true)
+    @Mapping(target = "seriesExcluded", ignore = true)
     void partialUpdate(@MappingTarget CalendarEvents entity, CalendarEventsDTO dto);
 
     EventCostDTO toCostDto(EventCost cost);

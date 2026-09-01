@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
+import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
 import { ToastService, UserInventoryService } from '../../../service';
@@ -8,7 +9,7 @@ import { ToastService, UserInventoryService } from '../../../service';
 @Component({
     selector: 'app-inventory-assignment-detail',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './assignment-detail.component.html',
     styleUrl: './assignment-detail.component.scss'
 })
