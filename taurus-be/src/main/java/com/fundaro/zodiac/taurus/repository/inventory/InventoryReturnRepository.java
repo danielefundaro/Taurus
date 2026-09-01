@@ -15,6 +15,9 @@ public interface InventoryReturnRepository extends JpaRepository<InventoryReturn
     List<InventoryReturn> findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(Long assignmentId);
     Optional<InventoryReturn> findByIdAndDeletedFalse(Long id);
 
+    @Query("select r from InventoryReturn r join fetch r.assignment a join fetch a.item where r.id = :id and r.deleted = false")
+    Optional<InventoryReturn> findNoticeTargetById(@Param("id") Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from InventoryReturn r where r.id = :id and r.deleted = false")
     Optional<InventoryReturn> findForUpdate(@Param("id") Long id);

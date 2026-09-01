@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentRevision;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
@@ -22,6 +23,7 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnPhoto;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
@@ -29,8 +31,13 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoReposito
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
-import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.AlbumsService;
+import com.fundaro.zodiac.taurus.service.CalendarEventsService;
+import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.TenantsService;
+import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
@@ -40,6 +47,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentReques
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -59,6 +67,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.mock.web.MockMultipartFile;
@@ -77,25 +86,55 @@ class InventoryServiceTest {
     @Mock MediaService mediaService;
     @Mock MediaRepository mediaRepository;
     @Mock NoticesService noticesService;
+    @Mock TenantsService tenantsService;
+    @Mock InstrumentsService instrumentsService;
+    @Mock AlbumsService albumsService;
+    @Mock TracksService tracksService;
+    @Mock CalendarEventsService calendarEventsService;
+    @Mock UsersRepository usersRepository;
+    @Mock KeycloakService keycloakService;
 
     private InventoryService service;
 
     @BeforeEach
     void setUp() {
-        service = new InventoryService(
+        InventoryNoticeDataService noticeDataService = new InventoryNoticeDataService(
+            itemRepository,
+            assignmentRepository,
+            photoRepository,
+            returnRepository,
+            usersRepository,
+            keycloakService
+        );
+        NoticesAspect noticesAspect = new NoticesAspect(
+            noticesService,
+            usersService,
+            tenantsService,
+            instrumentsService,
+            albumsService,
+            tracksService,
+            calendarEventsService,
+            noticeDataService
+        );
+        AspectJProxyFactory revisionProxyFactory = new AspectJProxyFactory(revisionRepository);
+        revisionProxyFactory.addAspect(noticesAspect);
+        InventoryAssignmentRevisionRepository advisedRevisionRepository = revisionProxyFactory.getProxy();
+        InventoryService target = new InventoryService(
             itemRepository,
             photoRepository,
             assignmentRepository,
-            revisionRepository,
+            advisedRevisionRepository,
             decisionRepository,
             returnRepository,
             returnPhotoRepository,
             usersService,
             mediaService,
             mediaRepository,
-            new ObjectMapper(),
-            noticesService
+            new ObjectMapper()
         );
+        AspectJProxyFactory serviceProxyFactory = new AspectJProxyFactory(target);
+        serviceProxyFactory.addAspect(noticesAspect);
+        service = serviceProxyFactory.getProxy();
     }
 
     @Test
@@ -125,8 +164,8 @@ class InventoryServiceTest {
 
         verify(itemRepository).existsByInventoryNumberIgnoreCaseAndDeletedFalse("INV-1");
         verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto aggiunto"),
-            contains("user-1 ha aggiunto l'oggetto di inventario \"INV-1 - Leggio\""),
+            eq("Inventario: oggetto creato"),
+            contains("user-1 ha creato l'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -143,8 +182,8 @@ class InventoryServiceTest {
         );
 
         verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto modificato"),
-            contains("ha modificato l'oggetto di inventario \"INV-1 - Leggio aggiornato\""),
+            eq("Inventario: oggetto aggiornato"),
+            contains("ha aggiornato l'oggetto “INV-1 — Leggio aggiornato”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -152,6 +191,7 @@ class InventoryServiceTest {
     @Test
     void shouldNotifyAdminsWhenAnItemIsRemoved() {
         InventoryItem item = item(1L);
+        when(itemRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(item));
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
 
         service.deleteItem(1L, authentication());
@@ -159,7 +199,7 @@ class InventoryServiceTest {
         assertThat(item.isDeleted()).isTrue();
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: oggetto rimosso"),
-            contains("ha rimosso l'oggetto di inventario \"INV-1 - Leggio\""),
+            contains("ha rimosso l'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -194,8 +234,14 @@ class InventoryServiceTest {
 
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: oggetto assegnato"),
-            contains("ha assegnato 2 unità di \"INV-1 - Leggio\" a Mario Rossi"),
+            contains("ha assegnato 2 unità dell'oggetto “INV-1 — Leggio” a Mario Rossi"),
             any(JwtAuthenticationToken.class)
+        );
+        verify(noticesService).addNoticeToUser(
+            eq("assigned-user"),
+            eq("Inventario: presa visione richiesta"),
+            contains("revisione 1 della tua assegnazione dell'oggetto “INV-1 — Leggio”"),
+            eq("user-1")
         );
     }
 
@@ -247,8 +293,8 @@ class InventoryServiceTest {
         assertThat(assignment.getCurrentRevision()).isEqualTo(1);
         verify(revisionRepository).save(any(InventoryAssignmentRevision.class));
         verify(noticesService).addNoticesAdmins(
-            eq("Inventario: assegnazione modificata"),
-            contains("ha modificato l'assegnazione di \"INV-1 - Leggio\""),
+            eq("Inventario: assegnazione aggiornata"),
+            contains("ha aggiornato l'assegnazione dell'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -339,7 +385,7 @@ class InventoryServiceTest {
 
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: presa visione accettata"),
-            contains("Mario Rossi ha accettato la presa visione della revisione 1 di \"INV-1 - Leggio\""),
+            contains("Mario Rossi ha accettato la revisione 1 dell'assegnazione dell'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -380,6 +426,7 @@ class InventoryServiceTest {
         media.setSha256("a".repeat(64));
         media.setStatus(MediaAssetStatus.READY);
         MockMultipartFile file = new MockMultipartFile("file", "front.png", "image/png", png());
+        when(itemRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(item));
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
         when(mediaService.store(any(byte[].class), eq("front.png"), eq("image/png"), eq("inventory"), any(JwtAuthenticationToken.class)))
             .thenReturn(storedMedia);
@@ -394,7 +441,7 @@ class InventoryServiceTest {
 
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: fotografia aggiunta"),
-            contains("ha aggiunto la fotografia \"front.png\" a \"INV-1 - Leggio\""),
+            contains("ha aggiunto la fotografia “front.png” all'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -404,6 +451,7 @@ class InventoryServiceTest {
         InventoryItem item = item(1L);
         InventoryItemPhoto first = photo(10L, item, 0, true);
         InventoryItemPhoto second = photo(20L, item, 1, false);
+        when(itemRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(item));
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
         when(photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(1L)).thenReturn(List.of(first, second));
 
@@ -414,8 +462,8 @@ class InventoryServiceTest {
         assertThat(first.getDisplayOrder()).isEqualTo(1);
         verify(photoRepository).saveAll(List.of(second, first));
         verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografie modificate"),
-            contains("ha modificato l'ordine delle fotografie di \"INV-1 - Leggio\""),
+            eq("Inventario: fotografie aggiornate"),
+            contains("ha aggiornato l'ordine delle fotografie dell'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -438,6 +486,7 @@ class InventoryServiceTest {
         InventoryItem item = item(1L);
         InventoryItemPhoto first = photo(10L, item, 0, true);
         InventoryItemPhoto second = photo(20L, item, 1, false);
+        when(itemRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(item));
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
         when(photoRepository.findByIdAndItem_IdAndDeletedFalse(20L, 1L)).thenReturn(Optional.of(second));
         when(photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(1L)).thenReturn(List.of(first, second));
@@ -449,8 +498,8 @@ class InventoryServiceTest {
         assertThat(result).extracting(value -> value.preview()).containsExactly(false, true);
         verify(photoRepository).saveAll(List.of(first, second));
         verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografie modificate"),
-            contains("ha impostato \"photo-20.jpg\" come fotografia di anteprima di \"INV-1 - Leggio\""),
+            eq("Inventario: fotografie aggiornate"),
+            contains("ha impostato “photo-20.jpg” come fotografia di anteprima dell'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -460,6 +509,7 @@ class InventoryServiceTest {
         InventoryItem item = item(1L);
         InventoryItemPhoto photo = photo(10L, item, 0, false);
         when(photoRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(photo));
+        when(photoRepository.findNoticeTargetById(10L)).thenReturn(Optional.of(photo));
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
 
         service.deletePhoto(10L, authentication());
@@ -467,7 +517,7 @@ class InventoryServiceTest {
         assertThat(photo.isDeleted()).isTrue();
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: fotografia rimossa"),
-            contains("ha rimosso la fotografia \"photo-10.jpg\" da \"INV-1 - Leggio\""),
+            contains("ha rimosso la fotografia “photo-10.jpg” dall'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -481,6 +531,7 @@ class InventoryServiceTest {
         photo.setId(4L);
         photo.setInventoryReturn(inventoryReturn);
         when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findNoticeTargetById(2L)).thenReturn(Optional.of(assignment));
         when(returnRepository.findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(2L)).thenReturn(List.of(inventoryReturn));
         when(returnPhotoRepository.findAllByInventoryReturn_IdAndDeletedFalseOrderByIdAsc(3L)).thenReturn(List.of(photo));
 
@@ -494,7 +545,7 @@ class InventoryServiceTest {
         verify(returnPhotoRepository).saveAll(List.of(photo));
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: assegnazione rimossa"),
-            contains("ha rimosso l'assegnazione di \"INV-1 - Leggio\""),
+            contains("ha rimosso l'assegnazione dell'oggetto “INV-1 — Leggio”"),
             any(JwtAuthenticationToken.class)
         );
     }
@@ -507,6 +558,7 @@ class InventoryServiceTest {
         assignment.setUserName("Mario");
         assignment.setUserLastName("Rossi");
         InventoryReturn inventoryReturn = inventoryReturn(3L, assignment, 1, InventoryReturnStatus.REQUESTED);
+        when(returnRepository.findNoticeTargetById(3L)).thenReturn(Optional.of(inventoryReturn));
         when(returnRepository.findByIdAndDeletedFalse(3L)).thenReturn(Optional.of(inventoryReturn));
         when(returnRepository.findForUpdate(3L)).thenReturn(Optional.of(inventoryReturn));
         when(returnRepository.save(inventoryReturn)).thenReturn(inventoryReturn);
@@ -521,12 +573,12 @@ class InventoryServiceTest {
         verify(noticesService).addNoticeToUser(
             eq("assigned-user"),
             eq("Inventario: riconsegna completata"),
-            contains("1 unità di Leggio"),
+            contains("1 unità dell'oggetto “INV-1 — Leggio” assegnato a te"),
             any(JwtAuthenticationToken.class)
         );
         verify(noticesService).addNoticesAdmins(
             eq("Inventario: riconsegna completata"),
-            contains("ha completato la riconsegna di 1 unità di \"INV-1 - Leggio\" da Mario Rossi"),
+            contains("ha completato la riconsegna di 1 unità dell'oggetto “INV-1 — Leggio” assegnato a Mario Rossi"),
             any(JwtAuthenticationToken.class)
         );
     }
