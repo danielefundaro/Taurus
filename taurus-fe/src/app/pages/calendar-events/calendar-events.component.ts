@@ -5,13 +5,13 @@ import { DataViewLazyLoadEvent } from 'primeng/dataview';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { SelectChangeEvent } from 'primeng/select';
-import { delay, first, forkJoin } from 'rxjs';
+import { delay, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
-import { CalendarEvents, CalendarEventsCriteria, Page } from '../../module';
+import { CalendarEventDialogResult, CalendarEvents, CalendarEventsCriteria, Page } from '../../module';
 import { DateFilter, StringFilter } from '../../module/criteria/filter';
-import { CalendarEventsService, ToastService } from '../../service';
+import { CalendarEventSeriesService, CalendarEventsService, ToastService } from '../../service';
 
 interface CalendarDay {
     date: Date;
@@ -31,6 +31,7 @@ interface CalendarDay {
     styleUrl: './calendar-events.component.scss',
     providers: [
         CalendarEventsService,
+        CalendarEventSeriesService,
         DialogService,
         ConfirmationService,
     ],
@@ -61,6 +62,7 @@ export class CalendarEventsComponent implements OnInit {
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
+        private readonly calendarEventSeriesService: CalendarEventSeriesService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmationService: ConfirmationService,
@@ -157,11 +159,14 @@ export class CalendarEventsComponent implements OnInit {
             data,
         });
 
-        ref.onClose.pipe(first()).subscribe((result: CalendarEvents) => {
-            if (result) {
-                this.calendarEventsService.create(result).pipe(delay(1000), first()).subscribe({
+        ref.onClose.pipe(first()).subscribe((result: CalendarEventDialogResult) => {
+            if (result?.event || result?.series) {
+                const creation: Observable<unknown> = result.series
+                    ? this.calendarEventSeriesService.create(result.series)
+                    : this.calendarEventsService.create(result.event!);
+                creation.pipe(delay(1000), first()).subscribe({
                     next: () => {
-                        this.toastService.success('Successo', 'Evento aggiunto con successo');
+                        this.toastService.success('Successo', result.series ? 'Serie di eventi aggiunta con successo' : 'Evento aggiunto con successo');
                         if (this.layout === 'grid') {
                             this.loadCalendarMonth();
                         } else {

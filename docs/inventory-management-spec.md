@@ -72,11 +72,16 @@ Tabella `inventory_assignment`:
 - quantità assegnata e quantità riconsegnata;
 - data di assegnazione;
 - descrizione;
+- data di scadenza facoltativa, specifica della singola assegnazione e quindi differenziabile per utente;
 - stato `ACTIVE`, `PARTIALLY_RETURNED` o `RETURNED`;
 - revisione corrente;
 - dati di audit e versione ottimistica.
 
 La creazione e l'aggiornamento usano un lock pessimista sull'oggetto per impedire sovra-assegnazioni in richieste concorrenti.
+
+L'interfaccia evidenzia la scadenza dell'assegnazione con un badge rosso dal giorno successivo alla data indicata, giallo nei 30 giorni precedenti (data compresa) e neutro per le scadenze più lontane. Il badge è informativo e non modifica stato o disponibilità dell'oggetto.
+
+Un processo giornaliero crea notifiche interne per l'assegnatario e per gli utenti attivi con ruolo admin o super admin: 30 giorni prima, 7 giorni prima, il giorno della scadenza e una sola volta dopo il superamento. Sono considerate soltanto assegnazioni attive o parzialmente riconsegnate con quantità residua. La tabella `inventory_expiration_notice` registra assegnazione, data e soglia per impedire duplicati; una variazione della data avvia un nuovo ciclo di promemoria.
 
 ### Revisioni e presa visione
 
@@ -88,7 +93,7 @@ Ogni assegnazione ha revisioni immutabili nella tabella `inventory_assignment_re
 - hash SHA-256 dello snapshot;
 - autore e data.
 
-Lo snapshot include numero inventariale, nome, descrizione, valore unitario, valuta, stato e note di conservazione, quantità e descrizione dell'assegnazione, nonché id e digest delle fotografie. Sono esclusi la quantità totale, i dati di audit e gli attributi tecnici non percepibili dall'utente.
+Lo snapshot include numero inventariale, nome, descrizione, valore unitario, valuta, stato e note di conservazione, data di scadenza, quantità e descrizione dell'assegnazione, nonché id e digest delle fotografie. Sono esclusi la quantità totale, i dati di audit e gli attributi tecnici non percepibili dall'utente.
 
 La presa visione è per singola assegnazione e singola revisione. L'utente invia l'hash visualizzato insieme alla scelta. Il server rifiuta hash non correnti, utenti non proprietari e seconde decisioni sulla stessa revisione.
 
@@ -170,9 +175,14 @@ Il client OpenSearch applica un timeout di 30 secondi, così un nodo non raggiun
 Sono inviate notifiche applicative mirate nei seguenti casi:
 
 - nuova assegnazione o nuova revisione da prendere in visione;
-- negazione motivata, verso gli amministratori del tenant;
+- accettazione o rifiuto motivato della presa visione, verso admin e super admin;
+- creazione, modifica e rimozione di un oggetto, verso admin e super admin;
+- aggiunta, rimozione, riordino e cambio dell'anteprima delle fotografie dell'oggetto, verso admin e super admin;
+- creazione, modifica, rimozione o riemissione di un'assegnazione, verso admin e super admin;
 - richiesta di riconsegna, verso gli amministratori;
-- riconsegna completata, verso l'utente.
+- riconsegna completata, verso l'utente assegnatario, gli admin e i super admin.
+
+Le notifiche amministrative riportano l'autore dell'operazione e gli estremi dell'oggetto; per assegnazioni e riconsegne includono anche assegnatario e quantità quando applicabile. Se un'operazione coinvolge più utenti, ogni assegnazione produce il proprio evento, mantenendo identificabile il destinatario interessato.
 
 Il servizio notifiche supporta destinatari espliciti, evitando comunicazioni indiscriminate ad altri tenant o utenti.
 

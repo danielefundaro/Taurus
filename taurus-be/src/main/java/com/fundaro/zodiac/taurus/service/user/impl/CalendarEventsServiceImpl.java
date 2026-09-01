@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
 import java.util.List;
 import java.util.Optional;
@@ -21,5 +22,8 @@ public class CalendarEventsServiceImpl implements CalendarEventsService {
     public Page<CalendarEventsDTO> findEntitiesByCriteria(CalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) { StateFilter state = new StateFilter(); state.setIn(getVisibleStates()); criteria.setState(state); return delegate.findEntitiesByCriteria(criteria, pageable, token).map(this::mask); }
     public CalendarEventsDTO setAvailability(Long eventId, boolean available, AbstractAuthenticationToken token) { return mask(delegate.setAvailability(eventId, available, token)); }
     public CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token) { return mask(delegate.cancelAvailability(eventId, token)); }
+    public BulkAvailabilityResultDTO setSeriesAvailability(Long seriesId, Boolean available, AbstractAuthenticationToken token) {
+        return delegate.setSeriesAvailability(seriesId, available, getVisibleStates(), token);
+    }
     private CalendarEventsDTO mask(CalendarEventsDTO dto) { dto.setFee(null); dto.setCosts(null); return dto; }
 }

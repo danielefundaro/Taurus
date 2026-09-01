@@ -112,7 +112,15 @@
                                 <span class="photo-name">{{ photo.fileName }}</span>
                                 <div class="photo-actions">
                                     <p-button icon="pi pi-arrow-left" severity="secondary" size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima" (onClick)="movePhoto(index, -1)" />
-                                    <p-button icon="pi pi-star" severity="secondary" size="small" [text]="!photo.preview" [disabled]="photo.preview || photoOrderDirty" [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'" (onClick)="setPreviewPhoto(photo.id)" />
+                                    <p-button
+                                        icon="pi pi-star"
+                                        severity="secondary"
+                                        size="small"
+                                        [text]="!photo.preview"
+                                        [disabled]="photo.preview || photoOrderDirty"
+                                        [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'"
+                                        (onClick)="setPreviewPhoto(photo.id)"
+                                    />
                                     <p-button icon="pi pi-arrow-right" severity="secondary" size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo" (onClick)="movePhoto(index, 1)" />
                                 </div>
                             </div>
@@ -126,16 +134,22 @@
             <div class="card">
                 <h3 class="text-lg font-semibold mt-0">Assegna a un utente</h3>
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div class="md:col-span-5">
+                    <div class="md:col-span-4">
                         <p-select [options]="users" [(ngModel)]="selectedUser" optionLabel="name" placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
                             <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
                             <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
                         </p-select>
                     </div>
-                    <div class="md:col-span-3">
+                    <div class="md:col-span-2">
                         <p-inputnumber [(ngModel)]="assignmentQuantity" [min]="1" [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
                     </div>
-                    <div class="md:col-span-4">
+                    <div class="md:col-span-3">
+                        <p-floatlabel variant="on">
+                            <p-datepicker inputId="assignmentExpirationDate" [(ngModel)]="assignmentExpirationDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body" />
+                            <label for="assignmentExpirationDate">Data di scadenza</label>
+                        </p-floatlabel>
+                    </div>
+                    <div class="md:col-span-3">
                         <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full" [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity" (onClick)="assign()" />
                     </div>
                 </div>
@@ -160,6 +174,7 @@
                             <th>Utente</th>
                             <th>Quantità assegnata</th>
                             <th>Descrizione</th>
+                            <th>Scadenza</th>
                             <th>Presa visione</th>
                             <th>Riconsegne</th>
                             <th></th>
@@ -178,6 +193,20 @@
                             </td>
                             <td class="min-w-56">
                                 <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description" (ngModelChange)="markAssignmentDirty(assignment.id)"></textarea>
+                            </td>
+                            <td class="min-w-52">
+                                <div class="flex flex-col items-start gap-2">
+                                    <p-datepicker
+                                        [(ngModel)]="assignmentExpirationDateEdits[assignment.id]"
+                                        dateFormat="dd/mm/yy"
+                                        [showIcon]="true"
+                                        iconDisplay="input"
+                                        [showButtonBar]="true"
+                                        appendTo="body"
+                                        (ngModelChange)="markAssignmentDirty(assignment.id)"
+                                    />
+                                    <app-inventory-expiration-badge [expirationDate]="assignmentExpirationDateEdits[assignment.id]" [compact]="true" />
+                                </div>
                             </td>
                             <td class="min-w-44">
                                 @if (assignment.decision) {
@@ -251,7 +280,7 @@
                     </ng-template>
                     <ng-template #emptymessage>
                         <tr>
-                            <td colspan="6" class="text-center py-8 text-surface-500">Nessuna assegnazione presente.</td>
+                            <td colspan="7" class="text-center py-8 text-surface-500">Nessuna assegnazione presente.</td>
                         </tr>
                     </ng-template>
                 </p-table>

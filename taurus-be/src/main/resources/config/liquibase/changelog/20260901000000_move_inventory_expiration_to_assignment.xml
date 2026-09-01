@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260901000000-1" author="codex">
+        <comment>Move the optional expiration date from inventory items to individual assignments</comment>
+        <addColumn tableName="inventory_assignment">
+            <column name="expiration_date" type="date"/>
+        </addColumn>
+        <sql>
+            UPDATE inventory_assignment assignment
+            SET expiration_date = item.expiration_date
+            FROM inventory_item item
+            WHERE assignment.item_id = item.id
+              AND item.expiration_date IS NOT NULL;
+        </sql>
+        <dropColumn tableName="inventory_item" columnName="expiration_date"/>
+    </changeSet>
+</databaseChangeLog>

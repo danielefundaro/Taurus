@@ -24,6 +24,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.time.ZonedDateTime;
@@ -32,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import javax.imageio.ImageIO;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,6 +79,7 @@ class InventoryReportServiceTest {
         InventoryAssignmentDTO assignment = new InventoryAssignmentDTO(
             1L, 10L, "INV-2026-001", "Leggio orchestrale", "Leggio pieghevole in metallo con custodia protettiva",
             new java.math.BigDecimal("85.50"), "EUR", InventoryCondition.GOOD, "Normali segni d'uso",
+            LocalDate.of(2027, 6, 30),
             42L, "Mario", "Rossi", 1, 2, 1, 1, now.minusMonths(2), "Consegnato per prove e concerti",
             InventoryAssignmentStatus.PARTIALLY_RETURNED, 3, "a".repeat(64), now.minusDays(2),
             new InventoryDecisionDTO(InventoryDecisionType.ACCEPTED, null, now.minusDays(1)),
@@ -91,6 +94,7 @@ class InventoryReportServiceTest {
         assertThat(report.bytes()).startsWith("%PDF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
         try (var document = Loader.loadPDF(report.bytes())) {
             assertThat(document.getNumberOfPages()).isEqualTo(1);
+            assertThat(new PDFTextStripper().getText(document)).contains("Data di scadenza: 30/06/2027");
         }
         verify(reportExportRepository).save(argThat(export ->
             export.getMediaAsset() == storedMedia &&

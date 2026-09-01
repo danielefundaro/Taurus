@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,16 +32,25 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoReposi
 import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +61,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.mock.web.MockMultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -110,9 +121,82 @@ class InventoryServiceTest {
                 return item;
             });
 
-        service.createItem(request, authentication());
+        var result = service.createItem(request, authentication());
 
         verify(itemRepository).existsByInventoryNumberIgnoreCaseAndDeletedFalse("INV-1");
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: oggetto aggiunto"),
+            contains("user-1 ha aggiunto l'oggetto di inventario \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenAnItemIsModified() {
+        InventoryItem item = item(1L);
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+
+        service.updateItem(
+            1L,
+            new InventoryItemRequest("INV-1", "Leggio aggiornato", null, 10, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null),
+            authentication()
+        );
+
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: oggetto modificato"),
+            contains("ha modificato l'oggetto di inventario \"INV-1 - Leggio aggiornato\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenAnItemIsRemoved() {
+        InventoryItem item = item(1L);
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+
+        service.deleteItem(1L, authentication());
+
+        assertThat(item.isDeleted()).isTrue();
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: oggetto rimosso"),
+            contains("ha rimosso l'oggetto di inventario \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenAnItemIsAssigned() {
+        InventoryItem item = item(1L);
+        UsersDTO user = new UsersDTO();
+        user.setId(42L);
+        user.setKeycloakId("assigned-user");
+        user.setName("Mario");
+        user.setLastName("Rossi");
+        AtomicReference<InventoryAssignmentRevision> savedRevision = new AtomicReference<>();
+
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+        when(usersService.findOne(eq(42L), any(JwtAuthenticationToken.class))).thenReturn(Optional.of(user));
+        when(assignmentRepository.save(any(InventoryAssignment.class))).thenAnswer(invocation -> {
+            InventoryAssignment assignment = invocation.getArgument(0);
+            if (assignment.getId() == null) assignment.setId(2L);
+            return assignment;
+        });
+        when(revisionRepository.save(any(InventoryAssignmentRevision.class))).thenAnswer(invocation -> {
+            InventoryAssignmentRevision revision = invocation.getArgument(0);
+            revision.setId(3L);
+            savedRevision.set(revision);
+            return revision;
+        });
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1))
+            .thenAnswer(invocation -> Optional.ofNullable(savedRevision.get()));
+
+        service.assign(1L, new InventoryAssignmentRequest(42L, 0, 2, null, null), authentication());
+
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: oggetto assegnato"),
+            contains("ha assegnato 2 unità di \"INV-1 - Leggio\" a Mario Rossi"),
+            any(JwtAuthenticationToken.class)
+        );
     }
 
     @Test
@@ -135,6 +219,38 @@ class InventoryServiceTest {
         service.findOwnAssignments("  leggio  ", InventoryAssignmentScope.POSSESSED, pageable, authentication());
 
         verify(assignmentRepository).searchOwn("user-1", "leggio", InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+    }
+
+    @Test
+    void shouldStoreExpirationOnTheAssignmentAndCreateANewRevision() {
+        InventoryItem item = item(1L);
+        InventoryAssignment assignment = assignment(2L, item, 1, 0, InventoryAssignmentStatus.ACTIVE);
+        assignment.setUserIndex(42L);
+        assignment.setCurrentRevision(0);
+        InventoryAssignmentRevision revision = new InventoryAssignmentRevision();
+        revision.setRevisionNumber(1);
+        revision.setSnapshotHash("a".repeat(64));
+        LocalDate expirationDate = LocalDate.of(2027, 6, 30);
+
+        when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.sumOutstanding(1L, InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES)).thenReturn(1L);
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenReturn(Optional.of(revision));
+
+        var result = service.updateAssignment(
+            2L,
+            new InventoryAssignmentRequest(42L, 0, 1, null, expirationDate),
+            authentication()
+        );
+
+        assertThat(assignment.getExpirationDate()).isEqualTo(expirationDate);
+        assertThat(result.expirationDate()).isEqualTo(expirationDate);
+        assertThat(assignment.getCurrentRevision()).isEqualTo(1);
+        verify(revisionRepository).save(any(InventoryAssignmentRevision.class));
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: assegnazione modificata"),
+            contains("ha modificato l'assegnazione di \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
     }
 
     @Test
@@ -208,6 +324,82 @@ class InventoryServiceTest {
     }
 
     @Test
+    void shouldNotifyAdminsWhenTheUserAcceptsTheAcknowledgement() {
+        InventoryAssignment assignment = decisionAssignment();
+        InventoryAssignmentRevision revision = revision(1);
+        when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenReturn(Optional.of(revision));
+        when(decisionRepository.findByRevision_Id(3L)).thenReturn(Optional.empty());
+
+        service.decide(
+            2L,
+            new InventoryDecisionRequest(InventoryDecisionType.ACCEPTED, null, "a".repeat(64)),
+            authentication()
+        );
+
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: presa visione accettata"),
+            contains("Mario Rossi ha accettato la presa visione della revisione 1 di \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenTheUserRejectsTheAcknowledgement() {
+        InventoryAssignment assignment = decisionAssignment();
+        InventoryAssignmentRevision revision = revision(1);
+        when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenReturn(Optional.of(revision));
+        when(decisionRepository.findByRevision_Id(3L)).thenReturn(Optional.empty());
+
+        service.decide(
+            2L,
+            new InventoryDecisionRequest(InventoryDecisionType.REJECTED, "Quantità errata", "a".repeat(64)),
+            authentication()
+        );
+
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: presa visione rifiutata"),
+            contains("Motivazione: Quantità errata"),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenAPhotoIsAdded() throws IOException {
+        InventoryItem item = item(1L);
+        MediaDTO storedMedia = new MediaDTO();
+        storedMedia.setId(50L);
+        storedMedia.setOriginalFilename("front.png");
+        Media media = new Media();
+        media.setId(50L);
+        media.setOriginalFilename("front.png");
+        media.setMimeType("image/png");
+        media.setFileExtension("png");
+        media.setFileSize(100);
+        media.setSha256("a".repeat(64));
+        media.setStatus(MediaAssetStatus.READY);
+        MockMultipartFile file = new MockMultipartFile("file", "front.png", "image/png", png());
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+        when(mediaService.store(any(byte[].class), eq("front.png"), eq("image/png"), eq("inventory"), any(JwtAuthenticationToken.class)))
+            .thenReturn(storedMedia);
+        when(mediaRepository.getReferenceById(50L)).thenReturn(media);
+        when(photoRepository.save(any(InventoryItemPhoto.class))).thenAnswer(invocation -> {
+            InventoryItemPhoto photo = invocation.getArgument(0);
+            photo.setId(10L);
+            return photo;
+        });
+
+        service.addPhoto(1L, file, authentication());
+
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: fotografia aggiunta"),
+            contains("ha aggiunto la fotografia \"front.png\" a \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
     void shouldPersistTheRequestedPhotoOrder() {
         InventoryItem item = item(1L);
         InventoryItemPhoto first = photo(10L, item, 0, true);
@@ -221,6 +413,11 @@ class InventoryServiceTest {
         assertThat(second.getDisplayOrder()).isZero();
         assertThat(first.getDisplayOrder()).isEqualTo(1);
         verify(photoRepository).saveAll(List.of(second, first));
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: fotografie modificate"),
+            contains("ha modificato l'ordine delle fotografie di \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
     }
 
     @Test
@@ -251,6 +448,28 @@ class InventoryServiceTest {
         assertThat(second.isPreview()).isTrue();
         assertThat(result).extracting(value -> value.preview()).containsExactly(false, true);
         verify(photoRepository).saveAll(List.of(first, second));
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: fotografie modificate"),
+            contains("ha impostato \"photo-20.jpg\" come fotografia di anteprima di \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyAdminsWhenAPhotoIsRemoved() {
+        InventoryItem item = item(1L);
+        InventoryItemPhoto photo = photo(10L, item, 0, false);
+        when(photoRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(photo));
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+
+        service.deletePhoto(10L, authentication());
+
+        assertThat(photo.isDeleted()).isTrue();
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: fotografia rimossa"),
+            contains("ha rimosso la fotografia \"photo-10.jpg\" da \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
     }
 
     @Test
@@ -273,6 +492,43 @@ class InventoryServiceTest {
         verify(assignmentRepository).save(assignment);
         verify(returnRepository).save(inventoryReturn);
         verify(returnPhotoRepository).saveAll(List.of(photo));
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: assegnazione rimossa"),
+            contains("ha rimosso l'assegnazione di \"INV-1 - Leggio\""),
+            any(JwtAuthenticationToken.class)
+        );
+    }
+
+    @Test
+    void shouldNotifyTheUserAndAdminsWhenAReturnIsCompleted() {
+        InventoryItem item = item(1L);
+        InventoryAssignment assignment = assignment(2L, item, 2, 0, InventoryAssignmentStatus.ACTIVE);
+        assignment.setUserKeycloakId("assigned-user");
+        assignment.setUserName("Mario");
+        assignment.setUserLastName("Rossi");
+        InventoryReturn inventoryReturn = inventoryReturn(3L, assignment, 1, InventoryReturnStatus.REQUESTED);
+        when(returnRepository.findByIdAndDeletedFalse(3L)).thenReturn(Optional.of(inventoryReturn));
+        when(returnRepository.findForUpdate(3L)).thenReturn(Optional.of(inventoryReturn));
+        when(returnRepository.save(inventoryReturn)).thenReturn(inventoryReturn);
+        when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+
+        service.completeReturn(3L, new com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest(
+            1,
+            InventoryCondition.GOOD,
+            null
+        ), authentication());
+
+        verify(noticesService).addNoticeToUser(
+            eq("assigned-user"),
+            eq("Inventario: riconsegna completata"),
+            contains("1 unità di Leggio"),
+            any(JwtAuthenticationToken.class)
+        );
+        verify(noticesService).addNoticesAdmins(
+            eq("Inventario: riconsegna completata"),
+            contains("ha completato la riconsegna di 1 unità di \"INV-1 - Leggio\" da Mario Rossi"),
+            any(JwtAuthenticationToken.class)
+        );
     }
 
     @Test
@@ -364,6 +620,23 @@ class InventoryServiceTest {
         return assignment;
     }
 
+    private InventoryAssignment decisionAssignment() {
+        InventoryAssignment assignment = assignment(2L, item(1L), 1, 0, InventoryAssignmentStatus.ACTIVE);
+        assignment.setUserKeycloakId("user-1");
+        assignment.setUserName("Mario");
+        assignment.setUserLastName("Rossi");
+        assignment.setCurrentRevision(1);
+        return assignment;
+    }
+
+    private InventoryAssignmentRevision revision(int number) {
+        InventoryAssignmentRevision revision = new InventoryAssignmentRevision();
+        revision.setId(3L);
+        revision.setRevisionNumber(number);
+        revision.setSnapshotHash("a".repeat(64));
+        return revision;
+    }
+
     private InventoryReturn inventoryReturn(
         Long id,
         InventoryAssignment assignment,
@@ -377,6 +650,14 @@ class InventoryServiceTest {
         inventoryReturn.setStatus(status);
         inventoryReturn.setDeleted(false);
         return inventoryReturn;
+    }
+
+    private byte[] png() throws IOException {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", output);
+            return output.toByteArray();
+        }
     }
 
     private JwtAuthenticationToken authentication() {

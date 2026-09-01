@@ -7,7 +7,7 @@
                     <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
                 </div>
                 <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid" (onClick)="save()" />
+                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" />
                 </div>
             </div>
             <p-confirmdialog />
@@ -54,6 +54,14 @@
                         <label for="country">Paese (codice ISO)</label>
                     </p-floatlabel>
                     <small *ngIf="countryInvalid" class="text-red-500">Inserisci un codice Paese di due lettere, ad esempio IT.</small>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <p-floatlabel variant="on">
+                        <input pInputText id="timeZone" [(ngModel)]="tenant.timeZone" placeholder="Europe/Rome"
+                            (ngModelChange)="isDirty = true" />
+                        <label for="timeZone">Fuso orario IANA</label>
+                    </p-floatlabel>
+                    <small *ngIf="timeZoneInvalid" class="text-red-500">Inserisci un fuso valido, ad esempio Europe/Rome.</small>
                 </div>
                 <p-floatlabel variant="on">
                     <input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" />

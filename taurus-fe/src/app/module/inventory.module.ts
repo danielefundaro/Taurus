@@ -40,6 +40,7 @@ export interface InventoryAssignment {
     currency?: string;
     conditionStatus: InventoryCondition;
     conditionNotes?: string;
+    expirationDate?: string;
     userIndex: number;
     userName: string;
     userLastName: string;
@@ -67,6 +68,7 @@ export interface InventoryAssignmentSummary {
     estimatedUnitValue?: number;
     currency?: string;
     conditionStatus: InventoryCondition;
+    expirationDate?: string;
     assignedQuantity: number;
     returnedQuantity: number;
     outstandingQuantity: number;
@@ -100,6 +102,7 @@ export interface InventoryAssignmentRequest {
     order: number;
     quantity: number;
     description?: string;
+    expirationDate?: string;
 }
 
 export interface InventoryErasureRequest {

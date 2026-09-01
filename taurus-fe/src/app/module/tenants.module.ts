@@ -15,4 +15,5 @@ export class Tenants extends CommonFieldsOpenSearch {
     taxCode?: string;
     vatNumber?: string;
     logoUrl?: string;
+    timeZone?: string = 'Europe/Rome';
 }

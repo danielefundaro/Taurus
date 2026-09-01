@@ -1,5 +1,6 @@
 export * from "./albums.module";
 export * from "./calendar-events.module";
+export * from "./calendar-event-series.module";
 export * from "./children-entities.module";
 export * from "./event-cost.module";
 export * from "./event-present-user.module";

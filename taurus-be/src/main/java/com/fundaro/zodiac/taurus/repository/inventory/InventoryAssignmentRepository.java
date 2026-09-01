@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.repository.inventory;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +28,21 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
     Optional<InventoryAssignment> findByIdAndUserKeycloakIdAndDeletedFalse(Long id, String userKeycloakId);
     Optional<InventoryAssignment> findByIdAndDeletedFalse(Long id);
     boolean existsByItem_IdAndUserKeycloakIdAndDeletedFalse(Long itemId, String userKeycloakId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select a from InventoryAssignment a
+        join fetch a.item
+        where a.deleted = false
+          and a.status in :statuses
+          and a.assignedQuantity > a.returnedQuantity
+          and a.expirationDate is not null
+          and a.expirationDate <= :maximumDate
+        """)
+    List<InventoryAssignment> findExpiringForUpdate(
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        @Param("maximumDate") LocalDate maximumDate
+    );
 
     @Query("""
         select a from InventoryAssignment a

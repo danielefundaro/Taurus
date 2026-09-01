@@ -6,6 +6,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
@@ -64,6 +66,22 @@ public class CalendarEvents extends StateFieldsOpenSearch {
     @JsonProperty("reminder_minutes")
     @Column(name = "reminder_minutes")
     private Integer reminderMinutes;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "series_id")
+    private CalendarEventSeries series;
+
+    @Column(name = "original_start_date")
+    private Date originalStartDate;
+
+    @Column(name = "series_sequence")
+    private Integer seriesSequence;
+
+    @Column(name = "series_exception", nullable = false)
+    private Boolean seriesException = false;
+
+    @Column(name = "series_excluded", nullable = false)
+    private Boolean seriesExcluded = false;
 
     public Date getStartDate() {
         return startDate;
@@ -136,6 +154,16 @@ public class CalendarEvents extends StateFieldsOpenSearch {
 
     public Integer getReminderMinutes() { return reminderMinutes; }
     public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
+    public CalendarEventSeries getSeries() { return series; }
+    public void setSeries(CalendarEventSeries series) { this.series = series; }
+    public Date getOriginalStartDate() { return originalStartDate; }
+    public void setOriginalStartDate(Date originalStartDate) { this.originalStartDate = originalStartDate; }
+    public Integer getSeriesSequence() { return seriesSequence; }
+    public void setSeriesSequence(Integer seriesSequence) { this.seriesSequence = seriesSequence; }
+    public Boolean getSeriesException() { return seriesException; }
+    public void setSeriesException(Boolean seriesException) { this.seriesException = seriesException; }
+    public Boolean getSeriesExcluded() { return seriesExcluded; }
+    public void setSeriesExcluded(Boolean seriesExcluded) { this.seriesExcluded = seriesExcluded; }
 
     @Override
     public boolean equals(Object o) {

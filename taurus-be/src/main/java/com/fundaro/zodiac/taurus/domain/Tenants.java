@@ -51,6 +51,9 @@ public class Tenants extends CommonFieldsOpenSearch {
     @Column(name = "logo_url", length = 2048)
     private String logoUrl;
 
+    @Column(name = "time_zone", nullable = false, length = 64)
+    private String timeZone = "Europe/Rome";
+
     public String getCode() {
         return code;
     }
@@ -115,6 +118,8 @@ public class Tenants extends CommonFieldsOpenSearch {
     public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+    public String getTimeZone() { return timeZone; }
+    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
 
     @Override
     public boolean equals(Object o) {
@@ -138,12 +143,13 @@ public class Tenants extends CommonFieldsOpenSearch {
             Objects.equals(country, tenants.country) &&
             Objects.equals(taxCode, tenants.taxCode) &&
             Objects.equals(vatNumber, tenants.vatNumber) &&
-            Objects.equals(logoUrl, tenants.logoUrl);
+            Objects.equals(logoUrl, tenants.logoUrl) &&
+            Objects.equals(timeZone, tenants.timeZone);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone);
     }
 
     @Override
@@ -170,6 +176,7 @@ public class Tenants extends CommonFieldsOpenSearch {
             ", taxCode='" + getTaxCode() + '\'' +
             ", vatNumber='" + getVatNumber() + '\'' +
             ", logoUrl='" + getLogoUrl() + '\'' +
+            ", timeZone='" + getTimeZone() + '\'' +
             ", description='" + getDescription() + "'" +
             '}';
     }

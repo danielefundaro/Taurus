@@ -1,5 +1,6 @@
 export * from './albums.service';
 export * from './calendar-events.service';
+export * from './calendar-event-series.service';
 export * from './instruments.service';
 export * from './keycloak.service';
 export * from './legal.service';

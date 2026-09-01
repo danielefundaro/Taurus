@@ -39,6 +39,9 @@
                 <div>
                     <span class="detail-label">Assegnato il</span><strong>{{ value.assignedAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
                 </div>
+                @if (value.expirationDate) {
+                    <div><span class="detail-label">Data di scadenza</span><app-inventory-expiration-badge [expirationDate]="value.expirationDate" /></div>
+                }
                 @if (value.estimatedUnitValue != null) {
                     <div>
                         <span class="detail-label">Valore unitario stimato</span><strong>{{ value.estimatedUnitValue | number: '1.2-2' }} {{ value.currency }}</strong>

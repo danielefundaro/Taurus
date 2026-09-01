@@ -12,13 +12,13 @@ La funzionalità deve consentire di:
 
 - introdurre il ruolo specializzato `ROLE_TREASURER`, mostrato nell'interfaccia come **Tesoriere**;
 - gestire una o più casse e uno o più conti correnti per ciascun tenant;
-- registrare entrate, uscite, trasferimenti, storni e riconciliazioni;
+- registrare, correggere ed eliminare liberamente entrate, uscite e trasferimenti;
 - distinguere il preventivo economico degli eventi dal consuntivo effettivamente movimentato;
 - associare facoltativamente un movimento a un evento;
 - gestire allegati facoltativi per ogni movimento;
 - produrre saldi, rendiconti ed esportazioni;
-- chiudere ogni esercizio al 31 dicembre e aprire il successivo al 1 gennaio riportando i saldi;
-- mantenere tracciabilità, isolamento tenant e integrità dello storico contabile.
+- determinare i saldi al 31 dicembre e aprire il successivo esercizio al 1 gennaio riportandoli;
+- mantenere tracciabilità, isolamento tenant e coerenza dello storico gestionale.
 
 PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizzati in OpenSearch perché sono transazionali, sensibili e ricercabili efficacemente tramite query relazionali.
 
@@ -32,12 +32,12 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Permessi Super Admin | Gestione economica completa |
 | Permessi Tesoriere | Gestione economica completa, senza acquisire le altre funzioni amministrative |
 | Preventivo eventi | Campi `fee` e costi già presenti negli eventi |
-| Consuntivo eventi | Movimenti finanziari realmente contabilizzati |
+| Consuntivo eventi | Movimenti finanziari effettivamente registrati |
 | Conti | Più casse e più conti correnti per tenant |
 | Valuta iniziale | EUR, mantenendo un campo valuta ISO 4217 per evoluzioni future |
 | Associazione movimento-evento | Facoltativa in generale, automatica quando il movimento nasce dalla pagina dell'evento |
-| Stati movimento | `DRAFT`, `POSTED`, `RECONCILED`, `REVERSED` |
-| Correzione di un movimento contabilizzato | Storno tracciato, senza cancellazione dello storico |
+| Stati movimento | Nessun ciclo di vita vincolante; ogni movimento resta modificabile |
+| Correzione di un movimento | Modifica diretta o eliminazione logica, senza obbligo di storno |
 | Saldo iniziale | Movimento tecnico di apertura |
 | Categorie | Elenco iniziale predefinito, configurabile da Admin, Tesoriere e Super Admin |
 | Allegati | Supportati ma non obbligatori |
@@ -45,7 +45,7 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Rendiconti | Per periodo, conto, categoria ed evento, con esportazione CSV/XLSX e PDF |
 | Esercizio | Dal 1 gennaio al 31 dicembre |
 | Riporto saldi | Saldo finale al 31/12 riportato come apertura al 01/01 |
-| Rettifiche su esercizio chiuso | Riapertura esplicita, motivata e tracciata |
+| Rettifiche su anni precedenti | Sempre consentite; saldi di apertura successivi ricalcolati automaticamente |
 
 ## Terminologia
 
@@ -53,9 +53,7 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 - **Movimento**: una scrittura che aumenta o diminuisce il saldo di un conto.
 - **Preventivo evento**: compenso atteso e costi previsti registrati sull'evento.
 - **Consuntivo evento**: entrate e uscite effettive associate all'evento.
-- **Contabilizzazione**: conferma di una bozza che rende il movimento rilevante per i saldi.
-- **Riconciliazione**: verifica di un movimento rispetto all'estratto conto o al controllo di cassa.
-- **Storno**: nuova scrittura opposta che neutralizza un movimento già contabilizzato.
+- **Riconciliazione**: indicazione facoltativa che un movimento è stato verificato rispetto all'estratto conto o al controllo di cassa; non ne limita la modificabilità.
 - **Esercizio**: periodo contabile annuale 01/01-31/12.
 
 ## Ruoli e autorizzazioni
@@ -68,20 +66,19 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Consultare conti e saldi | sì | sì | sì | no | no | no |
 | Creare e modificare conti | sì | sì | sì | no | no | no |
 | Gestire categorie | sì | sì | sì | no | no | no |
-| Creare/modificare/eliminare bozze | sì | sì | sì | no | no | no |
-| Contabilizzare movimenti | sì | sì | sì | no | no | no |
-| Riconciliare movimenti | sì | sì | sì | no | no | no |
-| Stornare movimenti | sì | sì | sì | no | no | no |
+| Creare, modificare ed eliminare movimenti | sì | sì | sì | no | no | no |
+| Correggere movimenti di qualsiasi anno | sì | sì | sì | no | no | no |
+| Segnare/togliere la riconciliazione | sì | sì | sì | no | no | no |
 | Eseguire trasferimenti | sì | sì | sì | no | no | no |
 | Gestire allegati | sì | sì | sì | no | no | no |
 | Gestire preventivo eventi | sì | sì | sì | no | no | no |
 | Consultare consuntivo eventi | sì | sì | sì | no | no | no |
-| Chiudere/riaprire esercizi | sì | sì | sì | no | no | no |
+| Gestire e ricalcolare i riporti annuali | sì | sì | sì | no | no | no |
 | Esportare rendiconti | sì | sì | sì | no | no | no |
 | Modificare dati operativi evento | sì | sì | no | secondo permessi esistenti | no | no |
 | Gestire utenti, catalogo e inventario | sì | sì | no | secondo permessi esistenti | no | no |
 
-L'assenza di limitazioni per `ROLE_ADMIN` riguarda la parità di autorizzazione con Tesoriere e Super Admin sul modulo economico. I vincoli di integrità contabile, come l'impossibilità di cancellare una scrittura già contabilizzata, si applicano a tutti i ruoli e non costituiscono una limitazione di ruolo.
+Admin, Tesoriere e Super Admin hanno pari capacità sul modulo economico. Taurus è uno strumento gestionale di supporto, non un sistema di contabilità formale: qualunque movimento può essere corretto direttamente o eliminato logicamente anche dopo la riconciliazione e anche se appartiene a un anno precedente.
 
 ### Isolamento del Tesoriere
 
@@ -174,20 +171,19 @@ Campi proposti:
 - `year INTEGER`, univoco;
 - `start_date DATE`, sempre 1 gennaio;
 - `end_date DATE`, sempre 31 dicembre;
-- `status VARCHAR(16)`: `OPEN`, `CLOSING`, `CLOSED`;
-- `closed_at TIMESTAMPTZ` e `closed_by VARCHAR(255)`;
-- `reopened_at TIMESTAMPTZ` e `reopened_by VARCHAR(255)`;
-- `reopen_reason TEXT`;
+- `status VARCHAR(16)`: `OPEN` oppure `ROLLED_OVER`, con valore puramente organizzativo;
+- `rolled_over_at TIMESTAMPTZ` e `rolled_over_by VARCHAR(255)`;
+- `last_recalculated_at TIMESTAMPTZ`;
 - campi di audit e `entity_version`.
 
 Vincoli:
 
 - `start_date` e `end_date` devono appartenere allo stesso anno;
 - una sola riga per anno;
-- la chiusura deve essere serializzata tramite lock pessimista o advisory lock PostgreSQL;
-- la riapertura richiede sempre una motivazione non vuota.
+- la generazione o il ricalcolo dei riporti deve essere atomico e idempotente;
+- lo stato annuale non impedisce mai la modifica dei movimenti.
 
-È utile una tabella immutabile `accounting_year_audit` che registri ogni passaggio di stato, autore, istante e motivazione.
+È utile una tabella `accounting_year_audit` che registri generazione e ricalcolo dei saldi di apertura, autore e istante, senza introdurre blocchi operativi.
 
 ### Conto finanziario: `financial_account`
 
@@ -251,12 +247,11 @@ Campi proposti:
 - campi di audit e `entity_version`;
 - `accounting_year_id BIGINT` obbligatorio;
 - `account_id BIGINT` obbligatorio;
-- `category_id BIGINT`, facoltativo per aperture, trasferimenti e storni;
+- `category_id BIGINT`, facoltativo per aperture e trasferimenti;
 - `event_id BIGINT`, facoltativo;
-- `event_name_snapshot VARCHAR(255)`, valorizzato alla contabilizzazione se associato a un evento;
+- `event_name_snapshot VARCHAR(255)`, aggiornato quando viene associato o corretto l'evento;
 - `direction VARCHAR(16)`: `INCOME` o `EXPENSE`;
-- `nature VARCHAR(16)`: `ORDINARY`, `OPENING`, `TRANSFER`, `REVERSAL`;
-- `status VARCHAR(16)`: `DRAFT`, `POSTED`, `RECONCILED`, `REVERSED`;
+- `nature VARCHAR(16)`: `ORDINARY`, `OPENING`, `TRANSFER`;
 - `booking_date DATE` obbligatoria;
 - `value_date DATE`, facoltativa;
 - `amount NUMERIC(19,4)` obbligatorio e strettamente maggiore di zero;
@@ -266,8 +261,7 @@ Campi proposti:
 - `document_reference VARCHAR(255)`;
 - `notes TEXT`;
 - `transfer_group UUID`, facoltativo;
-- `reversed_movement_id BIGINT`, facoltativo e autoreferenziale;
-- `posted_at TIMESTAMPTZ` e `posted_by VARCHAR(255)`;
+- `reconciled BOOLEAN` con default `FALSE`;
 - `reconciled_at TIMESTAMPTZ` e `reconciled_by VARCHAR(255)`;
 - `reconciliation_reference VARCHAR(255)`;
 - `request_key UUID`, facoltativa e univoca, per rendere idempotenti le creazioni ripetute dal client.
@@ -281,11 +275,10 @@ Vincoli e indici principali:
 - `event_id` con `ON DELETE RESTRICT`; gli eventi applicativi sono comunque cancellati logicamente;
 - indice su `(account_id, booking_date, id)`;
 - indice su `(event_id, booking_date)`;
-- indice su `(status, booking_date)`;
+- indice su `(reconciled, booking_date)`;
 - indice su `(category_id, booking_date)`;
 - indice univoco su `request_key` quando valorizzata;
 - indice su `transfer_group`;
-- indice su `reversed_movement_id`.
 
 Il campo `event_name_snapshot` preserva la denominazione mostrata nei rendiconti anche se l'evento viene rinominato o cancellato logicamente in seguito.
 
@@ -315,7 +308,7 @@ Politica iniziale consigliata:
 - nessun contenuto binario nel database;
 - download esclusivamente tramite endpoint autenticato che verifica tenant e ruolo.
 
-Una bozza può perdere definitivamente un allegato. Dopo la contabilizzazione, un allegato non viene eliminato fisicamente: può essere marcato come sostituito o non valido, con motivazione e tracciamento. È consentito aggiungere successivamente un giustificativo a un movimento contabilizzato o riconciliato.
+Gli allegati possono essere aggiunti, sostituiti o rimossi in qualunque momento. La rimozione usa la cancellazione logica del collegamento e le normali informazioni di audit, così un errore può essere corretto senza blocchi operativi.
 
 ### Indici e query aggregate
 
@@ -325,59 +318,35 @@ Non è necessario memorizzare il saldo corrente. Il backend calcola:
 saldo conto = aperture + entrate effettive - uscite effettive
 ```
 
-Contribuiscono ai saldi i movimenti contabilizzati, riconciliati e le coppie originale/storno. Le bozze non contribuiscono.
+Contribuiscono ai saldi tutti i movimenti attivi e non cancellati logicamente. La riconciliazione è soltanto un'informazione di supporto e non cambia il contributo al saldo.
 
-Quando un movimento viene stornato:
-
-- il movimento originale assume stato `REVERSED` ma rimane nel calcolo storico;
-- viene creata una nuova scrittura opposta con natura `REVERSAL` e stato `POSTED`;
-- la somma delle due scritture è zero;
-- i report non devono escludere l'originale `REVERSED`, altrimenti lo storno produrrebbe un saldo errato.
+Quando un movimento viene modificato o eliminato, saldi, riepiloghi evento e riporti annuali interessati vengono ricalcolati. Non viene generata automaticamente una scrittura di storno.
 
 Le aperture contribuiscono al saldo del conto ma non ai ricavi/costi dell'anno. I trasferimenti contribuiscono ai singoli saldi dei conti ma sono esclusi dalle entrate/uscite consolidate del tenant.
 
-## Ciclo di vita dei movimenti
+## Gestione e correzione dei movimenti
 
-```text
-DRAFT -> POSTED -> RECONCILED
-             \\-> REVERSED
-```
+Non è previsto un ciclo di vita contabile vincolante. Dal momento del salvataggio, un movimento attivo contribuisce ai saldi e ai consuntivi e rimane sempre modificabile dagli utenti autorizzati.
 
-### `DRAFT`
+Admin, Tesoriere e Super Admin possono in qualunque momento:
 
-- non contribuisce ai saldi;
-- può essere modificato;
-- può essere eliminato logicamente;
-- conto, importo, data, evento e categoria possono cambiare;
-- gli allegati possono essere aggiunti o rimossi.
+- correggere conto, direzione, importo, data, categoria, evento, descrizione e note;
+- aggiungere, sostituire o rimuovere allegati;
+- segnare o togliere la riconciliazione;
+- eliminare logicamente il movimento;
+- ripristinare un movimento eliminato, se viene prevista la relativa azione nell'interfaccia.
 
-### `POSTED`
+La correzione avviene direttamente sul movimento. Non è obbligatorio e non è previsto come flusso standard creare uno storno o una scrittura opposta.
 
-- contribuisce ai saldi e ai consuntivi;
-- non può essere modificato nei dati economici;
-- non può essere eliminato;
-- può ricevere allegati successivi;
-- può essere riconciliato oppure stornato.
+Restano soltanto le validazioni necessarie al corretto funzionamento del software:
 
-La contabilizzazione deve validare conto attivo, esercizio, importo, valuta, categoria, evento e coerenza dell'eventuale trasferimento.
+- importo maggiore di zero;
+- conto, data e direzione obbligatori;
+- valuta coerente con il conto;
+- riferimenti appartenenti allo stesso tenant;
+- coerenza delle due righe che rappresentano un trasferimento.
 
-### `RECONCILED`
-
-- è stato verificato rispetto all'estratto conto o al controllo di cassa;
-- continua a contribuire ai saldi;
-- non può essere modificato o eliminato;
-- può ricevere allegati;
-- può essere stornato, mantenendo la riconciliazione nello storico.
-
-### `REVERSED`
-
-- indica che il movimento originale è stato neutralizzato;
-- conserva tutti i propri dati e allegati;
-- è collegato alla scrittura opposta di storno;
-- non può essere nuovamente stornato;
-- non può essere modificato o eliminato.
-
-Lo storno richiede data, motivo e conto. Di norma usa lo stesso conto, la stessa valuta e l'importo dell'originale con direzione opposta.
+Le normali informazioni `edit_by`, `edit_date` ed `entity_version` consentono di sapere chi ha effettuato l'ultima modifica e di evitare sovrascritture concorrenti involontarie, senza impedire la correzione.
 
 ## Trasferimenti tra conti
 
@@ -394,11 +363,11 @@ Regole:
 - entrambi attivi;
 - stessa valuta nella prima versione;
 - importi identici;
-- stato aggiornato in modo coerente per entrambe le scritture;
-- uno storno del trasferimento genera una nuova coppia inversa;
+- una modifica del trasferimento aggiorna atomicamente entrambe le scritture;
+- l'eliminazione del trasferimento elimina logicamente entrambe le scritture;
 - il trasferimento non compare nei totali consolidati entrate/uscite, ma compare nei registri dei singoli conti.
 
-Non è imposto il blocco del saldo negativo, perché un conto bancario può essere tecnicamente scoperto. L'interfaccia deve tuttavia mostrare un avviso prima di contabilizzare un'uscita che porta il conto sotto zero.
+Non è imposto il blocco del saldo negativo, perché un conto bancario può essere tecnicamente scoperto. L'interfaccia deve tuttavia mostrare un avviso quando il salvataggio di un'uscita porta il conto sotto zero.
 
 ## Preventivo e consuntivo degli eventi
 
@@ -413,7 +382,7 @@ Non è richiesta una migrazione distruttiva dei dati esistenti.
 
 ### Consuntivo
 
-Il consuntivo deriva dai movimenti `POSTED`, `RECONCILED` e dalle relative scritture di storno associati all'evento.
+Il consuntivo deriva da tutti i movimenti attivi e non cancellati logicamente associati all'evento, indipendentemente dall'eventuale riconciliazione.
 
 Per ogni evento il backend espone almeno:
 
@@ -456,62 +425,65 @@ Questi stati non devono essere salvati come booleani sull'evento: vengono calcol
 
 Se diventa necessario associare pagamenti parziali a una specifica voce di costo o gestire più compensi previsti sullo stesso evento, si potrà introdurre `event_economic_item` con tipo `INCOME`/`EXPENSE` e collegare i movimenti alle singole voci. Questa normalizzazione non è necessaria per la prima versione approvata.
 
-## Esercizi, chiusura e riapertura annuale
+## Esercizi e riporto annuale
 
 ### Regola temporale
 
-Ogni esercizio va dal 1 gennaio al 31 dicembre. I movimenti con data contabile nell'anno appartengono al relativo esercizio.
+Ogni esercizio va dal 1 gennaio al 31 dicembre. I movimenti con data nell'anno appartengono al relativo esercizio ai fini di filtri e rendiconti.
 
-Il processo annuale è:
+Il cambio anno ha funzione organizzativa e non rende immutabili i dati:
 
-1. al 31/12 l'esercizio entra nella procedura di chiusura;
-2. vengono verificati movimenti, saldi, trasferimenti e riconciliazioni;
-3. Admin, Tesoriere o Super Admin confermano la chiusura;
-4. l'esercizio diventa `CLOSED` ed è bloccato;
-5. al 01/01 viene aperto il nuovo esercizio;
-6. per ogni conto viene creato un movimento tecnico `OPENING` pari al saldo finale dell'anno precedente.
+1. al 31/12 viene calcolato il saldo finale di ogni conto;
+2. al 01/01 viene creato il nuovo esercizio;
+3. per ogni conto viene creato o aggiornato un movimento tecnico `OPENING` pari al saldo finale dell'anno precedente;
+4. entrate e uscite del nuovo anno ripartono da zero nei rendiconti, mentre la disponibilità di cassa e banca viene riportata;
+5. i movimenti dell'anno precedente restano sempre modificabili o eliminabili dagli utenti autorizzati.
 
-L'apertura non è conteggiata come ricavo o costo del nuovo anno.
+L'apertura contribuisce al saldo del conto ma non è conteggiata come ricavo o costo del nuovo anno.
 
 ### Automazione del cambio anno
 
 Un job idempotente eseguito al cambio anno deve:
 
 - creare l'esercizio successivo se non esiste;
-- portare il precedente in `CLOSING` se non è già chiuso;
-- preparare aperture provvisorie per i conti attivi;
-- notificare nell'applicazione Admin e Tesorieri che la chiusura deve essere verificata;
-- impedire duplicati tramite vincoli univoci su esercizio, conto e natura di apertura.
+- calcolare i saldi al 31/12;
+- creare una sola apertura per coppia esercizio/conto;
+- aggiornare l'apertura se il saldo precedente cambia;
+- registrare data e risultato dell'ultimo ricalcolo;
+- segnalare eventuali trasferimenti incoerenti senza impedire le correzioni.
 
-La conferma della chiusura ricalcola e rende definitive le aperture. Se la chiusura viene completata dopo il 1 gennaio, il nuovo esercizio può ricevere movimenti, ma il saldo di apertura resta indicato come provvisorio fino alla conferma.
+Lo stato `ROLLED_OVER` indica soltanto che il riporto è stato generato almeno una volta. Non blocca inserimento, modifica o eliminazione dei movimenti.
 
-### Condizioni di chiusura
+### Correzioni successive al cambio anno
 
-La chiusura deve essere bloccata quando:
+Non esiste una procedura obbligatoria di riapertura. Se Admin, Tesoriere o Super Admin correggono un movimento di un anno precedente, il backend deve:
 
-- esistono bozze datate nell'esercizio;
-- esistono trasferimenti incompleti o incoerenti;
-- manca un'apertura o la quadratura di un conto;
-- il calcolo dei saldi non coincide con lo snapshot di chiusura.
+1. salvare normalmente la correzione;
+2. ricalcolare il saldo finale dell'anno interessato;
+3. aggiornare il movimento di apertura dell'anno successivo;
+4. propagare il ricalcolo alle aperture degli anni ancora successivi, se presenti;
+5. aggiornare dashboard e rendiconti derivati.
 
-Per i conti bancari è raccomandata la riconciliazione fino al 31/12. L'interfaccia deve evidenziare eventuali movimenti non riconciliati e richiedere una conferma esplicita se la policy applicativa consente comunque di chiudere.
+Il ricalcolo può essere immediato nella stessa transazione per la prima versione. Se in futuro il volume dei dati lo rendesse costoso, potrà essere eseguito tramite job affidabile, mostrando temporaneamente che i saldi sono in aggiornamento.
 
-### Riapertura
+### Verifica annuale facoltativa
 
-Admin, Tesoriere e Super Admin possono riaprire un esercizio chiuso, ma devono:
+L'interfaccia può offrire un riepilogo di fine anno con:
 
-- indicare una motivazione obbligatoria;
-- ricevere un avviso sugli esercizi successivi già movimentati;
-- produrre una voce immutabile nell'audit dell'esercizio.
+- saldi per conto;
+- movimenti non riconciliati;
+- trasferimenti incoerenti;
+- posizioni evento ancora aperte;
+- data dell'ultimo ricalcolo.
 
-Dopo le rettifiche, una nuova chiusura ricalcola il saldo finale e aggiorna in modo tracciato i movimenti tecnici di apertura dell'anno successivo. Le aperture precedenti non devono scomparire senza traccia: la revisione o sostituzione deve essere registrata nell'audit.
+La verifica non impedisce modifiche successive e non richiede storni o riaperture.
 
 ### Calcolo dei saldi tra esercizi
 
 I report annuali usano soltanto:
 
 - movimento di apertura dell'anno;
-- movimenti effettivi dello stesso anno.
+- movimenti attivi e non cancellati dello stesso anno.
 
 Non devono sommare tutte le aperture di tutti gli anni, altrimenti il riporto verrebbe contato più volte. Per il saldo storico a una data si usa l'apertura dell'esercizio contenente la data più i movimenti successivi dello stesso esercizio.
 
@@ -549,13 +521,12 @@ ROLE_TREASURER
 ### Movimenti
 
 - `GET /api/finance/movements`, paginato e filtrabile;
-- `POST /api/finance/movements`, crea una bozza;
+- `POST /api/finance/movements`, crea un movimento attivo;
 - `GET /api/finance/movements/{id}`;
-- `PUT /api/finance/movements/{id}`, solo per bozze;
-- `DELETE /api/finance/movements/{id}`, solo per bozze;
-- `POST /api/finance/movements/{id}/post`;
-- `POST /api/finance/movements/{id}/reconcile`;
-- `POST /api/finance/movements/{id}/reverse`;
+- `PUT /api/finance/movements/{id}`, corregge qualsiasi movimento;
+- `DELETE /api/finance/movements/{id}`, cancellazione logica sempre consentita;
+- `POST /api/finance/movements/{id}/restore`, ripristino facoltativo di un movimento eliminato;
+- `PATCH /api/finance/movements/{id}/reconciliation`, imposta o rimuove la riconciliazione;
 - `POST /api/finance/transfers`.
 
 Filtri minimi:
@@ -565,7 +536,7 @@ Filtri minimi:
 - conto;
 - direzione;
 - natura;
-- stato;
+- riconciliato/non riconciliato;
 - categoria;
 - evento;
 - controparte;
@@ -576,7 +547,7 @@ Filtri minimi:
 - `POST /api/finance/movements/{id}/attachments`, multipart;
 - `GET /api/finance/movements/{id}/attachments`;
 - `GET /api/finance/attachments/{attachmentId}`;
-- `DELETE /api/finance/attachments/{attachmentId}`, eliminazione reale solo se il movimento è bozza, altrimenti invalidazione tracciata.
+- `DELETE /api/finance/attachments/{attachmentId}`, cancellazione logica sempre consentita.
 
 L'upload deve fallire atomicamente: un file non valido non deve lasciare metadati orfani o contenuti temporanei non rimossi.
 
@@ -586,7 +557,7 @@ L'upload deve fallire atomicamente: un file non valido non deve lasciare metadat
 - `GET /api/finance/events/{id}`;
 - `PATCH /api/finance/events/{id}/budget`, modifica soltanto compenso e costi previsti;
 - `GET /api/finance/events/{id}/movements`;
-- `POST /api/finance/events/{id}/movements`, crea una bozza con evento già associato.
+- `POST /api/finance/events/{id}/movements`, crea un movimento con evento già associato.
 
 Il DTO economico dell'evento deve esporre solo i dati operativi necessari alla lettura e i dati economici. Non deve accettare campi come stato, date, presenze o disponibilità nell'endpoint di aggiornamento budget.
 
@@ -594,9 +565,9 @@ Il DTO economico dell'evento deve esporre solo i dati operativi necessari alla l
 
 - `GET /api/finance/years`;
 - `GET /api/finance/years/{year}`;
-- `POST /api/finance/years/{year}/close`;
-- `POST /api/finance/years/{year}/reopen`;
-- `GET /api/finance/years/{year}/closing-preview`.
+- `POST /api/finance/years/{year}/rollover`, genera o aggiorna il riporto all'anno successivo;
+- `POST /api/finance/years/{year}/recalculate`, ricalcola saldi e aperture successive;
+- `GET /api/finance/years/{year}/summary`.
 
 ### Dashboard e rendiconti
 
@@ -628,14 +599,12 @@ Ogni service economico deve essere eseguito nel tenant ricavato dal token. Gli i
 
 I download degli allegati devono verificare nuovamente movimento, tenant e autorità. Non devono esporre direttamente il percorso fisico dello storage.
 
-Le operazioni critiche devono essere transazionali:
+Le operazioni che modificano più dati devono essere transazionali:
 
-- contabilizzazione;
-- riconciliazione;
-- storno;
-- trasferimento;
-- chiusura e riapertura esercizio;
-- generazione o aggiornamento aperture.
+- creazione, modifica o eliminazione di un trasferimento;
+- modifica di un movimento che richiede il ricalcolo dei riporti;
+- generazione o aggiornamento delle aperture annuali;
+- associazione o rimozione coordinata degli allegati.
 
 ## Backend: struttura consigliata
 
@@ -654,10 +623,9 @@ domain/enumeration/AccountingYearStatus.java
 domain/enumeration/FinancialAccountType.java
 domain/enumeration/FinancialDirection.java
 domain/enumeration/FinancialMovementNature.java
-domain/enumeration/FinancialMovementStatus.java
 ```
 
-Le entità possono riutilizzare i campi audit comuni, ma i servizi economici devono applicare regole specifiche e non affidarsi al CRUD generico per transizioni di stato.
+Le entità possono riutilizzare i campi audit comuni. Il servizio movimenti offre un CRUD esplicito per applicare validazioni, ricalcoli e isolamento tenant senza introdurre transizioni di stato vincolanti.
 
 ### Repository
 
@@ -668,7 +636,7 @@ Repository distinti per ogni aggregato, con query dedicate per:
 - somme per categoria;
 - conteggi e totali per dashboard;
 - ricerca movimenti con `Specification`;
-- lock dell'esercizio;
+- ricalcolo dei saldi e dei riporti annuali;
 - verifica trasferimenti e aperture;
 - recupero allegati sempre attraverso il movimento proprietario.
 
@@ -687,32 +655,30 @@ FinancialEventService
 FinancialReportService
 ```
 
-Le transizioni `post`, `reconcile`, `reverse`, `close` e `reopen` devono essere metodi espliciti. Non devono essere ottenute modificando direttamente il campo `status` tramite un DTO generico.
+Il servizio movimenti espone normali operazioni CRUD con validazione. La riconciliazione è un aggiornamento esplicito ma reversibile; non esistono transizioni che rendono il movimento immutabile.
 
 ### DTO
 
 Separare i DTO di comando dai DTO di lettura:
 
 - `CreateFinancialMovementDTO`;
-- `UpdateFinancialMovementDraftDTO`;
-- `PostMovementDTO`;
-- `ReconcileMovementDTO`;
-- `ReverseMovementDTO`;
+- `UpdateFinancialMovementDTO`;
+- `UpdateMovementReconciliationDTO`;
 - `CreateTransferDTO`;
 - `FinancialMovementDTO`;
 - `FinancialAccountDTO`;
 - `FinancialEventSummaryDTO`;
-- `CloseAccountingYearDTO`;
-- `ReopenAccountingYearDTO`.
+- `RolloverAccountingYearDTO`;
+- `RecalculateAccountingYearDTO`.
 
-La separazione impedisce overposting e rende evidenti i campi modificabili in ogni fase.
+La separazione impedisce overposting e distingue la normale correzione del movimento dall'aggiornamento rapido della riconciliazione.
 
 ### Validazione e concorrenza
 
 - Bean Validation per campi obbligatori e formati;
 - vincoli PostgreSQL come seconda linea di difesa;
-- `@Version` per modifiche concorrenti di bozze e conti;
-- lock sull'esercizio durante chiusura/riapertura;
+- `@Version` per modifiche concorrenti di movimenti e conti;
+- ricalcolo idempotente degli esercizi senza bloccare la correzione dello storico;
 - lock o vincolo idempotente durante trasferimenti e aperture;
 - `request_key` per evitare doppie scritture dovute al retry HTTP;
 - calcoli monetari esclusivamente con `BigDecimal` e arrotondamento esplicito.
@@ -744,13 +710,13 @@ Voce menu principale `Economia` con pagine:
    - entrate e uscite del periodo;
    - posizioni evento da incassare/pagare;
    - movimenti da riconciliare;
-   - stato della chiusura annuale.
+   - stato dell'ultimo riporto annuale.
 
 2. **Movimenti**
    - tabella paginata;
    - filtri completi;
-   - creazione bozza;
-   - contabilizzazione, riconciliazione e storno;
+   - creazione movimento;
+   - creazione, correzione, cancellazione e riconciliazione facoltativa;
    - gestione allegati;
    - esportazione del risultato filtrato.
 
@@ -779,10 +745,10 @@ Voce menu principale `Economia` con pagine:
    - riepilogo per categoria.
 
 7. **Esercizi**
-   - anteprima chiusura;
-   - anomalie bloccanti;
-   - conferma chiusura;
-   - storico aperture e riaperture.
+   - riepilogo annuale;
+   - anomalie informative;
+   - generazione e ricalcolo dei riporti;
+   - data dell'ultimo aggiornamento delle aperture.
 
 ### Pagina evento
 
@@ -818,15 +784,14 @@ Campi minimi:
 
 Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema propone direzione e categoria coerenti con l'azione scelta.
 
-### Esperienza utente sugli stati
+### Esperienza utente nella gestione
 
-- badge di stato chiaramente visibile;
-- pulsante `Salva bozza`;
-- conferma esplicita prima di `Contabilizza`;
-- spiegazione che un movimento contabilizzato si corregge tramite storno;
-- motivo obbligatorio nello storno;
+- pulsante `Salva` con normale modifica del movimento;
+- azioni `Modifica`, `Elimina` e, se prevista, `Ripristina` sempre disponibili agli utenti autorizzati;
+- conferma prima della cancellazione logica;
+- controllo facoltativo `Riconciliato` che può essere attivato o rimosso;
 - warning per saldo negativo;
-- warning per esercizio in chiusura o chiuso;
+- indicazione quando una modifica storica comporta il ricalcolo delle aperture successive;
 - indicatori per allegati mancanti senza considerarli errori.
 
 ## Rendiconti ed esportazioni
@@ -855,11 +820,11 @@ Per uno specifico conto e intervallo:
 - saldi iniziali e finali per conto;
 - totale entrate e uscite ordinarie;
 - trasferimenti separati;
-- storni evidenziati;
+- correzioni ed eliminazioni già riflesse nei totali correnti;
 - totali per categoria;
 - eventi economicamente aperti;
 - movimenti non riconciliati;
-- dati della chiusura e autore.
+- data dell'ultimo ricalcolo dei riporti.
 
 ### Formati
 
@@ -885,7 +850,7 @@ Al primo avvio del modulo, per ciascun conto creato l'utente inserisce:
 - saldo iniziale;
 - eventuale descrizione e allegato.
 
-Il backend crea un movimento `OPENING` contabilizzato. Non deve esistere un campo saldo iniziale modificabile direttamente sul conto.
+Il backend crea un movimento tecnico `OPENING`. Anche questo valore può essere corretto attraverso il normale flusso gestionale, pur mantenendo il ricalcolo automatico come modalità consigliata. Non deve esistere un campo saldo iniziale separato sul conto.
 
 ### Rollback
 
@@ -893,25 +858,25 @@ Un rollback applicativo deve preservare tabelle, movimenti e allegati. Non devon
 
 ## Audit, conservazione e cancellazioni
 
-- bozze: cancellazione logica consentita;
-- movimenti contabilizzati: mai cancellati;
+- tutti i movimenti possono essere modificati;
+- tutti i movimenti possono essere cancellati logicamente e, se previsto, ripristinati;
 - conti e categorie usati: archiviati, non cancellati;
-- allegati di scritture contabilizzate: invalidati/sostituiti, non rimossi senza traccia;
-- ogni transizione conserva autore e istante;
-- riaperture esercizio e storni richiedono motivazione;
+- tutti gli allegati possono essere aggiunti, sostituiti o rimossi logicamente;
+- ogni modifica conserva almeno ultimo autore, data e versione;
+- non sono richiesti storni, motivazioni di rettifica o procedure di riapertura;
 - i riferimenti all'identità autenticata sono conservati secondo la policy applicativa e di retention del tenant;
-- l'eliminazione GDPR di un utente non deve alterare importi o quadrature contabili; gli identificativi personali possono essere pseudonimizzati senza cancellare la scrittura.
+- l'eliminazione GDPR di un utente non deve alterare involontariamente importi o saldi; gli identificativi personali possono essere pseudonimizzati senza rimuovere il movimento.
 
-La durata legale di conservazione e gli obblighi fiscali specifici dipendono dal contesto del tenant e devono essere configurati o verificati separatamente; Taurus deve comunque evitare cancellazioni irreversibili dello storico contabilizzato.
+Taurus è uno strumento gestionale di supporto e non sostituisce la contabilità fiscale. La cancellazione logica è raccomandata per consentire recupero e diagnosi, ma non introduce immutabilità contabile.
 
 ## Osservabilità
 
 Registrare log applicativi strutturati per:
 
-- movimento creato, contabilizzato, riconciliato e stornato;
+- movimento creato, modificato, eliminato, ripristinato o riconciliato;
 - trasferimento creato o fallito;
 - allegato caricato o invalidato;
-- esercizio aperto, chiuso o riaperto;
+- esercizio creato o riportato all'anno successivo;
 - apertura annuale generata o ricalcolata;
 - errore di quadratura;
 - tentativo di accesso non autorizzato.
@@ -921,9 +886,9 @@ I log non devono contenere file allegati, token, IBAN completi o note potenzialm
 Metriche utili:
 
 - durata dei report;
-- numero di movimenti per stato;
+- numero di movimenti attivi, eliminati e riconciliati;
 - fallimenti upload;
-- fallimenti chiusura;
+- fallimenti nel ricalcolo dei riporti;
 - movimenti non riconciliati;
 - spazio storage allegati per tenant.
 
@@ -941,14 +906,13 @@ Metriche utili:
 
 - migration Liquibase tenant;
 - esercizi, conti e categorie;
-- movimenti in bozza;
-- contabilizzazione e calcolo saldi;
+- CRUD completo dei movimenti;
+- correzione ed eliminazione logica con ricalcolo saldi;
 - audit e concorrenza ottimistica.
 
-### Fase 3 - Operazioni contabili
+### Fase 3 - Operazioni gestionali
 
-- riconciliazione;
-- storni;
+- riconciliazione facoltativa e reversibile;
 - trasferimenti atomici;
 - idempotenza;
 - gestione allegati.
@@ -967,7 +931,7 @@ Metriche utili:
 - dashboard;
 - conti, categorie e movimenti;
 - eventi economici;
-- esercizi e chiusura;
+- esercizi e riporti annuali;
 - gestione allegati.
 
 ### Fase 6 - Rendiconti
@@ -977,13 +941,13 @@ Metriche utili:
 - rendiconto annuale;
 - esportazioni CSV/XLSX/PDF.
 
-### Fase 7 - Chiusura annuale
+### Fase 7 - Riporto annuale
 
 - job cambio anno idempotente;
-- anteprima chiusura;
-- controlli di quadratura;
-- aperture provvisorie e definitive;
-- riapertura motivata e ricalcolo tracciato.
+- riepilogo di fine anno;
+- segnalazioni informative di incoerenza;
+- generazione e aggiornamento delle aperture;
+- propagazione automatica delle correzioni storiche.
 
 ### Fase 8 - Hardening e rilascio
 
@@ -998,27 +962,27 @@ Metriche utili:
 
 ### Unit test backend
 
-- transizioni di stato valide e non valide;
-- esclusione bozze dai saldi;
-- inclusione corretta di originali e storni;
+- modifica libera dei movimenti;
+- esclusione dei movimenti cancellati logicamente dai saldi;
+- ricalcolo dopo correzione o eliminazione;
 - esclusione trasferimenti dai totali consolidati;
 - esclusione aperture da ricavi/costi annuali;
 - formule preventivo/consuntivo evento;
 - validazione valuta e importi;
-- blocco modifica di un movimento contabilizzato;
-- motivo obbligatorio per storno e riapertura.
+- riconciliazione attivabile e rimovibile senza bloccare la modifica;
+- aggiornamento diretto senza generazione di storni.
 
 ### Integration test PostgreSQL
 
 - vincoli e foreign key;
 - isolamento per schema tenant;
 - trasferimento atomico;
-- lock durante chiusura;
+- ricalcolo atomico dei riporti;
 - idempotenza `request_key`;
 - apertura annuale non duplicata;
-- ricalcolo apertura dopo riapertura;
+- ricalcolo apertura dopo modifica di un anno precedente;
 - query saldo progressivo;
-- gestione concorrente di due contabilizzazioni.
+- gestione concorrente di due modifiche.
 
 ### Security test
 
@@ -1033,20 +997,20 @@ Metriche utili:
 - route guard e menu per ogni ruolo;
 - Admin e Tesoriere vedono gli stessi controlli economici;
 - il Tesoriere non vede i controlli operativi amministrativi;
-- form e conferme rispettano gli stati;
+- form di modifica disponibile per qualsiasi movimento;
 - caricamento allegati facoltativo;
 - riepiloghi evento coerenti con le risposte API;
-- warning chiusura, saldo negativo e storno.
+- warning saldo negativo e ricalcolo degli anni successivi.
 
-### Test di chiusura annuale
+### Test di riporto annuale
 
-- chiusura al 31/12;
+- calcolo saldo finale al 31/12;
 - apertura al 01/01;
 - riporto esatto di saldi positivi, nulli e negativi;
 - nessun doppio conteggio delle aperture;
-- blocco con bozze o trasferimenti incompleti;
-- riapertura motivata;
-- ricalcolo tracciato del saldo iniziale successivo;
+- segnalazione senza blocco dei trasferimenti incoerenti;
+- modifica libera dei movimenti dell'anno precedente;
+- ricalcolo automatico del saldo iniziale successivo;
 - permanenza delle posizioni evento non saldate.
 
 ## Criteri di accettazione
@@ -1056,18 +1020,18 @@ Metriche utili:
 - il Tesoriere non acquisisce gestione utenti, catalogo, inventario o modifica operativa degli eventi;
 - nessuna API economica è accessibile agli altri ruoli;
 - ogni conto mostra un saldo riproducibile dai movimenti;
-- le bozze non influenzano i saldi;
-- un movimento contabilizzato non può essere modificato o cancellato;
-- uno storno mantiene originale, scrittura opposta e motivazione;
+- ogni movimento attivo influenza immediatamente i saldi;
+- ogni movimento può essere modificato o cancellato logicamente;
+- una correzione aggiorna direttamente il movimento senza richiedere uno storno;
 - un trasferimento genera sempre due scritture coerenti oppure nessuna;
 - gli allegati sono facoltativi, protetti per tenant e verificati server-side;
 - preventivo e consuntivo evento rimangono separati;
 - un movimento creato dall'evento conserva automaticamente il collegamento;
 - gli eventi esistenti con compensi/costi compaiono senza migrazione distruttiva;
 - i report non contano aperture come ricavi né trasferimenti come entrate consolidate;
-- l'esercizio chiude al 31/12 e il successivo apre al 01/01 con saldo riportato;
+- il saldo viene determinato al 31/12 e il successivo esercizio apre al 01/01 con saldo riportato;
 - gli eventi non saldati attraversano il cambio anno senza perdere il residuo;
-- una riapertura è sempre motivata e auditata;
+- una modifica storica ricalcola automaticamente tutti i riporti successivi interessati;
 - nessun dato economico attraversa il confine dello schema tenant;
 - CSV/XLSX e PDF restituiscono gli stessi totali delle API e della dashboard.
 
@@ -1127,7 +1091,7 @@ I nomi precisi possono essere adattati alle convenzioni applicative osservate du
 4. provisioning idempotente `ROLE_TREASURER` sul realm esistente;
 5. smoke test con Admin, Tesoriere, Utente e Utente esterno;
 6. test di caricamento e download PDF/JPEG/PNG;
-7. prova completa bozza-contabilizzazione-riconciliazione-storno;
+7. prova completa creazione-modifica-riconciliazione-eliminazione-ripristino;
 8. prova trasferimento cassa-conto corrente;
 9. prova evento con preventivo, incasso parziale, costo e saldo;
 10. simulazione cambio anno e riporto saldi;
