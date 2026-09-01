@@ -4,6 +4,8 @@ import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.util.List;
@@ -41,4 +43,11 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      * @return the updated event DTO.
      */
     CalendarEventsDTO setPresentUsers(Long eventId, List<EventPresentUserDTO> presentUsers, AbstractAuthenticationToken token);
+
+    BulkAvailabilityResultDTO setSeriesAvailability(
+        Long seriesId,
+        Boolean available,
+        List<StateEnum> visibleStates,
+        AbstractAuthenticationToken token
+    );
 }

@@ -3,11 +3,12 @@ import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryReturn } from '../../module';
 import { InventoryService, ToastService } from '../../service';
+import { InventoryExpirationBadgeComponent } from '../inventory-expiration-badge/inventory-expiration-badge.component';
 
 @Component({
     selector: 'app-inventory-assignments',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './inventory-assignments.component.html'
 })
 export class InventoryAssignmentsComponent implements OnInit, OnChanges {

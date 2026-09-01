@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -50,6 +52,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
 
     @Override
     public TenantsDTO save(TenantsDTO dto, AbstractAuthenticationToken token) {
+        normalizeTimeZone(dto);
         if (getRepository().findByCodeAndDeletedFalse(dto.getCode()).isPresent()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant code already exists", getEntityName(), "code.exists");
         }
@@ -66,6 +69,12 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             }
             throw exception;
         }
+    }
+
+    @Override
+    public TenantsDTO update(Long id, TenantsDTO dto, AbstractAuthenticationToken token) {
+        normalizeTimeZone(dto);
+        return super.update(id, dto, token);
     }
 
     @Override
@@ -122,6 +131,18 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
                 user.setAttributes(attributes);
                 keycloakService.updateUser(user);
             }
+        }
+    }
+
+    private void normalizeTimeZone(TenantsDTO dto) {
+        String timeZone = dto.getTimeZone();
+        if (timeZone == null || timeZone.isBlank()) {
+            timeZone = "Europe/Rome";
+        }
+        try {
+            dto.setTimeZone(ZoneId.of(timeZone.trim()).getId());
+        } catch (DateTimeException exception) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid tenant time zone", getEntityName(), "timeZone.invalid");
         }
     }
 }

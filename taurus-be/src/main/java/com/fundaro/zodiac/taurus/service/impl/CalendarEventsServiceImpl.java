@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.domain.CalendarEventPresence;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
@@ -12,6 +13,7 @@ import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.util.ArrayList;
@@ -59,9 +61,12 @@ public class CalendarEventsServiceImpl
         CalendarEvents entity = findEntity(id);
         CalendarEvents values = getMapper().toEntity(dto);
         getMapper().partialUpdate(entity, dto);
+        if (entity.getSeries() != null) entity.setSeriesException(true);
         entity.getCosts().clear();
         if (values.getCosts() != null) entity.getCosts().addAll(values.getCosts());
-        return saveEntity(entity, token, false);
+        CalendarEventsDTO result = saveEntity(entity, token, false);
+        reminderProducer.rescheduleForAvailableUsers(result, availableUserIds(entity), token);
+        return result;
     }
 
     @Override
@@ -141,6 +146,62 @@ public class CalendarEventsServiceImpl
         return saveEntity(event, token, false);
     }
 
+    @Override
+    public BulkAvailabilityResultDTO setSeriesAvailability(
+        Long seriesId,
+        Boolean available,
+        List<StateEnum> visibleStates,
+        AbstractAuthenticationToken token
+    ) {
+        Users user = currentUser(token);
+        Date now = new Date();
+        List<CalendarEvents> events = getRepository().findAllBySeries_IdOrderByOriginalStartDateAsc(seriesId).stream()
+            .filter(event -> !event.getDeleted())
+            .filter(event -> event.getStartDate() != null && !event.getStartDate().before(now))
+            .filter(event -> visibleStates == null || visibleStates.contains(event.getState()))
+            .toList();
+        for (CalendarEvents event : events) {
+            if (available == null) {
+                event.getAvailabilities().removeIf(entry -> entry.getUser().getId().equals(user.getId()));
+                reminderProducer.cancelPending(event.getId(), user.getKeycloakId());
+                continue;
+            }
+            CalendarEventAvailability response = event.getAvailabilities().stream()
+                .filter(entry -> entry.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .orElseGet(() -> {
+                    CalendarEventAvailability newResponse = new CalendarEventAvailability();
+                    newResponse.setUser(user);
+                    event.getAvailabilities().add(newResponse);
+                    return newResponse;
+                });
+            response.setAvailability(available
+                ? CalendarEventAvailability.Availability.AVAILABLE
+                : CalendarEventAvailability.Availability.UNAVAILABLE);
+            response.setResponseDate(now);
+        }
+        getRepository().saveAll(events);
+        getRepository().flush();
+        if (available != null && available) {
+            events.forEach(event -> reminderProducer.scheduleIfNeeded(getMapper().toDto(event), user.getKeycloakId(), token));
+        } else {
+            events.forEach(event -> reminderProducer.cancelPending(event.getId(), user.getKeycloakId()));
+        }
+        return new BulkAvailabilityResultDTO(seriesId, events.size());
+    }
+
+    @Override
+    public CalendarEventsDTO delete(Long id, AbstractAuthenticationToken token) {
+        CalendarEvents event = findEntity(id);
+        if (event.getSeries() != null) event.setSeriesExcluded(true);
+        event.setDeleted(true);
+        event.setEditBy(SecurityUtils.getUserIdFromAuthentication(token));
+        event.setEditDate(new Date());
+        CalendarEventsDTO result = getMapper().toDto(getRepository().save(event));
+        reminderProducer.cancelAllPending(id);
+        return result;
+    }
+
     private CalendarEvents findEntity(Long id) {
         return getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
@@ -155,5 +216,12 @@ public class CalendarEventsServiceImpl
         if (dto.getEndDate() == null && dto.getStartDate() != null) {
             dto.setEndDate(new Date(dto.getStartDate().getTime() + 3_600_000L));
         }
+    }
+
+    private List<String> availableUserIds(CalendarEvents event) {
+        return event.getAvailabilities().stream()
+            .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
+            .map(value -> value.getUser().getKeycloakId())
+            .toList();
     }
 }

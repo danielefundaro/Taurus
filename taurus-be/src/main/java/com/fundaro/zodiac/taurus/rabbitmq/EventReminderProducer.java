@@ -12,6 +12,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collection;
 
 @Service
 public class EventReminderProducer {
@@ -53,6 +54,20 @@ public class EventReminderProducer {
 
     public void cancelPending(Long eventId, String userId) {
         reminderRepository.deleteAllByEventIdAndUserIdAndSentFalse(eventId, userId);
+    }
+
+    public void cancelAllPending(Long eventId) {
+        reminderRepository.deleteAllByEventIdAndSentFalse(eventId);
+    }
+
+    public void rescheduleForAvailableUsers(
+        CalendarEventsDTO event,
+        Collection<String> availableUserIds,
+        AbstractAuthenticationToken token
+    ) {
+        cancelAllPending(event.getId());
+        if (availableUserIds == null) return;
+        availableUserIds.forEach(userId -> scheduleIfNeeded(event, userId, token));
     }
 
     private int resolveReminderMinutes(Integer reminderMinutes, AbstractAuthenticationToken token) {

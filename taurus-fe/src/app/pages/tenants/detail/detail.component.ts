@@ -131,6 +131,16 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         }
     }
 
+    public get timeZoneInvalid(): boolean {
+        if (!this.tenant.timeZone) return true;
+        try {
+            new Intl.DateTimeFormat('it-IT', { timeZone: this.tenant.timeZone }).format();
+            return false;
+        } catch {
+            return true;
+        }
+    }
+
     private loadElement(id: number | string) {
         this.tenantsService
             .getById(Number(id))

@@ -7,9 +7,18 @@ import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
-import { CalendarEvents, EventCost, EventPresentUser, Users } from '../../../module';
+import {
+    CalendarEventSeries,
+    CalendarEventSeriesPreview,
+    CalendarEventSeriesRequest,
+    CalendarEvents,
+    EventCost,
+    EventPresentUser,
+    RecurrenceWeekDay,
+    Users,
+} from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
+import { CalendarEventSeriesService, CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
     id: number;
@@ -29,6 +38,7 @@ interface UserPresenceRow {
     styleUrl: './detail.component.scss',
     providers: [
         CalendarEventsService,
+        CalendarEventSeriesService,
         ConfirmationService,
     ],
 })
@@ -54,9 +64,30 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected presenceRows: UserPresenceRow[] = [];
     protected currentUserId?: number;
+    protected series?: CalendarEventSeries;
+    protected seriesUntilDate?: Date;
+    protected seriesPreview?: CalendarEventSeriesPreview;
+    protected isPreviewingSeries = false;
+    protected applyAvailabilityToFuture = false;
+    protected readonly weekDayOptions: { code: RecurrenceWeekDay; label: string }[] = [
+        { code: 'MO', label: 'Lun' },
+        { code: 'TU', label: 'Mar' },
+        { code: 'WE', label: 'Mer' },
+        { code: 'TH', label: 'Gio' },
+        { code: 'FR', label: 'Ven' },
+        { code: 'SA', label: 'Sab' },
+        { code: 'SU', label: 'Dom' },
+    ];
+    protected readonly frequencyOptions = [
+        { value: 'DAILY', label: 'Giornaliera' },
+        { value: 'WEEKLY', label: 'Settimanale' },
+        { value: 'MONTHLY', label: 'Mensile' },
+        { value: 'YEARLY', label: 'Annuale' },
+    ];
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
+        private readonly calendarEventSeriesService: CalendarEventSeriesService,
         private readonly usersService: UsersService,
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
@@ -83,10 +114,29 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         return this.keycloakService.isUser;
     }
 
+    protected get recurrenceLabel(): string {
+        if (!this.series) return '';
+        const labels: Record<string, [string, string]> = {
+            DAILY: ['giorno', 'giorni'],
+            WEEKLY: ['settimana', 'settimane'],
+            MONTHLY: ['mese', 'mesi'],
+            YEARLY: ['anno', 'anni'],
+        };
+        const interval = this.series.recurrence.interval;
+        const frequencyLabels = labels[this.series.recurrence.frequency];
+        const cadence = interval === 1 ? `ogni ${frequencyLabels[0]}` : `ogni ${interval} ${frequencyLabels[1]}`;
+        const end = this.series.recurrence.end.type === 'COUNT'
+            ? `${this.series.recurrence.end.count} occorrenze`
+            : `fino al ${this.series.recurrence.end.until}`;
+        return `${cadence}, ${end} · ${this.series.timeZone}`;
+    }
+
     protected confirmDelete(): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo evento?',
+            message: this.event.seriesId
+                ? 'Eliminare soltanto questa occorrenza? Le altre date della serie non saranno modificate.'
+                : 'Eliminare definitivamente questo evento?',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Conferma',
             rejectLabel: 'Annulla',
@@ -116,6 +166,93 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         });
     }
 
+    protected saveSeriesFuture(): void {
+        if (!this.series || this.seriesRuleInvalid) return;
+        const request = this.buildSeriesRequest();
+        this.isSaving = true;
+        this.calendarEventSeriesService.update(this.series.id, request).pipe(first(), finalize(() => this.isSaving = false)).subscribe({
+            next: updated => {
+                this.series = updated;
+                this.isDirty = false;
+                this.toastService.success('Successo', `${updated.updatedCount ?? 0} eventi aggiornati da questa occorrenza in poi`);
+                this.loadElement(this.event.id);
+            },
+        });
+    }
+
+    protected onSeriesDefinitionChange(): void {
+        this.isDirty = true;
+        this.seriesPreview = undefined;
+    }
+
+    protected onEventScheduleChange(): void {
+        this.isDirty = true;
+        this.seriesPreview = undefined;
+    }
+
+    protected isSeriesWeekDaySelected(day: RecurrenceWeekDay): boolean {
+        return this.series?.recurrence.weekDays.includes(day) ?? false;
+    }
+
+    protected toggleSeriesWeekDay(day: RecurrenceWeekDay, selected: boolean): void {
+        if (!this.series) return;
+        const days = this.series.recurrence.weekDays;
+        this.series.recurrence.weekDays = selected
+            ? [...new Set([...days, day])]
+            : days.filter(value => value !== day);
+        this.onSeriesDefinitionChange();
+    }
+
+    protected previewSeriesUpdate(): void {
+        if (!this.series || this.seriesRuleInvalid) return;
+        this.isPreviewingSeries = true;
+        this.calendarEventSeriesService.preview(this.buildSeriesRequest()).pipe(first(), finalize(() => this.isPreviewingSeries = false)).subscribe({
+            next: result => this.seriesPreview = result,
+        });
+    }
+
+    protected get seriesRuleInvalid(): boolean {
+        if (!this.series) return false;
+        const rule = this.series.recurrence;
+        if (!this.event.startDate || !rule.interval || rule.interval < 1) return true;
+        if (rule.frequency === 'WEEKLY' && rule.weekDays.length === 0) return true;
+        if (rule.end.type === 'COUNT') {
+            return !rule.end.count || rule.end.count < 1 || rule.end.count > 500;
+        }
+        return !this.seriesUntilDate;
+    }
+
+    protected restoreOccurrence(): void {
+        if (!this.event.seriesId) return;
+        this.calendarEventSeriesService.restoreOccurrence(this.event.seriesId, this.event.id).pipe(first()).subscribe({
+            next: updated => {
+                this.series = updated;
+                this.toastService.success('Successo', 'Occorrenza ripristinata dai valori della serie');
+                this.loadElement(this.event.id);
+            },
+        });
+    }
+
+    protected confirmDeleteSeries(): void {
+        if (!this.event.seriesId) return;
+        this.confirmationService.confirm({
+            header: 'Elimina eventi futuri',
+            message: 'Eliminare tutte le occorrenze future della serie? Gli eventi passati resteranno nello storico.',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Elimina eventi futuri',
+            rejectLabel: 'Annulla',
+            acceptButtonProps: { severity: 'danger' },
+            rejectButtonProps: { severity: 'secondary' },
+            accept: () => this.calendarEventSeriesService.deleteFuture(this.event.seriesId!).pipe(first()).subscribe({
+                next: result => {
+                    this.isDirty = false;
+                    this.toastService.success('Successo', `${result.deletedCount ?? 0} eventi futuri eliminati`);
+                    this.router.navigate(['/calendar']);
+                },
+            }),
+        });
+    }
+
     protected get currentUserAvailability(): boolean | null {
         const id = this.currentUserId;
         if (!id) return null;
@@ -125,6 +262,16 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected setAvailability(available: boolean): void {
+        if (this.applyAvailabilityToFuture && this.event.seriesId) {
+            this.calendarEventsService.setSeriesAvailability(this.event.seriesId, available).pipe(first()).subscribe({
+                next: result => {
+                    const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
+                    this.toastService.success('Successo', `${msg} per ${result.affectedOccurrences} eventi futuri`);
+                    this.loadElement(this.event.id);
+                },
+            });
+            return;
+        }
         this.calendarEventsService.setAvailability(this.event.id, available).pipe(delay(500), first()).subscribe({
             next: (updated: CalendarEvents) => {
                 const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
@@ -135,6 +282,15 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected cancelAvailability(): void {
+        if (this.applyAvailabilityToFuture && this.event.seriesId) {
+            this.calendarEventsService.cancelSeriesAvailability(this.event.seriesId).pipe(first()).subscribe({
+                next: result => {
+                    this.toastService.success('Successo', `Disponibilità annullata per ${result.affectedOccurrences} eventi futuri`);
+                    this.loadElement(this.event.id);
+                },
+            });
+            return;
+        }
         this.calendarEventsService.cancelAvailability(this.event.id).pipe(delay(500), first()).subscribe({
             next: (updated: CalendarEvents) => {
                 this.toastService.success('Successo', 'Disponibilità annullata');
@@ -231,11 +387,93 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 this.isDirtyPresence = false;
                 this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                 this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
+                if (this.event.seriesId && this.isAdmin) {
+                    this.loadSeries(this.event.seriesId);
+                } else {
+                    this.series = undefined;
+                }
                 if (this.isAdmin) {
                     this.loadAllUsers();
                 }
             },
         });
+    }
+
+    private loadSeries(seriesId: number): void {
+        this.calendarEventSeriesService.get(seriesId).pipe(first()).subscribe({
+            next: series => {
+                series.template.startDate = this.dateConverterPipe.transform(series.template.startDate);
+                series.template.endDate = this.dateConverterPipe.transform(series.template.endDate);
+                this.series = series;
+                this.seriesUntilDate = series.recurrence.end.until
+                    ? new Date(`${series.recurrence.end.until}T00:00:00`)
+                    : undefined;
+                this.seriesPreview = undefined;
+            },
+        });
+    }
+
+    private buildSeriesRequest(): CalendarEventSeriesRequest {
+        const series = this.series!;
+        const propagatedDates = this.propagatedSeriesDates(series);
+        const recurrence = {
+            ...series.recurrence,
+            weekDays: series.recurrence.frequency === 'WEEKLY' ? series.recurrence.weekDays : [],
+            end: series.recurrence.end.type === 'COUNT'
+                ? { type: 'COUNT' as const, count: series.recurrence.end.count }
+                : { type: 'UNTIL' as const, until: this.formatLocalDate(this.seriesUntilDate!) },
+        };
+        return {
+            entityVersion: series.entityVersion,
+            sourceOccurrenceId: this.event.id,
+            template: {
+                ...series.template,
+                name: this.event.name,
+                description: this.event.description,
+                state: this.event.state,
+                startDate: propagatedDates.startDate,
+                endDate: propagatedDates.endDate,
+                location: this.event.location,
+                fee: this.event.fee,
+                reminderMinutes: this.event.reminderMinutes,
+                costs: this.event.costs,
+            } as CalendarEvents,
+            recurrence,
+        };
+    }
+
+    private propagatedSeriesDates(series: CalendarEventSeries): { startDate?: Date; endDate?: Date } {
+        if (!this.event.startDate) return {};
+
+        const eventStart = new Date(this.event.startDate);
+        const originalOccurrenceStart = this.event.originalStartDate
+            ? new Date(this.event.originalStartDate)
+            : undefined;
+        const seriesStart = series.template.startDate
+            ? new Date(series.template.startDate)
+            : undefined;
+
+        if (!originalOccurrenceStart || !seriesStart) {
+            return { startDate: eventStart, endDate: this.event.endDate };
+        }
+
+        const occurrenceShift = eventStart.getTime() - originalOccurrenceStart.getTime();
+        const propagatedStart = new Date(seriesStart.getTime() + occurrenceShift);
+        const duration = this.event.endDate
+            ? new Date(this.event.endDate).getTime() - eventStart.getTime()
+            : undefined;
+
+        return {
+            startDate: propagatedStart,
+            endDate: duration === undefined ? undefined : new Date(propagatedStart.getTime() + duration),
+        };
+    }
+
+    private formatLocalDate(value: Date): string {
+        const year = value.getFullYear();
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     private loadAllUsers(): void {

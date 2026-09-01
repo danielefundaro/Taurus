@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.user;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
@@ -28,4 +29,6 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      * @return the updated event DTO.
      */
     CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token);
+
+    BulkAvailabilityResultDTO setSeriesAvailability(Long seriesId, Boolean available, AbstractAuthenticationToken token);
 }

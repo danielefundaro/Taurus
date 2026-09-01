@@ -46,6 +46,7 @@ public class InventoryReportService {
     private static final Logger log = LoggerFactory.getLogger(InventoryReportService.class);
     private static final long MAX_PDF_SIZE = 100L * 1024 * 1024;
     private static final Duration MAX_GENERATION_TIME = Duration.ofSeconds(120);
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final InventoryService inventoryService;
@@ -139,6 +140,7 @@ public class InventoryReportService {
                 writer.line("Valore unitario stimato: " + (assignment.estimatedUnitValue() == null ? "-" : assignment.estimatedUnitValue().toPlainString() + " " + safe(assignment.currency())), false);
                 writer.line("Stato di conservazione: " + assignment.conditionStatus(), false);
                 writer.line("Note di conservazione: " + safe(assignment.conditionNotes()), false);
+                writer.line("Data di scadenza: " + (assignment.expirationDate() == null ? "-" : DATE.format(assignment.expirationDate())), false);
                 writer.line("Quantità assegnata: " + assignment.assignedQuantity(), false);
                 writer.line("Quantità riconsegnata: " + assignment.returnedQuantity(), false);
                 writer.line("Quantità ancora consegnata: " + assignment.outstandingQuantity(), false);

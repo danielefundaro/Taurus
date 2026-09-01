@@ -16,5 +16,7 @@ public interface PushReminderRepository extends JpaRepository<PushReminder, Long
 
     long deleteAllByEventIdAndUserIdAndSentFalse(Long eventId, String userId);
 
+    long deleteAllByEventIdAndSentFalse(Long eventId);
+
     long deleteAllBySentTrueAndSendAtBefore(Instant cutoff);
 }

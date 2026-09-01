@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -49,5 +50,22 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
         getLog().debug("REST request to set present users for CalendarEvents : {}", id);
         CalendarEventsDTO result = getService().setPresentUsers(id, presentUsers, token);
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/series/{seriesId}/availability")
+    public ResponseEntity<BulkAvailabilityResultDTO> setSeriesAvailability(
+        @PathVariable Long seriesId,
+        @RequestParam boolean available,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.ok(getService().setSeriesAvailability(seriesId, available, null, token));
+    }
+
+    @DeleteMapping("/series/{seriesId}/availability")
+    public ResponseEntity<BulkAvailabilityResultDTO> cancelSeriesAvailability(
+        @PathVariable Long seriesId,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.ok(getService().setSeriesAvailability(seriesId, null, null, token));
     }
 }

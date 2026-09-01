@@ -15,4 +15,8 @@ export class CalendarEvents extends CommonFieldsOpenSearch {
     unavailableUsers?: EventUserEntry[];
     presentUsers?: EventPresentUser[];
     reminderMinutes?: number;
+    seriesId?: number;
+    originalStartDate?: Date;
+    seriesSequence?: number;
+    seriesException?: boolean;
 }

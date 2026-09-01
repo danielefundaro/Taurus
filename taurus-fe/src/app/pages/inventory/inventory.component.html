@@ -122,6 +122,7 @@
                                     <span><strong>{{ entry.outstandingQuantity }}</strong> in possesso</span>
                                     <span><strong>{{ entry.returnedQuantity }}</strong> riconsegnati</span>
                                     <span>Consegnato il {{ entry.assignedAt | date: 'dd/MM/yyyy' }}</span>
+                                    <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
                                     @if (entry.decision) {
                                     <p-tag [value]="entry.decision.decision"
                                         [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
@@ -194,6 +195,7 @@
                             <div class="flex flex-wrap gap-2 mt-4">
                                 <p-tag [value]="entry.inventoryNumber" severity="secondary" />
                                 <p-tag [value]="entry.status" severity="info" />
+                                <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
                             </div>
                             <a class="text-xl font-semibold mt-3 cursor-pointer"
                                 [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>

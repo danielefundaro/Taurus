@@ -20,6 +20,8 @@ public class ApplicationProperties {
 
     private RetentionProperties retention = new RetentionProperties();
 
+    private CalendarProperties calendar = new CalendarProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -50,6 +52,14 @@ public class ApplicationProperties {
 
     public void setRetention(RetentionProperties retention) {
         this.retention = retention;
+    }
+
+    public CalendarProperties getCalendar() {
+        return calendar;
+    }
+
+    public void setCalendar(CalendarProperties calendar) {
+        this.calendar = calendar;
     }
 
     private TesseractProperties tesseract = new TesseractProperties();
@@ -175,5 +185,29 @@ public class ApplicationProperties {
 
         public List<String> getTenantIndices() { return tenantIndices; }
         public void setTenantIndices(List<String> tenantIndices) { this.tenantIndices = tenantIndices; }
+    }
+
+    public static class CalendarProperties {
+        private RecurrenceProperties recurrence = new RecurrenceProperties();
+
+        public RecurrenceProperties getRecurrence() {
+            return recurrence;
+        }
+
+        public void setRecurrence(RecurrenceProperties recurrence) {
+            this.recurrence = recurrence;
+        }
+    }
+
+    public static class RecurrenceProperties {
+        private int maxOccurrences = 500;
+
+        public int getMaxOccurrences() {
+            return maxOccurrences;
+        }
+
+        public void setMaxOccurrences(int maxOccurrences) {
+            this.maxOccurrences = maxOccurrences;
+        }
     }
 }

@@ -6,6 +6,7 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectChangeEvent } from 'primeng/select';
 import { first } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
+import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, Page } from '../../module';
 import { InventoryService, KeycloakService, ToastService, UserInventoryService } from '../../service';
@@ -15,7 +16,7 @@ type InventoryViewMode = 'TENANT' | 'MINE';
 @Component({
     selector: 'app-inventory',
     standalone: true,
-    imports: [RouterModule, ImportsModule],
+    imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './inventory.component.html',
     styleUrl: './inventory.component.scss',
     providers: [ConfirmationService, DialogService]

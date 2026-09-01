@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dto.inventory;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 public record InventoryAssignmentSummaryDTO(
@@ -14,6 +15,7 @@ public record InventoryAssignmentSummaryDTO(
     BigDecimal estimatedUnitValue,
     String currency,
     InventoryCondition conditionStatus,
+    LocalDate expirationDate,
     int assignedQuantity,
     int returnedQuantity,
     int outstandingQuantity,
