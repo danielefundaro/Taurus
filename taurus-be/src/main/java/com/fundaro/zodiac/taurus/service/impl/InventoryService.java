@@ -23,7 +23,6 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoReposi
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.UsersService;
-import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
@@ -90,7 +89,6 @@ public class InventoryService {
     private final MediaService mediaService;
     private final MediaRepository mediaRepository;
     private final ObjectMapper objectMapper;
-    private final NoticesService noticesService;
 
     public InventoryService(
         InventoryItemRepository itemRepository,
@@ -103,8 +101,7 @@ public class InventoryService {
         UsersService usersService,
         MediaService mediaService,
         MediaRepository mediaRepository,
-        ObjectMapper objectMapper,
-        NoticesService noticesService
+        ObjectMapper objectMapper
     ) {
         this.itemRepository = itemRepository;
         this.photoRepository = photoRepository;
@@ -117,7 +114,6 @@ public class InventoryService {
         this.mediaService = mediaService;
         this.mediaRepository = mediaRepository;
         this.objectMapper = objectMapper;
-        this.noticesService = noticesService;
     }
 
     @Transactional(readOnly = true)
@@ -171,11 +167,6 @@ public class InventoryService {
         item.setEditBy(actor);
         apply(item, request);
         itemRepository.save(item);
-        notifyAdmins(
-            "Inventario: oggetto aggiunto",
-            actorDisplayName(token) + " ha aggiunto l'oggetto di inventario " + itemLabel(item) + ".",
-            token
-        );
         return toItemDto(item, true);
     }
 
@@ -198,11 +189,6 @@ public class InventoryService {
         if (relevantChange) {
             reviseOutstandingAssignments(item, InventoryRevisionReason.ITEM_UPDATED, actor);
         }
-        notifyAdmins(
-            "Inventario: oggetto modificato",
-            actorDisplayName(token) + " ha modificato l'oggetto di inventario " + itemLabel(item) + ".",
-            token
-        );
         return toItemDto(item, true);
     }
 
@@ -215,11 +201,6 @@ public class InventoryService {
         item.setDeleted(true);
         touch(item, actor(token));
         itemRepository.save(item);
-        notifyAdmins(
-            "Inventario: oggetto rimosso",
-            actorDisplayName(token) + " ha rimosso l'oggetto di inventario " + itemLabel(item) + ".",
-            token
-        );
     }
 
     public InventoryAssignmentDTO assign(long itemId, InventoryAssignmentRequest request, AbstractAuthenticationToken token) {
@@ -257,12 +238,6 @@ public class InventoryService {
         assignment.setCurrentRevision(0);
         assignmentRepository.save(assignment);
         createRevision(assignment, InventoryRevisionReason.INITIAL_ASSIGNMENT, actor);
-        notifyAdmins(
-            "Inventario: oggetto assegnato",
-            actorDisplayName(token) + " ha assegnato " + assignment.getAssignedQuantity() + " unità di " + itemLabel(item)
-                + " a " + assignmentOwner(assignment) + ".",
-            token
-        );
         return toAssignmentDto(assignment);
     }
 
@@ -295,12 +270,6 @@ public class InventoryService {
         if (relevant && assignment.getStatus() != InventoryAssignmentStatus.RETURNED) {
             createRevision(assignment, InventoryRevisionReason.ASSIGNMENT_UPDATED, actor);
         }
-        notifyAdmins(
-            "Inventario: assegnazione modificata",
-            actorDisplayName(token) + " ha modificato l'assegnazione di " + itemLabel(assignment.getItem())
-                + " a " + assignmentOwner(assignment) + ".",
-            token
-        );
         return toAssignmentDto(assignment);
     }
 
@@ -314,12 +283,6 @@ public class InventoryService {
         assignment.setDeleted(true);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
-        notifyAdmins(
-            "Inventario: assegnazione rimossa",
-            actorDisplayName(token) + " ha rimosso l'assegnazione di " + itemLabel(assignment.getItem())
-                + " a " + assignmentOwner(assignment) + ".",
-            token
-        );
     }
 
     public InventoryAssignmentDTO reissue(long assignmentId, AbstractAuthenticationToken token) {
@@ -332,12 +295,6 @@ public class InventoryService {
             throw error(HttpStatus.CONFLICT, "È possibile riemettere solo una presa visione rifiutata", "inventory.assignment.notRejected");
         }
         createRevision(assignment, InventoryRevisionReason.REISSUED_AFTER_REJECTION, actor(token));
-        notifyAdmins(
-            "Inventario: presa visione riemessa",
-            actorDisplayName(token) + " ha riemesso la presa visione di " + itemLabel(assignment.getItem())
-                + " per " + assignmentOwner(assignment) + ".",
-            token
-        );
         return toAssignmentDto(assignment);
     }
 
@@ -424,11 +381,6 @@ public class InventoryService {
         String authenticatedValue = revision.getSnapshotHash() + "|" + userId + "|" + request.decision().name() + "|" + Objects.requireNonNullElse(rejectionReason, "");
         decision.setAuthenticatedHash(sha256(authenticatedValue.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         decisionRepository.save(decision);
-        boolean accepted = request.decision() == InventoryDecisionType.ACCEPTED;
-        String decisionMessage = assignmentOwner(assignment) + (accepted ? " ha accettato" : " ha rifiutato")
-            + " la presa visione della revisione " + revision.getRevisionNumber() + " di " + itemLabel(assignment.getItem()) + ".";
-        if (!accepted) decisionMessage += " Motivazione: " + rejectionReason + ".";
-        notifyAdmins(accepted ? "Inventario: presa visione accettata" : "Inventario: presa visione rifiutata", decisionMessage, token);
         return toAssignmentDto(assignment);
     }
 
@@ -453,8 +405,6 @@ public class InventoryService {
         inventoryReturn.setRequestedBy(actor);
         inventoryReturn.setReturnCondition(request.condition());
         inventoryReturn.setNotes(trimToNull(request.notes()));
-        noticesService.addNoticesAdmins("Inventario: richiesta di riconsegna", assignment.getUserName() + " " + assignment.getUserLastName()
-            + " ha richiesto la riconsegna di " + request.quantity() + " unità di " + assignment.getItem().getName(), token);
         return toReturnDto(returnRepository.save(inventoryReturn));
     }
 
@@ -487,14 +437,6 @@ public class InventoryService {
         refreshAssignmentStatus(assignment);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
-        noticesService.addNoticeToUser(assignment.getUserKeycloakId(), "Inventario: riconsegna completata",
-            "La riconsegna di " + completedQuantity + " unità di " + assignment.getItem().getName() + " è stata completata.", token);
-        notifyAdmins(
-            "Inventario: riconsegna completata",
-            actorDisplayName(token) + " ha completato la riconsegna di " + completedQuantity + " unità di "
-                + itemLabel(assignment.getItem()) + " da " + assignmentOwner(assignment) + ".",
-            token
-        );
         return toReturnDto(returnRepository.save(inventoryReturn));
     }
 
@@ -597,11 +539,6 @@ public class InventoryService {
         photo.setPreview(activePhotoCount == 0);
         photoRepository.save(photo);
         reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
-        notifyAdmins(
-            "Inventario: fotografia aggiunta",
-            actorDisplayName(token) + " ha aggiunto la fotografia \"" + media.getOriginalFilename() + "\" a " + itemLabel(item) + ".",
-            token
-        );
         return toPhotoDto(photo);
     }
 
@@ -636,12 +573,6 @@ public class InventoryService {
             });
         }
         reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
-        notifyAdmins(
-            "Inventario: fotografia rimossa",
-            actorDisplayName(token) + " ha rimosso la fotografia \"" + photo.getMediaAsset().getOriginalFilename() + "\" da "
-                + itemLabel(item) + ".",
-            token
-        );
     }
 
     public List<InventoryPhotoDTO> reorderPhotos(
@@ -668,11 +599,6 @@ public class InventoryService {
         }
         photoRepository.saveAll(ordered);
         reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
-        notifyAdmins(
-            "Inventario: fotografie modificate",
-            actorDisplayName(token) + " ha modificato l'ordine delle fotografie di " + itemLabel(item) + ".",
-            token
-        );
         return ordered.stream().map(this::toPhotoDto).toList();
     }
 
@@ -699,12 +625,6 @@ public class InventoryService {
         if (changed) {
             photoRepository.saveAll(photos);
             reviseOutstandingAssignments(item, InventoryRevisionReason.PHOTO_UPDATED, actor);
-            notifyAdmins(
-                "Inventario: fotografie modificate",
-                actorDisplayName(token) + " ha impostato \"" + selected.getMediaAsset().getOriginalFilename()
-                    + "\" come fotografia di anteprima di " + itemLabel(item) + ".",
-                token
-            );
         }
         return photos.stream().map(this::toPhotoDto).toList();
     }
@@ -820,9 +740,6 @@ public class InventoryService {
         assignment.setCurrentRevision(number);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
-        noticesService.addNoticeToUser(assignment.getUserKeycloakId(), "Inventario: nuova presa visione",
-            "È disponibile la revisione " + number + " dell'assegnazione " + assignment.getItem().getInventoryNumber() + " - " + assignment.getItem().getName() + ".",
-            actor);
     }
 
     private String snapshot(InventoryAssignment assignment) {
@@ -964,30 +881,6 @@ public class InventoryService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is not available", e);
         }
-    }
-
-    private void notifyAdmins(String title, String message, AbstractAuthenticationToken token) {
-        noticesService.addNoticesAdmins(title, message, token);
-    }
-
-    private static String actorDisplayName(AbstractAuthenticationToken token) {
-        String firstName = trimToNull(SecurityUtils.getFirstNameFromAuthentication(token));
-        String lastName = trimToNull(SecurityUtils.getLastNameFromAuthentication(token));
-        String displayName = String.join(" ", Objects.requireNonNullElse(firstName, ""), Objects.requireNonNullElse(lastName, "")).trim();
-        return displayName.isBlank() ? actor(token) : displayName;
-    }
-
-    private static String itemLabel(InventoryItem item) {
-        return "\"" + item.getInventoryNumber() + " - " + item.getName() + "\"";
-    }
-
-    private static String assignmentOwner(InventoryAssignment assignment) {
-        String displayName = String.join(
-            " ",
-            Objects.requireNonNullElse(assignment.getUserName(), ""),
-            Objects.requireNonNullElse(assignment.getUserLastName(), "")
-        ).trim();
-        return displayName.isBlank() ? "l'utente assegnatario" : displayName;
     }
 
     private static String actor(AbstractAuthenticationToken token) {

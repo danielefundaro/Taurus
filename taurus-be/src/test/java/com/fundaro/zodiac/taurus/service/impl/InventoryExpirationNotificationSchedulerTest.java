@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryExpirationNotice;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryExpirationNotificationSchedulerTest {
@@ -44,12 +46,30 @@ class InventoryExpirationNotificationSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        InventoryNoticeDataService noticeDataService = new InventoryNoticeDataService(
+            null,
+            assignmentRepository,
+            null,
+            null,
+            usersRepository,
+            keycloakService
+        );
+        NoticesAspect noticesAspect = new NoticesAspect(
+            noticesService,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            noticeDataService
+        );
+        AspectJProxyFactory proxyFactory = new AspectJProxyFactory(expirationNoticeRepository);
+        proxyFactory.addAspect(noticesAspect);
+        InventoryExpirationNoticeRepository advisedExpirationNoticeRepository = proxyFactory.getProxy();
         scheduler = new InventoryExpirationNotificationScheduler(
             assignmentRepository,
-            expirationNoticeRepository,
-            usersRepository,
-            noticesService,
-            keycloakService,
+            advisedExpirationNoticeRepository,
             tenantSchemaRegistry,
             tenantTransactionExecutor
         );
@@ -77,19 +97,20 @@ class InventoryExpirationNotificationSchedulerTest {
         when(usersRepository.findActiveKeycloakIdsByRolesIn(any())).thenReturn(List.of("admin-1"));
         when(keycloakService.getUsersByClientRoles(any())).thenReturn(List.of());
         when(assignmentRepository.findExpiringForUpdate(any(), eq(today.plusDays(30)))).thenReturn(List.of(assignment));
+        when(expirationNoticeRepository.save(any(InventoryExpirationNotice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         scheduler.notifyCurrentTenant(today);
 
         verify(noticesService).addNoticeToUser(
             eq("user-1"),
-            eq("Inventario: scadenza tra 7 giorni"),
-            any(String.class),
+            eq("Inventario: assegnazione in scadenza"),
+            eq("La tua assegnazione dell'oggetto “INV-10 — Leggio” scadrà il 08/09/2026."),
             eq(InventoryExpirationNotificationScheduler.SYSTEM_ACTOR)
         );
         verify(noticesService).addNoticeToUser(
             eq("admin-1"),
-            eq("Inventario: scadenza tra 7 giorni"),
-            any(String.class),
+            eq("Inventario: assegnazione in scadenza"),
+            eq("L'assegnazione dell'oggetto “INV-10 — Leggio” a Mario Rossi scadrà il 08/09/2026."),
             eq(InventoryExpirationNotificationScheduler.SYSTEM_ACTOR)
         );
         ArgumentCaptor<InventoryExpirationNotice> delivery = ArgumentCaptor.forClass(InventoryExpirationNotice.class);
@@ -110,8 +131,6 @@ class InventoryExpirationNotificationSchedulerTest {
     void shouldSkipAnAlreadyDeliveredThreshold() {
         LocalDate today = LocalDate.of(2026, 9, 1);
         InventoryAssignment assignment = assignment(today);
-        when(usersRepository.findActiveKeycloakIdsByRolesIn(any())).thenReturn(List.of("admin-1"));
-        when(keycloakService.getUsersByClientRoles(any())).thenReturn(List.of());
         when(assignmentRepository.findExpiringForUpdate(any(), eq(today.plusDays(30)))).thenReturn(List.of(assignment));
         when(expirationNoticeRepository.existsByAssignment_IdAndExpirationDateAndNoticeTypeAndDeletedFalse(
             assignment.getId(), assignment.getExpirationDate(), InventoryExpirationNoticeType.DUE_TODAY
