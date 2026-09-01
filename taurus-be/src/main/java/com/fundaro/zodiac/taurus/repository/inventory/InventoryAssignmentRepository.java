@@ -29,6 +29,9 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
     Optional<InventoryAssignment> findByIdAndDeletedFalse(Long id);
     boolean existsByItem_IdAndUserKeycloakIdAndDeletedFalse(Long itemId, String userKeycloakId);
 
+    @Query("select a from InventoryAssignment a join fetch a.item where a.id = :id and a.deleted = false")
+    Optional<InventoryAssignment> findNoticeTargetById(@Param("id") Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select a from InventoryAssignment a
