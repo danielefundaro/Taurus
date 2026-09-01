@@ -62,7 +62,8 @@ class InventoryExpirationNotificationSchedulerTest {
             null,
             null,
             null,
-            noticeDataService
+            noticeDataService,
+            null
         );
         AspectJProxyFactory proxyFactory = new AspectJProxyFactory(expirationNoticeRepository);
         proxyFactory.addAspect(noticesAspect);

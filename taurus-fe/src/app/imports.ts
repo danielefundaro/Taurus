@@ -1,5 +1,5 @@
 import { AsyncPipe, CommonModule, DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
-import { NgModule } from "@angular/core";
+import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { AutoCompleteModule } from 'primeng/autocomplete';
@@ -80,7 +80,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         EnumConverterPipe,
         HasRolesDirective,
         InitialsPipe,
-        ConfirmDialogModule,
+        ConfirmDialogModule
     ],
     exports: [
         NgClass,
@@ -126,14 +126,8 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         EnumConverterPipe,
         HasRolesDirective,
         InitialsPipe,
-        ConfirmDialogModule,
+        ConfirmDialogModule
     ],
-    providers: [
-        SecurePipe,
-        DateConverterPipe,
-        EnumConverterPipe,
-        HasRolesDirective,
-        InitialsPipe,
-    ]
+    providers: [SecurePipe, DateConverterPipe, EnumConverterPipe, HasRolesDirective, InitialsPipe]
 })
-export class ImportsModule { }
+export class ImportsModule {}

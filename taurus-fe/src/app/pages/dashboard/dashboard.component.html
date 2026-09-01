@@ -17,6 +17,6 @@
     <app-recents-widget [tracks]="tracks" />
     <app-calendar-events-widget [events]="upcomingEvents" />
     <div class="col-span-12 xl:col-span-6">
-        <app-notifications-widget [notices]="notices" (pageChange)="pageChange($event)" (markAsRead)="markNoticesAsRead($event)" (delete)="deleteNotices($event)" />
+        <app-notifications-widget [notices]="notices" (pageChange)="pageChange($event)" (markAsRead)="markNoticesAsRead($event)" (navigateToNotice)="navigateToNotice($event)" (delete)="deleteNotices($event)" />
     </div>
 </div>

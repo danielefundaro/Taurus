@@ -22,7 +22,7 @@ export const appRoutes: Routes = [
                 path: '',
                 component: DashboardComponent,
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'tenants',
@@ -67,6 +67,12 @@ export const appRoutes: Routes = [
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
+                path: 'finance',
+                loadChildren: () => import('./app/pages/finance/finance.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER] }
+            },
+            {
                 path: 'calendar',
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],
@@ -83,7 +89,7 @@ export const appRoutes: Routes = [
                 component: ProfileComponent,
                 canActivate: [canActivateAuthRole],
                 canDeactivate: [canDeactivateUnsavedChanges],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             }
         ]
     },

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260901000002-1" author="codex">
+        <comment>Add tenant-scoped finance accounts, categories, years, movements and attachments.</comment>
+        <sql>
+            CREATE TABLE accounting_year (
+                id BIGSERIAL PRIMARY KEY,
+                year INTEGER NOT NULL,
+                start_date DATE NOT NULL,
+                end_date DATE NOT NULL,
+                status VARCHAR(16) NOT NULL DEFAULT 'OPEN',
+                rolled_over_at TIMESTAMP WITH TIME ZONE,
+                rolled_over_by VARCHAR(255),
+                last_recalculated_at TIMESTAMP WITH TIME ZONE,
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT uq_accounting_year_year UNIQUE (year),
+                CONSTRAINT ck_accounting_year_status CHECK (status IN ('OPEN', 'ROLLED_OVER')),
+                CONSTRAINT ck_accounting_year_dates CHECK (
+                    EXTRACT(YEAR FROM start_date) = year
+                    AND EXTRACT(YEAR FROM end_date) = year
+                    AND start_date = make_date(year, 1, 1)
+                    AND end_date = make_date(year, 12, 31)
+                )
+            );
+
+            CREATE TABLE financial_account (
+                id BIGSERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                account_type VARCHAR(16) NOT NULL,
+                currency CHAR(3) NOT NULL DEFAULT 'EUR',
+                iban VARCHAR(34),
+                bank_name VARCHAR(255),
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                display_order INTEGER NOT NULL DEFAULT 0,
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_financial_account_type CHECK (account_type IN ('CASH', 'BANK')),
+                CONSTRAINT ck_financial_account_currency CHECK (currency ~ '^[A-Z]{3}$'),
+                CONSTRAINT ck_financial_account_bank_fields CHECK (account_type = 'BANK' OR (iban IS NULL AND bank_name IS NULL))
+            );
+            CREATE UNIQUE INDEX uq_financial_account_active_name
+                ON financial_account (lower(name)) WHERE deleted = FALSE AND active = TRUE;
+
+            CREATE TABLE financial_category (
+                id BIGSERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                direction VARCHAR(16) NOT NULL,
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                system_defined BOOLEAN NOT NULL DEFAULT FALSE,
+                display_order INTEGER NOT NULL DEFAULT 0,
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_financial_category_direction CHECK (direction IN ('INCOME', 'EXPENSE', 'BOTH'))
+            );
+            CREATE UNIQUE INDEX uq_financial_category_active_name
+                ON financial_category (lower(name)) WHERE deleted = FALSE AND active = TRUE;
+
+            CREATE TABLE financial_movement (
+                id BIGSERIAL PRIMARY KEY,
+                accounting_year_id BIGINT NOT NULL REFERENCES accounting_year(id) ON DELETE RESTRICT,
+                account_id BIGINT NOT NULL REFERENCES financial_account(id) ON DELETE RESTRICT,
+                category_id BIGINT REFERENCES financial_category(id) ON DELETE RESTRICT,
+                event_id BIGINT REFERENCES calendar_event(id) ON DELETE RESTRICT,
+                event_name_snapshot VARCHAR(255),
+                direction VARCHAR(16) NOT NULL,
+                nature VARCHAR(16) NOT NULL DEFAULT 'ORDINARY',
+                booking_date DATE NOT NULL,
+                value_date DATE,
+                amount NUMERIC(19,4) NOT NULL,
+                currency CHAR(3) NOT NULL,
+                description TEXT NOT NULL,
+                counterparty VARCHAR(500),
+                document_reference VARCHAR(255),
+                notes TEXT,
+                transfer_group UUID,
+                reconciled BOOLEAN NOT NULL DEFAULT FALSE,
+                reconciled_at TIMESTAMP WITH TIME ZONE,
+                reconciled_by VARCHAR(255),
+                reconciliation_reference VARCHAR(255),
+                request_key UUID,
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_financial_movement_direction CHECK (direction IN ('INCOME', 'EXPENSE')),
+                CONSTRAINT ck_financial_movement_nature CHECK (nature IN ('ORDINARY', 'OPENING', 'TRANSFER')),
+                CONSTRAINT ck_financial_movement_amount CHECK (amount &gt; 0),
+                CONSTRAINT ck_financial_movement_currency CHECK (currency ~ '^[A-Z]{3}$')
+            );
+            CREATE INDEX idx_financial_movement_account_date ON financial_movement(account_id, booking_date, id);
+            CREATE INDEX idx_financial_movement_event_date ON financial_movement(event_id, booking_date);
+            CREATE INDEX idx_financial_movement_reconciled_date ON financial_movement(reconciled, booking_date);
+            CREATE INDEX idx_financial_movement_category_date ON financial_movement(category_id, booking_date);
+            CREATE INDEX idx_financial_movement_transfer_group ON financial_movement(transfer_group);
+            CREATE UNIQUE INDEX uq_financial_movement_request_key ON financial_movement(request_key) WHERE request_key IS NOT NULL;
+            CREATE UNIQUE INDEX uq_financial_opening
+                ON financial_movement(accounting_year_id, account_id)
+                WHERE nature = 'OPENING' AND deleted = FALSE;
+
+            CREATE TABLE financial_movement_attachment (
+                id BIGSERIAL PRIMARY KEY,
+                movement_id BIGINT NOT NULL REFERENCES financial_movement(id) ON DELETE RESTRICT,
+                media_asset_id BIGINT NOT NULL REFERENCES media_asset(id) ON DELETE RESTRICT,
+                description VARCHAR(1000),
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0
+            );
+            CREATE INDEX idx_financial_attachment_movement ON financial_movement_attachment(movement_id) WHERE deleted = FALSE;
+            CREATE INDEX idx_financial_attachment_media ON financial_movement_attachment(media_asset_id) WHERE deleted = FALSE;
+
+            INSERT INTO financial_category (name, description, direction, system_defined, display_order)
+            VALUES
+                ('Compensi eventi', 'Incassi dei compensi associati agli eventi', 'INCOME', TRUE, 10),
+                ('Quote associative', 'Quote versate dai soci', 'INCOME', TRUE, 20),
+                ('Donazioni', 'Somme ricevute senza controprestazione', 'INCOME', TRUE, 30),
+                ('Rimborsi ricevuti', 'Restituzioni da fornitori o recuperi di spese anticipate', 'INCOME', TRUE, 40),
+                ('Rimborsi erogati', 'Somme restituite a soci, collaboratori o clienti', 'EXPENSE', TRUE, 50),
+                ('Acquisto materiali', 'Acquisto di beni e materiali di consumo', 'EXPENSE', TRUE, 60),
+                ('Trasporti', 'Viaggi, carburante, noleggi e spedizioni', 'EXPENSE', TRUE, 70),
+                ('Affitto locali', 'Affitto di sale, depositi o sedi', 'EXPENSE', TRUE, 80),
+                ('Manutenzione', 'Riparazione e manutenzione di beni', 'EXPENSE', TRUE, 90),
+                ('Utenze', 'Energia, telefono, Internet e servizi analoghi', 'EXPENSE', TRUE, 100),
+                ('Spese bancarie', 'Commissioni e costi dei conti correnti', 'EXPENSE', TRUE, 110),
+                ('Altro incasso', 'Entrate occasionali non classificabili diversamente', 'INCOME', TRUE, 120),
+                ('Altra spesa', 'Uscite occasionali non classificabili diversamente', 'EXPENSE', TRUE, 130);
+        </sql>
+    </changeSet>
+</databaseChangeLog>

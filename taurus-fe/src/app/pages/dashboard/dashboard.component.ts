@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { first, forkJoin, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
 import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, Page, Tracks, TracksCriteria } from '../../module';
 import { DateFilter } from '../../module/criteria/filter';
-import { AlbumsService, CalendarEventsService, InventoryService, KeycloakService, LayoutService, NoticesService, TenantsService, TracksService, UserInventoryService, UsersService } from '../../service';
+import { AlbumsService, CalendarEventsService, InventoryService, KeycloakService, LayoutService, NoticesService, NotificationCenterService, TenantsService, TracksService, UserInventoryService, UsersService } from '../../service';
 import { CalendarEventsWidgetComponent } from './components/calendar-events-widget/calendar-events-widget.component';
 import { InventoryWidgetComponent, InventoryWidgetMode } from './components/inventory-widget/inventory-widget.component';
 import { NotificationsWidgetComponent } from './components/notifications-widget/notification-widget.component';
@@ -46,7 +47,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly inventoryService: InventoryService,
         private readonly userInventoryService: UserInventoryService,
         private readonly noticesService: NoticesService,
-        private readonly layoutService: LayoutService
+        private readonly layoutService: LayoutService,
+        private readonly notificationCenter: NotificationCenterService,
+        private readonly router: Router
     ) {}
 
     ngOnInit(): void {
@@ -64,6 +67,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 break;
             case RoleEnums.ADMIN:
                 this.adminMethods();
+                break;
+            case RoleEnums.TREASURER:
+                this.loadNotices();
                 break;
             case RoleEnums.ARCHIVIST:
             case RoleEnums.USER:
@@ -101,6 +107,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.loadNotices();
             });
         }
+    }
+
+    protected navigateToNotice(notice: Notices): void {
+        if (!notice.targetPath?.startsWith('/finance')) return;
+        if (notice.readDate) {
+            this.router.navigateByUrl(notice.targetPath);
+            return;
+        }
+        this.$readSubscription = this.noticesService
+            .markAsRead(notice.id)
+            .pipe(first())
+            .subscribe(() => {
+                this.notificationCenter.refresh();
+                this.router.navigateByUrl(notice.targetPath!);
+            });
     }
 
     protected deleteNotices(noticeIds: number[] | null): void {
