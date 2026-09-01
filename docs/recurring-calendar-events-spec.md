@@ -384,11 +384,13 @@ Le chiamate `PUT/PATCH /api/calendar-events/{id}` mantengono il significato di m
 
 Per Admin:
 
-- `PATCH /api/calendar-events/series/{seriesId}/availability`
-- `DELETE /api/calendar-events/series/{seriesId}/availability`
+- `PATCH /api/calendar-events/series/{seriesId}/availability?available=true|false`, imposta la disponibilità su tutta la serie;
+- `PATCH /api/calendar-events/series/{seriesId}/availability/cancel`, azzera la risposta riportando la serie a «nessuna risposta».
 
 Gli equivalenti sono esposti sotto `/api/user/calendar-events/series/{seriesId}/availability` e
 `/api/external/calendar-events/series/{seriesId}/availability`, applicando gli stessi filtri di visibilità già presenti.
+
+Il verbo `DELETE` non è usato per queste operazioni: la disponibilità è un valore a tre stati — disponibile, non disponibile, nessuna risposta — e azzerarla è una transizione di stato, non una cancellazione. `DELETE` resta riservato alla cancellazione logica.
 
 In alternativa, per ridurre la duplicazione dei controller, può essere introdotto un servizio condiviso con facciate autorizzative separate, coerente con l'architettura corrente.
 
