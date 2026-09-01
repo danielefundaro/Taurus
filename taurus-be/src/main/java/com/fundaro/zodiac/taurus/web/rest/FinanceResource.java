@@ -80,7 +80,7 @@ public class FinanceResource {
         return financeService.updateAccount(id, request, token);
     }
 
-    @DeleteMapping("/accounts/{id}")
+    @PatchMapping("/accounts/{id}/archive")
     public ResponseEntity<Void> archiveAccount(@PathVariable long id, AbstractAuthenticationToken token) {
         financeService.archiveAccount(id, token);
         return ResponseEntity.noContent().build();
@@ -110,7 +110,7 @@ public class FinanceResource {
         return financeService.updateCategory(id, request, token);
     }
 
-    @DeleteMapping("/categories/{id}")
+    @PatchMapping("/categories/{id}/archive")
     public ResponseEntity<Void> archiveCategory(@PathVariable long id, AbstractAuthenticationToken token) {
         financeService.archiveCategory(id, token);
         return ResponseEntity.noContent().build();
