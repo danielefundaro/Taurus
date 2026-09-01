@@ -167,8 +167,8 @@ public class NoticesAspect {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
                     noticesService.addNoticesExcludeRoleUsers(name, message, token);
                 } else {
-                    noticesService.addNoticeOnlyRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stato creata", dto.getName()), token);
-                    noticesService.addNoticesExcludeRoleUsers("Traccia pubblicata", String.format("L'album \"%s\" è stata pubblicata", dto.getName()), token);
+                    noticesService.addNoticeOnlyRoleUsers("Nuova traccia creata", String.format("La traccia \"%s\" è stata creata", dto.getName()), token);
+                    noticesService.addNoticesExcludeRoleUsers("Traccia pubblicata", String.format("La traccia \"%s\" è stata pubblicata", dto.getName()), token);
                 }
             } else {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
