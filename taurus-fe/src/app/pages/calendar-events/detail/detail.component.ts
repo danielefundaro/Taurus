@@ -7,18 +7,9 @@ import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
-import {
-    CalendarEventSeries,
-    CalendarEventSeriesPreview,
-    CalendarEventSeriesRequest,
-    CalendarEvents,
-    EventCost,
-    EventPresentUser,
-    RecurrenceWeekDay,
-    Users,
-} from '../../../module';
+import { CalendarEventSeries, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, EventCost, FinancialEventSummary, EventPresentUser, RecurrenceWeekDay, Users } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { CalendarEventSeriesService, CalendarEventsService, KeycloakService, ToastService, UsersService } from '../../../service';
+import { CalendarEventSeriesService, CalendarEventsService, FinanceService, KeycloakService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
     id: number;
@@ -31,16 +22,10 @@ interface UserPresenceRow {
 
 @Component({
     selector: 'app-calendar-event-detail',
-    imports: [
-        ImportsModule,
-    ],
+    imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [
-        CalendarEventsService,
-        CalendarEventSeriesService,
-        ConfirmationService,
-    ],
+    providers: [CalendarEventsService, CalendarEventSeriesService, ConfirmationService]
 })
 export class DetailComponent implements OnInit, HasUnsavedChanges {
     private _isDirtyForm = false;
@@ -61,6 +46,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected newCostDescription: string = '';
     protected newCostAmount: number | null = null;
+    protected economicSummary?: FinancialEventSummary;
 
     protected presenceRows: UserPresenceRow[] = [];
     protected currentUserId?: number;
@@ -76,34 +62,38 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         { code: 'TH', label: 'Gio' },
         { code: 'FR', label: 'Ven' },
         { code: 'SA', label: 'Sab' },
-        { code: 'SU', label: 'Dom' },
+        { code: 'SU', label: 'Dom' }
     ];
     protected readonly frequencyOptions = [
         { value: 'DAILY', label: 'Giornaliera' },
         { value: 'WEEKLY', label: 'Settimanale' },
         { value: 'MONTHLY', label: 'Mensile' },
-        { value: 'YEARLY', label: 'Annuale' },
+        { value: 'YEARLY', label: 'Annuale' }
     ];
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
         private readonly calendarEventSeriesService: CalendarEventSeriesService,
+        private readonly financeService: FinanceService,
         private readonly usersService: UsersService,
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly activatedRoute: ActivatedRoute,
         private readonly router: Router,
         private readonly confirmationService: ConfirmationService,
-        private readonly dateConverterPipe: DateConverterPipe,
+        private readonly dateConverterPipe: DateConverterPipe
     ) {
         this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
     ngOnInit(): void {
-        this.activatedRoute.params.pipe(first()).subscribe(params => {
+        this.activatedRoute.params.pipe(first()).subscribe((params) => {
             this.loadElement(params['id']);
         });
-        this.usersService.getOwn().pipe(first()).subscribe(user => this.currentUserId = user.id);
+        this.usersService
+            .getOwn()
+            .pipe(first())
+            .subscribe((user) => (this.currentUserId = user.id));
     }
 
     protected get isAdmin(): boolean {
@@ -120,23 +110,19 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
             DAILY: ['giorno', 'giorni'],
             WEEKLY: ['settimana', 'settimane'],
             MONTHLY: ['mese', 'mesi'],
-            YEARLY: ['anno', 'anni'],
+            YEARLY: ['anno', 'anni']
         };
         const interval = this.series.recurrence.interval;
         const frequencyLabels = labels[this.series.recurrence.frequency];
         const cadence = interval === 1 ? `ogni ${frequencyLabels[0]}` : `ogni ${interval} ${frequencyLabels[1]}`;
-        const end = this.series.recurrence.end.type === 'COUNT'
-            ? `${this.series.recurrence.end.count} occorrenze`
-            : `fino al ${this.series.recurrence.end.until}`;
+        const end = this.series.recurrence.end.type === 'COUNT' ? `${this.series.recurrence.end.count} occorrenze` : `fino al ${this.series.recurrence.end.until}`;
         return `${cadence}, ${end} · ${this.series.timeZone}`;
     }
 
     protected confirmDelete(): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
-            message: this.event.seriesId
-                ? 'Eliminare soltanto questa occorrenza? Le altre date della serie non saranno modificate.'
-                : 'Eliminare definitivamente questo evento?',
+            message: this.event.seriesId ? 'Eliminare soltanto questa occorrenza? Le altre date della serie non saranno modificate.' : 'Eliminare definitivamente questo evento?',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Conferma',
             rejectLabel: 'Annulla',
@@ -145,39 +131,55 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
             accept: () => {
                 this.isDirty = false;
                 this.isDirtyPresence = false;
-                this.calendarEventsService.delete(this.event.id).pipe(first()).subscribe({
-                    next: () => {
-                        this.toastService.success('Successo', 'Evento eliminato');
-                        this.router.navigate(['/calendar']);
-                    },
-                });
-            },
+                this.calendarEventsService
+                    .delete(this.event.id)
+                    .pipe(first())
+                    .subscribe({
+                        next: () => {
+                            this.toastService.success('Successo', 'Evento eliminato');
+                            this.router.navigate(['/calendar']);
+                        }
+                    });
+            }
         });
     }
 
     protected save(): void {
         this.isSaving = true;
-        this.calendarEventsService.update(this.event.id, this.event).pipe(delay(1000), first(), finalize(() => this.isSaving = false)).subscribe({
-            next: (updated: CalendarEvents) => {
-                this.isDirty = false;
-                this.toastService.success('Successo', 'Evento aggiornato con successo');
-                this.loadElement(updated.id);
-            },
-        });
+        this.calendarEventsService
+            .update(this.event.id, this.event)
+            .pipe(
+                delay(1000),
+                first(),
+                finalize(() => (this.isSaving = false))
+            )
+            .subscribe({
+                next: (updated: CalendarEvents) => {
+                    this.isDirty = false;
+                    this.toastService.success('Successo', 'Evento aggiornato con successo');
+                    this.loadElement(updated.id);
+                }
+            });
     }
 
     protected saveSeriesFuture(): void {
         if (!this.series || this.seriesRuleInvalid) return;
         const request = this.buildSeriesRequest();
         this.isSaving = true;
-        this.calendarEventSeriesService.update(this.series.id, request).pipe(first(), finalize(() => this.isSaving = false)).subscribe({
-            next: updated => {
-                this.series = updated;
-                this.isDirty = false;
-                this.toastService.success('Successo', `${updated.updatedCount ?? 0} eventi aggiornati da questa occorrenza in poi`);
-                this.loadElement(this.event.id);
-            },
-        });
+        this.calendarEventSeriesService
+            .update(this.series.id, request)
+            .pipe(
+                first(),
+                finalize(() => (this.isSaving = false))
+            )
+            .subscribe({
+                next: (updated) => {
+                    this.series = updated;
+                    this.isDirty = false;
+                    this.toastService.success('Successo', `${updated.updatedCount ?? 0} eventi aggiornati da questa occorrenza in poi`);
+                    this.loadElement(this.event.id);
+                }
+            });
     }
 
     protected onSeriesDefinitionChange(): void {
@@ -197,18 +199,22 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected toggleSeriesWeekDay(day: RecurrenceWeekDay, selected: boolean): void {
         if (!this.series) return;
         const days = this.series.recurrence.weekDays;
-        this.series.recurrence.weekDays = selected
-            ? [...new Set([...days, day])]
-            : days.filter(value => value !== day);
+        this.series.recurrence.weekDays = selected ? [...new Set([...days, day])] : days.filter((value) => value !== day);
         this.onSeriesDefinitionChange();
     }
 
     protected previewSeriesUpdate(): void {
         if (!this.series || this.seriesRuleInvalid) return;
         this.isPreviewingSeries = true;
-        this.calendarEventSeriesService.preview(this.buildSeriesRequest()).pipe(first(), finalize(() => this.isPreviewingSeries = false)).subscribe({
-            next: result => this.seriesPreview = result,
-        });
+        this.calendarEventSeriesService
+            .preview(this.buildSeriesRequest())
+            .pipe(
+                first(),
+                finalize(() => (this.isPreviewingSeries = false))
+            )
+            .subscribe({
+                next: (result) => (this.seriesPreview = result)
+            });
     }
 
     protected get seriesRuleInvalid(): boolean {
@@ -224,13 +230,16 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected restoreOccurrence(): void {
         if (!this.event.seriesId) return;
-        this.calendarEventSeriesService.restoreOccurrence(this.event.seriesId, this.event.id).pipe(first()).subscribe({
-            next: updated => {
-                this.series = updated;
-                this.toastService.success('Successo', 'Occorrenza ripristinata dai valori della serie');
-                this.loadElement(this.event.id);
-            },
-        });
+        this.calendarEventSeriesService
+            .restoreOccurrence(this.event.seriesId, this.event.id)
+            .pipe(first())
+            .subscribe({
+                next: (updated) => {
+                    this.series = updated;
+                    this.toastService.success('Successo', 'Occorrenza ripristinata dai valori della serie');
+                    this.loadElement(this.event.id);
+                }
+            });
     }
 
     protected confirmDeleteSeries(): void {
@@ -243,60 +252,76 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
             rejectLabel: 'Annulla',
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary' },
-            accept: () => this.calendarEventSeriesService.deleteFuture(this.event.seriesId!).pipe(first()).subscribe({
-                next: result => {
-                    this.isDirty = false;
-                    this.toastService.success('Successo', `${result.deletedCount ?? 0} eventi futuri eliminati`);
-                    this.router.navigate(['/calendar']);
-                },
-            }),
+            accept: () =>
+                this.calendarEventSeriesService
+                    .deleteFuture(this.event.seriesId!)
+                    .pipe(first())
+                    .subscribe({
+                        next: (result) => {
+                            this.isDirty = false;
+                            this.toastService.success('Successo', `${result.deletedCount ?? 0} eventi futuri eliminati`);
+                            this.router.navigate(['/calendar']);
+                        }
+                    })
         });
     }
 
     protected get currentUserAvailability(): boolean | null {
         const id = this.currentUserId;
         if (!id) return null;
-        if (this.event.availableUsers?.some(u => u.index === id)) return true;
-        if (this.event.unavailableUsers?.some(u => u.index === id)) return false;
+        if (this.event.availableUsers?.some((u) => u.index === id)) return true;
+        if (this.event.unavailableUsers?.some((u) => u.index === id)) return false;
         return null;
     }
 
     protected setAvailability(available: boolean): void {
         if (this.applyAvailabilityToFuture && this.event.seriesId) {
-            this.calendarEventsService.setSeriesAvailability(this.event.seriesId, available).pipe(first()).subscribe({
-                next: result => {
-                    const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
-                    this.toastService.success('Successo', `${msg} per ${result.affectedOccurrences} eventi futuri`);
-                    this.loadElement(this.event.id);
-                },
-            });
+            this.calendarEventsService
+                .setSeriesAvailability(this.event.seriesId, available)
+                .pipe(first())
+                .subscribe({
+                    next: (result) => {
+                        const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
+                        this.toastService.success('Successo', `${msg} per ${result.affectedOccurrences} eventi futuri`);
+                        this.loadElement(this.event.id);
+                    }
+                });
             return;
         }
-        this.calendarEventsService.setAvailability(this.event.id, available).pipe(delay(500), first()).subscribe({
-            next: (updated: CalendarEvents) => {
-                const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
-                this.toastService.success('Successo', msg);
-                this.updateEventDates(updated);
-            },
-        });
+        this.calendarEventsService
+            .setAvailability(this.event.id, available)
+            .pipe(delay(500), first())
+            .subscribe({
+                next: (updated: CalendarEvents) => {
+                    const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
+                    this.toastService.success('Successo', msg);
+                    this.updateEventDates(updated);
+                }
+            });
     }
 
     protected cancelAvailability(): void {
         if (this.applyAvailabilityToFuture && this.event.seriesId) {
-            this.calendarEventsService.cancelSeriesAvailability(this.event.seriesId).pipe(first()).subscribe({
-                next: result => {
-                    this.toastService.success('Successo', `Disponibilità annullata per ${result.affectedOccurrences} eventi futuri`);
-                    this.loadElement(this.event.id);
-                },
-            });
+            this.calendarEventsService
+                .cancelSeriesAvailability(this.event.seriesId)
+                .pipe(first())
+                .subscribe({
+                    next: (result) => {
+                        this.toastService.success('Successo', `Disponibilità annullata per ${result.affectedOccurrences} eventi futuri`);
+                        this.loadElement(this.event.id);
+                    }
+                });
             return;
         }
-        this.calendarEventsService.cancelAvailability(this.event.id).pipe(delay(500), first()).subscribe({
-            next: (updated: CalendarEvents) => {
-                this.toastService.success('Successo', 'Disponibilità annullata');
-                this.updateEventDates(updated);
-            },
-        });
+        this.calendarEventsService
+            .cancelAvailability(this.event.id)
+            .pipe(delay(500), first())
+            .subscribe({
+                next: (updated: CalendarEvents) => {
+                    this.toastService.success('Successo', 'Disponibilità annullata');
+                    this.updateEventDates(updated);
+                }
+            });
     }
 
     protected onPresenceToggle(row: UserPresenceRow): void {
@@ -308,8 +333,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected savePresentUsers(): void {
         const presentUsers: EventPresentUser[] = this.presenceRows
-            .filter(r => r.present)
-            .map(r => {
+            .filter((r) => r.present)
+            .map((r) => {
                 const entry = new EventPresentUser();
                 entry.index = r.id;
                 entry.name = r.name;
@@ -319,13 +344,16 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 return entry;
             });
 
-        this.calendarEventsService.setPresentUsers(this.event.id, presentUsers).pipe(first()).subscribe({
-            next: (updated: CalendarEvents) => {
-                this.isDirtyPresence = false;
-                this.toastService.success('Successo', 'Presenze salvate');
-                this.updateEventDates(updated);
-            },
-        });
+        this.calendarEventsService
+            .setPresentUsers(this.event.id, presentUsers)
+            .pipe(first())
+            .subscribe({
+                next: (updated: CalendarEvents) => {
+                    this.isDirtyPresence = false;
+                    this.toastService.success('Successo', 'Presenze salvate');
+                    this.updateEventDates(updated);
+                }
+            });
     }
 
     protected onGlobalFilter(table: Table, event: Event): void {
@@ -333,7 +361,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent): void {
-        this.autoFilteredStatesLabels = StateLabelsMap.filter(state => state.name.toLowerCase().includes(event.query.toLowerCase()) ? state : null).filter(state => state !== null) as StateLabel[];
+        this.autoFilteredStatesLabels = StateLabelsMap.filter((state) => (state.name.toLowerCase().includes(event.query.toLowerCase()) ? state : null)).filter((state) => state !== null) as StateLabel[];
     }
 
     protected addCost(): void {
@@ -351,13 +379,13 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected confirmRemoveCost(index: number): void {
         this.confirmationService.confirm({
             header: 'Conferma eliminazione',
-            message: 'Rimuovere questo costo dall\'evento?',
+            message: "Rimuovere questo costo dall'evento?",
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Rimuovi',
             rejectLabel: 'Annulla',
             acceptButtonProps: { severity: 'danger' },
             rejectButtonProps: { severity: 'secondary' },
-            accept: () => this.removeCost(index),
+            accept: () => this.removeCost(index)
         });
     }
 
@@ -380,37 +408,45 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     private loadElement(id: number | string): void {
-        this.calendarEventsService.getById(Number(id)).pipe(first()).subscribe({
-            next: (ev: CalendarEvents) => {
-                this.event = ev;
-                this.isDirty = false;
-                this.isDirtyPresence = false;
-                this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
-                this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
-                if (this.event.seriesId && this.isAdmin) {
-                    this.loadSeries(this.event.seriesId);
-                } else {
-                    this.series = undefined;
+        this.calendarEventsService
+            .getById(Number(id))
+            .pipe(first())
+            .subscribe({
+                next: (ev: CalendarEvents) => {
+                    this.event = ev;
+                    this.isDirty = false;
+                    this.isDirtyPresence = false;
+                    this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
+                    this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
+                    if (this.event.seriesId && this.isAdmin) {
+                        this.loadSeries(this.event.seriesId);
+                    } else {
+                        this.series = undefined;
+                    }
+                    if (this.isAdmin) {
+                        this.loadAllUsers();
+                        this.financeService
+                            .getEvent(this.event.id)
+                            .pipe(first())
+                            .subscribe((summary) => (this.economicSummary = summary));
+                    }
                 }
-                if (this.isAdmin) {
-                    this.loadAllUsers();
-                }
-            },
-        });
+            });
     }
 
     private loadSeries(seriesId: number): void {
-        this.calendarEventSeriesService.get(seriesId).pipe(first()).subscribe({
-            next: series => {
-                series.template.startDate = this.dateConverterPipe.transform(series.template.startDate);
-                series.template.endDate = this.dateConverterPipe.transform(series.template.endDate);
-                this.series = series;
-                this.seriesUntilDate = series.recurrence.end.until
-                    ? new Date(`${series.recurrence.end.until}T00:00:00`)
-                    : undefined;
-                this.seriesPreview = undefined;
-            },
-        });
+        this.calendarEventSeriesService
+            .get(seriesId)
+            .pipe(first())
+            .subscribe({
+                next: (series) => {
+                    series.template.startDate = this.dateConverterPipe.transform(series.template.startDate);
+                    series.template.endDate = this.dateConverterPipe.transform(series.template.endDate);
+                    this.series = series;
+                    this.seriesUntilDate = series.recurrence.end.until ? new Date(`${series.recurrence.end.until}T00:00:00`) : undefined;
+                    this.seriesPreview = undefined;
+                }
+            });
     }
 
     private buildSeriesRequest(): CalendarEventSeriesRequest {
@@ -419,9 +455,7 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         const recurrence = {
             ...series.recurrence,
             weekDays: series.recurrence.frequency === 'WEEKLY' ? series.recurrence.weekDays : [],
-            end: series.recurrence.end.type === 'COUNT'
-                ? { type: 'COUNT' as const, count: series.recurrence.end.count }
-                : { type: 'UNTIL' as const, until: this.formatLocalDate(this.seriesUntilDate!) },
+            end: series.recurrence.end.type === 'COUNT' ? { type: 'COUNT' as const, count: series.recurrence.end.count } : { type: 'UNTIL' as const, until: this.formatLocalDate(this.seriesUntilDate!) }
         };
         return {
             entityVersion: series.entityVersion,
@@ -436,9 +470,9 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 location: this.event.location,
                 fee: this.event.fee,
                 reminderMinutes: this.event.reminderMinutes,
-                costs: this.event.costs,
+                costs: this.event.costs
             } as CalendarEvents,
-            recurrence,
+            recurrence
         };
     }
 
@@ -446,12 +480,8 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         if (!this.event.startDate) return {};
 
         const eventStart = new Date(this.event.startDate);
-        const originalOccurrenceStart = this.event.originalStartDate
-            ? new Date(this.event.originalStartDate)
-            : undefined;
-        const seriesStart = series.template.startDate
-            ? new Date(series.template.startDate)
-            : undefined;
+        const originalOccurrenceStart = this.event.originalStartDate ? new Date(this.event.originalStartDate) : undefined;
+        const seriesStart = series.template.startDate ? new Date(series.template.startDate) : undefined;
 
         if (!originalOccurrenceStart || !seriesStart) {
             return { startDate: eventStart, endDate: this.event.endDate };
@@ -459,13 +489,11 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
         const occurrenceShift = eventStart.getTime() - originalOccurrenceStart.getTime();
         const propagatedStart = new Date(seriesStart.getTime() + occurrenceShift);
-        const duration = this.event.endDate
-            ? new Date(this.event.endDate).getTime() - eventStart.getTime()
-            : undefined;
+        const duration = this.event.endDate ? new Date(this.event.endDate).getTime() - eventStart.getTime() : undefined;
 
         return {
             startDate: propagatedStart,
-            endDate: duration === undefined ? undefined : new Date(propagatedStart.getTime() + duration),
+            endDate: duration === undefined ? undefined : new Date(propagatedStart.getTime() + duration)
         };
     }
 
@@ -477,29 +505,37 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     private loadAllUsers(): void {
-        this.usersService.getAll({ size: 1000, sort: ['name,asc'] } as any).pipe(first()).subscribe({
-            next: page => {
-                this.buildPresenceRows(page.content ?? []);
-            },
-        });
+        this.usersService
+            .getAll({ size: 1000, sort: ['name,asc'] } as any)
+            .pipe(first())
+            .subscribe({
+                next: (page) => {
+                    this.buildPresenceRows(page.content ?? []);
+                }
+            });
     }
 
     private buildPresenceRows(users?: Users[]): void {
-        const source = users ?? this.presenceRows.map(r => ({
-            id: r.id, name: r.name, lastName: r.lastName,
-        } as any));
+        const source =
+            users ??
+            this.presenceRows.map(
+                (r) =>
+                    ({
+                        id: r.id,
+                        name: r.name,
+                        lastName: r.lastName
+                    }) as any
+            );
 
         this.presenceRows = source.map((u: Users) => {
-            const existing = this.event.presentUsers?.find(p => p.index === u.id);
+            const existing = this.event.presentUsers?.find((p) => p.index === u.id);
             return {
                 id: u.id,
                 name: u.name ?? '',
                 lastName: u.lastName ?? '',
                 present: !!existing,
-                arrivalTime: existing?.arrivalTime
-                    ? this.dateConverterPipe.transform(existing.arrivalTime as any)
-                    : undefined,
-                note: existing?.note,
+                arrivalTime: existing?.arrivalTime ? this.dateConverterPipe.transform(existing.arrivalTime as any) : undefined,
+                note: existing?.note
             } as UserPresenceRow;
         });
     }

@@ -217,6 +217,7 @@ application:
   base-path: D:\data
   keycloak:
     master-uri: http://localhost:9080/realms/master
+    provision-roles: true
     admin:
       issuer-uri: http://localhost:9080/admin/realms/taurus
       username: admin

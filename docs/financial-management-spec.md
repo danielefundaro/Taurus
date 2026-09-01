@@ -46,6 +46,8 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Esercizio | Dal 1 gennaio al 31 dicembre |
 | Riporto saldi | Saldo finale al 31/12 riportato come apertura al 01/01 |
 | Rettifiche su anni precedenti | Sempre consentite; saldi di apertura successivi ricalcolati automaticamente |
+| Notifiche | In-app per Admin, Super Admin e Tesoriere su ogni operazione economica esplicita; nessuna notifica per letture passive |
+| Affidabilità notifiche | Outbox transazionale tenant-scoped, consegna idempotente con retry e deduplicazione per destinatario |
 
 ## Terminologia
 
@@ -134,7 +136,7 @@ Non si deve cancellare o ricreare il realm per applicare il nuovo ruolo.
 - menu e route Angular;
 - test di estrazione authority dai claim;
 - configurazione del client role Keycloak;
-- eventuali destinatari delle notifiche economiche future.
+- destinatari delle notifiche economiche: `ROLE_ADMIN`, `ROLE_SUPER_ADMIN` e `ROLE_TREASURER`.
 
 Dopo l'assegnazione o la rimozione del ruolo, l'utente deve effettuare un nuovo login oppure ottenere un nuovo ID token che contenga il claim aggiornato.
 
@@ -864,6 +866,44 @@ Il backend crea un movimento tecnico `OPENING`. Anche questo valore può essere 
 
 Un rollback applicativo deve preservare tabelle, movimenti e allegati. Non devono essere eseguiti drop automatici delle strutture economiche. Un rollback distruttivo richiede esportazione e conservazione esplicita dei dati.
 
+## Notifiche economiche
+
+### Destinatari e canale
+
+Ogni operazione economica esplicita genera una notifica interna destinata agli utenti attivi con uno dei ruoli:
+
+- `ROLE_ADMIN`;
+- `ROLE_SUPER_ADMIN`;
+- `ROLE_TREASURER`.
+
+Il destinatario non viene escluso quando coincide con l'autore dell'operazione. Un utente che possiede più ruoli riceve una sola notifica. Le notifiche economiche sono esclusivamente in-app: non generano e-mail o notifiche push.
+
+Sono notificate creazione, modifica, riattivazione e archiviazione di conti e categorie; registrazione, modifica, rimozione e riconciliazione dei movimenti; registrazione, modifica e rimozione dei trasferimenti; aggiunta, download e rimozione degli allegati; aggiornamento del preventivo evento; riporto e ricalcolo annuale; esportazione dei rendiconti.
+
+Le consultazioni passive, i calcoli automatici eseguiti come conseguenza di un'altra operazione e le richieste già elaborate tramite chiave idempotente non generano notifiche aggiuntive. Un trasferimento produce un solo evento informativo, non uno per ciascuna scrittura collegata.
+
+### Composizione editoriale
+
+Si applica integralmente `docs/notification-editorial-style.md`:
+
+- `NoticesAspect` è l'unico punto che definisce titolo, descrizione e ruoli destinatari;
+- i service economici eseguono esclusivamente la logica di dominio;
+- `FinanceNoticeDataService` fornisce all'aspect snapshot di supporto privi di testo editoriale;
+- `NoticesService` persiste nell'outbox la notifica già composta e mantiene la responsabilità tecnica della distribuzione;
+- `FinanceNotificationDispatcher` risolve gli utenti e crea le notifiche applicative.
+
+I titoli seguono il formato `Economia: <evento>`. Le rimozioni usano il verbo `rimosso`; le operazioni automatiche iniziano dall'entità interessata e non dalla formula `Il sistema ha…`. Se il nome dell'autore non è disponibile si usa una formulazione leggibile e impersonale, senza mostrare UUID o identificativi tecnici.
+
+### Outbox e consegna
+
+La tabella tenant `finance_notification_outbox` conserva evento, aggregato, operazione, contenuto già composto, severità, percorso di navigazione, autore e ruoli destinatari. La scrittura dell'evento partecipa alla stessa transazione dell'operazione economica: un rollback del dominio annulla anche la notifica.
+
+Il dispatcher elabora periodicamente gli eventi `PENDING`, applica un lock pessimista e crea una riga `notices` per ciascun destinatario. La coppia `source_event_key`/`user_id` è univoca, quindi retry e istanze concorrenti non producono duplicati. In caso di errore l'evento resta pendente e viene riprovato con attesa esponenziale fino a 60 minuti. Gli eventi consegnati dell'outbox vengono eliminati dopo 30 giorni; le normali notifiche dell'utente seguono invece la retention applicativa esistente.
+
+### Esperienza frontend
+
+Il conteggio delle notifiche non lette viene aggiornato all'apertura del layout, ogni 30 secondi e quando la finestra torna in primo piano. Il click su una notifica economica la segna come letta e, soltanto dopo il completamento della richiesta, apre la sezione, il movimento o l'evento indicato da `targetPath`.
+
 ## Audit, conservazione e cancellazioni
 
 - tutti i movimenti possono essere modificati;
@@ -965,6 +1005,7 @@ Metriche utili:
 - verifica storage;
 - backup e smoke test staging;
 - monitoraggio post-rilascio.
+- verifica outbox, retry, deduplicazione e navigazione delle notifiche economiche.
 
 ## Strategia di test
 
@@ -1047,6 +1088,11 @@ Metriche utili:
 - una modifica storica ricalcola automaticamente tutti i riporti successivi interessati;
 - nessun dato economico attraversa il confine dello schema tenant;
 - CSV/XLSX e PDF restituiscono gli stessi totali delle API e della dashboard.
+- ogni operazione economica esplicita genera una sola notifica per ciascun Admin, Super Admin e Tesoriere;
+- letture passive e retry idempotenti non generano notifiche duplicate;
+- un errore temporaneo di consegna non perde l'evento e attiva il retry;
+- titoli e descrizioni rispettano `docs/notification-editorial-style.md`;
+- il click su una notifica la segna come letta e apre la destinazione economica corretta.
 
 ## File e aree previste
 
@@ -1111,3 +1157,4 @@ I nomi precisi possono essere adattati alle convenzioni applicative osservate du
 11. verifica esportazioni CSV/XLSX/PDF;
 12. verifica che OpenSearch non riceva dati economici;
 13. monitoraggio errori di quadratura, upload e report dopo il rilascio.
+14. verifica notifiche con Admin, Super Admin e Tesoriere, inclusi retry, deduplicazione e link di destinazione.

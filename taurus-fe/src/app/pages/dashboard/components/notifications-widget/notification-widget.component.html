@@ -23,7 +23,9 @@
                 <article class="notice-row" [class.notice-row--unread]="!notice.readDate">
                     <button type="button" class="notice-row__main" (click)="mark(notice)" [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
                         <span class="notice-row__dot" aria-hidden="true"></span>
-                        <span class="notice-row__icon"><i class="pi" [class.pi-box]="!notice.readDate" [class.pi-check]="notice.readDate" aria-hidden="true"></i></span>
+                        <span class="notice-row__icon"
+                            ><i class="pi" [class.pi-wallet]="notice.source === 'FINANCE' && !notice.readDate" [class.pi-box]="notice.source !== 'FINANCE' && !notice.readDate" [class.pi-check]="notice.readDate" aria-hidden="true"></i
+                        ></span>
                         <span class="notice-row__copy">
                             <strong>{{ notice.name }}</strong>
                             <small>{{ notice.message }}</small>

@@ -21,6 +21,7 @@ export class NotificationsWidgetComponent implements OnChanges {
 
     @Input() notices?: Page<Notices>;
     @Output() markAsRead: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
+    @Output() navigateToNotice: EventEmitter<Notices> = new EventEmitter<Notices>();
     @Output() delete: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() pageChange: EventEmitter<{ page: number; size: number }> = new EventEmitter<{ page: number; size: number }>();
 
@@ -42,7 +43,6 @@ export class NotificationsWidgetComponent implements OnChanges {
             this.currentPage = this.notices.number;
             this.rows = this.notices.size || this.rows;
             this.items.find((item) => item.name === 'deleteAll')!.disabled = this.totalRecords === 0;
-            this.items.find((item) => item.name === 'markAll')!.disabled = this.totalRecords === 0 || this.notices.content.every((notice) => notice.readDate);
         }
     }
 
@@ -67,6 +67,10 @@ export class NotificationsWidgetComponent implements OnChanges {
     }
 
     protected mark(notice: Notices): void {
+        if (notice.targetPath?.startsWith('/finance')) {
+            this.navigateToNotice.emit(notice);
+            return;
+        }
         if (!notice.readDate) {
             this.markAsRead.emit([notice.id]);
         }

@@ -30,4 +30,6 @@
     <include file="config/liquibase/changelog/20260831000003_recurring_calendar_events.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260901000000_move_inventory_expiration_to_assignment.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260901000001_inventory_expiration_notices.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260901000002_add_finance.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260901000003_finance_notifications.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

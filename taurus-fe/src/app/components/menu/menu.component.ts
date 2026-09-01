@@ -19,7 +19,7 @@ export class MenuComponent implements OnInit {
         this.model = [
             {
                 label: 'Home',
-                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                 items: [
                     {
                         label: 'Dashboard',
@@ -32,6 +32,7 @@ export class MenuComponent implements OnInit {
                 label: 'Pagine',
                 icon: 'pi pi-fw pi-briefcase',
                 routerLink: ['/pages'],
+                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                 items: [
                     {
                         label: 'Documenti legali',
@@ -52,6 +53,12 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
                     },
                     {
+                        label: 'Economia',
+                        icon: 'pi pi-fw pi-wallet',
+                        routerLink: ['/finance'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER]
+                    },
+                    {
                         label: 'Inventario',
                         icon: 'pi pi-fw pi-box',
                         routerLink: ['/inventory'],
@@ -64,12 +71,14 @@ export class MenuComponent implements OnInit {
                     {
                         label: 'Album',
                         icon: 'pi pi-fw pi-book',
-                        routerLink: ['/albums']
+                        routerLink: ['/albums'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Tracce',
                         icon: 'pi pi-fw pi-file',
-                        routerLink: ['/tracks']
+                        routerLink: ['/tracks'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Strumenti',
@@ -78,12 +87,14 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST]
                     },
                     {
-                        separator: true
+                        separator: true,
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Calendario',
                         icon: 'pi pi-fw pi-calendar',
-                        routerLink: ['/calendar']
+                        routerLink: ['/calendar'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     }
                 ]
             }

@@ -114,7 +114,8 @@ class InventoryServiceTest {
             albumsService,
             tracksService,
             calendarEventsService,
-            noticeDataService
+            noticeDataService,
+            null
         );
         AspectJProxyFactory revisionProxyFactory = new AspectJProxyFactory(revisionRepository);
         revisionProxyFactory.addAspect(noticesAspect);

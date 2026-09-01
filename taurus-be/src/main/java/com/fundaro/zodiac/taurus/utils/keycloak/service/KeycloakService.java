@@ -49,5 +49,7 @@ public interface KeycloakService {
 
     List<Role> getClientRoles();
 
+    void ensureClientRole(String roleName, String description);
+
     List<User> getUsersByClientRoles(RoleEnum roleEnum);
 }

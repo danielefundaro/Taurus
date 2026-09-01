@@ -315,6 +315,25 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public void ensureClientRole(String roleName, String description) {
+        if (getClientRoles().stream().anyMatch(role -> roleName.equals(role.getName()))) return;
+
+        String id = getIdByClientId();
+        String url = String.format("%s/clients/%s/roles", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        Role role = new Role();
+        role.setName(roleName);
+        role.setDescription(description);
+        role.setComposite(false);
+        role.setClientRole(true);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), role, typeRef);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "role.provision");
+        }
+        log.info("Provisioned Keycloak client role {}", roleName);
+    }
+
+    @Override
     public List<User> getUsersByClientRoles(RoleEnum roleEnum) {
         String id = getIdByClientId();
         String url = String.format("%s/clients/%s/roles/%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id, roleEnum.toString());
@@ -322,7 +341,7 @@ public class KeycloakServiceImpl implements KeycloakService {
         };
         ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting users by client role from Keycloak: {}", roleEnum);
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting users by client role from Keycloak: %s", roleEnum), Client.class.getSimpleName(), "get.users");
         }

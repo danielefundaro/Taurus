@@ -6,6 +6,7 @@ package com.fundaro.zodiac.taurus.domain.enumeration;
 public enum RoleEnum {
     ROLE_SUPER_ADMIN,
     ROLE_ADMIN,
+    ROLE_TREASURER,
     ROLE_ARCHIVIST,
     ROLE_USER,
     ROLE_USER_EXTERNAL;
@@ -21,6 +22,7 @@ public enum RoleEnum {
         switch (roleEnum) {
             case ROLE_SUPER_ADMIN -> role = "ROLE_SUPER_ADMIN";
             case ROLE_ADMIN -> role = "ROLE_ADMIN";
+            case ROLE_TREASURER -> role = "ROLE_TREASURER";
             case ROLE_ARCHIVIST -> role = "ROLE_ARCHIVIST";
             case ROLE_USER -> role = "ROLE_USER";
             case ROLE_USER_EXTERNAL -> role = "ROLE_USER_EXTERNAL";
