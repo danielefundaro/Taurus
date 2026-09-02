@@ -1,0 +1,16 @@
+:host {
+    display: block;
+    margin-bottom: 1rem;
+}
+.inline-alert__content {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.inline-alert__content > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}

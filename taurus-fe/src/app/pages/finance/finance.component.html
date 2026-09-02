@@ -1,15 +1,11 @@
 <p-confirmdialog />
 <p-fluid>
-    <div class="finance-header">
-        <div>
-            <h1>Economia</h1>
-            <p>Gestisci casse, conti correnti, movimenti e risultati economici degli eventi.</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
+    <app-page-header title="Economia" subtitle="Gestisci casse, conti correnti, movimenti e risultati economici degli eventi.">
+        <div pageActions class="flex flex-wrap gap-2">
             <p-button label="Trasferimento" icon="pi pi-arrow-right-arrow-left" severity="secondary" (onClick)="openTransfer()" />
             <p-button label="Nuovo movimento" icon="pi pi-plus" (onClick)="openMovement()" />
         </div>
-    </div>
+    </app-page-header>
 
     @if (dashboard) {
         <div class="summary-grid">
@@ -92,9 +88,9 @@
                         [lazy]="true"
                         [loading]="loading"
                         [paginator]="true"
-                        [rows]="20"
+                        [rows]="12"
                         [totalRecords]="totalMovements"
-                        [rowsPerPageOptions]="[10, 20, 50]"
+                        [rowsPerPageOptions]="[12, 24, 48]"
                         [showCurrentPageReport]="true"
                         currentPageReportTemplate="Da {first} a {last} di {totalRecords} movimenti"
                         dataKey="id"
@@ -153,7 +149,16 @@
                         </ng-template>
                         <ng-template #emptymessage>
                             <tr>
-                                <td colspan="7" class="empty-message">Nessun movimento corrisponde ai filtri selezionati.</td>
+                                <td colspan="7">
+                                    <app-empty-state
+                                        compact
+                                        icon="pi pi-wallet"
+                                        title="Nessun movimento"
+                                        message="Nessun movimento corrisponde ai filtri selezionati."
+                                        actionLabel="Azzera filtri"
+                                        (action)="resetFilters()"
+                                    />
+                                </td>
                             </tr>
                         </ng-template>
                     </p-table>
@@ -199,6 +204,13 @@
                                 </td>
                             </tr>
                         </ng-template>
+                        <ng-template #emptymessage>
+                            <tr>
+                                <td colspan="6">
+                                    <app-empty-state compact icon="pi pi-briefcase" title="Nessun conto" message="Crea il primo conto per registrare i movimenti." actionLabel="Nuovo conto" (action)="openAccount()" />
+                                </td>
+                            </tr>
+                        </ng-template>
                     </p-table>
                 </p-tabpanel>
 
@@ -234,6 +246,13 @@
                                             <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia categoria" ariaLabel="Archivia categoria" (onClick)="archiveCategory(category)" />
                                         }
                                     </div>
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template #emptymessage>
+                            <tr>
+                                <td colspan="5">
+                                    <app-empty-state compact icon="pi pi-tags" title="Nessuna categoria" message="Crea la prima categoria per classificare i movimenti." actionLabel="Nuova categoria" (action)="openCategory()" />
                                 </td>
                             </tr>
                         </ng-template>
@@ -276,6 +295,13 @@
                                 <td><p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
                             </tr>
                         </ng-template>
+                        <ng-template #emptymessage>
+                            <tr>
+                                <td colspan="6">
+                                    <app-empty-state compact icon="pi pi-calendar" title="Nessun evento" message="Non ci sono eventi con dati economici da mostrare." />
+                                </td>
+                            </tr>
+                        </ng-template>
                     </p-table>
                 </p-tabpanel>
 
@@ -306,6 +332,13 @@
                                 <td>{{ year.lastRecalculatedAt ? (year.lastRecalculatedAt | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                             </tr></ng-template
                         >
+                        <ng-template #emptymessage>
+                            <tr>
+                                <td colspan="4">
+                                    <app-empty-state compact icon="pi pi-calendar-clock" title="Nessun esercizio" message="Gli esercizi compaiono dopo il primo movimento registrato." />
+                                </td>
+                            </tr>
+                        </ng-template>
                     </p-table>
                 </p-tabpanel>
             </p-tabpanels>
@@ -313,107 +346,138 @@
     </div>
 </p-fluid>
 
-<p-dialog [(visible)]="accountDialog" [modal]="true" [style]="{ width: '38rem' }" header="Conto finanziario">
-    <div class="dialog-grid">
-        <div class="full"><label for="account-name">Nome *</label><input id="account-name" pInputText [(ngModel)]="accountForm.name" /></div>
-        <div><label for="account-type">Tipo *</label><p-select inputId="account-type" [(ngModel)]="accountForm.accountType" [options]="accountTypes" optionLabel="label" optionValue="value" /></div>
-        <div><label for="account-currency">Valuta *</label><input id="account-currency" pInputText [(ngModel)]="accountForm.currency" maxlength="3" /></div>
-        @if (accountForm.accountType === 'BANK') {
-            <div><label for="account-bank">Banca</label><input id="account-bank" pInputText [(ngModel)]="accountForm.bankName" /></div>
-            <div><label for="account-iban">IBAN</label><input id="account-iban" pInputText [(ngModel)]="accountForm.iban" maxlength="34" /></div>
-        }
-        @if (!accountForm.id) {
-            <div><label for="account-opening">Saldo iniziale</label><p-inputnumber inputId="account-opening" [(ngModel)]="accountForm.initialBalance" mode="currency" currency="EUR" locale="it-IT" /></div>
-            <div><label for="account-opening-date">Data di riferimento</label><p-datepicker inputId="account-opening-date" [(ngModel)]="accountOpeningDate" dateFormat="dd/mm/yy" /></div>
-        }
-        <div class="full"><label for="account-description">Descrizione</label><textarea id="account-description" pTextarea [(ngModel)]="accountForm.description" rows="3"></textarea></div>
-    </div>
-    <ng-template #footer><p-button label="Annulla" severity="secondary" [text]="true" (onClick)="accountDialog = false" /><p-button label="Salva" icon="pi pi-check" (onClick)="saveAccount()" /></ng-template>
+<p-dialog [(visible)]="accountDialog" [modal]="true" [draggable]="false" [closable]="false" [showHeader]="false" [style]="{ width: '40rem' }" [breakpoints]="{ '960px': '75vw', '640px': '94vw' }">
+    <app-dialog-shell
+        title="Conto finanziario"
+        subtitle="Inserisci i dati identificativi e contabili del conto."
+        [invalidCount]="(!accountForm.name.trim() ? 1 : 0) + (!accountForm.accountType ? 1 : 0) + (!accountForm.currency.trim() ? 1 : 0)"
+        (cancel)="accountDialog = false"
+        (confirm)="saveAccount()"
+    >
+        <div class="dialog-grid">
+            <div class="full"><label for="account-name">Nome *</label><input id="account-name" pInputText [(ngModel)]="accountForm.name" /></div>
+            <div><label for="account-type">Tipo *</label><p-select inputId="account-type" [(ngModel)]="accountForm.accountType" [options]="accountTypes" optionLabel="label" optionValue="value" /></div>
+            <div><label for="account-currency">Valuta *</label><input id="account-currency" pInputText [(ngModel)]="accountForm.currency" maxlength="3" /></div>
+            @if (accountForm.accountType === 'BANK') {
+                <div><label for="account-bank">Banca</label><input id="account-bank" pInputText [(ngModel)]="accountForm.bankName" /></div>
+                <div><label for="account-iban">IBAN</label><input id="account-iban" pInputText [(ngModel)]="accountForm.iban" maxlength="34" /></div>
+            }
+            @if (!accountForm.id) {
+                <div><label for="account-opening">Saldo iniziale</label><p-inputnumber inputId="account-opening" [(ngModel)]="accountForm.initialBalance" mode="currency" currency="EUR" locale="it-IT" /></div>
+                <div><label for="account-opening-date">Data di riferimento</label><p-datepicker inputId="account-opening-date" [(ngModel)]="accountOpeningDate" dateFormat="dd/mm/yy" /></div>
+            }
+            <div class="full"><label for="account-description">Descrizione</label><textarea id="account-description" pTextarea [(ngModel)]="accountForm.description" rows="3"></textarea></div>
+        </div>
+    </app-dialog-shell>
 </p-dialog>
 
-<p-dialog [(visible)]="eventBudgetDialog" [modal]="true" [style]="{ width: '44rem' }" header="Preventivo evento">
-    @if (budgetEvent) {
-        <div class="dialog-grid">
-            <div class="full">
-                <strong>{{ budgetEvent.eventName }}</strong>
+<p-dialog [(visible)]="eventBudgetDialog" [modal]="true" [draggable]="false" [closable]="false" [showHeader]="false" [style]="{ width: '44rem' }" [breakpoints]="{ '960px': '75vw', '640px': '94vw' }">
+    <app-dialog-shell title="Preventivo evento" subtitle="Definisci compenso e costi previsti." confirmLabel="Salva preventivo" (cancel)="eventBudgetDialog = false" (confirm)="saveEventBudget()">
+        @if (budgetEvent) {
+            <div class="dialog-grid">
+                <div class="full">
+                    <strong>{{ budgetEvent.eventName }}</strong>
+                </div>
+                <div class="full"><label for="budget-fee">Compenso previsto</label><p-inputnumber inputId="budget-fee" [(ngModel)]="budgetFee" mode="currency" currency="EUR" locale="it-IT" [min]="0" /></div>
+                <div class="full budget-costs">
+                    <div class="flex justify-between items-center"><label>Costi previsti</label><p-button label="Aggiungi costo" icon="pi pi-plus" severity="secondary" size="small" (onClick)="addBudgetCost()" /></div>
+                    @for (cost of budgetCosts; track $index; let index = $index) {
+                        <div class="budget-cost-row">
+                            <input pInputText [(ngModel)]="cost.description" placeholder="Descrizione" />
+                            <p-inputnumber [(ngModel)]="cost.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+                            <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="removeBudgetCost(index)" />
+                        </div>
+                    }
+                </div>
             </div>
-            <div class="full"><label for="budget-fee">Compenso previsto</label><p-inputnumber inputId="budget-fee" [(ngModel)]="budgetFee" mode="currency" currency="EUR" locale="it-IT" [min]="0" /></div>
-            <div class="full budget-costs">
-                <div class="flex justify-between items-center"><label>Costi previsti</label><p-button label="Aggiungi costo" icon="pi pi-plus" severity="secondary" size="small" (onClick)="addBudgetCost()" /></div>
-                @for (cost of budgetCosts; track $index; let index = $index) {
-                    <div class="budget-cost-row">
-                        <input pInputText [(ngModel)]="cost.description" placeholder="Descrizione" />
-                        <p-inputnumber [(ngModel)]="cost.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
-                        <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="removeBudgetCost(index)" />
+        }
+    </app-dialog-shell>
+</p-dialog>
+
+<p-dialog [(visible)]="categoryDialog" [modal]="true" [draggable]="false" [closable]="false" [showHeader]="false" [style]="{ width: '40rem' }" [breakpoints]="{ '960px': '75vw', '640px': '94vw' }">
+    <app-dialog-shell
+        title="Categoria economica"
+        subtitle="Configura una categoria per entrate e uscite."
+        [invalidCount]="(!categoryForm.name.trim() ? 1 : 0) + (!categoryForm.direction ? 1 : 0)"
+        (cancel)="categoryDialog = false"
+        (confirm)="saveCategory()"
+    >
+        <div class="dialog-grid">
+            <div class="full"><label for="category-name">Nome *</label><input id="category-name" pInputText [(ngModel)]="categoryForm.name" /></div>
+            <div class="full"><label for="category-direction">Direzione *</label><p-select inputId="category-direction" [(ngModel)]="categoryForm.direction" [options]="categoryDirections" optionLabel="label" optionValue="value" /></div>
+            <div class="full"><label for="category-description">Descrizione</label><textarea id="category-description" pTextarea [(ngModel)]="categoryForm.description" rows="3"></textarea></div>
+        </div>
+    </app-dialog-shell>
+</p-dialog>
+
+<p-dialog [(visible)]="movementDialog" [modal]="true" [draggable]="false" [closable]="false" [showHeader]="false" [style]="{ width: '52rem' }" [breakpoints]="{ '960px': '80vw', '640px': '94vw' }">
+    <app-dialog-shell
+        title="Movimento"
+        subtitle="Registra un’entrata o un’uscita e gli eventuali allegati."
+        [invalidCount]="(!movementForm.direction ? 1 : 0) + (!movementForm.accountId ? 1 : 0) + (!movementBookingDate ? 1 : 0) + (!movementForm.amount ? 1 : 0) + (!movementForm.description.trim() ? 1 : 0)"
+        (cancel)="movementDialog = false"
+        (confirm)="saveMovement()"
+    >
+        <div class="dialog-grid">
+            <div><label for="movement-direction">Direzione *</label><p-select inputId="movement-direction" [(ngModel)]="movementForm.direction" [options]="directions" optionLabel="label" optionValue="value" /></div>
+            <div><label for="movement-account">Conto *</label><p-select inputId="movement-account" [(ngModel)]="movementForm.accountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Seleziona" /></div>
+            <div><label for="movement-date">Data contabile *</label><p-datepicker inputId="movement-date" [(ngModel)]="movementBookingDate" dateFormat="dd/mm/yy" /></div>
+            <div><label for="movement-value-date">Data valuta</label><p-datepicker inputId="movement-value-date" [(ngModel)]="movementValueDate" dateFormat="dd/mm/yy" [showClear]="true" /></div>
+            <div><label for="movement-amount">Importo *</label><p-inputnumber inputId="movement-amount" [(ngModel)]="movementForm.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0.01" /></div>
+            <div>
+                <label for="movement-category">Categoria</label><p-select inputId="movement-category" [(ngModel)]="movementForm.categoryId" [options]="movementCategories" optionLabel="name" optionValue="id" [showClear]="true" placeholder="Nessuna" />
+            </div>
+            <div class="full">
+                <label for="movement-event">Evento</label
+                ><p-select inputId="movement-event" [(ngModel)]="movementForm.eventId" [options]="events" optionLabel="eventName" optionValue="eventId" [filter]="true" [showClear]="true" placeholder="Nessun evento" />
+            </div>
+            <div class="full"><label for="movement-description">Descrizione *</label><input id="movement-description" pInputText [(ngModel)]="movementForm.description" /></div>
+            <div><label for="movement-counterparty">Controparte</label><input id="movement-counterparty" pInputText [(ngModel)]="movementForm.counterparty" /></div>
+            <div><label for="movement-reference">Riferimento documento</label><input id="movement-reference" pInputText [(ngModel)]="movementForm.documentReference" /></div>
+            <div class="full"><label for="movement-notes">Note</label><textarea id="movement-notes" pTextarea [(ngModel)]="movementForm.notes" rows="3"></textarea></div>
+            <div class="full attachment-panel">
+                <label for="movement-file">Allegati facoltativi</label>
+                <div class="flex flex-wrap gap-2 items-end">
+                    <input id="movement-file" type="file" accept="application/pdf,image/jpeg,image/png" (change)="onAttachmentSelected($event)" />
+                    <input pInputText [(ngModel)]="attachmentDescription" placeholder="Descrizione allegato" />
+                    @if (movementForm.id) {
+                        <p-button label="Carica" icon="pi pi-upload" severity="secondary" [disabled]="!selectedAttachment" (onClick)="uploadSelectedAttachment()" />
+                    }
+                </div>
+                @if (!movementForm.id) {
+                    <small>L’allegato selezionato verrà caricato dopo il salvataggio del movimento.</small>
+                }
+                @for (attachment of attachments; track attachment.id) {
+                    <div class="attachment-row">
+                        <button type="button" class="attachment-link" (click)="downloadAttachment(attachment)"><i class="pi pi-paperclip"></i> {{ attachment.fileName }}</button><span>{{ attachment.fileSize / 1024 | number: '1.0-0' }} KB</span
+                        ><p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="deleteAttachment(attachment)" />
                     </div>
                 }
             </div>
         </div>
-    }
-    <ng-template #footer><p-button label="Annulla" severity="secondary" [text]="true" (onClick)="eventBudgetDialog = false" /><p-button label="Salva preventivo" icon="pi pi-check" (onClick)="saveEventBudget()" /></ng-template>
+    </app-dialog-shell>
 </p-dialog>
 
-<p-dialog [(visible)]="categoryDialog" [modal]="true" [style]="{ width: '38rem' }" header="Categoria economica">
-    <div class="dialog-grid">
-        <div class="full"><label for="category-name">Nome *</label><input id="category-name" pInputText [(ngModel)]="categoryForm.name" /></div>
-        <div class="full"><label for="category-direction">Direzione *</label><p-select inputId="category-direction" [(ngModel)]="categoryForm.direction" [options]="categoryDirections" optionLabel="label" optionValue="value" /></div>
-        <div class="full"><label for="category-description">Descrizione</label><textarea id="category-description" pTextarea [(ngModel)]="categoryForm.description" rows="3"></textarea></div>
-    </div>
-    <ng-template #footer><p-button label="Annulla" severity="secondary" [text]="true" (onClick)="categoryDialog = false" /><p-button label="Salva" icon="pi pi-check" (onClick)="saveCategory()" /></ng-template>
-</p-dialog>
-
-<p-dialog [(visible)]="movementDialog" [modal]="true" [style]="{ width: '52rem' }" header="Movimento">
-    <div class="dialog-grid">
-        <div><label for="movement-direction">Direzione *</label><p-select inputId="movement-direction" [(ngModel)]="movementForm.direction" [options]="directions" optionLabel="label" optionValue="value" /></div>
-        <div><label for="movement-account">Conto *</label><p-select inputId="movement-account" [(ngModel)]="movementForm.accountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Seleziona" /></div>
-        <div><label for="movement-date">Data contabile *</label><p-datepicker inputId="movement-date" [(ngModel)]="movementBookingDate" dateFormat="dd/mm/yy" /></div>
-        <div><label for="movement-value-date">Data valuta</label><p-datepicker inputId="movement-value-date" [(ngModel)]="movementValueDate" dateFormat="dd/mm/yy" [showClear]="true" /></div>
-        <div><label for="movement-amount">Importo *</label><p-inputnumber inputId="movement-amount" [(ngModel)]="movementForm.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0.01" /></div>
-        <div>
-            <label for="movement-category">Categoria</label><p-select inputId="movement-category" [(ngModel)]="movementForm.categoryId" [options]="movementCategories" optionLabel="name" optionValue="id" [showClear]="true" placeholder="Nessuna" />
-        </div>
-        <div class="full">
-            <label for="movement-event">Evento</label
-            ><p-select inputId="movement-event" [(ngModel)]="movementForm.eventId" [options]="events" optionLabel="eventName" optionValue="eventId" [filter]="true" [showClear]="true" placeholder="Nessun evento" />
-        </div>
-        <div class="full"><label for="movement-description">Descrizione *</label><input id="movement-description" pInputText [(ngModel)]="movementForm.description" /></div>
-        <div><label for="movement-counterparty">Controparte</label><input id="movement-counterparty" pInputText [(ngModel)]="movementForm.counterparty" /></div>
-        <div><label for="movement-reference">Riferimento documento</label><input id="movement-reference" pInputText [(ngModel)]="movementForm.documentReference" /></div>
-        <div class="full"><label for="movement-notes">Note</label><textarea id="movement-notes" pTextarea [(ngModel)]="movementForm.notes" rows="3"></textarea></div>
-        <div class="full attachment-panel">
-            <label for="movement-file">Allegati facoltativi</label>
-            <div class="flex flex-wrap gap-2 items-end">
-                <input id="movement-file" type="file" accept="application/pdf,image/jpeg,image/png" (change)="onAttachmentSelected($event)" />
-                <input pInputText [(ngModel)]="attachmentDescription" placeholder="Descrizione allegato" />
-                @if (movementForm.id) {
-                    <p-button label="Carica" icon="pi pi-upload" severity="secondary" [disabled]="!selectedAttachment" (onClick)="uploadSelectedAttachment()" />
-                }
+<p-dialog [(visible)]="transferDialog" [modal]="true" [draggable]="false" [closable]="false" [showHeader]="false" [style]="{ width: '44rem' }" [breakpoints]="{ '960px': '75vw', '640px': '94vw' }">
+    <app-dialog-shell
+        title="Trasferimento tra conti"
+        subtitle="Registra lo spostamento tra due conti distinti."
+        confirmLabel="Registra trasferimento"
+        [invalidCount]="(!transferForm.sourceAccountId ? 1 : 0) + (!transferForm.destinationAccountId ? 1 : 0) + (!transferBookingDate ? 1 : 0) + (!transferForm.amount ? 1 : 0) + (!transferForm.description.trim() ? 1 : 0)"
+        (cancel)="transferDialog = false"
+        (confirm)="saveTransfer()"
+    >
+        <div class="dialog-grid">
+            <div><label for="transfer-source">Da *</label><p-select inputId="transfer-source" [(ngModel)]="transferForm.sourceAccountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Conto di origine" /></div>
+            <div>
+                <label for="transfer-destination">A *</label
+                ><p-select inputId="transfer-destination" [(ngModel)]="transferForm.destinationAccountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Conto di destinazione" />
             </div>
-            @if (!movementForm.id) {
-                <small>L’allegato selezionato verrà caricato dopo il salvataggio del movimento.</small>
-            }
-            @for (attachment of attachments; track attachment.id) {
-                <div class="attachment-row">
-                    <button type="button" class="attachment-link" (click)="downloadAttachment(attachment)"><i class="pi pi-paperclip"></i> {{ attachment.fileName }}</button><span>{{ attachment.fileSize / 1024 | number: '1.0-0' }} KB</span
-                    ><p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="deleteAttachment(attachment)" />
-                </div>
-            }
+            <div><label for="transfer-date">Data contabile *</label><p-datepicker inputId="transfer-date" [(ngModel)]="transferBookingDate" dateFormat="dd/mm/yy" /></div>
+            <div><label for="transfer-value-date">Data valuta</label><p-datepicker inputId="transfer-value-date" [(ngModel)]="transferValueDate" dateFormat="dd/mm/yy" [showClear]="true" /></div>
+            <div class="full"><label for="transfer-amount">Importo *</label><p-inputnumber inputId="transfer-amount" [(ngModel)]="transferForm.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0.01" /></div>
+            <div class="full"><label for="transfer-description">Descrizione *</label><input id="transfer-description" pInputText [(ngModel)]="transferForm.description" /></div>
+            <div class="full"><label for="transfer-notes">Note</label><textarea id="transfer-notes" pTextarea [(ngModel)]="transferForm.notes" rows="3"></textarea></div>
         </div>
-    </div>
-    <ng-template #footer><p-button label="Annulla" severity="secondary" [text]="true" (onClick)="movementDialog = false" /><p-button label="Salva" icon="pi pi-check" (onClick)="saveMovement()" /></ng-template>
-</p-dialog>
-
-<p-dialog [(visible)]="transferDialog" [modal]="true" [style]="{ width: '44rem' }" header="Trasferimento tra conti">
-    <div class="dialog-grid">
-        <div><label for="transfer-source">Da *</label><p-select inputId="transfer-source" [(ngModel)]="transferForm.sourceAccountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Conto di origine" /></div>
-        <div>
-            <label for="transfer-destination">A *</label><p-select inputId="transfer-destination" [(ngModel)]="transferForm.destinationAccountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Conto di destinazione" />
-        </div>
-        <div><label for="transfer-date">Data contabile *</label><p-datepicker inputId="transfer-date" [(ngModel)]="transferBookingDate" dateFormat="dd/mm/yy" /></div>
-        <div><label for="transfer-value-date">Data valuta</label><p-datepicker inputId="transfer-value-date" [(ngModel)]="transferValueDate" dateFormat="dd/mm/yy" [showClear]="true" /></div>
-        <div class="full"><label for="transfer-amount">Importo *</label><p-inputnumber inputId="transfer-amount" [(ngModel)]="transferForm.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0.01" /></div>
-        <div class="full"><label for="transfer-description">Descrizione *</label><input id="transfer-description" pInputText [(ngModel)]="transferForm.description" /></div>
-        <div class="full"><label for="transfer-notes">Note</label><textarea id="transfer-notes" pTextarea [(ngModel)]="transferForm.notes" rows="3"></textarea></div>
-    </div>
-    <ng-template #footer><p-button label="Annulla" severity="secondary" [text]="true" (onClick)="transferDialog = false" /><p-button label="Registra trasferimento" icon="pi pi-check" (onClick)="saveTransfer()" /></ng-template>
+    </app-dialog-shell>
 </p-dialog>

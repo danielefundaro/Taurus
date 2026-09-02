@@ -1,0 +1,140 @@
+.list-page-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.list-page-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.list-thumbnail {
+    display: grid;
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: 0 0 3.5rem;
+    place-items: center;
+    overflow: hidden;
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-hover-background);
+    color: var(--p-primary-color);
+    font-weight: 600;
+}
+
+.list-thumbnail--date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+}
+
+.list-thumbnail > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.list-metric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.list-metric > small {
+    display: block;
+    color: var(--p-text-muted-color);
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+@media (max-width: 767px) {
+    .list-metric {
+        display: none;
+    }
+}
+
+/* Card di riepilogo della zona Contesto: usate da `finance`. */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.25rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-background);
+}
+
+.summary-card span,
+.summary-card small {
+    color: var(--p-text-muted-color);
+}
+
+.summary-card strong {
+    font-size: 1.55rem;
+}
+
+@media (max-width: 1100px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Piede di impaginazione dei widget della dashboard: usato da
+   `notifications-widget` e `calendar-events-widget`. */
+.widget-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0.75rem var(--card-bleed, -2rem) var(--card-bleed, -2rem);
+    padding: 0.7rem var(--card-padding, 2rem);
+    border-top: 1px solid var(--p-content-border-color);
+    background: var(--p-content-hover-background);
+    color: var(--p-text-muted-color);
+    font-size: 0.68rem;
+}
+
+.widget-footer > div {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.widget-footer button {
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 0.5rem;
+    background: var(--p-content-background);
+    color: var(--p-text-color);
+    cursor: pointer;
+}
+
+.widget-footer button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

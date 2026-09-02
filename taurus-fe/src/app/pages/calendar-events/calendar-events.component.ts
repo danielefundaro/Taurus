@@ -1,17 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { ConfirmationService, SelectItem } from 'primeng/api';
-import { DataViewLazyLoadEvent } from 'primeng/dataview';
+import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
-import { SelectChangeEvent } from 'primeng/select';
-import { delay, first, forkJoin, Observable } from 'rxjs';
+import { delay, finalize, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
 import { CalendarEventDialogResult, CalendarEvents, CalendarEventsCriteria, Page } from '../../module';
 import { DateFilter, StringFilter } from '../../module/criteria/filter';
-import { CalendarEventSeriesService, CalendarEventsService, ToastService } from '../../service';
+import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, ListLayout, ListLayoutService, ToastService } from '../../service';
+import { ListPageBase } from '../_shared/list-page.base';
 
 interface CalendarDay {
     date: Date;
@@ -23,28 +22,15 @@ interface CalendarDay {
 
 @Component({
     selector: 'app-calendar-events',
-    imports: [
-        RouterModule,
-        ImportsModule,
-    ],
+    imports: [RouterModule, ImportsModule],
     templateUrl: './calendar-events.component.html',
     styleUrl: './calendar-events.component.scss',
-    providers: [
-        CalendarEventsService,
-        CalendarEventSeriesService,
-        DialogService,
-        ConfirmationService,
-    ],
-    changeDetection: ChangeDetectionStrategy.Default,
+    providers: [CalendarEventsService, CalendarEventSeriesService, DialogService],
+    changeDetection: ChangeDetectionStrategy.Default
 })
-export class CalendarEventsComponent implements OnInit {
+export class CalendarEventsComponent extends ListPageBase implements OnInit {
     protected sortOptions!: SelectItem[];
-    protected layout: 'list' | 'grid' = 'grid';
-    protected options = ['list', 'grid'];
-    protected totalRecords: number = 0;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = {
-        first: 0, rows: 10, sortField: 'startDate', sortOrder: 1,
-    };
+    protected layout: ListLayout = 'list';
     protected events: CalendarEvents[] = [];
     protected selectedEvents: CalendarEvents[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
@@ -55,56 +41,48 @@ export class CalendarEventsComponent implements OnInit {
 
     @ViewChild('monthPicker') private readonly monthPickerRef?: Popover;
     protected readonly DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-    protected readonly MONTH_LABELS = [
-        'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-        'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
-    ];
+    protected readonly MONTH_LABELS = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
     constructor(
         private readonly calendarEventsService: CalendarEventsService,
         private readonly calendarEventSeriesService: CalendarEventSeriesService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
-        private readonly confirmationService: ConfirmationService,
-    ) { }
+        private readonly confirmService: ConfirmService,
+        private readonly listLayoutService: ListLayoutService
+    ) {
+        super();
+        this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: 1 };
+    }
 
     ngOnInit(): void {
         this.sortOptions = [
             { label: 'Data ↑', value: 'startDate' },
             { label: 'Data ↓', value: '!startDate' },
             { label: 'Nome A-Z', value: 'name' },
-            { label: 'Nome Z-A', value: '!name' },
+            { label: 'Nome Z-A', value: '!name' }
         ];
+        this.listLayoutService.observe('calendar', (value) => this.applyLayout(value));
+    }
+
+    protected onLayoutChange(value: ListLayout): void {
+        this.applyLayout(value);
+        this.listLayoutService.set('calendar', this.layout);
+    }
+
+    protected visibleDayEvents(day: CalendarDay): CalendarEvents[] {
+        return day.events.slice(0, 3);
+    }
+
+    protected hiddenDayEvents(day: CalendarDay): number {
+        return Math.max(day.events.length - 3, 0);
+    }
+
+    private applyLayout(value: ListLayout): void {
+        this.layout = value;
         if (this.layout === 'grid') {
             this.loadCalendarMonth();
         }
-    }
-
-    protected onLayoutChange(value: string): void {
-        this.layout = value as 'list' | 'grid';
-        if (this.layout === 'grid') {
-            this.loadCalendarMonth();
-        }
-    }
-
-    protected onSortChange(event: SelectChangeEvent): void {
-        const value = event.value;
-        if (value.indexOf('!') === 0) {
-            this.dataViewLazyLoadEvent.sortOrder = -1;
-            this.dataViewLazyLoadEvent.sortField = value.substring(1);
-        } else {
-            this.dataViewLazyLoadEvent.sortOrder = 1;
-            this.dataViewLazyLoadEvent.sortField = value;
-        }
-    }
-
-    protected onLazyLoad(event: DataViewLazyLoadEvent): void {
-        this.dataViewLazyLoadEvent = event;
-        this.loadElements();
-    }
-
-    protected onGlobalFilter(event: Event): void {
-        this.loadElements((event.target as HTMLInputElement).value);
     }
 
     protected goToToday(): void {
@@ -118,20 +96,12 @@ export class CalendarEventsComponent implements OnInit {
     }
 
     protected prevMonth(): void {
-        this.currentMonth = new Date(
-            this.currentMonth.getFullYear(),
-            this.currentMonth.getMonth() - 1,
-            1,
-        );
+        this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
         this.loadCalendarMonth();
     }
 
     protected nextMonth(): void {
-        this.currentMonth = new Date(
-            this.currentMonth.getFullYear(),
-            this.currentMonth.getMonth() + 1,
-            1,
-        );
+        this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
         this.loadCalendarMonth();
     }
 
@@ -154,65 +124,62 @@ export class CalendarEventsComponent implements OnInit {
             draggable: true,
             resizable: true,
             modal: true,
-            width: '50vw',
-            breakpoints: { '1199px': '75vw', '575px': '90vw' },
-            data,
+            width: '40rem',
+            breakpoints: { '767px': 'calc(100vw - 2rem)' },
+            data
         });
 
         ref.onClose.pipe(first()).subscribe((result: CalendarEventDialogResult) => {
             if (result?.event || result?.series) {
-                const creation: Observable<unknown> = result.series
-                    ? this.calendarEventSeriesService.create(result.series)
-                    : this.calendarEventsService.create(result.event!);
+                const creation: Observable<unknown> = result.series ? this.calendarEventSeriesService.create(result.series) : this.calendarEventsService.create(result.event!);
                 creation.pipe(delay(1000), first()).subscribe({
                     next: () => {
                         this.toastService.success('Successo', result.series ? 'Serie di eventi aggiunta con successo' : 'Evento aggiunto con successo');
                         if (this.layout === 'grid') {
                             this.loadCalendarMonth();
                         } else {
-                            this.loadElements();
+                            this.loadElements(this.searchTerm);
                         }
-                    },
+                    }
                 });
             }
         });
     }
 
     protected deleteElement(event: CalendarEvents): void {
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo evento?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina evento',
+            consequence: 'L’evento verrà eliminato definitivamente.',
+            actionLabel: 'Elimina',
             accept: () => {
-                this.calendarEventsService.delete(event.id).pipe(delay(1000), first()).subscribe({
-                    next: () => {
-                        this.toastService.success('Successo', 'Evento eliminato con successo');
-                        if (this.layout === 'grid') {
-                            this.loadCalendarMonth();
-                        } else {
-                            this.loadElements();
+                this.calendarEventsService
+                    .delete(event.id)
+                    .pipe(delay(1000), first())
+                    .subscribe({
+                        next: () => {
+                            this.toastService.success('Successo', 'Evento eliminato con successo');
+                            if (this.layout === 'grid') {
+                                this.loadCalendarMonth();
+                            } else {
+                                this.loadElements(this.searchTerm);
+                            }
                         }
-                    },
-                });
-            },
+                    });
+            }
         });
     }
 
     protected isSelected(item: CalendarEvents): boolean {
-        return this.selectedEvents.some(s => s.id === item.id);
+        return this.selectedEvents.some((s) => s.id === item.id);
     }
 
     protected isAllSelected(items: CalendarEvents[]): boolean {
-        return items.length > 0 && items.every(item => this.isSelected(item));
+        return items.length > 0 && items.every((item) => this.isSelected(item));
     }
 
     protected toggleSelection(item: CalendarEvents): void {
         if (this.isSelected(item)) {
-            this.selectedEvents = this.selectedEvents.filter(s => s.id !== item.id);
+            this.selectedEvents = this.selectedEvents.filter((s) => s.id !== item.id);
         } else {
             this.selectedEvents = [...this.selectedEvents, item];
         }
@@ -220,67 +187,71 @@ export class CalendarEventsComponent implements OnInit {
 
     protected toggleSelectAll(items: CalendarEvents[]): void {
         if (this.isAllSelected(items)) {
-            this.selectedEvents = this.selectedEvents.filter(s => !items.some(item => item.id === s.id));
+            this.selectedEvents = this.selectedEvents.filter((s) => !items.some((item) => item.id === s.id));
         } else {
-            const notYetSelected = items.filter(item => !this.isSelected(item));
+            const notYetSelected = items.filter((item) => !this.isSelected(item));
             this.selectedEvents = [...this.selectedEvents, ...notYetSelected];
         }
     }
 
     protected deleteSelectedElements(): void {
         const count = this.selectedEvents.length;
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: `Eliminare definitivamente i ${count} eventi selezionati?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina eventi selezionati',
+            consequence: `I ${count} eventi selezionati verranno eliminati definitivamente.`,
+            actionLabel: 'Elimina',
             accept: () => {
-                forkJoin(this.selectedEvents.map(item => this.calendarEventsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
-                    next: () => {
-                        this.selectedEvents = [];
-                        this.toastService.success('Successo', `${count} eventi eliminati con successo`);
-                        if (this.layout === 'grid') {
-                            this.loadCalendarMonth();
-                        } else {
-                            this.loadElements();
+                forkJoin(this.selectedEvents.map((item) => this.calendarEventsService.delete(item.id)))
+                    .pipe(delay(1000), first())
+                    .subscribe({
+                        next: () => {
+                            this.selectedEvents = [];
+                            this.toastService.success('Successo', `${count} eventi eliminati con successo`);
+                            if (this.layout === 'grid') {
+                                this.loadCalendarMonth();
+                            } else {
+                                this.loadElements(this.searchTerm);
+                            }
                         }
-                    }
-                });
-            },
+                    });
+            }
         });
     }
 
     protected getStateLabel(state: string): string {
-        const stateLabel = StateLabelsMap.find(s => s.code === state);
+        const stateLabel = StateLabelsMap.find((s) => s.code === state);
         return stateLabel ? stateLabel.name : state;
     }
 
-    private loadElements(search?: string): void {
+    protected loadElements(search?: string): void {
+        this.loading = true;
         this.selectedEvents = [];
         const criteria = new CalendarEventsCriteria();
-        criteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
-        criteria.size = this.dataViewLazyLoadEvent.rows;
-        criteria.sort = [
-            `${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? 'asc' : 'desc'}`,
-        ];
+        criteria.page = this.pageIndex;
+        criteria.size = this.pageSize;
+        criteria.sort = this.sortCriteria;
 
         if (search) {
             criteria.name = new StringFilter();
             criteria.name.contains = search;
         }
 
-        this.calendarEventsService.getAll(criteria).pipe(first()).subscribe({
-            next: (value: Page<CalendarEvents>) => {
-                this.events = value.content;
-                this.totalRecords = value.totalElements;
-            },
-        });
+        this.calendarEventsService
+            .getAll(criteria)
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
+            .subscribe({
+                next: (value: Page<CalendarEvents>) => {
+                    this.events = value.content;
+                    this.totalRecords = value.totalElements;
+                }
+            });
     }
 
     private loadCalendarMonth(): void {
+        this.loading = true;
         const year = this.currentMonth.getFullYear();
         const month = this.currentMonth.getMonth();
 
@@ -297,11 +268,17 @@ export class CalendarEventsComponent implements OnInit {
         criteria.endDate = new DateFilter();
         criteria.endDate.greaterThanOrEqual = new Date(year, month, 1);
 
-        this.calendarEventsService.getAll(criteria).pipe(first()).subscribe({
-            next: (page: Page<CalendarEvents>) => {
-                this.buildCalendarDays(year, month, page.content);
-            },
-        });
+        this.calendarEventsService
+            .getAll(criteria)
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
+            .subscribe({
+                next: (page: Page<CalendarEvents>) => {
+                    this.buildCalendarDays(year, month, page.content);
+                }
+            });
     }
 
     private buildCalendarDays(year: number, month: number, events: CalendarEvents[]): void {
@@ -310,7 +287,7 @@ export class CalendarEventsComponent implements OnInit {
         const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
 
         const eventsByDay = new Map<string, CalendarEvents[]>();
-        events.forEach(event => {
+        events.forEach((event) => {
             if (event.startDate) {
                 const start = new Date(event.startDate);
                 start.setHours(0, 0, 0, 0);
@@ -352,7 +329,7 @@ export class CalendarEventsComponent implements OnInit {
                 isCurrentMonth: true,
                 isToday: key === todayKey,
                 isFuture: date.getTime() > todayTime,
-                events: eventsByDay.get(key) ?? [],
+                events: eventsByDay.get(key) ?? []
             });
         }
 

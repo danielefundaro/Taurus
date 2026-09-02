@@ -1,0 +1,18 @@
+<div class="list-toolbar" role="search">
+    @if (showSearch) {
+        <p-iconfield class="list-toolbar__search">
+            <p-inputicon class="pi pi-search" />
+            <input pInputText type="search" [ngModel]="search" (ngModelChange)="updateSearch($event)" [placeholder]="searchPlaceholder" aria-label="Cerca nell’elenco" />
+        </p-iconfield>
+    }
+    @if (sortOptions.length) {
+        <p-select [ngModel]="sort" (ngModelChange)="sortChange.emit($event)" [options]="sortOptions" optionLabel="label" optionValue="value" placeholder="Ordina per…" ariaLabel="Ordina elenco" />
+    }
+    <ng-content select="[listFilters]" />
+    <span class="list-toolbar__spacer"></span>
+    @if (showLayout && layout) {
+        <p-selectbutton [ngModel]="layout" (ngModelChange)="layoutChange.emit($event)" [allowEmpty]="false" [options]="['list', 'grid']" ariaLabel="Vista elenco">
+            <ng-template #item let-item><i [class]="item === 'list' ? 'pi pi-bars' : gridIcon"></i></ng-template>
+        </p-selectbutton>
+    }
+</div>

@@ -6,8 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ConfirmationService } from 'primeng/api';
 import { PdfAnnotations, PdfCropRegion } from '../../module/pdf-annotations.module';
+import { ConfirmService } from '../../service';
 
 interface CropRect {
     x: number;
@@ -24,17 +24,10 @@ const HANDLE_HIT_PX = 12;
 @Component({
     selector: 'app-pdf-manipulator-dialog',
     standalone: true,
-    imports: [
-        CommonModule,
-        NgxExtendedPdfViewerModule,
-        ButtonModule,
-        TooltipModule,
-        BadgeModule,
-        ConfirmDialogModule,
-    ],
-    providers: [NgxExtendedPdfViewerService, ConfirmationService],
+    imports: [CommonModule, NgxExtendedPdfViewerModule, ButtonModule, TooltipModule, BadgeModule, ConfirmDialogModule],
+    providers: [NgxExtendedPdfViewerService],
     templateUrl: './pdf-manipulator-dialog.component.html',
-    styleUrl: './pdf-manipulator-dialog.component.scss',
+    styleUrl: './pdf-manipulator-dialog.component.scss'
 })
 export class PdfManipulatorDialogComponent {
     @ViewChild('cropContainer') cropContainerRef?: ElementRef<HTMLElement>;
@@ -61,12 +54,12 @@ export class PdfManipulatorDialogComponent {
     private dragStartPos: { x: number; y: number } | null = null;
     private isDragging = false;
 
-    private readonly confirmationService = inject(ConfirmationService);
+    private readonly confirmService = inject(ConfirmService);
 
     constructor(
         private readonly dialogRef: DynamicDialogRef,
         private readonly config: DynamicDialogConfig,
-        private readonly pdfViewerService: NgxExtendedPdfViewerService,
+        private readonly pdfViewerService: NgxExtendedPdfViewerService
     ) {
         this.pdfFile = this.config.data.file;
     }
@@ -121,7 +114,7 @@ export class PdfManipulatorDialogComponent {
 
         this.cropLoading = true;
         this.currentPage = pageNum;
-        await new Promise(resolve => setTimeout(resolve, 150));
+        await new Promise((resolve) => setTimeout(resolve, 150));
 
         const scale: PDFExportScaleFactor = { scale: 1.5 };
         const image = await this.pdfViewerService.getPageAsImage(pageNum, scale);
@@ -131,7 +124,7 @@ export class PdfManipulatorDialogComponent {
 
         this.cropImage = image;
         this.cropPageNum = pageNum;
-        this.pageCrops = (this.cropRegions.get(pageNum) ?? []).map(r => ({ ...r }));
+        this.pageCrops = (this.cropRegions.get(pageNum) ?? []).map((r) => ({ ...r }));
         this.cropRect = null;
         this.cropMode = true;
         this.cropCursor = 'crosshair';
@@ -156,7 +149,10 @@ export class PdfManipulatorDialogComponent {
         if (!isSignificant) return;
         const newCrop: PdfCropRegion = { page: this.cropPageNum, ...this.cropRect };
         this.pageCrops = [...this.pageCrops, newCrop];
-        this.cropRegions.set(this.cropPageNum, this.pageCrops.map(c => ({ ...c, page: this.cropPageNum! })));
+        this.cropRegions.set(
+            this.cropPageNum,
+            this.pageCrops.map((c) => ({ ...c, page: this.cropPageNum! }))
+        );
         this.cropRegions = new Map(this.cropRegions);
         this.cropRect = null;
         this.editingCrop = false;
@@ -183,7 +179,10 @@ export class PdfManipulatorDialogComponent {
         this.pageCrops = this.pageCrops.filter((_, i) => i !== index);
         if (this.cropPageNum !== null) {
             if (this.pageCrops.length > 0) {
-                this.cropRegions.set(this.cropPageNum, this.pageCrops.map(c => ({ ...c, page: this.cropPageNum! })));
+                this.cropRegions.set(
+                    this.cropPageNum,
+                    this.pageCrops.map((c) => ({ ...c, page: this.cropPageNum! }))
+                );
             } else {
                 this.cropRegions.delete(this.cropPageNum);
             }
@@ -205,7 +204,10 @@ export class PdfManipulatorDialogComponent {
         if (cropsToApply.length === 0) return;
         const newMap = new Map<number, PdfCropRegion[]>();
         for (const page of this.pages) {
-            newMap.set(page, cropsToApply.map(c => ({ ...c, page })));
+            newMap.set(
+                page,
+                cropsToApply.map((c) => ({ ...c, page }))
+            );
         }
         this.cropRegions = newMap;
         this.exitCropMode();
@@ -225,10 +227,10 @@ export class PdfManipulatorDialogComponent {
             const { x, y, width, height } = this.cropRect;
 
             const corners: Array<[CropDragMode, number, number]> = [
-                ['resize-nw', x,         y],
+                ['resize-nw', x, y],
                 ['resize-ne', x + width, y],
-                ['resize-sw', x,         y + height],
-                ['resize-se', x + width, y + height],
+                ['resize-sw', x, y + height],
+                ['resize-se', x + width, y + height]
             ];
 
             for (const [mode, cx, cy] of corners) {
@@ -241,10 +243,10 @@ export class PdfManipulatorDialogComponent {
 
             // Edge hit-tests (checked after corners to avoid overlap)
             const edges: Array<[CropDragMode, boolean]> = [
-                ['resize-n', Math.abs(my - y)          < hy && mx > x + hx && mx < x + width - hx],
-                ['resize-s', Math.abs(my - (y+height)) < hy && mx > x + hx && mx < x + width - hx],
-                ['resize-w', Math.abs(mx - x)          < hx && my > y + hy && my < y + height - hy],
-                ['resize-e', Math.abs(mx - (x+width))  < hx && my > y + hy && my < y + height - hy],
+                ['resize-n', Math.abs(my - y) < hy && mx > x + hx && mx < x + width - hx],
+                ['resize-s', Math.abs(my - (y + height)) < hy && mx > x + hx && mx < x + width - hx],
+                ['resize-w', Math.abs(mx - x) < hx && my > y + hy && my < y + height - hy],
+                ['resize-e', Math.abs(mx - (x + width)) < hx && my > y + hy && my < y + height - hy]
             ];
 
             for (const [mode, hit] of edges) {
@@ -286,7 +288,7 @@ export class PdfManipulatorDialogComponent {
                         x: Math.min(this.dragStartPos.x, mx),
                         y: Math.min(this.dragStartPos.y, my),
                         width: Math.abs(mx - this.dragStartPos.x),
-                        height: Math.abs(my - this.dragStartPos.y),
+                        height: Math.abs(my - this.dragStartPos.y)
                     };
                 }
                 break;
@@ -298,7 +300,7 @@ export class PdfManipulatorDialogComponent {
                     this.cropRect = {
                         ...this.cropRectAtDragStart,
                         x: Math.min(Math.max(this.cropRectAtDragStart.x + dx, 0), 1 - this.cropRectAtDragStart.width),
-                        y: Math.min(Math.max(this.cropRectAtDragStart.y + dy, 0), 1 - this.cropRectAtDragStart.height),
+                        y: Math.min(Math.max(this.cropRectAtDragStart.y + dy, 0), 1 - this.cropRectAtDragStart.height)
                     };
                 }
                 break;
@@ -320,19 +322,19 @@ export class PdfManipulatorDialogComponent {
     protected get cropSelectionStyle(): Record<string, string> {
         if (!this.cropRect) return {};
         return {
-            left:   `${this.cropRect.x * 100}%`,
-            top:    `${this.cropRect.y * 100}%`,
-            width:  `${this.cropRect.width * 100}%`,
-            height: `${this.cropRect.height * 100}%`,
+            left: `${this.cropRect.x * 100}%`,
+            top: `${this.cropRect.y * 100}%`,
+            width: `${this.cropRect.width * 100}%`,
+            height: `${this.cropRect.height * 100}%`
         };
     }
 
     protected existingCropStyle(crop: PdfCropRegion): Record<string, string> {
         return {
-            left:   `${crop.x * 100}%`,
-            top:    `${crop.y * 100}%`,
-            width:  `${crop.width * 100}%`,
-            height: `${crop.height * 100}%`,
+            left: `${crop.x * 100}%`,
+            top: `${crop.y * 100}%`,
+            width: `${crop.width * 100}%`,
+            height: `${crop.height * 100}%`
         };
     }
 
@@ -353,7 +355,7 @@ export class PdfManipulatorDialogComponent {
     protected confirm(): void {
         const annotations: PdfAnnotations = {
             excludedPages: Array.from(this.excludedPages),
-            cropRegions: Array.from(this.cropRegions.values()).flat(),
+            cropRegions: Array.from(this.cropRegions.values()).flat()
         };
         this.dialogRef.close(annotations);
     }
@@ -364,20 +366,12 @@ export class PdfManipulatorDialogComponent {
             this.dialogRef.close(null);
             return;
         }
-        this.confirmationService.confirm({
-            message: 'Hai delle modifiche non salvate che andranno perse. Vuoi uscire comunque?',
-            header: 'Uscire senza salvare?',
-            icon: 'pi pi-exclamation-triangle',
-            rejectButtonProps: {
-                label: 'Continua a modificare',
-                severity: 'secondary',
-                outlined: true,
-            },
-            acceptButtonProps: {
-                label: 'Esci senza salvare',
-                severity: 'danger',
-            },
-            accept: () => this.dialogRef.close(null),
+        this.confirmService.confirmDiscard({
+            title: 'Uscire senza salvare?',
+            consequence: 'Le modifiche alle pagine e ai ritagli andranno perse.',
+            actionLabel: 'Esci senza salvare',
+            key: 'pdf-discard',
+            accept: () => this.dialogRef.close(null)
         });
     }
 
@@ -398,10 +392,22 @@ export class PdfManipulatorDialogComponent {
         const cy = Math.min(Math.max(my, 0), 1);
 
         switch (mode) {
-            case 'resize-nw': fixedX = x + width; fixedY = y + height; break;
-            case 'resize-ne': fixedX = x;         fixedY = y + height; break;
-            case 'resize-sw': fixedX = x + width; fixedY = y;          break;
-            case 'resize-se': fixedX = x;         fixedY = y;          break;
+            case 'resize-nw':
+                fixedX = x + width;
+                fixedY = y + height;
+                break;
+            case 'resize-ne':
+                fixedX = x;
+                fixedY = y + height;
+                break;
+            case 'resize-sw':
+                fixedX = x + width;
+                fixedY = y;
+                break;
+            case 'resize-se':
+                fixedX = x;
+                fixedY = y;
+                break;
 
             case 'resize-n': {
                 const bottom = y + height;
@@ -418,14 +424,15 @@ export class PdfManipulatorDialogComponent {
                 return { y, height, x: Math.min(x, cx), width: Math.abs(cx - x) };
             }
 
-            default: return base;
+            default:
+                return base;
         }
 
         return {
-            x:      Math.min(fixedX, cx),
-            y:      Math.min(fixedY, cy),
-            width:  Math.abs(fixedX - cx),
-            height: Math.abs(fixedY - cy),
+            x: Math.min(fixedX, cx),
+            y: Math.min(fixedY, cy),
+            width: Math.abs(fixedX - cx),
+            height: Math.abs(fixedY - cy)
         };
     }
 
@@ -436,23 +443,20 @@ export class PdfManipulatorDialogComponent {
         const hy = HANDLE_HIT_PX / imgRect.height;
         const { x, y, width, height } = this.cropRect;
 
-        if (Math.abs(mx - x)         < hx && Math.abs(my - y)          < hy) return 'nw-resize';
-        if (Math.abs(mx - (x+width)) < hx && Math.abs(my - y)          < hy) return 'ne-resize';
-        if (Math.abs(mx - x)         < hx && Math.abs(my - (y+height)) < hy) return 'sw-resize';
-        if (Math.abs(mx - (x+width)) < hx && Math.abs(my - (y+height)) < hy) return 'se-resize';
-        if (Math.abs(my - y)          < hy && mx > x + hx && mx < x + width - hx)  return 'n-resize';
-        if (Math.abs(my - (y+height)) < hy && mx > x + hx && mx < x + width - hx)  return 's-resize';
-        if (Math.abs(mx - x)          < hx && my > y + hy && my < y + height - hy)  return 'w-resize';
-        if (Math.abs(mx - (x+width))  < hx && my > y + hy && my < y + height - hy)  return 'e-resize';
-        if (mx >= x && mx <= x + width && my >= y && my <= y + height)               return 'move';
+        if (Math.abs(mx - x) < hx && Math.abs(my - y) < hy) return 'nw-resize';
+        if (Math.abs(mx - (x + width)) < hx && Math.abs(my - y) < hy) return 'ne-resize';
+        if (Math.abs(mx - x) < hx && Math.abs(my - (y + height)) < hy) return 'sw-resize';
+        if (Math.abs(mx - (x + width)) < hx && Math.abs(my - (y + height)) < hy) return 'se-resize';
+        if (Math.abs(my - y) < hy && mx > x + hx && mx < x + width - hx) return 'n-resize';
+        if (Math.abs(my - (y + height)) < hy && mx > x + hx && mx < x + width - hx) return 's-resize';
+        if (Math.abs(mx - x) < hx && my > y + hy && my < y + height - hy) return 'w-resize';
+        if (Math.abs(mx - (x + width)) < hx && my > y + hy && my < y + height - hy) return 'e-resize';
+        if (mx >= x && mx <= x + width && my >= y && my <= y + height) return 'move';
         return 'crosshair';
     }
 
     private normalize(event: MouseEvent, rect: DOMRect): [number, number] {
-        return [
-            Math.min(Math.max((event.clientX - rect.left) / rect.width,  0), 1),
-            Math.min(Math.max((event.clientY - rect.top)  / rect.height, 0), 1),
-        ];
+        return [Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1), Math.min(Math.max((event.clientY - rect.top) / rect.height, 0), 1)];
     }
 
     private getImgAndRect(): { img: HTMLImageElement | null; rect: DOMRect | null } {

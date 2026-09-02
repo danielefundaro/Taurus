@@ -1,53 +1,41 @@
-<p-confirmdialog />
-<div class="card notifications">
-    <header class="widget-header">
-        <span>
-            <strong
-                >Notifiche
-                @if (unreadCount > 0) {
-                    <span class="unread-count">{{ unreadCount }}</span>
-                }
-            </strong>
-            <small>Aggiornamenti che richiedono attenzione</small>
-        </span>
-        <div class="header-actions">
-            <button type="button" class="mark-all" [disabled]="unreadCount === 0" (click)="markAll()">Segna tutte come lette</button>
-            <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain" aria-label="Altre azioni" (click)="menu.toggle($event)"></button>
-            <p-menu #menu [popup]="true" [model]="items"></p-menu>
-        </div>
-    </header>
+<app-detail-section title="Notifiche" [count]="unreadCount || undefined" description="Aggiornamenti che richiedono attenzione">
+    <div sectionActions class="header-actions">
+        <button type="button" class="mark-all" [disabled]="unreadCount === 0" (click)="markAll()">Segna tutte come lette</button>
+        <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain" aria-label="Altre azioni" (click)="menu.toggle($event)"></button>
+        <p-menu #menu [popup]="true" [model]="items"></p-menu>
+    </div>
 
     @if (notices?.content?.length) {
-        <div class="notice-list">
-            @for (notice of notices!.content; track notice.id) {
-                <article class="notice-row" [class.notice-row--unread]="!notice.readDate">
-                    <button type="button" class="notice-row__main" (click)="mark(notice)" [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
-                        <span class="notice-row__dot" aria-hidden="true"></span>
-                        <span class="notice-row__icon"
-                            ><i class="pi" [class.pi-wallet]="notice.source === 'FINANCE' && !notice.readDate" [class.pi-box]="notice.source !== 'FINANCE' && !notice.readDate" [class.pi-check]="notice.readDate" aria-hidden="true"></i
-                        ></span>
-                        <span class="notice-row__copy">
-                            <strong>{{ notice.name }}</strong>
-                            <small>{{ notice.message }}</small>
-                            <em>{{ notice.readDate ? 'Letta' : 'Da leggere' }}</em>
-                        </span>
-                    </button>
-                    <button pButton type="button" icon="pi pi-trash" class="notice-row__delete p-button-rounded p-button-text p-button-plain" [attr.aria-label]="'Elimina ' + notice.name" (click)="deleteOne(notice)"></button>
-                </article>
-            }
-        </div>
+        @for (notice of notices!.content; track notice.id) {
+            <app-list-row compact>
+                <span rowMedia class="notice-icon" [class.notice-icon--unread]="!notice.readDate"
+                    ><i class="pi" [class.pi-wallet]="notice.source === 'FINANCE' && !notice.readDate" [class.pi-box]="notice.source !== 'FINANCE' && !notice.readDate" [class.pi-check]="notice.readDate" aria-hidden="true"></i
+                ></span>
+                <button rowIdentity type="button" class="notice-main" [class.notice-main--unread]="!notice.readDate" (click)="mark(notice)" [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
+                    <strong>{{ notice.name }}</strong>
+                    <small>{{ notice.message }}</small>
+                    <em>{{ notice.readDate ? 'Letta' : 'Da leggere' }}</em>
+                </button>
+                <button
+                    pButton
+                    rowActions
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-text p-button-plain"
+                    [attr.aria-label]="'Elimina ' + notice.name"
+                    (click)="deleteOne(notice)"
+                ></button>
+            </app-list-row>
+        }
     } @else {
-        <div class="widget-empty">
-            <i class="pi pi-bell" aria-hidden="true"></i>
-            <span>Nessuna notifica</span>
-        </div>
+        <app-empty-state icon="pi pi-bell" title="Nessuna notifica" message="Non ci sono aggiornamenti che richiedono attenzione." compact />
     }
 
-    <footer class="notice-footer">
+    <footer class="widget-footer">
         <span>{{ firstRecord }}–{{ lastRecord }} di {{ totalRecords }}</span>
         <div>
             <button type="button" [disabled]="!canGoBack" aria-label="Pagina precedente" (click)="previousPage()"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
             <button type="button" [disabled]="!canGoForward" aria-label="Pagina successiva" (click)="nextPage()"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
         </div>
     </footer>
-</div>
+</app-detail-section>

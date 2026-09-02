@@ -1,28 +1,26 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService, SelectItem } from 'primeng/api';
+import { SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
-import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
+import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, Tenants } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { TenantsService, ToastService } from '../../../service';
+import { ConfirmService, TenantsService, ToastService } from '../../../service';
 
 @Component({
     selector: 'app-tenant-detail',
     imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [TenantsService, ConfirmationService]
+    providers: [TenantsService]
 })
-export class DetailComponent implements OnInit, HasUnsavedChanges {
+export class DetailComponent extends DetailPageBase implements OnInit {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
     public tenant: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
-    isDirty = false;
-    isSaving = false;
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -30,8 +28,9 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly dateConverterPipe: DateConverterPipe,
         private readonly routeService: ActivatedRoute,
         private readonly router: Router,
-        private readonly confirmationService: ConfirmationService
+        private readonly confirmService: ConfirmService
     ) {
+        super();
         this.cols = ['Codice', 'Ordine', 'Nome'];
         this.selectedTracks = [];
     }
@@ -43,14 +42,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     public confirmDelete(): void {
-        this.confirmationService.confirm({
-            header: 'Archivia tenant',
-            message: "Vuoi archiviare questo tenant?</br><b>Attenzione!</b> L'archiviazione non equivale alla cancellazione.",
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Archivia',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'warn' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmReversible({
+            title: 'Archivia tenant',
+            consequence: 'Il tenant verrà archiviato, non eliminato, e potrà essere recuperato.',
+            actionLabel: 'Archivia',
             accept: () => {
                 this.tenantsService
                     .delete(this.tenant.id)
@@ -67,15 +62,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     public confirmGdprDeletion(): void {
-        this.confirmationService.confirm({
-            header: 'Cancellazione definitiva GDPR',
-            message:
-                'La cancellazione del tenant ai sensi del GDPR è definitiva e irreversibile.</br>Tutti i dati, gli indici, i file e le autorizzazioni associati verranno eliminati fisicamente e non sarà possibile recuperarli in futuro.</br>Vuoi procedere?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina definitivamente',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Cancellazione definitiva GDPR',
+            consequence: 'Tutti i dati, gli indici, i file e le autorizzazioni del tenant verranno eliminati fisicamente e non potranno essere recuperati.',
+            actionLabel: 'Elimina definitivamente',
             accept: () => {
                 this.tenantsService
                     .deleteForGdpr(this.tenant.id)
@@ -92,13 +82,13 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     public save(): void {
-        this.isSaving = true;
+        this.saving = true;
         this.tenantsService
             .update(this.tenant.id, this.tenant)
             .pipe(
                 delay(1000),
                 first(),
-                finalize(() => (this.isSaving = false))
+                finalize(() => (this.saving = false))
             )
             .subscribe({
                 next: (tenant: Tenants) => {

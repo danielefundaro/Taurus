@@ -1,44 +1,14 @@
-<p-fluid class="flex flex-col gap-4 mb-8">
-    <span class="text-surface-500 dark:text-surface-400 block">Inserisci le informazioni dell’oggetto di inventario.</span>
-
+<app-dialog-shell title="Nuovo oggetto" subtitle="Registra un bene fisico nell’inventario." confirmLabel="Aggiungi oggetto" [invalidCount]="(!item.inventoryNumber.trim() ? 1 : 0) + (!item.name.trim() ? 1 : 0)" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <p-floatlabel variant="on">
-            <input pInputText id="inventoryNumber" type="text" [(ngModel)]="item.inventoryNumber" />
-            <label for="inventoryNumber">Numero inventariale *</label>
-        </p-floatlabel>
-        <p-floatlabel variant="on">
-            <input pInputText id="name" type="text" [(ngModel)]="item.name" />
-            <label for="name">Nome *</label>
-        </p-floatlabel>
-        <p-floatlabel variant="on">
-            <p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" />
-            <label for="totalQuantity">Quantità totale</label>
-        </p-floatlabel>
-        <p-floatlabel variant="on">
-            <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="item.conditionStatus" />
-            <label for="condition">Stato di conservazione</label>
-        </p-floatlabel>
-        <p-floatlabel variant="on">
-            <p-inputnumber inputId="estimatedUnitValue" [(ngModel)]="item.estimatedUnitValue" mode="decimal" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" />
-            <label for="estimatedUnitValue">Valore unitario stimato</label>
-        </p-floatlabel>
-        <p-floatlabel variant="on">
-            <input pInputText id="currency" type="text" maxlength="3" [(ngModel)]="item.currency" />
-            <label for="currency">Valuta ISO (es. EUR)</label>
-        </p-floatlabel>
+        <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'"
+            ><input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber"
+        /></app-form-field>
+        <app-form-field label="Nome" forId="name" required [error]="item.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'"><input pInputText id="name" [(ngModel)]="item.name" /></app-form-field>
+        <app-form-field label="Quantità totale" forId="totalQuantity"><p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" /></app-form-field>
+        <app-form-field label="Stato di conservazione" forId="condition"><p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="item.conditionStatus" /></app-form-field>
+        <app-form-field label="Valore unitario stimato" forId="estimatedUnitValue"><p-inputnumber inputId="estimatedUnitValue" [(ngModel)]="item.estimatedUnitValue" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" /></app-form-field>
+        <app-form-field label="Valuta ISO" forId="currency" hint="Codice a tre lettere, per esempio EUR."><input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency" /></app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"></textarea></app-form-field>
+        <app-form-field class="md:col-span-2" label="Note di conservazione" forId="conditionNotes"><textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"></textarea></app-form-field>
     </div>
-
-    <p-floatlabel variant="on">
-        <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"></textarea>
-        <label for="description">Descrizione</label>
-    </p-floatlabel>
-    <p-floatlabel variant="on">
-        <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"></textarea>
-        <label for="conditionNotes">Note di conservazione</label>
-    </p-floatlabel>
-</p-fluid>
-
-<div class="flex justify-end gap-2 mt-2">
-    <p-button label="Annulla" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="cancel()" />
-    <p-button label="Salva" icon="pi pi-check" [outlined]="true" (onClick)="save()" [disabled]="!canSave" />
-</div>
+</app-dialog-shell>

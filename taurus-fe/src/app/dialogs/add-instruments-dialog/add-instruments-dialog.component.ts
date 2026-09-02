@@ -8,23 +8,16 @@ import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { Instruments } from '../../module';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-instruments-dialog',
-    imports: [
-        ButtonModule,
-        InputTextModule,
-        FloatLabelModule,
-        TextareaModule,
-        DatePickerModule,
-        FormsModule,
-        FluidModule,
-    ],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-instruments-dialog.component.html',
-    styleUrl: './add-instruments-dialog.component.scss',
+    styleUrl: './add-instruments-dialog.component.scss'
 })
 export class AddInstrumentsDialogComponent {
-
     protected instrument: Instruments;
 
     constructor(private readonly dialogRef: DynamicDialogRef<AddInstrumentsDialogComponent>) {
@@ -36,6 +29,7 @@ export class AddInstrumentsDialogComponent {
     }
 
     protected save(): void {
+        if (!this.instrument.name?.trim()) return;
         this.dialogRef.close(this.instrument);
     }
 }

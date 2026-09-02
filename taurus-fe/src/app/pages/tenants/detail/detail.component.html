@@ -1,110 +1,78 @@
+<p-confirmdialog />
 <p-fluid>
-    <div class="flex">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-xl">Tenant</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
-                </div>
-                <div class="flex gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" />
-                </div>
-            </div>
-            <p-confirmdialog />
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
-                    <label for="name">Nome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="code" type="text" [(ngModel)]="tenant!.code" (ngModelChange)="isDirty = true" />
-                    <label for="code">Codice</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" (ngModelChange)="isDirty = true" />
-                    <label for="email">Email</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers" (ngModelChange)="isDirty = true" />
-                    <label for="maxUsers">Numero Massimo Utenti</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd" [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
-                    <label for="expireDate">Data Scadenza</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="address" [(ngModel)]="tenant.address" (ngModelChange)="isDirty = true" />
-                    <label for="address">Indirizzo</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="postalCode" [(ngModel)]="tenant.postalCode" (ngModelChange)="isDirty = true" />
-                    <label for="postalCode">CAP</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="city" [(ngModel)]="tenant.city" (ngModelChange)="isDirty = true" />
-                    <label for="city">Città</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="province" [(ngModel)]="tenant.province" (ngModelChange)="isDirty = true" />
-                    <label for="province">Provincia</label>
-                </p-floatlabel>
-                <div class="flex flex-col gap-1">
-                    <p-floatlabel variant="on">
-                        <input pInputText id="country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="IT" title="Codice Paese di due lettere, ad esempio IT" [(ngModel)]="tenant.country" (ngModelChange)="onCountryChange($event)" />
-                        <label for="country">Paese (codice ISO)</label>
-                    </p-floatlabel>
-                    <small *ngIf="countryInvalid" class="text-red-500">Inserisci un codice Paese di due lettere, ad esempio IT.</small>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <p-floatlabel variant="on">
-                        <input pInputText id="timeZone" [(ngModel)]="tenant.timeZone" placeholder="Europe/Rome"
-                            (ngModelChange)="isDirty = true" />
-                        <label for="timeZone">Fuso orario IANA</label>
-                    </p-floatlabel>
-                    <small *ngIf="timeZoneInvalid" class="text-red-500">Inserisci un fuso valido, ad esempio Europe/Rome.</small>
-                </div>
-                <p-floatlabel variant="on">
-                    <input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" />
-                    <label for="taxCode">Codice fiscale</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
-                    <input pInputText id="vatNumber" [(ngModel)]="tenant.vatNumber" (ngModelChange)="isDirty = true" />
-                    <label for="vatNumber">Partita IVA</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" (ngModelChange)="isDirty = true" />
-                    <label for="domain">Dominio</label>
-                </p-floatlabel>
-                <div class="flex flex-col gap-1">
-                    <p-floatlabel variant="on">
-                        <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+" placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" />
-                        <label for="logoUrl">URL logo</label>
-                    </p-floatlabel>
-                    <small *ngIf="logoUrlInvalid" class="text-red-500">Inserisci un URL completo che inizi con http:// o https://.</small>
-                </div>
-                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" (ngModelChange)="isDirty = true" />
-            </div>
-            <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description" (ngModelChange)="isDirty = true"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
-        </div>
-    </div>
+    <app-page-header
+        kicker="Istanza"
+        [title]="tenant.name || 'Nuova istanza'"
+        backLink="/tenants"
+        [dirty]="isDirty"
+        [state]="tenant.active === false ? 'Disabilitata' : undefined"
+        ><div pageMetadata>{{ tenant.code }}</div>
+        <div pageActions><p-button label="Salva istanza" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
+    ></app-page-header>
 
-    <!-- Zona pericolosa -->
-    <div class="card danger-zone mt-8">
-        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span class="text-sm text-surface-500">Elimina il tenant conservando dati, indici, file e autorizzazioni.</span>
-                <p-button label="Elimina tenant" icon="pi pi-trash" severity="warn" [outlined]="true" (onClick)="confirmDelete()" />
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
-                <span class="text-sm text-surface-500">Elimina definitivamente il tenant e tutti i dati associati ai sensi del GDPR.</span>
-                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger" (onClick)="confirmGdprDeletion()" />
-            </div>
+    <app-detail-section title="Dati istanza" description="Anagrafica, limiti e sede. Si salva con «Salva istanza» in alto." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome dell’istanza.'">
+                <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Codice" forId="code">
+                <input pInputText id="code" type="text" [(ngModel)]="tenant!.code" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Email" forId="email">
+                <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Numero massimo utenti" forId="maxUsers" hint="-1 per nessun limite">
+                <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Data scadenza" forId="expireDate">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd" [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Indirizzo" forId="address">
+                <input pInputText id="address" [(ngModel)]="tenant.address" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="CAP" forId="postalCode">
+                <input pInputText id="postalCode" [(ngModel)]="tenant.postalCode" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Città" forId="city">
+                <input pInputText id="city" [(ngModel)]="tenant.city" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Provincia" forId="province">
+                <input pInputText id="province" [(ngModel)]="tenant.province" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Paese (codice ISO)" forId="country" [error]="countryInvalid ? 'Inserisci un codice Paese di due lettere, ad esempio IT.' : undefined">
+                <input pInputText id="country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="IT" [(ngModel)]="tenant.country" (ngModelChange)="onCountryChange($event)" />
+            </app-form-field>
+            <app-form-field label="Fuso orario IANA" forId="timeZone" [error]="timeZoneInvalid ? 'Inserisci un fuso valido, ad esempio Europe/Rome.' : undefined">
+                <input pInputText id="timeZone" [(ngModel)]="tenant.timeZone" placeholder="Europe/Rome" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Codice fiscale" forId="taxCode">
+                <input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Partita IVA" forId="vatNumber">
+                <input pInputText id="vatNumber" [(ngModel)]="tenant.vatNumber" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Dominio" forId="domain">
+                <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="URL logo" forId="logoUrl" [error]="logoUrlInvalid ? 'Inserisci un URL completo che inizi con http:// o https://.' : undefined">
+                <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+" placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Stato istanza" forId="active">
+                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description" (ngModelChange)="isDirty = true"></textarea>
+            </app-form-field>
         </div>
-    </div>
+    </app-detail-section>
+
+    <app-danger-zone
+        [operations]="[
+            { id: 'archive', title: 'Archivia istanza', consequence: 'L’istanza verrà archiviata conservando dati, indici, file e autorizzazioni.', label: 'Archivia istanza', icon: 'pi pi-archive' },
+            { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'L’istanza e tutti i dati associati verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
+        ]"
+        (execute)="$event === 'archive' ? confirmDelete() : confirmGdprDeletion()"
+    />
 
     <p-scrolltop />
 </p-fluid>

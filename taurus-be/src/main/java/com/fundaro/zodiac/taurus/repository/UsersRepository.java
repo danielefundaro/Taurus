@@ -11,6 +11,20 @@ import org.springframework.data.repository.query.Param;
 public interface UsersRepository extends CatalogRepository<Users> {
     Optional<Users> findByKeycloakIdAndDeletedFalse(String keycloakId);
 
+    /**
+     * Quanti utenti hanno assegnato ciascuno degli strumenti indicati.
+     * Restituisce una riga per strumento con almeno un utente: gli strumenti
+     * senza utenti non compaiono, e il chiamante li tratta come zero.
+     */
+    @Query("""
+        select i.id, count(u.id) from Users u
+        join u.instruments i
+        where u.deleted = false
+          and i.id in :instrumentIds
+        group by i.id
+        """)
+    List<Object[]> countUsersByInstrumentIds(@Param("instrumentIds") Collection<Long> instrumentIds);
+
     @Query("""
         select distinct u.keycloakId from Users u
         join u.roles role

@@ -3,13 +3,15 @@ import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryReturn } from '../../module';
 import { InventoryService, ToastService } from '../../service';
+import { DetailSectionComponent } from '../detail-section/detail-section.component';
 import { InventoryExpirationBadgeComponent } from '../inventory-expiration-badge/inventory-expiration-badge.component';
 
 @Component({
     selector: 'app-inventory-assignments',
     standalone: true,
-    imports: [ImportsModule, InventoryExpirationBadgeComponent],
-    templateUrl: './inventory-assignments.component.html'
+    imports: [ImportsModule, DetailSectionComponent, InventoryExpirationBadgeComponent],
+    templateUrl: './inventory-assignments.component.html',
+    styleUrl: './inventory-assignments.component.scss'
 })
 export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     @Input({ required: true }) userIndex!: number;

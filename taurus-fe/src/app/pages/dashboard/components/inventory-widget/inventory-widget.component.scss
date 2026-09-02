@@ -3,24 +3,84 @@
     width: 100%;
 }
 
-.inventory-widget {
-    padding: 0;
-    overflow: hidden;
+.inventory-metric {
+    padding-right: 1rem;
+
+    &--divided {
+        padding-left: 1rem;
+        border-left: 1px solid var(--p-content-border-color);
+    }
+
+    > span {
+        display: block;
+        color: var(--p-text-muted-color);
+        font-size: 0.72rem;
+    }
+
+    > strong {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--p-primary-color);
+        font-size: 1.35rem;
+        font-weight: 600;
+    }
 }
 
-.inventory-title-icon {
+.inventory-subheader,
+.inventory-footer {
+    display: flex;
+    gap: 0.75rem;
+    margin-inline: var(--card-bleed, -2rem);
+    padding: 0.7rem var(--card-padding, 2rem);
+    border-top: 1px solid var(--p-content-border-color);
+    background: var(--p-content-hover-background);
+}
+
+.inventory-subheader {
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+
+    > span:last-child {
+        color: var(--p-text-muted-color);
+        font-weight: 400;
+    }
+}
+
+.inventory-footer {
+    flex-direction: column;
+    margin-top: 0.75rem;
+    margin-bottom: var(--card-bleed, -2rem);
+    color: var(--p-text-muted-color);
+    font-size: 0.72rem;
+
+    @media (min-width: 640px) {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.inventory-row-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    flex: 0 0 2.75rem;
-    border-radius: var(--content-border-radius);
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-    color: var(--primary-color);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: var(--p-content-hover-background);
+    color: var(--p-primary-color);
 
-    i {
-        font-size: 1.25rem;
+    &--pending {
+        background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+        color: var(--p-yellow-700);
+    }
+    &--returns {
+        background: color-mix(in srgb, var(--p-blue-500) 16%, transparent);
+        color: var(--p-blue-700);
     }
 }
 
@@ -33,24 +93,19 @@
     background: var(--p-surface-200);
 }
 
-.inventory-progress-available {
-    background: var(--primary-color);
-}
-
-.inventory-progress-assigned {
-    background: var(--p-surface-400);
-}
-
 .inventory-dot {
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
 }
 
+/* La barra e il pallino della legenda condividono i due colori. */
+.inventory-progress-available,
 .inventory-dot-available {
-    background: var(--primary-color);
+    background: var(--p-primary-color);
 }
 
+.inventory-progress-assigned,
 .inventory-dot-assigned {
     background: var(--p-surface-400);
 }

@@ -1,132 +1,125 @@
+<p-confirmdialog />
 <p-fluid>
-    <div class="flex">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-xl">Album</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-                        title="Modifiche non salvate"></span>
-                </div>
-                <div class="flex flex-row gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
-                        [disabled]="!isDirty" (onClick)="save()"
-                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
-                    <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
-                        [disabled]="!album.tracks?.length" />
-                </div>
-            </div>
-            <p-confirmdialog />
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="album!.name"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="name">Nome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="date" dateFormat="yy-mm-dd"
-                        [(ngModel)]="album!.date" (ngModelChange)="isDirty = true" />
-                    <label for="date">Data</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on"
-                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                    <p-autocomplete inputId="states" [(ngModel)]="album!.state" [suggestions]="autoFilteredStatesLabels"
-                        dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true"
-                        optionValue="code" optionLabel="name" />
-                    <label for="states">Stato</label>
-                </p-floatlabel>
-            </div>
-            <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="album!.description"
-                    (ngModelChange)="isDirty = true"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
-        </div>
-    </div>
+    <app-page-header kicker="Album" [title]="album.name || 'Nuovo album'" backLink="/albums" [dirty]="isDirty" [state]="album.state === StateEnum.PUBLIC ? 'Pubblico' : undefined"
+        ><div pageMetadata>{{ album.date ? (album.date | date: 'dd-MM-yyyy') : 'Senza data' }}</div>
+        <div pageActions class="flex gap-2">
+            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()" [disabled]="!album.tracks?.length" /><p-button
+                label="Salva album"
+                icon="pi pi-check"
+                [loading]="saving"
+                [disabled]="!isDirty"
+                (onClick)="save()"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+            /></div
+    ></app-page-header>
 
-    <div class="flex mt-4">
-        <div class="card flex flex-col gap-4 w-full">
-            <p-table #dt class="mt-4" [value]="album.tracks!" [rows]="10" [columns]="cols" [paginator]="true"
-                [globalFilterFields]="['name']" [(selection)]="selectedTracks" [rowHover]="true" dataKey="index"
-                currentPageReportTemplate="Da {first} a {last} di {totalRecords} tracce" [showCurrentPageReport]="true"
-                [rowsPerPageOptions]="[10, 20, 30]" (onRowReorder)="onRowReorder()">
-                <ng-template #caption>
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between flex-wrap gap-3">
-                        <div class="flex flex-col md:flex-row gap-2"
-                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                            <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined
-                                (onClick)="addNew()" />
-                            <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt"
-                                outlined (onClick)="onRowReorder()" />
-                            <p-button severity="secondary" label="Rimuovi selezionati" icon="pi pi-trash" outlined
-                                (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
+    <app-detail-section title="Dati album" description="Nome, data e stato di pubblicazione. Si salva con «Salva album» in alto." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="name" required [error]="album.name?.trim() ? undefined : 'Inserisci il nome dell’album.'">
+                <input pInputText id="name" type="text" [(ngModel)]="album!.name" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Data" forId="date">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="date" dateFormat="yy-mm-dd" [(ngModel)]="album!.date" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Stato" forId="states" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                <p-autocomplete inputId="states" [(ngModel)]="album!.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="album!.description" (ngModelChange)="isDirty = true"></textarea>
+            </app-form-field>
+        </div>
+    </app-detail-section>
+
+    <app-detail-section title="Tracce" [count]="album.tracks?.length" description="Composizione e ordine dell’album. Le modifiche si salvano con «Salva album» in alto.">
+        <div sectionActions class="flex flex-col md:flex-row gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+            <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined (onClick)="addNew()" />
+            <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt" outlined (onClick)="onRowReorder()" />
+            <p-button severity="danger" label="Rimuovi selezionate" icon="pi pi-trash" outlined (onClick)="confirmDeleteSelectedTracks()" [disabled]="!selectedTracks.length" />
+        </div>
+        <p-table
+            #dt
+            [value]="album.tracks!"
+            [rows]="12"
+            [columns]="cols"
+            [paginator]="true"
+            [globalFilterFields]="['name']"
+            [(selection)]="selectedTracks"
+            [rowHover]="true"
+            dataKey="index"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} tracce"
+            [showCurrentPageReport]="true"
+            [rowsPerPageOptions]="[12, 24, 48]"
+            (onRowReorder)="onRowReorder()"
+        >
+            <ng-template #caption>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Cerca traccia..." />
+                </p-iconfield>
+            </ng-template>
+            <ng-template #header>
+                <tr>
+                    <th class="w-12" scope="col">
+                        <p-tableHeaderCheckbox />
+                    </th>
+                    <th class="w-10" scope="col"></th>
+                    <th pSortableColumn="order" scope="col">
+                        Ordine
+                        <p-sortIcon field="order" />
+                    </th>
+                    <th pSortableColumn="name" scope="col">
+                        Nome
+                        <p-sortIcon field="name" />
+                    </th>
+                    <th scope="col"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-track let-index="rowIndex">
+                <tr [pReorderableRow]="index">
+                    <td class="w-12">
+                        <p-tableCheckbox [value]="track" />
+                    </td>
+                    <td class="w-10">
+                        @if (canReorder()) {
+                            <span class="pi pi-bars text-surface-400" style="cursor: grab" pReorderableRowHandle></span>
+                        }
+                    </td>
+                    <td>{{ track.order }}</td>
+                    <td>{{ track.name }}</td>
+                    <td>
+                        <div class="flex flex-col md:flex-row gap-2">
+                            <a [routerLink]="'/tracks/' + track.index">
+                                <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza" tooltipPosition="top" />
+                            </a>
+                            <p-button
+                                icon="pi pi-trash"
+                                severity="danger"
+                                [rounded]="true"
+                                [outlined]="true"
+                                pTooltip="Elimina"
+                                tooltipPosition="top"
+                                (onClick)="confirmDeleteTrack(track)"
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+                            />
                         </div>
-                        <p-iconfield>
-                            <p-inputicon styleClass="pi pi-search" />
-                            <input pInputText type="text" (input)="onGlobalFilter(dt, $event)"
-                                placeholder="Cerca traccia..." />
-                        </p-iconfield>
-                    </div>
-                </ng-template>
-                <ng-template #header>
-                    <tr>
-                        <th class="w-12" scope="col">
-                            <p-tableHeaderCheckbox />
-                        </th>
-                        <th class="w-10" scope="col"></th>
-                        <th pSortableColumn="order" scope="col">
-                            Ordine
-                            <p-sortIcon field="order" />
-                        </th>
-                        <th pSortableColumn="name" scope="col">
-                            Nome
-                            <p-sortIcon field="name" />
-                        </th>
-                        <th scope="col"></th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-track let-index="rowIndex">
-                    <tr [pReorderableRow]="index">
-                        <td class="w-12">
-                            <p-tableCheckbox [value]="track" />
-                        </td>
-                        <td class="w-10">
-                            <span *ngIf="canReorder()" class="pi pi-bars text-surface-400" style="cursor: grab"
-                                pReorderableRowHandle></span>
-                        </td>
-                        <td>{{ track.order }}</td>
-                        <td>{{ track.name }}</td>
-                        <td>
-                            <div class="flex flex-col md:flex-row gap-2">
-                                <a [routerLink]="'/tracks/'+track.index">
-                                    <p-button icon="pi pi-search" [rounded]="true" [outlined]="true"
-                                        pTooltip="Visualizza" tooltipPosition="top" />
-                                </a>
-                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                                    pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteTrack(track)"
-                                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
-                            </div>
-                        </td>
-                    </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                    <tr>
-                        <td colspan="5" class="text-center py-6 text-color-secondary">Nessuna traccia presente.</td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </div>
-    </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="5">
+                        <app-empty-state compact icon="pi pi-file" title="Nessuna traccia" message="Aggiungi la prima traccia per comporre l’album." />
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </app-detail-section>
 
-    <!-- Zona pericolosa -->
-    <div class="card danger-zone mt-8" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questo album e tutti i contenuti
-                associati.</span>
-            <p-button label="Elimina album" icon="pi pi-trash" severity="danger" [outlined]="true"
-                (onClick)="confirmDelete()" />
-        </div>
-    </div>
+    <app-danger-zone
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+        [operations]="[{ id: 'delete', title: 'Elimina album', consequence: 'L’album e tutti i contenuti associati verranno eliminati definitivamente.', label: 'Elimina album' }]"
+        (execute)="confirmDelete()"
+    />
 
     <p-scrolltop />
 </p-fluid>

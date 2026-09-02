@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ConfirmationService, SelectItem } from 'primeng/api';
-import { DataViewLazyLoadEvent } from 'primeng/dataview';
+import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { SelectChangeEvent } from 'primeng/select';
 import { first } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, Page } from '../../module';
-import { InventoryService, KeycloakService, ToastService, UserInventoryService } from '../../service';
+import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, ToastService, UserInventoryService } from '../../service';
+import { ListPageBase } from '../_shared/list-page.base';
 
 type InventoryViewMode = 'TENANT' | 'MINE';
 
@@ -18,15 +17,13 @@ type InventoryViewMode = 'TENANT' | 'MINE';
     standalone: true,
     imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './inventory.component.html',
-    styleUrl: './inventory.component.scss',
-    providers: [ConfirmationService, DialogService]
+    providers: [DialogService]
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent extends ListPageBase implements OnInit {
     protected items: InventoryItem[] = [];
     protected assignments: InventoryAssignmentSummary[] = [];
     protected erasureRequests: InventoryErasureRequest[] = [];
-    protected layout: 'list' | 'grid' = 'list';
-    protected readonly layoutOptions = ['list', 'grid'];
+    protected layout: ListLayout = 'list';
     protected readonly viewOptions = [
         { label: 'Inventario', value: 'TENANT' },
         { label: 'I miei oggetti', value: 'MINE' }
@@ -38,18 +35,9 @@ export class InventoryComponent implements OnInit {
     protected viewMode: InventoryViewMode = 'TENANT';
     protected scope: InventoryAssignmentScope = 'POSSESSED';
     protected sortOptions: SelectItem[] = [];
-    protected totalRecords = 0;
-    protected loading = false;
-    protected search = '';
     protected reportIncludeAssigned = true;
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = {
-        first: 0,
-        rows: 10,
-        sortField: 'name',
-        sortOrder: 1
-    };
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',
@@ -65,11 +53,15 @@ export class InventoryComponent implements OnInit {
         private readonly userInventoryService: UserInventoryService,
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
+        private readonly listLayoutService: ListLayoutService,
         private readonly dialogService: DialogService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
-    ) {}
+    ) {
+        super();
+        this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'name', sortOrder: 1 };
+    }
 
     protected get isAdmin(): boolean {
         return this.keycloakService.isAdmin;
@@ -83,11 +75,18 @@ export class InventoryComponent implements OnInit {
         return this.personalView ? this.assignments : this.items;
     }
 
+    protected get emptyMessage(): string {
+        if (this.searchTerm) return 'Prova a modificare o azzerare la ricerca.';
+        if (!this.personalView) return 'Aggiungi il primo oggetto all’inventario.';
+        return this.scope === 'POSSESSED' ? 'Non hai materiale attualmente in possesso.' : 'Non risultano consegne completamente riconsegnate.';
+    }
+
     protected get canDownloadReport(): boolean {
         return this.reportIncludeAssigned || this.reportIncludeReturned;
     }
 
     ngOnInit(): void {
+        this.listLayoutService.observe('inventory', (value) => (this.layout = value));
         this.viewMode = this.isAdmin && this.route.snapshot.queryParamMap.get('view') !== 'mine' ? 'TENANT' : 'MINE';
         this.configureSortOptions();
         if (this.isAdmin) this.loadErasureRequests();
@@ -102,26 +101,9 @@ export class InventoryComponent implements OnInit {
         }
     }
 
-    protected onLazyLoad(event: DataViewLazyLoadEvent): void {
-        this.dataViewLazyLoadEvent = event;
-        this.loadElements();
-    }
-
-    protected onGlobalFilter(event: Event): void {
-        this.search = (event.target as HTMLInputElement).value;
-        this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
-        this.loadElements();
-    }
-
-    protected onSortChange(event: SelectChangeEvent): void {
-        const value = event.value as string;
-        this.dataViewLazyLoadEvent = {
-            ...this.dataViewLazyLoadEvent,
-            first: 0,
-            sortField: value.startsWith('!') ? value.substring(1) : value,
-            sortOrder: value.startsWith('!') ? -1 : 1
-        };
-        this.loadElements();
+    protected onLayoutChange(value: ListLayout): void {
+        this.layout = value;
+        this.listLayoutService.set('inventory', value);
     }
 
     protected onViewChange(mode: InventoryViewMode): void {
@@ -132,17 +114,17 @@ export class InventoryComponent implements OnInit {
             queryParamsHandling: 'merge',
             replaceUrl: true
         });
-        this.search = '';
+        this.searchTerm = '';
         this.totalRecords = 0;
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
         this.configureSortOptions();
-        this.loadElements();
+        this.loadElements(this.searchTerm);
     }
 
     protected onScopeChange(scope: InventoryAssignmentScope): void {
         this.scope = scope;
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
-        this.loadElements();
+        this.loadElements(this.searchTerm);
     }
 
     protected addNew(): void {
@@ -153,8 +135,8 @@ export class InventoryComponent implements OnInit {
             draggable: true,
             resizable: true,
             modal: true,
-            width: '50vw',
-            breakpoints: { '1199px': '75vw', '575px': '90vw' }
+            width: '40rem',
+            breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result?: InventoryItem) => {
@@ -164,28 +146,24 @@ export class InventoryComponent implements OnInit {
                 .pipe(first())
                 .subscribe(() => {
                     this.toastService.success('Successo', 'Oggetto aggiunto all’inventario.');
-                    this.loadElements();
+                    this.loadElements(this.searchTerm);
                 });
         });
     }
 
     protected deleteItem(item: InventoryItem): void {
         if (!item.id || !this.isAdmin || this.personalView) return;
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: `Rimuovere “${item.name}” dall’inventario?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina oggetto',
+            consequence: `“${item.name}” verrà rimosso dall’inventario.`,
+            actionLabel: 'Elimina',
             accept: () =>
                 this.inventoryService
                     .deleteItem(item.id!)
                     .pipe(first())
                     .subscribe(() => {
                         this.toastService.success('Oggetto eliminato', 'L’oggetto è stato rimosso dall’inventario.');
-                        this.loadElements();
+                        this.loadElements(this.searchTerm);
                     })
         });
     }
@@ -248,7 +226,8 @@ export class InventoryComponent implements OnInit {
         }
     }
 
-    private loadElements(): void {
+    protected loadElements(search?: string): void {
+        this.searchTerm = search ?? this.searchTerm;
         if (this.personalView) this.loadAssignments();
         else this.loadItems();
     }
@@ -260,7 +239,7 @@ export class InventoryComponent implements OnInit {
         const sort = `${sortField},${(this.dataViewLazyLoadEvent.sortOrder || 1) > 0 ? 'asc' : 'desc'}`;
         this.loading = true;
         this.inventoryService
-            .getItems(this.search, page, rows, sort)
+            .getItems(this.searchTerm, page, rows, sort)
             .pipe(first())
             .subscribe({
                 next: (result: Page<InventoryItem>) => {
@@ -279,7 +258,7 @@ export class InventoryComponent implements OnInit {
         const sort = `${sortField},${(this.dataViewLazyLoadEvent.sortOrder || -1) > 0 ? 'asc' : 'desc'}`;
         this.loading = true;
         this.userInventoryService
-            .getAssignments(this.search, this.scope, page, rows, sort)
+            .getAssignments(this.searchTerm, this.scope, page, rows, sort)
             .pipe(first())
             .subscribe({
                 next: (result) => {

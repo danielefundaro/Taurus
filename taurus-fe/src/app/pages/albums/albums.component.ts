@@ -1,39 +1,27 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { ConfirmationService, SelectItem } from 'primeng/api';
-import { DataViewLazyLoadEvent } from 'primeng/dataview';
+import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { SelectChangeEvent } from 'primeng/select';
-import { delay, first, forkJoin } from 'rxjs';
+import { delay, finalize, first, forkJoin } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../constants';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Albums, AlbumsCriteria, Page } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { AlbumsService, MediaService, PrinterService, ToastService } from '../../service';
+import { AlbumsService, ConfirmService, ListLayout, ListLayoutService, MediaService, PrinterService, ToastService } from '../../service';
+import { ListPageBase } from '../_shared/list-page.base';
 
 @Component({
     selector: 'app-albums',
-    imports: [
-        RouterModule,
-        ImportsModule,
-    ],
+    imports: [RouterModule, ImportsModule],
     templateUrl: './albums.component.html',
     styleUrl: './albums.component.scss',
-    providers: [
-        AlbumsService,
-        MediaService,
-        ConfirmationService,
-        DialogService,
-    ],
-    changeDetection: ChangeDetectionStrategy.Default,
+    providers: [AlbumsService, MediaService, DialogService],
+    changeDetection: ChangeDetectionStrategy.Default
 })
-export class AlbumsComponent implements OnInit {
+export class AlbumsComponent extends ListPageBase implements OnInit {
     protected sortOptions!: SelectItem[];
-    protected layout: 'list' | 'grid' = 'list';
-    protected options = ['list', 'grid'];
-    protected totalRecords: number = 0;
-    protected dataViewLazyLoadEvent: DataViewLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };
+    protected layout: ListLayout = 'list';
     protected albums: Albums[];
     protected selectedAlbums: Albums[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
@@ -44,79 +32,68 @@ export class AlbumsComponent implements OnInit {
         private readonly printerService: PrinterService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
+        private readonly listLayoutService: ListLayoutService
     ) {
+        super();
         this.albums = [];
     }
 
     ngOnInit() {
         this.sortOptions = [
-            { label: 'Name A-Z', value: 'name' },
-            { label: 'Name Z-A', value: '!name' },
+            { label: 'Nome A-Z', value: 'name' },
+            { label: 'Nome Z-A', value: '!name' }
         ];
+        this.listLayoutService.observe('albums', (value) => (this.layout = value));
     }
 
-    protected onSortChange(event: SelectChangeEvent) {
-        let value = event.value;
-
-        if (value.indexOf('!') === 0) {
-            this.dataViewLazyLoadEvent.sortOrder = -1;
-            this.dataViewLazyLoadEvent.sortField = value.substring(1, value.length);
-        } else {
-            this.dataViewLazyLoadEvent.sortOrder = 1;
-            this.dataViewLazyLoadEvent.sortField = value;
-        }
-    }
-
-    protected onLazyLoad(event: DataViewLazyLoadEvent): void {
-        this.dataViewLazyLoadEvent = event;
-        this.loadElements();
-    }
-
-    protected onGlobalFilter(event: Event): void {
-        this.loadElements((event.target as HTMLInputElement).value);
+    protected onLayoutChange(value: ListLayout): void {
+        this.layout = value;
+        this.listLayoutService.set('albums', value);
     }
 
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
-            header: "Aggiungi album",
+            header: 'Aggiungi album',
             closable: true,
             draggable: true,
             resizable: true,
             modal: true,
-            width: '50vw',
-            breakpoints: { '1199px': '75vw', '575px': '90vw' },
+            width: '40rem',
+            breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: Albums) => {
             if (result) {
-                this.albumsService.create(result).pipe(delay(1000), first()).subscribe({
-                    next: (album: Albums) => {
-                        this.toastService.success("Successo", "Album aggiunto con successo");
-                        this.loadElements();
-                    }
-                });
+                this.albumsService
+                    .create(result)
+                    .pipe(delay(1000), first())
+                    .subscribe({
+                        next: (album: Albums) => {
+                            this.toastService.success('Successo', 'Album aggiunto con successo');
+                            this.loadElements(this.searchTerm);
+                        }
+                    });
             }
         });
     }
 
     protected deleteElement(albums: Albums): void {
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: 'Eliminare definitivamente questo album?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina album',
+            consequence: 'L’album verrà eliminato definitivamente.',
+            actionLabel: 'Elimina',
             accept: () => {
-                this.albumsService.delete(albums.id).pipe(delay(1000), first()).subscribe({
-                    next: (value: any) => {
-                        this.toastService.success("Successo", "Album eliminato con successo");
-                        this.loadElements();
-                    }
-                });
-            },
+                this.albumsService
+                    .delete(albums.id)
+                    .pipe(delay(1000), first())
+                    .subscribe({
+                        next: (value: any) => {
+                            this.toastService.success('Successo', 'Album eliminato con successo');
+                            this.loadElements(this.searchTerm);
+                        }
+                    });
+            }
         });
     }
 
@@ -125,16 +102,16 @@ export class AlbumsComponent implements OnInit {
     }
 
     protected isSelected(item: Albums): boolean {
-        return this.selectedAlbums.some(s => s.id === item.id);
+        return this.selectedAlbums.some((s) => s.id === item.id);
     }
 
     protected isAllSelected(items: Albums[]): boolean {
-        return items.length > 0 && items.every(item => this.isSelected(item));
+        return items.length > 0 && items.every((item) => this.isSelected(item));
     }
 
     protected toggleSelection(item: Albums): void {
         if (this.isSelected(item)) {
-            this.selectedAlbums = this.selectedAlbums.filter(s => s.id !== item.id);
+            this.selectedAlbums = this.selectedAlbums.filter((s) => s.id !== item.id);
         } else {
             this.selectedAlbums = [...this.selectedAlbums, item];
         }
@@ -142,52 +119,57 @@ export class AlbumsComponent implements OnInit {
 
     protected toggleSelectAll(items: Albums[]): void {
         if (this.isAllSelected(items)) {
-            this.selectedAlbums = this.selectedAlbums.filter(s => !items.some(item => item.id === s.id));
+            this.selectedAlbums = this.selectedAlbums.filter((s) => !items.some((item) => item.id === s.id));
         } else {
-            const notYetSelected = items.filter(item => !this.isSelected(item));
+            const notYetSelected = items.filter((item) => !this.isSelected(item));
             this.selectedAlbums = [...this.selectedAlbums, ...notYetSelected];
         }
     }
 
     protected deleteSelectedElements(): void {
         const count = this.selectedAlbums.length;
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: `Eliminare definitivamente i ${count} album selezionati?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina album selezionati',
+            consequence: `I ${count} album selezionati verranno eliminati definitivamente.`,
+            actionLabel: 'Elimina',
             accept: () => {
-                forkJoin(this.selectedAlbums.map(item => this.albumsService.delete(item.id))).pipe(delay(1000), first()).subscribe({
-                    next: () => {
-                        this.selectedAlbums = [];
-                        this.toastService.success('Successo', `${count} album eliminati con successo`);
-                        this.loadElements();
-                    }
-                });
-            },
+                forkJoin(this.selectedAlbums.map((item) => this.albumsService.delete(item.id)))
+                    .pipe(delay(1000), first())
+                    .subscribe({
+                        next: () => {
+                            this.selectedAlbums = [];
+                            this.toastService.success('Successo', `${count} album eliminati con successo`);
+                            this.loadElements(this.searchTerm);
+                        }
+                    });
+            }
         });
     }
 
-    private loadElements(search?: string): void {
+    protected loadElements(search?: string): void {
+        this.loading = true;
         this.selectedAlbums = [];
         const albumsCriteria: AlbumsCriteria = new AlbumsCriteria();
-        albumsCriteria.page = this.dataViewLazyLoadEvent.first / this.dataViewLazyLoadEvent.rows;
-        albumsCriteria.size = this.dataViewLazyLoadEvent.rows;
-        albumsCriteria.sort = [`${this.dataViewLazyLoadEvent.sortField},${this.dataViewLazyLoadEvent.sortOrder > 0 ? "asc" : "desc"}`];
+        albumsCriteria.page = this.pageIndex;
+        albumsCriteria.size = this.pageSize;
+        albumsCriteria.sort = this.sortCriteria;
 
         if (search) {
             albumsCriteria.name = new StringFilter();
             albumsCriteria.name.contains = search;
         }
 
-        this.albumsService.getAll(albumsCriteria).pipe(first()).subscribe({
-            next: (value: Page<Albums>) => {
-                this.albums = value.content;
-                this.totalRecords = value.totalElements;
-            }
-        });
+        this.albumsService
+            .getAll(albumsCriteria)
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
+            .subscribe({
+                next: (value: Page<Albums>) => {
+                    this.albums = value.content;
+                    this.totalRecords = value.totalElements;
+                }
+            });
     }
 }

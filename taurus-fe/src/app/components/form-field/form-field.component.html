@@ -1,0 +1,14 @@
+<div class="form-field" [class.form-field--invalid]="!!error">
+    <label [attr.for]="forId"
+        >{{ label }}
+        @if (required) {
+            <span aria-hidden="true"> *</span><span class="sr-only"> obbligatorio</span>
+        }
+    </label>
+    <ng-content />
+    @if (error) {
+        <small class="form-field__error">{{ error }}</small>
+    } @else if (hint) {
+        <small class="form-field__hint">{{ hint }}</small>
+    }
+</div>

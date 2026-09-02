@@ -1,0 +1,9 @@
+@if (count > 0) {
+    <div class="selection-bar" role="region" aria-label="Azioni sugli elementi selezionati">
+        <p-checkbox [binary]="true" [ngModel]="allSelected" (ngModelChange)="toggleAll.emit($event)" inputId="select-all-visible" />
+        <label for="select-all-visible">{{ count }} {{ count === 1 ? 'elemento selezionato' : 'elementi selezionati' }}</label>
+        <span></span>
+        <p-button label="Deseleziona" text severity="secondary" (onClick)="clear.emit()" />
+        <p-button [label]="deleteLabel" icon="pi pi-trash" severity="danger" (onClick)="delete.emit()" />
+    </div>
+}

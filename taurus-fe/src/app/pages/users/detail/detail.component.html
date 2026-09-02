@@ -1,102 +1,81 @@
+<p-confirmdialog />
 <p-fluid>
-    <div class="flex">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-xl">Utente</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-                        title="Modifiche non salvate"></span>
-                </div>
-                <div class="flex gap-2">
-                    <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" [outlined]="true"
-                        (onClick)="sendSetupEmail()" />
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
-                        [disabled]="!isDirty" (onClick)="save()" />
-                </div>
-            </div>
-            <p-confirmdialog />
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="user!.name" (ngModelChange)="isDirty = true" />
-                    <label for="name">Nome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="lastName">Cognome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="email" type="text" [(ngModel)]="user!.email"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="email">Email</label>
-                </p-floatlabel>
-            </div>
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy"
-                        class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
-                    <label for="birthDate">Data di nascita</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete inputId="roles" [(ngModel)]="user!.roles" [suggestions]="autoFilteredRoles"
-                        [virtualScroll]="true" [virtualScrollItemSize]="34" dropdown multiple display="chip"
-                        (completeMethod)="filterRoles($event)" (ngModelChange)="isDirty = true" />
-                    <label for="roles">Ruoli</label>
-                </p-floatlabel>
-                <div class="flex flex-row items-center gap-2 w-full">
-                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active"
-                        (ngModelChange)="isDirty = true"></p-checkbox>
+    <app-page-header kicker="Utente" [title]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users" [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined"
+        ><div pageMetadata>{{ user.email }}</div>
+        <div pageActions class="flex gap-2">
+            <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined (onClick)="sendSetupEmail()" /><p-button label="Salva utente" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
+    ></app-page-header>
+
+    <app-detail-section title="Dati utente" description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="name" required [error]="user.name?.trim() ? undefined : 'Inserisci il nome.'">
+                <input pInputText id="name" type="text" [(ngModel)]="user!.name" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Cognome" forId="lastName" required [error]="user.lastName?.trim() ? undefined : 'Inserisci il cognome.'">
+                <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Email" forId="email" required [error]="user.email?.trim() ? undefined : 'Inserisci l’indirizzo email.'">
+                <input pInputText id="email" type="text" [(ngModel)]="user!.email" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Data di nascita" forId="birthDate">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Ruoli" forId="roles">
+                <p-autocomplete
+                    inputId="roles"
+                    [(ngModel)]="user!.roles"
+                    [suggestions]="autoFilteredRoles"
+                    [virtualScroll]="true"
+                    [virtualScrollItemSize]="34"
+                    dropdown
+                    multiple
+                    display="chip"
+                    (completeMethod)="filterRoles($event)"
+                    (ngModelChange)="isDirty = true"
+                />
+            </app-form-field>
+            <app-form-field label="Stato account" forId="active">
+                <div class="flex flex-row items-center gap-2">
+                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active" (ngModelChange)="isDirty = true"></p-checkbox>
                     <label for="active">Attivo</label>
                 </div>
-            </div>
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <p-autocomplete inputId="instruments" [(ngModel)]="user!.instruments"
-                        [suggestions]="autoFilteredInstruments" [virtualScroll]="true" [virtualScrollItemSize]="34"
-                        optionLabel="name" dropdown multiple display="chip" (completeMethod)="filterInstruments($event)"
-                        (ngModelChange)="onReorderInstruments()" />
-                    <label for="instruments">Strumenti</label>
-                </p-floatlabel>
-            </div>
-            <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description"
-                    (ngModelChange)="isDirty = true"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Strumenti" forId="instruments">
+                <p-autocomplete
+                    inputId="instruments"
+                    [(ngModel)]="user!.instruments"
+                    [suggestions]="autoFilteredInstruments"
+                    [virtualScroll]="true"
+                    [virtualScrollItemSize]="34"
+                    optionLabel="name"
+                    dropdown
+                    multiple
+                    display="chip"
+                    (completeMethod)="filterInstruments($event)"
+                    (ngModelChange)="onReorderInstruments()"
+                />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description" (ngModelChange)="isDirty = true"></textarea>
+            </app-form-field>
         </div>
-    </div>
+    </app-detail-section>
 
-    <div class="flex mt-4">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex items-center gap-2">
-                <span class="font-semibold text-xl">Eventi a cui ha partecipato</span>
-            </div>
-            <app-calendar-events-table [userId]="user.id" />
-        </div>
-    </div>
+    <app-detail-section title="Eventi a cui ha partecipato" description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
+        <app-calendar-events-table [userId]="user.id" />
+    </app-detail-section>
 
     @if (user.id) {
-        <div class="mt-4">
-            <app-inventory-assignments [userIndex]="user.id"/>
-        </div>
+        <app-inventory-assignments [userIndex]="user.id" />
     }
 
-    <!-- Zona pericolosa -->
-    <div class="card danger-zone mt-8">
-        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span class="text-sm text-surface-500">Rimuovi l'utente conservandone i dati.</span>
-                <p-button label="Elimina utente" icon="pi pi-trash" severity="warn" [outlined]="true"
-                    (onClick)="confirmDelete()" />
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
-                <span class="text-sm text-surface-500">Elimina definitivamente i dati personali dell'utente ai sensi del GDPR.</span>
-                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger"
-                    (onClick)="confirmGdprDeletion()" />
-            </div>
-        </div>
-    </div>
+    <app-danger-zone
+        [operations]="[
+            { id: 'deactivate', title: 'Disattiva utente', consequence: 'L’utente verrà rimosso conservandone i dati.', label: 'Disattiva utente', icon: 'pi pi-user-minus' },
+            { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'I dati personali dell’utente verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
+        ]"
+        (execute)="$event === 'deactivate' ? confirmDelete() : confirmGdprDeletion()"
+    />
 
     <p-scrolltop />
 </p-fluid>
