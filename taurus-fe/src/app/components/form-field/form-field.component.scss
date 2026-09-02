@@ -1,0 +1,27 @@
+:host {
+    display: block;
+}
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.form-field label {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+.form-field label span {
+    color: var(--p-red-500);
+}
+.form-field__error {
+    color: var(--p-red-500);
+}
+.form-field__hint {
+    color: var(--p-text-muted-color);
+}
+.form-field--invalid ::ng-deep input,
+.form-field--invalid ::ng-deep textarea,
+.form-field--invalid ::ng-deep .p-select {
+    border-color: var(--p-red-500);
+}

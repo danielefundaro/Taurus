@@ -1,87 +1,59 @@
 <p-confirmdialog />
 
 <p-fluid>
-    <!-- Avatar + name header -->
-    <div class="card flex flex-row items-center gap-4 w-full">
+    <app-page-header kicker="Profilo" [title]="(firstName || '') + ' ' + (lastName || '')" [subtitle]="'@' + username" [dirty]="isDirty"
+        ><div pageActions><p-button label="Salva profilo" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="saveProfile()" /></div
+    ></app-page-header>
+
+    <div class="card flex flex-row items-center gap-4" aria-label="Immagine del profilo">
         <div class="profile-avatar flex items-center justify-center rounded-full bg-primary text-surface-900 dark:text-surface-0">
             <i class="pi pi-user"></i>
         </div>
-        <div class="flex flex-col gap-1">
-            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">{{ firstName }} {{ lastName }}</h2>
-            <span class="text-surface-500 text-sm">&#64;{{ username }}</span>
+        <div>
+            <strong class="block">{{ firstName }} {{ lastName }}</strong>
+            <span class="text-sm text-muted-color">{{ email }}</span>
         </div>
     </div>
 
-    <!-- Personal info form -->
-    <div class="card">
-        <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">Informazioni personali</h3>
-            <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="flex flex-col gap-2">
-                <label for="firstName" class="font-medium text-sm text-surface-700 dark:text-surface-200">Nome</label>
+    <app-detail-section title="Informazioni personali" description="Nome, cognome ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="firstName">
                 <input pInputText id="firstName" [(ngModel)]="firstName" (ngModelChange)="isDirty = true" placeholder="Nome" />
-            </div>
-            <div class="flex flex-col gap-2">
-                <label for="lastName" class="font-medium text-sm text-surface-700 dark:text-surface-200">Cognome</label>
+            </app-form-field>
+            <app-form-field label="Cognome" forId="lastName">
                 <input pInputText id="lastName" [(ngModel)]="lastName" (ngModelChange)="isDirty = true" placeholder="Cognome" />
-            </div>
-            <div class="flex flex-col gap-2">
-                <label for="email" class="font-medium text-sm text-surface-700 dark:text-surface-200">Email</label>
+            </app-form-field>
+            <app-form-field label="Email" forId="email">
                 <input pInputText id="email" type="email" [(ngModel)]="email" (ngModelChange)="isDirty = true" placeholder="Email" />
-            </div>
-            <div class="flex flex-col gap-2">
-                <label for="username" class="font-medium text-sm text-surface-400">Nome utente</label>
+            </app-form-field>
+            <app-form-field label="Nome utente" forId="username" hint="Non modificabile">
                 <input pInputText id="username" [ngModel]="username" disabled placeholder="Nome utente" />
-            </div>
+            </app-form-field>
         </div>
-        <div class="flex justify-end">
-            <p-button label="Salva modifiche" icon="pi pi-save" [loading]="saving" (onClick)="saveProfile()" />
-        </div>
-    </div>
+    </app-detail-section>
 
-    <!-- Calendar event info form -->
-    <div class="card">
-        <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">Eventi a cui hai partecipato</h3>
-        </div>
+    <app-detail-section title="Eventi a cui hai partecipato" description="Sola lettura: le presenze si registrano dalla pagina dell’evento.">
         <app-calendar-events-table />
-    </div>
+    </app-detail-section>
 
-    <!-- Security actions -->
-    <div class="card">
-        <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 mt-0 mb-1">Sicurezza</h3>
-        <p class="text-sm text-surface-500 mt-0 mb-4">Gestisci la password e l'autenticazione a due fattori.</p>
+    <app-detail-section title="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />
             <p-button label="Configura autenticatore OTP" icon="pi pi-shield" severity="secondary" (onClick)="configureOTP()" />
         </div>
-    </div>
+    </app-detail-section>
 
-    <!-- Logout -->
-    <div class="card">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 mt-0 mb-1">Sessione</h3>
-                <p class="text-sm text-surface-500 m-0">Termina la sessione corrente e disconnettiti.</p>
-            </div>
+    <app-detail-section title="Sessione" description="Termina la sessione corrente e disconnettiti.">
+        <div sectionActions>
             <p-button label="Logout" icon="pi pi-sign-out" severity="warn" [outlined]="true" (onClick)="logout()" />
         </div>
-    </div>
+    </app-detail-section>
 
-    <!-- Danger zone -->
-    <div class="card danger-zone">
-        <h3 class="text-lg font-semibold text-red-500 mt-0 mb-4">Zona pericolosa</h3>
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <p class="text-sm text-surface-500 m-0">Disattiva l'account conservando i dati per un eventuale ripristino.</p>
-                <p-button label="Disattiva account" icon="pi pi-user-minus" severity="warn" [outlined]="true" (onClick)="confirmDeleteAccount()" />
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-500/20">
-                <p class="text-sm text-surface-500 m-0">Elimina definitivamente l'account e i dati personali ai sensi del GDPR.</p>
-                <p-button label="Elimina definitivamente (GDPR)" icon="pi pi-trash" severity="danger" (onClick)="confirmGdprDeletion()" />
-            </div>
-        </div>
-    </div>
+    <app-danger-zone
+        [operations]="[
+            { id: 'deactivate', title: 'Disattiva account', consequence: 'I dati verranno conservati per un eventuale ripristino.', label: 'Disattiva account', icon: 'pi pi-user-minus' },
+            { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'L’account e i dati personali verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
+        ]"
+        (execute)="$event === 'deactivate' ? confirmDeleteAccount() : confirmGdprDeletion()"
+    />
 </p-fluid>

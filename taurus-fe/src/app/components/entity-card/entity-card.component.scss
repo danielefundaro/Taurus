@@ -1,0 +1,83 @@
+:host {
+    display: block;
+    height: 100%;
+}
+.entity-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--p-content-border-color);
+    border-top: 3px solid transparent;
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-background);
+    transition:
+        transform 0.2s,
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+.entity-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--p-primary-color);
+    box-shadow: var(--p-content-shadow);
+}
+.entity-card--emphasized {
+    border-top-color: var(--p-primary-color);
+}
+.entity-card--selected {
+    box-shadow: 0 0 0 2px var(--p-primary-color);
+}
+.entity-card__media {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    border-bottom: 1px solid var(--p-content-border-color);
+    background: var(--p-content-hover-background);
+}
+.entity-card__media ::ng-deep img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.entity-card__selection {
+    position: absolute;
+    z-index: 1;
+    top: 0.65rem;
+    left: 0.65rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.entity-card:hover .entity-card__selection,
+.entity-card--selected .entity-card__selection {
+    opacity: 1;
+}
+.entity-card__body {
+    flex: 1;
+    min-height: 0;
+    padding: 1rem;
+}
+.entity-card__metrics {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    border-top: 1px solid var(--p-content-border-color);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+.entity-card__metrics:empty {
+    display: none;
+}
+.entity-card__metrics ::ng-deep > * {
+    padding: 0.75rem;
+    border-right: 1px solid var(--p-content-border-color);
+}
+.entity-card__actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid var(--p-content-border-color);
+}

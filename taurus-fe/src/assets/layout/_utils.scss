@@ -6,8 +6,13 @@
 }
 
 .card {
+    --card-padding: 2rem;
+    /* Da usare come margine negativo per gli elementi che devono sbordare
+       fino al bordo della card, come i piedi di impaginazione dei widget. */
+    --card-bleed: -2rem;
+
     background: var(--surface-card);
-    padding: 2rem;
+    padding: var(--card-padding);
     margin-bottom: 2rem;
     border-radius: var(--content-border-radius);
 

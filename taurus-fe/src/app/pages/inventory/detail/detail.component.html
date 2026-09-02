@@ -1,104 +1,81 @@
 <p-confirmdialog />
-<p-confirmdialog key="guard" />
 <p-fluid>
     @if (loading) {
-        <div class="card flex items-center justify-center py-16">
-            <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+        <div class="card flex flex-col gap-3">
+            <p-skeleton width="14rem" height="2rem" />
+            <p-skeleton width="10rem" height="1rem" />
+        </div>
+        <div class="card flex flex-col gap-4">
+            <p-skeleton height="3rem" />
+            <p-skeleton height="3rem" />
+            <p-skeleton height="8rem" />
         </div>
     } @else {
-        <div class="card flex flex-col gap-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <p-button icon="pi pi-arrow-left" severity="secondary" [text]="true" routerLink="/inventory" pTooltip="Torna all’inventario" />
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-xl font-semibold m-0">{{ isNew ? 'Nuovo oggetto' : item.name }}</h2>
-                            @if (isDirty) {
-                                <span class="w-2 h-2 rounded-full bg-amber-400" title="Modifiche non salvate"></span>
-                            }
-                        </div>
-                        @if (!isNew) {
-                            <span class="text-sm text-surface-500">{{ item.inventoryNumber }}</span>
-                        }
-                    </div>
+        <app-page-header kicker="Oggetto inventario" [title]="isNew ? 'Nuovo oggetto' : item.name" [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory" [dirty]="isDirty"
+            ><div pageActions><p-button label="Salva oggetto" icon="pi pi-check" [loading]="saving" [disabled]="!canSave" (onClick)="save()" /></div
+        ></app-page-header>
+
+        @if (!isNew) {
+            <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="inventory-stat">
+                    <strong>{{ item.totalQuantity }}</strong
+                    ><span>Quantità totale</span>
                 </div>
-                <p-button label="Salva" icon="pi pi-check" [loading]="saving" [disabled]="!canSave" (onClick)="save()" />
+                <div class="inventory-stat">
+                    <strong>{{ item.assignedQuantity }}</strong
+                    ><span>Assegnati</span>
+                </div>
+                <div class="inventory-stat">
+                    <strong>{{ item.availableQuantity }}</strong
+                    ><span>Disponibili</span>
+                </div>
             </div>
+        }
 
-            @if (!isNew) {
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="inventory-stat">
-                        <strong>{{ item.totalQuantity }}</strong
-                        ><span>Quantità totale</span>
-                    </div>
-                    <div class="inventory-stat">
-                        <strong>{{ item.assignedQuantity }}</strong
-                        ><span>Assegnati</span>
-                    </div>
-                    <div class="inventory-stat">
-                        <strong>{{ item.availableQuantity }}</strong
-                        ><span>Disponibili</span>
-                    </div>
-                </div>
-            }
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <p-floatlabel variant="on">
+        <app-detail-section title="Dati oggetto" description="Identificazione, quantità e stato di conservazione. Si salva con «Salva oggetto» in alto." [dirty]="itemDirty">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
                     <input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber" (ngModelChange)="markItemDirty()" />
-                    <label for="inventoryNumber">Numero inventariale *</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
+                </app-form-field>
+                <app-form-field label="Nome" forId="name" required [error]="item.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'">
                     <input pInputText id="name" [(ngModel)]="item.name" (ngModelChange)="markItemDirty()" />
-                    <label for="name">Nome *</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
+                </app-form-field>
+                <app-form-field label="Quantità totale" forId="totalQuantity">
                     <p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" (ngModelChange)="markItemDirty()" />
-                    <label for="totalQuantity">Quantità totale</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
+                </app-form-field>
+                <app-form-field label="Stato di conservazione" forId="condition">
                     <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="item.conditionStatus" (ngModelChange)="markItemDirty()" />
-                    <label for="condition">Stato di conservazione</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
+                </app-form-field>
+                <app-form-field label="Valore unitario stimato" forId="value">
                     <p-inputnumber inputId="value" [(ngModel)]="item.estimatedUnitValue" mode="decimal" [minFractionDigits]="2" (ngModelChange)="markItemDirty()" />
-                    <label for="value">Valore unitario stimato</label>
-                </p-floatlabel>
-                <p-floatlabel variant="on">
+                </app-form-field>
+                <app-form-field label="Valuta ISO" forId="currency" hint="Ad esempio EUR">
                     <input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency" (ngModelChange)="markItemDirty()" />
-                    <label for="currency">Valuta ISO (es. EUR)</label>
-                </p-floatlabel>
+                </app-form-field>
+                <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                    <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description" (ngModelChange)="markItemDirty()"></textarea>
+                </app-form-field>
+                <app-form-field class="md:col-span-2 lg:col-span-3" label="Note di conservazione" forId="conditionNotes">
+                    <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes" (ngModelChange)="markItemDirty()"></textarea>
+                </app-form-field>
             </div>
-            <p-floatlabel variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description" (ngModelChange)="markItemDirty()"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
-            <p-floatlabel variant="on">
-                <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes" (ngModelChange)="markItemDirty()"></textarea>
-                <label for="conditionNotes">Note di conservazione</label>
-            </p-floatlabel>
-        </div>
+        </app-detail-section>
 
         @if (isNew) {
-            <div class="card border-l-4 border-primary">
-                <div class="flex items-center gap-3">
-                    <i class="pi pi-info-circle text-xl text-primary"></i>
-                    <span>Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne.</span>
-                </div>
-            </div>
+            <app-inline-alert severity="info" title="Completa prima il salvataggio" detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
         } @else {
-            <div class="card">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                    <div>
-                        <h3 class="text-lg font-semibold m-0">Fotografie</h3>
-                        <p class="text-sm text-surface-500 mt-1 mb-0">JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty" (onClick)="savePhotoOrder()" />
-                        <label class="p-button p-component p-button-secondary cursor-pointer">
-                            <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
-                            <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
-                        </label>
-                    </div>
+            <app-detail-section
+                title="Fotografie"
+                [count]="item.photos?.length"
+                description="JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
+                [dirty]="photoOrderDirty"
+            >
+                <div sectionActions class="flex flex-wrap gap-2">
+                    <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty" (onClick)="savePhotoOrder()" />
+                    <label class="p-button p-component p-button-secondary cursor-pointer">
+                        <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
+                        <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
+                    </label>
                 </div>
                 @if (item.photos?.length) {
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -127,42 +104,52 @@
                         }
                     </div>
                 } @else {
-                    <div class="empty-section"><i class="pi pi-images"></i><span>Nessuna fotografia associata</span></div>
+                    <app-empty-state compact icon="pi pi-images" title="Nessuna fotografia" message="Aggiungi una fotografia per documentare l’oggetto." />
                 }
-            </div>
+            </app-detail-section>
 
-            <div class="card">
-                <h3 class="text-lg font-semibold mt-0">Assegna a un utente</h3>
+            <app-detail-section title="Assegna a un utente" description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div class="md:col-span-4">
-                        <p-select [options]="users" [(ngModel)]="selectedUser" optionLabel="name" placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
-                            <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
-                            <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
-                        </p-select>
+                        <app-form-field label="Utente" forId="assignmentUser">
+                            <p-select inputId="assignmentUser" [options]="users" [(ngModel)]="selectedUser" optionLabel="name" placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
+                                <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
+                                <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
+                            </p-select>
+                        </app-form-field>
                     </div>
                     <div class="md:col-span-2">
-                        <p-inputnumber [(ngModel)]="assignmentQuantity" [min]="1" [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
+                        <app-form-field label="Quantità" forId="assignmentQuantity">
+                            <p-inputnumber inputId="assignmentQuantity" [(ngModel)]="assignmentQuantity" [min]="1" [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
+                        </app-form-field>
                     </div>
                     <div class="md:col-span-3">
-                        <p-floatlabel variant="on">
+                        <app-form-field label="Data di scadenza" forId="assignmentExpirationDate">
                             <p-datepicker inputId="assignmentExpirationDate" [(ngModel)]="assignmentExpirationDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body" />
-                            <label for="assignmentExpirationDate">Data di scadenza</label>
-                        </p-floatlabel>
+                        </app-form-field>
                     </div>
-                    <div class="md:col-span-3">
+                    <div class="md:col-span-3 flex items-end">
                         <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full" [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity" (onClick)="assign()" />
                     </div>
+                    <div class="md:col-span-12">
+                        <app-form-field label="Descrizione dell’assegnazione" forId="assignmentDescription">
+                            <textarea pTextarea id="assignmentDescription" rows="2" [(ngModel)]="assignmentDescription"></textarea>
+                        </app-form-field>
+                    </div>
                 </div>
-                <textarea pTextarea rows="2" class="w-full mt-3" [(ngModel)]="assignmentDescription" placeholder="Descrizione dell’assegnazione"></textarea>
-            </div>
+            </app-detail-section>
 
-            <div class="card">
-                <h3 class="text-lg font-semibold mt-0">Assegnazioni e riconsegne</h3>
+            <app-detail-section
+                title="Assegnazioni e riconsegne"
+                [count]="item.assignments?.length"
+                description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»."
+                [dirty]="dirtyAssignments.size > 0"
+            >
                 <p-table
                     [value]="item.assignments || []"
                     [paginator]="true"
-                    [rows]="10"
-                    [rowsPerPageOptions]="[10, 25, 50]"
+                    [rows]="12"
+                    [rowsPerPageOptions]="[12, 24, 48]"
                     dataKey="id"
                     [rowHover]="true"
                     currentPageReportTemplate="Da {first} a {last} di {totalRecords} assegnazioni"
@@ -171,13 +158,13 @@
                 >
                     <ng-template #header>
                         <tr>
-                            <th>Utente</th>
-                            <th>Quantità assegnata</th>
-                            <th>Descrizione</th>
-                            <th>Scadenza</th>
-                            <th>Presa visione</th>
-                            <th>Riconsegne</th>
-                            <th></th>
+                            <th scope="col">Utente</th>
+                            <th scope="col">Quantità assegnata</th>
+                            <th scope="col">Descrizione</th>
+                            <th scope="col">Scadenza</th>
+                            <th scope="col">Presa visione</th>
+                            <th scope="col">Riconsegne</th>
+                            <th scope="col"></th>
                         </tr>
                     </ng-template>
                     <ng-template #body let-assignment>
@@ -215,7 +202,7 @@
                                         <div class="text-sm mt-2">{{ assignment.decision.rejectionReason }}</div>
                                     }
                                 } @else {
-                                    <p-tag value="IN ATTESA" severity="warn" />
+                                    <p-tag value="In attesa" severity="warn" />
                                 }
                                 <div class="text-xs text-surface-500 mt-2">Revisione {{ assignment.revision }}</div>
                             </td>
@@ -280,19 +267,15 @@
                     </ng-template>
                     <ng-template #emptymessage>
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-surface-500">Nessuna assegnazione presente.</td>
+                            <td colspan="7">
+                                <app-empty-state compact icon="pi pi-user-plus" title="Nessuna assegnazione" message="Assegna l’oggetto a un utente dalla sezione qui sopra." />
+                            </td>
                         </tr>
                     </ng-template>
                 </p-table>
-            </div>
+            </app-detail-section>
 
-            <div class="card danger-zone mt-8">
-                <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <span class="text-sm text-surface-500">L’oggetto può essere eliminato solo se non risulta ancora assegnato.</span>
-                    <p-button label="Elimina oggetto" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()" />
-                </div>
-            </div>
+            <app-danger-zone [operations]="[{ id: 'delete', title: 'Elimina oggetto', consequence: 'L’oggetto può essere eliminato solo se non risulta ancora assegnato.', label: 'Elimina oggetto' }]" (execute)="confirmDelete()" />
         }
     }
     <p-scrolltop />

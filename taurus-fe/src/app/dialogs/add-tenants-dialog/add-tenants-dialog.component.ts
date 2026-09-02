@@ -9,24 +9,16 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { Tenants } from '../../module';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-tenants-dialog',
-    imports: [
-        ButtonModule,
-        InputTextModule,
-        FloatLabelModule,
-        TextareaModule,
-        DatePickerModule,
-        FormsModule,
-        FluidModule,
-        ToggleButtonModule,
-    ],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, ToggleButtonModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-tenants-dialog.component.html',
-    styleUrl: './add-tenants-dialog.component.scss',
+    styleUrl: './add-tenants-dialog.component.scss'
 })
 export class AddTenantsDialogComponent {
-
     protected tenant: Tenants;
 
     constructor(private readonly dialogRef: DynamicDialogRef<AddTenantsDialogComponent>) {
@@ -38,6 +30,7 @@ export class AddTenantsDialogComponent {
     }
 
     protected save(): void {
+        if (!this.tenant.name?.trim() || !this.tenant.code?.trim()) return;
         this.dialogRef.close(this.tenant);
     }
 }

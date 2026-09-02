@@ -1,0 +1,8 @@
+<div class="empty-state" [class.empty-state--compact]="compact" role="status">
+    <span class="empty-state__icon"><i [class]="icon"></i></span>
+    <h2>{{ title }}</h2>
+    <p>{{ message }}</p>
+    @if (actionLabel) {
+        <p-button [label]="actionLabel" icon="pi pi-arrow-right" (onClick)="action.emit()" />
+    }
+</div>

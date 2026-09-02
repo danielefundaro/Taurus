@@ -7,10 +7,7 @@
         @if (loading) {
             <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei documenti…</span></div>
         } @else if (errorMessage) {
-            <div class="error-message" role="alert">
-                <i class="pi pi-exclamation-triangle"></i><span>{{ errorMessage }}</span>
-            </div>
-            <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" (onClick)="retry()" />
+            <app-inline-alert severity="error" title="Caricamento non riuscito" [detail]="errorMessage" actionLabel="Riprova" (action)="retry()" />
         } @else {
             <div class="documents">
                 @for (document of pendingDocuments; track document.id) {

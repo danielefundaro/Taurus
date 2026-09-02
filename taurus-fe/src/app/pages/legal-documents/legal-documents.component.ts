@@ -1,7 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { SelectItem } from 'primeng/api';
 import { DialogModule } from 'primeng/dialog';
+import { Table } from 'primeng/table';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { LegalDocument, LegalDocumentAction, LegalDocumentType } from '../../module';
@@ -15,7 +16,10 @@ import { LegalService, ToastService } from '../../service';
     styleUrl: './legal-documents.component.scss'
 })
 export class LegalDocumentsComponent implements OnInit {
+    @ViewChild('documentTable') private readonly documentTable?: Table;
+
     protected documents: LegalDocument[] = [];
+    protected searchTerm = '';
     protected loading = false;
     protected saving = false;
     protected dialogVisible = false;
@@ -36,6 +40,11 @@ export class LegalDocumentsComponent implements OnInit {
         private readonly legalService: LegalService,
         private readonly toastService: ToastService
     ) {}
+
+    protected onSearchChange(value: string): void {
+        this.searchTerm = value;
+        this.documentTable?.filterGlobal(value, 'contains');
+    }
 
     ngOnInit(): void {
         this.loadDocuments();

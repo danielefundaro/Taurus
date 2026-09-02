@@ -4,7 +4,9 @@
 
 Specifica approvata il 2026-09-01, estesa a modali e avvisi e alle pagine di dettaglio il 2026-09-02. Definisce il layout delle pagine elenco, delle pagine di dettaglio, dei dialoghi e degli avvisi di `taurus-fe`, e vincola gli sviluppi successivi su quelle superfici.
 
-Dell'ordine di migrazione non è ancora stato eseguito alcun passo. Sono stati applicati due interventi preparatori, la collocazione degli stili di `preview` e l'adeguamento del budget sugli stili di componente, descritti in fondo al documento.
+**L'ordine di migrazione è stato eseguito per intero il 2026-09-02.** Tutti i diciassette passi sono applicati: i componenti condivisi esistono e sono adottati, le nove pagine elenco e le nove di dettaglio usano il guscio comune, i dialoghi il guscio di dialogo, e i widget della dashboard i componenti condivisi. Ciò che resta fuori è quanto la sezione «Fuori scope» esclude già, più le tre eccezioni elencate in fondo, sotto «Scostamenti consapevoli».
+
+Sono stati applicati anche due interventi preparatori, la collocazione degli stili di `preview` e l'adeguamento del budget sugli stili di componente, descritti in fondo al documento.
 
 ## Obiettivo
 
@@ -492,6 +494,10 @@ L'intestazione è lo stesso componente `page-header` delle pagine elenco: cambia
 
 La regola che chiude il difetto è la prima: il pulsante dell'intestazione si lega al solo stato del modulo principale, non al getter composito. Il getter composito resta, ma serve unicamente all'etichetta di stato e alla guardia di uscita.
 
+**Come è stato chiuso.** Il pulsante «Salva evento» è legato a `isDirtyForm` e resta spento se l'unica cosa modificata sono le presenze. Non basta però: con modulo *e* presenze modificati il pulsante è acceso, e il ricaricamento che segue il salvataggio ricostruirebbe le righe delle presenze dalla risposta del server, scartando le modifiche pendenti. Per questo `buildPresenceRows` non ricostruisce nulla finché la sezione presenze è sporca, e `loadElement` non azzera più lo stato di quella sezione: un ricaricamento causato da un'altra unità non può toccarla. Salvando il modulo con presenze pendenti, un avviso dichiara che le presenze restano da salvare.
+
+Le due classi base rendono la regola strutturale: `DetailPageBase` tiene il registro delle unità, espone `isDirtyForm` per il pulsante dell'intestazione e `isDirty` composito per l'etichetta di stato e la guardia, e `dirtyUnitLabels` per l'elenco che la guardia mostra all'uscita. `calendar-events/detail` registra «presenze», `inventory/detail` «ordine fotografie» e «assegnazioni».
+
 ## Regole trasversali delle pagine di dettaglio
 
 **Il titolo è il nome del record.** Il tipo di entità sta nell'etichetta sopra. Un record nuovo si intitola «Nuovo» seguito dal nome dell'entità.
@@ -608,7 +614,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 ## Ordine di migrazione
 
-Si parte dai difetti che comportano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine.
+Si parte dai difetti che comportano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine. Tutti i passi sono stati eseguiti.
 
 1. Il salvataggio delle presenze in `calendar-events/detail`: è una perdita di dati e non aspetta il resto.
 2. La doppia dichiarazione di `p-confirmdialog key="guard"`, la spaziatura delle card e l'immagine remota di `forbidden`: correzioni di poche righe ciascuna.
@@ -627,6 +633,16 @@ Si parte dai difetti che comportano una perdita di dati o un comportamento errat
 15. Profilo, che adotta il guscio di dettaglio senza avere un elenco.
 16. Economia e Documenti legali, che adottano il solo guscio di elenco.
 17. Adozione dei componenti condivisi nei widget della dashboard, con `inventory-widget` riallineato agli altri cinque.
+
+## Scostamenti consapevoli
+
+Tre punti divergono dalla lettera della specifica, per ragioni che vale la pena mettere a verbale.
+
+**La barra strumenti di `finance` resta il suo pannello di filtri.** `finance` non adotta `list-toolbar`: la zona barra strumenti è occupata dalla propria griglia di otto filtri con «Applica» e «Azzera», che il componente condiviso — una riga sola con ricerca, ordinamento e cambio vista — non può contenere senza peggiorare la pagina. La zona è al posto giusto e nell'ordine giusto; cambia soltanto il componente che la riempie. `legal-documents`, che ha la sola ricerca, adotta invece `list-toolbar` con il selettore di vista disattivato.
+
+**`inventory` non ha barra di selezione.** La pagina non ha selezione multipla né azioni massive, e la zona è dichiarata opzionale.
+
+**La shell resta su `*ngIf` e `*ngFor`.** `topbar`, `menu`, `menu-item`, `configurator` e `loading-spinner` non sono stati migrati alla nuova sintassi: sono codice di piattaforma e il loro ridisegno è fuori scope. Ognuno importa da sé le direttive che usa, così `NgIf` e `NgFor` sono stati rimossi da `imports.ts` e non sono più disponibili globalmente: ogni superficie di contenuto è su `@if` e `@for`, `preview` compresa.
 
 ## Interventi già applicati
 
@@ -652,16 +668,18 @@ La soglia era però già superata prima di questo intervento, e da un componente
 
 `maximumError` è stato portato a **8 kB**, lasciando l'avviso a 2 kB. La soglia accoglie i due componenti-pagina legittimamente estesi con un margine, e l'avviso continua a segnalare tutto il resto: la compilazione oggi si chiude senza errori e riporta sette avvisi, che sono la lista dei fogli di stile su cui il lavoro di estrazione dei componenti condivisi avrà l'effetto maggiore.
 
-| Foglio di stile | Peso |
-| --- | --- |
-| `preview.component.scss` | 6.35 kB |
-| `pdf-manipulator-dialog.component.scss` | 6.34 kB |
-| `notification-widget.component.scss` | 3.82 kB |
-| `calendar-events-widget.component.scss` | 2.81 kB |
-| `recents-widget.component.scss` | 2.48 kB |
-| `finance.component.scss` | 2.17 kB |
+| Foglio di stile | Peso alla stesura | Peso a migrazione completata |
+| --- | --- | --- |
+| `preview.component.scss` | 6.35 kB | 6.35 kB |
+| `pdf-manipulator-dialog.component.scss` | 6.34 kB | 6.34 kB |
+| `notification-widget.component.scss` | 3.82 kB | sotto soglia |
+| `calendar-events-widget.component.scss` | 2.81 kB | sotto soglia |
+| `recents-widget.component.scss` | 2.48 kB | sotto soglia |
+| `finance.component.scss` | 2.17 kB | sotto soglia |
 
-Tre dei sei sono widget della dashboard, e il loro peso è in buona parte la duplicazione descritta più sopra: l'adozione dei componenti condivisi li riporta sotto la soglia di avviso senza interventi dedicati. `finance.component.scss` rientra per la parte che confluisce nelle classi condivise. Restano fuori `preview` e `pdf-manipulator-dialog`, che sono componenti-pagina con esigenze proprie.
+Tre dei sei sono widget della dashboard, e il loro peso è in buona parte la duplicazione descritta più sopra: l'adozione dei componenti condivisi li ha riportati sotto la soglia di avviso senza interventi dedicati. `finance.component.scss` è rientrato cedendo a `_list.scss` le card di riepilogo della zona Contesto, e `inventory.component.scss` è stato eliminato perché le sue quattro classi non hanno più utilizzatori. Restano fuori `preview` e `pdf-manipulator-dialog`, che sono componenti-pagina con esigenze proprie.
+
+La compilazione di produzione si chiude oggi senza errori e con tre soli avvisi: quei due fogli di stile e il budget del bundle iniziale, che è una questione a sé e non riguarda questa specifica.
 
 L'avviso a 2 kB va lasciato dov'è: è la misura che rende visibile il progresso.
 

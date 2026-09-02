@@ -8,27 +8,18 @@ import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
-import { TypeHandlerComponent } from "../../components/type-handler/type-handler.component";
+import { TypeHandlerComponent } from '../../components/type-handler/type-handler.component';
 import { Tracks } from '../../module';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-tracks-dialog',
-    imports: [
-        ButtonModule,
-        InputTextModule,
-        FloatLabelModule,
-        TextareaModule,
-        DatePickerModule,
-        FormsModule,
-        FluidModule,
-        ChipModule,
-        TypeHandlerComponent
-    ],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, ChipModule, TypeHandlerComponent, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-tracks-dialog.component.html',
-    styleUrl: './add-tracks-dialog.component.scss',
+    styleUrl: './add-tracks-dialog.component.scss'
 })
 export class AddTracksDialogComponent {
-
     protected track: Tracks;
 
     constructor(private readonly dialogRef: DynamicDialogRef<AddTracksDialogComponent>) {
@@ -44,6 +35,7 @@ export class AddTracksDialogComponent {
     }
 
     protected save(): void {
+        if (!this.track.name?.trim()) return;
         this.dialogRef.close(this.track);
     }
 }

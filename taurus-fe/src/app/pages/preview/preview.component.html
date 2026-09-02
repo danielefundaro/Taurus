@@ -47,14 +47,16 @@
             </label>
 
             <div class="instrument-list">
-                <label class="instrument-row" *ngFor="let instrument of instruments | keyvalue" [for]="instrument.key">
-                    <span class="instrument-check">
-                        <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key"
-                            [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()" />
-                    </span>
-                    <span class="instrument-name">{{ instrument.value }}</span>
-                    <span class="instrument-pages">{{ instrumentPageCount(instrument.key) }} pag.</span>
-                </label>
+                @for (instrument of instruments | keyvalue; track instrument.key) {
+                    <label class="instrument-row" [for]="instrument.key">
+                        <span class="instrument-check">
+                            <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key"
+                                [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()" />
+                        </span>
+                        <span class="instrument-name">{{ instrument.value }}</span>
+                        <span class="instrument-pages">{{ instrumentPageCount(instrument.key) }} pag.</span>
+                    </label>
+                }
             </div>
 
             <div class="selection-hint">
@@ -86,32 +88,32 @@
                     </button>
                 </div>
 
-                <div class="page-navigation" *ngIf="mediaStreams.length">
-                    <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()"
-                        [disabled]="currentPage <= 1">
-                        <i class="pi pi-chevron-left"></i>
-                    </button>
-                    <span>Pagina</span>
-                    <input type="number" class="page-input" min="1" [max]="mediaStreams.length" [value]="currentPage"
-                        aria-label="Numero pagina" (change)="pageChange($event)">
-                    <span>di <strong>{{ mediaStreams.length }}</strong></span>
-                    <button type="button" class="tool-button" aria-label="Pagina successiva" (click)="nextPage()"
-                        [disabled]="currentPage >= mediaStreams.length">
-                        <i class="pi pi-chevron-right"></i>
-                    </button>
-                </div>
+                @if (mediaStreams.length) {
+                    <div class="page-navigation">
+                        <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()"
+                            [disabled]="currentPage <= 1">
+                            <i class="pi pi-chevron-left"></i>
+                        </button>
+                        <span>Pagina</span>
+                        <input type="number" class="page-input" min="1" [max]="mediaStreams.length" [value]="currentPage"
+                            aria-label="Numero pagina" (change)="pageChange($event)">
+                        <span>di <strong>{{ mediaStreams.length }}</strong></span>
+                        <button type="button" class="tool-button" aria-label="Pagina successiva" (click)="nextPage()"
+                            [disabled]="currentPage >= mediaStreams.length">
+                            <i class="pi pi-chevron-right"></i>
+                        </button>
+                    </div>
+                }
             </div>
 
             <div class="document-canvas" [class.empty-canvas]="!mediaStreams.length">
-                <ng-container *ngIf="currentMediaStream; else emptySelection">
+                @if (currentMediaStream) {
                     <div class="paper-frame">
                         <img class="preview-image" [style.transform]="'scale(' + (zoom / 100) + ')'"
                             [src]="currentMediaStream | secure | async"
                             [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length">
                     </div>
-                </ng-container>
-
-                <ng-template #emptySelection>
+                } @else {
                     <div class="empty-selection">
                         <span class="empty-icon"><i class="pi pi-file"></i></span>
                         <h2>Nessuna parte selezionata</h2>
@@ -121,7 +123,7 @@
                             <span>Apri filtri</span>
                         </button>
                     </div>
-                </ng-template>
+                }
             </div>
         </main>
     </div>
@@ -135,5 +137,7 @@
 </p-galleria>
 
 <div class="print-pages print">
-    <img [src]="mediaStream | secure | async" alt="" *ngFor="let mediaStream of mediaStreams">
+    @for (mediaStream of mediaStreams; track mediaStream) {
+        <img [src]="mediaStream | secure | async" alt="">
+    }
 </div>

@@ -1,3 +1,8 @@
+<p-confirmdialog />
+<header class="mb-6">
+    <h1 class="text-3xl font-semibold m-0">Dashboard</h1>
+    <p class="text-surface-500 mt-2 mb-0">Panoramica delle attività e dei contenuti più recenti.</p>
+</header>
 <div class="grid grid-cols-12 gap-8">
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan" [value]="totalTenants" [link]="'tenants'" />
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue" [value]="totalUsers" [link]="'users'" />
@@ -15,7 +20,7 @@
     />
 
     <app-recents-widget [tracks]="tracks" />
-    <app-calendar-events-widget [events]="upcomingEvents" />
+    <app-calendar-events-widget [events]="upcomingEvents" (pageChange)="upcomingEventsPageChange($event)" />
     <div class="col-span-12 xl:col-span-6">
         <app-notifications-widget [notices]="notices" (pageChange)="pageChange($event)" (markAsRead)="markNoticesAsRead($event)" (navigateToNotice)="navigateToNotice($event)" (delete)="deleteNotices($event)" />
     </div>

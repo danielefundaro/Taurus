@@ -1,34 +1,42 @@
+<p-confirmdialog />
 <p-fluid>
-    <!-- Event info card -->
-    <div class="flex">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-xl">Evento</span>
-                    <p-tag *ngIf="event.seriesId" icon="pi pi-sync" [value]="event.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'" severity="info" [rounded]="true" />
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Modifiche non salvate"></span>
-                </div>
-                <div class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-button *ngIf="event.seriesId" label="Salva da questo evento in poi" icon="pi pi-sync" severity="secondary" [loading]="isSaving" [disabled]="!isDirty || seriesRuleInvalid" (onClick)="saveSeriesFuture()" />
-                    <p-button *ngIf="event.seriesException" label="Ripristina dalla serie" icon="pi pi-replay" severity="secondary" [outlined]="true" (onClick)="restoreOccurrence()" />
-                    <p-button [label]="event.seriesId ? 'Salva solo questo evento' : 'Salva'" icon="pi pi-check" severity="primary" [loading]="isSaving" [disabled]="!isDirty" (onClick)="save()" />
-                </div>
-            </div>
-            <p-confirmdialog />
+    <app-page-header kicker="Evento" [title]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
+        ><div pageMetadata class="flex flex-wrap items-center gap-2">
+            <span>{{ event.startDate ? (event.startDate | date: 'dd/MM/yyyy HH:mm') : 'Data non indicata' }}</span>
+            @if (event.location) {
+                <span>· {{ event.location }}</span>
+            }
+            @if (event.seriesId) {
+                <p-tag icon="pi pi-sync" [value]="event.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'" severity="info" [rounded]="true" />
+            }
+        </div>
+        <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+            @if (event.seriesId) {
+                <p-button label="Salva da questo evento in poi" icon="pi pi-sync" severity="secondary" outlined [loading]="saving" [disabled]="!isDirtyForm || seriesRuleInvalid" (onClick)="saveSeriesFuture()" />
+            }
+            @if (event.seriesException) {
+                <p-button label="Ripristina dalla serie" icon="pi pi-replay" severity="secondary" outlined (onClick)="restoreOccurrence()" />
+            }
+            <p-button [label]="event.seriesId ? 'Salva solo questo evento' : 'Salva evento'" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm" (onClick)="save()" /></div
+    ></app-page-header>
 
-            <div *ngIf="series" class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm">
+    <app-detail-section title="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto." [dirty]="isDirtyForm">
+        @if (series) {
+            <div class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm mb-6">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-sync text-primary"></i>
                     <span
-                        ><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi<span *ngIf="series.exceptionCount">, {{ series.exceptionCount }} eccezioni</span>.</span
+                        ><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi@if (series.exceptionCount) {
+                            <span>, {{ series.exceptionCount }} eccezioni</span>
+                        }.</span
                     >
                 </div>
 
                 <details class="mt-3">
                     <summary class="cursor-pointer font-medium">Modifica pianificazione della serie</summary>
                     <div class="flex flex-col gap-4 mt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <p-floatlabel variant="on">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <app-form-field label="Frequenza" forId="seriesFrequency">
                                 <p-select
                                     inputId="seriesFrequency"
                                     class="w-full"
@@ -39,12 +47,10 @@
                                     appendTo="body"
                                     (ngModelChange)="onSeriesDefinitionChange()"
                                 />
-                                <label for="seriesFrequency">Frequenza</label>
-                            </p-floatlabel>
-                            <p-floatlabel variant="on">
+                            </app-form-field>
+                            <app-form-field label="Intervallo" forId="seriesInterval">
                                 <p-inputnumber inputId="seriesInterval" [(ngModel)]="series.recurrence.interval" [min]="1" [max]="366" [showButtons]="true" (ngModelChange)="onSeriesDefinitionChange()" />
-                                <label for="seriesInterval">Intervallo</label>
-                            </p-floatlabel>
+                            </app-form-field>
                         </div>
 
                         @if (series.recurrence.frequency === 'WEEKLY') {
@@ -77,92 +83,75 @@
 
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <p-button label="Calcola anteprima" icon="pi pi-eye" severity="secondary" [outlined]="true" [loading]="isPreviewingSeries" [disabled]="seriesRuleInvalid" (onClick)="previewSeriesUpdate()" />
-                            <span *ngIf="seriesPreview"> {{ seriesPreview.occurrenceCount }} eventi · ultimo {{ seriesPreview.lastOccurrence | date: 'dd/MM/yyyy HH:mm' }} · {{ seriesPreview.timeZone }} </span>
+                            @if (seriesPreview) {
+                                <span>{{ seriesPreview.occurrenceCount }} eventi · ultimo {{ seriesPreview.lastOccurrence | date: 'dd/MM/yyyy HH:mm' }} · {{ seriesPreview.timeZone }}</span>
+                            }
                         </div>
-                        <small class="text-surface-500"> L'anteprima e il salvataggio usano Data/ora inizio e Data/ora fine dell'evento visualizzato. Le occorrenze precedenti non vengono modificate. </small>
+                        <small class="text-surface-500">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine dell’evento visualizzato. Le occorrenze precedenti non vengono modificate.</small>
                     </div>
                 </details>
             </div>
+        }
 
-            <!-- Row 1: name + state -->
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
-                    <label for="name">Nome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
-                    <label for="state">Stato</label>
-                </p-floatlabel>
-            </div>
-
-            <!-- Row 1b: start date + end date -->
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full md:w-1/2" variant="on">
-                    <p-datepicker
-                        [iconDisplay]="'input'"
-                        [showIcon]="true"
-                        [showTime]="true"
-                        [hourFormat]="'24'"
-                        inputId="startDate"
-                        dateFormat="dd-mm-yy"
-                        [(ngModel)]="event.startDate"
-                        [disabled]="!isAdmin"
-                        (ngModelChange)="onEventScheduleChange()"
-                    />
-                    <label for="startDate">Data/ora inizio *</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full md:w-1/2" variant="on">
-                    <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
-                    <label for="endDate">Data/ora fine</label>
-                </p-floatlabel>
-            </div>
-
-            <!-- Row 2: location + fee -->
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
-                    <label for="location">Luogo</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-inputnumber id="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
-                    <label for="fee">Compenso</label>
-                </p-floatlabel>
-            </div>
-
-            <!-- Row 3: reminder (admin only) -->
-            <div class="flex flex-col md:flex-row gap-6" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                <p-floatlabel class="flex w-full md:w-1/3" variant="on">
-                    <p-inputnumber id="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
-                    <label for="reminderMinutes">Promemoria (minuti prima, 0 = nessuno)</label>
-                </p-floatlabel>
-            </div>
-
-            <!-- Description -->
-            <p-floatlabel class="flex" variant="on">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="name" required [error]="event.name?.trim() ? undefined : 'Inserisci il nome dell’evento.'">
+                <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Stato" forId="state" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
+            </app-form-field>
+            <app-form-field label="Luogo" forId="location">
+                <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Data/ora inizio" forId="startDate" required [error]="event.startDate ? undefined : 'Indica quando inizia l’evento.'">
+                <p-datepicker
+                    [iconDisplay]="'input'"
+                    [showIcon]="true"
+                    [showTime]="true"
+                    [hourFormat]="'24'"
+                    inputId="startDate"
+                    dateFormat="dd-mm-yy"
+                    [(ngModel)]="event.startDate"
+                    [disabled]="!isAdmin"
+                    (ngModelChange)="onEventScheduleChange()"
+                />
+            </app-form-field>
+            <app-form-field label="Data/ora fine" forId="endDate">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
+            </app-form-field>
+            <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Promemoria" forId="reminderMinutes" hint="Minuti prima dell’evento, 0 per nessun promemoria" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
                 <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description" [readonly]="!isAdmin" (ngModelChange)="isDirty = true"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
+            </app-form-field>
         </div>
-    </div>
+    </app-detail-section>
 
-    <!-- Costs (admin only) -->
-    <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-        <div class="flex flex-row justify-between items-center mb-4">
-            <span class="font-semibold text-lg">Costi</span>
-        </div>
-
-        <!-- Add cost form -->
-        <div class="flex flex-col md:flex-row gap-3 mb-4">
-            <p-floatlabel class="flex w-full" variant="on">
-                <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
-                <label for="costDesc">Descrizione costo</label>
-            </p-floatlabel>
-            <p-floatlabel class="flex w-full md:w-48" variant="on">
-                <p-inputnumber id="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR" locale="it-IT" />
-                <label for="costAmount">Importo</label>
-            </p-floatlabel>
-            <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" (onClick)="addCost()" [disabled]="!newCostDescription" />
+    <app-detail-section
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+        title="Costi"
+        [count]="event.costs?.length"
+        description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto."
+        [dirty]="isDirtyForm"
+    >
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
+            <div class="md:col-span-7">
+                <app-form-field label="Descrizione costo" forId="costDesc">
+                    <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
+                </app-form-field>
+            </div>
+            <div class="md:col-span-3">
+                <app-form-field label="Importo" forId="costAmount">
+                    <p-inputnumber inputId="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR" locale="it-IT" />
+                </app-form-field>
+            </div>
+            <div class="md:col-span-2 flex items-end">
+                <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" styleClass="w-full" (onClick)="addCost()" [disabled]="!newCostDescription" />
+            </div>
         </div>
 
         <p-table [value]="event.costs ?? []" [rowHover]="true">
@@ -178,13 +167,15 @@
                     <td>{{ cost.description }}</td>
                     <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
                     <td>
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
+                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
                     </td>
                 </tr>
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="3" class="text-center text-surface-400 py-4">Nessun costo</td>
+                    <td colspan="3">
+                        <app-empty-state compact icon="pi pi-wallet" title="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
+                    </td>
                 </tr>
             </ng-template>
             @if ((event.costs?.length ?? 0) > 0) {
@@ -197,15 +188,11 @@
                 </ng-template>
             }
         </p-table>
-    </div>
+    </app-detail-section>
 
     @if (economicSummary) {
-        <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                <div>
-                    <span class="font-semibold text-lg">Consuntivo economico</span>
-                    <p class="text-surface-500 mt-1 mb-0">Movimenti effettivamente associati all’evento.</p>
-                </div>
+        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
+            <div sectionActions>
                 <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']" [queryParams]="{ action: 'new', eventId: event.id }" />
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -222,17 +209,17 @@
                     <small class="text-surface-500 block">Da pagare</small><strong>{{ economicSummary.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
                 </div>
             </div>
-        </div>
+        </app-detail-section>
     }
 
-    <!-- Availability buttons -->
-    <div class="card mt-4">
+    <app-detail-section title="La tua disponibilità" description="La risposta si registra subito: è un’operazione autonoma.">
         <div class="flex flex-col gap-3">
-            <span class="font-semibold text-lg">La tua disponibilità</span>
-            <label *ngIf="event.seriesId" class="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" [(ngModel)]="applyAvailabilityToFuture" />
-                <span>Applica anche a tutte le occorrenze future della serie</span>
-            </label>
+            @if (event.seriesId) {
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" [(ngModel)]="applyAvailabilityToFuture" />
+                    <span>Applica anche a tutte le occorrenze future della serie</span>
+                </label>
+            }
             <div class="flex flex-wrap gap-3">
                 <p-button label="Sono disponibile" icon="pi pi-check-circle" severity="success" [outlined]="currentUserAvailability !== true" (onClick)="setAvailability(true)" />
                 <p-button label="Non sono disponibile" icon="pi pi-times-circle" severity="danger" [outlined]="currentUserAvailability !== false" (onClick)="setAvailability(false)" />
@@ -255,14 +242,9 @@
                 </div>
             }
         </div>
-    </div>
+    </app-detail-section>
 
-    <!-- Available users -->
-    <div class="card mt-4">
-        <span class="font-semibold text-lg block mb-4">
-            <i class="pi pi-check-circle text-green-500 mr-2"></i>
-            Utenti disponibili ({{ event.availableUsers?.length ?? 0 }})
-        </span>
+    <app-detail-section title="Utenti disponibili" [count]="event.availableUsers?.length">
         <p-table [value]="event.availableUsers ?? []" [rowHover]="true">
             <ng-template #header>
                 <tr>
@@ -285,18 +267,15 @@
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="3" class="text-center text-surface-400 py-4">Nessun utente disponibile</td>
+                    <td colspan="3">
+                        <app-empty-state compact icon="pi pi-check-circle" title="Nessuna disponibilità" message="Nessun utente ha ancora dato la propria disponibilità." />
+                    </td>
                 </tr>
             </ng-template>
         </p-table>
-    </div>
+    </app-detail-section>
 
-    <!-- Unavailable users -->
-    <div class="card mt-4">
-        <span class="font-semibold text-lg block mb-4">
-            <i class="pi pi-times-circle text-red-500 mr-2"></i>
-            Utenti non disponibili ({{ event.unavailableUsers?.length ?? 0 }})
-        </span>
+    <app-detail-section title="Utenti non disponibili" [count]="event.unavailableUsers?.length">
         <p-table [value]="event.unavailableUsers ?? []" [rowHover]="true">
             <ng-template #header>
                 <tr>
@@ -319,39 +298,40 @@
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="3" class="text-center text-surface-400 py-4">Nessun utente non disponibile</td>
+                    <td colspan="3">
+                        <app-empty-state compact icon="pi pi-times-circle" title="Nessuna indisponibilità" message="Nessun utente si è dichiarato non disponibile." />
+                    </td>
                 </tr>
             </ng-template>
         </p-table>
-    </div>
+    </app-detail-section>
 
-    <!-- Gestisci presenze (admin only) -->
-    <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-        <div class="flex flex-row justify-between items-center mb-4">
-            <span class="font-semibold text-lg">
-                <i class="pi pi-users text-primary mr-2"></i>
-                Gestisci presenze
-            </span>
-            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
+    <app-detail-section
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+        title="Gestisci presenze"
+        [count]="event.presentUsers?.length"
+        description="Le presenze si salvano per conto proprio con «Salva presenze»."
+        [dirty]="isDirtyPresence"
+    >
+        <div sectionActions>
+            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [loading]="isSavingPresence" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
         </div>
         <p-table
             #presenceTable
             [value]="presenceRows"
             [rowHover]="true"
             [paginator]="true"
-            [rows]="10"
-            [rowsPerPageOptions]="[10, 25, 50]"
+            [rows]="12"
+            [rowsPerPageOptions]="[12, 24, 48]"
             [showCurrentPageReport]="true"
             currentPageReportTemplate="Da {first} a {last} di {totalRecords} utenti"
             [globalFilterFields]="['name', 'lastName']"
         >
             <ng-template #caption>
-                <div class="flex items-center justify-end">
-                    <p-iconfield>
-                        <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)" placeholder="Cerca utente..." />
-                    </p-iconfield>
-                </div>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)" placeholder="Cerca utente..." />
+                </p-iconfield>
             </ng-template>
             <ng-template #header>
                 <tr>
@@ -379,55 +359,45 @@
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
-                    <td colspan="5" class="text-center text-surface-400 py-4">Nessun utente trovato</td>
+                    <td colspan="5">
+                        <app-empty-state compact icon="pi pi-users" title="Nessun utente" message="Non ci sono utenti da elencare." />
+                    </td>
                 </tr>
             </ng-template>
         </p-table>
-    </div>
+    </app-detail-section>
 
-    <!-- Utenti presenti (read-only, non-admin) -->
-    <div class="card mt-4" *ngIf="!isAdmin">
-        <span class="font-semibold text-lg block mb-4">
-            <i class="pi pi-users text-primary mr-2"></i>
-            Utenti presenti ({{ event.presentUsers?.length ?? 0 }})
-        </span>
-        <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
-            <ng-template #header>
-                <tr>
-                    <th scope="col">Nome</th>
-                    <th scope="col">Cognome</th>
-                    <th scope="col">Ora di arrivo</th>
-                    <th scope="col">Note</th>
-                </tr>
-            </ng-template>
-            <ng-template #body let-user>
-                <tr>
-                    <td>{{ user.name }}</td>
-                    <td>{{ user.lastName }}</td>
-                    <td>{{ user.arrivalTime | date: 'HH:mm' }}</td>
-                    <td>{{ user.note }}</td>
-                </tr>
-            </ng-template>
-            <ng-template #emptymessage>
-                <tr>
-                    <td colspan="4" class="text-center text-surface-400 py-4">Nessun utente presente</td>
-                </tr>
-            </ng-template>
-        </p-table>
-    </div>
+    @if (!isAdmin) {
+        <app-detail-section title="Utenti presenti" [count]="event.presentUsers?.length">
+            <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
+                <ng-template #header>
+                    <tr>
+                        <th scope="col">Nome</th>
+                        <th scope="col">Cognome</th>
+                        <th scope="col">Ora di arrivo</th>
+                        <th scope="col">Note</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-user>
+                    <tr>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.lastName }}</td>
+                        <td>{{ user.arrivalTime | date: 'HH:mm' }}</td>
+                        <td>{{ user.note }}</td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="4">
+                            <app-empty-state compact icon="pi pi-users" title="Nessuna presenza" message="Non è stata registrata alcuna presenza." />
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </app-detail-section>
+    }
 
-    <!-- Zona pericolosa -->
-    <div class="card danger-zone mt-8" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questo evento e tutti i dati associati.</span>
-            <p-button label="Elimina evento" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDelete()" />
-        </div>
-        <div *ngIf="event.seriesId" class="flex flex-row justify-between items-center gap-4 pt-4 mt-4 border-t border-red-500/20">
-            <span class="text-sm text-surface-500">Elimina tutte le occorrenze future della serie conservando lo storico passato.</span>
-            <p-button label="Elimina serie futura" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="confirmDeleteSeries()" />
-        </div>
-    </div>
+    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [operations]="dangerZoneOperations" (execute)="$event === 'series' ? confirmDeleteSeries() : confirmDelete()" />
 
     <p-scrolltop />
 </p-fluid>

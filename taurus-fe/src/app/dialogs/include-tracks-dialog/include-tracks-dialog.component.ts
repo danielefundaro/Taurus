@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -11,36 +10,28 @@ import { first } from 'rxjs';
 import { Page, Tracks, TracksCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
 import { TracksService } from '../../service';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
     selector: 'app-include-tracks-dialog',
-    imports: [
-        NgIf,
-        NgFor,
-        TableModule,
-        TagModule,
-        ButtonModule,
-        IconFieldModule,
-        InputIconModule,
-        InputTextModule,
-    ],
+    imports: [TableModule, TagModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, DialogShellComponent, EmptyStateComponent],
     templateUrl: './include-tracks-dialog.component.html',
     styleUrl: './include-tracks-dialog.component.scss',
-    providers: [
-        TracksService,
-    ],
-    changeDetection: ChangeDetectionStrategy.Default,
+    providers: [TracksService],
+    changeDetection: ChangeDetectionStrategy.Default
 })
 export class IncludeTracksDialogComponent {
-
     protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };
     protected tracks: Tracks[];
     protected selectedTracks: Tracks[];
     protected totalRecords: number = 0;
-    private readonly search: { name?: string, type?: string, composer?: string };
+    private readonly search: { name?: string; type?: string; composer?: string };
 
-    constructor(private readonly dialogRef: DynamicDialogRef<IncludeTracksDialogComponent>,
-        private readonly tracksService: TracksService) {
+    constructor(
+        private readonly dialogRef: DynamicDialogRef<IncludeTracksDialogComponent>,
+        private readonly tracksService: TracksService
+    ) {
         this.tracks = [];
         this.selectedTracks = [];
         this.search = {};
@@ -88,11 +79,14 @@ export class IncludeTracksDialogComponent {
         // Reset selection
         this.selectedTracks = [];
 
-        this.tracksService.getAll(tracksCriteria).pipe(first()).subscribe({
-            next: (value: Page<Tracks>) => {
-                this.tracks = value.content;
-                this.totalRecords = value.totalElements;
-            }
-        });
+        this.tracksService
+            .getAll(tracksCriteria)
+            .pipe(first())
+            .subscribe({
+                next: (value: Page<Tracks>) => {
+                    this.tracks = value.content;
+                    this.totalRecords = value.totalElements;
+                }
+            });
     }
 }

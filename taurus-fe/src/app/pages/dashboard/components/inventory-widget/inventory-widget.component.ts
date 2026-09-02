@@ -2,14 +2,19 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
+import { DetailSectionComponent } from '../../../../components/detail-section/detail-section.component';
+import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
+import { InlineAlertComponent } from '../../../../components/inline-alert/inline-alert.component';
+import { ListRowComponent } from '../../../../components/list-row/list-row.component';
 import { InventoryAdminSummary, InventoryAssignmentSummary, InventoryDecisionType, InventoryUserSummary } from '../../../../module';
 
 export type InventoryWidgetMode = 'admin' | 'user';
 
 @Component({
     selector: 'app-inventory-widget',
-    imports: [ButtonModule, DatePipe, RouterModule, TagModule],
+    imports: [ButtonModule, DatePipe, RouterModule, SkeletonModule, TagModule, DetailSectionComponent, EmptyStateComponent, InlineAlertComponent, ListRowComponent],
     templateUrl: './inventory-widget.component.html',
     styleUrl: './inventory-widget.component.scss',
     host: {

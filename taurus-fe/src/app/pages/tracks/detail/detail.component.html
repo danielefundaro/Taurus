@@ -1,207 +1,200 @@
+<p-confirmdialog />
 <p-fluid>
-    <!-- Card: informazioni traccia -->
-    <div class="flex">
-        <div class="card flex flex-col gap-4 w-full">
-            <div class="flex flex-row justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold text-xl">Traccia</span>
-                    <span *ngIf="isDirty" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
-                        title="Modifiche non salvate"></span>
-                </div>
-                <div class="flex flex-row gap-2">
-                    <p-button label="Salva" icon="pi pi-check" severity="primary" [loading]="isSaving"
-                        [disabled]="!isDirty" (onClick)="save()"
-                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
-                    <p-button label="Anteprima" icon="pi pi-print" severity="secondary" (onClick)="preview()"
-                        [disabled]="!track.scores?.length" />
-                </div>
-            </div>
-            <p-confirmdialog />
-            <div class="flex flex-col md:flex-row gap-6">
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="name" type="text" [(ngModel)]="track!.name" [readOnly]="isUser"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="name">Nome</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="composer" type="text" [(ngModel)]="track!.composer" [readOnly]="isUser"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="composer">Compositore</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on">
-                    <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" [readOnly]="isUser"
-                        (ngModelChange)="isDirty = true" />
-                    <label for="arranger">Arrangiatore</label>
-                </p-floatlabel>
-                <p-floatlabel class="flex w-full" variant="on"
-                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                    <p-autocomplete inputId="states" [(ngModel)]="track!.state" [suggestions]="autoFilteredStatesLabels"
-                        dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true"
-                        optionValue="code" optionLabel="name" />
-                    <label for="states">Stato</label>
-                </p-floatlabel>
-            </div>
-            <app-type-handler variant="on" label="Tipo" [types]="track!.type" (typesChange)="onTypeChange($event)"
-                [readOnly]="isUser" />
-            <p-floatlabel class="flex" variant="on">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description" [readOnly]="isUser"
-                    (ngModelChange)="isDirty = true"></textarea>
-                <label for="description">Descrizione</label>
-            </p-floatlabel>
-        </div>
-    </div>
+    <app-page-header kicker="Traccia" [title]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined"
+        ><div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
+        <div pageActions class="flex gap-2">
+            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()" [disabled]="!track.scores?.length" /><p-button
+                label="Salva traccia"
+                icon="pi pi-check"
+                [loading]="saving"
+                [disabled]="!isDirty"
+                (onClick)="save()"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+            /></div
+    ></app-page-header>
 
-    <!-- Card: file pdf -->
-    <div class="card mt-4" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-        <span class="font-semibold text-lg block mb-4">File pdf</span>
-        <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica" cancelLabel="Annulla"
-            mode="advanced" accept="application/pdf" [customUpload]="true" (uploadHandler)="handleUpload($event)"
-            (onSelect)="onFileSelect($event)" (onClear)="onFileClear()" (onRemove)="onFileClear()">
+    <app-detail-section title="Dati traccia" description="Autori, tipo e stato di pubblicazione. Si salva con «Salva traccia» in alto." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Nome" forId="name" required [error]="track.name?.trim() ? undefined : 'Inserisci il nome della traccia.'">
+                <input pInputText id="name" type="text" [(ngModel)]="track!.name" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Compositore" forId="composer">
+                <input pInputText id="composer" type="text" [(ngModel)]="track!.composer" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Arrangiatore" forId="arranger">
+                <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Stato" forId="states" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                <p-autocomplete inputId="states" [(ngModel)]="track!.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2" label="Tipo" forId="type">
+                <app-type-handler [types]="track!.type" (typesChange)="onTypeChange($event)" [readOnly]="isUser" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="track!.description" [readOnly]="isUser" (ngModelChange)="isDirty = true"></textarea>
+            </app-form-field>
+        </div>
+    </app-detail-section>
+
+    <app-detail-section
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+        title="File pdf"
+        description="Il caricamento crea subito le parti: è un’operazione autonoma, non attende «Salva traccia»."
+    >
+        <p-fileupload
+            #fu
+            name="file"
+            chooseLabel="Seleziona file"
+            uploadLabel="Carica"
+            cancelLabel="Annulla"
+            mode="advanced"
+            accept="application/pdf"
+            [customUpload]="true"
+            (uploadHandler)="handleUpload($event)"
+            (onSelect)="onFileSelect($event)"
+            (onClear)="onFileClear()"
+            (onRemove)="onFileClear()"
+        >
             <ng-template #empty>
                 <div>Trascina il file qui per caricarlo.</div>
             </ng-template>
         </p-fileupload>
         @if (selectedFile) {
-        <div class="flex items-center gap-3 mt-3">
-            <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" [outlined]="true"
-                (onClick)="openManipulator()" />
-            @if (hasAnnotations) {
-            <span class="flex items-center gap-1 text-sm text-primary font-medium">
-                <i class="pi pi-check-circle"></i>Annotazioni applicate
-            </span>
-            }
-        </div>
+            <div class="flex items-center gap-3 mt-3">
+                <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="openManipulator()" />
+                @if (hasAnnotations) {
+                    <span class="flex items-center gap-1 text-sm text-primary font-medium"> <i class="pi pi-check-circle"></i>Annotazioni applicate </span>
+                }
+            </div>
         }
-    </div>
+    </app-detail-section>
 
-    <!-- Tabella parti -->
-    <div class="flex mt-4">
-        <div class="card flex flex-col gap-4 w-full">
-            <p-table #dt [value]="track.scores!" [rows]="10" [columns]="cols" [paginator]="true"
-                [globalFilterFields]="['name']" [(selection)]="selectedScores" [rowHover]="true" dataKey="order"
-                currentPageReportTemplate="Da {first} a {last} di {totalRecords} parti" [showCurrentPageReport]="true"
-                [rowsPerPageOptions]="[10, 20, 30]" (onRowReorder)="onRowReorder()">
-                <ng-template #caption>
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between flex-wrap gap-3">
-                        <div class="flex flex-col md:flex-row gap-2"
-                            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                            <p-button severity="primary" label="Aggiungi parte" icon="pi pi-plus" outlined
-                                (onClick)="addNew()" />
-                            <p-button severity="secondary" label="Unisci selezionati" icon="pi pi-link" outlined
-                                (onClick)="confirmMergeSelectedScores()" [disabled]="selectedScores.length < 2" />
-                            <p-button severity="danger" label="Elimina selezionati" icon="pi pi-trash" outlined
-                                (onClick)="confirmDeleteSelectedScores()" [disabled]="!selectedScores.length" />
+    <app-detail-section title="Parti" [count]="track.scores?.length" description="Ordine, strumenti e pagine di ciascuna parte. L’ordine si salva con «Salva traccia» in alto.">
+        <div sectionActions class="flex flex-col md:flex-row gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+            <p-button severity="primary" label="Aggiungi parte" icon="pi pi-plus" outlined (onClick)="addNew()" />
+            <p-button severity="secondary" label="Unisci selezionate" icon="pi pi-link" outlined (onClick)="confirmMergeSelectedScores()" [disabled]="selectedScores.length < 2" />
+            <p-button severity="danger" label="Elimina selezionate" icon="pi pi-trash" outlined (onClick)="confirmDeleteSelectedScores()" [disabled]="!selectedScores.length" />
+        </div>
+        <p-table
+            #dt
+            [value]="track.scores!"
+            [rows]="12"
+            [columns]="cols"
+            [paginator]="true"
+            [globalFilterFields]="['name']"
+            [(selection)]="selectedScores"
+            [rowHover]="true"
+            dataKey="order"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} parti"
+            [showCurrentPageReport]="true"
+            [rowsPerPageOptions]="[12, 24, 48]"
+            (onRowReorder)="onRowReorder()"
+        >
+            <ng-template #caption>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Cerca parte..." />
+                </p-iconfield>
+            </ng-template>
+            <ng-template #header>
+                <tr>
+                    <th class="w-12" scope="col">
+                        <p-tableHeaderCheckbox />
+                    </th>
+                    <th class="w-10" scope="col"></th>
+                    <th pSortableColumn="order" scope="col">
+                        Ordine
+                        <p-sortIcon field="order" />
+                    </th>
+                    <th scope="col">Media</th>
+                    <th pSortableColumn="instruments" scope="col">
+                        Strumenti
+                        <p-sortIcon field="instruments.name" />
+                    </th>
+                    <th scope="col"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-score let-rowIndex="rowIndex">
+                <tr [pReorderableRow]="rowIndex">
+                    <td class="w-12">
+                        <p-tableCheckbox [value]="score" />
+                    </td>
+                    <td class="w-10">
+                        @if (!isUser) {
+                            <span class="pi pi-bars text-surface-400" style="cursor: grab" pReorderableRowHandle></span>
+                        }
+                    </td>
+                    <td>{{ score.order }}</td>
+                    <td>
+                        <div class="flex flex-col items-start">
+                            <span class="text-sm text-surface-400 mb-1"> {{ score.media?.length ?? 0 }} {{ (score.media?.length ?? 0) === 1 ? 'pagina' : 'pagine' }} </span>
+                            <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1 w-full">
+                                @for (media of score!.media; track media.index) {
+                                    <div class="div-image pi pi-image">
+                                        <p-popover #op2 [style]="{ width: '50rem' }">
+                                            <img [src]="mediaStream(media) | secure | async" class="w-50" alt="sheet-music-{{ media.index }}" />
+                                        </p-popover>
+                                    </div>
+                                }
+                            </div>
+                            <p-button icon="pi pi-images" label="Visualizza" (onClick)="showMedia(score.media)" class="mt-2 block" />
                         </div>
-                        <p-iconfield>
-                            <p-inputicon styleClass="pi pi-search" />
-                            <input pInputText type="text" (input)="onGlobalFilter(dt, $event)"
-                                placeholder="Cerca parte..." />
-                        </p-iconfield>
-                    </div>
-                </ng-template>
-                <ng-template #header>
-                    <tr>
-                        <th class="w-12" scope="col">
-                            <p-tableHeaderCheckbox />
-                        </th>
-                        <th class="w-10" scope="col"></th>
-                        <th pSortableColumn="order" scope="col">
-                            Ordine
-                            <p-sortIcon field="order" />
-                        </th>
-                        <th scope="col">
-                            Media
-                        </th>
-                        <th pSortableColumn="instruments" scope="col">
-                            Strumenti
-                            <p-sortIcon field="instruments.name" />
-                        </th>
-                        <th scope="col"></th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-score let-rowIndex="rowIndex">
-                    <tr [pReorderableRow]="rowIndex">
-                        <td class="w-12">
-                            <p-tableCheckbox [value]="score" />
-                        </td>
-                        <td class="w-10">
-                            <span *ngIf="!isUser" class="pi pi-bars text-surface-400" style="cursor: grab"
-                                pReorderableRowHandle></span>
-                        </td>
-                        <td>{{ score.order }}</td>
-                        <td>
-                            <div class="flex flex-col items-start">
-                                <span class="text-sm text-surface-400 mb-1">
-                                    {{ score.media?.length ?? 0 }} {{ (score.media?.length ?? 0) === 1 ? 'pagina' :
-                                    'pagine' }}
-                                </span>
-                                <div class="flex flex-col md:flex-row flex-wrap gap-2 minh-2rem mt-1 w-full">
-                                    <ng-container *ngFor="let media of score!.media">
-                                        <div class="div-image pi pi-image">
-                                            <p-popover #op2 [style]="{width: '50rem'}">
-                                                <img [src]="mediaStream(media) | secure | async" class="w-50"
-                                                    alt="sheet-music-{{media.index}}" />
-                                            </p-popover>
-                                        </div>
-                                    </ng-container>
-                                </div>
-                                <p-button icon="pi pi-images" label="Visualizza" (onClick)="showMedia(score.media)"
-                                    class="mt-2 block" />
-                            </div>
-                        </td>
-                        <td>
-                            <div class="flex flex-col md:flex-row gap-2" *ngIf="score.instruments?.length">
-                                <p-tag [value]="instrument.name" [rounded]="true" severity="success"
-                                    *ngFor="let instrument of score.instruments"></p-tag>
-                            </div>
-                        </td>
-                        <td>
+                    </td>
+                    <td>
+                        @if (score.instruments?.length) {
                             <div class="flex flex-col md:flex-row gap-2">
-                                <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica"
-                                    tooltipPosition="top" (onClick)="editScore(score)"
-                                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
-                                <ng-container *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                                    @if ((score.media?.length ?? 0) > 1) {
-                                    <p-button icon="pi pi-table" severity="secondary" [rounded]="true" [outlined]="true"
-                                        pTooltip="Scorporo" tooltipPosition="top"
-                                        (onClick)="confirmSplitScore(score)" />
-                                    }
-                                </ng-container>
-                                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
-                                    pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteScore(score)"
-                                    *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                                @for (instrument of score.instruments; track instrument.index) {
+                                    <p-tag [value]="instrument.name" [rounded]="true" severity="success" />
+                                }
                             </div>
-                        </td>
-                    </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                    <tr>
-                        <td colspan="6" class="text-center py-6 text-color-secondary">Nessuna parte presente.</td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </div>
-    </div>
+                        }
+                    </td>
+                    <td>
+                        <div class="flex flex-col md:flex-row gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                            <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica" tooltipPosition="top" (onClick)="editScore(score)" />
+                            @if ((score.media?.length ?? 0) > 1) {
+                                <p-button icon="pi pi-th-large" severity="secondary" [rounded]="true" [outlined]="true" pTooltip="Scorporo" tooltipPosition="top" (onClick)="confirmSplitScore(score)" />
+                            }
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteScore(score)" />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="6">
+                        <app-empty-state compact icon="pi pi-file-pdf" title="Nessuna parte" message="Carica un file pdf oppure aggiungi una parte a mano." />
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </app-detail-section>
 
-    <!-- Zona pericolosa -->
-    <div class="card danger-zone mt-8" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-        <span class="danger-zone-label font-semibold text-sm block mb-3">Zona pericolosa</span>
-        <div class="flex flex-row justify-between items-center gap-4">
-            <span class="text-sm text-surface-500">Elimina definitivamente questa traccia e tutti i file
-                associati.</span>
-            <p-button label="Elimina traccia" icon="pi pi-trash" severity="danger" [outlined]="true"
-                (onClick)="confirmDelete()" />
-        </div>
-    </div>
+    <app-danger-zone
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+        [operations]="[{ id: 'delete', title: 'Elimina traccia', consequence: 'La traccia e tutti i file associati verranno eliminati definitivamente.', label: 'Elimina traccia' }]"
+        (execute)="confirmDelete()"
+    />
 
     <p-scrolltop />
 </p-fluid>
 
-<p-galleria [value]="images" [(visible)]="displayGalleria" [responsiveOptions]="responsiveOptions" [numVisible]="5"
-    [autoPlay]="true" [circular]="true" [fullScreen]="true" [transitionInterval]="3000" [showIndicators]="true"
-    [showThumbnails]="false" [changeItemOnIndicatorHover]="true" [showItemNavigators]="true"
-    [containerStyle]="{ 'max-width': '60rem' }">
+<p-galleria
+    [value]="images"
+    [(visible)]="displayGalleria"
+    [responsiveOptions]="responsiveOptions"
+    [numVisible]="5"
+    [autoPlay]="true"
+    [circular]="true"
+    [fullScreen]="true"
+    [transitionInterval]="3000"
+    [showIndicators]="true"
+    [showThumbnails]="false"
+    [changeItemOnIndicatorHover]="true"
+    [showItemNavigators]="true"
+    [containerStyle]="{ 'max-width': '60rem' }"
+>
     <ng-template #item let-media>
-        <img class="image-galleria" [src]="media | secure | async" alt="sheet-music-{{media.index}}" />
+        <img class="image-galleria" [src]="media | secure | async" alt="sheet-music-{{ media.index }}" />
     </ng-template>
 </p-galleria>

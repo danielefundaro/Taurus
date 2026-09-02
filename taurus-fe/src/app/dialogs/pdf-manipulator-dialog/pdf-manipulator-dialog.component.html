@@ -1,128 +1,138 @@
-<p-confirmdialog />
+<p-confirmdialog key="pdf-discard" />
 
 <div class="manipulator-layout">
-
     <!-- ── Left sidebar: page list ── -->
     <aside class="page-sidebar">
         <div class="sidebar-header">
             <span>Pagine</span>
             <div class="sidebar-header-actions">
-                <p-button [icon]="allExcluded ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                <p-button
+                    [icon]="allExcluded ? 'pi pi-eye' : 'pi pi-eye-slash'"
                     [pTooltip]="allExcluded ? 'Includi tutte le pagine' : 'Escludi tutte le pagine'"
-                    [severity]="allExcluded ? 'success' : 'secondary'" [text]="true" size="small"
-                    [disabled]="pages.length === 0" (onClick)="toggleExcludeAll($event)" />
+                    [severity]="allExcluded ? 'success' : 'secondary'"
+                    [text]="true"
+                    size="small"
+                    [disabled]="pages.length === 0"
+                    (onClick)="toggleExcludeAll($event)"
+                />
                 @if (cropCount > 0) {
-                <p-button icon="pi pi-times" pTooltip="Rimuovi tutti i crop" severity="secondary" [text]="true"
-                    size="small" (onClick)="removeCropFromAll()" />
+                    <p-button icon="pi pi-times" pTooltip="Rimuovi tutti i crop" severity="secondary" [text]="true" size="small" (onClick)="removeCropFromAll()" />
                 }
             </div>
         </div>
         <div class="page-list">
             @for (page of pages; track page) {
-            <div class="page-item" [class.active]="page === currentPage" [class.excluded]="isExcluded(page)"
-                (click)="navigateTo(page)">
-                <span class="page-num">{{ page }}</span>
-                <div class="flex flex-row gap-1">
-                    <div class="page-actions">
-                        <p-button [icon]="isExcluded(page) ? 'pi pi-eye' : 'pi pi-eye-slash'"
-                            [pTooltip]="isExcluded(page) ? 'Includi pagina' : 'Escludi pagina'"
-                            [severity]="isExcluded(page) ? 'success' : 'danger'" [text]="true" size="small"
-                            (onClick)="toggleExclude(page, $event)" />
+                <div class="page-item" [class.active]="page === currentPage" [class.excluded]="isExcluded(page)" (click)="navigateTo(page)">
+                    <span class="page-num">{{ page }}</span>
+                    <div class="flex flex-row gap-1">
+                        <div class="page-actions">
+                            <p-button
+                                [icon]="isExcluded(page) ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                                [pTooltip]="isExcluded(page) ? 'Includi pagina' : 'Escludi pagina'"
+                                [severity]="isExcluded(page) ? 'success' : 'danger'"
+                                [text]="true"
+                                size="small"
+                                (onClick)="toggleExclude(page, $event)"
+                            />
+                        </div>
+                        <p-button
+                            icon="pi pi-arrow-down-left-and-arrow-up-right-to-center"
+                            [pTooltip]="hasCrop(page) ? cropCountForPage(page) + ' zona/e di crop' : 'Ritaglia pagina'"
+                            severity="primary"
+                            [outlined]="!hasCrop(page)"
+                            [badge]="cropCountForPage(page) > 0 ? cropCountForPage(page).toString() : undefined"
+                            badgeSeverity="success"
+                            size="small"
+                            [disabled]="!pdfReady || cropLoading"
+                            (onClick)="enterCropMode(page, $event)"
+                        />
                     </div>
-                    <p-button icon="pi pi-arrow-down-left-and-arrow-up-right-to-center"
-                        [pTooltip]="hasCrop(page) ? cropCountForPage(page) + ' zona/e di crop' : 'Ritaglia pagina'"
-                        severity="primary" [outlined]="!hasCrop(page)"
-                        [badge]="cropCountForPage(page) > 0 ? cropCountForPage(page).toString() : undefined"
-                        badgeSeverity="success" size="small" [disabled]="!pdfReady || cropLoading"
-                        (onClick)="enterCropMode(page, $event)" />
                 </div>
-            </div>
             }
             @if (pages.length === 0) {
-            <div class="sidebar-loading">
-                <i class="pi pi-spin pi-spinner"></i>
-            </div>
+                <div class="sidebar-loading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                </div>
             }
         </div>
     </aside>
 
     <!-- ── Main: PDF viewer + crop overlay ── -->
     <main class="pdf-main">
-
         <!-- PDF viewer (always mounted, hidden in crop mode) -->
         <div class="viewer-wrapper" [style.display]="cropMode ? 'none' : 'flex'">
-            <ngx-extended-pdf-viewer [src]="pdfFile" [page]="currentPage" [showToolbar]="true"
-                [showSidebarButton]="false" [showPresentationModeButton]="false" [showOpenFileButton]="false"
-                [showPrintButton]="false" [showDownloadButton]="false" [showSecondaryToolbarButton]="false"
-                [showRotateButton]="false" [showHandToolButton]="false" [showScrollingButtons]="false"
-                [showSpreadButton]="false" [showPropertiesButton]="false" [showFindButton]="false" height="100%"
-                (pagesLoaded)="onPagesLoaded($event)" />
+            <ngx-extended-pdf-viewer
+                [src]="pdfFile"
+                [page]="currentPage"
+                [showToolbar]="true"
+                [showSidebarButton]="false"
+                [showPresentationModeButton]="false"
+                [showOpenFileButton]="false"
+                [showPrintButton]="false"
+                [showDownloadButton]="false"
+                [showSecondaryToolbarButton]="false"
+                [showRotateButton]="false"
+                [showHandToolButton]="false"
+                [showScrollingButtons]="false"
+                [showSpreadButton]="false"
+                [showPropertiesButton]="false"
+                [showFindButton]="false"
+                height="100%"
+                (pagesLoaded)="onPagesLoaded($event)"
+            />
         </div>
 
         <!-- Crop tool -->
         @if (cropMode) {
-        <div class="crop-view">
-            <div class="crop-header">
-                <span class="crop-title">
-                    <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center mr-2"></i>Ritaglia pagina {{
-                    cropPageNum }}
-                </span>
-                <span class="crop-hint">Trascina per aggiungere zone da mantenere · clicca "Aggiungi zona" per ogni
-                    area</span>
-            </div>
+            <div class="crop-view">
+                <div class="crop-header">
+                    <span class="crop-title"> <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center mr-2"></i>Ritaglia pagina {{ cropPageNum }} </span>
+                    <span class="crop-hint">Trascina per aggiungere zone da mantenere · clicca "Aggiungi zona" per ogni area</span>
+                </div>
 
-            <div class="crop-canvas-area">
-                <div class="crop-container" #cropContainer [style.cursor]="cropCursor"
-                    (mousedown)="onCropMouseDown($event)" (mousemove)="onCropMouseMove($event)"
-                    (mouseup)="onCropMouseUp()" (mouseleave)="onCropMouseUp()">
-                    <img [src]="cropImage" class="crop-image" draggable="false" alt="Pagina {{ cropPageNum }}">
-                    @for (crop of pageCrops; track $index; let i = $index) {
-                    <div class="crop-existing" [ngStyle]="existingCropStyle(crop)">
-                        <span class="crop-existing-num">{{ i + 1 }}</span>
+                <div class="crop-canvas-area">
+                    <div class="crop-container" #cropContainer [style.cursor]="cropCursor" (mousedown)="onCropMouseDown($event)" (mousemove)="onCropMouseMove($event)" (mouseup)="onCropMouseUp()" (mouseleave)="onCropMouseUp()">
+                        <img [src]="cropImage" class="crop-image" draggable="false" alt="Pagina {{ cropPageNum }}" />
+                        @for (crop of pageCrops; track $index; let i = $index) {
+                            <div class="crop-existing" [ngStyle]="existingCropStyle(crop)">
+                                <span class="crop-existing-num">{{ i + 1 }}</span>
+                            </div>
+                        }
+                        @if (cropRect && cropRect.width > 0) {
+                            <div class="crop-selection" [ngStyle]="cropSelectionStyle">
+                                <div class="crop-handle nw"></div>
+                                <div class="crop-handle ne"></div>
+                                <div class="crop-handle sw"></div>
+                                <div class="crop-handle se"></div>
+                                <div class="crop-handle n"></div>
+                                <div class="crop-handle s"></div>
+                                <div class="crop-handle e"></div>
+                                <div class="crop-handle w"></div>
+                            </div>
+                        }
                     </div>
-                    }
-                    @if (cropRect && cropRect.width > 0) {
-                    <div class="crop-selection" [ngStyle]="cropSelectionStyle">
-                        <div class="crop-handle nw"></div>
-                        <div class="crop-handle ne"></div>
-                        <div class="crop-handle sw"></div>
-                        <div class="crop-handle se"></div>
-                        <div class="crop-handle n"></div>
-                        <div class="crop-handle s"></div>
-                        <div class="crop-handle e"></div>
-                        <div class="crop-handle w"></div>
+                </div>
+
+                <div class="crop-footer">
+                    <div class="crop-chip-list">
+                        @for (crop of pageCrops; track $index; let i = $index) {
+                            <span class="crop-chip" (click)="editPageCrop(i)" pTooltip="Clicca per modificare questa zona" tooltipPosition="top">
+                                <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>
+                                Zona {{ i + 1 }}
+                                <button class="crop-chip-remove" (click)="removePageCrop(i, $event)">
+                                    <i class="pi pi-times"></i>
+                                </button>
+                            </span>
+                        }
+                        @if (pageCrops.length > 0) {
+                            <p-button label="Rimuovi tutti" icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="removeCrop()" />
+                        }
                     </div>
-                    }
+                    <p-button label="Chiudi" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="exitCropMode()" />
+                    <p-button label="Applica a tutte" icon="pi pi-copy" severity="secondary" [outlined]="true" size="small" [disabled]="pageCrops.length === 0 && (!cropRect || cropRect.width < 0.02)" (onClick)="applyCropToAll()" />
+                    <p-button [label]="editingCrop ? 'Aggiorna zona' : 'Aggiungi zona'" [icon]="editingCrop ? 'pi pi-check' : 'pi pi-plus'" size="small" [disabled]="!cropRect || cropRect.width < 0.02" (onClick)="applyCrop()" />
                 </div>
             </div>
-
-            <div class="crop-footer">
-                <div class="crop-chip-list">
-                    @for (crop of pageCrops; track $index; let i = $index) {
-                    <span class="crop-chip" (click)="editPageCrop(i)"
-                        pTooltip="Clicca per modificare questa zona" tooltipPosition="top">
-                        <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>
-                        Zona {{ i + 1 }}
-                        <button class="crop-chip-remove" (click)="removePageCrop(i, $event)">
-                            <i class="pi pi-times"></i>
-                        </button>
-                    </span>
-                    }
-                    @if (pageCrops.length > 0) {
-                    <p-button label="Rimuovi tutti" icon="pi pi-trash" severity="danger" [text]="true" size="small"
-                        (onClick)="removeCrop()" />
-                    }
-                </div>
-                <p-button label="Chiudi" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small"
-                    (onClick)="exitCropMode()" />
-                <p-button label="Applica a tutte" icon="pi pi-copy" severity="secondary" [outlined]="true" size="small"
-                    [disabled]="pageCrops.length === 0 && (!cropRect || cropRect.width < 0.02)"
-                    (onClick)="applyCropToAll()" />
-                <p-button [label]="editingCrop ? 'Aggiorna zona' : 'Aggiungi zona'"
-                    [icon]="editingCrop ? 'pi pi-check' : 'pi pi-plus'" size="small"
-                    [disabled]="!cropRect || cropRect.width < 0.02" (onClick)="applyCrop()" />
-            </div>
-        </div>
         }
     </main>
 </div>
@@ -131,22 +141,17 @@
 <div class="manipulator-footer">
     <div class="footer-summary">
         @if (excludedCount > 0) {
-        <span class="summary-chip excluded">
-            <i class="pi pi-eye-slash"></i>{{ excludedCount }} escluse
-        </span>
+            <span class="summary-chip excluded"> <i class="pi pi-eye-slash"></i>{{ excludedCount }} escluse </span>
         }
         @if (cropCount > 0) {
-        <span class="summary-chip crop">
-            <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>{{ cropCount }} crop
-        </span>
+            <span class="summary-chip crop"> <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>{{ cropCount }} crop </span>
         }
         @if (excludedCount === 0 && cropCount === 0) {
-        <span class="summary-empty">Nessuna modifica</span>
+            <span class="summary-empty">Nessuna modifica</span>
         }
     </div>
     <div class="footer-actions">
-        <p-button label="Annulla" icon="pi pi-times" severity="secondary" [outlined]="true" size="small"
-            (onClick)="cancel()" />
+        <p-button label="Annulla" icon="pi pi-times" severity="secondary" [outlined]="true" size="small" (onClick)="cancel()" />
         <p-button label="Applica modifiche" icon="pi pi-check" size="small" (onClick)="confirm()" />
     </div>
 </div>
