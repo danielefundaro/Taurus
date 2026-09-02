@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CalendarEvents } from '../../../../module';
+import { DetailSectionComponent } from '../../../../components/detail-section/detail-section.component';
+import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
+import { ListRowComponent } from '../../../../components/list-row/list-row.component';
+import { CalendarEvents, Page } from '../../../../module';
 
 @Component({
     selector: 'app-calendar-events-widget',
-    imports: [CommonModule, RouterModule],
+    imports: [CommonModule, RouterModule, DetailSectionComponent, EmptyStateComponent, ListRowComponent],
     templateUrl: './calendar-events-widget.component.html',
     styleUrl: './calendar-events-widget.component.scss',
     host: {
@@ -13,11 +16,52 @@ import { CalendarEvents } from '../../../../module';
     },
     changeDetection: ChangeDetectionStrategy.Default
 })
-export class CalendarEventsWidgetComponent {
-    @Input() events: CalendarEvents[] = [];
+export class CalendarEventsWidgetComponent implements OnChanges {
+    @Input() events?: Page<CalendarEvents>;
+    @Output() pageChange: EventEmitter<{ page: number; size: number }> = new EventEmitter<{ page: number; size: number }>();
+
+    protected currentPage: number = 0;
+    protected rows: number = 4;
+    protected totalRecords: number = 0;
+
+    ngOnChanges(): void {
+        if (this.events) {
+            this.totalRecords = this.events.totalElements;
+            this.currentPage = this.events.number;
+            this.rows = this.events.size || this.rows;
+        }
+    }
 
     protected get visibleEvents(): CalendarEvents[] {
-        return this.events.slice(0, 4);
+        return this.events?.content ?? [];
+    }
+
+    protected get firstRecord(): number {
+        return this.totalRecords === 0 ? 0 : this.currentPage * this.rows + 1;
+    }
+
+    protected get lastRecord(): number {
+        return Math.min((this.currentPage + 1) * this.rows, this.totalRecords);
+    }
+
+    protected get canGoBack(): boolean {
+        return this.currentPage > 0;
+    }
+
+    protected get canGoForward(): boolean {
+        return this.events ? !this.events.last : false;
+    }
+
+    protected previousPage(): void {
+        if (this.canGoBack) {
+            this.pageChange.emit({ page: this.currentPage - 1, size: this.rows });
+        }
+    }
+
+    protected nextPage(): void {
+        if (this.canGoForward) {
+            this.pageChange.emit({ page: this.currentPage + 1, size: this.rows });
+        }
     }
 
     protected relativeDate(value?: Date): string {

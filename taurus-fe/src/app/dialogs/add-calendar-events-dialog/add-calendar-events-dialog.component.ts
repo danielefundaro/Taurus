@@ -3,41 +3,23 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import {
-    CalendarEventDialogResult,
-    CalendarEventSeriesPreview,
-    CalendarEventSeriesRequest,
-    CalendarEvents,
-    RecurrenceEndType,
-    RecurrenceFrequency,
-    RecurrenceWeekDay,
-} from '../../module';
+import { CalendarEventDialogResult, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, RecurrenceEndType, RecurrenceFrequency, RecurrenceWeekDay } from '../../module';
 import { CalendarEventSeriesService } from '../../service';
 import { first } from 'rxjs';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-calendar-events-dialog',
-    imports: [
-        ButtonModule,
-        InputTextModule,
-        InputNumberModule,
-        SelectModule,
-        FloatLabelModule,
-        DatePickerModule,
-        FluidModule,
-        FormsModule,
-        CommonModule,
-    ],
-    templateUrl: './add-calendar-events-dialog.component.html',
+    imports: [ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, FluidModule, FormsModule, CommonModule, DialogShellComponent, FormFieldComponent],
+    templateUrl: './add-calendar-events-dialog.component.html'
 })
 export class AddCalendarEventsDialogComponent {
-
     protected event: CalendarEvents;
     protected recurring = false;
     protected frequency: RecurrenceFrequency = 'WEEKLY';
@@ -52,7 +34,7 @@ export class AddCalendarEventsDialogComponent {
         { value: 'DAILY', label: 'Giornaliera' },
         { value: 'WEEKLY', label: 'Settimanale' },
         { value: 'MONTHLY', label: 'Mensile' },
-        { value: 'YEARLY', label: 'Annuale' },
+        { value: 'YEARLY', label: 'Annuale' }
     ];
     protected readonly weekDayOptions: { code: RecurrenceWeekDay; label: string }[] = [
         { code: 'MO', label: 'Lun' },
@@ -61,13 +43,13 @@ export class AddCalendarEventsDialogComponent {
         { code: 'TH', label: 'Gio' },
         { code: 'FR', label: 'Ven' },
         { code: 'SA', label: 'Sab' },
-        { code: 'SU', label: 'Dom' },
+        { code: 'SU', label: 'Dom' }
     ];
 
     constructor(
         private readonly dialogRef: DynamicDialogRef<AddCalendarEventsDialogComponent>,
         private readonly config: DynamicDialogConfig,
-        private readonly seriesService: CalendarEventSeriesService,
+        private readonly seriesService: CalendarEventSeriesService
     ) {
         this.event = new CalendarEvents();
         if (config.data?.startDate) {
@@ -81,9 +63,8 @@ export class AddCalendarEventsDialogComponent {
     }
 
     protected save(): void {
-        const result: CalendarEventDialogResult = this.recurring
-            ? { series: this.buildSeriesRequest() }
-            : { event: this.event };
+        if (!this.event.name?.trim() || !this.event.startDate || this.recurrenceInvalid) return;
+        const result: CalendarEventDialogResult = this.recurring ? { series: this.buildSeriesRequest() } : { event: this.event };
         this.dialogRef.close(result);
     }
 
@@ -102,21 +83,22 @@ export class AddCalendarEventsDialogComponent {
     }
 
     protected toggleWeekDay(day: RecurrenceWeekDay, selected: boolean): void {
-        this.weekDays = selected
-            ? [...new Set([...this.weekDays, day])]
-            : this.weekDays.filter(value => value !== day);
+        this.weekDays = selected ? [...new Set([...this.weekDays, day])] : this.weekDays.filter((value) => value !== day);
         this.previewResult = undefined;
     }
 
     protected preview(): void {
         this.isPreviewing = true;
-        this.seriesService.preview(this.buildSeriesRequest()).pipe(first()).subscribe({
-            next: result => {
-                this.previewResult = result;
-                this.isPreviewing = false;
-            },
-            error: () => this.isPreviewing = false,
-        });
+        this.seriesService
+            .preview(this.buildSeriesRequest())
+            .pipe(first())
+            .subscribe({
+                next: (result) => {
+                    this.previewResult = result;
+                    this.isPreviewing = false;
+                },
+                error: () => (this.isPreviewing = false)
+            });
     }
 
     protected get recurrenceInvalid(): boolean {
@@ -134,10 +116,8 @@ export class AddCalendarEventsDialogComponent {
                 frequency: this.frequency,
                 interval: this.interval,
                 weekDays: this.frequency === 'WEEKLY' ? this.weekDays : [],
-                end: this.endType === 'COUNT'
-                    ? { type: 'COUNT', count: this.occurrenceCount }
-                    : { type: 'UNTIL', until: this.formatLocalDate(this.untilDate!) },
-            },
+                end: this.endType === 'COUNT' ? { type: 'COUNT', count: this.occurrenceCount } : { type: 'UNTIL', until: this.formatLocalDate(this.untilDate!) }
+            }
         };
     }
 

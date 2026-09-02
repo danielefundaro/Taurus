@@ -1,16 +1,17 @@
-<p-floatlabel class="flex" [variant]="variant" *ngIf="!readOnly">
+@if (!readOnly) {
     <p-inputgroup>
-        <input pInputText id="type" type="text" (keypress)="inputChange($event)" (blur)="blur()" [(ngModel)]="current" />
+        <input pInputText [id]="inputId" type="text" [placeholder]="placeholder" (keypress)="inputChange($event)" (blur)="blur()" [(ngModel)]="current" />
         <p-inputgroup-addon class="cursor-pointer">
             <i class="pi pi-chevron-right"></i>
         </p-inputgroup-addon>
     </p-inputgroup>
-    <label for="type" class="z-index-100">{{label}}</label>
-</p-floatlabel>
-<label for="type" class="z-index-100 mb-4 display-block" *ngIf="readOnly">{{label}}</label>
-<div class="flex flex-row flex-wrap gap-2 mt-1" *ngIf="types?.length">
-    <ng-container *ngFor="let type of types">
-        <p-chip [label]="type" [removable]="true && !readOnly" (onRemove)="removeType(type)">
-        </p-chip>
-    </ng-container>
-</div>
+}
+@if (types?.length) {
+    <div class="flex flex-row flex-wrap gap-2 mt-2">
+        @for (type of types; track type) {
+            <p-chip [label]="type" [removable]="!readOnly" (onRemove)="removeType(type)" />
+        }
+    </div>
+} @else if (readOnly) {
+    <span class="text-sm text-muted-color">Nessun tipo</span>
+}

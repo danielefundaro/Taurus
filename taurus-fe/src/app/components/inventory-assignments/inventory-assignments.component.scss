@@ -1,0 +1,17 @@
+:host {
+    display: block;
+    /* Il componente rende una sezione a tutti gli effetti: il ritmo verticale
+       sta qui, perché la `.card` interna è figlio unico e il suo
+       `:last-child { margin-bottom: 0 }` scatta sempre. */
+    margin-bottom: 2rem;
+}
+
+:host(:last-child) {
+    margin-bottom: 0;
+}
+
+/* Senza assegnazioni il template non rende nulla: l'host non deve comunque
+   occupare spazio fra la sezione precedente e quella successiva. */
+:host(:empty) {
+    display: none;
+}

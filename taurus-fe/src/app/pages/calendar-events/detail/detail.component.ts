@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
-import { HasUnsavedChanges } from '../../../guard';
+import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone.component';
 import { ImportsModule } from '../../../imports';
+import { DetailPageBase } from '../../_shared/detail-page.base';
 import { CalendarEventSeries, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, EventCost, FinancialEventSummary, EventPresentUser, RecurrenceWeekDay, Users } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { CalendarEventSeriesService, CalendarEventsService, FinanceService, KeycloakService, ToastService, UsersService } from '../../../service';
+import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, FinanceService, KeycloakService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
     id: number;
@@ -25,19 +25,41 @@ interface UserPresenceRow {
     imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [CalendarEventsService, CalendarEventSeriesService, ConfirmationService]
+    providers: [CalendarEventsService, CalendarEventSeriesService]
 })
-export class DetailComponent implements OnInit, HasUnsavedChanges {
-    private _isDirtyForm = false;
-    isDirtyPresence = false;
-    protected isSaving = false;
+export class DetailComponent extends DetailPageBase implements OnInit {
+    protected isSavingPresence = false;
 
-    get isDirty(): boolean {
-        return this._isDirtyForm || this.isDirtyPresence;
+    /** Seconda unità salvabile della pagina, con il proprio pulsante «Salva presenze». */
+    get isDirtyPresence(): boolean {
+        return this.isUnitDirty(DetailComponent.PRESENCE_UNIT);
     }
 
-    set isDirty(value: boolean) {
-        this._isDirtyForm = value;
+    set isDirtyPresence(value: boolean) {
+        this.setUnitDirty(DetailComponent.PRESENCE_UNIT, value);
+    }
+
+    private static readonly PRESENCE_UNIT = 'presenze';
+
+    protected get dangerZoneOperations(): DangerZoneOperation[] {
+        const deleteEvent: DangerZoneOperation = {
+            id: 'event',
+            title: 'Elimina evento',
+            consequence: 'Questo evento e tutti i dati associati verranno eliminati definitivamente.',
+            label: 'Elimina evento'
+        };
+
+        if (!this.event.seriesId) return [deleteEvent];
+
+        return [
+            deleteEvent,
+            {
+                id: 'series',
+                title: 'Elimina serie futura',
+                consequence: 'Le occorrenze future verranno eliminate conservando lo storico passato.',
+                label: 'Elimina serie futura'
+            }
+        ];
     }
 
     protected event: CalendarEvents = new CalendarEvents();
@@ -80,9 +102,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
         private readonly toastService: ToastService,
         private readonly activatedRoute: ActivatedRoute,
         private readonly router: Router,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
         private readonly dateConverterPipe: DateConverterPipe
     ) {
+        super();
         this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
@@ -120,17 +143,12 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected confirmDelete(): void {
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: this.event.seriesId ? 'Eliminare soltanto questa occorrenza? Le altre date della serie non saranno modificate.' : 'Eliminare definitivamente questo evento?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Conferma',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: this.event.seriesId ? 'Elimina occorrenza' : 'Elimina evento',
+            consequence: this.event.seriesId ? 'Soltanto questa occorrenza verrà eliminata; le altre date della serie non saranno modificate.' : 'L’evento verrà eliminato definitivamente.',
+            actionLabel: 'Elimina',
             accept: () => {
-                this.isDirty = false;
-                this.isDirtyPresence = false;
+                this.clearDirtyUnits();
                 this.calendarEventsService
                     .delete(this.event.id)
                     .pipe(first())
@@ -145,18 +163,21 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected save(): void {
-        this.isSaving = true;
+        this.saving = true;
         this.calendarEventsService
             .update(this.event.id, this.event)
             .pipe(
                 delay(1000),
                 first(),
-                finalize(() => (this.isSaving = false))
+                finalize(() => (this.saving = false))
             )
             .subscribe({
                 next: (updated: CalendarEvents) => {
                     this.isDirty = false;
                     this.toastService.success('Successo', 'Evento aggiornato con successo');
+                    if (this.isDirtyPresence) {
+                        this.toastService.info('Presenze non salvate', 'Le presenze modificate restano da salvare con «Salva presenze».');
+                    }
                     this.loadElement(updated.id);
                 }
             });
@@ -165,12 +186,12 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     protected saveSeriesFuture(): void {
         if (!this.series || this.seriesRuleInvalid) return;
         const request = this.buildSeriesRequest();
-        this.isSaving = true;
+        this.saving = true;
         this.calendarEventSeriesService
             .update(this.series.id, request)
             .pipe(
                 first(),
-                finalize(() => (this.isSaving = false))
+                finalize(() => (this.saving = false))
             )
             .subscribe({
                 next: (updated) => {
@@ -244,14 +265,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
 
     protected confirmDeleteSeries(): void {
         if (!this.event.seriesId) return;
-        this.confirmationService.confirm({
-            header: 'Elimina eventi futuri',
-            message: 'Eliminare tutte le occorrenze future della serie? Gli eventi passati resteranno nello storico.',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina eventi futuri',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina eventi futuri',
+            consequence: 'Tutte le occorrenze future della serie verranno eliminate; gli eventi passati resteranno nello storico.',
+            actionLabel: 'Elimina eventi futuri',
             accept: () =>
                 this.calendarEventSeriesService
                     .deleteFuture(this.event.seriesId!)
@@ -344,9 +361,13 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 return entry;
             });
 
+        this.isSavingPresence = true;
         this.calendarEventsService
             .setPresentUsers(this.event.id, presentUsers)
-            .pipe(first())
+            .pipe(
+                first(),
+                finalize(() => (this.isSavingPresence = false))
+            )
             .subscribe({
                 next: (updated: CalendarEvents) => {
                     this.isDirtyPresence = false;
@@ -377,14 +398,10 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected confirmRemoveCost(index: number): void {
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: "Rimuovere questo costo dall'evento?",
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Rimuovi',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Rimuovi costo',
+            consequence: 'Il costo verrà rimosso dall’evento.',
+            actionLabel: 'Rimuovi',
             accept: () => this.removeCost(index)
         });
     }
@@ -415,7 +432,6 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
                 next: (ev: CalendarEvents) => {
                     this.event = ev;
                     this.isDirty = false;
-                    this.isDirtyPresence = false;
                     this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                     this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
                     if (this.event.seriesId && this.isAdmin) {
@@ -515,7 +531,14 @@ export class DetailComponent implements OnInit, HasUnsavedChanges {
             });
     }
 
+    /**
+     * Ricostruisce le righe dalle presenze del server. Non tocca nulla finché
+     * la sezione presenze ha modifiche non salvate: un ricaricamento causato
+     * da un'altra unità non può scartare le presenze in corso di modifica.
+     */
     private buildPresenceRows(users?: Users[]): void {
+        if (this.isDirtyPresence) return;
+
         const source =
             users ??
             this.presenceRows.map(

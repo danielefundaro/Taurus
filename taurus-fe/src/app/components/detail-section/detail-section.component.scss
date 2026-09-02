@@ -1,0 +1,59 @@
+:host {
+    display: block;
+    /* La `.card` interna è sempre figlio unico dell'host, quindi il suo
+       `:last-child { margin-bottom: 0 }` scatta sempre: il ritmo fra le
+       sezioni deve stare qui, non sulla card. */
+    margin-bottom: 2rem;
+}
+
+:host(:last-child) {
+    margin-bottom: 0;
+}
+.detail-section > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.detail-section__title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.detail-section__title > span {
+    display: grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--p-content-hover-background);
+    font-size: 0.75rem;
+}
+h2,
+p {
+    margin: 0;
+}
+h2 {
+    font-size: 1.125rem;
+}
+header p {
+    margin-top: 0.3rem;
+    color: var(--p-text-muted-color);
+}
+
+.detail-section__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.detail-section__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--p-primary-color);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}

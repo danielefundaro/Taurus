@@ -1,149 +1,154 @@
 <p-confirmdialog />
-<div class="card">
-    <!-- Header -->
-    <p-fluid class="flex flex-col sm:flex-row sm:justify-end gap-3 mb-4">
-        <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()"
-            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" />
-        <ng-container *ngIf="layout === 'list'">
-            <p-iconfield>
-                <p-inputicon class="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter($event)" placeholder="Cerca..." />
-            </p-iconfield>
-            <p-select [options]="sortOptions" placeholder="Ordina per..." (onChange)="onSortChange($event)" />
-        </ng-container>
-        <p-select-button [ngModel]="layout" [options]="options" [allowEmpty]="false"
-            (ngModelChange)="onLayoutChange($event)">
-            <ng-template #item let-option>
-                <i class="pi" [ngClass]="{ 'pi-bars': option === 'list', 'pi-calendar': option === 'grid' }"
-                    [pTooltip]="option === 'list' ? 'Lista' : 'Calendario'"></i>
-            </ng-template>
-        </p-select-button>
-    </p-fluid>
+<app-page-header title="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')"
+    ><div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"><p-button label="Nuovo evento" icon="pi pi-plus" (onClick)="addNew()" /></div
+></app-page-header>
 
-    <!-- LIST VIEW -->
-    <ng-container *ngIf="layout === 'list'">
-        <p-dataview [value]="events" [lazy]="true" [lazyLoadOnInit]="true" [first]="dataViewLazyLoadEvent.first"
-            [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
-            [paginatorPosition]="events.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
-            [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-            [rowsPerPageOptions]="[10, 25, 50]" (onLazyLoad)="onLazyLoad($event)">
+@if (layout === 'grid') {
+    <div class="card flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-1">
+            <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary" (onClick)="goToToday()" />
+            <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente" tooltipPosition="bottom" />
+        </div>
 
+        <p-button [label]="currentMonthLabel" [text]="true" icon="pi pi-chevron-down" iconPos="right" styleClass="text-xl! font-semibold!" (onClick)="monthPicker.toggle($event)" />
+
+        <p-button icon="pi pi-chevron-right" [text]="true" (onClick)="nextMonth()" pTooltip="Mese successivo" tooltipPosition="bottom" />
+    </div>
+
+    <p-popover #monthPicker>
+        <p-datepicker [(ngModel)]="currentMonth" view="month" dateFormat="mm/yy" [inline]="true" (ngModelChange)="onMonthSelected()" />
+    </p-popover>
+}
+
+<app-list-toolbar
+    [search]="searchTerm"
+    [showSearch]="layout === 'list'"
+    [sortOptions]="layout === 'list' ? sortOptions : []"
+    [layout]="layout"
+    gridIcon="pi pi-calendar"
+    searchPlaceholder="Cerca evento…"
+    (searchChange)="onSearchChange($event)"
+    (sortChange)="onSortValue($event)"
+    (layoutChange)="onLayoutChange($event)"
+/>
+@if (layout === 'list') {
+    <app-selection-bar
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+        [count]="selectedEvents.length"
+        [allSelected]="isAllSelected(events)"
+        (toggleAll)="toggleSelectAll(events)"
+        (clear)="selectedEvents = []"
+        (delete)="deleteSelectedElements()"
+    />
+}
+
+<div class="card !p-0 overflow-hidden">
+    @if (layout === 'list') {
+        <p-dataview
+            [value]="events"
+            [lazy]="true"
+            [lazyLoadOnInit]="true"
+            [loading]="loading"
+            [first]="dataViewLazyLoadEvent.first"
+            [rows]="dataViewLazyLoadEvent.rows"
+            [paginator]="true"
+            paginatorPosition="bottom"
+            [showCurrentPageReport]="true"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+            [totalRecords]="totalRecords"
+            [sortField]="dataViewLazyLoadEvent.sortField"
+            [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+            [rowsPerPageOptions]="[12, 24, 48]"
+            paginatorDropdownAppendTo="body"
+            (onLazyLoad)="onLazyLoad($event)"
+        >
             <ng-template #list let-items>
                 <div class="flex flex-col">
-                    @if (items.length > 0) {
-                    <div class="flex items-center gap-3 px-6 py-2 border-b border-surface"
-                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                        <p-checkbox [binary]="true" [ngModel]="isAllSelected(items)"
-                            (ngModelChange)="toggleSelectAll(items)" />
-                        <span class="text-sm text-surface-500 cursor-pointer select-none" (click)="toggleSelectAll(items)">
-                            @if (selectedEvents.length > 0) { {{ selectedEvents.length }} selezionati } @else { Seleziona tutto }
-                        </span>
-                        @if (selectedEvents.length > 0) {
-                        <p-button label="Elimina selezionati" icon="pi pi-trash" severity="danger" size="small"
-                            [outlined]="true" (onClick)="deleteSelectedElements()" />
-                        }
-                    </div>
-                    }
-                    <ng-container *ngFor="let item of items; let i = index">
-                        <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                            [ngClass]="{ 'border-t border-surface': i !== 0 }">
-                            <!-- Date circle -->
-                            <p-checkbox [binary]="true" class="self-center flex-shrink-0" [ngModel]="isSelected(item)"
+                    @for (item of items; track item.id) {
+                        <app-list-row>
+                            <p-checkbox
+                                rowSelection
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+                                [binary]="true"
+                                [ngModel]="isSelected(item)"
                                 (ngModelChange)="toggleSelection(item)"
-                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" />
-                            <a class="md:w-20 relative cursor-pointer block" [routerLink]="item.id">
-                                <div
-                                    class="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-contrast">
-                                    <span class="text-lg font-bold leading-none">{{ item.startDate | date:'dd' }}</span>
-                                    <span class="text-xs uppercase">{{ item.startDate | date:'MMM' }}</span>
-                                </div>
+                                [attr.aria-label]="'Seleziona ' + item.name"
+                            />
+                            <a rowMedia class="list-thumbnail list-thumbnail--date" [routerLink]="item.id" [attr.aria-label]="item.name">
+                                <span class="text-lg font-bold leading-none">{{ item.startDate | date: 'dd' }}</span>
+                                <span class="text-xs uppercase">{{ item.startDate | date: 'MMM' }}</span>
                             </a>
-                            <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
-                                <div class="flex flex-row md:flex-col justify-between items-start gap-2">
-                                    <div>
-                                        <a class="text-2xl font-semibold cursor-pointer block" [routerLink]="item.id">
-                                            {{ item.name }}
-                                            <i *ngIf="item.seriesId" class="pi pi-sync ml-2 text-base text-primary"
-                                                [pTooltip]="item.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"></i>
-                                        </a>
-                                        <span class="font-medium text-surface-500 dark:text-surface-400 text-sm">
-                                            <i class="pi pi-map-marker mr-1"></i>{{ item.location }}
-                                        </span>
-                                    </div>
-                                    <div class="flex gap-2 flex-wrap">
-                                        <p-tag icon="pi pi-clock" severity="secondary"
-                                            [value]="(item.startDate | date:'HH:mm') ?? ''" [rounded]="true"
-                                            *ngIf="item.startDate"></p-tag>
-                                        <p-tag icon="pi pi-tag" severity="secondary" [value]="getStateLabel(item.state)"
-                                            [rounded]="true" *ngIf="item.state"></p-tag>
-                                    </div>
-                                </div>
-                                <div class="flex flex-row gap-2">
-                                    <p-button icon="pi pi-pencil" label="Dettaglio" [routerLink]="item.id"
-                                        styleClass="flex-auto md:flex-initial whitespace-nowrap"></p-button>
-                                    <p-button icon="pi pi-trash" styleClass="h-full" [outlined]="true"
-                                        pTooltip="Elimina" (onClick)="deleteElement(item)"
-                                        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"></p-button>
+                            <div rowIdentity>
+                                <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">
+                                    {{ item.name }}
+                                    @if (item.seriesId) {
+                                        <i class="pi pi-sync ml-2 text-base text-primary" [pTooltip]="item.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"></i>
+                                    }
+                                </a>
+                                <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis"><i class="pi pi-map-marker mr-1"></i>{{ item.location || 'Luogo non indicato' }}</span>
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    @if (item.startDate) {
+                                        <p-tag icon="pi pi-clock" severity="secondary" [value]="(item.startDate | date: 'HH:mm') ?? ''" [rounded]="true" />
+                                    }
+                                    @if (item.state) {
+                                        <p-tag icon="pi pi-tag" severity="secondary" [value]="getStateLabel(item.state)" [rounded]="true" />
+                                    }
                                 </div>
                             </div>
-                        </div>
-                    </ng-container>
+                            <div rowMetrics class="list-metric">
+                                <strong>{{ item.presentUsers?.length || 0 }}</strong
+                                ><small>presenze</small>
+                            </div>
+                            <div rowActions>
+                                <p-button icon="pi pi-pencil" label="Dettaglio" [routerLink]="item.id" />
+                                <ng-container *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                                    <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina evento" pTooltip="Elimina" (onClick)="deleteElement(item)" />
+                                </ng-container>
+                            </div>
+                        </app-list-row>
+                    }
                 </div>
             </ng-template>
+            <ng-template #empty>
+                <app-empty-state
+                    icon="pi pi-calendar-times"
+                    [title]="searchTerm ? 'Nessun risultato' : 'Nessun evento'"
+                    [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo evento per iniziare.'"
+                    [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo evento'"
+                    (action)="searchTerm ? onSearchChange('') : addNew()"
+                />
+            </ng-template>
         </p-dataview>
-    </ng-container>
-
-    <!-- CALENDAR VIEW -->
-    <ng-container *ngIf="layout === 'grid'">
-        <!-- Month navigation -->
-        <div class="flex items-center justify-between mb-4 px-2 flex-wrap gap-2">
-            <div class="flex items-center gap-1">
-                <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary"
-                    (onClick)="goToToday()" />
-                <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente"
-                    tooltipPosition="bottom" />
+    } @else {
+        <div class="p-4">
+            <div class="calendar-header">
+                @for (day of DAY_LABELS; track day) {
+                    <div class="calendar-header-cell">{{ day }}</div>
+                }
             </div>
 
-            <p-button [label]="currentMonthLabel" [text]="true" icon="pi pi-chevron-down" iconPos="right"
-                styleClass="text-xl! font-semibold!" (onClick)="monthPicker.toggle($event)" />
-
-            <p-button icon="pi pi-chevron-right" [text]="true" (onClick)="nextMonth()" pTooltip="Mese successivo"
-                tooltipPosition="bottom" />
-        </div>
-
-        <p-popover #monthPicker>
-            <p-datepicker [(ngModel)]="currentMonth" view="month" dateFormat="mm/yy" [inline]="true"
-                (ngModelChange)="onMonthSelected()" />
-        </p-popover>
-
-        <!-- Day-of-week headers -->
-        <div class="calendar-header">
-            <div *ngFor="let day of DAY_LABELS" class="calendar-header-cell">
-                {{ day }}
+            <div class="calendar-grid">
+                @for (day of calendarDays; track day.date.getTime()) {
+                    <div class="calendar-day" [class.other-month]="!day.isCurrentMonth" [class.today]="day.isToday" [class.future]="day.isFuture" (dblclick)="openCreateOnDate(day.date)">
+                        <div class="day-number">{{ day.date.getDate() }}</div>
+                        @for (event of visibleDayEvents(day); track event.id) {
+                            <a [routerLink]="'/calendar/' + event.id" class="calendar-event">
+                                @if (event.seriesId) {
+                                    <i class="pi pi-sync mr-1" style="font-size: 0.6rem"></i>
+                                }
+                                @if (event.startDate) {
+                                    <i class="pi pi-clock mr-1" style="font-size: 0.6rem"></i>{{ event.startDate | date: 'HH:mm' }}
+                                }
+                                {{ event.name }}
+                            </a>
+                        }
+                        @if (hiddenDayEvents(day)) {
+                            <div class="more-events">+{{ hiddenDayEvents(day) }} altri</div>
+                        }
+                    </div>
+                }
             </div>
         </div>
-
-        <!-- Calendar grid -->
-        <div class="calendar-grid">
-            <div *ngFor="let day of calendarDays" class="calendar-day" [class.other-month]="!day.isCurrentMonth"
-                [class.today]="day.isToday" [class.future]="day.isFuture" (dblclick)="openCreateOnDate(day.date)">
-                <div class="day-number">{{ day.date.getDate() }}</div>
-                <ng-container *ngFor="let event of day.events | slice:0:3">
-                    <a [routerLink]="'/calendar/' + event.id" class="calendar-event">
-                        <i *ngIf="event.seriesId" class="pi pi-sync mr-1" style="font-size:0.6rem"></i>
-                        <ng-container *ngIf="event.startDate">
-                            <i class="pi pi-clock mr-1" style="font-size:0.6rem"></i>{{ event.startDate | date:'HH:mm'
-                            }}
-                        </ng-container>
-                        {{ event.name }}
-                    </a>
-                </ng-container>
-                <div *ngIf="day.events.length > 3" class="more-events">
-                    +{{ day.events.length - 3 }} altri
-                </div>
-            </div>
-        </div>
-    </ng-container>
-
-    <p-scrolltop />
+    }
 </div>
+<p-scrolltop />

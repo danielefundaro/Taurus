@@ -6,6 +6,8 @@ export * from './keycloak.service';
 export * from './legal.service';
 export * from './last-researches.service';
 export * from './layout.service';
+export * from './list-layout.service';
+export * from './confirm.service';
 export * from './loading.service';
 export * from './local-storage.service';
 export * from './media.service';

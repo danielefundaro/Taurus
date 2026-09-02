@@ -1,0 +1,12 @@
+<section class="card danger-zone">
+    <h2>Zona pericolosa</h2>
+    @for (operation of operations; track operation.id) {
+        <div class="danger-zone__operation">
+            <div>
+                <strong>{{ operation.title }}</strong>
+                <p>{{ operation.consequence }}</p>
+            </div>
+            <p-button [label]="operation.label" [icon]="operation.icon || 'pi pi-trash'" severity="danger" (onClick)="execute.emit(operation.id)" />
+        </div>
+    }
+</section>

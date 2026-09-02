@@ -1,72 +1,55 @@
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputNumberInputEvent, InputNumberModule } from 'primeng/inputnumber';
 import { OrderListModule } from 'primeng/orderlist';
-import { PickListModule } from 'primeng/picklist';
 import { Popover, PopoverModule } from 'primeng/popover';
-import { SelectModule } from 'primeng/select';
 import { ChildrenEntities, Instruments, SheetsMusic } from '../../module';
 import { SecurePipe } from '../../pipe';
 import { MediaService } from '../../service';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-edit-score-dialog',
-    imports: [
-        NgIf,
-        AsyncPipe,
-        ButtonModule,
-        FloatLabelModule,
-        FormsModule,
-        FluidModule,
-        AutoCompleteModule,
-        InputNumberModule,
-        SelectModule,
-        OrderListModule,
-        PickListModule,
-        PopoverModule,
-        SecurePipe,
-    ],
+    imports: [AsyncPipe, ButtonModule, FormsModule, FluidModule, AutoCompleteModule, InputNumberModule, OrderListModule, PopoverModule, SecurePipe, DialogShellComponent, FormFieldComponent],
     templateUrl: './edit-score-dialog.component.html',
     styleUrl: './edit-score-dialog.component.scss',
-    providers: [
-        MediaService,
-    ],
-    changeDetection: ChangeDetectionStrategy.OnPush,
+    providers: [MediaService],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EditScoreDialogComponent {
-
     @Input() public currentScoreOrder: number;
     @Input() public scores: SheetsMusic[];
     @Input() public instruments: Instruments[];
     protected currentScore: SheetsMusic;
-    protected selectedScore?: SheetsMusic;
     protected autoFilteredInstruments: ChildrenEntities[];
 
     private readonly childrenEntities: ChildrenEntities[];
 
-    constructor(private readonly dialogRef: DynamicDialogRef<EditScoreDialogComponent>,
-        private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number, scores: SheetsMusic[], instruments: Instruments[] }>,
-        private readonly mediaService: MediaService,
+    constructor(
+        private readonly dialogRef: DynamicDialogRef<EditScoreDialogComponent>,
+        private readonly config: DynamicDialogConfig<any, { currentScoreOrder: number; scores: SheetsMusic[]; instruments: Instruments[] }>,
+        private readonly mediaService: MediaService
     ) {
         this.currentScoreOrder = this.config.inputValues?.currentScoreOrder ?? -1;
         this.scores = this.config.inputValues?.scores ?? [];
         this.instruments = this.config.inputValues?.instruments ?? [];
 
-        this.childrenEntities = this.config.inputValues?.instruments.map(instrument => {
-            const childrenEntity = new ChildrenEntities();
-            childrenEntity.name = instrument.name;
-            childrenEntity.index = instrument.id;
+        this.childrenEntities =
+            this.config.inputValues?.instruments.map((instrument) => {
+                const childrenEntity = new ChildrenEntities();
+                childrenEntity.name = instrument.name;
+                childrenEntity.index = instrument.id;
 
-            return childrenEntity;
-        }) ?? [];
+                return childrenEntity;
+            }) ?? [];
 
-        this.currentScore = this.scores.find(score => score.order === this.currentScoreOrder) ?? {};
+        this.currentScore = this.scores.find((score) => score.order === this.currentScoreOrder) ?? {};
         this.autoFilteredInstruments = this.childrenEntities;
     }
 
@@ -77,7 +60,7 @@ export class EditScoreDialogComponent {
             this.currentScore.order = previeusOrder;
         }
 
-        let selectedScores = this.scores.filter(score => score.order === this.currentScore.order);
+        let selectedScores = this.scores.filter((score) => score.order === this.currentScore.order);
 
         if (selectedScores.length > 1) {
             for (let score of selectedScores) {
@@ -86,20 +69,20 @@ export class EditScoreDialogComponent {
                 }
             }
 
-            this.scores.sort((a, b) => a.order! < b.order! ? -1 : 1);
+            this.scores.sort((a, b) => (a.order! < b.order! ? -1 : 1));
         }
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredInstruments = this.childrenEntities.filter(instrument => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredInstruments = this.childrenEntities.filter((instrument) => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected onReorderInstruments(): void {
-        this.currentScore.instruments?.forEach((instrument, i) => instrument.order = i + 1);
+        this.currentScore.instruments?.forEach((instrument, i) => (instrument.order = i + 1));
     }
 
-    protected onReorderMedia(score: SheetsMusic): void {
-        score?.media?.forEach((media, i) => media.order = i + 1);
+    protected onReorderMedia(): void {
+        this.currentScore.media?.forEach((media, i) => (media.order = i + 1));
     }
 
     protected toggleDataTable(op: Popover, event: any) {
@@ -115,7 +98,7 @@ export class EditScoreDialogComponent {
     }
 
     protected save(): void {
-        this.scores.forEach(score => {
+        this.scores.forEach((score) => {
             if (score.order === this.currentScore.order) {
                 if (this.currentScore.description) {
                     score.description = this.currentScore.description;

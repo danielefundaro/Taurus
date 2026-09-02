@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { DetailSectionComponent } from '../../../../components/detail-section/detail-section.component';
+import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
+import { ListRowComponent } from '../../../../components/list-row/list-row.component';
 import { Tracks } from '../../../../module';
 
 @Component({
     selector: 'app-recents-widget',
-    imports: [RouterModule],
+    imports: [RouterModule, DetailSectionComponent, EmptyStateComponent, ListRowComponent],
     templateUrl: './recents-widget.component.html',
     styleUrl: './recents-widget.component.scss',
     host: {

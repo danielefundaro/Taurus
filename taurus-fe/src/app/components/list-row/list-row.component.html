@@ -1,0 +1,7 @@
+<article class="list-row" [class.list-row--emphasized]="emphasized" [class.list-row--compact]="compact">
+    <div class="list-row__selection"><ng-content select="[rowSelection]" /></div>
+    <div class="list-row__media"><ng-content select="[rowMedia]" /></div>
+    <div class="list-row__identity"><ng-content select="[rowIdentity]" /></div>
+    <div class="list-row__metrics"><ng-content select="[rowMetrics]" /></div>
+    <div class="list-row__actions"><ng-content select="[rowActions]" /></div>
+</article>

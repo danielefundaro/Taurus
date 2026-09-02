@@ -1,34 +1,21 @@
-<div class="card recent-tracks">
-    <header class="widget-header">
-        <span>
-            <strong>Tracce recenti</strong>
-            <small>Ultimi inserimenti nel catalogo</small>
-        </span>
-        <a routerLink="/tracks">Tutte le tracce <i class="pi pi-arrow-right" aria-hidden="true"></i></a>
-    </header>
-
+<app-detail-section title="Tracce recenti" description="Ultimi inserimenti nel catalogo" actionLabel="Tutte le tracce" actionLink="/tracks">
     @if (visibleTracks.length > 0) {
-        <div class="track-list">
-            @for (track of visibleTracks; track track.id) {
-                <a class="track-row" [routerLink]="['/tracks', track.id]">
-                    <span class="track-row__icon"><i class="pi pi-file" aria-hidden="true"></i></span>
-                    <span class="track-row__main">
-                        <strong>{{ track.name || 'Traccia senza nome' }}</strong>
-                        <small>{{ track.arranger || track.composer || 'Autore non indicato' }}</small>
-                    </span>
-                    <span class="track-row__tags">
-                        @for (type of visibleTypes(track); track type) {
-                            <span>{{ type }}</span>
-                        }
-                    </span>
-                    <i class="pi pi-chevron-right track-row__arrow" aria-hidden="true"></i>
-                </a>
-            }
-        </div>
+        @for (track of visibleTracks; track track.id) {
+            <app-list-row compact>
+                <span rowMedia class="track-icon"><i class="pi pi-file" aria-hidden="true"></i></span>
+                <span rowIdentity class="track-main">
+                    <a [routerLink]="['/tracks', track.id]">{{ track.name || 'Traccia senza nome' }}</a>
+                    <small>{{ track.arranger || track.composer || 'Autore non indicato' }}</small>
+                </span>
+                <span rowMetrics class="track-tags">
+                    @for (type of visibleTypes(track); track type) {
+                        <span>{{ type }}</span>
+                    }
+                </span>
+                <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+            </app-list-row>
+        }
     } @else {
-        <div class="widget-empty">
-            <i class="pi pi-file" aria-hidden="true"></i>
-            <span>Nessuna traccia disponibile</span>
-        </div>
+        <app-empty-state icon="pi pi-file" title="Nessuna traccia disponibile" message="Le ultime tracce inserite compariranno qui." compact />
     }
-</div>
+</app-detail-section>

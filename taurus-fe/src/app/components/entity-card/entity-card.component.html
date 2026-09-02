@@ -1,0 +1,9 @@
+<article class="entity-card" [class.entity-card--emphasized]="emphasized" [class.entity-card--selected]="selected">
+    <div class="entity-card__media">
+        <div class="entity-card__selection"><ng-content select="[cardSelection]" /></div>
+        <ng-content select="[cardMedia]" />
+    </div>
+    <div class="entity-card__body"><ng-content select="[cardBody]" /></div>
+    <div class="entity-card__metrics"><ng-content select="[cardMetrics]" /></div>
+    <footer class="entity-card__actions"><ng-content select="[cardActions]" /></footer>
+</article>

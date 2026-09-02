@@ -1,38 +1,36 @@
 <p-fluid>
     @if (loading) {
-        <div class="card flex items-center justify-center py-16">
-            <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+        <div class="card flex flex-col gap-3">
+            <p-skeleton width="14rem" height="2rem" />
+            <p-skeleton width="10rem" height="1rem" />
+        </div>
+        <div class="card flex flex-col gap-4">
+            <p-skeleton height="4rem" />
+            <p-skeleton height="8rem" />
         </div>
     }
     @if (assignment; as value) {
-        <div class="card flex flex-col gap-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <p-button icon="pi pi-arrow-left" severity="secondary" [text]="true" routerLink="/inventory" [queryParams]="{ view: 'mine' }" pTooltip="Torna all’inventario" />
-                    <div>
-                        <h2 class="text-xl font-semibold m-0">{{ value.itemName }}</h2>
-                        <span class="text-sm text-surface-500">{{ value.inventoryNumber }}</span>
-                    </div>
-                </div>
-                <p-tag [value]="value.status" severity="info" />
-            </div>
+        <app-page-header kicker="Assegnazione inventario" [title]="value.itemName" [subtitle]="value.inventoryNumber" [backLink]="['/inventory']"
+            ><span pageMetadata><p-tag [value]="value.status" severity="info" /></span
+        ></app-page-header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="inventory-stat">
-                    <strong>{{ value.assignedQuantity }}</strong
-                    ><span>Quantità consegnata</span>
-                </div>
-                <div class="inventory-stat">
-                    <strong>{{ value.returnedQuantity }}</strong
-                    ><span>Quantità riconsegnata</span>
-                </div>
-                <div class="inventory-stat">
-                    <strong>{{ value.outstandingQuantity }}</strong
-                    ><span>Quantità in possesso</span>
-                </div>
+        <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="inventory-stat">
+                <strong>{{ value.assignedQuantity }}</strong
+                ><span>Quantità consegnata</span>
             </div>
+            <div class="inventory-stat">
+                <strong>{{ value.returnedQuantity }}</strong
+                ><span>Quantità riconsegnata</span>
+            </div>
+            <div class="inventory-stat">
+                <strong>{{ value.outstandingQuantity }}</strong
+                ><span>Quantità in possesso</span>
+            </div>
+        </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <app-detail-section title="Dati della consegna" description="Sola lettura: i dati sono quelli registrati dall’amministratore.">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
                 <div>
                     <span class="detail-label">Stato di conservazione</span><strong>{{ conditionLabel(value.conditionStatus) }}</strong>
                 </div>
@@ -50,29 +48,28 @@
                 <div>
                     <span class="detail-label">Revisione corrente</span><strong>{{ value.revision }} del {{ value.revisionDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
                 </div>
+                @if (value.itemDescription) {
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <span class="detail-label">Descrizione oggetto</span>
+                        <p class="m-0">{{ value.itemDescription }}</p>
+                    </div>
+                }
+                @if (value.description) {
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <span class="detail-label">Descrizione della consegna</span>
+                        <p class="m-0">{{ value.description }}</p>
+                    </div>
+                }
+                @if (value.conditionNotes) {
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <span class="detail-label">Note di conservazione</span>
+                        <p class="m-0">{{ value.conditionNotes }}</p>
+                    </div>
+                }
             </div>
-            @if (value.itemDescription) {
-                <div>
-                    <span class="detail-label">Descrizione oggetto</span>
-                    <p class="m-0">{{ value.itemDescription }}</p>
-                </div>
-            }
-            @if (value.description) {
-                <div>
-                    <span class="detail-label">Descrizione della consegna</span>
-                    <p class="m-0">{{ value.description }}</p>
-                </div>
-            }
-            @if (value.conditionNotes) {
-                <div>
-                    <span class="detail-label">Note di conservazione</span>
-                    <p class="m-0">{{ value.conditionNotes }}</p>
-                </div>
-            }
-        </div>
+        </app-detail-section>
 
-        <div class="card">
-            <h3 class="text-lg font-semibold mt-0">Fotografie dell’oggetto</h3>
+        <app-detail-section title="Fotografie dell’oggetto" [count]="value.photos.length">
             @if (value.photos.length) {
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     @for (photo of value.photos; track photo.id) {
@@ -83,12 +80,11 @@
                     }
                 </div>
             } @else {
-                <div class="empty-section"><i class="pi pi-images"></i><span>Nessuna fotografia associata</span></div>
+                <app-empty-state compact icon="pi pi-images" title="Nessuna fotografia" message="Non ci sono fotografie associate a questa consegna." />
             }
-        </div>
+        </app-detail-section>
 
-        <div class="card">
-            <h3 class="text-lg font-semibold mt-0">Presa visione</h3>
+        <app-detail-section title="Presa visione" description="La conferma è un’operazione autonoma e definitiva.">
             @if (value.decision) {
                 <div class="flex items-center gap-3">
                     <p-tag [value]="value.decision.decision" [severity]="value.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
@@ -98,30 +94,37 @@
                     <p class="mb-0"><strong>Motivazione:</strong> {{ value.decision.rejectionReason }}</p>
                 }
             } @else {
-                <p class="text-surface-500">Conferma di aver preso visione delle informazioni relative a questa consegna.</p>
+                <p class="text-muted-color mt-0">Conferma di aver preso visione delle informazioni relative a questa consegna.</p>
                 <div class="flex flex-wrap gap-5 mb-3">
                     <label class="flex items-center gap-2"> <p-checkbox [binary]="true" [ngModel]="decision === 'ACCEPTED'" (ngModelChange)="choose('ACCEPTED', $event)" /> Accetto </label>
                     <label class="flex items-center gap-2"> <p-checkbox [binary]="true" [ngModel]="decision === 'REJECTED'" (ngModelChange)="choose('REJECTED', $event)" /> Nego </label>
                 </div>
                 @if (decision === 'REJECTED') {
-                    <textarea pTextarea rows="3" class="w-full mb-3" [(ngModel)]="rejectionReason" placeholder="Motivazione obbligatoria"></textarea>
+                    <app-form-field label="Motivazione" forId="rejectionReason" required [error]="rejectionReason.trim() ? undefined : 'Indica la motivazione del rifiuto.'">
+                        <textarea pTextarea id="rejectionReason" rows="3" [(ngModel)]="rejectionReason"></textarea>
+                    </app-form-field>
                 }
-                <p-button label="Conferma scelta" icon="pi pi-check" [disabled]="!canConfirmDecision" (onClick)="confirmDecision()" />
+                <p-button label="Conferma scelta" icon="pi pi-check" class="mt-3 block" [disabled]="!canConfirmDecision" (onClick)="confirmDecision()" />
             }
-        </div>
+        </app-detail-section>
 
-        <div class="card">
-            <h3 class="text-lg font-semibold mt-0">Riconsegna</h3>
+        <app-detail-section title="Riconsegna" [count]="value.returns.length" description="Ogni riconsegna si avvia e si documenta per conto proprio.">
             @if (returnableQuantity > 0) {
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
                     <div class="md:col-span-3">
-                        <p-inputnumber [(ngModel)]="returnQuantity" [min]="1" [max]="returnableQuantity" [showButtons]="true" class="w-full" />
+                        <app-form-field label="Quantità" forId="returnQuantity">
+                            <p-inputnumber inputId="returnQuantity" [(ngModel)]="returnQuantity" [min]="1" [max]="returnableQuantity" [showButtons]="true" class="w-full" />
+                        </app-form-field>
                     </div>
-                    <div class="md:col-span-6"><input pInputText [(ngModel)]="returnNotes" placeholder="Note sulla riconsegna" /></div>
-                    <div class="md:col-span-3"><p-button label="Avvia riconsegna" icon="pi pi-replay" class="w-full" styleClass="w-full" (onClick)="requestReturn()" /></div>
+                    <div class="md:col-span-6">
+                        <app-form-field label="Note sulla riconsegna" forId="returnNotes">
+                            <input pInputText id="returnNotes" [(ngModel)]="returnNotes" />
+                        </app-form-field>
+                    </div>
+                    <div class="md:col-span-3 flex items-end"><p-button label="Avvia riconsegna" icon="pi pi-replay" class="w-full" styleClass="w-full" (onClick)="requestReturn()" /></div>
                 </div>
             } @else if (value.outstandingQuantity > 0) {
-                <p class="text-surface-500">Tutto il materiale residuo è già incluso in una richiesta di riconsegna aperta.</p>
+                <app-inline-alert severity="info" title="Riconsegna già avviata" detail="Tutto il materiale residuo è già incluso in una richiesta di riconsegna aperta." />
             }
 
             @if (value.returns.length) {
@@ -155,21 +158,20 @@
                     }
                 </div>
             } @else {
-                <div class="empty-section"><i class="pi pi-replay"></i><span>Nessuna procedura di riconsegna</span></div>
+                <app-empty-state compact icon="pi pi-replay" title="Nessuna riconsegna" message="Non è stata avviata alcuna procedura di riconsegna." />
             }
-        </div>
+        </app-detail-section>
 
-        <div class="card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h3 class="text-lg font-semibold m-0">Proforma inventario</h3>
-                <div class="flex flex-wrap gap-4 mt-3 text-sm">
-                    <label class="flex items-center gap-2"><p-checkbox [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
-                    <label class="flex items-center gap-2"><p-checkbox [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
-                    <label class="flex items-center gap-2"><p-checkbox [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
-                </div>
+        <app-detail-section title="Proforma inventario" description="Genera il documento con il contenuto che scegli qui sotto.">
+            <div sectionActions>
+                <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
             </div>
-            <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
-        </div>
+            <div class="flex flex-wrap gap-4 text-sm">
+                <label class="flex items-center gap-2" for="reportAssigned"><p-checkbox inputId="reportAssigned" [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
+                <label class="flex items-center gap-2" for="reportReturned"><p-checkbox inputId="reportReturned" [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
+                <label class="flex items-center gap-2" for="reportPhotos"><p-checkbox inputId="reportPhotos" [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
+            </div>
+        </app-detail-section>
     }
     <p-scrolltop />
 </p-fluid>

@@ -1,0 +1,25 @@
+<div class="dialog-shell">
+    <header>
+        <h2>{{ title }}</h2>
+        @if (subtitle) {
+            <p>{{ subtitle }}</p>
+        }
+    </header>
+    <div class="dialog-shell__body"><ng-content /></div>
+    <footer>
+        <span>
+            @if (invalidCount) {
+                {{ invalidCount }} {{ invalidCount === 1 ? 'campo da correggere' : 'campi da correggere' }}
+            }
+        </span>
+        <div>
+            <p-button [label]="cancelLabel" text severity="secondary" [disabled]="saving" (onClick)="cancel.emit()" /><p-button
+                [label]="confirmLabel"
+                icon="pi pi-check"
+                [loading]="saving"
+                [disabled]="saving || invalidCount > 0"
+                (onClick)="confirm.emit()"
+            />
+        </div>
+    </footer>
+</div>

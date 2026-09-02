@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
-import { ConfirmationService } from 'primeng/api';
 import { first } from 'rxjs';
-import { HasUnsavedChanges } from '../../guard';
 import { ImportsModule } from '../../imports';
-import { KeycloakService, ToastService, UsersService } from '../../service';
+import { DetailPageBase } from '../_shared/detail-page.base';
+import { ConfirmService, KeycloakService, ToastService, UsersService } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 
 @Component({
@@ -13,25 +12,25 @@ import { CalendarEventsTableComponent } from '../../components/calendar-events-t
     imports: [ImportsModule, CalendarEventsTableComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
-    providers: [ConfirmationService, UsersService],
+    providers: [UsersService],
     changeDetection: ChangeDetectionStrategy.Default
 })
-export class ProfileComponent implements OnInit, HasUnsavedChanges {
+export class ProfileComponent extends DetailPageBase implements OnInit {
     private readonly keycloak = inject(Keycloak);
 
     protected firstName: string = '';
     protected lastName: string = '';
     protected email: string = '';
     protected username: string = '';
-    protected saving: boolean = false;
-    isDirty = false;
 
     constructor(
         private readonly keycloakService: KeycloakService,
         private readonly usersService: UsersService,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
         private readonly toastService: ToastService
-    ) {}
+    ) {
+        super();
+    }
 
     ngOnInit(): void {
         this.keycloakService.loadUserProfile().then((profile: KeycloakProfile) => {
@@ -72,40 +71,28 @@ export class ProfileComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected logout(): void {
-        this.confirmationService.confirm({
-            header: 'Logout',
-            message: 'Sei sicuro di voler uscire?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Logout',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary', outlined: true },
+        this.confirmService.confirmReversible({
+            title: 'Esci da Taurus',
+            consequence: 'La sessione corrente verrà terminata.',
+            actionLabel: 'Esci',
             accept: () => this.keycloakService.logout()
         });
     }
 
     protected confirmDeleteAccount(): void {
-        this.confirmationService.confirm({
-            header: 'Disattiva account',
-            message: 'Vuoi disattivare il tuo account?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Disattiva',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'warn' },
-            rejectButtonProps: { severity: 'secondary', outlined: true },
+        this.confirmService.confirmReversible({
+            title: 'Disattiva account',
+            consequence: 'Non potrai più accedere finché l’account non verrà riattivato.',
+            actionLabel: 'Disattiva',
             accept: () => this.deleteAccount()
         });
     }
 
     protected confirmGdprDeletion(): void {
-        this.confirmationService.confirm({
-            header: 'Cancellazione definitiva GDPR',
-            message: "La cancellazione ai sensi del GDPR è definitiva e irreversibile.</br>L'account e i dati personali verranno eliminati fisicamente e non sarà possibile recuperarli in futuro.</br>Vuoi procedere?",
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina definitivamente',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary', outlined: true },
+        this.confirmService.confirmDestructive({
+            title: 'Cancellazione definitiva GDPR',
+            consequence: 'L’account e i dati personali verranno eliminati fisicamente e non potranno essere recuperati.',
+            actionLabel: 'Elimina definitivamente',
             accept: () => this.deleteAccountForGdpr()
         });
     }

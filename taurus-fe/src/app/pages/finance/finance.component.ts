@@ -1,21 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { ConfirmationService } from 'primeng/api';
 import { DialogModule } from 'primeng/dialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { first, forkJoin } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { AccountingYear, FinancialAccount, FinancialAttachment, FinancialCategory, FinancialCategoryDirection, FinancialDashboard, FinancialDirection, FinancialEventSummary, FinancialMovement, FinancialTransferRequest } from '../../module';
-import { FinanceService, ToastService } from '../../service';
+import { ConfirmService, FinanceService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-finance',
     standalone: true,
     imports: [ImportsModule, DialogModule, TabsModule],
     templateUrl: './finance.component.html',
-    styleUrl: './finance.component.scss',
-    providers: [ConfirmationService]
+    styleUrl: './finance.component.scss'
 })
 export class FinanceComponent implements OnInit {
     protected dashboard?: FinancialDashboard;
@@ -81,7 +79,7 @@ export class FinanceComponent implements OnInit {
     constructor(
         private readonly financeService: FinanceService,
         private readonly toastService: ToastService,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
         private readonly route: ActivatedRoute
     ) {}
 
@@ -117,14 +115,10 @@ export class FinanceComponent implements OnInit {
 
     protected archiveAccount(account: FinancialAccount): void {
         if (!account.id) return;
-        this.confirmationService.confirm({
-            header: 'Archivia conto',
-            message: `Archiviare “${account.name}”? Lo storico rimarrà consultabile.`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Archivia',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmReversible({
+            title: 'Archivia conto',
+            consequence: `“${account.name}” verrà archiviato; lo storico rimarrà consultabile.`,
+            actionLabel: 'Archivia',
             accept: () =>
                 this.financeService
                     .archiveAccount(account.id!)
@@ -150,14 +144,10 @@ export class FinanceComponent implements OnInit {
 
     protected archiveCategory(category: FinancialCategory): void {
         if (!category.id) return;
-        this.confirmationService.confirm({
-            header: 'Archivia categoria',
-            message: `Archiviare “${category.name}”? I movimenti esistenti non verranno modificati.`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Archivia',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmReversible({
+            title: 'Archivia categoria',
+            consequence: `“${category.name}” verrà archiviata; i movimenti esistenti non saranno modificati.`,
+            actionLabel: 'Archivia',
             accept: () =>
                 this.financeService
                     .archiveCategory(category.id!)
@@ -195,14 +185,10 @@ export class FinanceComponent implements OnInit {
 
     protected deleteMovement(movement: FinancialMovement): void {
         if (!movement.id) return;
-        this.confirmationService.confirm({
-            header: 'Elimina movimento',
-            message: 'Il movimento sarà escluso definitivamente da saldi e rendiconti e non potrà essere ripristinato. Vuoi continuare?',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina definitivamente',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina movimento',
+            consequence: 'Il movimento sarà escluso definitivamente da saldi e rendiconti e non potrà essere ripristinato.',
+            actionLabel: 'Elimina definitivamente',
             accept: () =>
                 this.financeService
                     .deleteMovement(movement.id!)
@@ -283,13 +269,10 @@ export class FinanceComponent implements OnInit {
     }
 
     protected deleteAttachment(attachment: FinancialAttachment): void {
-        this.confirmationService.confirm({
-            header: 'Elimina allegato',
-            message: `Eliminare “${attachment.fileName}”?`,
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina allegato',
+            consequence: `“${attachment.fileName}” verrà eliminato definitivamente.`,
+            actionLabel: 'Elimina',
             accept: () =>
                 this.financeService
                     .deleteAttachment(attachment.id)

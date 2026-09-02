@@ -1,277 +1,243 @@
 <p-confirmdialog />
 <p-fluid>
+    <app-page-header
+        [title]="personalView ? 'Il mio inventario' : 'Inventario'"
+        [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
+        ><div pageActions>
+            @if (!personalView) {
+                <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+            }</div
+    ></app-page-header>
+
     @if (isAdmin && !personalView && erasureRequests.length > 0) {
-    <div class="card border-l-4 border-amber-500">
-        <h3 class="text-lg font-semibold mt-0">Cancellazioni GDPR in attesa di riconsegna</h3>
-        <p class="text-sm text-surface-500">La cancellazione può essere completata solo dopo la riconsegna di tutto il
-            materiale.</p>
-        <p-table [value]="erasureRequests">
-            <ng-template #header>
-                <tr>
-                    <th scope="col">Utente</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Richiesta</th>
-                    <th scope="col"></th>
-                </tr>
-            </ng-template>
-            <ng-template #body let-request>
-                <tr>
-                    <td>{{ request.displayName }}</td>
-                    <td>{{ request.email }}</td>
-                    <td>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td><p-button label="Completa cancellazione" severity="danger" size="small"
-                            (onClick)="completeErasure(request)" /></td>
-                </tr>
-            </ng-template>
-        </p-table>
-    </div>
+        <div class="card flex flex-col gap-4">
+            <app-inline-alert severity="warn" title="Cancellazioni GDPR in attesa di riconsegna" detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
+            <p-table [value]="erasureRequests">
+                <ng-template #header>
+                    <tr>
+                        <th scope="col">Utente</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Richiesta</th>
+                        <th scope="col"></th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-request>
+                    <tr>
+                        <td>{{ request.displayName }}</td>
+                        <td>{{ request.email }}</td>
+                        <td>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                        <td><p-button label="Completa cancellazione" severity="danger" size="small" (onClick)="completeErasure(request)" /></td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
     }
 
-    <div class="card">
-        <p-dataview [value]="values" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
-            [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
-            [paginatorPosition]="values.length > 1 ? 'both' : 'bottom'" [totalRecords]="totalRecords"
-            [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-            [rowsPerPageOptions]="[10, 25, 50]"
-            currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" [showCurrentPageReport]="true"
-            (onLazyLoad)="onLazyLoad($event)">
-            <ng-template #header>
-                <div class="flex flex-col gap-4">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                        <div>
-                            <h2 class="text-xl font-semibold m-0">{{ personalView ? 'Il mio inventario' : 'Inventario'
-                                }}</h2>
-                            <p class="text-sm text-surface-500 mt-1 mb-0">{{ totalRecords }} {{ personalView ? (scope
-                                === 'POSSESSED' ? 'consegne in possesso' : 'consegne riconsegnate') : 'oggetti
-                                registrati' }}</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                            @if (!personalView) {
-                            <p-button label="Nuovo" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" />
-                            }
-                            @if (isAdmin) {
-                            <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label"
-                                optionValue="value" [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
-                            }
-                        </div>
-                    </div>
-
-                    @if (personalView) {
-                    <div
-                        class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3 rounded border border-surface">
-                        <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label"
-                            optionValue="value" [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
-                        <div class="flex flex-wrap items-center gap-3 text-sm">
-                            <label class="flex items-center gap-2" for="assigned"><p-checkbox
-                                    [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
-                            <label class="flex items-center gap-2" for="returned"><p-checkbox
-                                    [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
-                            <label class="flex items-center gap-2" for="photos"><p-checkbox
-                                    [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
-                            <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary"
-                                [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
-                        </div>
-                    </div>
-                    }
-
-                    <div class="flex flex-col sm:flex-row sm:justify-end gap-3">
-                        <p-iconfield>
-                            <p-inputicon class="pi pi-search" />
-                            <label class="sr-only" for="inventory-search">Cerca inventario</label>
-                            <input id="inventory-search" pInputText type="search" [value]="search"
-                                (input)="onGlobalFilter($event)" placeholder="Nome o numero inventariale" />
-                        </p-iconfield>
-                        <p-select [options]="sortOptions" placeholder="Ordina per..."
-                            (onChange)="onSortChange($event)" />
-                        <p-select-button [(ngModel)]="layout" [options]="layoutOptions" [allowEmpty]="false">
-                            <ng-template #item let-option>
-                                <i class="pi"
-                                    [ngClass]="{ 'pi-bars': option === 'list', 'pi-table': option === 'grid' }"
-                                    [pTooltip]="option === 'list' ? 'Lista' : 'Griglia'"></i>
-                            </ng-template>
-                        </p-select-button>
-                    </div>
+    @if (isAdmin || personalView) {
+        <div class="card flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            @if (isAdmin) {
+                <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label" optionValue="value" [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
+            }
+            @if (personalView) {
+                <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value" [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
+                <div class="flex flex-wrap items-center gap-3 text-sm">
+                    <label class="flex items-center gap-2" for="assigned"><p-checkbox inputId="assigned" [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
+                    <label class="flex items-center gap-2" for="returned"><p-checkbox inputId="returned" [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
+                    <label class="flex items-center gap-2" for="photos"><p-checkbox inputId="photos" [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
+                    <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
                 </div>
-            </ng-template>
+            }
+        </div>
+    }
 
+    <app-list-toolbar
+        [search]="searchTerm"
+        searchPlaceholder="Nome o numero inventariale"
+        [sortOptions]="sortOptions"
+        [layout]="layout"
+        (searchChange)="onSearchChange($event)"
+        (sortChange)="onSortValue($event)"
+        (layoutChange)="onLayoutChange($event)"
+    />
+
+    <div class="card !p-0 overflow-hidden">
+        <p-dataview
+            [value]="values"
+            [layout]="layout"
+            [lazy]="true"
+            [lazyLoadOnInit]="true"
+            [loading]="loading"
+            [first]="dataViewLazyLoadEvent.first"
+            [rows]="dataViewLazyLoadEvent.rows"
+            [paginator]="true"
+            paginatorPosition="bottom"
+            [totalRecords]="totalRecords"
+            [sortField]="dataViewLazyLoadEvent.sortField"
+            [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+            [rowsPerPageOptions]="[12, 24, 48]"
+            paginatorDropdownAppendTo="body"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+            [showCurrentPageReport]="true"
+            (onLazyLoad)="onLazyLoad($event)"
+        >
             <ng-template #list let-listValues>
                 <div class="flex flex-col">
-                    @for (entry of listValues; track entry.id; let first = $first) {
-                    @if (personalView) {
-                    <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                        [ngClass]="{ 'border-t border-surface': !first }">
-                        <a class="inventory-thumb inventory-thumb-list cursor-pointer"
-                            [routerLink]="['/inventory/assignments', entry.id]">
-                            @if (assignmentPhotoUrl(entry); as url) {
-                            <img [src]="url | secure | async" [alt]="entry.itemName" />
-                            } @else {
-                            <i class="pi pi-box text-3xl text-primary"></i>
-                            }
-                        </a>
-                        <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <a class="text-2xl font-semibold cursor-pointer"
-                                        [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
-                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" />
-                                    <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
-                                </div>
-                                <p class="text-surface-500 m-0 text-overflow">{{ entry.itemDescription || 'Nessuna
-                                    descrizione' }}</p>
-                                <div class="flex flex-wrap gap-4 mt-3 text-sm">
-                                    <span><strong>{{ entry.outstandingQuantity }}</strong> in possesso</span>
-                                    <span><strong>{{ entry.returnedQuantity }}</strong> riconsegnati</span>
-                                    <span>Consegnato il {{ entry.assignedAt | date: 'dd/MM/yyyy' }}</span>
-                                    <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
-                                    @if (entry.decision) {
-                                    <p-tag [value]="entry.decision.decision"
-                                        [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
+                    @for (entry of listValues; track entry.id) {
+                        @if (personalView) {
+                            <app-list-row>
+                                <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]" [attr.aria-label]="entry.itemName">
+                                    @if (assignmentPhotoUrl(entry); as url) {
+                                        <img [src]="url | secure | async" [alt]="entry.itemName" />
                                     } @else {
-                                    <p-tag value="PRESA VISIONE IN ATTESA" severity="warn" />
+                                        <i class="pi pi-box text-2xl"></i>
                                     }
+                                </a>
+                                <div rowIdentity>
+                                    <a class="text-base font-semibold cursor-pointer block" [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                                    <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ entry.itemDescription || 'Nessuna descrizione' }}</span>
+                                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                                        <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                        <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
+                                        <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
+                                        @if (entry.decision) {
+                                            <p-tag [value]="entry.decision.decision" [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" [rounded]="true" />
+                                        } @else {
+                                            <p-tag value="Presa visione in attesa" severity="warn" [rounded]="true" />
+                                        }
+                                    </div>
                                 </div>
-                            </div>
-                            <p-button label="Dettaglio" icon="pi pi-eye"
-                                [routerLink]="['/inventory/assignments', entry.id]" />
-                        </div>
-                    </div>
-                    } @else {
-                    <div class="flex flex-col sm:flex-row sm:items-center p-6 gap-4"
-                        [ngClass]="{ 'border-t border-surface': !first }">
-                        <a class="inventory-thumb inventory-thumb-list cursor-pointer"
-                            [routerLink]="['/inventory/items', entry.id]">
-                            @if (itemPhotoUrl(entry); as url) {
-                            <img [src]="url | secure | async" [alt]="entry.name" />
-                            } @else {
-                            <i class="pi pi-box text-3xl text-primary"></i>
-                            }
-                        </a>
-                        <div class="flex flex-col md:flex-row justify-between md:items-center flex-1 gap-6">
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <a class="text-2xl font-semibold cursor-pointer"
-                                        [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
-                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" />
-                                    <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
+                                <div rowMetrics class="list-metric">
+                                    <strong>{{ entry.outstandingQuantity }}</strong
+                                    ><small>in possesso</small>
+                                    <span class="block">{{ entry.returnedQuantity }}</span
+                                    ><small>riconsegnati</small>
                                 </div>
-                                <p class="text-surface-500 m-0 text-overflow">{{ entry.description || 'Nessuna
-                                    descrizione' }}</p>
-                                <div class="flex flex-wrap gap-4 mt-3 text-sm">
-                                    <span><strong>{{ entry.availableQuantity }}</strong> disponibili</span>
-                                    <span><strong>{{ entry.assignedQuantity }}</strong> assegnati</span>
-                                    <span><strong>{{ entry.totalQuantity }}</strong> totali</span>
-                                    @if (entry.estimatedUnitValue != null) {
-                                    <span>{{ entry.estimatedUnitValue | number: '1.2-2' }} {{ entry.currency }}</span>
+                                <div rowActions>
+                                    <p-button label="Dettaglio" icon="pi pi-eye" [routerLink]="['/inventory/assignments', entry.id]" />
+                                </div>
+                            </app-list-row>
+                        } @else {
+                            <app-list-row>
+                                <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
+                                    @if (itemPhotoUrl(entry); as url) {
+                                        <img [src]="url | secure | async" [alt]="entry.name" />
+                                    } @else {
+                                        <i class="pi pi-box text-2xl"></i>
                                     }
+                                </a>
+                                <div rowIdentity>
+                                    <a class="text-base font-semibold cursor-pointer block" [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                                    <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ entry.description || 'Nessuna descrizione' }}</span>
+                                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                                        <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                        <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
+                                        @if (entry.estimatedUnitValue != null) {
+                                            <p-tag [value]="(entry.estimatedUnitValue | number: '1.2-2') + ' ' + entry.currency" severity="secondary" [rounded]="true" />
+                                        }
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex gap-2 flex-shrink-0">
-                                <p-button label="Modifica" icon="pi pi-pencil"
-                                    [routerLink]="['/inventory/items', entry.id]" />
-                                <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
-                                    (onClick)="deleteItem(entry)" />
-                            </div>
-                        </div>
-                    </div>
-                    }
+                                <div rowMetrics class="list-metric">
+                                    <strong>{{ entry.availableQuantity }}</strong
+                                    ><small>disponibili</small>
+                                    <span class="block">{{ entry.assignedQuantity }}</span
+                                    ><small>assegnati</small>
+                                </div>
+                                <div rowActions>
+                                    <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="['/inventory/items', entry.id]" />
+                                    <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto" pTooltip="Elimina" (onClick)="deleteItem(entry)" />
+                                </div>
+                            </app-list-row>
+                        }
                     }
                 </div>
             </ng-template>
 
             <ng-template #grid let-gridValues>
-                <div class="grid grid-cols-12 gap-4 p-2">
+                <div class="grid grid-cols-12 gap-4 p-4">
                     @for (entry of gridValues; track entry.id) {
-                    <div class="col-span-12 sm:col-span-6 lg:col-span-4 p-2">
-                        <div class="inventory-card p-5 border border-surface rounded flex flex-col h-full">
+                        <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
                             @if (personalView) {
-                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer"
-                                [routerLink]="['/inventory/assignments', entry.id]">
-                                @if (assignmentPhotoUrl(entry); as url) {
-                                <img [src]="url | secure | async" [alt]="entry.itemName" />
-                                } @else {
-                                <i class="pi pi-box text-5xl text-primary"></i>
-                                }
-                            </a>
-                            <div class="flex flex-wrap gap-2 mt-4">
-                                <p-tag [value]="entry.inventoryNumber" severity="secondary" />
-                                <p-tag [value]="entry.status" severity="info" />
-                                <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
-                            </div>
-                            <a class="text-xl font-semibold mt-3 cursor-pointer"
-                                [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
-                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ entry.itemDescription ||
-                                'Nessuna descrizione' }}</p>
-                            <div class="grid grid-cols-2 gap-2 text-center my-4">
-                                <div>
-                                    <strong class="block">{{ entry.outstandingQuantity }}</strong><span
-                                        class="text-xs text-surface-500">In possesso</span>
-                                </div>
-                                <div>
-                                    <strong class="block">{{ entry.returnedQuantity }}</strong><span
-                                        class="text-xs text-surface-500">Riconsegnati</span>
-                                </div>
-                            </div>
-                            <p-button label="Dettaglio" icon="pi pi-eye"
-                                [routerLink]="['/inventory/assignments', entry.id]" class="w-full"
-                                styleClass="w-full" />
+                                <app-entity-card>
+                                    <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]" [attr.aria-label]="entry.itemName">
+                                        @if (assignmentPhotoUrl(entry); as url) {
+                                            <img [src]="url | secure | async" [alt]="entry.itemName" />
+                                        } @else {
+                                            <i class="pi pi-box text-3xl"></i>
+                                        }
+                                    </a>
+                                    <div cardBody>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                            <p-tag [value]="entry.status" severity="info" [rounded]="true" />
+                                            <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
+                                        </div>
+                                        <a class="text-base font-semibold block mt-2" [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                                        <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.itemDescription || 'Nessuna descrizione' }}</p>
+                                    </div>
+                                    <div cardMetrics>
+                                        <div>
+                                            <strong>{{ entry.outstandingQuantity }}</strong
+                                            ><small class="block text-muted-color">in possesso</small>
+                                        </div>
+                                        <div>
+                                            <strong>{{ entry.returnedQuantity }}</strong
+                                            ><small class="block text-muted-color">riconsegnati</small>
+                                        </div>
+                                    </div>
+                                    <div cardActions class="contents">
+                                        <p-button label="Dettaglio" icon="pi pi-eye" [routerLink]="['/inventory/assignments', entry.id]" styleClass="flex-1" />
+                                    </div>
+                                </app-entity-card>
                             } @else {
-                            <a class="inventory-thumb inventory-thumb-grid cursor-pointer"
-                                [routerLink]="['/inventory/items', entry.id]">
-                                @if (itemPhotoUrl(entry); as url) {
-                                <img [src]="url | secure | async" [alt]="entry.name" />
-                                } @else {
-                                <i class="pi pi-box text-5xl text-primary"></i>
-                                }
-                            </a>
-                            <div class="flex flex-wrap gap-2 mt-4">
-                                <p-tag [value]="entry.inventoryNumber" severity="secondary" />
-                                <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" />
-                            </div>
-                            <a class="text-xl font-semibold mt-3 cursor-pointer"
-                                [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
-                            <p class="text-sm text-surface-500 text-overflow flex-1">{{ entry.description || 'Nessuna
-                                descrizione' }}</p>
-                            <div class="grid grid-cols-3 gap-2 text-center my-4">
-                                <div>
-                                    <strong class="block">{{ entry.availableQuantity }}</strong><span
-                                        class="text-xs text-surface-500">Disponibili</span>
-                                </div>
-                                <div>
-                                    <strong class="block">{{ entry.assignedQuantity }}</strong><span
-                                        class="text-xs text-surface-500">Assegnati</span>
-                                </div>
-                                <div>
-                                    <strong class="block">{{ entry.totalQuantity }}</strong><span
-                                        class="text-xs text-surface-500">Totali</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <p-button label="Modifica" icon="pi pi-pencil"
-                                    [routerLink]="['/inventory/items', entry.id]" class="flex-auto"
-                                    styleClass="w-full" />
-                                <p-button icon="pi pi-trash" severity="danger" [outlined]="true" pTooltip="Elimina"
-                                    (onClick)="deleteItem(entry)" />
-                            </div>
+                                <app-entity-card>
+                                    <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
+                                        @if (itemPhotoUrl(entry); as url) {
+                                            <img [src]="url | secure | async" [alt]="entry.name" />
+                                        } @else {
+                                            <i class="pi pi-box text-3xl"></i>
+                                        }
+                                    </a>
+                                    <div cardBody>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                            <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
+                                        </div>
+                                        <a class="text-base font-semibold block mt-2" [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                                        <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.description || 'Nessuna descrizione' }}</p>
+                                    </div>
+                                    <div cardMetrics>
+                                        <div>
+                                            <strong>{{ entry.availableQuantity }}</strong
+                                            ><small class="block text-muted-color">disponibili</small>
+                                        </div>
+                                        <div>
+                                            <strong>{{ entry.assignedQuantity }}</strong
+                                            ><small class="block text-muted-color">assegnati</small>
+                                        </div>
+                                        <div>
+                                            <strong>{{ entry.totalQuantity }}</strong
+                                            ><small class="block text-muted-color">totali</small>
+                                        </div>
+                                    </div>
+                                    <div cardActions class="contents">
+                                        <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="['/inventory/items', entry.id]" styleClass="flex-1" />
+                                        <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto" (onClick)="deleteItem(entry)" />
+                                    </div>
+                                </app-entity-card>
                             }
                         </div>
-                    </div>
                     }
                 </div>
             </ng-template>
 
             <ng-template #empty>
-                <div class="flex flex-col items-center justify-center py-16 text-center">
-                    <i class="pi pi-box text-5xl text-surface-400 mb-4"></i>
-                    <h3 class="m-0">{{ personalView ? 'Nessuna consegna trovata' : 'Nessun oggetto trovato' }}</h3>
-                    <p class="text-surface-500">
-                        {{ personalView ? (scope === 'POSSESSED' ? 'Non hai materiale attualmente in possesso.' : 'Non
-                        risultano consegne completamente riconsegnate.') : 'Modifica la ricerca oppure aggiungi il primo
-                        oggetto all’inventario.' }}
-                    </p>
-                    @if (!personalView) {
-                    <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
-                    }
-                </div>
+                <app-empty-state
+                    icon="pi pi-box"
+                    [title]="searchTerm ? 'Nessun risultato' : personalView ? 'Nessuna consegna' : 'Nessun oggetto'"
+                    [message]="emptyMessage"
+                    [actionLabel]="searchTerm ? 'Azzera ricerca' : personalView ? undefined : 'Nuovo oggetto'"
+                    (action)="searchTerm ? onSearchChange('') : addNew()"
+                />
             </ng-template>
         </p-dataview>
     </div>

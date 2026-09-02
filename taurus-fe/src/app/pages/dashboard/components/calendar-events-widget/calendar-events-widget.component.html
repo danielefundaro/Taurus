@@ -1,36 +1,31 @@
-<div class="card calendar-events">
-    <header class="widget-header">
-        <span>
-            <strong>Prossimi eventi</strong>
-            <small>I prossimi appuntamenti in calendario</small>
-        </span>
-        <a routerLink="/calendar">Calendario <i class="pi pi-arrow-right" aria-hidden="true"></i></a>
-    </header>
-
+<app-detail-section title="Prossimi eventi" description="I prossimi appuntamenti in calendario" actionLabel="Calendario" actionLink="/calendar">
     @if (visibleEvents.length > 0) {
-        <div class="event-list">
-            @for (event of visibleEvents; track event.id) {
-                <a class="event-row" [routerLink]="['/calendar', event.id]">
-                    <span class="event-row__date">
-                        <strong>{{ event.startDate | date: 'dd' }}</strong>
-                        <small>{{ event.startDate | date: 'MMM' | uppercase }}</small>
-                    </span>
-                    <span class="event-row__main">
-                        <strong>{{ event.name || 'Evento senza nome' }}</strong>
-                        <small>
-                            <span><i class="pi pi-clock" aria-hidden="true"></i> {{ event.startDate | date: 'HH:mm' }}</span>
-                            <span><i class="pi pi-map-marker" aria-hidden="true"></i> {{ event.location || 'Luogo da definire' }}</span>
-                        </small>
-                    </span>
-                    <span class="event-row__state" [class.event-row__state--soon]="isSoon(event.startDate)">{{ relativeDate(event.startDate) }}</span>
-                    <i class="pi pi-chevron-right event-row__arrow" aria-hidden="true"></i>
-                </a>
-            }
-        </div>
+        @for (event of visibleEvents; track event.id) {
+            <app-list-row compact>
+                <span rowMedia class="event-date">
+                    <strong>{{ event.startDate | date: 'dd' }}</strong>
+                    <small>{{ event.startDate | date: 'MMM' | uppercase }}</small>
+                </span>
+                <span rowIdentity class="event-main">
+                    <a [routerLink]="['/calendar', event.id]">{{ event.name || 'Evento senza nome' }}</a>
+                    <small>
+                        <span><i class="pi pi-clock" aria-hidden="true"></i> {{ event.startDate | date: 'HH:mm' }}</span>
+                        <span><i class="pi pi-map-marker" aria-hidden="true"></i> {{ event.location || 'Luogo da definire' }}</span>
+                    </small>
+                </span>
+                <span rowMetrics class="event-state" [class.event-state--soon]="isSoon(event.startDate)">{{ relativeDate(event.startDate) }}</span>
+                <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+            </app-list-row>
+        }
     } @else {
-        <div class="widget-empty">
-            <i class="pi pi-calendar-times" aria-hidden="true"></i>
-            <span>Nessun evento in programma</span>
-        </div>
+        <app-empty-state icon="pi pi-calendar-times" title="Nessun evento in programma" message="I prossimi appuntamenti compariranno qui." compact />
     }
-</div>
+
+    <footer class="widget-footer">
+        <span>{{ firstRecord }}–{{ lastRecord }} di {{ totalRecords }}</span>
+        <div>
+            <button type="button" [disabled]="!canGoBack" aria-label="Pagina precedente" (click)="previousPage()"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" [disabled]="!canGoForward" aria-label="Pagina successiva" (click)="nextPage()"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+    </footer>
+</app-detail-section>

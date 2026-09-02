@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { first, forkJoin, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
@@ -14,7 +15,7 @@ import { StatsWidgetComponent } from './components/stats-widget/stats-widget.com
 
 @Component({
     selector: 'app-dashboard',
-    imports: [NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, HasRolesDirective],
+    imports: [ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, HasRolesDirective],
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.scss',
     providers: [KeycloakService, TenantsService, UsersService, AlbumsService, TracksService, CalendarEventsService, InventoryService, UserInventoryService],
@@ -26,7 +27,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected totalAlbums: number = 0;
     protected totalTracks: number = 0;
     protected tracks: Tracks[] = [];
-    protected upcomingEvents: CalendarEvents[] = [];
+    protected upcomingEvents?: Page<CalendarEvents>;
     protected notices?: Page<Notices>;
     protected inventoryMode: InventoryWidgetMode = 'user';
     protected inventoryAdminSummary?: InventoryAdminSummary;
@@ -91,6 +92,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     protected pageChange(event: { page: number; size: number }): void {
         this.loadNotices(event.page, event.size);
+    }
+
+    protected upcomingEventsPageChange(event: { page: number; size: number }): void {
+        this.loadUpcomingEvents(event.page, event.size);
     }
 
     protected markNoticesAsRead(noticeIds: number[] | null): void {
@@ -199,13 +204,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tracksCriteria.size = 10;
         tracksCriteria.sort = ['insertDate,desc'];
 
-        const upcomingCriteria = new CalendarEventsCriteria();
-        upcomingCriteria.page = 0;
-        upcomingCriteria.size = 10;
-        upcomingCriteria.sort = ['startDate,asc'];
-        upcomingCriteria.startDate = new DateFilter();
-        upcomingCriteria.startDate.greaterThanOrEqual = new Date();
-
         this.albumsService
             .getAll()
             .pipe(first())
@@ -219,13 +217,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.totalTracks = tracks.totalElements;
                 this.tracks = tracks.content;
             });
+        this.loadUpcomingEvents();
+        this.loadNotices();
+    }
+
+    private loadUpcomingEvents(page: number = 0, size: number = 10): void {
+        const upcomingCriteria = new CalendarEventsCriteria();
+        upcomingCriteria.page = page;
+        upcomingCriteria.size = size;
+        upcomingCriteria.sort = ['startDate,asc'];
+        upcomingCriteria.startDate = new DateFilter();
+        upcomingCriteria.startDate.greaterThanOrEqual = new Date();
+
         this.calendarEventsService
             .getAll(upcomingCriteria)
             .pipe(first())
             .subscribe((events) => {
-                this.upcomingEvents = events.content;
+                this.upcomingEvents = events;
             });
-        this.loadNotices();
     }
 
     private loadNotices(page: number = 0, size: number = 10): void {

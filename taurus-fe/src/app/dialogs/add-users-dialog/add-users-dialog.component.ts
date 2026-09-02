@@ -12,28 +12,17 @@ import { TextareaModule } from 'primeng/textarea';
 import { RoleEnums } from '../../constants';
 import { ChildrenEntities, Instruments, Users } from '../../module';
 import { EnumConverterPipe } from '../../pipe';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
+import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-users-dialog',
-    imports: [
-        ButtonModule,
-        InputTextModule,
-        FloatLabelModule,
-        TextareaModule,
-        DatePickerModule,
-        FormsModule,
-        FluidModule,
-        AutoCompleteModule,
-        CheckboxModule,
-    ],
-    providers: [
-        EnumConverterPipe,
-    ],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, AutoCompleteModule, CheckboxModule, DialogShellComponent, FormFieldComponent],
+    providers: [EnumConverterPipe],
     templateUrl: './add-users-dialog.component.html',
-    styleUrl: './add-users-dialog.component.scss',
+    styleUrl: './add-users-dialog.component.scss'
 })
 export class AddUsersDialogComponent {
-
     @Input() public readonly instruments: Instruments[];
 
     protected user: Users;
@@ -43,39 +32,41 @@ export class AddUsersDialogComponent {
     private readonly roles: Array<RoleEnums>;
     private readonly instrumentsChildrenEntities: ChildrenEntities[];
 
-    constructor(private readonly dialogRef: DynamicDialogRef<AddUsersDialogComponent>,
+    constructor(
+        private readonly dialogRef: DynamicDialogRef<AddUsersDialogComponent>,
         private readonly config: DynamicDialogConfig<any, { instruments: Instruments[] }>,
-        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>,
+        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>
     ) {
         this.user = new Users();
         this.user.active = true;
         this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
-        this.roles = this.roles.filter(role => role !== RoleEnums.SUPER_ADMIN);
+        this.roles = this.roles.filter((role) => role !== RoleEnums.SUPER_ADMIN);
         this.instruments = this.config.inputValues?.instruments ?? [];
 
         this.autoFilteredRoles = this.roles;
 
-        this.instrumentsChildrenEntities = this.config.inputValues?.instruments.map(instrument => {
-            const childrenEntity = new ChildrenEntities();
-            childrenEntity.name = instrument.name;
-            childrenEntity.index = instrument.id;
+        this.instrumentsChildrenEntities =
+            this.config.inputValues?.instruments.map((instrument) => {
+                const childrenEntity = new ChildrenEntities();
+                childrenEntity.name = instrument.name;
+                childrenEntity.index = instrument.id;
 
-            return childrenEntity;
-        }) ?? [];
+                return childrenEntity;
+            }) ?? [];
 
         this.autoFilteredInstruments = this.instrumentsChildrenEntities;
     }
 
     protected filterRoles(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredRoles = this.roles.filter(role => role?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredRoles = this.roles.filter((role) => role?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredInstruments = this.instrumentsChildrenEntities.filter(instrument => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
+        this.autoFilteredInstruments = this.instrumentsChildrenEntities.filter((instrument) => instrument.name?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected onReorderInstruments(): void {
-        this.user.instruments?.forEach((instrument, i) => instrument.order = i + 1);
+        this.user.instruments?.forEach((instrument, i) => (instrument.order = i + 1));
     }
 
     protected cancel(): void {
@@ -83,6 +74,7 @@ export class AddUsersDialogComponent {
     }
 
     protected save(): void {
+        if (!this.user.name?.trim() || !this.user.email?.trim() || !this.user.roles?.length) return;
         this.dialogRef.close(this.user);
     }
 }

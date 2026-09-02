@@ -1,12 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfirmationService } from 'primeng/api';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
-import { HasUnsavedChanges } from '../../../guard';
 import { ImportsModule } from '../../../imports';
+import { DetailPageBase } from '../../_shared/detail-page.base';
 import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryReturn, Users, UsersCriteria } from '../../../module';
-import { InventoryService, ToastService, UsersService } from '../../../service';
+import { ConfirmService, InventoryService, ToastService, UsersService } from '../../../service';
 
 @Component({
     selector: 'app-inventory-detail',
@@ -14,9 +13,9 @@ import { InventoryService, ToastService, UsersService } from '../../../service';
     imports: [ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [ConfirmationService, UsersService]
+    providers: [UsersService]
 })
-export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
+export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected item: InventoryItem = this.emptyItem();
     protected users: Users[] = [];
     protected selectedUser?: Users;
@@ -29,9 +28,6 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     protected returnRequestNotes: Record<number, string> = {};
     protected returnConditions: Record<number, InventoryCondition | undefined> = {};
     protected returnCompletionNotes: Record<number, string> = {};
-    protected loading = false;
-    protected saving = false;
-    protected photoOrderDirty = false;
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },
         { label: 'Eccellente', value: 'EXCELLENT' },
@@ -41,20 +37,38 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
         { label: 'Fuori servizio', value: 'OUT_OF_SERVICE' }
     ];
 
-    private itemDirty = false;
     protected readonly dirtyAssignments = new Set<number>();
+
+    private static readonly PHOTO_ORDER_UNIT = 'ordine fotografie';
+    private static readonly ASSIGNMENTS_UNIT = 'assegnazioni';
+
+    /** Il modulo principale dell'oggetto: coincide con l'unità del guscio. */
+    protected get itemDirty(): boolean {
+        return this.isDirtyForm;
+    }
+
+    /** L'ordine delle fotografie si salva per conto proprio. */
+    protected get photoOrderDirty(): boolean {
+        return this.isUnitDirty(InventoryDetailComponent.PHOTO_ORDER_UNIT);
+    }
+
+    protected set photoOrderDirty(value: boolean) {
+        this.setUnitDirty(InventoryDetailComponent.PHOTO_ORDER_UNIT, value);
+    }
 
     constructor(
         private readonly inventoryService: InventoryService,
         private readonly usersService: UsersService,
         private readonly toastService: ToastService,
-        private readonly confirmationService: ConfirmationService,
+        private readonly confirmService: ConfirmService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
-    ) {}
+    ) {
+        super();
+    }
 
-    get isDirty(): boolean {
-        return this.itemDirty || this.photoOrderDirty || this.dirtyAssignments.size > 0;
+    private syncAssignmentsUnit(): void {
+        this.setUnitDirty(InventoryDetailComponent.ASSIGNMENTS_UNIT, this.dirtyAssignments.size > 0);
     }
 
     protected get isNew(): boolean {
@@ -62,7 +76,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected get canSave(): boolean {
-        return this.itemDirty && !!this.item.name?.trim() && !!this.item.inventoryNumber?.trim();
+        return this.isDirtyForm && !!this.item.name?.trim() && !!this.item.inventoryNumber?.trim();
     }
 
     ngOnInit(): void {
@@ -71,7 +85,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             const id = params['id'];
             if (id === 'new') {
                 this.item = this.emptyItem();
-                this.itemDirty = false;
+                this.isDirty = false;
                 return;
             }
             const numericId = Number(id);
@@ -84,11 +98,12 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected markItemDirty(): void {
-        this.itemDirty = true;
+        this.isDirty = true;
     }
 
     protected markAssignmentDirty(id: number): void {
         this.dirtyAssignments.add(id);
+        this.syncAssignmentsUnit();
     }
 
     protected save(): void {
@@ -101,7 +116,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
                 finalize(() => (this.saving = false))
             )
             .subscribe((value) => {
-                this.itemDirty = false;
+                this.isDirty = false;
                 this.toastService.success('Inventario aggiornato', 'Le modifiche sono state salvate.');
                 if (this.isNew) {
                     this.router.navigate(['/inventory', value.id]);
@@ -113,20 +128,16 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
 
     protected confirmDelete(): void {
         if (!this.item.id) return;
-        this.confirmationService.confirm({
-            header: 'Conferma eliminazione',
-            message: `Rimuovere “${this.item.name}” dall’inventario?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina oggetto',
+            consequence: `“${this.item.name}” verrà rimosso dall’inventario.`,
+            actionLabel: 'Elimina',
             accept: () =>
                 this.inventoryService
                     .deleteItem(this.item.id!)
                     .pipe(first())
                     .subscribe(() => {
-                        this.itemDirty = false;
+                        this.clearDirtyUnits();
                         this.dirtyAssignments.clear();
                         this.toastService.success('Oggetto eliminato', 'L’oggetto è stato rimosso dall’inventario.');
                         this.router.navigate(['/inventory']);
@@ -168,26 +179,24 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
             .pipe(first())
             .subscribe(() => {
                 this.dirtyAssignments.delete(assignmentId);
+                this.syncAssignmentsUnit();
                 this.toastService.success('Assegnazione aggiornata', 'Quantità, ordine e descrizione sono stati salvati.');
                 this.loadItem(this.item.id!);
             });
     }
 
     protected confirmDeleteAssignment(assignment: InventoryAssignment): void {
-        this.confirmationService.confirm({
-            header: 'Elimina assegnazione',
-            message: `Eliminare l’assegnazione a ${assignment.userName} ${assignment.userLastName} e tutte le relative riconsegne?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina assegnazione',
+            consequence: `L’assegnazione a ${assignment.userName} ${assignment.userLastName} e tutte le relative riconsegne verranno eliminate.`,
+            actionLabel: 'Elimina',
             accept: () =>
                 this.inventoryService
                     .deleteAssignment(assignment.id)
                     .pipe(first())
                     .subscribe(() => {
                         this.dirtyAssignments.delete(assignment.id);
+                        this.syncAssignmentsUnit();
                         this.toastService.success('Assegnazione eliminata', 'L’assegnazione e le relative riconsegne sono state eliminate.');
                         this.loadItem(this.item.id!);
                     })
@@ -195,14 +204,10 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
     }
 
     protected confirmDeleteReturn(assignment: InventoryAssignment, itemReturn: InventoryReturn): void {
-        this.confirmationService.confirm({
-            header: 'Elimina riconsegna',
-            message: `Eliminare la procedura di riconsegna di ${itemReturn.quantity} unità per ${assignment.userName} ${assignment.userLastName}?`,
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Elimina',
-            rejectLabel: 'Annulla',
-            acceptButtonProps: { severity: 'danger' },
-            rejectButtonProps: { severity: 'secondary' },
+        this.confirmService.confirmDestructive({
+            title: 'Elimina riconsegna',
+            consequence: `La procedura di riconsegna di ${itemReturn.quantity} unità per ${assignment.userName} ${assignment.userLastName} verrà eliminata.`,
+            actionLabel: 'Elimina',
             accept: () =>
                 this.inventoryService
                     .deleteReturn(itemReturn.id)
@@ -364,8 +369,7 @@ export class InventoryDetailComponent implements OnInit, HasUnsavedChanges {
                         this.returnCompletionNotes[itemReturn.id] = itemReturn.notes ?? '';
                     });
                 });
-                this.itemDirty = false;
-                this.photoOrderDirty = false;
+                this.clearDirtyUnits();
                 this.dirtyAssignments.clear();
             });
     }
