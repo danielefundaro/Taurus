@@ -193,7 +193,7 @@
                                     <div class="flex justify-end gap-1">
                                         <p-button icon="pi pi-pencil" [text]="true" (onClick)="openAccount(account)" />
                                         @if (account.active) {
-                                            <p-button icon="pi pi-archive" severity="danger" [text]="true" (onClick)="archiveAccount(account)" />
+                                            <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia conto" ariaLabel="Archivia conto" (onClick)="archiveAccount(account)" />
                                         }
                                     </div>
                                 </td>
@@ -231,7 +231,7 @@
                                     <div class="flex justify-end gap-1">
                                         <p-button icon="pi pi-pencil" [text]="true" (onClick)="openCategory(category)" />
                                         @if (category.active) {
-                                            <p-button icon="pi pi-archive" severity="danger" [text]="true" (onClick)="archiveCategory(category)" />
+                                            <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia categoria" ariaLabel="Archivia categoria" (onClick)="archiveCategory(category)" />
                                         }
                                     </div>
                                 </td>

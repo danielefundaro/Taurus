@@ -20,6 +20,7 @@ import com.fundaro.zodiac.taurus.service.NoticesService.FinanceNoticeCommand;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
+import com.fundaro.zodiac.taurus.service.mapper.NoticesMapperImpl;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import java.time.Instant;
@@ -85,6 +86,14 @@ class NoticesServiceImplTest {
         assertThat(notice.getUserId()).isEqualTo("keycloak-super-admin");
         assertThat(notice.getName()).isEqualTo("Nuovo tenant");
         assertThat(notice.getMessage()).isEqualTo("Tenant creato");
+    }
+
+    @Test
+    void shouldMapRequiredDefaultsForGenericNotices() {
+        Notices entity = new NoticesMapperImpl().toEntity(new NoticesDTO());
+
+        assertThat(entity.getSource()).isEqualTo("GENERAL");
+        assertThat(entity.getSeverity()).isEqualTo("INFO");
     }
 
     @Test

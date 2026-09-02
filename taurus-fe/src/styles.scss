@@ -73,3 +73,11 @@
 :host-context(.app-dark) .danger-zone-label {
     color: rgb(252, 165, 165);
 }
+
+/* Immagine dentro p-galleria a schermo intero: condivisa da preview e
+   tracks/detail, che ne sovrascrive le altezze nel proprio foglio di stile. */
+.image-galleria {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+}

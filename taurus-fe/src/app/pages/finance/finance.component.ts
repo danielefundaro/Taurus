@@ -95,7 +95,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected get movementCategories(): FinancialCategory[] {
-        return this.categories.filter((category) => category.direction === 'BOTH' || category.direction === this.movementForm.direction);
+        return this.categories.filter((category) => category.active !== false && (category.direction === 'BOTH' || category.direction === this.movementForm.direction));
     }
 
     protected openAccount(account?: FinancialAccount): void {
