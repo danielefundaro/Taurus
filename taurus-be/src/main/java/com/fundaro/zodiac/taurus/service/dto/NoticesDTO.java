@@ -17,9 +17,11 @@ public class NoticesDTO extends CommonFieldsDTO {
 
     private ZonedDateTime readDate;
 
-    private String source;
+    @NotNull(message = "must not be null")
+    private String source = "GENERAL";
 
-    private String severity;
+    @NotNull(message = "must not be null")
+    private String severity = "INFO";
 
     private String targetPath;
 
