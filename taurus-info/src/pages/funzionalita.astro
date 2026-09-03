@@ -5,42 +5,72 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const areas = [
   {
-    icon: 'catalogue',
-    overline: 'Catalogo digitale',
-    title: 'Dalla raccolta alla conoscenza.',
-    text: 'Organizza album e tracce con metadati coerenti, contenuti allegati e relazioni navigabili. Ogni scheda conserva il contesto necessario per capire e riutilizzare il materiale.',
-    points: ['Album e tracce collegati', 'Partiture, PDF', 'Metadati e classificazioni']
+    icon: 'dashboard',
+    overline: 'Dashboard e notifiche',
+    title: 'Quello che conta, appena entri.',
+    text: 'La dashboard adatta contenuti e indicatori al ruolo della persona: numeri del catalogo, ultime tracce, prossimi eventi, materiali assegnati e comunicazioni da leggere.',
+    points: ['Panoramica per ruolo', 'Attività e contenuti recenti', 'Scadenze dell’inventario', 'Centro notifiche personale']
   },
   {
-    icon: 'search',
-    overline: 'Ricerca',
-    title: 'Il contenuto giusto, senza perdere tempo.',
-    text: 'La ricerca full-text e i criteri strutturati permettono di esplorare il patrimonio anche quando cresce, senza dipendere da cartelle o convenzioni conosciute da poche persone.',
-    points: ['Ricerca testuale', 'Filtri combinabili', 'Ordinamento e paginazione', 'Risultati separati per tenant']
+    icon: 'catalogue',
+    overline: 'Catalogo musicale',
+    title: 'Dalla raccolta alla conoscenza.',
+    text: 'Album, tracce, partiture e strumenti formano un catalogo connesso. Ricerca testuale, filtri e metadati aiutano a ritrovare il materiale; l’anteprima permette di consultare e presentare i documenti senza uscire da Taurus.',
+    points: ['Album e tracce collegati', 'Partiture e documenti PDF', 'Ricerca e filtri combinabili', 'Anteprima e presentazione']
   },
   {
     icon: 'calendar',
-    overline: 'Attività',
-    title: 'Il catalogo incontra il calendario.',
-    text: 'Pianifica prove, concerti e appuntamenti. Raccogli disponibilità, definisci presenze e conserva informazioni operative in un flusso condiviso.',
-    points: ['Eventi e stati operativi', 'Disponibilità degli utenti', 'Presenze e annotazioni']
+    overline: 'Calendario',
+    title: 'Ogni attività, dalla prima data alla presenza.',
+    text: 'Programma prove, concerti e appuntamenti singoli o ricorrenti. Ogni occorrenza conserva disponibilità, presenze, visibilità, compensi e costi, con promemoria push facoltativi sul dispositivo.',
+    points: ['Vista elenco e calendario', 'Serie giornaliere, settimanali, mensili e annuali', 'Disponibilità e presenze', 'Promemoria push']
+  },
+  {
+    icon: 'inventory',
+    overline: 'Inventario',
+    title: 'Ogni bene ha una storia verificabile.',
+    text: 'Registra oggetti e dotazioni con quantità, stato, valore e fotografie. Le assegnazioni includono presa visione, scadenze, revisioni e riconsegne, così amministratori e assegnatari condividono sempre la stessa situazione.',
+    points: ['Schede e fotografie', 'Assegnazioni e presa visione', 'Scadenze e notifiche mirate', 'Riconsegne e proforma PDF']
+  },
+  {
+    icon: 'finance',
+    overline: 'Economia',
+    title: 'Dai movimenti al risultato dell’anno.',
+    text: 'Gestisci casse e conti correnti, classifica entrate e uscite, registra trasferimenti e allegati e verifica i movimenti. I dati economici degli eventi alimentano preventivi, consuntivi ed esercizi annuali.',
+    points: ['Conti, categorie e movimenti', 'Trasferimenti e riconciliazione', 'Preventivi e consuntivi degli eventi', 'Report CSV, XLSX e PDF']
   },
   {
     icon: 'users',
-    overline: 'Organizzazione',
-    title: 'Responsabilità chiare per ogni persona.',
-    text: 'I ruoli distinguono amministrazione, catalogazione, consultazione e accesso esterno. La stessa identità può lavorare nel contesto del tenant selezionato.',
-    points: ['Gestione utenti', 'Accesso basato sui ruoli', 'Organizzazioni multi-tenant', 'Notifiche e preferenze personali']
+    overline: 'Persone e ruoli',
+    title: 'Responsabilità chiare, accessi coerenti.',
+    text: 'Ogni persona opera nel contesto dell’organizzazione selezionata e con strumenti coerenti con il proprio incarico. Profilo, preferenze, notifiche e scelte di visualizzazione seguono l’utente.',
+    points: ['Gestione utenti e organizzazioni', 'Autorizzazioni basate sui ruoli', 'Preferenze personali persistenti', 'Accesso esterno controllato']
+  },
+  {
+    icon: 'shield',
+    overline: 'Governance e sicurezza',
+    title: 'Dati separati, azioni tracciabili.',
+    text: 'Autenticazione centralizzata, dati tenant-scoped e controlli applicativi proteggono ogni area. Taurus gestisce inoltre audit, documenti legali versionati e cancellazioni GDPR, comprese le situazioni con materiale ancora da riconsegnare.',
+    points: ['OAuth 2.0 e OpenID Connect', 'Schema dati dedicato per tenant', 'Audit e notifiche affidabili', 'Consensi e flussi GDPR']
   }
+] as const;
+
+const roles = [
+  { code: 'SA', name: 'Super Admin', text: 'Governa istanze, documenti legali e configurazione trasversale.' },
+  { code: 'AD', name: 'Admin', text: 'Amministra persone, attività, inventario e operatività del tenant.' },
+  { code: 'TS', name: 'Tesoriere', text: 'Gestisce conti, movimenti, esercizi e rendiconti economici.' },
+  { code: 'AR', name: 'Archivista', text: 'Cura catalogo, partiture, strumenti e patrimonio materiale.' },
+  { code: 'UT', name: 'Utente', text: 'Consulta i contenuti, partecipa agli eventi e gestisce le proprie consegne.' },
+  { code: 'UE', name: 'Utente esterno', text: 'Accede alle attività e ai contenuti autorizzati senza funzioni gestionali.' }
 ] as const;
 ---
 
-<BaseLayout title="Funzionalità" description="Scopri catalogo, ricerca, strumenti, calendario e gestione multi-tenant della piattaforma Taurus.">
+<BaseLayout title="Funzionalità" description="Scopri catalogo musicale, calendario, inventario, gestione economica, notifiche e sicurezza multi-tenant di Taurus.">
   <section class="page-hero">
     <div class="container-shell">
       <span class="eyebrow">Funzionalità</span>
-      <h1 class="display-title">Un archivio che partecipa al lavoro quotidiano.</h1>
-      <p class="body-large">Taurus trasforma informazioni musicali disperse in un sistema consultabile, connesso e pronto a sostenere le attività dell’organizzazione.</p>
+      <h1 class="display-title">Un gestionale costruito intorno alla vita dell’organizzazione.</h1>
+      <p class="body-large">Taurus non è più soltanto un archivio: collega patrimonio musicale, attività, materiali, persone e contabilità in un flusso quotidiano coerente.</p>
     </div>
   </section>
 
@@ -67,48 +97,80 @@ const areas = [
     </div>
   </section>
 
+  <section class="connection-section">
+    <div class="container-shell connection-grid">
+      <div>
+        <span class="eyebrow">Informazioni che collaborano</span>
+        <h2 class="section-title">Le aree non vivono in silos.</h2>
+      </div>
+      <div class="connection-flow" aria-label="Esempio di flusso integrato">
+        <article><span>01</span><div><h3>Programmi l’evento</h3><p>Definisci date, partecipanti, compensi e costi previsti.</p></div></article>
+        <article><span>02</span><div><h3>Coordini persone e materiali</h3><p>Raccogli disponibilità, registra presenze e controlla le assegnazioni.</p></div></article>
+        <article><span>03</span><div><h3>Chiudi il cerchio</h3><p>Confronti preventivo e consuntivo ed esporti il rendiconto.</p></div></article>
+      </div>
+    </div>
+  </section>
+
   <section class="roles-section">
     <div class="container-shell">
       <div class="roles-heading">
         <span class="eyebrow">Accessi su misura</span>
         <h2 class="section-title">Lo strumento giusto per ogni ruolo.</h2>
+        <p class="body-large">I ruoli possono convivere nella stessa organizzazione mantenendo responsabilità e dati sensibili nel perimetro corretto.</p>
       </div>
       <div class="role-grid">
-        <article><span>AD</span><h3>Admin</h3><p>Amministra utenti e attività della propria organizzazione.</p></article>
-        <article><span>AR</span><h3>Archivista</h3><p>Cura catalogo, tracce e strumenti.</p></article>
-        <article><span>UT</span><h3>Utente</h3><p>Consulta il patrimonio e partecipa alle attività.</p></article>
-        <article><span>UE</span><h3>Utente esterno</h3><p>Consulta il patrimonio pubblico e partecipa alle attività.</p></article>
+        {roles.map((role) => <article><span>{role.code}</span><h3>{role.name}</h3><p>{role.text}</p></article>)}
       </div>
     </div>
   </section>
 
-  <CallToAction title="Vuoi vedere Taurus nel tuo contesto?" text="Raccontaci come gestisci oggi catalogo e attività: partiremo dalle esigenze reali della tua organizzazione." />
+  <CallToAction title="Vuoi vedere Taurus nel tuo contesto?" text="Raccontaci come gestisci oggi catalogo, attività, materiali e contabilità: partiremo dalle esigenze reali della tua organizzazione." />
 </BaseLayout>
 
 <style>
   .page-hero { padding: clamp(4.5rem, 9vw, 8rem) 0; text-align: center; }
-  .page-hero .display-title { max-width: 14ch; margin-inline: auto; }
-  .page-hero .body-large { max-width: 48rem; margin: 1.8rem auto 0; }
+  .page-hero .display-title { max-width: 15ch; margin-inline: auto; }
+  .page-hero .body-large { max-width: 54rem; margin: 1.8rem auto 0; }
   .area-section { background: white; }
   .area-row { display: grid; grid-template-columns: .9fr 1fr; align-items: center; gap: clamp(3rem, 9vw, 9rem); padding-block: clamp(4.5rem, 9vw, 8rem); border-bottom: 1px solid rgba(23,61,49,.1); }
+  .area-row:last-child { border-bottom: 0; }
   .area-row.reverse .area-visual { order: 2; }
   .area-visual { position: relative; display: grid; min-height: 27rem; place-items: center; overflow: hidden; border-radius: 2rem; color: var(--color-moss-700); background: var(--color-cream-100); }
+  .area-visual::after { position: absolute; width: 9rem; height: 9rem; right: -2rem; bottom: -2rem; border-radius: 50%; content: ''; background: rgba(231,167,68,.14); }
   .visual-icon { position: relative; z-index: 2; display: grid; width: 8rem; height: 8rem; place-items: center; border-radius: 2.2rem; background: white; box-shadow: var(--shadow-soft); }
   .visual-ring { position: absolute; width: 19rem; height: 19rem; border: 1px solid rgba(35,97,77,.14); border-radius: 50%; }
   .ring-two { width: 28rem; height: 28rem; }
-  .visual-label { position: absolute; right: 1.5rem; bottom: 1.5rem; display: flex; flex-direction: column; border-radius: .9rem; padding: .8rem 1rem; background: rgba(255,255,255,.82); }
-  .visual-label small { color: var(--color-ink-600); font-size: .62rem; } .visual-label strong { margin-top: .15rem; font-size: .8rem; }
+  .visual-label { position: absolute; z-index: 2; right: 1.5rem; bottom: 1.5rem; display: flex; flex-direction: column; border-radius: .9rem; padding: .8rem 1rem; background: rgba(255,255,255,.86); }
+  .visual-label small { color: var(--color-ink-600); font-size: .62rem; }
+  .visual-label strong { margin-top: .15rem; font-size: .8rem; }
   .area-copy .body-large { margin-top: 1.35rem; }
   .area-copy ul { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem 1.5rem; margin: 1.8rem 0 0; padding: 0; list-style: none; }
-  .area-copy li { display: flex; align-items: center; gap: .5rem; color: var(--color-ink-800); font-size: .9rem; font-weight: 750; }
-  .area-copy li :global(svg) { flex: none; color: var(--color-moss-500); }
+  .area-copy li { display: flex; align-items: flex-start; gap: .5rem; color: var(--color-ink-800); font-size: .9rem; font-weight: 750; line-height: 1.45; }
+  .area-copy li :global(svg) { flex: none; margin-top: .1rem; color: var(--color-moss-500); }
+  .connection-section { padding-block: clamp(4.5rem, 9vw, 8rem); color: white; background: var(--color-moss-900); }
+  .connection-grid { display: grid; grid-template-columns: .8fr 1fr; gap: clamp(3rem, 8vw, 8rem); }
+  .connection-section :global(.eyebrow) { color: var(--color-moss-200); }
+  .connection-flow { display: grid; gap: 0; }
+  .connection-flow article { display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem; padding: 1.5rem 0; border-bottom: 1px solid rgba(255,255,255,.13); }
+  .connection-flow article:first-child { padding-top: 0; }
+  .connection-flow span { color: var(--color-amber-400); font-family: var(--font-display); }
+  .connection-flow h3 { margin: 0; font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; }
+  .connection-flow p { margin: .45rem 0 0; color: rgba(255,255,255,.66); line-height: 1.65; }
   .roles-section { padding-block: clamp(4.5rem, 9vw, 8rem); background: var(--color-cream-100); }
-  .roles-heading { max-width: 42rem; }
-  .role-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 3rem; }
-  .role-grid article { border: 1px solid rgba(23,61,49,.1); border-radius: 1.3rem; padding: 1.5rem; background: rgba(255,255,255,.72); }
+  .roles-heading { max-width: 48rem; }
+  .roles-heading .body-large { margin-top: 1.25rem; }
+  .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 3rem; }
+  .role-grid article { min-height: 14rem; border: 1px solid rgba(23,61,49,.1); border-radius: 1.3rem; padding: 1.5rem; background: rgba(255,255,255,.72); }
   .role-grid span { display: grid; width: 2.8rem; height: 2.8rem; place-items: center; border-radius: .8rem; color: var(--color-moss-900); font-size: .75rem; font-weight: 900; background: var(--color-moss-100); }
-  .role-grid h3 { margin: 2.5rem 0 0; font-family: var(--font-display); font-size: 1.3rem; }
+  .role-grid h3 { margin: 2.2rem 0 0; font-family: var(--font-display); font-size: 1.3rem; }
   .role-grid p { margin: .7rem 0 0; color: var(--color-ink-600); font-size: .9rem; line-height: 1.6; }
-  @media (max-width: 850px) { .area-row { grid-template-columns: 1fr; } .area-row.reverse .area-visual { order: initial; } .role-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 550px) { .area-copy ul, .role-grid { grid-template-columns: 1fr; } .area-visual { min-height: 21rem; } }
+  @media (max-width: 850px) {
+    .area-row, .connection-grid { grid-template-columns: 1fr; }
+    .area-row.reverse .area-visual { order: initial; }
+    .role-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 550px) {
+    .area-copy ul, .role-grid { grid-template-columns: 1fr; }
+    .area-visual { min-height: 21rem; }
+  }
 </style>

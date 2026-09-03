@@ -1,7 +1,7 @@
 {
   "name": "Taurus",
   "short_name": "Taurus",
-  "description": "Il patrimonio musicale, finalmente in armonia.",
+  "description": "La gestione della tua organizzazione, in armonia.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fbfaf5",
