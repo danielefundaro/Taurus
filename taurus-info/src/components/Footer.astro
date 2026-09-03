@@ -7,7 +7,7 @@ import Brand from './Brand.astro';
   <div class="container-shell footer-grid">
     <div class="footer-brand">
       <Brand light />
-      <p>Uno spazio ordinato per custodire, cercare e condividere il patrimonio musicale.</p>
+      <p>Un unico spazio per coordinare patrimonio musicale, attività, materiali, persone e contabilità.</p>
     </div>
     <div>
       <h2>Esplora</h2>
@@ -18,8 +18,10 @@ import Brand from './Brand.astro';
     </div>
     <div>
       <h2>Informazioni</h2>
-      <a href="/privacy/">Privacy</a>
-      <a href="/termini/">Termini di utilizzo</a>
+      <a href="/privacy/">Privacy del sito</a>
+      <a href="/termini/">Termini del sito</a>
+      <a href="/privacy-applicativo/">Privacy dell’applicativo</a>
+      <a href="/termini-applicativo/">Termini dell’applicativo</a>
       <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>
     </div>
     <div class="footer-cta">
@@ -29,7 +31,7 @@ import Brand from './Brand.astro';
   </div>
   <div class="container-shell footer-bottom">
     <span>© {new Date().getFullYear()} Taurus</span>
-    <span>Progettato per archivi musicali vivi.</span>
+    <span>Progettato per organizzazioni musicali vive.</span>
   </div>
 </footer>
 

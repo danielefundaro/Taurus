@@ -6,35 +6,37 @@ import Icon from './Icon.astro';
 <div class="product-window" aria-label="Anteprima dell'interfaccia Taurus">
   <aside class="product-sidebar">
     <Brand compact light />
-    <div class="sidebar-line selected"><Icon name="catalogue" size={17} /><span>Catalogo</span></div>
-    <div class="sidebar-line"><Icon name="search" size={17} /><span>Ricerca</span></div>
-    <div class="sidebar-line"><Icon name="instrument" size={17} /><span>Strumenti</span></div>
+    <div class="sidebar-line selected"><Icon name="dashboard" size={17} /><span>Dashboard</span></div>
+    <div class="sidebar-line"><Icon name="catalogue" size={17} /><span>Catalogo</span></div>
     <div class="sidebar-line"><Icon name="calendar" size={17} /><span>Calendario</span></div>
+    <div class="sidebar-line"><Icon name="inventory" size={17} /><span>Inventario</span></div>
+    <div class="sidebar-line"><Icon name="finance" size={17} /><span>Economia</span></div>
     <div class="sidebar-profile"><span>DF</span><i></i></div>
   </aside>
   <div class="product-content">
     <div class="product-toolbar">
-      <div><small>Archivio</small><strong>Panoramica</strong></div>
-      <div class="toolbar-search"><Icon name="search" size={16} /><span>Cerca nel catalogo…</span></div>
+      <div><small>Organizzazione</small><strong>Dashboard</strong></div>
+      <div class="toolbar-search"><Icon name="search" size={16} /><span>Cerca in Taurus…</span></div>
       <span class="avatar">DF</span>
     </div>
     <div class="metric-grid">
       <article><span class="metric-icon amber"><Icon name="catalogue" size={20} /></span><small>Album</small><strong>128</strong><em>+ 6 questo mese</em></article>
-      <article><span class="metric-icon green"><Icon name="search" size={20} /></span><small>Tracce</small><strong>1.842</strong><em>Catalogo aggiornato</em></article>
-      <article><span class="metric-icon coral"><Icon name="calendar" size={20} /></span><small>Prossimi eventi</small><strong>12</strong><em>3 questa settimana</em></article>
+      <article><span class="metric-icon green"><Icon name="calendar" size={20} /></span><small>Prossimi eventi</small><strong>12</strong><em>3 questa settimana</em></article>
+      <article><span class="metric-icon coral"><Icon name="inventory" size={20} /></span><small>Inventario</small><strong>246</strong><em>4 consegne in scadenza</em></article>
+      <article><span class="metric-icon blue"><Icon name="finance" size={20} /></span><small>Disponibilità</small><strong>€ 18.640</strong><em>Esercizio corrente</em></article>
     </div>
     <div class="preview-grid">
       <article class="recent-card">
-        <div class="card-title"><strong>Aggiunti di recente</strong><span>Vedi tutti</span></div>
-        <div class="track-row"><span class="track-index">01</span><div><strong>Sinfonia in Re</strong><small>Orchestra · Partitura</small></div><time>Oggi</time></div>
-        <div class="track-row"><span class="track-index">02</span><div><strong>Notturno d'estate</strong><small>Ensemble · Audio</small></div><time>Ieri</time></div>
-        <div class="track-row"><span class="track-index">03</span><div><strong>Suite per archi</strong><small>Quartetto · Spartito</small></div><time>08 ago</time></div>
+        <div class="card-title"><strong>Attività recenti</strong><span>Vedi tutto</span></div>
+        <div class="track-row"><span class="track-index"><Icon name="calendar" size={15} /></span><div><strong>Prova generale</strong><small>Auditorium · 18:30</small></div><time>Oggi</time></div>
+        <div class="track-row"><span class="track-index"><Icon name="inventory" size={15} /></span><div><strong>Consegna da confermare</strong><small>Leggio orchestrale · 4 unità</small></div><time>Domani</time></div>
+        <div class="track-row"><span class="track-index"><Icon name="bell" size={15} /></span><div><strong>Nuovo movimento da verificare</strong><small>Economia · Cassa</small></div><time>2 min</time></div>
       </article>
       <article class="event-card">
-        <div class="card-title"><strong>Calendario</strong><span>Agosto</span></div>
-        <div class="event-date"><strong>18</strong><span>AGO</span></div>
-        <div class="event-copy"><strong>Prova generale</strong><small>Auditorium · 18:30</small></div>
-        <div class="attendance"><span></span><span></span><span></span><small>18 partecipanti</small></div>
+        <div class="card-title"><strong>Economia</strong><span>Settembre</span></div>
+        <div class="balance-copy"><small>Risultato dell’anno</small><strong>€ 4.280</strong></div>
+        <div class="mini-chart" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="balance-foot"><span><i></i> Entrate</span><span><i></i> Uscite</span></div>
       </article>
     </div>
   </div>
@@ -117,7 +119,7 @@ import Icon from './Icon.astro';
   .toolbar-search { display: flex; align-items: center; gap: .45rem; border: 1px solid #dfe7e3; border-radius: .7rem; padding: .55rem .7rem; color: #8a9791; font-size: .65rem; background: white; }
   .avatar { color: white; background: var(--color-moss-700); }
 
-  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin-top: 1.5rem; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .65rem; margin-top: 1.5rem; }
   .metric-grid article { display: grid; grid-template-columns: auto 1fr; column-gap: .65rem; border: 1px solid #e5ebe8; border-radius: 1rem; padding: .85rem; background: white; }
   .metric-grid small { align-self: end; color: #718079; font-size: .58rem; }
   .metric-grid strong { grid-column: 2; font-size: 1.35rem; line-height: 1; }
@@ -126,6 +128,7 @@ import Icon from './Icon.astro';
   .metric-icon.amber { color: #8f5a09; background: #fbe7bd; }
   .metric-icon.green { color: #23614d; background: #ddf1e8; }
   .metric-icon.coral { color: #8c3f2b; background: #f7d7cf; }
+  .metric-icon.blue { color: #28577b; background: #dcebf5; }
 
   .preview-grid { display: grid; grid-template-columns: 1.45fr .8fr; gap: .8rem; margin-top: .8rem; }
   .recent-card, .event-card { border: 1px solid #e5ebe8; border-radius: 1rem; padding: 1rem; background: white; }
@@ -137,14 +140,15 @@ import Icon from './Icon.astro';
   .track-row strong { font-size: .62rem; }
   .track-row small, .track-row time, .event-copy small { color: #88958f; font-size: .5rem; }
   .event-card { background: linear-gradient(145deg, #fff, #eef7f3); }
-  .event-date { display: flex; align-items: baseline; gap: .35rem; margin-top: 1.4rem; color: var(--color-moss-700); }
-  .event-date strong { font-family: var(--font-display); font-size: 2.8rem; font-weight: 500; line-height: 1; }
-  .event-date span { font-size: .58rem; font-weight: 800; }
-  .event-copy { display: flex; flex-direction: column; margin-top: .7rem; }
-  .event-copy strong { font-size: .72rem; }
-  .attendance { display: flex; align-items: center; margin-top: 2.1rem; }
-  .attendance span { width: 1.35rem; height: 1.35rem; margin-right: -.3rem; border: 2px solid white; border-radius: 50%; background: var(--color-moss-200); }
-  .attendance span:nth-child(2) { background: #f3d39e; }
-  .attendance span:nth-child(3) { background: #e6b5a7; }
-  .attendance small { margin-left: .65rem; color: #78867f; font-size: .5rem; }
+  .balance-copy { display: flex; flex-direction: column; margin-top: 1.35rem; }
+  .balance-copy small { color: #78867f; font-size: .52rem; }
+  .balance-copy strong { margin-top: .25rem; color: var(--color-moss-900); font-family: var(--font-display); font-size: 1.8rem; font-weight: 500; }
+  .mini-chart { display: flex; height: 4rem; align-items: end; gap: .35rem; margin-top: .8rem; border-bottom: 1px solid #dbe7e1; }
+  .mini-chart span { flex: 1; border-radius: .25rem .25rem 0 0; background: var(--color-moss-500); }
+  .mini-chart span:nth-child(1) { height: 36%; } .mini-chart span:nth-child(2) { height: 58%; } .mini-chart span:nth-child(3) { height: 44%; }
+  .mini-chart span:nth-child(4) { height: 72%; } .mini-chart span:nth-child(5) { height: 64%; } .mini-chart span:nth-child(6) { height: 88%; background: var(--color-amber-400); }
+  .balance-foot { display: flex; gap: .8rem; margin-top: .7rem; color: #78867f; font-size: .48rem; }
+  .balance-foot span { display: inline-flex; align-items: center; gap: .25rem; }
+  .balance-foot i { width: .42rem; height: .42rem; border-radius: 50%; background: var(--color-moss-500); }
+  .balance-foot span:last-child i { background: var(--color-amber-400); }
 </style>

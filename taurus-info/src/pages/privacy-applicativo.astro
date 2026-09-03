@@ -8,7 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div class="container-shell">
       <span class="eyebrow">Piattaforma Taurus</span>
       <h1 class="display-title">Privacy dell’applicativo</h1>
-      <p class="body-large">Versione 1.0 · 11 agosto 2026</p>
+      <p class="body-large">Versione 1.1 · 3 settembre 2026</p>
     </div>
   </section>
   <section class="legal-content">
@@ -21,19 +21,22 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <ul>
         <li>dati di account e profilo, inclusi nome, cognome, email, data di nascita, ruoli e identificativo tecnico;</li>
         <li>dati di autenticazione e autorizzazione gestiti tramite Keycloak;</li>
-        <li>preferenze, notifiche, cronologia delle ricerche e accettazioni dei documenti legali;</li>
-        <li>cataloghi, album, tracce, strumenti, eventi, presenze, documenti, immagini e altri contenuti caricati dal tenant;</li>
+        <li>preferenze, notifiche interne, sottoscrizioni e promemoria push, cronologia delle ricerche e accettazioni dei documenti legali;</li>
+        <li>cataloghi musicali, album, tracce, strumenti, partiture, documenti e altri contenuti caricati dal tenant;</li>
+        <li>eventi e serie ricorrenti, disponibilità, presenze, compensi, costi e informazioni organizzative;</li>
+        <li>inventario, fotografie, valori stimati, assegnazioni, prese visione, revisioni, scadenze e riconsegne;</li>
+        <li>dati economici, inclusi conti, categorie, movimenti, controparti, riferimenti, allegati, preventivi, consuntivi ed esercizi;</li>
         <li>log tecnici e informazioni necessarie alla sicurezza e alla diagnosi degli errori.</li>
       </ul>
 
       <h2>3. Finalità e basi giuridiche</h2>
-      <p>I dati sono trattati per creare e amministrare gli account, fornire le funzionalità richieste, applicare ruoli e isolamento tra tenant, proteggere il servizio, gestire notifiche e documentare le accettazioni legali. Le basi giuridiche dipendono dal trattamento e comprendono esecuzione del servizio, legittimo interesse alla sicurezza, adempimento di obblighi di legge e, quando necessario, consenso.</p>
+      <p>I dati sono trattati per creare e amministrare gli account, organizzare catalogo, eventi, inventario e gestione economica, produrre i rendiconti richiesti, applicare ruoli e isolamento tra tenant, proteggere il servizio, inviare notifiche e promemoria scelti dall’utente e documentare le accettazioni legali. Le basi giuridiche dipendono dal trattamento e comprendono esecuzione del servizio, legittimo interesse alla sicurezza, adempimento di obblighi di legge e, quando necessario, consenso.</p>
 
       <h2>4. Utenti minorenni</h2>
       <p>Gli account dei minorenni possono essere creati esclusivamente da un amministratore tenant. Il tenant garantisce di essere autorizzato a effettuare la registrazione e di disporre della base giuridica, delle autorizzazioni e degli eventuali consensi richiesti, inclusa l’autorizzazione di chi esercita la responsabilità genitoriale quando necessaria. Le richieste relative ai dati di un minore possono essere inviate all’amministratore tenant o al contatto indicato in questa informativa.</p>
 
       <h2>5. Destinatari e infrastruttura</h2>
-      <p>I dati sono accessibili agli amministratori e agli utenti autorizzati del tenant secondo i rispettivi ruoli. Il gestore può accedervi solo quando necessario per assistenza, sicurezza o manutenzione. L’infrastruttura è fornita da Contabo; PostgreSQL, OpenSearch, Keycloak e RabbitMQ sono componenti tecnici della piattaforma.</p>
+      <p>I dati sono accessibili agli amministratori e agli utenti autorizzati del tenant secondo i rispettivi ruoli; le informazioni economiche sono riservate ai ruoli abilitati. Il gestore può accedervi solo quando necessario per assistenza, sicurezza o manutenzione. L’infrastruttura è fornita da Contabo; PostgreSQL, Keycloak, RabbitMQ e i servizi di conservazione dei file sono componenti tecnici della piattaforma.</p>
 
       <h2>6. Conservazione e cancellazione</h2>
       <ul>
@@ -46,10 +49,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <li>non vengono effettuati backup applicativi dei dati.</li>
       </ul>
       <p>La disattivazione ordinaria degli account e degli utenti e l’archiviazione dei tenant utilizzano il soft-delete: i relativi record vengono esclusi dalle normali viste amministrative, ma le informazioni restano conservate. L’archiviazione del record di un tenant non revoca automaticamente le sessioni Keycloak già attive. La cancellazione fisica avviene soltanto alla scadenza dei periodi di conservazione applicabili o in seguito a un comando esplicito di cancellazione definitiva GDPR.</p>
-      <p>Il comando GDPR dell’account rimuove i dati personali collegati in tutti i tenant, l’identità Keycloak, le code di caricamento e i riferimenti nominativi negli eventi. Il comando GDPR del tenant rimuove indici, dati relazionali, file e gruppo di autorizzazione associati. I contenuti che devono essere conservati per una valida ragione giuridica devono essere preventivamente esportati o anonimizzati dal tenant.</p>
+      <p>Se un utente ha ancora materiale inventariato in consegna, la cancellazione definitiva viene sospesa fino alla riconsegna. Nel frattempo restano soltanto i dati necessari a identificare e recuperare il materiale; al termine, lo storico inventario viene pseudonimizzato e l’identità rimossa.</p>
+      <p>Il comando GDPR dell’account rimuove i dati personali collegati in tutti i tenant, l’identità Keycloak, le code di caricamento e i riferimenti nominativi non più necessari. Il comando GDPR del tenant rimuove dati relazionali, file e gruppo di autorizzazione associati. I contenuti, inclusi i documenti economici, che devono essere conservati per una valida ragione giuridica devono essere preventivamente esportati o anonimizzati dal tenant.</p>
 
       <h2>7. Sicurezza</h2>
-      <p>Taurus adotta autenticazione centralizzata, autorizzazioni per ruolo, separazione logica dei tenant e controlli di accesso. Nessun sistema può tuttavia garantire sicurezza assoluta; eventuali incidenti vengono gestiti secondo la normativa applicabile.</p>
+      <p>Taurus adotta autenticazione centralizzata, autorizzazioni per ruolo, schemi dati separati per tenant, tracciamento tecnico delle modifiche e controlli di accesso ai file. Nessun sistema può tuttavia garantire sicurezza assoluta; eventuali incidenti vengono gestiti secondo la normativa applicabile.</p>
 
       <h2>8. Conferimento e decisioni automatizzate</h2>
       <p>I dati contrassegnati come necessari sono indispensabili per creare l’account e utilizzare il servizio. Taurus non effettua profilazione pubblicitaria né adotta decisioni con effetti giuridici basate esclusivamente su trattamenti automatizzati.</p>
