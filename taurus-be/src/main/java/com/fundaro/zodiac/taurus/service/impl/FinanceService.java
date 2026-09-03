@@ -23,31 +23,44 @@ import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountYearBalanceDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AttachmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryRequest;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryTotalDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.DashboardDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventBudgetRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventCostDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventCostRequest;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.ReconciliationRequest;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.StatementLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -449,6 +462,238 @@ public class FinanceService {
         source.touchAudit(actor);
         YearDTO result = toYearDto(yearRepository.save(source));
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public AccountStatementDTO accountStatement(long accountId, LocalDate from, LocalDate to, AbstractAuthenticationToken token) {
+        tenant(token);
+        FinancialAccount account = requiredAccount(accountId, false);
+        LocalDate effectiveTo = Objects.requireNonNullElse(to, LocalDate.now());
+        LocalDate effectiveFrom = Objects.requireNonNullElse(from, effectiveTo.withDayOfYear(1));
+        requirePeriod(effectiveFrom, effectiveTo);
+        BigDecimal opening = balance(accountId, effectiveFrom.minusDays(1));
+        List<FinancialMovement> movements = periodMovements(effectiveFrom, effectiveTo).stream()
+            .filter(movement -> movement.getAccount().getId().equals(accountId))
+            .filter(movement -> movement.getNature() != FinancialMovementNature.OPENING)
+            .toList();
+        List<StatementLineDTO> lines = new ArrayList<>();
+        BigDecimal running = opening;
+        for (FinancialMovement movement : movements) {
+            running = running.add(signedAmount(movement));
+            lines.add(new StatementLineDTO(toMovementDto(movement), running));
+        }
+        return new AccountStatementDTO(
+            toAccountDto(account, balance(accountId, effectiveTo)),
+            effectiveFrom,
+            effectiveTo,
+            opening,
+            total(movements, FinancialDirection.INCOME, false),
+            total(movements, FinancialDirection.EXPENSE, false),
+            running,
+            lines
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public YearDTO findYear(int year, AbstractAuthenticationToken token) {
+        tenant(token);
+        return toYearDto(requiredYear(year));
+    }
+
+    @Transactional(readOnly = true)
+    public YearSummaryDTO yearSummary(int year, AbstractAuthenticationToken token) {
+        tenant(token);
+        AccountingYear entity = requiredYear(year);
+        LocalDate from = Objects.requireNonNullElse(entity.getStartDate(), LocalDate.of(year, 1, 1));
+        LocalDate to = Objects.requireNonNullElse(entity.getEndDate(), LocalDate.of(year, 12, 31));
+        List<FinancialMovement> movements = periodMovements(from, to);
+
+        List<AccountYearBalanceDTO> accounts = new ArrayList<>();
+        BigDecimal openingTotal = ZERO;
+        BigDecimal closingTotal = ZERO;
+        for (FinancialAccount account : accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()) {
+            List<FinancialMovement> own = movements.stream()
+                .filter(movement -> movement.getAccount().getId().equals(account.getId()))
+                .filter(movement -> movement.getNature() != FinancialMovementNature.OPENING)
+                .toList();
+            BigDecimal opening = balance(account.getId(), from.minusDays(1));
+            BigDecimal income = total(own, FinancialDirection.INCOME, false);
+            BigDecimal expense = total(own, FinancialDirection.EXPENSE, false);
+            BigDecimal closing = opening.add(income).subtract(expense);
+            accounts.add(new AccountYearBalanceDTO(account.getId(), account.getName(), opening, income, expense, closing));
+            openingTotal = openingTotal.add(opening);
+            closingTotal = closingTotal.add(closing);
+        }
+
+        BigDecimal ordinaryIncome = total(movements, FinancialDirection.INCOME, true);
+        BigDecimal ordinaryExpense = total(movements, FinancialDirection.EXPENSE, true);
+        BigDecimal transferTotal = movements.stream()
+            .filter(movement -> movement.getNature() == FinancialMovementNature.TRANSFER)
+            .filter(movement -> movement.getDirection() == FinancialDirection.EXPENSE)
+            .map(FinancialMovement::getAmount)
+            .reduce(ZERO, BigDecimal::add);
+        List<FinancialMovement> unreconciled = movements.stream()
+            .filter(movement -> movement.getNature() == FinancialMovementNature.ORDINARY && !movement.isReconciled())
+            .toList();
+
+        return new YearSummaryDTO(
+            toYearDto(entity),
+            accounts,
+            openingTotal,
+            ordinaryIncome,
+            ordinaryExpense,
+            ordinaryIncome.subtract(ordinaryExpense),
+            transferTotal,
+            closingTotal,
+            categoryTotals(movements),
+            eventLines(from, to, movements).stream().filter(FinanceService::economicallyOpen).toList(),
+            unreconciled.size(),
+            unreconciled.stream().map(FinancialMovement::getAmount).reduce(ZERO, BigDecimal::add),
+            entity.getLastRecalculatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryTotalDTO> categoryTotals(LocalDate from, LocalDate to, AbstractAuthenticationToken token) {
+        tenant(token);
+        LocalDate effectiveTo = Objects.requireNonNullElse(to, LocalDate.now());
+        LocalDate effectiveFrom = Objects.requireNonNullElse(from, effectiveTo.withDayOfYear(1));
+        requirePeriod(effectiveFrom, effectiveTo);
+        return categoryTotals(periodMovements(effectiveFrom, effectiveTo));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventEconomicLineDTO> eventLines(LocalDate from, LocalDate to, AbstractAuthenticationToken token) {
+        tenant(token);
+        LocalDate effectiveTo = Objects.requireNonNullElse(to, LocalDate.now());
+        LocalDate effectiveFrom = Objects.requireNonNullElse(from, effectiveTo.withDayOfYear(1));
+        requirePeriod(effectiveFrom, effectiveTo);
+        return eventLines(effectiveFrom, effectiveTo, periodMovements(effectiveFrom, effectiveTo));
+    }
+
+    /**
+     * Eventi rilevanti per il periodo: quelli che vi si svolgono e quelli che vi
+     * hanno movimenti, cosi un incasso registrato l'anno successivo resta visibile
+     * nel rendiconto in cui e' stato contabilizzato.
+     */
+    private List<EventEconomicLineDTO> eventLines(LocalDate from, LocalDate to, List<FinancialMovement> movements) {
+        Set<Long> withMovements = movements.stream()
+            .filter(movement -> movement.getEvent() != null)
+            .map(movement -> movement.getEvent().getId())
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        return eventRepository.findAll().stream()
+            .filter(event -> withMovements.contains(event.getId()) || withinPeriod(eventDate(event), from, to))
+            .map(this::eventLine)
+            .sorted(Comparator.comparing(EventEconomicLineDTO::eventDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .toList();
+    }
+
+    private EventEconomicLineDTO eventLine(CalendarEvents event) {
+        EventSummaryDTO summary = eventSummary(event);
+        return new EventEconomicLineDTO(
+            summary.eventId(),
+            summary.eventName(),
+            eventDate(event),
+            summary.expectedFee(),
+            summary.expectedCosts(),
+            summary.expectedMargin(),
+            summary.received(),
+            summary.paid(),
+            summary.actualResult(),
+            summary.remainingIncome(),
+            summary.remainingExpense(),
+            summary.economicStatus()
+        );
+    }
+
+    private List<CategoryTotalDTO> categoryTotals(List<FinancialMovement> movements) {
+        Map<Long, CategoryAccumulator> accumulators = new LinkedHashMap<>();
+        for (FinancialMovement movement : movements) {
+            if (movement.getNature() != FinancialMovementNature.ORDINARY) continue;
+            FinancialCategory category = movement.getCategory();
+            Long key = category == null ? UNCATEGORIZED : category.getId();
+            CategoryAccumulator accumulator = accumulators.computeIfAbsent(
+                key,
+                ignored ->
+                    new CategoryAccumulator(
+                        category == null ? null : category.getId(),
+                        category == null ? "Senza categoria" : category.getName(),
+                        category == null ? null : category.getDirection()
+                    )
+            );
+            accumulator.add(movement.getDirection(), movement.getAmount());
+        }
+        return accumulators
+            .values()
+            .stream()
+            .sorted(Comparator.comparing(accumulator -> accumulator.name.toLowerCase(Locale.ROOT)))
+            .map(CategoryAccumulator::toDto)
+            .toList();
+    }
+
+    private List<FinancialMovement> periodMovements(LocalDate from, LocalDate to) {
+        return movementRepository
+            .findAllByDeletedFalseAndBookingDateBetween(from, to)
+            .stream()
+            .sorted((left, right) -> {
+                int date = left.getBookingDate().compareTo(right.getBookingDate());
+                return date != 0 ? date : left.getId().compareTo(right.getId());
+            })
+            .toList();
+    }
+
+    private AccountingYear requiredYear(int year) {
+        return yearRepository
+            .findByYearAndDeletedFalse(year)
+            .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Esercizio non trovato", "finance.year.notFound"));
+    }
+
+    private void requirePeriod(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw error(HttpStatus.BAD_REQUEST, "La data iniziale deve precedere la data finale", "finance.report.invalidPeriod");
+        }
+    }
+
+    private static boolean economicallyOpen(EventEconomicLineDTO line) {
+        return !"NO_BUDGET".equals(line.economicStatus()) && !"SETTLED".equals(line.economicStatus());
+    }
+
+    private static boolean withinPeriod(LocalDate date, LocalDate from, LocalDate to) {
+        return date != null && !date.isBefore(from) && !date.isAfter(to);
+    }
+
+    private static LocalDate eventDate(CalendarEvents event) {
+        return event.getStartDate() == null
+            ? null
+            : Instant.ofEpochMilli(event.getStartDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private static final Long UNCATEGORIZED = -1L;
+
+    private static final class CategoryAccumulator {
+
+        private final Long id;
+        private final String name;
+        private final FinancialCategoryDirection direction;
+        private BigDecimal income = ZERO;
+        private BigDecimal expense = ZERO;
+        private long count;
+
+        private CategoryAccumulator(Long id, String name, FinancialCategoryDirection direction) {
+            this.id = id;
+            this.name = name;
+            this.direction = direction;
+        }
+
+        private void add(FinancialDirection movementDirection, BigDecimal amount) {
+            if (movementDirection == FinancialDirection.INCOME) income = income.add(amount);
+            else expense = expense.add(amount);
+            count++;
+        }
+
+        private CategoryTotalDTO toDto() {
+            return new CategoryTotalDTO(id, name, direction, income, expense, income.subtract(expense), count);
+        }
     }
 
     private void applyAccount(FinancialAccount account, AccountRequest request) {

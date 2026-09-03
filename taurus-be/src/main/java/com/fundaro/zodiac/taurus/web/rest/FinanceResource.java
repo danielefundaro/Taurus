@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AttachmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryDTO;
@@ -16,6 +17,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.ReconciliationR
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
 import com.fundaro.zodiac.taurus.service.impl.FinanceService;
 import com.fundaro.zodiac.taurus.service.impl.FinanceReportService;
 import jakarta.validation.Valid;
@@ -93,6 +95,16 @@ public class FinanceResource {
         AbstractAuthenticationToken token
     ) {
         return financeService.accountBalance(id, date, token);
+    }
+
+    @GetMapping("/accounts/{id}/statement")
+    public AccountStatementDTO statement(
+        @PathVariable long id,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        AbstractAuthenticationToken token
+    ) {
+        return financeService.accountStatement(id, from, to, token);
     }
 
     @GetMapping("/categories")
@@ -186,11 +198,47 @@ public class FinanceResource {
         @RequestParam(defaultValue = "csv") String format,
         AbstractAuthenticationToken token
     ) {
-        FinanceReportService.ReportContent report = financeReportService.cashbook(from, to, accountId, categoryId, eventId, format, token);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(report.mimeType()));
-        headers.setContentDisposition(ContentDisposition.attachment().filename(report.fileName()).build());
-        return ResponseEntity.ok().headers(headers).body(report.bytes());
+        return download(financeReportService.cashbook(from, to, accountId, categoryId, eventId, format, token));
+    }
+
+    @GetMapping("/reports/account-statement")
+    public ResponseEntity<byte[]> accountStatementReport(
+        @RequestParam long accountId,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(defaultValue = "csv") String format,
+        AbstractAuthenticationToken token
+    ) {
+        return download(financeReportService.accountStatement(accountId, from, to, format, token));
+    }
+
+    @GetMapping("/reports/events")
+    public ResponseEntity<byte[]> eventsReport(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(defaultValue = "csv") String format,
+        AbstractAuthenticationToken token
+    ) {
+        return download(financeReportService.events(from, to, format, token));
+    }
+
+    @GetMapping("/reports/categories")
+    public ResponseEntity<byte[]> categoriesReport(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(defaultValue = "csv") String format,
+        AbstractAuthenticationToken token
+    ) {
+        return download(financeReportService.categories(from, to, format, token));
+    }
+
+    @GetMapping("/reports/annual")
+    public ResponseEntity<byte[]> annualReport(
+        @RequestParam int year,
+        @RequestParam(defaultValue = "csv") String format,
+        AbstractAuthenticationToken token
+    ) {
+        return download(financeReportService.annual(year, format, token));
     }
 
     @PostMapping(value = "/movements/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -265,6 +313,16 @@ public class FinanceResource {
         return financeService.findYears(token);
     }
 
+    @GetMapping("/years/{year}")
+    public YearDTO year(@PathVariable int year, AbstractAuthenticationToken token) {
+        return financeService.findYear(year, token);
+    }
+
+    @GetMapping("/years/{year}/summary")
+    public YearSummaryDTO yearSummary(@PathVariable int year, AbstractAuthenticationToken token) {
+        return financeService.yearSummary(year, token);
+    }
+
     @PostMapping("/years/{year}/rollover")
     public YearDTO rollover(@PathVariable int year, AbstractAuthenticationToken token) {
         return financeService.rollover(year, token);
@@ -273,5 +331,12 @@ public class FinanceResource {
     @PostMapping("/years/{year}/recalculate")
     public YearDTO recalculate(@PathVariable int year, AbstractAuthenticationToken token) {
         return financeService.recalculate(year, token);
+    }
+
+    private static ResponseEntity<byte[]> download(FinanceReportService.ReportContent report) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(report.mimeType()));
+        headers.setContentDisposition(ContentDisposition.attachment().filename(report.fileName()).build());
+        return ResponseEntity.ok().headers(headers).body(report.bytes());
     }
 }

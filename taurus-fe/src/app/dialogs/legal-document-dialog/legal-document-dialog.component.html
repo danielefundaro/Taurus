@@ -1,0 +1,33 @@
+<app-dialog-shell
+    [title]="editing ? 'Modifica documento' : 'Nuovo documento'"
+    subtitle="Pubblica la versione legale che gli utenti dovranno consultare."
+    [confirmLabel]="editing ? 'Salva documento' : 'Crea documento'"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field label="Tipo documento" forId="documentType" required>
+            <p-select inputId="documentType" [options]="documentTypes" optionLabel="label" optionValue="value" [(ngModel)]="document.documentType" (ngModelChange)="documentTypeChanged($event)" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Versione" forId="version" required [error]="versionError">
+            <input pInputText id="version" [(ngModel)]="document.version" autocomplete="off" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Titolo" forId="title" required [error]="titleError">
+            <input pInputText id="title" [(ngModel)]="document.title" autocomplete="off" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="URL pubblico del documento" forId="url" required [error]="urlError">
+            <input pInputText id="url" type="url" [(ngModel)]="document.url" autocomplete="off" />
+        </app-form-field>
+        <app-form-field label="Modalità di conferma" forId="action">
+            <p-select inputId="action" [options]="actions" optionLabel="label" optionValue="value" [(ngModel)]="document.action" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Data di pubblicazione" forId="publishedAt">
+            <p-datepicker inputId="publishedAt" [(ngModel)]="publishedAt" [showIcon]="true" [showTime]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body" />
+        </app-form-field>
+        <div class="md:col-span-2 flex flex-col sm:flex-row gap-3">
+            <p-togglebutton [(ngModel)]="document.required" onLabel="Obbligatorio" offLabel="Facoltativo" onIcon="pi pi-lock" offIcon="pi pi-lock-open" />
+            <p-togglebutton [(ngModel)]="document.active" onLabel="Versione attiva" offLabel="Versione non attiva" onIcon="pi pi-check-circle" offIcon="pi pi-circle" />
+        </div>
+    </div>
+</app-dialog-shell>

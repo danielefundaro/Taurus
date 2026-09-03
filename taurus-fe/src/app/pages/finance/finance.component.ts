@@ -1,19 +1,37 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DialogModule } from 'primeng/dialog';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { first, forkJoin } from 'rxjs';
+import { FinanceAccountDialogComponent } from '../../dialogs/finance-account-dialog/finance-account-dialog.component';
+import { FinanceCategoryDialogComponent } from '../../dialogs/finance-category-dialog/finance-category-dialog.component';
+import { EventBudgetResult, FinanceEventBudgetDialogComponent } from '../../dialogs/finance-event-budget-dialog/finance-event-budget-dialog.component';
+import { FinanceMovementDialogComponent, MovementDialogResult } from '../../dialogs/finance-movement-dialog/finance-movement-dialog.component';
+import { FinanceTransferDialogComponent } from '../../dialogs/finance-transfer-dialog/finance-transfer-dialog.component';
 import { ImportsModule } from '../../imports';
-import { AccountingYear, FinancialAccount, FinancialAttachment, FinancialCategory, FinancialCategoryDirection, FinancialDashboard, FinancialDirection, FinancialEventSummary, FinancialMovement, FinancialTransferRequest } from '../../module';
-import { ConfirmService, FinanceService, ToastService } from '../../service';
+import {
+    AccountingYear,
+    AccountingYearSummary,
+    FinancialAccount,
+    FinancialAccountStatement,
+    FinancialCategory,
+    FinancialCategoryDirection,
+    FinancialDashboard,
+    FinancialDirection,
+    FinancialEventSummary,
+    FinancialMovement,
+    FinancialTransferRequest
+} from '../../module';
+import { ConfirmService, FinanceService, ReportFormat, ToastService, toIsoDate } from '../../service';
 
 @Component({
     selector: 'app-finance',
     standalone: true,
-    imports: [ImportsModule, DialogModule, TabsModule],
+    imports: [ImportsModule, TabsModule],
     templateUrl: './finance.component.html',
-    styleUrl: './finance.component.scss'
+    styleUrl: './finance.component.scss',
+    providers: [DialogService]
 })
 export class FinanceComponent implements OnInit {
     protected dashboard?: FinancialDashboard;
@@ -22,7 +40,6 @@ export class FinanceComponent implements OnInit {
     protected movements: FinancialMovement[] = [];
     protected events: FinancialEventSummary[] = [];
     protected years: AccountingYear[] = [];
-    protected attachments: FinancialAttachment[] = [];
     protected totalMovements = 0;
     protected loading = false;
     protected activeTab = 'movements';
@@ -37,36 +54,20 @@ export class FinanceComponent implements OnInit {
         query?: string;
     } = {};
 
-    protected accountDialog = false;
-    protected categoryDialog = false;
-    protected movementDialog = false;
-    protected transferDialog = false;
-    protected eventBudgetDialog = false;
+    /** Estratto conto e riepilogo esercizio: pannelli di sola lettura aperti dalle rispettive tabelle. */
+    protected statement?: FinancialAccountStatement;
+    protected statementAccount?: FinancialAccount;
+    protected statementLoading = false;
+    protected statementFrom: Date = new Date(new Date().getFullYear(), 0, 1);
+    protected statementTo: Date = new Date();
 
-    protected accountForm: FinancialAccount = this.emptyAccount();
-    protected categoryForm: FinancialCategory = this.emptyCategory();
-    protected movementForm: FinancialMovement = this.emptyMovement();
-    protected transferForm: FinancialTransferRequest = this.emptyTransfer();
-    protected movementBookingDate = new Date();
-    protected movementValueDate?: Date;
-    protected transferBookingDate = new Date();
-    protected transferValueDate?: Date;
-    protected accountOpeningDate = new Date();
-    protected selectedAttachment?: File;
-    protected attachmentDescription = '';
-    protected budgetEvent?: FinancialEventSummary;
-    protected budgetFee = 0;
-    protected budgetCosts: Array<{ description: string; amount: number }> = [];
+    protected yearSummary?: AccountingYearSummary;
+    protected yearSummaryLoading = false;
 
-    protected readonly accountTypes = [
-        { label: 'Cassa', value: 'CASH' },
-        { label: 'Conto corrente', value: 'BANK' }
-    ];
     protected readonly directions = [
         { label: 'Entrata', value: 'INCOME' },
         { label: 'Uscita', value: 'EXPENSE' }
     ];
-    protected readonly categoryDirections = [...this.directions, { label: 'Entrata e uscita', value: 'BOTH' }];
     protected readonly reconciliationOptions = [
         { label: 'Tutti', value: undefined },
         { label: 'Riconciliati', value: true },
@@ -80,6 +81,7 @@ export class FinanceComponent implements OnInit {
         private readonly financeService: FinanceService,
         private readonly toastService: ToastService,
         private readonly confirmService: ConfirmService,
+        private readonly dialogService: DialogService,
         private readonly route: ActivatedRoute
     ) {}
 
@@ -88,28 +90,23 @@ export class FinanceComponent implements OnInit {
         this.loadMovements(this.movementLazyEvent);
     }
 
-    protected get activeAccounts(): FinancialAccount[] {
-        return this.accounts.filter((account) => account.active !== false);
-    }
-
-    protected get movementCategories(): FinancialCategory[] {
-        return this.categories.filter((category) => category.active !== false && (category.direction === 'BOTH' || category.direction === this.movementForm.direction));
-    }
-
     protected openAccount(account?: FinancialAccount): void {
-        this.accountForm = account ? { ...account } : this.emptyAccount();
-        this.accountOpeningDate = new Date();
-        this.accountDialog = true;
-    }
+        const ref: DynamicDialogRef = this.dialogService.open(FinanceAccountDialogComponent, {
+            inputValues: { account: account ? { ...account } : undefined },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '40rem',
+            breakpoints: { '960px': '75vw', '640px': '94vw' }
+        });
 
-    protected saveAccount(): void {
-        if (!this.accountForm.name?.trim()) return;
-        if (!this.accountForm.id && this.accountForm.initialBalance) this.accountForm.initialBalanceDate = this.formatDate(this.accountOpeningDate);
-        const request = this.accountForm.id ? this.financeService.updateAccount(this.accountForm) : this.financeService.createAccount(this.accountForm);
-        request.pipe(first()).subscribe(() => {
-            this.accountDialog = false;
-            this.toastService.success('Conto salvato', 'Le informazioni del conto sono state aggiornate.');
-            this.loadReferenceData();
+        ref.onClose.pipe(first()).subscribe((result?: FinancialAccount) => {
+            if (!result) return;
+            const request = result.id ? this.financeService.updateAccount(result) : this.financeService.createAccount(result);
+            request.pipe(first()).subscribe(() => {
+                this.toastService.success('Conto salvato', 'Le informazioni del conto sono state aggiornate.');
+                this.loadReferenceData();
+            });
         });
     }
 
@@ -128,17 +125,22 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openCategory(category?: FinancialCategory): void {
-        this.categoryForm = category ? { ...category } : this.emptyCategory();
-        this.categoryDialog = true;
-    }
+        const ref: DynamicDialogRef = this.dialogService.open(FinanceCategoryDialogComponent, {
+            inputValues: { category: category ? { ...category } : undefined },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '40rem',
+            breakpoints: { '960px': '75vw', '640px': '94vw' }
+        });
 
-    protected saveCategory(): void {
-        if (!this.categoryForm.name?.trim()) return;
-        const request = this.categoryForm.id ? this.financeService.updateCategory(this.categoryForm) : this.financeService.createCategory(this.categoryForm);
-        request.pipe(first()).subscribe(() => {
-            this.categoryDialog = false;
-            this.toastService.success('Categoria salvata', 'La categoria economica è disponibile.');
-            this.loadReferenceData();
+        ref.onClose.pipe(first()).subscribe((result?: FinancialCategory) => {
+            if (!result) return;
+            const request = result.id ? this.financeService.updateCategory(result) : this.financeService.createCategory(result);
+            request.pipe(first()).subscribe(() => {
+                this.toastService.success('Categoria salvata', 'La categoria economica è disponibile.');
+                this.loadReferenceData();
+            });
         });
     }
 
@@ -156,30 +158,31 @@ export class FinanceComponent implements OnInit {
         });
     }
 
-    protected openMovement(movement?: FinancialMovement): void {
-        this.movementForm = movement ? { ...movement } : this.emptyMovement();
-        this.movementBookingDate = this.parseDate(this.movementForm.bookingDate) ?? new Date();
-        this.movementValueDate = this.parseDate(this.movementForm.valueDate);
-        this.attachments = [];
-        this.selectedAttachment = undefined;
-        this.attachmentDescription = '';
-        if (movement?.id) this.loadAttachments(movement.id);
-        this.movementDialog = true;
-    }
+    protected openMovement(movement?: FinancialMovement, eventId?: number): void {
+        const ref: DynamicDialogRef = this.dialogService.open(FinanceMovementDialogComponent, {
+            inputValues: {
+                movement: movement ? { ...movement } : undefined,
+                accounts: this.accounts,
+                categories: this.categories,
+                events: this.events,
+                eventId
+            },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '56rem',
+            breakpoints: { '960px': '80vw', '640px': '94vw' }
+        });
 
-    protected saveMovement(): void {
-        if (!this.movementForm.accountId || !this.movementForm.description?.trim() || !this.movementForm.amount) return;
-        const payload: FinancialMovement = {
-            ...this.movementForm,
-            bookingDate: this.formatDate(this.movementBookingDate),
-            valueDate: this.movementValueDate ? this.formatDate(this.movementValueDate) : undefined
-        };
-        const request = payload.id ? this.financeService.updateMovement(payload) : this.financeService.createMovement(payload);
-        request.pipe(first()).subscribe((saved) => {
-            this.movementDialog = false;
-            this.toastService.success('Movimento salvato', 'Saldi e rendiconti sono stati aggiornati.');
-            this.refreshAfterMovement();
-            if (this.selectedAttachment && saved.id) this.uploadFile(saved.id, this.selectedAttachment);
+        ref.onClose.pipe(first()).subscribe((result?: MovementDialogResult) => {
+            if (!result) return;
+            const payload = result.movement;
+            const request = payload.id ? this.financeService.updateMovement(payload) : this.financeService.createMovement(payload);
+            request.pipe(first()).subscribe((saved) => {
+                this.toastService.success('Movimento salvato', 'Saldi e rendiconti sono stati aggiornati.');
+                this.refreshAfterMovement();
+                if (result.pendingAttachment && saved.id) this.uploadFile(saved.id, result.pendingAttachment, result.attachmentDescription);
+            });
         });
     }
 
@@ -209,24 +212,47 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openTransfer(): void {
-        this.transferForm = this.emptyTransfer();
-        this.transferBookingDate = new Date();
-        this.transferValueDate = undefined;
-        this.transferDialog = true;
+        const ref: DynamicDialogRef = this.dialogService.open(FinanceTransferDialogComponent, {
+            inputValues: { accounts: this.accounts.filter((account) => account.active !== false) },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '40rem',
+            breakpoints: { '960px': '75vw', '640px': '94vw' }
+        });
+
+        ref.onClose.pipe(first()).subscribe((result?: FinancialTransferRequest) => {
+            if (!result) return;
+            this.financeService
+                .createTransfer(result)
+                .pipe(first())
+                .subscribe(() => {
+                    this.toastService.success('Trasferimento registrato', 'Entrambi i movimenti sono stati creati.');
+                    this.refreshAfterMovement();
+                });
+        });
     }
 
-    protected saveTransfer(): void {
-        if (!this.transferForm.sourceAccountId || !this.transferForm.destinationAccountId || !this.transferForm.amount || !this.transferForm.description?.trim()) return;
-        this.transferForm.bookingDate = this.formatDate(this.transferBookingDate);
-        this.transferForm.valueDate = this.transferValueDate ? this.formatDate(this.transferValueDate) : undefined;
-        this.financeService
-            .createTransfer(this.transferForm)
-            .pipe(first())
-            .subscribe(() => {
-                this.transferDialog = false;
-                this.toastService.success('Trasferimento registrato', 'Entrambi i movimenti sono stati creati.');
-                this.refreshAfterMovement();
-            });
+    protected openEventBudget(event: FinancialEventSummary): void {
+        const ref: DynamicDialogRef = this.dialogService.open(FinanceEventBudgetDialogComponent, {
+            inputValues: { event },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '40rem',
+            breakpoints: { '960px': '75vw', '640px': '94vw' }
+        });
+
+        ref.onClose.pipe(first()).subscribe((result?: EventBudgetResult) => {
+            if (!result) return;
+            this.financeService
+                .updateEventBudget(event.eventId, result.fee, result.costs)
+                .pipe(first())
+                .subscribe(() => {
+                    this.toastService.success('Preventivo aggiornato', 'Compenso e costi previsti sono stati salvati.');
+                    this.loadReferenceData();
+                });
+        });
     }
 
     protected onMovementLazyLoad(event: TableLazyLoadEvent): void {
@@ -243,59 +269,95 @@ export class FinanceComponent implements OnInit {
         this.applyFilters();
     }
 
-    protected exportCashbook(format: 'csv' | 'xlsx' | 'pdf'): void {
-        const from = this.movementFilters.from ? this.formatDate(this.movementFilters.from) : undefined;
-        const to = this.movementFilters.to ? this.formatDate(this.movementFilters.to) : undefined;
+    protected exportCashbook(format: ReportFormat): void {
+        const from = this.movementFilters.from ? toIsoDate(this.movementFilters.from) : undefined;
+        const to = this.movementFilters.to ? toIsoDate(this.movementFilters.to) : undefined;
         this.financeService
             .exportCashbook(format, from, to, this.movementFilters.accountId, this.movementFilters.categoryId)
             .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = `registro-cassa.${format}`;
-                anchor.click();
-                URL.revokeObjectURL(url);
+            .subscribe((blob) => this.download(blob, `registro-cassa.${format}`));
+    }
+
+    protected showStatement(account: FinancialAccount): void {
+        this.statementAccount = account;
+        this.loadStatement();
+    }
+
+    protected closeStatement(): void {
+        this.statementAccount = undefined;
+        this.statement = undefined;
+    }
+
+    protected loadStatement(): void {
+        if (!this.statementAccount?.id) return;
+        this.statementLoading = true;
+        this.financeService
+            .getAccountStatement(this.statementAccount.id, toIsoDate(this.statementFrom), toIsoDate(this.statementTo))
+            .pipe(first())
+            .subscribe({
+                next: (statement) => {
+                    this.statement = statement;
+                    this.statementLoading = false;
+                },
+                error: () => (this.statementLoading = false)
             });
     }
 
-    protected onAttachmentSelected(event: Event): void {
-        this.selectedAttachment = (event.target as HTMLInputElement).files?.[0];
-    }
-
-    protected uploadSelectedAttachment(): void {
-        if (!this.movementForm.id || !this.selectedAttachment) return;
-        this.uploadFile(this.movementForm.id, this.selectedAttachment);
-    }
-
-    protected deleteAttachment(attachment: FinancialAttachment): void {
-        this.confirmService.confirmDestructive({
-            title: 'Elimina allegato',
-            consequence: `“${attachment.fileName}” verrà eliminato definitivamente.`,
-            actionLabel: 'Elimina',
-            accept: () =>
-                this.financeService
-                    .deleteAttachment(attachment.id)
-                    .pipe(first())
-                    .subscribe(() => this.loadAttachments(attachment.movementId))
-        });
-    }
-
-    protected attachmentUrl(attachment: FinancialAttachment): string {
-        return this.financeService.attachmentUrl(attachment.id);
-    }
-
-    protected downloadAttachment(attachment: FinancialAttachment): void {
+    protected exportStatement(format: ReportFormat): void {
+        if (!this.statementAccount?.id) return;
         this.financeService
-            .downloadAttachment(attachment.id)
+            .exportAccountStatement(format, this.statementAccount.id, toIsoDate(this.statementFrom), toIsoDate(this.statementTo))
             .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = attachment.fileName;
-                anchor.click();
-                URL.revokeObjectURL(url);
+            .subscribe((blob) => this.download(blob, `estratto-conto.${format}`));
+    }
+
+    protected exportEventsReport(format: ReportFormat): void {
+        this.financeService
+            .exportEventsReport(format, toIsoDate(this.statementFrom), toIsoDate(this.statementTo))
+            .pipe(first())
+            .subscribe((blob) => this.download(blob, `rendiconto-eventi.${format}`));
+    }
+
+    protected exportCategoriesReport(format: ReportFormat): void {
+        this.financeService
+            .exportCategoriesReport(format, toIsoDate(this.statementFrom), toIsoDate(this.statementTo))
+            .pipe(first())
+            .subscribe((blob) => this.download(blob, `rendiconto-categorie.${format}`));
+    }
+
+    protected showYearSummary(year: AccountingYear): void {
+        this.yearSummaryLoading = true;
+        this.financeService
+            .getYearSummary(year.year)
+            .pipe(first())
+            .subscribe({
+                next: (summary) => {
+                    this.yearSummary = summary;
+                    this.yearSummaryLoading = false;
+                },
+                error: () => (this.yearSummaryLoading = false)
+            });
+    }
+
+    protected closeYearSummary(): void {
+        this.yearSummary = undefined;
+    }
+
+    protected exportAnnualReport(year: number, format: ReportFormat): void {
+        this.financeService
+            .exportAnnualReport(format, year)
+            .pipe(first())
+            .subscribe((blob) => this.download(blob, `rendiconto-annuale-${year}.${format}`));
+    }
+
+    protected recalculateYear(year: AccountingYear): void {
+        this.financeService
+            .recalculate(year.year)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Riporti ricalcolati', `I saldi di apertura successivi al ${year.year} sono stati aggiornati.`);
+                this.loadReferenceData();
+                if (this.yearSummary?.year.year === year.year) this.showYearSummary(year);
             });
     }
 
@@ -335,34 +397,6 @@ export class FinanceComponent implements OnInit {
         return 'secondary';
     }
 
-    protected openEventBudget(event: FinancialEventSummary): void {
-        this.budgetEvent = event;
-        this.budgetFee = event.expectedFee;
-        this.budgetCosts = event.expectedCostItems.map((cost) => ({ description: cost.description, amount: cost.amount }));
-        this.eventBudgetDialog = true;
-    }
-
-    protected addBudgetCost(): void {
-        this.budgetCosts = [...this.budgetCosts, { description: '', amount: 0 }];
-    }
-
-    protected removeBudgetCost(index: number): void {
-        this.budgetCosts = this.budgetCosts.filter((_, current) => current !== index);
-    }
-
-    protected saveEventBudget(): void {
-        if (!this.budgetEvent) return;
-        const costs = this.budgetCosts.filter((cost) => cost.description.trim() && cost.amount >= 0);
-        this.financeService
-            .updateEventBudget(this.budgetEvent.eventId, this.budgetFee, costs)
-            .pipe(first())
-            .subscribe(() => {
-                this.eventBudgetDialog = false;
-                this.toastService.success('Preventivo aggiornato', 'Compenso e costi previsti sono stati salvati.');
-                this.loadReferenceData();
-            });
-    }
-
     private loadReferenceData(): void {
         forkJoin({
             dashboard: this.financeService.getDashboard(),
@@ -391,8 +425,7 @@ export class FinanceComponent implements OnInit {
 
         const eventId = Number(params.get('eventId'));
         if (params.get('action') === 'new') {
-            this.openMovement();
-            if (Number.isFinite(eventId) && eventId > 0) this.movementForm.eventId = eventId;
+            this.openMovement(undefined, Number.isFinite(eventId) && eventId > 0 ? eventId : undefined);
             return;
         }
 
@@ -424,8 +457,8 @@ export class FinanceComponent implements OnInit {
                 page: Math.floor((event.first ?? 0) / rows),
                 size: rows,
                 sort,
-                from: this.movementFilters.from ? this.formatDate(this.movementFilters.from) : undefined,
-                to: this.movementFilters.to ? this.formatDate(this.movementFilters.to) : undefined,
+                from: this.movementFilters.from ? toIsoDate(this.movementFilters.from) : undefined,
+                to: this.movementFilters.to ? toIsoDate(this.movementFilters.to) : undefined,
                 accountId: this.movementFilters.accountId,
                 categoryId: this.movementFilters.categoryId,
                 direction: this.movementFilters.direction,
@@ -443,62 +476,25 @@ export class FinanceComponent implements OnInit {
             });
     }
 
-    private loadAttachments(movementId: number): void {
+    private uploadFile(movementId: number, file: File, description?: string): void {
         this.financeService
-            .getAttachments(movementId)
+            .uploadAttachment(movementId, file, description)
             .pipe(first())
-            .subscribe((attachments) => (this.attachments = attachments));
-    }
-
-    private uploadFile(movementId: number, file: File): void {
-        this.financeService
-            .uploadAttachment(movementId, file, this.attachmentDescription)
-            .pipe(first())
-            .subscribe(() => {
-                this.selectedAttachment = undefined;
-                this.attachmentDescription = '';
-                this.toastService.success('Allegato caricato', 'Il documento è stato associato al movimento.');
-                if (this.movementDialog) this.loadAttachments(movementId);
-            });
+            .subscribe(() => this.toastService.success('Allegato caricato', 'Il documento è stato associato al movimento.'));
     }
 
     private refreshAfterMovement(): void {
         this.loadReferenceData();
         this.loadMovements(this.movementLazyEvent);
+        if (this.statementAccount) this.loadStatement();
     }
 
-    private emptyAccount(): FinancialAccount {
-        return { name: '', accountType: 'CASH', currency: 'EUR', displayOrder: 0, active: true };
-    }
-
-    private emptyCategory(): FinancialCategory {
-        return { name: '', direction: 'EXPENSE', displayOrder: 0, active: true };
-    }
-
-    private emptyMovement(): FinancialMovement {
-        return {
-            accountId: 0,
-            direction: 'EXPENSE',
-            bookingDate: this.formatDate(new Date()),
-            amount: 0,
-            description: ''
-        };
-    }
-
-    private emptyTransfer(): FinancialTransferRequest {
-        return { sourceAccountId: 0, destinationAccountId: 0, bookingDate: this.formatDate(new Date()), amount: 0, description: '' };
-    }
-
-    private formatDate(date: Date): string {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    private parseDate(value?: string): Date | undefined {
-        if (!value) return undefined;
-        const [year, month, day] = value.split('-').map(Number);
-        return new Date(year, month - 1, day);
+    private download(blob: Blob, fileName: string): void {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName;
+        anchor.click();
+        URL.revokeObjectURL(url);
     }
 }

@@ -2,7 +2,22 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AccountingYear, FinancialAccount, FinancialAttachment, FinancialCategory, FinancialDashboard, FinancialDirection, FinancialEventSummary, FinancialMovement, FinancialTransferRequest, Page } from '../module';
+import {
+    AccountingYear,
+    AccountingYearSummary,
+    FinancialAccount,
+    FinancialAccountStatement,
+    FinancialAttachment,
+    FinancialCategory,
+    FinancialDashboard,
+    FinancialDirection,
+    FinancialEventSummary,
+    FinancialMovement,
+    FinancialTransferRequest,
+    Page
+} from '../module';
+
+export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
 
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -136,13 +151,57 @@ export class FinanceService {
         return this.http.get<AccountingYear[]>(`${this.baseUrl}/years`);
     }
 
-    exportCashbook(format: 'csv' | 'xlsx' | 'pdf', from?: string, to?: string, accountId?: number, categoryId?: number): Observable<Blob> {
+    exportCashbook(format: ReportFormat, from?: string, to?: string, accountId?: number, categoryId?: number): Observable<Blob> {
         let params = new HttpParams().set('format', format);
         if (from) params = params.set('from', from);
         if (to) params = params.set('to', to);
         if (accountId) params = params.set('accountId', accountId);
         if (categoryId) params = params.set('categoryId', categoryId);
         return this.http.get(`${this.baseUrl}/reports/cashbook`, { params, responseType: 'blob' });
+    }
+
+    getAccountStatement(accountId: number, from?: string, to?: string): Observable<FinancialAccountStatement> {
+        let params = new HttpParams();
+        if (from) params = params.set('from', from);
+        if (to) params = params.set('to', to);
+        return this.http.get<FinancialAccountStatement>(`${this.baseUrl}/accounts/${accountId}/statement`, { params });
+    }
+
+    getYear(year: number): Observable<AccountingYear> {
+        return this.http.get<AccountingYear>(`${this.baseUrl}/years/${year}`);
+    }
+
+    getYearSummary(year: number): Observable<AccountingYearSummary> {
+        return this.http.get<AccountingYearSummary>(`${this.baseUrl}/years/${year}/summary`);
+    }
+
+    exportAccountStatement(format: ReportFormat, accountId: number, from?: string, to?: string): Observable<Blob> {
+        let params = new HttpParams().set('format', format).set('accountId', accountId);
+        if (from) params = params.set('from', from);
+        if (to) params = params.set('to', to);
+        return this.http.get(`${this.baseUrl}/reports/account-statement`, { params, responseType: 'blob' });
+    }
+
+    exportEventsReport(format: ReportFormat, from?: string, to?: string): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/reports/events`, { params: this.periodParams(format, from, to), responseType: 'blob' });
+    }
+
+    exportCategoriesReport(format: ReportFormat, from?: string, to?: string): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/reports/categories`, { params: this.periodParams(format, from, to), responseType: 'blob' });
+    }
+
+    exportAnnualReport(format: ReportFormat, year: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/reports/annual`, {
+            params: new HttpParams().set('format', format).set('year', year),
+            responseType: 'blob'
+        });
+    }
+
+    private periodParams(format: ReportFormat, from?: string, to?: string): HttpParams {
+        let params = new HttpParams().set('format', format);
+        if (from) params = params.set('from', from);
+        if (to) params = params.set('to', to);
+        return params;
     }
 
     rollover(year: number): Observable<AccountingYear> {
@@ -152,4 +211,19 @@ export class FinanceService {
     recalculate(year: number): Observable<AccountingYear> {
         return this.http.post<AccountingYear>(`${this.baseUrl}/years/${year}/recalculate`, null);
     }
+}
+
+/** Converte una data del calendario nel formato ISO accettato dalle API economiche. */
+export function toIsoDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/** Converte una data ISO restituita dalle API in una data del calendario. */
+export function parseIsoDate(value?: string): Date | undefined {
+    if (!value) return undefined;
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
 }

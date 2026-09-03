@@ -163,4 +163,67 @@ public final class FinanceDtos {
         String economicStatus,
         List<MovementDTO> movements
     ) {}
+
+    public record StatementLineDTO(MovementDTO movement, BigDecimal balance) {}
+
+    public record AccountStatementDTO(
+        AccountDTO account,
+        LocalDate from,
+        LocalDate to,
+        BigDecimal openingBalance,
+        BigDecimal income,
+        BigDecimal expense,
+        BigDecimal closingBalance,
+        List<StatementLineDTO> lines
+    ) {}
+
+    public record CategoryTotalDTO(
+        Long categoryId,
+        String categoryName,
+        FinancialCategoryDirection direction,
+        BigDecimal income,
+        BigDecimal expense,
+        BigDecimal net,
+        long movementCount
+    ) {}
+
+    public record AccountYearBalanceDTO(
+        Long accountId,
+        String accountName,
+        BigDecimal openingBalance,
+        BigDecimal income,
+        BigDecimal expense,
+        BigDecimal closingBalance
+    ) {}
+
+    public record EventEconomicLineDTO(
+        Long eventId,
+        String eventName,
+        LocalDate eventDate,
+        BigDecimal expectedFee,
+        BigDecimal expectedCosts,
+        BigDecimal expectedMargin,
+        BigDecimal received,
+        BigDecimal paid,
+        BigDecimal actualResult,
+        BigDecimal remainingIncome,
+        BigDecimal remainingExpense,
+        String economicStatus
+    ) {}
+
+    public record YearSummaryDTO(
+        YearDTO year,
+        List<AccountYearBalanceDTO> accounts,
+        BigDecimal openingTotal,
+        BigDecimal ordinaryIncome,
+        BigDecimal ordinaryExpense,
+        BigDecimal ordinaryResult,
+        BigDecimal transferTotal,
+        BigDecimal closingTotal,
+        List<CategoryTotalDTO> categories,
+        List<EventEconomicLineDTO> openEvents,
+        long unreconciledCount,
+        BigDecimal unreconciledAmount,
+        ZonedDateTime lastRecalculatedAt
+    ) {}
 }

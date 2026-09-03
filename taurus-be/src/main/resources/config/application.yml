@@ -231,6 +231,12 @@ application:
     public-key: BHEmW3uZIG2dS1KLCMqxvEnuA8lk_Tkf_gzVR9Qe7B5gsSRbrPKD903tCBiGCrVqVzfTG-zuiN6MnpN50sbAYfM
     private-key: ${VAPID_PRIVATE_KEY:CHANGE_ME}
     subject: mailto:ing.daniele.fundaro@gmail.com
+  media:
+    # Storage cleanup: temporary leftovers and orphan files, per tenant, every day at 03:30.
+    cleanup-enabled: true
+    cleanup-cron: "0 30 3 * * *"
+    temporary-file-hours: 24
+    orphan-file-hours: 168
   retention:
     # Cleanup runs every day at 03:00; override with application.retention.cleanup-cron.
     cleanup-enabled: true

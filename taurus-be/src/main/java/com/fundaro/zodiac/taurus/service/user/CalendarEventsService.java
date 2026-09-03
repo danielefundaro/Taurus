@@ -30,5 +30,15 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      */
     CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token);
 
+    /**
+     * Set the personal reminder of the current user for an event.
+     *
+     * @param minutes minutes before the event, {@code 0} to disable it and {@code null} to fall back to the event value.
+     */
+    CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token);
+
+    /** The personal reminder of the current user, {@code null} when not customised. */
+    Integer findReminderMinutes(Long eventId, AbstractAuthenticationToken token);
+
     BulkAvailabilityResultDTO setSeriesAvailability(Long seriesId, Boolean available, AbstractAuthenticationToken token);
 }

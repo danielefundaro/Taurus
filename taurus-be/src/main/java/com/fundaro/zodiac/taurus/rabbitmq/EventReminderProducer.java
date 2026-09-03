@@ -12,7 +12,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Collection;
+import java.util.Map;
 
 @Service
 public class EventReminderProducer {
@@ -29,10 +29,19 @@ public class EventReminderProducer {
     }
 
     public void scheduleIfNeeded(CalendarEventsDTO event, String userId, AbstractAuthenticationToken token) {
+        scheduleIfNeeded(event, userId, null, token);
+    }
+
+    /**
+     * Pianifica il promemoria di un singolo destinatario. Vince il valore
+     * personale scelto sull'evento, poi quello dell'evento, poi la preferenza
+     * dell'utente; zero disattiva il promemoria a qualunque livello sia scelto.
+     */
+    public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes, AbstractAuthenticationToken token) {
         cancelPending(event.getId(), userId);
         if (event.getStartDate() == null) return;
 
-        int minutes = resolveReminderMinutes(event.getReminderMinutes(), token);
+        int minutes = resolveReminderMinutes(personalMinutes != null ? personalMinutes : event.getReminderMinutes(), token);
         if (minutes <= 0) return;
 
         Instant sendAt = event.getStartDate().toInstant().minusSeconds((long) minutes * 60);
@@ -60,14 +69,18 @@ public class EventReminderProducer {
         reminderRepository.deleteAllByEventIdAndSentFalse(eventId);
     }
 
+    /**
+     * @param availableUsers id Keycloak dei disponibili, con l'eventuale
+     *                       promemoria personale scelto da ciascuno.
+     */
     public void rescheduleForAvailableUsers(
         CalendarEventsDTO event,
-        Collection<String> availableUserIds,
+        Map<String, Integer> availableUsers,
         AbstractAuthenticationToken token
     ) {
         cancelAllPending(event.getId());
-        if (availableUserIds == null) return;
-        availableUserIds.forEach(userId -> scheduleIfNeeded(event, userId, token));
+        if (availableUsers == null) return;
+        availableUsers.forEach((userId, personalMinutes) -> scheduleIfNeeded(event, userId, personalMinutes, token));
     }
 
     private int resolveReminderMinutes(Integer reminderMinutes, AbstractAuthenticationToken token) {

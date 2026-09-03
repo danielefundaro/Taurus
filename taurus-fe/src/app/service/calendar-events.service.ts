@@ -10,10 +10,9 @@ import { KeycloakService } from './keycloak.service';
     providedIn: 'root'
 })
 export class CalendarEventsService extends CommonOpenSearchService<CalendarEvents, CalendarEventsCriteria> {
-
     constructor(
         protected override readonly http: HttpClient,
-        private readonly keycloakService: KeycloakService,
+        private readonly keycloakService: KeycloakService
     ) {
         super(http);
     }
@@ -36,13 +35,24 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
         return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/availability/cancel`, {});
     }
 
+    /** Promemoria personale dell'utente corrente: `undefined` ripristina il valore dell'evento, `0` disattiva. */
+    public setReminder(id: number, minutes?: number): Observable<CalendarEvents> {
+        let params = new HttpParams();
+        if (minutes !== undefined && minutes !== null) params = params.set('minutes', String(minutes));
+        return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/reminder`, null, { params });
+    }
+
+    public getReminder(id: number): Observable<number | null> {
+        return this.http.get<number | null>(`${this.baseUrl}/${this.resourceName()}/${id}/reminder`);
+    }
+
     public setPresentUsers(id: number, presentUsers: EventPresentUser[]): Observable<CalendarEvents> {
         return this.http.put<CalendarEvents>(`${this.baseUrl}/calendar-events/${id}/presences`, presentUsers);
     }
 
     public setSeriesAvailability(seriesId: number, available: boolean): Observable<BulkAvailabilityResult> {
         return this.http.patch<BulkAvailabilityResult>(`${this.baseUrl}/${this.resourceName()}/series/${seriesId}/availability`, null, {
-            params: new HttpParams().set('available', available.toString()),
+            params: new HttpParams().set('available', available.toString())
         });
     }
 

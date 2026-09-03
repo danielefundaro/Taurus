@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260903000000-1" author="taurus">
+        <comment>Promemoria personale per la disponibilita di ciascun utente a un evento.</comment>
+        <addColumn tableName="calendar_event_availability">
+            <column name="reminder_minutes" type="INTEGER"/>
+        </addColumn>
+        <sql>
+            ALTER TABLE calendar_event_availability
+                ADD CONSTRAINT chk_calendar_event_availability_reminder
+                CHECK (reminder_minutes IS NULL OR (reminder_minutes &gt;= 0 AND reminder_minutes &lt;= 1440));
+        </sql>
+        <rollback>
+            <sql>ALTER TABLE calendar_event_availability DROP CONSTRAINT IF EXISTS chk_calendar_event_availability_reminder;</sql>
+            <dropColumn tableName="calendar_event_availability" columnName="reminder_minutes"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

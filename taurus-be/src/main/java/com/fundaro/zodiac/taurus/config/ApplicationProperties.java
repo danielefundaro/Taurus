@@ -20,6 +20,8 @@ public class ApplicationProperties {
 
     private RetentionProperties retention = new RetentionProperties();
 
+    private MediaProperties media = new MediaProperties();
+
     private CalendarProperties calendar = new CalendarProperties();
 
     public String getBasePath() {
@@ -44,6 +46,14 @@ public class ApplicationProperties {
 
     public void setVapid(VapidProperties vapid) {
         this.vapid = vapid;
+    }
+
+    public MediaProperties getMedia() {
+        return media;
+    }
+
+    public void setMedia(MediaProperties media) {
+        this.media = media;
     }
 
     public RetentionProperties getRetention() {
@@ -160,6 +170,26 @@ public class ApplicationProperties {
 
         public String getSubject() { return subject; }
         public void setSubject(String subject) { this.subject = subject; }
+    }
+
+    /** Pulizia periodica dei residui nello storage dei tenant. */
+    public static class MediaProperties {
+        private boolean cleanupEnabled = true;
+        private String cleanupCron = "0 30 3 * * *";
+        private int temporaryFileHours = 24;
+        private int orphanFileHours = 168;
+
+        public boolean isCleanupEnabled() { return cleanupEnabled; }
+        public void setCleanupEnabled(boolean cleanupEnabled) { this.cleanupEnabled = cleanupEnabled; }
+
+        public String getCleanupCron() { return cleanupCron; }
+        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
+
+        public int getTemporaryFileHours() { return temporaryFileHours; }
+        public void setTemporaryFileHours(int temporaryFileHours) { this.temporaryFileHours = temporaryFileHours; }
+
+        public int getOrphanFileHours() { return orphanFileHours; }
+        public void setOrphanFileHours(int orphanFileHours) { this.orphanFileHours = orphanFileHours; }
     }
 
     public static class RetentionProperties {

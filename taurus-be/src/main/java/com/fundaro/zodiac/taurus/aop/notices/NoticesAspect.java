@@ -693,13 +693,38 @@ public class NoticesAspect {
         return result;
     }
 
-    @Around("execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.cashbook(..))")
+    @Around(
+        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.cashbook(..)) || " +
+        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.accountStatement(..)) || " +
+        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.events(..)) || " +
+        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.categories(..)) || " +
+        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.annual(..))"
+    )
     Object onFinanceReportExport(ProceedingJoinPoint joinPoint) throws Throwable {
         Object result = joinPoint.proceed();
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         if (token == null) return result;
-        LocalDate from = joinPoint.getArgs()[0] instanceof LocalDate value ? value : null;
-        LocalDate to = joinPoint.getArgs()[1] instanceof LocalDate value ? value : null;
+        // I rendiconti hanno firme diverse: il periodo si legge dai parametri
+        // dichiarati, non dalla posizione, cosi un estremo assente resta assente.
+        Class<?>[] parameterTypes = ((MethodSignature) joinPoint.getSignature()).getParameterTypes();
+        Object[] args = joinPoint.getArgs();
+        LocalDate from = null;
+        LocalDate to = null;
+        Integer year = null;
+        int seenDates = 0;
+        for (int index = 0; index < parameterTypes.length; index++) {
+            if (parameterTypes[index] == LocalDate.class) {
+                if (seenDates == 0) from = (LocalDate) args[index];
+                else if (seenDates == 1) to = (LocalDate) args[index];
+                seenDates++;
+            } else if (year == null && (parameterTypes[index] == int.class || parameterTypes[index] == Integer.class)) {
+                year = (Integer) args[index];
+            }
+        }
+        if (seenDates == 0 && year != null) {
+            from = LocalDate.of(year, 1, 1);
+            to = LocalDate.of(year, 12, 31);
+        }
         LocalDate effectiveTo = Objects.requireNonNullElse(to, LocalDate.now());
         LocalDate effectiveFrom = Objects.requireNonNullElse(from, effectiveTo.withDayOfYear(1));
         String format = getArgument(joinPoint, String.class);
@@ -709,7 +734,8 @@ public class NoticesAspect {
             null,
             "REPORT_EXPORTED",
             "Economia: rendiconto esportato",
-            financeActor(token) + " ha esportato un rendiconto " + Objects.requireNonNullElse(format, "csv").toUpperCase(Locale.ROOT)
+            financeActor(token) + " ha esportato " + financeReportLabel(joinPoint.getSignature().getName()) + " in "
+                + Objects.requireNonNullElse(format, "csv").toUpperCase(Locale.ROOT)
                 + " per il periodo " + formatDate(effectiveFrom) + "–" + formatDate(effectiveTo) + ".",
             FinanceNotificationSeverity.INFO,
             "/finance?tab=movements",
@@ -718,6 +744,16 @@ public class NoticesAspect {
             null
         );
         return result;
+    }
+
+    private static String financeReportLabel(String methodName) {
+        return switch (methodName) {
+            case "accountStatement" -> "l'estratto conto";
+            case "events" -> "il rendiconto per evento";
+            case "categories" -> "il rendiconto per categoria";
+            case "annual" -> "il rendiconto annuale";
+            default -> "il registro cassa";
+        };
     }
 
     private void notifyAccountCreated(Object result, AccountRequest request, AbstractAuthenticationToken token) {

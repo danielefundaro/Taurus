@@ -1,8 +1,6 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header
-        [title]="personalView ? 'Il mio inventario' : 'Inventario'"
-        [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
+    <app-page-header [title]="personalView ? 'Il mio inventario' : 'Inventario'" [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
         ><div pageActions>
             @if (!personalView) {
                 <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
@@ -60,6 +58,10 @@
         (layoutChange)="onLayoutChange($event)"
     />
 
+    @if (canSelect) {
+        <app-selection-bar [count]="selectedItems.length" [allSelected]="isAllSelected(items)" deleteLabel="Elimina selezionati" (toggleAll)="toggleSelectAll(items)" (clear)="clearSelection()" (delete)="deleteSelectedItems()" />
+    }
+
     <div class="card !p-0 overflow-hidden">
         <p-dataview
             [value]="values"
@@ -108,8 +110,7 @@
                                 </div>
                                 <div rowMetrics class="list-metric">
                                     <strong>{{ entry.outstandingQuantity }}</strong
-                                    ><small>in possesso</small>
-                                    <span class="block">{{ entry.returnedQuantity }}</span
+                                    ><small>in possesso</small> <span class="block">{{ entry.returnedQuantity }}</span
                                     ><small>riconsegnati</small>
                                 </div>
                                 <div rowActions>
@@ -118,6 +119,9 @@
                             </app-list-row>
                         } @else {
                             <app-list-row>
+                                @if (canSelect) {
+                                    <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(entry)" (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
+                                }
                                 <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
                                     @if (itemPhotoUrl(entry); as url) {
                                         <img [src]="url | secure | async" [alt]="entry.name" />
@@ -138,8 +142,7 @@
                                 </div>
                                 <div rowMetrics class="list-metric">
                                     <strong>{{ entry.availableQuantity }}</strong
-                                    ><small>disponibili</small>
-                                    <span class="block">{{ entry.assignedQuantity }}</span
+                                    ><small>disponibili</small> <span class="block">{{ entry.assignedQuantity }}</span
                                     ><small>assegnati</small>
                                 </div>
                                 <div rowActions>
@@ -189,7 +192,10 @@
                                     </div>
                                 </app-entity-card>
                             } @else {
-                                <app-entity-card>
+                                <app-entity-card [selected]="canSelect && isSelected(entry)">
+                                    @if (canSelect) {
+                                        <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(entry)" (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
+                                    }
                                     <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
                                         @if (itemPhotoUrl(entry); as url) {
                                             <img [src]="url | secure | async" [alt]="entry.name" />
