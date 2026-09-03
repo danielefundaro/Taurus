@@ -1,5 +1,10 @@
 # Gestione inventario tenant
 
+## Stato del documento
+
+ID catalogo: `inventory-management`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 La consegna delle notifiche interne descritte in questa specifica segue `docs/notification-delivery-generalization-spec.md`.
 
 ## Obiettivo

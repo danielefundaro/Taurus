@@ -1,5 +1,10 @@
 # Relazione tecnica: migrazione strutturale da OpenSearch a PostgreSQL
 
+## Stato del documento
+
+ID catalogo: `opensearch-postgresql-migration`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 ## Decisioni applicate
 
 - I dati di sviluppo non vengono migrati: le strutture incompatibili vengono svuotate durante l'aggiornamento.

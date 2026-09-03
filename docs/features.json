@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "documentation-implementation-alignment",
+      "title": "Governance e allineamento tra documentazione e implementazione",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/documentation-implementation-alignment-spec.md",
+      "modules": ["repository"],
+      "evidence": {
+        "implementation": [
+          "scripts/docs/feature-catalog-lib.mjs",
+          "scripts/docs/validate-feature-catalog.mjs",
+          "scripts/docs/generate-feature-index.mjs"
+        ],
+        "migrations": [],
+        "tests": ["scripts/docs/feature-catalog.test.mjs"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "event-preparation",
+      "title": "Preparazione operativa dell'evento",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/event-preparation-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "external-calendar-feed",
+      "title": "Feed calendario esterno in sola lettura",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/external-calendar-feed-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "financial-management",
+      "title": "Gestione economica, cassa e conti correnti",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/financial-management-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/FinanceResource.java",
+          "taurus-fe/src/app/service/finance.service.ts"
+        ],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260901000002_add_finance.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04",
+      "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono il contratto economico principale."
+    },
+    {
+      "id": "inventory-management",
+      "title": "Gestione inventario tenant",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/inventory-management-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/InventoryResource.java",
+          "taurus-fe/src/app/service/inventory.service.ts"
+        ],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260818090000_add_inventory.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryServiceTest.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04",
+      "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono vincoli di quantità, revisioni e riconsegne."
+    },
+    {
+      "id": "inventory-qr-code",
+      "title": "QR code ed etichette per l'inventario",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/inventory-qr-code-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "media-asset",
+      "title": "Gestione centralizzata dei media",
+      "kind": "platform",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/media-asset-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImpl.java",
+          "taurus-fe/src/app/service/media.service.ts"
+        ],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04",
+      "notes": "La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media."
+    },
+    {
+      "id": "notification-delivery-generalization",
+      "title": "Generalizzazione della consegna delle notifiche interne",
+      "kind": "platform",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/notification-delivery-generalization-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/NotificationOutboxPublisher.java",
+          "taurus-fe/src/app/service/notification-center.service.ts"
+        ],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260903000001_generalize_notification_outbox.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationDeliveryIT.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "notification-editorial-style",
+      "title": "Stile editoriale delle notifiche interne",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/notification-editorial-style.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/aop/notices/NoticesAspect.java",
+          "taurus-fe/src/app/service/notification-presentation.service.ts"
+        ],
+        "migrations": [],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/aop/notices/NoticesAspectTest.java",
+          "taurus-fe/src/app/service/notification-presentation.service.spec.ts"
+        ]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "notification-preferences",
+      "title": "Preferenze notifiche granulari",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/notification-preferences-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "opensearch-postgresql-migration",
+      "title": "Migrazione strutturale da OpenSearch a PostgreSQL",
+      "kind": "migration",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/migrazione-opensearch-postgresql.md",
+      "modules": ["taurus-be"],
+      "evidence": {
+        "implementation": ["taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/CatalogRepository.java"],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260824000001_add_relational_catalog.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "operational-dashboard",
+      "title": "Dashboard operativa trasversale",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/operational-dashboard-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "postgres-tenant-schemas",
+      "title": "PostgreSQL schema per tenant",
+      "kind": "platform",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/postgres-tenant-schemas.md",
+      "modules": ["taurus-be"],
+      "evidence": {
+        "implementation": ["taurus-be/src/main/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningService.java"],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "recurring-calendar-events",
+      "title": "Eventi ricorrenti del calendario",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/recurring-calendar-events-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/CalendarEventSeriesResource.java",
+          "taurus-fe/src/app/service/calendar-event-series.service.ts"
+        ],
+        "migrations": ["taurus-be/src/main/resources/config/liquibase/changelog/20260831000003_recurring_calendar_events.xml"],
+        "tests": ["taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04",
+      "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze."
+    },
+    {
+      "id": "taurus-layout-standard",
+      "title": "Taurus Layout Standard",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/taurus-layout-standard.md",
+      "modules": ["taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-fe/src/app/components/page-header/page-header.component.ts",
+          "taurus-fe/src/app/components/dialog-shell/dialog-shell.component.ts"
+        ],
+        "migrations": [],
+        "tests": ["taurus-fe/src/app/service/list-layout.service.spec.ts"]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "tenant-feature-flags",
+      "title": "Funzionalità Economia e Inventario configurabili per tenant",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/tenant-feature-flags-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "tenant-onboarding-import",
+      "title": "Onboarding guidato e importazione iniziale del tenant",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/tenant-onboarding-import-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04"
+    },
+    {
+      "id": "web-push-reminders",
+      "title": "Promemoria eventi tramite Web Push",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/web-push-reminders-spec.md",
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/PushServiceImpl.java",
+          "taurus-fe/src/app/service/push-notification.service.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventsServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java"
+        ]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-09-04",
+      "notes": "Le migration sono verificate dal plugin Liquibase e i test coprono pianificazione e consumo dei promemoria. La descrizione storica dello stack è integrata dalle decisioni più recenti su PostgreSQL e consegna delle notifiche."
+    }
+  ]
+}

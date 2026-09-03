@@ -2,7 +2,8 @@
 
 ## Stato del documento
 
-Progettazione proposta. Il documento definisce il modello di governance, i file da introdurre e i controlli automatici, ma non autorizza ancora l'implementazione né modifica lo stato delle funzionalità esistenti.
+ID catalogo: `documentation-implementation-alignment`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Contesto
 

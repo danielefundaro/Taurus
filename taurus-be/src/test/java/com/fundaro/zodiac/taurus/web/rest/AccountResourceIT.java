@@ -57,9 +57,7 @@ class AccountResourceIT {
 
     @Test
     void testGetUnknownAccount() throws Exception {
-        restMockMvc
-            .perform(get("/api/account").accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().is3xxRedirection());
+        restMockMvc.perform(get("/api/account").accept(MediaType.APPLICATION_JSON)).andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -1,5 +1,10 @@
 # Funzionalità Economia e Inventario configurabili per tenant
 
+## Stato del documento
+
+ID catalogo: `tenant-feature-flags`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 ## Obiettivo
 
 Consentire a un super amministratore di attivare o disattivare le funzionalità **Economia** e **Inventario** dalla pagina di dettaglio del singolo tenant.

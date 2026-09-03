@@ -4,9 +4,8 @@ La consegna delle notifiche interne descritte in questa specifica segue `docs/no
 
 ## Stato del documento
 
-Specifica funzionale e tecnica approvata per la successiva fase di sviluppo.
-
-Le decisioni riportate sono definitive salvo una successiva richiesta esplicita di modifica. Il documento non autorizza ancora l'avvio dello sviluppo.
+ID catalogo: `recurring-calendar-events`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

@@ -4,7 +4,8 @@ La funzionalità estende il dettaglio calendario esistente e coordina catalogo m
 
 ## Stato del documento
 
-Specifica funzionale e tecnica proposta. Il documento definisce il comportamento atteso e le decisioni necessarie a una futura implementazione, ma non autorizza ancora lo sviluppo.
+ID catalogo: `event-preparation`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

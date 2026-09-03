@@ -21,7 +21,27 @@ env:
   FRONTEND_PATH: taurus-fe
 
 jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate release catalog
+        run: node scripts/docs/validate-feature-catalog.mjs --release-tag "$GITHUB_REF_NAME"
+      - name: Verify generated matrix
+        run: |
+          node scripts/docs/generate-feature-index.mjs
+          git diff --exit-code -- docs/features.md
+
   build-backend:
+
+    needs: documentation
 
     runs-on: ubuntu-latest
     permissions:
@@ -107,6 +127,8 @@ jobs:
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
   build-frontend:
+
+    needs: documentation
 
     runs-on: ubuntu-latest
     permissions:

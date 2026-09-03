@@ -1,5 +1,10 @@
 # Spec: Web Push Notifications + RabbitMQ Delayed Reminders
 
+## Stato del documento
+
+ID catalogo: `web-push-reminders`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 ## Obiettivo
 
 Aggiungere al calendario eventi:
