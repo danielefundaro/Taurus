@@ -1,0 +1,20 @@
+<app-dialog-shell
+    [title]="editing ? 'Modifica categoria' : 'Nuova categoria'"
+    subtitle="Classifica entrate e uscite nei rendiconti."
+    [confirmLabel]="editing ? 'Salva categoria' : 'Aggiungi categoria'"
+    [invalidCount]="nameError ? 1 : 0"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <div class="grid grid-cols-1 gap-4">
+        <app-form-field label="Nome" forId="category-name" required [error]="nameError">
+            <input id="category-name" pInputText [(ngModel)]="category.name" />
+        </app-form-field>
+        <app-form-field label="Direzione" forId="category-direction" required hint="Determina in quali movimenti la categoria è selezionabile.">
+            <p-select inputId="category-direction" [(ngModel)]="category.direction" [options]="directions" optionLabel="label" optionValue="value" />
+        </app-form-field>
+        <app-form-field label="Descrizione" forId="category-description">
+            <textarea id="category-description" pTextarea rows="3" [(ngModel)]="category.description"></textarea>
+        </app-form-field>
+    </div>
+</app-dialog-shell>

@@ -26,9 +26,11 @@
                 <div class="flex items-center gap-2">
                     <i class="pi pi-sync text-primary"></i>
                     <span
-                        ><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi@if (series.exceptionCount) {
+                        ><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi
+                        @if (series.exceptionCount) {
                             <span>, {{ series.exceptionCount }} eccezioni</span>
-                        }.</span
+                        }
+                        .</span
                     >
                 </div>
 
@@ -104,17 +106,7 @@
                 <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Data/ora inizio" forId="startDate" required [error]="event.startDate ? undefined : 'Indica quando inizia l’evento.'">
-                <p-datepicker
-                    [iconDisplay]="'input'"
-                    [showIcon]="true"
-                    [showTime]="true"
-                    [hourFormat]="'24'"
-                    inputId="startDate"
-                    dateFormat="dd-mm-yy"
-                    [(ngModel)]="event.startDate"
-                    [disabled]="!isAdmin"
-                    (ngModelChange)="onEventScheduleChange()"
-                />
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="startDate" dateFormat="dd-mm-yy" [(ngModel)]="event.startDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
             </app-form-field>
             <app-form-field label="Data/ora fine" forId="endDate">
                 <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
@@ -131,13 +123,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
-        title="Costi"
-        [count]="event.costs?.length"
-        description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto."
-        [dirty]="isDirtyForm"
-    >
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
             <div class="md:col-span-7">
                 <app-form-field label="Descrizione costo" forId="costDesc">
@@ -228,16 +214,31 @@
                 }
             </div>
             @if (currentUserAvailability === true) {
-                <div class="flex items-center gap-2 text-sm text-surface-500 mt-1">
+                <div class="flex flex-wrap items-end gap-3 mt-1">
+                    <app-form-field label="Promemoria personale" forId="personalReminder" hint="Minuti di anticipo, solo per te. Zero disattiva il promemoria di questo evento.">
+                        <p-inputnumber inputId="personalReminder" [(ngModel)]="personalReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" placeholder="Predefinito" />
+                    </app-form-field>
+                    <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
+                    @if (personalReminderMinutes !== undefined) {
+                        <p-button label="Usa il predefinito" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="clearPersonalReminder()" />
+                    }
+                </div>
+                <div class="flex items-center gap-2 text-sm text-surface-500">
                     <i class="pi pi-bell text-primary"></i>
-                    @if (event.reminderMinutes === 0) {
-                        <span>Nessun promemoria impostato per questo evento.</span>
+                    @if (personalReminderMinutes === 0) {
+                        <span>Nessun promemoria per questo evento.</span>
+                    } @else if (personalReminderMinutes) {
+                        <span
+                            >Riceverai un promemoria <strong>{{ personalReminderMinutes }} minuti</strong> prima dell'evento.</span
+                        >
+                    } @else if (event.reminderMinutes === 0) {
+                        <span>L'evento non prevede promemoria.</span>
                     } @else if (event.reminderMinutes) {
                         <span
-                            >Riceverai un promemoria <strong>{{ event.reminderMinutes }} minuti</strong> prima dell'evento.</span
+                            >Riceverai il promemoria dell'evento, <strong>{{ event.reminderMinutes }} minuti</strong> prima.</span
                         >
                     } @else {
-                        <span>Riceverai un promemoria al tempo predefinito (impostato nelle tue preferenze).</span>
+                        <span>Riceverai un promemoria all'anticipo predefinito impostato nel tuo profilo.</span>
                     }
                 </div>
             }
@@ -306,13 +307,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-detail-section
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
-        title="Gestisci presenze"
-        [count]="event.presentUsers?.length"
-        description="Le presenze si salvano per conto proprio con «Salva presenze»."
-        [dirty]="isDirtyPresence"
-    >
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Gestisci presenze" [count]="event.presentUsers?.length" description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
         <div sectionActions>
             <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [loading]="isSavingPresence" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
         </div>

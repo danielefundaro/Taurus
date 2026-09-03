@@ -18,7 +18,9 @@ import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -65,7 +67,7 @@ public class CalendarEventsServiceImpl
         entity.getCosts().clear();
         if (values.getCosts() != null) entity.getCosts().addAll(values.getCosts());
         CalendarEventsDTO result = saveEntity(entity, token, false);
-        reminderProducer.rescheduleForAvailableUsers(result, availableUserIds(entity), token);
+        reminderProducer.rescheduleForAvailableUsers(result, availableUsers(entity), token);
         return result;
     }
 
@@ -110,7 +112,7 @@ public class CalendarEventsServiceImpl
         response.setResponseDate(new Date());
         CalendarEventsDTO result = saveEntity(event, token, false);
         if (available) {
-            reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), token);
+            reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), response.getReminderMinutes(), token);
         } else {
             reminderProducer.cancelPending(eventId, user.getKeycloakId());
         }
@@ -125,6 +127,38 @@ public class CalendarEventsServiceImpl
         CalendarEventsDTO result = saveEntity(event, token, false);
         reminderProducer.cancelPending(eventId, user.getKeycloakId());
         return result;
+    }
+
+    @Override
+    public CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token) {
+        if (minutes != null && (minutes < 0 || minutes > 1440)) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Reminder must be between 0 and 1440 minutes", getEntityName(), "reminder.invalid");
+        }
+        CalendarEvents event = findEntity(eventId);
+        Users user = currentUser(token);
+        CalendarEventAvailability response = event.getAvailabilities().stream()
+            .filter(entry -> entry.getUser().getId().equals(user.getId()))
+            .filter(entry -> entry.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
+            .findFirst()
+            .orElseThrow(() ->
+                new RequestAlertException(HttpStatus.CONFLICT, "Availability must be confirmed before setting a reminder", getEntityName(), "reminder.availabilityMissing")
+            );
+        response.setReminderMinutes(minutes);
+        CalendarEventsDTO result = saveEntity(event, token, false);
+        reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), minutes, token);
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Integer findReminderMinutes(Long eventId, AbstractAuthenticationToken token) {
+        CalendarEvents event = findEntity(eventId);
+        Users user = currentUser(token);
+        return event.getAvailabilities().stream()
+            .filter(entry -> entry.getUser().getId().equals(user.getId()))
+            .findFirst()
+            .map(CalendarEventAvailability::getReminderMinutes)
+            .orElse(null);
     }
 
     @Override
@@ -183,7 +217,18 @@ public class CalendarEventsServiceImpl
         getRepository().saveAll(events);
         getRepository().flush();
         if (available != null && available) {
-            events.forEach(event -> reminderProducer.scheduleIfNeeded(getMapper().toDto(event), user.getKeycloakId(), token));
+            events.forEach(event ->
+                reminderProducer.scheduleIfNeeded(
+                    getMapper().toDto(event),
+                    user.getKeycloakId(),
+                    event.getAvailabilities().stream()
+                        .filter(entry -> entry.getUser().getId().equals(user.getId()))
+                        .findFirst()
+                        .map(CalendarEventAvailability::getReminderMinutes)
+                        .orElse(null),
+                    token
+                )
+            );
         } else {
             events.forEach(event -> reminderProducer.cancelPending(event.getId(), user.getKeycloakId()));
         }
@@ -218,10 +263,11 @@ public class CalendarEventsServiceImpl
         }
     }
 
-    private List<String> availableUserIds(CalendarEvents event) {
-        return event.getAvailabilities().stream()
+    private Map<String, Integer> availableUsers(CalendarEvents event) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+        event.getAvailabilities().stream()
             .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
-            .map(value -> value.getUser().getKeycloakId())
-            .toList();
+            .forEach(value -> result.put(value.getUser().getKeycloakId(), value.getReminderMinutes()));
+        return result;
     }
 }

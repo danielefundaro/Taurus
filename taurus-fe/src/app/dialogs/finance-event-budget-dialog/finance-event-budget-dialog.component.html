@@ -1,0 +1,26 @@
+<app-dialog-shell title="Preventivo evento" [subtitle]="event?.eventName" confirmLabel="Salva preventivo" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="save()">
+    <div class="grid grid-cols-1 gap-4">
+        <app-form-field label="Compenso previsto" forId="budget-fee" hint="Entrata attesa dall'evento, al lordo dei costi.">
+            <p-inputnumber inputId="budget-fee" [(ngModel)]="fee" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+        </app-form-field>
+
+        <section class="budget-costs">
+            <div class="flex justify-between items-center">
+                <h3>Costi previsti</h3>
+                <p-button label="Aggiungi costo" icon="pi pi-plus" severity="secondary" size="small" (onClick)="addCost()" />
+            </div>
+            @for (cost of costs; track $index; let index = $index) {
+                <div class="budget-cost-row">
+                    <input pInputText [(ngModel)]="cost.description" placeholder="Descrizione" [attr.aria-label]="'Descrizione costo ' + (index + 1)" />
+                    <p-inputnumber [(ngModel)]="cost.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+                    <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Rimuovi costo" pTooltip="Rimuovi costo" (onClick)="removeCost(index)" />
+                </div>
+                @if (!cost.description.trim()) {
+                    <small class="budget-cost-error">Descrivi il costo o rimuovi la riga.</small>
+                }
+            } @empty {
+                <p class="text-sm text-muted-color m-0">Nessun costo previsto. Il margine coincide con il compenso.</p>
+            }
+        </section>
+    </div>
+</app-dialog-shell>

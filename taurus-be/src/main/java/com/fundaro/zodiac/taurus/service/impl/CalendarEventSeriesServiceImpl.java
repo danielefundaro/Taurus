@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -440,11 +441,11 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
     }
 
     private void rescheduleReminders(CalendarEvents event, AbstractAuthenticationToken token) {
-        List<String> availableUserIds = event.getAvailabilities().stream()
+        Map<String, Integer> availableUsers = new LinkedHashMap<>();
+        event.getAvailabilities().stream()
             .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
-            .map(value -> value.getUser().getKeycloakId())
-            .toList();
-        reminderProducer.rescheduleForAvailableUsers(eventMapper.toDto(event), availableUserIds, token);
+            .forEach(value -> availableUsers.put(value.getUser().getKeycloakId(), value.getReminderMinutes()));
+        reminderProducer.rescheduleForAvailableUsers(eventMapper.toDto(event), availableUsers, token);
     }
 
     private void initialize(CommonFieldsOpenSearch entity, String actor) {

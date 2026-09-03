@@ -26,8 +26,7 @@
     color: var(--red-600);
 }
 
-.filter-grid,
-.dialog-grid {
+.filter-grid {
     display: grid;
     gap: 1rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -39,8 +38,7 @@
     margin-bottom: 1.25rem;
 }
 
-.filter-grid > div,
-.dialog-grid > div {
+.filter-grid > div {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -58,46 +56,6 @@
     grid-column: span 2;
 }
 
-.full {
-    grid-column: 1 / -1;
-}
-
-.attachment-panel {
-    background: var(--surface-50);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--content-border-radius);
-    padding: 1rem;
-}
-
-.attachment-row {
-    align-items: center;
-    border-top: 1px solid var(--surface-border);
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: 1fr auto auto;
-    padding-top: 0.65rem;
-}
-
-.attachment-link {
-    background: none;
-    border: 0;
-    color: var(--primary-color);
-    cursor: pointer;
-    padding: 0;
-    text-align: left;
-}
-
-.budget-costs {
-    gap: 0.75rem !important;
-}
-
-.budget-cost-row {
-    align-items: center;
-    display: grid !important;
-    gap: 0.5rem !important;
-    grid-template-columns: 1fr 12rem auto;
-}
-
 @media (max-width: 1100px) {
     .filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -110,13 +68,50 @@
         flex-direction: column;
     }
 
-    .filter-grid,
-    .dialog-grid {
+    .filter-grid {
         grid-template-columns: 1fr;
     }
 
-    .filter-search,
-    .full {
+    .filter-search {
         grid-column: auto;
     }
+}
+
+.report-panel {
+    border-top: 1px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+}
+
+.report-toolbar {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.report-exports {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.report-exports > span {
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+}
+
+.report-period {
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+    margin: -0.75rem 0 1rem;
+}
+
+.report-subtitle {
+    font-size: 1rem;
+    margin: 0.5rem 0 0;
 }

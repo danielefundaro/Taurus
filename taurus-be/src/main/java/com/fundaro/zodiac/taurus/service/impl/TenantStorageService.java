@@ -4,11 +4,16 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -113,6 +118,103 @@ public class TenantStorageService {
             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
                 Files.deleteIfExists(path);
             }
+        }
+    }
+
+    /**
+     * Elimina i residui dell'area temporanea del tenant piu vecchi della soglia:
+     * le directory di lavoro sotto {@code .tmp} e i file parziali lasciati da una
+     * scrittura atomica interrotta.
+     *
+     * @return il numero di elementi rimossi.
+     */
+    public int deleteStaleTemporaryFiles(String tenantCode, Duration olderThan) {
+        Path tenantRoot = getTenantRoot(tenantCode);
+        if (!Files.exists(tenantRoot)) return 0;
+        Instant threshold = Instant.now().minus(olderThan);
+        int removed = 0;
+
+        Path temporaryRoot = tenantRoot.resolve(".tmp");
+        if (Files.isDirectory(temporaryRoot)) {
+            try (var directories = Files.list(temporaryRoot)) {
+                for (Path purpose : directories.toList()) {
+                    if (!Files.isDirectory(purpose)) continue;
+                    try (var works = Files.list(purpose)) {
+                        for (Path work : works.toList()) {
+                            if (!isOlderThan(work, threshold)) continue;
+                            deleteDirectoryIfManaged(tenantCode, work);
+                            removed++;
+                        }
+                    }
+                }
+            } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+            }
+        }
+
+        removed += deleteMatching(tenantRoot, threshold, path -> path.getFileName().toString().endsWith(".tmp"));
+        return removed;
+    }
+
+    /**
+     * Chiavi relative dei file gestiti del tenant piu vecchi della soglia,
+     * escludendo l'area temporanea. Serve a riconoscere i file orfani
+     * confrontandole con quelle registrate in {@code media_asset}.
+     */
+    public List<String> listStorageKeysOlderThan(String tenantCode, Duration olderThan) {
+        Path tenantRoot = getTenantRoot(tenantCode);
+        if (!Files.exists(tenantRoot)) return List.of();
+        Instant threshold = Instant.now().minus(olderThan);
+        List<String> keys = new ArrayList<>();
+        try (var paths = Files.walk(tenantRoot)) {
+            for (Path path : paths.toList()) {
+                if (!Files.isRegularFile(path)) continue;
+                Path relative = tenantRoot.relativize(path);
+                if (relative.startsWith(".tmp")) continue;
+                if (!isOlderThan(path, threshold)) continue;
+                keys.add(relative.toString().replace(java.io.File.separatorChar, '/'));
+            }
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+        return keys;
+    }
+
+    /** Rimuove le directory rimaste vuote sotto la radice del tenant. */
+    public void pruneEmptyDirectories(String tenantCode) {
+        Path tenantRoot = getTenantRoot(tenantCode);
+        if (!Files.exists(tenantRoot)) return;
+        try (var paths = Files.walk(tenantRoot)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                if (path.equals(tenantRoot) || !Files.isDirectory(path)) continue;
+                try (var children = Files.list(path)) {
+                    if (children.findAny().isEmpty()) Files.deleteIfExists(path);
+                }
+            }
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+    }
+
+    private int deleteMatching(Path root, Instant threshold, java.util.function.Predicate<Path> matcher) {
+        int removed = 0;
+        try (var paths = Files.walk(root)) {
+            for (Path path : paths.toList()) {
+                if (!Files.isRegularFile(path) || !matcher.test(path)) continue;
+                if (!isOlderThan(path, threshold)) continue;
+                if (Files.deleteIfExists(path)) removed++;
+            }
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+        return removed;
+    }
+
+    private static boolean isOlderThan(Path path, Instant threshold) {
+        try {
+            return Files.getLastModifiedTime(path).toInstant().isBefore(threshold);
+        } catch (IOException exception) {
+            return false;
         }
     }
 

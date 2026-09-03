@@ -36,6 +36,10 @@ public class CalendarEventAvailability extends AuditFields {
     @Column(name = "response_date", nullable = false)
     private Date responseDate;
 
+    /** Promemoria personale in minuti: null usa il valore dell'evento, 0 disattiva. */
+    @Column(name = "reminder_minutes")
+    private Integer reminderMinutes;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Users getUser() { return user; }
@@ -44,4 +48,6 @@ public class CalendarEventAvailability extends AuditFields {
     public void setAvailability(Availability availability) { this.availability = availability; }
     public Date getResponseDate() { return responseDate; }
     public void setResponseDate(Date responseDate) { this.responseDate = responseDate; }
+    public Integer getReminderMinutes() { return reminderMinutes; }
+    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
 }

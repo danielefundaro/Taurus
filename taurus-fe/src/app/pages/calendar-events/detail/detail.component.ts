@@ -77,6 +77,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected seriesPreview?: CalendarEventSeriesPreview;
     protected isPreviewingSeries = false;
     protected applyAvailabilityToFuture = false;
+
+    /** Promemoria personale: undefined usa quello dell'evento, 0 lo disattiva. */
+    protected personalReminderMinutes?: number;
+    protected savingReminder = false;
+    private savedPersonalReminderMinutes?: number;
+    protected readonly reminderUnit = 'promemoria';
     protected readonly weekDayOptions: { code: RecurrenceWeekDay; label: string }[] = [
         { code: 'MO', label: 'Lun' },
         { code: 'TU', label: 'Mar' },
@@ -291,6 +297,59 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return null;
     }
 
+    protected get reminderDirty(): boolean {
+        return (this.personalReminderMinutes ?? null) !== (this.savedPersonalReminderMinutes ?? null);
+    }
+
+    protected onReminderChange(): void {
+        this.setUnitDirty(this.reminderUnit, this.reminderDirty);
+    }
+
+    protected clearPersonalReminder(): void {
+        this.personalReminderMinutes = undefined;
+        this.onReminderChange();
+    }
+
+    protected saveReminder(): void {
+        if (!this.event?.id) return;
+        this.savingReminder = true;
+        this.calendarEventsService
+            .setReminder(this.event.id, this.personalReminderMinutes)
+            .pipe(first())
+            .subscribe({
+                next: () => {
+                    this.savedPersonalReminderMinutes = this.personalReminderMinutes;
+                    this.savingReminder = false;
+                    this.setUnitDirty(this.reminderUnit, false);
+                    this.toastService.success('Promemoria aggiornato', this.personalReminderMinutes === 0 ? 'Non riceverai promemoria per questo evento.' : 'Il promemoria vale solo per te.');
+                },
+                error: () => {
+                    this.savingReminder = false;
+                    this.toastService.error('Salvataggio non riuscito', 'Non è stato possibile salvare il promemoria personale.');
+                }
+            });
+    }
+
+    private loadPersonalReminder(): void {
+        if (!this.event?.id || this.currentUserAvailability !== true) {
+            this.personalReminderMinutes = undefined;
+            this.savedPersonalReminderMinutes = undefined;
+            this.setUnitDirty(this.reminderUnit, false);
+            return;
+        }
+        this.calendarEventsService
+            .getReminder(this.event.id)
+            .pipe(first())
+            .subscribe({
+                next: (minutes) => {
+                    this.personalReminderMinutes = minutes ?? undefined;
+                    this.savedPersonalReminderMinutes = this.personalReminderMinutes;
+                    this.setUnitDirty(this.reminderUnit, false);
+                },
+                error: () => undefined
+            });
+    }
+
     protected setAvailability(available: boolean): void {
         if (this.applyAvailabilityToFuture && this.event.seriesId) {
             this.calendarEventsService
@@ -313,6 +372,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
                     this.toastService.success('Successo', msg);
                     this.updateEventDates(updated);
+                    this.loadPersonalReminder();
                 }
             });
     }
@@ -337,6 +397,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 next: (updated: CalendarEvents) => {
                     this.toastService.success('Successo', 'Disponibilità annullata');
                     this.updateEventDates(updated);
+                    this.loadPersonalReminder();
                 }
             });
     }
@@ -434,6 +495,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.isDirty = false;
                     this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                     this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
+                    this.loadPersonalReminder();
                     if (this.event.seriesId && this.isAdmin) {
                         this.loadSeries(this.event.seriesId);
                     } else {

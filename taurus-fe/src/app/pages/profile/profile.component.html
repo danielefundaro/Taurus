@@ -36,6 +36,29 @@
         <app-calendar-events-table />
     </app-detail-section>
 
+    <app-detail-section title="Notifiche" description="Promemoria degli eventi a cui hai dato disponibilità." [dirty]="reminderDirty">
+        <div sectionActions>
+            <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
+        </div>
+        <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+                <p-togglebutton
+                    [ngModel]="pushEnabled"
+                    (ngModelChange)="onPushToggle($event)"
+                    [disabled]="!pushSupported || pushDenied || pushBusy"
+                    onLabel="Notifiche push attive"
+                    offLabel="Notifiche push disattivate"
+                    onIcon="pi pi-bell"
+                    offIcon="pi pi-bell-slash"
+                />
+                <small class="text-muted-color">{{ pushHint }}</small>
+            </div>
+            <app-form-field label="Promemoria predefinito" forId="defaultReminderMinutes" hint="Minuti di anticipo. Zero disattiva il promemoria degli eventi che non ne indicano uno proprio.">
+                <p-inputnumber inputId="defaultReminderMinutes" [(ngModel)]="defaultReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" />
+            </app-form-field>
+        </div>
+    </app-detail-section>
+
     <app-detail-section title="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />

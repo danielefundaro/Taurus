@@ -32,4 +32,5 @@
     <include file="config/liquibase/changelog/20260901000001_inventory_expiration_notices.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260901000002_add_finance.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260901000003_finance_notifications.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260903000000_availability_reminder_minutes.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

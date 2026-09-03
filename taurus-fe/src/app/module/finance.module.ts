@@ -111,3 +111,69 @@ export interface AccountingYear {
     rolledOverAt?: string;
     lastRecalculatedAt?: string;
 }
+
+export interface FinancialStatementLine {
+    movement: FinancialMovement;
+    balance: number;
+}
+
+export interface FinancialAccountStatement {
+    account: FinancialAccount;
+    from: string;
+    to: string;
+    openingBalance: number;
+    income: number;
+    expense: number;
+    closingBalance: number;
+    lines: FinancialStatementLine[];
+}
+
+export interface FinancialCategoryTotal {
+    categoryId?: number;
+    categoryName: string;
+    direction?: FinancialCategoryDirection;
+    income: number;
+    expense: number;
+    net: number;
+    movementCount: number;
+}
+
+export interface FinancialAccountYearBalance {
+    accountId: number;
+    accountName: string;
+    openingBalance: number;
+    income: number;
+    expense: number;
+    closingBalance: number;
+}
+
+export interface FinancialEventLine {
+    eventId: number;
+    eventName: string;
+    eventDate?: string;
+    expectedFee: number;
+    expectedCosts: number;
+    expectedMargin: number;
+    received: number;
+    paid: number;
+    actualResult: number;
+    remainingIncome: number;
+    remainingExpense: number;
+    economicStatus: EventEconomicStatus;
+}
+
+export interface AccountingYearSummary {
+    year: AccountingYear;
+    accounts: FinancialAccountYearBalance[];
+    openingTotal: number;
+    ordinaryIncome: number;
+    ordinaryExpense: number;
+    ordinaryResult: number;
+    transferTotal: number;
+    closingTotal: number;
+    categories: FinancialCategoryTotal[];
+    openEvents: FinancialEventLine[];
+    unreconciledCount: number;
+    unreconciledAmount: number;
+    lastRecalculatedAt?: string;
+}
