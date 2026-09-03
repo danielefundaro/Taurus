@@ -24,3 +24,4 @@ export * from './users.service';
 export * from './inventory.service';
 export * from './user-inventory.service';
 export * from './finance.service';
+export * from './user-preference.service';

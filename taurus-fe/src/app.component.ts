@@ -2,30 +2,38 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
 import { first, switchMap } from 'rxjs';
+import { InlineAlertComponent } from './app/components/inline-alert/inline-alert.component';
 import { LoadingSpinnerComponent } from './app/components/loading-spinner/loading-spinner.component';
 import { ImportsModule } from './app/imports';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
-import { LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService } from './app/service';
+import { LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService, ToastService } from './app/service';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterModule, ImportsModule, ToastModule, LoadingSpinnerComponent],
+    imports: [RouterModule, ImportsModule, ToastModule, LoadingSpinnerComponent, InlineAlertComponent],
     templateUrl: './app.component.html',
     providers: [PreferencesService]
 })
 export class AppComponent implements OnInit {
+    /** Invito non invasivo ad attivare i promemoria push: mai un prompt automatico del browser. */
+    protected pushPromptVisible = false;
+
+    private static readonly PUSH_PROMPT_DISMISSED = 'pushPromptDismissed';
+
     constructor(
         private readonly localStorageService: LocalStorageService,
         private readonly preferencesService: PreferencesService,
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
         private readonly pushNotificationService: PushNotificationService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly toastService: ToastService
     ) {}
 
     ngOnInit(): void {
         this.pushNotificationService.init();
+        this.pushPromptVisible = this.pushNotificationService.permission === 'default' && sessionStorage.getItem(AppComponent.PUSH_PROMPT_DISMISSED) !== 'true';
 
         setInterval(() => {
             this.noticesService
@@ -91,6 +99,19 @@ export class AppComponent implements OnInit {
                     }
                 }
             });
+    }
+
+    protected enablePush(): void {
+        this.pushNotificationService.requestPermissionAndSubscribe().then((enabled) => {
+            this.pushPromptVisible = false;
+            if (enabled) this.toastService.success('Notifiche attive', 'Riceverai un promemoria prima degli eventi a cui hai dato disponibilità.');
+            else this.toastService.info('Notifiche non attivate', 'Puoi attivarle in qualsiasi momento dal tuo profilo.');
+        });
+    }
+
+    protected dismissPushPrompt(): void {
+        this.pushPromptVisible = false;
+        sessionStorage.setItem(AppComponent.PUSH_PROMPT_DISMISSED, 'true');
     }
 
     @HostListener('window:unload', ['$event'])

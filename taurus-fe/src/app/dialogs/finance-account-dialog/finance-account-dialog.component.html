@@ -1,0 +1,35 @@
+<app-dialog-shell
+    [title]="editing ? 'Modifica conto' : 'Nuovo conto'"
+    subtitle="Casse fisiche e conti correnti su cui vengono registrati i movimenti."
+    [confirmLabel]="editing ? 'Salva conto' : 'Aggiungi conto'"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field class="md:col-span-2" label="Nome" forId="account-name" required [error]="nameError">
+            <input id="account-name" pInputText [(ngModel)]="account.name" />
+        </app-form-field>
+        <app-form-field label="Tipo" forId="account-type" required>
+            <p-select inputId="account-type" [(ngModel)]="account.accountType" [options]="accountTypes" optionLabel="label" optionValue="value" />
+        </app-form-field>
+        <app-form-field label="Valuta" forId="account-currency" required [error]="currencyError" hint="Codice ISO a tre lettere.">
+            <input id="account-currency" pInputText maxlength="3" [(ngModel)]="account.currency" />
+        </app-form-field>
+        @if (account.accountType === 'BANK') {
+            <app-form-field label="Banca" forId="account-bank"><input id="account-bank" pInputText [(ngModel)]="account.bankName" /></app-form-field>
+            <app-form-field label="IBAN" forId="account-iban"><input id="account-iban" pInputText maxlength="34" [(ngModel)]="account.iban" /></app-form-field>
+        }
+        @if (!editing) {
+            <app-form-field label="Saldo iniziale" forId="account-opening" hint="Genera un movimento di apertura.">
+                <p-inputnumber inputId="account-opening" [(ngModel)]="account.initialBalance" mode="currency" currency="EUR" locale="it-IT" />
+            </app-form-field>
+            <app-form-field label="Data di riferimento" forId="account-opening-date">
+                <p-datepicker inputId="account-opening-date" [(ngModel)]="openingDate" dateFormat="dd/mm/yy" />
+            </app-form-field>
+        }
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="account-description">
+            <textarea id="account-description" pTextarea rows="3" [(ngModel)]="account.description"></textarea>
+        </app-form-field>
+    </div>
+</app-dialog-shell>

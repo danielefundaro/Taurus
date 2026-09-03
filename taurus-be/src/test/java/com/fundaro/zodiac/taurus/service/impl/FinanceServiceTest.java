@@ -264,6 +264,90 @@ class FinanceServiceTest {
         assertThat(notification.getValue().message()).startsWith("Il riporto dell’esercizio 2026").doesNotContain("Il sistema ha").endsWith(".");
     }
 
+    @Test
+    void buildsAStatementWithOpeningBalanceAndRunningTotals() {
+        FinancialAccount account = account(10L, "Cassa", "EUR");
+        AccountingYear year = year(2026);
+        FinancialMovement opening = movement(1L, null, year, FinancialDirection.INCOME);
+        opening.setNature(FinancialMovementNature.OPENING);
+        opening.setBookingDate(LocalDate.of(2026, 1, 1));
+        opening.setAmount(new BigDecimal("100.00"));
+        FinancialMovement income = movement(2L, null, year, FinancialDirection.INCOME);
+        income.setBookingDate(LocalDate.of(2026, 3, 1));
+        income.setAmount(new BigDecimal("50.00"));
+        FinancialMovement expense = movement(3L, null, year, FinancialDirection.EXPENSE);
+        expense.setBookingDate(LocalDate.of(2026, 4, 1));
+        expense.setAmount(new BigDecimal("20.00"));
+
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(account));
+        // il saldo iniziale del periodo si calcola sui movimenti fino al giorno precedente
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 28)))
+            .thenReturn(List.of(opening));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(income, expense));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(opening, income, expense));
+
+        var statement = service.accountStatement(10L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 12, 31), authentication());
+
+        assertThat(statement.openingBalance()).isEqualByComparingTo("100.00");
+        assertThat(statement.income()).isEqualByComparingTo("50.00");
+        assertThat(statement.expense()).isEqualByComparingTo("20.00");
+        assertThat(statement.closingBalance()).isEqualByComparingTo("130.00");
+        assertThat(statement.lines()).hasSize(2);
+        assertThat(statement.lines().get(0).balance()).isEqualByComparingTo("150.00");
+        assertThat(statement.lines().get(1).balance()).isEqualByComparingTo("130.00");
+    }
+
+    @Test
+    void summarisesTheYearKeepingTransfersOutOfOrdinaryTotals() {
+        AccountingYear year = year(2026);
+        FinancialAccount account = account(10L, "Cassa", "EUR");
+        FinancialCategory category = new FinancialCategory();
+        category.setId(5L);
+        category.setName("Quote");
+        category.setDirection(FinancialCategoryDirection.INCOME);
+
+        FinancialMovement income = movement(2L, null, year, FinancialDirection.INCOME);
+        income.setAmount(new BigDecimal("80.00"));
+        income.setCategory(category);
+        FinancialMovement expense = movement(3L, null, year, FinancialDirection.EXPENSE);
+        expense.setAmount(new BigDecimal("30.00"));
+        FinancialMovement transfer = movement(4L, UUID.randomUUID(), year, FinancialDirection.EXPENSE);
+        transfer.setAmount(new BigDecimal("25.00"));
+
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(year));
+        when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(income, expense, transfer));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+            .thenReturn(List.of());
+        when(eventRepository.findAll()).thenReturn(List.of());
+
+        var summary = service.yearSummary(2026, authentication());
+
+        assertThat(summary.ordinaryIncome()).isEqualByComparingTo("80.00");
+        assertThat(summary.ordinaryExpense()).isEqualByComparingTo("30.00");
+        assertThat(summary.ordinaryResult()).isEqualByComparingTo("50.00");
+        assertThat(summary.transferTotal()).isEqualByComparingTo("25.00");
+        assertThat(summary.openingTotal()).isEqualByComparingTo("0");
+        assertThat(summary.closingTotal()).isEqualByComparingTo("25.00");
+        assertThat(summary.unreconciledCount()).isEqualTo(2);
+        assertThat(summary.categories()).hasSize(2);
+        assertThat(summary.categories().get(0).categoryName()).isEqualTo("Quote");
+        assertThat(summary.categories().get(0).income()).isEqualByComparingTo("80.00");
+        // i movimenti ordinari senza categoria restano visibili come voce a sé
+        assertThat(summary.categories().get(1).categoryName()).isEqualTo("Senza categoria");
+        assertThat(summary.categories().get(1).expense()).isEqualByComparingTo("30.00");
+    }
+
+    @Test
+    void refusesTheSummaryOfAnUnknownYear() {
+        when(yearRepository.findByYearAndDeletedFalse(1999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.yearSummary(1999, authentication())).isInstanceOf(RequestAlertException.class);
+    }
+
     private static FinancialAccount account(Long id, String name, String currency) {
         FinancialAccount account = new FinancialAccount();
         account.setId(id);

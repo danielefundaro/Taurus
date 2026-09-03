@@ -1,3 +1,16 @@
+@if (pushPromptVisible) {
+    <div class="flex flex-wrap items-center gap-2 p-4">
+        <app-inline-alert
+            class="flex-1"
+            severity="info"
+            title="Promemoria degli eventi"
+            detail="Attiva le notifiche del browser per ricevere un promemoria prima degli eventi a cui hai dato disponibilità."
+            actionLabel="Attiva notifiche"
+            (action)="enablePush()"
+        />
+        <p-button label="Non ora" size="small" [text]="true" severity="secondary" (onClick)="dismissPushPrompt()" />
+    </div>
+}
 <router-outlet></router-outlet>
 <app-loading-spinner></app-loading-spinner>
 <p-toast></p-toast>

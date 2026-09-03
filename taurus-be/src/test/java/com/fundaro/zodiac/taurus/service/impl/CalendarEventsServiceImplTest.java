@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEventAvailability;
 import com.fundaro.zodiac.taurus.domain.CalendarEventPresence;
@@ -12,6 +13,7 @@ import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.Date;
@@ -115,6 +117,52 @@ class CalendarEventsServiceImplTest {
         assertThat(event.getPresences().get(0).getUser().getId()).isEqualTo(user.getId());
     }
 
+    @Test
+    void storesThePersonalReminderAndReschedulesOnlyForThatUser() {
+        Users user = user();
+        CalendarEvents event = event();
+        CalendarEventAvailability response = new CalendarEventAvailability();
+        response.setUser(user);
+        response.setAvailability(CalendarEventAvailability.Availability.AVAILABLE);
+        response.setResponseDate(new Date());
+        event.getAvailabilities().add(response);
+        RecordingReminderProducer reminderProducer = new RecordingReminderProducer();
+        CalendarEventsServiceImpl service = service(event, user, reminderProducer);
+
+        service.setReminderMinutes(event.getId(), 15, authentication());
+
+        assertThat(response.getReminderMinutes()).isEqualTo(15);
+        assertThat(reminderProducer.scheduled).isEqualTo(1);
+        assertThat(reminderProducer.lastPersonalMinutes).isEqualTo(15);
+        assertThat(service.findReminderMinutes(event.getId(), authentication())).isEqualTo(15);
+    }
+
+    @Test
+    void refusesThePersonalReminderWithoutAConfirmedAvailability() {
+        Users user = user();
+        CalendarEvents event = event();
+        CalendarEventAvailability response = new CalendarEventAvailability();
+        response.setUser(user);
+        response.setAvailability(CalendarEventAvailability.Availability.UNAVAILABLE);
+        response.setResponseDate(new Date());
+        event.getAvailabilities().add(response);
+        CalendarEventsServiceImpl service = service(event, user, new RecordingReminderProducer());
+
+        assertThatThrownBy(() -> service.setReminderMinutes(event.getId(), 15, authentication()))
+            .isInstanceOf(RequestAlertException.class);
+        assertThat(response.getReminderMinutes()).isNull();
+    }
+
+    @Test
+    void refusesAReminderOutsideTheAllowedRange() {
+        Users user = user();
+        CalendarEvents event = event();
+        CalendarEventsServiceImpl service = service(event, user, new RecordingReminderProducer());
+
+        assertThatThrownBy(() -> service.setReminderMinutes(event.getId(), 2000, authentication()))
+            .isInstanceOf(RequestAlertException.class);
+    }
+
     private static CalendarEventsServiceImpl service(CalendarEvents event, Users user, EventReminderProducer reminderProducer) {
         return service(event, user, reminderProducer, () -> {});
     }
@@ -204,14 +252,16 @@ class CalendarEventsServiceImplTest {
 
         private int scheduled;
         private int cancelled;
+        private Integer lastPersonalMinutes;
 
         private RecordingReminderProducer() {
             super(null, null);
         }
 
         @Override
-        public void scheduleIfNeeded(CalendarEventsDTO event, String userId, AbstractAuthenticationToken token) {
+        public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes, AbstractAuthenticationToken token) {
             scheduled++;
+            lastPersonalMinutes = personalMinutes;
         }
 
         @Override

@@ -43,6 +43,26 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * {@code PATCH /api/user/calendar-events/{id}/reminder} : set the current user's personal reminder.
+     *
+     * @param minutes minutes before the event; {@code 0} disables it and omitting it restores the event default.
+     */
+    @PatchMapping("/{id}/reminder")
+    public ResponseEntity<CalendarEventsDTO> setReminder(
+        @PathVariable("id") Long id,
+        @RequestParam(required = false) Integer minutes,
+        AbstractAuthenticationToken token
+    ) {
+        getLog().debug("REST request to set the personal reminder for CalendarEvents : {}, minutes={}", id, minutes);
+        return ResponseEntity.ok(getService().setReminderMinutes(id, minutes, token));
+    }
+
+    @GetMapping("/{id}/reminder")
+    public ResponseEntity<Integer> reminder(@PathVariable("id") Long id, AbstractAuthenticationToken token) {
+        return ResponseEntity.ok(getService().findReminderMinutes(id, token));
+    }
+
     @PatchMapping("/series/{seriesId}/availability")
     public ResponseEntity<BulkAvailabilityResultDTO> setSeriesAvailability(
         @PathVariable Long seriesId,

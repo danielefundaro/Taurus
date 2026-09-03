@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { first } from 'rxjs';
+import { first, forkJoin } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { ImportsModule } from '../../imports';
@@ -21,6 +21,7 @@ type InventoryViewMode = 'TENANT' | 'MINE';
 })
 export class InventoryComponent extends ListPageBase implements OnInit {
     protected items: InventoryItem[] = [];
+    protected selectedItems: InventoryItem[] = [];
     protected assignments: InventoryAssignmentSummary[] = [];
     protected erasureRequests: InventoryErasureRequest[] = [];
     protected layout: ListLayout = 'list';
@@ -115,6 +116,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
             replaceUrl: true
         });
         this.searchTerm = '';
+        this.selectedItems = [];
         this.totalRecords = 0;
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
         this.configureSortOptions();
@@ -148,6 +150,52 @@ export class InventoryComponent extends ListPageBase implements OnInit {
                     this.toastService.success('Successo', 'Oggetto aggiunto all’inventario.');
                     this.loadElements(this.searchTerm);
                 });
+        });
+    }
+
+    protected get canSelect(): boolean {
+        return this.isAdmin && !this.personalView;
+    }
+
+    protected isSelected(item: InventoryItem): boolean {
+        return this.selectedItems.some((selected) => selected.id === item.id);
+    }
+
+    protected isAllSelected(items: InventoryItem[]): boolean {
+        return items.length > 0 && items.every((item) => this.isSelected(item));
+    }
+
+    protected toggleSelection(item: InventoryItem): void {
+        this.selectedItems = this.isSelected(item) ? this.selectedItems.filter((selected) => selected.id !== item.id) : [...this.selectedItems, item];
+    }
+
+    protected toggleSelectAll(items: InventoryItem[]): void {
+        if (this.isAllSelected(items)) {
+            this.selectedItems = this.selectedItems.filter((selected) => !items.some((item) => item.id === selected.id));
+            return;
+        }
+        this.selectedItems = [...this.selectedItems, ...items.filter((item) => !this.isSelected(item))];
+    }
+
+    protected clearSelection(): void {
+        this.selectedItems = [];
+    }
+
+    protected deleteSelectedItems(): void {
+        const selected = this.selectedItems.filter((item) => !!item.id);
+        if (!this.canSelect || selected.length === 0) return;
+        this.confirmService.confirmDestructive({
+            title: 'Elimina oggetti selezionati',
+            consequence: `I ${selected.length} oggetti selezionati non saranno più visibili in inventario.`,
+            actionLabel: 'Elimina definitivamente',
+            accept: () =>
+                forkJoin(selected.map((item) => this.inventoryService.deleteItem(item.id!)))
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.selectedItems = [];
+                        this.toastService.success('Oggetti eliminati', `${selected.length} oggetti rimossi dall’inventario.`);
+                        this.loadElements(this.searchTerm);
+                    })
         });
     }
 
@@ -233,6 +281,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     }
 
     private loadItems(): void {
+        this.selectedItems = [];
         const rows = this.dataViewLazyLoadEvent.rows || 10;
         const page = Math.floor((this.dataViewLazyLoadEvent.first || 0) / rows);
         const sortField = this.dataViewLazyLoadEvent.sortField || 'name';

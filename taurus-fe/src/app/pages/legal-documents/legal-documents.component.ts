@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { SelectItem } from 'primeng/api';
-import { DialogModule } from 'primeng/dialog';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { finalize, first } from 'rxjs';
+import { LegalDocumentDialogComponent } from '../../dialogs/legal-document-dialog/legal-document-dialog.component';
 import { ImportsModule } from '../../imports';
 import { LegalDocument, LegalDocumentAction, LegalDocumentType } from '../../module';
 import { LegalService, ToastService } from '../../service';
@@ -11,9 +12,10 @@ import { LegalService, ToastService } from '../../service';
 @Component({
     selector: 'app-legal-documents',
     standalone: true,
-    imports: [ImportsModule, DialogModule, DatePipe],
+    imports: [ImportsModule, DatePipe],
     templateUrl: './legal-documents.component.html',
-    styleUrl: './legal-documents.component.scss'
+    styleUrl: './legal-documents.component.scss',
+    providers: [DialogService]
 })
 export class LegalDocumentsComponent implements OnInit {
     @ViewChild('documentTable') private readonly documentTable?: Table;
@@ -22,9 +24,6 @@ export class LegalDocumentsComponent implements OnInit {
     protected searchTerm = '';
     protected loading = false;
     protected saving = false;
-    protected dialogVisible = false;
-    protected editingDocument: LegalDocument = this.emptyDocument();
-    protected publishedAt = new Date();
 
     protected readonly documentTypes: SelectItem<LegalDocumentType>[] = [
         { label: 'Termini di utilizzo', value: 'TERMS' },
@@ -38,7 +37,8 @@ export class LegalDocumentsComponent implements OnInit {
 
     constructor(
         private readonly legalService: LegalService,
-        private readonly toastService: ToastService
+        private readonly toastService: ToastService,
+        private readonly dialogService: DialogService
     ) {}
 
     protected onSearchChange(value: string): void {
@@ -51,34 +51,31 @@ export class LegalDocumentsComponent implements OnInit {
     }
 
     protected addDocument(): void {
-        this.editingDocument = this.emptyDocument();
-        this.publishedAt = new Date();
-        this.dialogVisible = true;
+        this.openDialog();
     }
 
     protected editDocument(document: LegalDocument): void {
-        this.editingDocument = { ...document };
-        this.publishedAt = document.publishedAt ? new Date(document.publishedAt) : new Date();
-        this.dialogVisible = true;
+        this.openDialog(document);
     }
 
-    protected documentTypeChanged(documentType: LegalDocumentType): void {
-        this.editingDocument.action = documentType === 'PRIVACY' ? 'ACKNOWLEDGE' : 'ACCEPT';
+    private openDialog(document?: LegalDocument): void {
+        const ref: DynamicDialogRef = this.dialogService.open(LegalDocumentDialogComponent, {
+            inputValues: { document: document ? { ...document } : undefined },
+            closable: true,
+            modal: true,
+            showHeader: false,
+            width: '40rem',
+            breakpoints: { '960px': '75vw', '640px': '94vw' }
+        });
+
+        ref.onClose.pipe(first()).subscribe((result?: LegalDocument) => {
+            if (result) this.saveDocument(result);
+        });
     }
 
-    protected saveDocument(): void {
-        if (!this.isValid || this.saving) {
-            return;
-        }
-
+    private saveDocument(document: LegalDocument): void {
+        if (this.saving) return;
         this.saving = true;
-        const document: LegalDocument = {
-            ...this.editingDocument,
-            version: this.editingDocument.version.trim(),
-            title: this.editingDocument.title.trim(),
-            url: this.editingDocument.url.trim(),
-            publishedAt: this.publishedAt.toISOString()
-        };
         const request = document.id ? this.legalService.updateDocument(document.id, document) : this.legalService.createDocument(document);
 
         request
@@ -88,7 +85,6 @@ export class LegalDocumentsComponent implements OnInit {
             )
             .subscribe({
                 next: () => {
-                    this.dialogVisible = false;
                     this.toastService.success('Documenti legali', document.id ? 'Documento aggiornato.' : 'Documento creato.');
                     this.loadDocuments();
                 },
@@ -96,10 +92,6 @@ export class LegalDocumentsComponent implements OnInit {
                     this.toastService.error('Salvataggio non riuscito', 'Se il documento è già stato accettato, crea una nuova versione invece di modificarne il contenuto.');
                 }
             });
-    }
-
-    protected get isValid(): boolean {
-        return Boolean(this.editingDocument.documentType && this.editingDocument.action && this.editingDocument.version.trim() && this.editingDocument.title.trim() && this.editingDocument.url.trim() && this.publishedAt);
     }
 
     protected typeLabel(type: LegalDocumentType): string {
@@ -122,17 +114,5 @@ export class LegalDocumentsComponent implements OnInit {
                 next: (documents) => (this.documents = documents),
                 error: () => this.toastService.error('Errore', 'Impossibile caricare i documenti legali.')
             });
-    }
-
-    private emptyDocument(): LegalDocument {
-        return {
-            documentType: 'TERMS',
-            version: '',
-            title: '',
-            url: '',
-            action: 'ACCEPT',
-            active: false,
-            required: true
-        };
     }
 }

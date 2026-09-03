@@ -1,0 +1,66 @@
+<app-dialog-shell
+    [title]="editing ? 'Modifica movimento' : 'Nuovo movimento'"
+    subtitle="La modifica corregge direttamente il movimento: non servono storni."
+    [confirmLabel]="editing ? 'Salva movimento' : 'Registra movimento'"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field label="Direzione" forId="movement-direction" required>
+            <p-select inputId="movement-direction" [(ngModel)]="movement.direction" [options]="directions" optionLabel="label" optionValue="value" />
+        </app-form-field>
+        <app-form-field label="Conto" forId="movement-account" required [error]="accountError">
+            <p-select inputId="movement-account" [(ngModel)]="movement.accountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
+        </app-form-field>
+        <app-form-field label="Data contabile" forId="movement-date" required hint="Determina l'esercizio di competenza.">
+            <p-datepicker inputId="movement-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" />
+        </app-form-field>
+        <app-form-field label="Data valuta" forId="movement-value-date">
+            <p-datepicker inputId="movement-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" />
+        </app-form-field>
+        <app-form-field label="Importo" forId="movement-amount" required [error]="amountError">
+            <p-inputnumber inputId="movement-amount" [(ngModel)]="movement.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+        </app-form-field>
+        <app-form-field label="Categoria" forId="movement-category">
+            <p-select inputId="movement-category" [(ngModel)]="movement.categoryId" [options]="movementCategories" optionLabel="name" optionValue="id" [showClear]="true" placeholder="Nessuna" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Evento" forId="movement-event">
+            <p-select inputId="movement-event" [(ngModel)]="movement.eventId" [options]="events" optionLabel="eventName" optionValue="eventId" [filter]="true" [showClear]="true" placeholder="Nessun evento" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="movement-description" required [error]="descriptionError">
+            <input id="movement-description" pInputText [(ngModel)]="movement.description" />
+        </app-form-field>
+        <app-form-field label="Controparte" forId="movement-counterparty">
+            <input id="movement-counterparty" pInputText [(ngModel)]="movement.counterparty" />
+        </app-form-field>
+        <app-form-field label="Riferimento documento" forId="movement-reference">
+            <input id="movement-reference" pInputText [(ngModel)]="movement.documentReference" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Note" forId="movement-notes">
+            <textarea id="movement-notes" pTextarea rows="3" [(ngModel)]="movement.notes"></textarea>
+        </app-form-field>
+
+        <section class="md:col-span-2 attachment-panel">
+            <h3>Allegati</h3>
+            <p class="attachment-hint">PDF, JPEG o PNG fino a 10 MB.</p>
+            <div class="flex flex-wrap gap-2 items-end">
+                <input id="movement-file" type="file" accept="application/pdf,image/jpeg,image/png" (change)="onAttachmentSelected($event)" [attr.aria-label]="'Scegli allegato'" />
+                <input pInputText [(ngModel)]="attachmentDescription" placeholder="Descrizione allegato" [attr.aria-label]="'Descrizione allegato'" />
+                @if (editing) {
+                    <p-button label="Carica" icon="pi pi-upload" severity="secondary" [disabled]="!selectedAttachment" (onClick)="uploadSelectedAttachment()" />
+                }
+            </div>
+            @if (!editing) {
+                <small class="attachment-hint">L’allegato selezionato verrà caricato dopo il salvataggio del movimento.</small>
+            }
+            @for (attachment of attachments; track attachment.id) {
+                <div class="attachment-row">
+                    <button type="button" class="attachment-link" (click)="downloadAttachment(attachment)"><i class="pi pi-paperclip"></i> {{ attachment.fileName }}</button>
+                    <span>{{ attachment.fileSize / 1024 | number: '1.0-0' }} KB</span>
+                    <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Elimina allegato" pTooltip="Elimina allegato" (onClick)="deleteAttachment(attachment)" />
+                </div>
+            }
+        </section>
+    </div>
+</app-dialog-shell>

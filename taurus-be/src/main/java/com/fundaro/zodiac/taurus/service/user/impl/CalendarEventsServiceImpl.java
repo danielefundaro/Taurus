@@ -22,6 +22,8 @@ public class CalendarEventsServiceImpl implements CalendarEventsService {
     public Page<CalendarEventsDTO> findEntitiesByCriteria(CalendarEventsCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) { StateFilter state = new StateFilter(); state.setIn(getVisibleStates()); criteria.setState(state); return delegate.findEntitiesByCriteria(criteria, pageable, token).map(this::mask); }
     public CalendarEventsDTO setAvailability(Long eventId, boolean available, AbstractAuthenticationToken token) { return mask(delegate.setAvailability(eventId, available, token)); }
     public CalendarEventsDTO cancelAvailability(Long eventId, AbstractAuthenticationToken token) { return mask(delegate.cancelAvailability(eventId, token)); }
+    public CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token) { return mask(delegate.setReminderMinutes(eventId, minutes, token)); }
+    public Integer findReminderMinutes(Long eventId, AbstractAuthenticationToken token) { return delegate.findReminderMinutes(eventId, token); }
     public BulkAvailabilityResultDTO setSeriesAvailability(Long seriesId, Boolean available, AbstractAuthenticationToken token) {
         return delegate.setSeriesAvailability(seriesId, available, getVisibleStates(), token);
     }
