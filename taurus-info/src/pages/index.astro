@@ -7,12 +7,12 @@ import { siteConfig } from '../config/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const features = [
-  { icon: 'catalogue', title: 'Catalogo connesso', description: 'Album, tracce e partiture restano collegati in una struttura chiara e consultabile.', number: '01' },
-  { icon: 'search', title: 'Ricerca immediata', description: 'Trova rapidamente ciò che serve attraverso criteri, metadati e ricerca full-text sul patrimonio.', number: '02' },
-  { icon: 'instrument', title: 'Strumenti sotto controllo', description: 'Registra strumenti, caratteristiche e relazioni con l’attività musicale della tua organizzazione.', number: '03' },
-  { icon: 'calendar', title: 'Eventi coordinati', description: 'Programma prove e appuntamenti, raccogli disponibilità e conserva presenze e informazioni operative.', number: '04' },
-  { icon: 'users', title: 'Ruoli ben definiti', description: 'Ogni persona accede alle funzioni coerenti con il proprio ruolo e il tenant selezionato.', number: '05' },
-  { icon: 'shield', title: 'Informazioni governate', description: 'Isolamento tra organizzazioni, accesso autenticato e gestione delle accettazioni legali.', number: '06' }
+  { icon: 'catalogue', title: 'Patrimonio musicale', description: 'Album, tracce, partiture, PDF e strumenti restano collegati, ricercabili e pronti da consultare.', number: '01' },
+  { icon: 'calendar', title: 'Calendario operativo', description: 'Eventi singoli o ricorrenti, disponibilità, presenze, costi e promemoria nello stesso flusso.', number: '02' },
+  { icon: 'inventory', title: 'Inventario responsabile', description: 'Oggetti, fotografie, assegnazioni, prese visione, scadenze e riconsegne sempre tracciabili.', number: '03' },
+  { icon: 'finance', title: 'Gestione economica', description: 'Casse, conti, movimenti, trasferimenti, budget degli eventi ed esercizi con rendiconti esportabili.', number: '04' },
+  { icon: 'users', title: 'Persone e responsabilità', description: 'Ruoli dedicati consentono a ciascuno di vedere e gestire solo ciò che gli compete.', number: '05' },
+  { icon: 'bell', title: 'Dashboard e notifiche', description: 'Una panoramica immediata e comunicazioni mirate mantengono visibili attività, scadenze e novità.', number: '06' }
 ] as const;
 ---
 
@@ -20,16 +20,16 @@ const features = [
   <section class="hero">
     <div class="container-shell hero-grid">
       <div class="hero-copy">
-        <span class="eyebrow">Piattaforma per archivi musicali</span>
-        <h1 class="display-title">Il patrimonio musicale, finalmente in armonia.</h1>
-        <p class="body-large">Taurus riunisce catalogo, ricerca, strumenti, persone ed eventi in un unico ambiente progettato per organizzazioni musicali.</p>
+        <span class="eyebrow">Gestionale per organizzazioni musicali</span>
+        <h1 class="display-title">Tutta la tua organizzazione, finalmente in armonia.</h1>
+        <p class="body-large">Taurus riunisce patrimonio musicale, calendario, inventario, contabilità e persone in un unico ambiente di lavoro condiviso.</p>
         <div class="hero-actions">
           <a class="button-primary" href="/funzionalita/">Scopri Taurus <Icon name="arrow" size={19} /></a>
           <a class="button-secondary" href={siteConfig.appUrl}>Accedi alla piattaforma</a>
         </div>
-        <div class="hero-points">
+        <div class="hero-points" aria-label="Caratteristiche principali">
           <span><Icon name="check" size={17} /> Multi-tenant</span>
-          <span><Icon name="check" size={17} /> Ricerca centralizzata</span>
+          <span><Icon name="check" size={17} /> Dati e attività connessi</span>
           <span><Icon name="check" size={17} /> Accessi per ruolo</span>
         </div>
       </div>
@@ -41,11 +41,11 @@ const features = [
   <section id="prodotto" class="section-space intro-section">
     <div class="container-shell intro-grid">
       <div>
-        <span class="eyebrow">Un'unica fonte affidabile</span>
-        <h2 class="section-title">Meno frammentazione.<br />Più musica da valorizzare.</h2>
+        <span class="eyebrow">Un unico spazio di lavoro</span>
+        <h2 class="section-title">Meno strumenti separati.<br />Più controllo quotidiano.</h2>
       </div>
       <div class="intro-copy">
-        <p class="body-large">Quando file, schede e calendari vivono in strumenti separati, trovare un’informazione diventa lavoro. Taurus restituisce contesto a ogni elemento dell’archivio.</p>
+        <p class="body-large">Quando catalogo, calendario, consegne e contabilità vivono in strumenti separati, anche una semplice verifica richiede tempo. Taurus collega le informazioni e le rende utili a tutta l’organizzazione.</p>
         <a href="/funzionalita/">Esplora tutte le funzionalità <Icon name="arrow" size={18} /></a>
       </div>
     </div>
@@ -60,15 +60,15 @@ const features = [
   <section class="section-space workflow-section">
     <div class="container-shell workflow-grid">
       <div class="workflow-copy">
-        <span class="eyebrow">Dal dato all'attività</span>
-        <h2 class="section-title">Ogni informazione trova il suo posto.</h2>
-        <p class="body-large">Il catalogo non è un deposito isolato: alimenta ricerca, preparazione degli eventi e collaborazione tra persone con responsabilità diverse.</p>
+        <span class="eyebrow">Un flusso condiviso</span>
+        <h2 class="section-title">Dalla programmazione al rendiconto.</h2>
+        <p class="body-large">Taurus segue il lavoro reale dell’organizzazione: prepara le attività, distribuisce responsabilità e conserva uno storico ordinato.</p>
       </div>
       <ol class="workflow-list">
-        <li><span>01</span><div><h3>Raccogli</h3><p>Centralizza metadati, documenti e contenuti multimediali.</p></div></li>
-        <li><span>02</span><div><h3>Collega</h3><p>Metti in relazione album, tracce, strumenti e utenti.</p></div></li>
-        <li><span>03</span><div><h3>Trova</h3><p>Interroga il patrimonio con filtri e ricerca testuale.</p></div></li>
-        <li><span>04</span><div><h3>Coordina</h3><p>Trasforma le informazioni in appuntamenti e attività condivise.</p></div></li>
+        <li><span>01</span><div><h3>Organizza</h3><p>Centralizza catalogo, documenti, oggetti e informazioni operative.</p></div></li>
+        <li><span>02</span><div><h3>Programma</h3><p>Crea eventi anche ricorrenti e raccogli disponibilità e presenze.</p></div></li>
+        <li><span>03</span><div><h3>Assegna</h3><p>Affida materiali e responsabilità con scadenze, notifiche e presa visione.</p></div></li>
+        <li><span>04</span><div><h3>Rendiconta</h3><p>Collega entrate e uscite alle attività ed esporta registri e report.</p></div></li>
       </ol>
     </div>
   </section>
@@ -83,17 +83,17 @@ const features = [
       <div>
         <span class="eyebrow">Sicurezza e separazione</span>
         <h2 class="section-title">Ogni organizzazione lavora nel proprio spazio.</h2>
-        <p class="body-large">Taurus combina autenticazione centralizzata, ruoli applicativi e separazione logica per mantenere distinti dati e responsabilità.</p>
+        <p class="body-large">Taurus combina autenticazione centralizzata, autorizzazioni applicative e schemi dati separati per mantenere distinti patrimonio, persone e attività.</p>
         <ul>
           <li><Icon name="check" size={18} /> Autenticazione OAuth 2.0 / OpenID Connect</li>
-          <li><Icon name="check" size={18} /> Profili Admin, Archivista, Utente e Utente Esterno</li>
-          <li><Icon name="check" size={18} /> Gestione delle versioni dei documenti legali</li>
+          <li><Icon name="check" size={18} /> Profili dedicati, incluso il ruolo Tesoriere</li>
+          <li><Icon name="check" size={18} /> Audit, documenti legali versionati e flussi GDPR</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <CallToAction />
+  <CallToAction title="Un solo ambiente per far funzionare l’organizzazione." text="Raccontaci come gestisci oggi patrimonio, attività, materiali e contabilità: vedremo insieme dove Taurus può semplificare il lavoro." />
 </BaseLayout>
 
 <style>
