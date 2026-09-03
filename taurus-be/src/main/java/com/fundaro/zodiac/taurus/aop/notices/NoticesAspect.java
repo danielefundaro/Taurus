@@ -3,13 +3,16 @@ package com.fundaro.zodiac.taurus.aop.notices;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
-import com.fundaro.zodiac.taurus.domain.finance.FinanceNotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.domain.inventory.*;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.*;
-import com.fundaro.zodiac.taurus.service.NoticesService.FinanceNoticeCommand;
+import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import com.fundaro.zodiac.taurus.service.dto.*;
 import com.fundaro.zodiac.taurus.service.dto.inventory.*;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.*;
@@ -31,6 +34,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.Currency;
@@ -44,7 +48,8 @@ import java.util.Set;
 @Component
 public class NoticesAspect {
 
-    private final NoticesService noticesService;
+    private final NotificationOutboxPublisher notificationPublisher;
+    private final CrossTenantNotificationPublisher crossTenantNotificationPublisher;
     private final UsersService usersService;
     private final TenantsService tenantsService;
     private final InstrumentsService instrumentsService;
@@ -61,7 +66,8 @@ public class NoticesAspect {
     );
 
     public NoticesAspect(
-        NoticesService noticesService,
+        NotificationOutboxPublisher notificationPublisher,
+        CrossTenantNotificationPublisher crossTenantNotificationPublisher,
         UsersService usersService,
         TenantsService tenantsService,
         InstrumentsService instrumentsService,
@@ -71,7 +77,8 @@ public class NoticesAspect {
         InventoryNoticeDataService inventoryNoticeDataService,
         FinanceNoticeDataService financeNoticeDataService
     ) {
-        this.noticesService = noticesService;
+        this.notificationPublisher = notificationPublisher;
+        this.crossTenantNotificationPublisher = crossTenantNotificationPublisher;
         this.usersService = usersService;
         this.tenantsService = tenantsService;
         this.instrumentsService = instrumentsService;
@@ -96,33 +103,33 @@ public class NoticesAspect {
             String name = "Album: creato", message = actor + " ha creato l'album " + quoted(dto.getName()) + ".";
 
             if (albumsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
             String name = "Traccia: creata", message = actor + " ha creato la traccia " + quoted(dto.getName()) + ".";
 
             if (tracksDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
             String name = "Evento: creato", message = actor + " ha creato l'evento " + quoted(dto.getName()) + ".";
 
             if (calendarEventsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof InstrumentsDTO) {
-            noticesService.addNoticesExcludeRoleUsers("Strumento: creato", actor + " ha creato lo strumento " + quoted(dto.getName()) + ".", token);
+            publishEditorial("Strumento: creato", actor + " ha creato lo strumento " + quoted(dto.getName()) + ".", token);
         } else if (dto instanceof UsersDTO usersDTO) {
             String user = displayName(usersDTO.getName(), usersDTO.getLastName(), "un utente senza nome");
-            noticesService.addNoticesAdmins("Utente: creato", actor + " ha creato l'utente " + user + ".", token);
+            publishAdmins("Utente: creato", actor + " ha creato l'utente " + user + ".", token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdminsForTenant(
+            publishTenant(
                 tenantsDTO.getCode(),
                 "Tenant: creato",
                 actor + " ha creato il tenant " + quoted(tenantsDTO.getName()) + " con codice " + quoted(tenantsDTO.getCode()) + ".",
@@ -148,10 +155,10 @@ public class NoticesAspect {
         String actor = getActorDisplayName(token);
         if (id != null) {
             tracksService.findOne(id, token).ifPresent(tracksDTO ->
-                noticesService.addNoticesExcludeRoleUsers("Traccia: aggiornata", actor + " ha aggiornato la traccia " + quoted(tracksDTO.getName()) + ".", token)
+                publishEditorial("Traccia: aggiornata", actor + " ha aggiornato la traccia " + quoted(tracksDTO.getName()) + ".", token)
             );
         } else if (file != null) {
-            noticesService.addNoticesExcludeRoleUsers(
+            publishEditorial(
                 "Traccia: creata",
                 actor + " ha creato la traccia " + quoted(FilenameUtils.removeExtension(file.getOriginalFilename())) + ".",
                 token
@@ -199,22 +206,21 @@ public class NoticesAspect {
 
             if (oldAlbum.getState() != StateEnum.PUBLIC) {
                 if (albumsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
                     String publishedMessage = actor + " ha pubblicato l'album " + quoted(dto.getName()) + ".";
-                    noticesService.addNoticeOnlyRoleUsers("Album: pubblicato", publishedMessage, token);
-                    noticesService.addNoticesExcludeRoleUsers("Album: pubblicato", publishedMessage, token);
+                    publishPublished("Album: pubblicato", publishedMessage, token);
                 }
             } else {
                 if (albumsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticeOnlyRoleUsers(
+                    publishUsers(
                         "Album: rimosso",
                         actor + " ha rimosso l'album " + quoted(dto.getName()) + " dai contenuti pubblicati.",
                         token
                     );
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
-                    noticesService.addNoticeWholeTenant(name, message, token);
+                    publishWholeTenant(name, message, token);
                 }
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
@@ -223,22 +229,21 @@ public class NoticesAspect {
 
             if (oldTrack.getState() != StateEnum.PUBLIC) {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
                     String publishedMessage = actor + " ha pubblicato la traccia " + quoted(dto.getName()) + ".";
-                    noticesService.addNoticeOnlyRoleUsers("Traccia: pubblicata", publishedMessage, token);
-                    noticesService.addNoticesExcludeRoleUsers("Traccia: pubblicata", publishedMessage, token);
+                    publishPublished("Traccia: pubblicata", publishedMessage, token);
                 }
             } else {
                 if (tracksDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticeOnlyRoleUsers(
+                    publishUsers(
                         "Traccia: rimossa",
                         actor + " ha rimosso la traccia " + quoted(dto.getName()) + " dai contenuti pubblicati.",
                         token
                     );
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
-                    noticesService.addNoticeWholeTenant(name, message, token);
+                    publishWholeTenant(name, message, token);
                 }
             }
         } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
@@ -247,31 +252,30 @@ public class NoticesAspect {
 
             if (oldCalendar.getState() != StateEnum.PUBLIC) {
                 if (calendarEventsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
                     String publishedMessage = actor + " ha pubblicato l'evento " + quoted(dto.getName()) + ".";
-                    noticesService.addNoticeOnlyRoleUsers("Evento: pubblicato", publishedMessage, token);
-                    noticesService.addNoticesExcludeRoleUsers("Evento: pubblicato", publishedMessage, token);
+                    publishPublished("Evento: pubblicato", publishedMessage, token);
                 }
             } else {
                 if (calendarEventsDTO.getState() != StateEnum.PUBLIC) {
-                    noticesService.addNoticeOnlyRoleUsers(
+                    publishUsers(
                         "Evento: rimosso",
                         actor + " ha rimosso l'evento " + quoted(dto.getName()) + " dai contenuti pubblicati.",
                         token
                     );
-                    noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                    publishEditorial(name, message, token);
                 } else {
-                    noticesService.addNoticeWholeTenant(name, message, token);
+                    publishWholeTenant(name, message, token);
                 }
             }
         } else if (dto instanceof InstrumentsDTO) {
-            noticesService.addNoticesExcludeRoleUsers("Strumento: aggiornato", actor + " ha aggiornato lo strumento " + quoted(dto.getName()) + ".", token);
+            publishEditorial("Strumento: aggiornato", actor + " ha aggiornato lo strumento " + quoted(dto.getName()) + ".", token);
         } else if (dto instanceof UsersDTO usersDTO) {
             String user = displayName(usersDTO.getName(), usersDTO.getLastName(), "un utente senza nome");
-            noticesService.addNoticesAdmins("Utente: aggiornato", actor + " ha aggiornato l'utente " + user + ".", token);
+            publishAdmins("Utente: aggiornato", actor + " ha aggiornato l'utente " + user + ".", token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdminsForTenant(
+            publishTenant(
                 tenantsDTO.getCode(),
                 "Tenant: aggiornato",
                 actor + " ha aggiornato il tenant " + quoted(tenantsDTO.getName()) + " con codice " + quoted(tenantsDTO.getCode()) + ".",
@@ -296,33 +300,33 @@ public class NoticesAspect {
             String name = "Album: rimosso", message = actor + " ha rimosso l'album " + quoted(dto.getName()) + ".";
 
             if (albumsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof TracksDTO tracksDTO) {
             String name = "Traccia: rimossa", message = actor + " ha rimosso la traccia " + quoted(dto.getName()) + ".";
 
             if (tracksDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof CalendarEventsDTO calendarEventsDTO) {
             String name = "Evento: rimosso", message = actor + " ha rimosso l'evento " + quoted(dto.getName()) + ".";
 
             if (calendarEventsDTO.getState() == StateEnum.PUBLIC) {
-                noticesService.addNoticeWholeTenant(name, message, token);
+                publishWholeTenant(name, message, token);
             } else {
-                noticesService.addNoticesExcludeRoleUsers(name, message, token);
+                publishEditorial(name, message, token);
             }
         } else if (dto instanceof InstrumentsDTO) {
-            noticesService.addNoticesExcludeRoleUsers("Strumento: rimosso", actor + " ha rimosso lo strumento " + quoted(dto.getName()) + ".", token);
+            publishEditorial("Strumento: rimosso", actor + " ha rimosso lo strumento " + quoted(dto.getName()) + ".", token);
         } else if (dto instanceof UsersDTO usersDTO) {
             String user = displayName(usersDTO.getName(), usersDTO.getLastName(), "un utente senza nome");
-            noticesService.addNoticesAdmins("Utente: rimosso", actor + " ha rimosso l'utente " + user + ".", token);
+            publishAdmins("Utente: rimosso", actor + " ha rimosso l'utente " + user + ".", token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            noticesService.addNoticesSuperAdminsForTenant(
+            publishTenant(
                 tenantsDTO.getCode(),
                 "Tenant: rimosso",
                 actor + " ha rimosso il tenant " + quoted(tenantsDTO.getName()) + " con codice " + quoted(tenantsDTO.getCode()) + ".",
@@ -346,13 +350,13 @@ public class NoticesAspect {
 
         String userName = getUserDisplayName(token);
         if (Boolean.TRUE.equals(available)) {
-            noticesService.addNoticesAdmins(
+            publishAdmins(
                 "Evento: disponibilità confermata",
                 sentenceSubject(userName) + " ha confermato la disponibilità per l'evento " + quoted(dto.getName()) + ".",
                 token
             );
         } else {
-            noticesService.addNoticesAdmins(
+            publishAdmins(
                 "Evento: disponibilità rifiutata",
                 sentenceSubject(userName) + " ha indicato di non essere disponibile per l'evento " + quoted(dto.getName()) + ".",
                 token
@@ -373,7 +377,7 @@ public class NoticesAspect {
         }
 
         String userName = getUserDisplayName(token);
-        noticesService.addNoticesAdmins(
+        publishAdmins(
             "Evento: disponibilità annullata",
             sentenceSubject(userName) + " ha annullato la risposta relativa all'evento " + quoted(dto.getName()) + ".",
             token
@@ -391,7 +395,7 @@ public class NoticesAspect {
             return result;
         }
 
-        noticesService.addNoticesAdmins(
+        publishAdmins(
             "Evento: presenze aggiornate",
             getActorDisplayName(token) + " ha aggiornato le presenze dell'evento " + quoted(dto.getName()) + ".",
             token
@@ -451,7 +455,7 @@ public class NoticesAspect {
                 notifyItem(result, "Inventario: oggetto aggiornato", actor + " ha aggiornato l'oggetto ", token);
             case "deleteItem" -> {
                 if (itemBefore != null) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: oggetto rimosso",
                         actor + " ha rimosso l'oggetto " + itemLabel(itemBefore) + ".",
                         token
@@ -460,7 +464,7 @@ public class NoticesAspect {
             }
             case "assign" -> {
                 if (result instanceof InventoryAssignmentDTO assignment) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: oggetto assegnato",
                         actor + " ha assegnato " + assignment.assignedQuantity() + " unità dell'oggetto " + itemLabel(assignment)
                             + " a " + assignmentOwner(assignment) + ".",
@@ -477,7 +481,7 @@ public class NoticesAspect {
             );
             case "deleteAssignment" -> {
                 if (assignmentBefore != null) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: assegnazione rimossa",
                         actor + " ha rimosso l'assegnazione dell'oggetto " + itemLabel(assignmentBefore.item())
                             + " a " + assignmentOwner(assignmentBefore) + ".",
@@ -498,7 +502,7 @@ public class NoticesAspect {
             case "addPhoto" -> {
                 ItemNotice item = findItemNotice(getLongArgument(joinPoint, 0));
                 if (item != null && result instanceof InventoryPhotoDTO photo) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: fotografia aggiunta",
                         actor + " ha aggiunto la fotografia " + quoted(photo.fileName()) + " all'oggetto " + itemLabel(item) + ".",
                         token
@@ -507,7 +511,7 @@ public class NoticesAspect {
             }
             case "deletePhoto" -> {
                 if (photoBefore != null) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: fotografia rimossa",
                         actor + " ha rimosso la fotografia " + quoted(photoBefore.fileName()) + " dall'oggetto " + itemLabel(photoBefore.item()) + ".",
                         token
@@ -517,7 +521,7 @@ public class NoticesAspect {
             case "reorderPhotos" -> {
                 ItemNotice item = findItemNotice(getLongArgument(joinPoint, 0));
                 if (item != null) {
-                    noticesService.addNoticesAdmins(
+                    publishAdmins(
                         "Inventario: fotografie aggiornate",
                         actor + " ha aggiornato l'ordine delle fotografie dell'oggetto " + itemLabel(item) + ".",
                         token
@@ -534,7 +538,7 @@ public class NoticesAspect {
                             .map(InventoryPhotoDTO.class::cast)
                             .filter(photo -> Objects.equals(photo.id(), selectedId))
                             .findFirst()
-                            .ifPresent(photo -> noticesService.addNoticesAdmins(
+                            .ifPresent(photo -> publishAdmins(
                                 "Inventario: fotografie aggiornate",
                                 actor + " ha impostato " + quoted(photo.fileName()) + " come fotografia di anteprima dell'oggetto " + itemLabel(item) + ".",
                                 token
@@ -555,7 +559,11 @@ public class NoticesAspect {
         Object result = joinPoint.proceed();
         if (result instanceof InventoryAssignmentRevision revision) {
             InventoryAssignment assignment = revision.getAssignment();
-            noticesService.addNoticeToUser(
+            publishUser(
+                "inventory:assignment:" + assignment.getId() + ":revision:" + revision.getRevisionNumber() + ":user",
+                "ASSIGNMENT",
+                assignment.getId().toString(),
+                "ASSIGNMENT_REVISION_CREATED",
                 assignment.getUserKeycloakId(),
                 "Inventario: presa visione richiesta",
                 "La revisione " + revision.getRevisionNumber() + " della tua assegnazione dell'oggetto "
@@ -580,22 +588,28 @@ public class NoticesAspect {
         String item = itemLabel(new ItemNotice(assignment.getItem().getInventoryNumber(), assignment.getItem().getName()));
         String date = formatDate(delivery.getExpirationDate());
 
-        noticesService.addNoticeToUser(
+        String expirationKey = "inventory:assignment:" + assignment.getId() + ":expiration:"
+            + delivery.getExpirationDate() + ":" + type.name().toLowerCase(Locale.ROOT);
+        publishUser(
+            expirationKey + ":user",
+            "ASSIGNMENT",
+            assignment.getId().toString(),
+            "ASSIGNMENT_EXPIRATION_" + type.name(),
             assignment.getUserKeycloakId(),
             title,
             expirationUserMessage(type, item, date),
             InventoryExpirationNotificationScheduler.SYSTEM_ACTOR
         );
 
-        inventoryNoticeDataService.findAdminIds()
-            .stream()
-            .filter(adminId -> !adminId.equals(assignment.getUserKeycloakId()))
-            .forEach(adminId -> noticesService.addNoticeToUser(
-                adminId,
-                title,
-                expirationAdminMessage(type, assignment, item, date),
-                InventoryExpirationNotificationScheduler.SYSTEM_ACTOR
-            ));
+        publishSystemAdmins(
+            expirationKey + ":admins",
+            "ASSIGNMENT",
+            assignment.getId().toString(),
+            "ASSIGNMENT_EXPIRATION_" + type.name(),
+            title,
+            expirationAdminMessage(type, assignment, item, date),
+            InventoryExpirationNotificationScheduler.SYSTEM_ACTOR
+        );
 
         return result;
     }
@@ -654,7 +668,7 @@ public class NoticesAspect {
                 "ACCOUNT_ARCHIVED",
                 "Economia: conto archiviato",
                 "ha archiviato il conto ",
-                FinanceNotificationSeverity.WARNING,
+                NotificationSeverity.WARNING,
                 "/finance?tab=accounts",
                 token
             );
@@ -665,24 +679,33 @@ public class NoticesAspect {
                 "CATEGORY_ARCHIVED",
                 "Economia: categoria archiviata",
                 "ha archiviato la categoria ",
-                FinanceNotificationSeverity.WARNING,
+                NotificationSeverity.WARNING,
                 "/finance?tab=categories",
                 token
             );
             case "createMovement" -> {
                 if (!movementAlreadyExisted && result instanceof MovementDTO movement) {
-                    notifyMovement(toNotice(movement), "MOVEMENT_CREATED", "Economia: movimento registrato", "ha registrato", token);
+                    String eventKey = movementRequest == null || movementRequest.requestKey() == null ? null : NotificationEventKey.deterministic(
+                        "finance", "movement", movement.id(), "created", movementRequest.requestKey()
+                    );
+                    notifyMovement(toNotice(movement), "MOVEMENT_CREATED", "Economia: movimento registrato", "ha registrato", token, eventKey);
                 }
             }
             case "updateMovement" -> notifyMovementUpdated(result, token);
             case "deleteMovement" -> notifyMovementRemoved(movementsBefore, token);
             case "reconcile" -> notifyReconciliation(result, getArgument(joinPoint, ReconciliationRequest.class), token);
             case "createTransfer" -> {
-                if (result instanceof TransferDTO transfer) notifyTransfer(transfer, "TRANSFER_CREATED", "Economia: trasferimento registrato", "ha registrato", token);
+                if (result instanceof TransferDTO transfer) {
+                    TransferRequest request = getArgument(joinPoint, TransferRequest.class);
+                    String eventKey = request == null || request.requestKey() == null ? null : NotificationEventKey.deterministic(
+                        "finance", "transfer", transfer.transferGroup(), "created", request.requestKey()
+                    );
+                    notifyTransfer(transfer, "TRANSFER_CREATED", "Economia: trasferimento registrato", "ha registrato", token, eventKey);
+                }
             }
             case "addAttachment" -> notifyAttachmentAdded(result, token);
-            case "getAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_DOWNLOADED", "Economia: allegato scaricato", "ha scaricato", FinanceNotificationSeverity.INFO, token);
-            case "deleteAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_REMOVED", "Economia: allegato rimosso", "ha rimosso", FinanceNotificationSeverity.WARNING, token);
+            case "getAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_DOWNLOADED", "Economia: allegato scaricato", "ha scaricato", NotificationSeverity.INFO, token);
+            case "deleteAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_REMOVED", "Economia: allegato rimosso", "ha rimosso", NotificationSeverity.WARNING, token);
             case "updateEventBudget" -> notifyEventBudget(result, token);
             case "rollover", "rolloverForActor" -> notifyRollover(joinPoint, result, yearBefore, token);
             case "recalculate" -> notifyRecalculation(result, token);
@@ -737,7 +760,7 @@ public class NoticesAspect {
             financeActor(token) + " ha esportato " + financeReportLabel(joinPoint.getSignature().getName()) + " in "
                 + Objects.requireNonNullElse(format, "csv").toUpperCase(Locale.ROOT)
                 + " per il periodo " + formatDate(effectiveFrom) + "–" + formatDate(effectiveTo) + ".",
-            FinanceNotificationSeverity.INFO,
+            NotificationSeverity.INFO,
             "/finance?tab=movements",
             token,
             null,
@@ -763,7 +786,7 @@ public class NoticesAspect {
             : " con saldo iniziale " + money(request.initialBalance(), account.currency()) + ".";
         publishFinance(null, "ACCOUNT", account.id(), "ACCOUNT_CREATED", "Economia: conto creato",
             financeActor(token) + " ha creato il conto " + quoted(account.name()) + detail,
-            FinanceNotificationSeverity.INFO, "/finance?tab=accounts", token, null, null);
+            NotificationSeverity.INFO, "/finance?tab=accounts", token, null, null);
     }
 
     private void notifyAccountUpdated(Object result, NamedNotice before, AbstractAuthenticationToken token) {
@@ -772,14 +795,14 @@ public class NoticesAspect {
         publishFinance(null, "ACCOUNT", account.id(), reactivated ? "ACCOUNT_REACTIVATED" : "ACCOUNT_UPDATED",
             reactivated ? "Economia: conto riattivato" : "Economia: conto aggiornato",
             financeActor(token) + (reactivated ? " ha riattivato il conto " : " ha aggiornato il conto ") + quoted(account.name()) + ".",
-            FinanceNotificationSeverity.INFO, "/finance?tab=accounts", token, null, null);
+            NotificationSeverity.INFO, "/finance?tab=accounts", token, null, null);
     }
 
     private void notifyCategory(Object result, String operation, String title, String action, AbstractAuthenticationToken token) {
         if (!(result instanceof CategoryDTO category) || token == null) return;
         publishFinance(null, "CATEGORY", category.id(), operation, title,
             financeActor(token) + " " + action + " la categoria " + quoted(category.name()) + ".",
-            FinanceNotificationSeverity.INFO, "/finance?tab=categories", token, null, null);
+            NotificationSeverity.INFO, "/finance?tab=categories", token, null, null);
     }
 
     private void notifyCategoryUpdated(Object result, NamedNotice before, AbstractAuthenticationToken token) {
@@ -795,7 +818,7 @@ public class NoticesAspect {
         String operation,
         String title,
         String action,
-        FinanceNotificationSeverity severity,
+        NotificationSeverity severity,
         String targetPath,
         AbstractAuthenticationToken token
     ) {
@@ -824,12 +847,23 @@ public class NoticesAspect {
     }
 
     private void notifyMovement(MovementNotice movement, String operation, String title, String action, AbstractAuthenticationToken token) {
+        notifyMovement(movement, operation, title, action, token, null);
+    }
+
+    private void notifyMovement(
+        MovementNotice movement,
+        String operation,
+        String title,
+        String action,
+        AbstractAuthenticationToken token,
+        String eventKey
+    ) {
         if (movement == null || token == null) return;
         String direction = movement.direction() == FinancialDirection.INCOME ? "un’entrata" : "un’uscita";
-        publishFinance(null, "MOVEMENT", movement.id(), operation, title,
+        publishFinance(eventKey, "MOVEMENT", movement.id(), operation, title,
             financeActor(token) + " " + action + " " + direction + " di " + money(movement.amount(), movement.currency())
                 + " sul conto " + quoted(movement.accountName()) + " in data " + formatDate(movement.bookingDate()) + ".",
-            operation.endsWith("REMOVED") ? FinanceNotificationSeverity.WARNING : FinanceNotificationSeverity.INFO,
+            operation.endsWith("REMOVED") ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
             operation.endsWith("REMOVED") ? "/finance?tab=movements" : "/finance?tab=movements&movementId=" + movement.id(),
             token, null, null);
     }
@@ -841,24 +875,46 @@ public class NoticesAspect {
             reconciled ? "Economia: movimento riconciliato" : "Economia: riconciliazione annullata",
             financeActor(token) + (reconciled ? " ha riconciliato il movimento " : " ha annullato la riconciliazione del movimento ")
                 + quoted(movement.description()) + " di " + money(movement.amount(), movement.currency()) + ".",
-            reconciled ? FinanceNotificationSeverity.INFO : FinanceNotificationSeverity.WARNING,
+            reconciled ? NotificationSeverity.INFO : NotificationSeverity.WARNING,
             "/finance?tab=movements&movementId=" + movement.id(), token, null, null);
     }
 
     private void notifyTransfer(TransferDTO transfer, String operation, String title, String action, AbstractAuthenticationToken token) {
-        notifyTransfer(List.of(toNotice(transfer.outgoing()), toNotice(transfer.incoming())), operation, title, action, token);
+        notifyTransfer(transfer, operation, title, action, token, null);
+    }
+
+    private void notifyTransfer(
+        TransferDTO transfer,
+        String operation,
+        String title,
+        String action,
+        AbstractAuthenticationToken token,
+        String eventKey
+    ) {
+        notifyTransfer(List.of(toNotice(transfer.outgoing()), toNotice(transfer.incoming())), operation, title, action, token, eventKey);
     }
 
     private void notifyTransfer(List<MovementNotice> pair, String operation, String title, String action, AbstractAuthenticationToken token) {
+        notifyTransfer(pair, operation, title, action, token, null);
+    }
+
+    private void notifyTransfer(
+        List<MovementNotice> pair,
+        String operation,
+        String title,
+        String action,
+        AbstractAuthenticationToken token,
+        String eventKey
+    ) {
         if (pair.size() < 2 || token == null) return;
         MovementNotice outgoing = pair.stream().filter(value -> value.direction() == FinancialDirection.EXPENSE).findFirst().orElse(null);
         MovementNotice incoming = pair.stream().filter(value -> value.direction() == FinancialDirection.INCOME).findFirst().orElse(null);
         if (outgoing == null || incoming == null) return;
         boolean removed = operation.endsWith("REMOVED");
-        publishFinance(null, "TRANSFER", outgoing.id(), operation, title,
+        publishFinance(eventKey, "TRANSFER", outgoing.id(), operation, title,
             financeActor(token) + " " + action + " il trasferimento di " + money(outgoing.amount(), outgoing.currency())
                 + " da " + quoted(outgoing.accountName()) + " a " + quoted(incoming.accountName()) + ".",
-            removed ? FinanceNotificationSeverity.WARNING : FinanceNotificationSeverity.INFO,
+            removed ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
             removed ? "/finance?tab=movements" : "/finance?tab=movements&movementId=" + outgoing.id(), token, null, null);
     }
 
@@ -867,7 +923,7 @@ public class NoticesAspect {
         List<MovementNotice> movements = financeNoticeDataService.findMovementGroup(attachment.movementId());
         if (movements.isEmpty()) return;
         notifyAttachment(new AttachmentNotice(attachment.id(), attachment.fileName(), movements.get(0)), "ATTACHMENT_ADDED",
-            "Economia: allegato aggiunto", "ha aggiunto", FinanceNotificationSeverity.INFO, token);
+            "Economia: allegato aggiunto", "ha aggiunto", NotificationSeverity.INFO, token);
     }
 
     private void notifyAttachment(
@@ -875,7 +931,7 @@ public class NoticesAspect {
         String operation,
         String title,
         String action,
-        FinanceNotificationSeverity severity,
+        NotificationSeverity severity,
         AbstractAuthenticationToken token
     ) {
         if (attachment == null || token == null) return;
@@ -890,7 +946,7 @@ public class NoticesAspect {
         publishFinance(null, "EVENT", event.eventId(), "EVENT_BUDGET_UPDATED", "Economia: preventivo aggiornato",
             financeActor(token) + " ha aggiornato il preventivo dell’evento " + quoted(event.eventName()) + ": compenso previsto "
                 + money(event.expectedFee(), "EUR") + ", costi previsti " + money(event.expectedCosts(), "EUR") + ".",
-            FinanceNotificationSeverity.INFO, "/finance?tab=events&eventId=" + event.eventId(), token, null, null);
+            NotificationSeverity.INFO, "/finance?tab=events&eventId=" + event.eventId(), token, null, null);
     }
 
     private void notifyRollover(
@@ -903,14 +959,14 @@ public class NoticesAspect {
         if (token != null) {
             publishFinance(null, "ACCOUNTING_YEAR", null, "YEAR_ROLLED_OVER", "Economia: riporto annuale completato",
                 financeActor(token) + " ha completato il riporto dell’esercizio " + value.year() + " e aggiornato i saldi iniziali al 01/01/" + (value.year() + 1) + ".",
-                FinanceNotificationSeverity.SUCCESS, "/finance?tab=years", token, null, null);
+                NotificationSeverity.SUCCESS, "/finance?tab=years", token, null, null);
             return;
         }
         String systemActor = getArgument(joinPoint, String.class);
         publishFinance("finance-rollover:" + value.year(), "ACCOUNTING_YEAR", null, "YEAR_ROLLED_OVER",
             "Economia: riporto annuale completato",
             "Il riporto dell’esercizio " + value.year() + " è stato completato e i saldi iniziali al 01/01/" + (value.year() + 1) + " sono stati aggiornati.",
-            FinanceNotificationSeverity.SUCCESS, "/finance?tab=years", null,
+            NotificationSeverity.SUCCESS, "/finance?tab=years", null,
             Objects.requireNonNullElse(trimToNull(systemActor), FinanceRolloverScheduler.SYSTEM_ACTOR), "Sistema");
     }
 
@@ -918,7 +974,7 @@ public class NoticesAspect {
         if (!(result instanceof YearDTO value) || token == null) return;
         publishFinance(null, "ACCOUNTING_YEAR", null, "YEAR_RECALCULATED", "Economia: esercizio ricalcolato",
             financeActor(token) + " ha ricalcolato l’esercizio " + value.year() + " e i riporti successivi.",
-            FinanceNotificationSeverity.WARNING, "/finance?tab=years", token, null, null);
+            NotificationSeverity.WARNING, "/finance?tab=years", token, null, null);
     }
 
     private void publishFinance(
@@ -928,7 +984,7 @@ public class NoticesAspect {
         String operation,
         String title,
         String message,
-        FinanceNotificationSeverity severity,
+        NotificationSeverity severity,
         String targetPath,
         AbstractAuthenticationToken token,
         String actorId,
@@ -936,19 +992,272 @@ public class NoticesAspect {
     ) {
         String effectiveActorId = token == null ? actorId : SecurityUtils.getUserIdFromAuthentication(token);
         String effectiveDisplayName = token == null ? actorDisplayName : financeActor(token);
-        noticesService.enqueueFinanceNotice(new FinanceNoticeCommand(
-            eventKey,
+        notificationPublisher.enqueue(new NotificationCommand(
+            Objects.requireNonNullElse(trimToNull(eventKey), notificationKey(NotificationSource.FINANCE, aggregateType, operation)),
+            NotificationSource.FINANCE,
             aggregateType,
-            aggregateId,
+            aggregateId == null ? null : aggregateId.toString(),
             operation,
-            title,
-            message,
+            limitText(title),
+            limitMessage(message),
             severity,
             targetPath,
             Objects.requireNonNullElse(trimToNull(effectiveActorId), "system"),
             Objects.requireNonNullElse(trimToNull(effectiveDisplayName), "Sistema"),
-            FINANCE_NOTIFICATION_ROLES
+            FINANCE_NOTIFICATION_ROLES.stream().map(NotificationAudience::role).collect(java.util.stream.Collectors.toSet()),
+            null
         ));
+    }
+
+    private void publishAdmins(String title, String message, AbstractAuthenticationToken token) {
+        publish(title, message, token, Set.of(
+            NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+        ));
+    }
+
+    private void publishEditorial(String title, String message, AbstractAuthenticationToken token) {
+        publish(title, message, token, Set.of(
+            NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_ARCHIVIST)
+        ));
+    }
+
+    private void publishWholeTenant(String title, String message, AbstractAuthenticationToken token) {
+        publish(title, message, token, Set.of(
+            NotificationAudience.allActiveUsers(),
+            NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+        ));
+    }
+
+    private void publishUsers(String title, String message, AbstractAuthenticationToken token) {
+        publish(title, message, token, Set.of(
+            NotificationAudience.role(RoleEnum.ROLE_USER),
+            NotificationAudience.role(RoleEnum.ROLE_USER_EXTERNAL)
+        ));
+    }
+
+    private void publishPublished(String title, String message, AbstractAuthenticationToken token) {
+        publish(title, message, token, Set.of(
+            NotificationAudience.role(RoleEnum.ROLE_USER),
+            NotificationAudience.role(RoleEnum.ROLE_USER_EXTERNAL),
+            NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_ARCHIVIST)
+        ));
+    }
+
+    private void publishUser(String userId, String title, String message, AbstractAuthenticationToken token) {
+        if (token == null) return;
+        publish(title, message, token, Set.of(NotificationAudience.user(userId)));
+    }
+
+    private void publishUser(String userId, String title, String message, String actorId) {
+        publishUser(
+            notificationKey(sourceOf(title), aggregateTypeOf(title), operationOf(title)),
+            aggregateTypeOf(title),
+            null,
+            operationOf(title),
+            userId,
+            title,
+            message,
+            actorId
+        );
+    }
+
+    private void publishUser(
+        String eventKey,
+        String aggregateType,
+        String aggregateId,
+        String operation,
+        String userId,
+        String title,
+        String message,
+        String actorId
+    ) {
+        NotificationSource source = sourceOf(title);
+        notificationPublisher.enqueue(new NotificationCommand(
+            eventKey,
+            source,
+            aggregateType,
+            aggregateId,
+            operation,
+            limitText(title),
+            limitMessage(message),
+            severityOf(title),
+            targetPathOf(source, aggregateType),
+            Objects.requireNonNullElse(trimToNull(actorId), "system"),
+            "Sistema",
+            Set.of(NotificationAudience.user(userId)),
+            null
+        ));
+    }
+
+    private void publishSystemAdmins(String title, String message, String actorId) {
+        publishSystemAdmins(
+            notificationKey(sourceOf(title), aggregateTypeOf(title), operationOf(title)),
+            aggregateTypeOf(title),
+            null,
+            operationOf(title),
+            title,
+            message,
+            actorId
+        );
+    }
+
+    private void publishSystemAdmins(
+        String eventKey,
+        String aggregateType,
+        String aggregateId,
+        String operation,
+        String title,
+        String message,
+        String actorId
+    ) {
+        NotificationSource source = sourceOf(title);
+        notificationPublisher.enqueue(new NotificationCommand(
+            eventKey,
+            source,
+            aggregateType,
+            aggregateId,
+            operation,
+            limitText(title),
+            limitMessage(message),
+            severityOf(title),
+            targetPathOf(source, aggregateType),
+            Objects.requireNonNullElse(trimToNull(actorId), "system"),
+            "Sistema",
+            Set.of(
+                NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+            ),
+            null
+        ));
+    }
+
+    private void publishTenant(String tenantCode, String title, String message, AbstractAuthenticationToken token) {
+        if (token == null) return;
+        String operation = operationOf(title);
+        crossTenantNotificationPublisher.enqueue(new NotificationCommand(
+            notificationKey(NotificationSource.TENANT, "TENANT", operation),
+            NotificationSource.TENANT,
+            "TENANT",
+            tenantCode,
+            operation,
+            limitText(title),
+            limitMessage(message),
+            severityOf(title),
+            null,
+            Objects.requireNonNullElse(trimToNull(SecurityUtils.getUserIdFromAuthentication(token)), "system"),
+            getActorDisplayName(token),
+            Set.of(NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)),
+            tenantCode
+        ));
+    }
+
+    private void publish(
+        String title,
+        String message,
+        AbstractAuthenticationToken token,
+        Set<NotificationAudience> audiences
+    ) {
+        if (token == null) return;
+        NotificationSource source = sourceOf(title);
+        String aggregateType = aggregateTypeOf(title);
+        String operation = operationOf(title);
+        notificationPublisher.enqueue(new NotificationCommand(
+            notificationKey(source, aggregateType, operation),
+            source,
+            aggregateType,
+            null,
+            operation,
+            limitText(title),
+            limitMessage(message),
+            severityOf(title),
+            targetPathOf(source, aggregateType),
+            Objects.requireNonNullElse(trimToNull(SecurityUtils.getUserIdFromAuthentication(token)), "system"),
+            getActorDisplayName(token),
+            audiences,
+            null
+        ));
+    }
+
+    private static NotificationSource sourceOf(String title) {
+        String prefix = aggregateTypeOf(title);
+        return switch (prefix) {
+            case "ALBUM", "TRACCIA", "STRUMENTO" -> NotificationSource.CONTENT;
+            case "EVENTO" -> NotificationSource.CALENDAR;
+            case "UTENTE" -> NotificationSource.IDENTITY;
+            case "TENANT" -> NotificationSource.TENANT;
+            case "INVENTARIO" -> NotificationSource.INVENTORY;
+            case "ECONOMIA" -> NotificationSource.FINANCE;
+            default -> NotificationSource.GENERAL;
+        };
+    }
+
+    private static String aggregateTypeOf(String title) {
+        String value = Objects.requireNonNullElse(trimToNull(title), "GENERAL");
+        int separator = value.indexOf(':');
+        return code(separator < 0 ? value : value.substring(0, separator), "GENERAL");
+    }
+
+    private static String operationOf(String title) {
+        String value = Objects.requireNonNullElse(trimToNull(title), "notification");
+        int separator = value.indexOf(':');
+        String aggregate = aggregateTypeOf(value);
+        String action = separator < 0 ? value : value.substring(separator + 1);
+        return code(aggregate + "_" + action, "NOTIFICATION");
+    }
+
+    private static String code(String value, String fallback) {
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+            .replaceAll("\\p{M}+", "")
+            .toUpperCase(Locale.ROOT)
+            .replaceAll("[^A-Z0-9]+", "_")
+            .replaceAll("^_+|_+$", "");
+        if (normalized.isBlank()) normalized = fallback;
+        return normalized.length() <= 64 ? normalized : normalized.substring(0, 64);
+    }
+
+    private static NotificationSeverity severityOf(String title) {
+        String value = Objects.requireNonNullElse(title, "").toLowerCase(Locale.ROOT);
+        if (value.contains("rimoss") || value.contains("rifiutat") || value.contains("scadut") || value.contains("annullat")) {
+            return NotificationSeverity.WARNING;
+        }
+        if (value.contains("creat") || value.contains("pubblicat") || value.contains("completat") || value.contains("confermat") || value.contains("accettat")) {
+            return NotificationSeverity.SUCCESS;
+        }
+        return NotificationSeverity.INFO;
+    }
+
+    private static String targetPathOf(NotificationSource source, String aggregateType) {
+        return switch (source) {
+            case CONTENT -> switch (aggregateType) {
+                case "TRACCIA" -> "/tracks";
+                case "STRUMENTO" -> "/instruments";
+                default -> "/albums";
+            };
+            case CALENDAR -> "/calendar-events";
+            case IDENTITY -> "/users";
+            case INVENTORY -> "/inventory";
+            case FINANCE -> "/finance";
+            case GENERAL, TENANT -> null;
+        };
+    }
+
+    private static String notificationKey(NotificationSource source, String aggregateType, String operation) {
+        return NotificationEventKey.random(source, code(aggregateType, "general"), code(operation, "notification"));
+    }
+
+    private static String limitText(String value) {
+        if (value == null || value.length() <= 255) return value;
+        return value.substring(0, 254) + "…";
+    }
+
+    private static String limitMessage(String value) {
+        if (value == null || value.length() <= 255) return value;
+        return value.substring(0, 253) + "….";
     }
 
     private static MovementNotice toNotice(MovementDTO movement) {
@@ -982,7 +1291,7 @@ public class NoticesAspect {
 
     private void notifyItem(Object result, String title, String messagePrefix, AbstractAuthenticationToken token) {
         if (result instanceof InventoryItemDTO item) {
-            noticesService.addNoticesAdmins(title, messagePrefix + itemLabel(item) + ".", token);
+            publishAdmins(title, messagePrefix + itemLabel(item) + ".", token);
         }
     }
 
@@ -994,7 +1303,7 @@ public class NoticesAspect {
         AbstractAuthenticationToken token
     ) {
         if (result instanceof InventoryAssignmentDTO assignment) {
-            noticesService.addNoticesAdmins(
+            publishAdmins(
                 title,
                 messagePrefix + itemLabel(assignment) + ownerConnector + assignmentOwner(assignment) + ".",
                 token
@@ -1022,7 +1331,7 @@ public class NoticesAspect {
         if (!accepted && reason != null) {
             message += " Motivazione: " + reason + ".";
         }
-        noticesService.addNoticesAdmins(
+        publishAdmins(
             accepted ? "Inventario: presa visione accettata" : "Inventario: presa visione rifiutata",
             message,
             token
@@ -1031,7 +1340,7 @@ public class NoticesAspect {
 
     private void notifyReturnRequested(AssignmentNotice assignment, Object result, AbstractAuthenticationToken token) {
         if (assignment != null && result instanceof InventoryReturnDTO inventoryReturn) {
-            noticesService.addNoticesAdmins(
+            publishAdmins(
                 "Inventario: riconsegna richiesta",
                 sentenceSubject(assignmentOwner(assignment)) + " ha richiesto la riconsegna di " + inventoryReturn.quantity()
                     + " unità dell'oggetto " + itemLabel(assignment.item()) + ".",
@@ -1049,14 +1358,14 @@ public class NoticesAspect {
         if (assignment == null || !(result instanceof InventoryReturnDTO inventoryReturn)) {
             return;
         }
-        noticesService.addNoticeToUser(
+        publishUser(
             assignment.userKeycloakId(),
             "Inventario: riconsegna completata",
             "È stata completata la riconsegna di " + inventoryReturn.quantity() + " unità dell'oggetto "
                 + itemLabel(assignment.item()) + " assegnato a te.",
             token
         );
-        noticesService.addNoticesAdmins(
+        publishAdmins(
             "Inventario: riconsegna completata",
             actor + " ha completato la riconsegna di " + inventoryReturn.quantity() + " unità dell'oggetto "
                 + itemLabel(assignment.item()) + " assegnato a " + assignmentOwner(assignment) + ".",

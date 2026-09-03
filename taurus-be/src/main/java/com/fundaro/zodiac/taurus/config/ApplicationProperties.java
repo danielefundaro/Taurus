@@ -24,6 +24,8 @@ public class ApplicationProperties {
 
     private CalendarProperties calendar = new CalendarProperties();
 
+    private NotificationProperties notifications = new NotificationProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -71,6 +73,10 @@ public class ApplicationProperties {
     public void setCalendar(CalendarProperties calendar) {
         this.calendar = calendar;
     }
+
+    public NotificationProperties getNotifications() { return notifications; }
+
+    public void setNotifications(NotificationProperties notifications) { this.notifications = notifications; }
 
     private TesseractProperties tesseract = new TesseractProperties();
 
@@ -249,5 +255,37 @@ public class ApplicationProperties {
         public void setMaxOccurrences(int maxOccurrences) {
             this.maxOccurrences = maxOccurrences;
         }
+    }
+
+    public static class NotificationProperties {
+        private long dispatchDelay = 5000;
+        private int batchSize = 100;
+        private String cleanupCron = "0 30 3 * * *";
+        private int outboxRetentionDays = 30;
+        private RetryProperties retry = new RetryProperties();
+
+        public long getDispatchDelay() { return dispatchDelay; }
+        public void setDispatchDelay(long dispatchDelay) { this.dispatchDelay = dispatchDelay; }
+        public int getBatchSize() { return batchSize; }
+        public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
+        public String getCleanupCron() { return cleanupCron; }
+        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
+        public int getOutboxRetentionDays() { return outboxRetentionDays; }
+        public void setOutboxRetentionDays(int outboxRetentionDays) { this.outboxRetentionDays = outboxRetentionDays; }
+        public RetryProperties getRetry() { return retry; }
+        public void setRetry(RetryProperties retry) { this.retry = retry; }
+    }
+
+    public static class RetryProperties {
+        private int initialDelayMinutes = 1;
+        private int maxDelayMinutes = 60;
+        private int maxAttempts;
+
+        public int getInitialDelayMinutes() { return initialDelayMinutes; }
+        public void setInitialDelayMinutes(int initialDelayMinutes) { this.initialDelayMinutes = initialDelayMinutes; }
+        public int getMaxDelayMinutes() { return maxDelayMinutes; }
+        public void setMaxDelayMinutes(int maxDelayMinutes) { this.maxDelayMinutes = maxDelayMinutes; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
     }
 }

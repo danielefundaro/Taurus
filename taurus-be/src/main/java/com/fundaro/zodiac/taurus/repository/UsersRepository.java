@@ -34,4 +34,12 @@ public interface UsersRepository extends CatalogRepository<Users> {
           and role in :roles
         """)
     List<String> findActiveKeycloakIdsByRolesIn(@Param("roles") Collection<RoleEnum> roles);
+
+    @Query("""
+        select distinct u.keycloakId from Users u
+        where u.deleted = false
+          and u.active = true
+          and u.keycloakId is not null
+        """)
+    List<String> findAllActiveKeycloakIds();
 }

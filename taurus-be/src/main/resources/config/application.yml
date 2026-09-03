@@ -211,6 +211,15 @@ jhipster:
 # application:
 
 application:
+  notifications:
+    dispatch-delay: 5000
+    batch-size: 100
+    cleanup-cron: "0 30 3 * * *"
+    outbox-retention-days: 30
+    retry:
+      initial-delay-minutes: 1
+      max-delay-minutes: 60
+      max-attempts: 0
   calendar:
     recurrence:
       max-occurrences: 500

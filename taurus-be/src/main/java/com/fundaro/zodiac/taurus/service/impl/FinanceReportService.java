@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLi
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.StatementLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -24,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -53,14 +51,19 @@ public class FinanceReportService {
 
     private static final DateTimeFormatter ITALIAN_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter ITALIAN_TIMESTAMP = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final int PDF_LINES_PER_PAGE = 48;
 
     private final FinancialMovementRepository movementRepository;
     private final FinanceService financeService;
+    private final TenantPdfHeaderService tenantPdfHeaderService;
 
-    public FinanceReportService(FinancialMovementRepository movementRepository, FinanceService financeService) {
+    public FinanceReportService(
+        FinancialMovementRepository movementRepository,
+        FinanceService financeService,
+        TenantPdfHeaderService tenantPdfHeaderService
+    ) {
         this.movementRepository = movementRepository;
         this.financeService = financeService;
+        this.tenantPdfHeaderService = tenantPdfHeaderService;
     }
 
     @Transactional
@@ -119,7 +122,7 @@ public class FinanceReportService {
             rows
         );
         Meta meta = meta("Registro cassa", effectiveFrom, effectiveTo, filters, token);
-        return render("registro-cassa-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format);
+        return render("registro-cassa-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -152,7 +155,7 @@ public class FinanceReportService {
             List.of("Conto: " + statement.account().name()),
             token
         );
-        return render("estratto-conto-" + accountId + "-" + statement.from() + "-" + statement.to(), meta, List.of(section), format);
+        return render("estratto-conto-" + accountId + "-" + statement.from() + "-" + statement.to(), meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -162,7 +165,7 @@ public class FinanceReportService {
         List<EventEconomicLineDTO> lines = financeService.eventLines(effectiveFrom, effectiveTo, token);
         Section section = new Section("Eventi", eventHeaders(), eventRows(lines));
         Meta meta = meta("Rendiconto per evento", effectiveFrom, effectiveTo, List.of(), token);
-        return render("rendiconto-eventi-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format);
+        return render("rendiconto-eventi-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -172,7 +175,7 @@ public class FinanceReportService {
         List<CategoryTotalDTO> totals = financeService.categoryTotals(effectiveFrom, effectiveTo, token);
         Section section = new Section("Categorie", categoryHeaders(), categoryRows(totals));
         Meta meta = meta("Rendiconto per categoria", effectiveFrom, effectiveTo, List.of(), token);
-        return render("rendiconto-categorie-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format);
+        return render("rendiconto-categorie-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -214,7 +217,7 @@ public class FinanceReportService {
             List.of("Esercizio: " + year + " (" + summary.year().status() + ")"),
             token
         );
-        return render("rendiconto-annuale-" + year, meta, List.of(accounts, totals, categories, openEvents), format);
+        return render("rendiconto-annuale-" + year, meta, List.of(accounts, totals, categories, openEvents), format, token);
     }
 
     private static List<String> eventHeaders() {
@@ -292,7 +295,13 @@ public class FinanceReportService {
         return new Meta(title, requiredTenant(token), from, to, filters, requester(token), ZonedDateTime.now());
     }
 
-    private ReportContent render(String baseName, Meta meta, List<Section> sections, String format) {
+    private ReportContent render(
+        String baseName,
+        Meta meta,
+        List<Section> sections,
+        String format,
+        AbstractAuthenticationToken token
+    ) {
         String normalized = format == null ? "csv" : format.toLowerCase(Locale.ROOT);
         return switch (normalized) {
             case "csv" -> new ReportContent(baseName + ".csv", "text/csv;charset=UTF-8", csv(meta, sections));
@@ -301,7 +310,7 @@ public class FinanceReportService {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 xlsx(meta, sections)
             );
-            case "pdf" -> new ReportContent(baseName + ".pdf", "application/pdf", pdf(meta, sections));
+            case "pdf" -> new ReportContent(baseName + ".pdf", "application/pdf", pdf(meta, sections, token));
             default -> throw error(HttpStatus.BAD_REQUEST, "Formato di esportazione non supportato", "finance.report.unsupportedFormat");
         };
     }
@@ -374,50 +383,28 @@ public class FinanceReportService {
         }
     }
 
-    private byte[] pdf(Meta meta, List<Section> sections) {
+    private byte[] pdf(Meta meta, List<Section> sections, AbstractAuthenticationToken token) {
         try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
             PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-
-            List<String> lines = new ArrayList<>();
-            lines.add(meta.title() + " - " + meta.tenant());
-            lines.add("Periodo: " + meta.periodLabel());
-            lines.add("Filtri: " + meta.filtersLabel());
-            lines.add("Generato il " + meta.generatedAt().format(ITALIAN_TIMESTAMP) + " da " + meta.requestedBy());
+            PdfPageWriter writer = new PdfPageWriter(document, regular, bold);
+            tenantPdfHeaderService.write(writer, meta.title(), meta.tenant(), meta.generatedAt(), token);
+            writer.line("Periodo: " + meta.periodLabel(), false);
+            writer.line("Filtri: " + meta.filtersLabel(), false);
+            writer.line("Richiesto da: " + meta.requestedBy(), false);
+            writer.space(10);
             for (Section section : sections) {
-                lines.add("");
-                lines.add(section.title());
-                lines.add(String.join(" | ", section.headers()));
+                writer.heading(section.title());
+                writer.line(String.join(" | ", section.headers()), true);
                 for (Object[] row : section.rows()) {
                     List<String> cells = new ArrayList<>();
                     for (Object cell : row) cells.add(text(cell));
-                    lines.add(String.join(" | ", cells));
+                    writer.line(String.join(" | ", cells), false);
                 }
+                writer.separator();
             }
-
-            int index = 0;
-            boolean firstPage = true;
-            while (index < lines.size()) {
-                PDPage page = new PDPage(PDRectangle.A4);
-                document.addPage(page);
-                try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
-                    stream.beginText();
-                    stream.setLeading(15);
-                    stream.newLineAtOffset(45, 800);
-                    int pageLine = 0;
-                    while (index < lines.size() && pageLine < PDF_LINES_PER_PAGE) {
-                        boolean isTitle = firstPage && index == 0;
-                        stream.setFont(isTitle ? bold : regular, isTitle ? 14 : 9);
-                        stream.showText(pdfSafe(lines.get(index)));
-                        stream.newLine();
-                        index++;
-                        pageLine++;
-                    }
-                    stream.endText();
-                }
-                firstPage = false;
-            }
-            if (document.getNumberOfPages() == 0) document.addPage(new PDPage(PDRectangle.A4));
+            writer.closeCurrentPage();
+            PdfPageWriter.addPageNumbers(document, regular);
             document.save(output);
             return output.toByteArray();
         } catch (IOException exception) {
@@ -452,10 +439,6 @@ public class FinanceReportService {
     private static String csvValue(String value) {
         if (value == null) return "";
         return '"' + value.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + '"';
-    }
-
-    private static String pdfSafe(String value) {
-        return value.replace('€', 'E').replaceAll("[^\\x20-\\x7EÀ-ÿ]", "?");
     }
 
     private static void requirePeriod(LocalDate from, LocalDate to) {

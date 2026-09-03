@@ -25,8 +25,8 @@ import com.fundaro.zodiac.taurus.repository.finance.FinancialCategoryRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.service.MediaService;
-import com.fundaro.zodiac.taurus.service.NoticesService;
-import com.fundaro.zodiac.taurus.service.NoticesService.FinanceNoticeCommand;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.MovementNotice;
@@ -59,7 +59,7 @@ class FinanceServiceTest {
     @Mock MediaRepository mediaRepository;
     @Mock MediaService mediaService;
     @Mock FinanceNoticeDataService financeNoticeDataService;
-    @Mock NoticesService noticesService;
+    @Mock NotificationOutboxPublisher notificationPublisher;
 
     private FinanceService service;
 
@@ -76,7 +76,8 @@ class FinanceServiceTest {
             mediaService
         );
         NoticesAspect noticesAspect = new NoticesAspect(
-            noticesService,
+            notificationPublisher,
+            null,
             null,
             null,
             null,
@@ -130,8 +131,8 @@ class FinanceServiceTest {
         assertThat(result.accountingYear()).isEqualTo(2026);
         assertThat(result.currency()).isEqualTo("EUR");
         assertThat(result.amount()).isEqualByComparingTo("125.50");
-        ArgumentCaptor<FinanceNoticeCommand> notification = ArgumentCaptor.forClass(FinanceNoticeCommand.class);
-        verify(noticesService).enqueueFinanceNotice(notification.capture());
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().title()).isEqualTo("Economia: movimento registrato");
         assertThat(notification.getValue().message()).contains("Mario Rossi", "125,50", "01/09/2026").endsWith(".");
     }
@@ -219,8 +220,8 @@ class FinanceServiceTest {
         assertThat(outgoing.isDeleted()).isTrue();
         assertThat(incoming.isDeleted()).isTrue();
         verify(movementRepository).saveAll(List.of(outgoing, incoming));
-        ArgumentCaptor<FinanceNoticeCommand> notification = ArgumentCaptor.forClass(FinanceNoticeCommand.class);
-        verify(noticesService).enqueueFinanceNotice(notification.capture());
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().operation()).isEqualTo("TRANSFER_REMOVED");
         assertThat(notification.getValue().title()).isEqualTo("Economia: trasferimento rimosso");
     }
@@ -258,8 +259,8 @@ class FinanceServiceTest {
 
         service.rolloverForActor(2026, FinanceRolloverScheduler.SYSTEM_ACTOR);
 
-        ArgumentCaptor<FinanceNoticeCommand> notification = ArgumentCaptor.forClass(FinanceNoticeCommand.class);
-        verify(noticesService).enqueueFinanceNotice(notification.capture());
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().eventKey()).isEqualTo("finance-rollover:2026");
         assertThat(notification.getValue().message()).startsWith("Il riporto dell’esercizio 2026").doesNotContain("Il sistema ha").endsWith(".");
     }

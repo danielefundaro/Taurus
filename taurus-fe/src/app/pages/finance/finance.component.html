@@ -349,7 +349,19 @@
                             <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportEventsReport('pdf')" />
                         </div>
                     </div>
-                    <p-table [value]="events" dataKey="eventId">
+                    <p-table
+                        [value]="events"
+                        [lazy]="true"
+                        [loading]="eventsLoading"
+                        [paginator]="true"
+                        [rows]="12"
+                        [totalRecords]="totalEvents"
+                        [rowsPerPageOptions]="[12, 24, 48]"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="Da {first} a {last} di {totalRecords} eventi"
+                        dataKey="eventId"
+                        (onLazyLoad)="onEventLazyLoad($event)"
+                    >
                         <ng-template #header
                             ><tr>
                                 <th>Evento</th>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260903000001-1-expand" author="codex">
+        <comment>Expand the finance outbox while retaining a rolling-deployment compatibility view.</comment>
+        <sql splitStatements="false">
+            ALTER TABLE finance_notification_outbox
+                ADD COLUMN source VARCHAR(32) NOT NULL DEFAULT 'FINANCE';
+
+            ALTER TABLE finance_notification_outbox
+                ALTER COLUMN aggregate_type TYPE VARCHAR(64),
+                ALTER COLUMN aggregate_id TYPE VARCHAR(160) USING aggregate_id::text;
+
+            ALTER TABLE finance_notification_outbox RENAME TO notification_outbox;
+            ALTER TABLE notification_outbox RENAME CONSTRAINT uq_finance_notification_event_key TO uq_notification_event_key;
+            ALTER TABLE notification_outbox RENAME CONSTRAINT ck_finance_notification_severity TO ck_notification_severity;
+            ALTER TABLE notification_outbox RENAME CONSTRAINT ck_finance_notification_status TO ck_notification_status;
+            ALTER TABLE notification_outbox RENAME CONSTRAINT ck_finance_notification_attempts TO ck_notification_attempts;
+            ALTER INDEX idx_finance_notification_pending RENAME TO idx_notification_pending;
+
+            ALTER TABLE notification_outbox
+                ADD CONSTRAINT ck_notification_source CHECK (source IN ('GENERAL', 'CONTENT', 'CALENDAR', 'IDENTITY', 'TENANT', 'INVENTORY', 'FINANCE'));
+
+            ALTER TABLE notification_outbox ALTER COLUMN recipient_roles DROP NOT NULL;
+
+            CREATE TABLE notification_outbox_audience (
+                id BIGSERIAL PRIMARY KEY,
+                notification_event_id BIGINT NOT NULL,
+                audience_type VARCHAR(32) NOT NULL,
+                audience_value VARCHAR(255) NOT NULL,
+                CONSTRAINT fk_notification_audience_event
+                    FOREIGN KEY (notification_event_id) REFERENCES notification_outbox(id) ON DELETE CASCADE,
+                CONSTRAINT uq_notification_audience UNIQUE (notification_event_id, audience_type, audience_value),
+                CONSTRAINT ck_notification_audience_type CHECK (audience_type IN ('ROLE', 'USER', 'ALL_ACTIVE_USERS')),
+                CONSTRAINT ck_notification_audience_value CHECK (btrim(audience_value) &lt;&gt; '')
+            );
+
+            INSERT INTO notification_outbox_audience(notification_event_id, audience_type, audience_value)
+            SELECT event.id, 'ROLE', btrim(role_name)
+            FROM notification_outbox event
+            CROSS JOIN LATERAL regexp_split_to_table(event.recipient_roles, ',') role_name
+            WHERE btrim(role_name) &lt;&gt; ''
+            ON CONFLICT DO NOTHING;
+
+            CREATE OR REPLACE FUNCTION sync_finance_notification_recipient_roles()
+            RETURNS TRIGGER AS $$
+            DECLARE
+                target_event_id BIGINT;
+            BEGIN
+                target_event_id := COALESCE(NEW.notification_event_id, OLD.notification_event_id);
+                UPDATE notification_outbox event
+                SET recipient_roles = (
+                    SELECT string_agg(audience_value, ',' ORDER BY audience_value)
+                    FROM notification_outbox_audience audience
+                    WHERE audience.notification_event_id = target_event_id
+                      AND audience.audience_type = 'ROLE'
+                )
+                WHERE event.id = target_event_id
+                  AND event.source = 'FINANCE';
+                RETURN COALESCE(NEW, OLD);
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER trg_sync_finance_notification_recipient_roles
+                AFTER INSERT OR UPDATE OR DELETE ON notification_outbox_audience
+                FOR EACH ROW EXECUTE FUNCTION sync_finance_notification_recipient_roles();
+
+            CREATE OR REPLACE FUNCTION sync_finance_notification_audiences()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF pg_trigger_depth() &gt; 1 OR NEW.source &lt;&gt; 'FINANCE' OR NEW.recipient_roles IS NULL THEN
+                    RETURN NEW;
+                END IF;
+
+                DELETE FROM notification_outbox_audience audience
+                WHERE audience.notification_event_id = NEW.id
+                  AND audience.audience_type = 'ROLE'
+                  AND audience.audience_value NOT IN (
+                      SELECT btrim(role_name)
+                      FROM regexp_split_to_table(NEW.recipient_roles, ',') role_name
+                      WHERE btrim(role_name) &lt;&gt; ''
+                  );
+
+                INSERT INTO notification_outbox_audience(notification_event_id, audience_type, audience_value)
+                SELECT NEW.id, 'ROLE', btrim(role_name)
+                FROM regexp_split_to_table(NEW.recipient_roles, ',') role_name
+                WHERE btrim(role_name) &lt;&gt; ''
+                ON CONFLICT DO NOTHING;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER trg_sync_finance_notification_audiences
+                AFTER INSERT OR UPDATE OF recipient_roles ON notification_outbox
+                FOR EACH ROW EXECUTE FUNCTION sync_finance_notification_audiences();
+
+            CREATE VIEW finance_notification_outbox AS
+            SELECT id, event_key, aggregate_type, aggregate_id, operation, title, message, severity,
+                   target_path, actor_id, actor_display_name, recipient_roles, occurred_at, status,
+                   attempts, next_attempt_at, delivered_at, last_error, deleted, insert_date,
+                   insert_by, edit_date, edit_by, entity_version
+            FROM notification_outbox
+            WHERE source = 'FINANCE' AND recipient_roles IS NOT NULL;
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM notification_outbox
+                        WHERE source &lt;&gt; 'FINANCE'
+                           OR recipient_roles IS NULL
+                           OR length(aggregate_type) &gt; 32
+                           OR (aggregate_id IS NOT NULL AND aggregate_id !~ '^[0-9]+$')
+                    ) THEN
+                        RAISE EXCEPTION 'Notification outbox contains generalized events that cannot be represented by the legacy finance model';
+                    END IF;
+                END $$;
+
+                DROP VIEW finance_notification_outbox;
+                DROP TRIGGER trg_sync_finance_notification_audiences ON notification_outbox;
+                DROP TRIGGER trg_sync_finance_notification_recipient_roles ON notification_outbox_audience;
+                DROP FUNCTION sync_finance_notification_audiences();
+                DROP FUNCTION sync_finance_notification_recipient_roles();
+                DROP TABLE notification_outbox_audience;
+
+                ALTER TABLE notification_outbox DROP CONSTRAINT ck_notification_source;
+                ALTER TABLE notification_outbox DROP COLUMN source;
+                ALTER TABLE notification_outbox ALTER COLUMN recipient_roles SET NOT NULL;
+                ALTER INDEX idx_notification_pending RENAME TO idx_finance_notification_pending;
+                ALTER TABLE notification_outbox RENAME CONSTRAINT uq_notification_event_key TO uq_finance_notification_event_key;
+                ALTER TABLE notification_outbox RENAME CONSTRAINT ck_notification_severity TO ck_finance_notification_severity;
+                ALTER TABLE notification_outbox RENAME CONSTRAINT ck_notification_status TO ck_finance_notification_status;
+                ALTER TABLE notification_outbox RENAME CONSTRAINT ck_notification_attempts TO ck_finance_notification_attempts;
+                ALTER TABLE notification_outbox
+                    ALTER COLUMN aggregate_type TYPE VARCHAR(32),
+                    ALTER COLUMN aggregate_id TYPE BIGINT USING aggregate_id::BIGINT;
+                ALTER TABLE notification_outbox RENAME TO finance_notification_outbox;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="20260903000001-2-contract" author="codex" context="@notification-contract">
+        <comment>Remove rolling-deployment compatibility objects after every instance uses the generalized dispatcher.</comment>
+        <sql splitStatements="false">
+            DROP VIEW finance_notification_outbox;
+            DROP TRIGGER trg_sync_finance_notification_audiences ON notification_outbox;
+            DROP TRIGGER trg_sync_finance_notification_recipient_roles ON notification_outbox_audience;
+            DROP FUNCTION sync_finance_notification_audiences();
+            DROP FUNCTION sync_finance_notification_recipient_roles();
+            ALTER TABLE notification_outbox DROP COLUMN recipient_roles;
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                ALTER TABLE notification_outbox ADD COLUMN recipient_roles VARCHAR(255);
+
+                UPDATE notification_outbox event
+                SET recipient_roles = (
+                    SELECT string_agg(audience_value, ',' ORDER BY audience_value)
+                    FROM notification_outbox_audience audience
+                    WHERE audience.notification_event_id = event.id
+                      AND audience.audience_type = 'ROLE'
+                )
+                WHERE event.source = 'FINANCE';
+
+                CREATE OR REPLACE FUNCTION sync_finance_notification_recipient_roles()
+                RETURNS TRIGGER AS $$
+                DECLARE
+                    target_event_id BIGINT;
+                BEGIN
+                    target_event_id := COALESCE(NEW.notification_event_id, OLD.notification_event_id);
+                    UPDATE notification_outbox event
+                    SET recipient_roles = (
+                        SELECT string_agg(audience_value, ',' ORDER BY audience_value)
+                        FROM notification_outbox_audience audience
+                        WHERE audience.notification_event_id = target_event_id
+                          AND audience.audience_type = 'ROLE'
+                    )
+                    WHERE event.id = target_event_id
+                      AND event.source = 'FINANCE';
+                    RETURN COALESCE(NEW, OLD);
+                END;
+                $$ LANGUAGE plpgsql;
+
+                CREATE TRIGGER trg_sync_finance_notification_recipient_roles
+                    AFTER INSERT OR UPDATE OR DELETE ON notification_outbox_audience
+                    FOR EACH ROW EXECUTE FUNCTION sync_finance_notification_recipient_roles();
+
+                CREATE OR REPLACE FUNCTION sync_finance_notification_audiences()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF pg_trigger_depth() &gt; 1 OR NEW.source &lt;&gt; 'FINANCE' OR NEW.recipient_roles IS NULL THEN
+                        RETURN NEW;
+                    END IF;
+
+                    DELETE FROM notification_outbox_audience audience
+                    WHERE audience.notification_event_id = NEW.id
+                      AND audience.audience_type = 'ROLE'
+                      AND audience.audience_value NOT IN (
+                          SELECT btrim(role_name)
+                          FROM regexp_split_to_table(NEW.recipient_roles, ',') role_name
+                          WHERE btrim(role_name) &lt;&gt; ''
+                      );
+
+                    INSERT INTO notification_outbox_audience(notification_event_id, audience_type, audience_value)
+                    SELECT NEW.id, 'ROLE', btrim(role_name)
+                    FROM regexp_split_to_table(NEW.recipient_roles, ',') role_name
+                    WHERE btrim(role_name) &lt;&gt; ''
+                    ON CONFLICT DO NOTHING;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+
+                CREATE TRIGGER trg_sync_finance_notification_audiences
+                    AFTER INSERT OR UPDATE OF recipient_roles ON notification_outbox
+                    FOR EACH ROW EXECUTE FUNCTION sync_finance_notification_audiences();
+
+                CREATE VIEW finance_notification_outbox AS
+                SELECT id, event_key, aggregate_type, aggregate_id, operation, title, message, severity,
+                       target_path, actor_id, actor_display_name, recipient_roles, occurred_at, status,
+                       attempts, next_attempt_at, delivered_at, last_error, deleted, insert_date,
+                       insert_by, edit_date, edit_by, entity_version
+                FROM notification_outbox
+                WHERE source = 'FINANCE' AND recipient_roles IS NOT NULL;
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
