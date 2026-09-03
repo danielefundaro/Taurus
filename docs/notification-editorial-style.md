@@ -15,7 +15,7 @@ In particolare:
 - `NoticesAspect` definisce il titolo, la descrizione e i destinatari della notifica;
 - i service applicativi, i controller e gli scheduler eseguono esclusivamente la logica di dominio e non compongono né inviano direttamente notifiche;
 - quando una notifica deriva da un processo schedulato o da un salvataggio tecnico, l'aspect intercetta l'evento pertinente e genera la notifica;
-- `NoticesService` mantiene la responsabilità tecnica di distribuire e persistere le notifiche, ma non ne definisce il contenuto editoriale;
+- `NotificationOutboxPublisher` valida e registra il `NotificationCommand` già composto; `NotificationDispatcher` e `NoticesService` curano la consegna idempotente senza ridefinirne il contenuto editoriale;
 - il frontend visualizza il titolo e la descrizione ricevuti dal backend senza ricostruirli o modificarne il significato.
 
 Ogni nuova notifica interna deve quindi essere aggiunta all'aspect seguendo i modelli editoriali descritti in questo documento. Eventuali servizi di supporto possono fornire all'aspect dati contestuali, ma non devono contenere testi o regole editoriali delle notifiche.

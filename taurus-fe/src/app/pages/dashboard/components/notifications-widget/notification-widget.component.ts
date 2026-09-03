@@ -5,7 +5,7 @@ import { DetailSectionComponent } from '../../../../components/detail-section/de
 import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
 import { ListRowComponent } from '../../../../components/list-row/list-row.component';
 import { Notices, Page } from '../../../../module';
-import { ConfirmService } from '../../../../service';
+import { ConfirmService, NotificationPresentationService } from '../../../../service';
 
 @Component({
     standalone: true,
@@ -26,7 +26,10 @@ export class NotificationsWidgetComponent implements OnChanges {
     @Output() delete: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() pageChange: EventEmitter<{ page: number; size: number }> = new EventEmitter<{ page: number; size: number }>();
 
-    constructor(private readonly confirmService: ConfirmService) {
+    constructor(
+        private readonly confirmService: ConfirmService,
+        private readonly notificationPresentation: NotificationPresentationService
+    ) {
         this.items = [
             {
                 label: 'Elimina tutti',
@@ -68,13 +71,17 @@ export class NotificationsWidgetComponent implements OnChanges {
     }
 
     protected mark(notice: Notices): void {
-        if (notice.targetPath?.startsWith('/finance')) {
+        if (notice.targetPath?.startsWith('/') && !notice.targetPath.startsWith('//')) {
             this.navigateToNotice.emit(notice);
             return;
         }
         if (!notice.readDate) {
             this.markAsRead.emit([notice.id]);
         }
+    }
+
+    protected noticeIcon(notice: Notices): string {
+        return notice.readDate ? 'pi pi-check' : this.notificationPresentation.icon(notice.source);
     }
 
     protected deleteOne(notice: Notices): void {

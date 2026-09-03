@@ -2,7 +2,7 @@
 
 ## Stato del documento
 
-- **Scopo**: specifica pronta per l'implementazione.
+- **Scopo**: evolutiva implementata nel backend e nel frontend.
 - **Ambito**: backend, modello dati tenant, migrazione delle notifiche esistenti, osservabilità e verifiche frontend.
 - **Comportamento utente**: invariato. Le notifiche rimangono interne all'applicazione; non vengono introdotti popup, e-mail o push.
 - **Riferimento editoriale obbligatorio**: `docs/notification-editorial-style.md`.
@@ -532,12 +532,14 @@ La migrazione deve essere applicata tramite `tenant-master.xml` a ogni schema te
 
 ### Fase expand
 
-1. Aggiungere `source` a `finance_notification_outbox`, con default `FINANCE` per i record esistenti.
-2. Generalizzare `aggregate_id` da `BIGINT` a `VARCHAR(160)` usando conversione testuale.
-3. Creare `notification_outbox_audience` con FK verso l'outbox esistente.
-4. Convertire ogni valore CSV di `recipient_roles` in una riga `ROLE` della nuova tabella.
-5. Mantenere temporaneamente `recipient_roles` per compatibilità con istanze applicative precedenti.
-6. Distribuire il dispatcher generalizzato, inizialmente mappato alla tabella fisica esistente.
+Il changeset `20260903000001-1-expand`, applicato per default, esegue questi passaggi:
+
+1. aggiunge `source`, con default `FINANCE` per i record esistenti, generalizza `aggregate_id` e rinomina la tabella fisica in `notification_outbox`;
+2. crea `notification_outbox_audience` e converte ogni valore CSV di `recipient_roles` in una riga `ROLE`;
+3. conserva temporaneamente `recipient_roles` e pubblica la vista aggiornabile `finance_notification_outbox` per le istanze precedenti;
+4. installa trigger bidirezionali che mantengono allineati i ruoli CSV legacy e le audience normalizzate.
+
+La compatibilità è quindi valida in entrambe le direzioni durante un rolling deployment: il nuovo codice può scrivere audience normalizzate mentre il vecchio dispatcher continua a leggere e scrivere la vista finanziaria.
 
 Durante questa fase deve esistere un solo scheduler di consegna. `FinanceNotificationScheduler` e `NotificationScheduler` non possono essere attivi contemporaneamente.
 
@@ -555,21 +557,17 @@ Per ogni pointcut deve essere attivo un solo percorso: enqueue oppure consegna d
 
 ### Fase contract
 
-Dopo che tutte le istanze eseguono il codice generalizzato:
+Dopo che tutte le istanze eseguono il codice generalizzato, applicare esplicitamente il changeset `20260903000001-2-contract` attivando il contesto Liquibase `notification-contract`. Il changeset rimuove vista, trigger e funzioni di compatibilità e infine la colonna `recipient_roles`. Il contesto non deve essere attivato finché può essere avviata un'istanza della versione precedente.
 
-1. rinominare `finance_notification_outbox` in `notification_outbox`;
-2. rinominare indici e constraint per rimuovere il prefisso `finance`;
-3. aggiornare il mapping JPA;
-4. rimuovere `recipient_roles` dopo aver verificato il backfill;
-5. rimuovere classi, metodi e configurazioni finanziarie sostituite;
-6. verificare con `rg` che non esistano chiamate ai metodi sincroni legacy.
+Prima del contract verificare il backfill e con `rg` l'assenza di riferimenti alle classi e ai metodi finanziari sostituiti.
 
 Se il deployment non supporta una migrazione rolling, expand e contract possono essere accorpate durante una finestra di manutenzione, ma il backfill e la preservazione degli eventi `PENDING` restano obbligatori.
 
 ### Rollback
 
-- prima della fase contract, il rollback applicativo può riattivare il dispatcher finanziario usando `recipient_roles`;
-- dopo la rimozione di `recipient_roles`, un rollback richiede una vista o un backfill inverso e deve essere preparato esplicitamente;
+- prima della fase contract, il rollback applicativo può riattivare il dispatcher finanziario tramite la vista e `recipient_roles`;
+- il rollback del contract ricrea la colonna, esegue il backfill inverso dalle audience e ripristina vista e trigger;
+- il rollback dell'expand si interrompe esplicitamente se trova eventi non finanziari, audience non rappresentabili o identificativi non numerici, evitando perdita silenziosa di dati;
 - non eliminare eventi `PENDING` durante upgrade o rollback;
 - gli eventi `DELIVERED` possono seguire la retention ordinaria.
 
@@ -663,15 +661,14 @@ Verificare titolo, messaggio, source, operation, targetPath, attore, audience ed
 
 ## Osservabilità
 
-Metriche raccomandate per tenant e sorgente:
+Le metriche Micrometer implementate, taggate per tenant e sorgente e, per gli eventi, anche per operazione, sono:
 
-- numero eventi `PENDING`;
-- età del più vecchio evento pendente;
-- eventi consegnati e falliti;
-- numero tentativi;
-- latenza tra `occurred_at` e `delivered_at`;
-- numero destinatari per evento;
-- durata del ciclo scheduler.
+- `taurus.notifications.pending` e `taurus.notifications.oldest.pending.seconds`;
+- `taurus.notifications.delivered`, `taurus.notifications.failed` e `taurus.notifications.retry.scheduled`;
+- `taurus.notifications.attempts`;
+- `taurus.notifications.delivery.latency`;
+- `taurus.notifications.recipients`;
+- `taurus.notifications.scheduler.duration`.
 
 Log strutturati minimi:
 

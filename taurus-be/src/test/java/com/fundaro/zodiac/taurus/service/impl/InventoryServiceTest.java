@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -35,7 +36,6 @@ import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.MediaService;
-import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.UsersService;
@@ -85,7 +85,7 @@ class InventoryServiceTest {
     @Mock UsersService usersService;
     @Mock MediaService mediaService;
     @Mock MediaRepository mediaRepository;
-    @Mock NoticesService noticesService;
+    @Mock NotificationOutboxPublisher notificationPublisher;
     @Mock TenantsService tenantsService;
     @Mock InstrumentsService instrumentsService;
     @Mock AlbumsService albumsService;
@@ -107,7 +107,8 @@ class InventoryServiceTest {
             keycloakService
         );
         NoticesAspect noticesAspect = new NoticesAspect(
-            noticesService,
+            notificationPublisher,
+            null,
             usersService,
             tenantsService,
             instrumentsService,
@@ -164,11 +165,7 @@ class InventoryServiceTest {
         var result = service.createItem(request, authentication());
 
         verify(itemRepository).existsByInventoryNumberIgnoreCaseAndDeletedFalse("INV-1");
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto creato"),
-            contains("user-1 ha creato l'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: oggetto creato", "user-1 ha creato l'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -182,11 +179,7 @@ class InventoryServiceTest {
             authentication()
         );
 
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto aggiornato"),
-            contains("ha aggiornato l'oggetto “INV-1 — Leggio aggiornato”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: oggetto aggiornato", "ha aggiornato l'oggetto “INV-1 — Leggio aggiornato”");
     }
 
     @Test
@@ -198,11 +191,7 @@ class InventoryServiceTest {
         service.deleteItem(1L, authentication());
 
         assertThat(item.isDeleted()).isTrue();
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto rimosso"),
-            contains("ha rimosso l'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: oggetto rimosso", "ha rimosso l'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -233,17 +222,8 @@ class InventoryServiceTest {
 
         service.assign(1L, new InventoryAssignmentRequest(42L, 0, 2, null, null), authentication());
 
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: oggetto assegnato"),
-            contains("ha assegnato 2 unità dell'oggetto “INV-1 — Leggio” a Mario Rossi"),
-            any(JwtAuthenticationToken.class)
-        );
-        verify(noticesService).addNoticeToUser(
-            eq("assigned-user"),
-            eq("Inventario: presa visione richiesta"),
-            contains("revisione 1 della tua assegnazione dell'oggetto “INV-1 — Leggio”"),
-            eq("user-1")
-        );
+        verifyNotification("Inventario: oggetto assegnato", "ha assegnato 2 unità dell'oggetto “INV-1 — Leggio” a Mario Rossi");
+        verifyNotification("Inventario: presa visione richiesta", "revisione 1 della tua assegnazione dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -293,11 +273,7 @@ class InventoryServiceTest {
         assertThat(result.expirationDate()).isEqualTo(expirationDate);
         assertThat(assignment.getCurrentRevision()).isEqualTo(1);
         verify(revisionRepository).save(any(InventoryAssignmentRevision.class));
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: assegnazione aggiornata"),
-            contains("ha aggiornato l'assegnazione dell'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: assegnazione aggiornata", "ha aggiornato l'assegnazione dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -384,11 +360,7 @@ class InventoryServiceTest {
             authentication()
         );
 
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: presa visione accettata"),
-            contains("Mario Rossi ha accettato la revisione 1 dell'assegnazione dell'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: presa visione accettata", "Mario Rossi ha accettato la revisione 1 dell'assegnazione dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -405,11 +377,7 @@ class InventoryServiceTest {
             authentication()
         );
 
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: presa visione rifiutata"),
-            contains("Motivazione: Quantità errata"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: presa visione rifiutata", "Motivazione: Quantità errata");
     }
 
     @Test
@@ -440,11 +408,7 @@ class InventoryServiceTest {
 
         service.addPhoto(1L, file, authentication());
 
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografia aggiunta"),
-            contains("ha aggiunto la fotografia “front.png” all'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: fotografia aggiunta", "ha aggiunto la fotografia “front.png” all'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -462,11 +426,7 @@ class InventoryServiceTest {
         assertThat(second.getDisplayOrder()).isZero();
         assertThat(first.getDisplayOrder()).isEqualTo(1);
         verify(photoRepository).saveAll(List.of(second, first));
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografie aggiornate"),
-            contains("ha aggiornato l'ordine delle fotografie dell'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: fotografie aggiornate", "ha aggiornato l'ordine delle fotografie dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -498,11 +458,7 @@ class InventoryServiceTest {
         assertThat(second.isPreview()).isTrue();
         assertThat(result).extracting(value -> value.preview()).containsExactly(false, true);
         verify(photoRepository).saveAll(List.of(first, second));
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografie aggiornate"),
-            contains("ha impostato “photo-20.jpg” come fotografia di anteprima dell'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: fotografie aggiornate", "ha impostato “photo-20.jpg” come fotografia di anteprima dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -516,11 +472,7 @@ class InventoryServiceTest {
         service.deletePhoto(10L, authentication());
 
         assertThat(photo.isDeleted()).isTrue();
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: fotografia rimossa"),
-            contains("ha rimosso la fotografia “photo-10.jpg” dall'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: fotografia rimossa", "ha rimosso la fotografia “photo-10.jpg” dall'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -544,11 +496,7 @@ class InventoryServiceTest {
         verify(assignmentRepository).save(assignment);
         verify(returnRepository).save(inventoryReturn);
         verify(returnPhotoRepository).saveAll(List.of(photo));
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: assegnazione rimossa"),
-            contains("ha rimosso l'assegnazione dell'oggetto “INV-1 — Leggio”"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: assegnazione rimossa", "ha rimosso l'assegnazione dell'oggetto “INV-1 — Leggio”");
     }
 
     @Test
@@ -571,17 +519,8 @@ class InventoryServiceTest {
             null
         ), authentication());
 
-        verify(noticesService).addNoticeToUser(
-            eq("assigned-user"),
-            eq("Inventario: riconsegna completata"),
-            contains("1 unità dell'oggetto “INV-1 — Leggio” assegnato a te"),
-            any(JwtAuthenticationToken.class)
-        );
-        verify(noticesService).addNoticesAdmins(
-            eq("Inventario: riconsegna completata"),
-            contains("ha completato la riconsegna di 1 unità dell'oggetto “INV-1 — Leggio” assegnato a Mario Rossi"),
-            any(JwtAuthenticationToken.class)
-        );
+        verifyNotification("Inventario: riconsegna completata", "1 unità dell'oggetto “INV-1 — Leggio” assegnato a te");
+        verifyNotification("Inventario: riconsegna completata", "ha completato la riconsegna di 1 unità dell'oggetto “INV-1 — Leggio” assegnato a Mario Rossi");
     }
 
     @Test
@@ -711,6 +650,12 @@ class InventoryServiceTest {
             ImageIO.write(image, "png", output);
             return output.toByteArray();
         }
+    }
+
+    private void verifyNotification(String title, String messageFragment) {
+        verify(notificationPublisher).enqueue(argThat(command ->
+            title.equals(command.title()) && command.message().contains(messageFragment)
+        ));
     }
 
     private JwtAuthenticationToken authentication() {

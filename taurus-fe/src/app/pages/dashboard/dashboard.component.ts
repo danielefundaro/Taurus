@@ -115,7 +115,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     protected navigateToNotice(notice: Notices): void {
-        if (!notice.targetPath?.startsWith('/finance')) return;
+        if (!notice.targetPath?.startsWith('/') || notice.targetPath.startsWith('//')) return;
         if (notice.readDate) {
             this.router.navigateByUrl(notice.targetPath);
             return;

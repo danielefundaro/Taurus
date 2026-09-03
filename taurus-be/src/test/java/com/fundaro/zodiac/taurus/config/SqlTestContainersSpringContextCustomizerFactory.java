@@ -49,6 +49,11 @@ public class SqlTestContainersSpringContextCustomizerFactory implements ContextC
                     testValues = testValues.and("spring.r2dbc.username=" + prodTestContainer.getTestContainer().getUsername());
                     testValues = testValues.and("spring.r2dbc.password=" + prodTestContainer.getTestContainer().getPassword());
                     testValues = testValues.and("spring.liquibase.url=" + prodTestContainer.getTestContainer().getJdbcUrl() + "");
+                    testValues = testValues.and("spring.liquibase.user=" + prodTestContainer.getTestContainer().getUsername());
+                    testValues = testValues.and("spring.liquibase.password=" + prodTestContainer.getTestContainer().getPassword());
+                    testValues = testValues.and("spring.datasource.url=" + prodTestContainer.getTestContainer().getJdbcUrl());
+                    testValues = testValues.and("spring.datasource.username=" + prodTestContainer.getTestContainer().getUsername());
+                    testValues = testValues.and("spring.datasource.password=" + prodTestContainer.getTestContainer().getPassword());
                 }
                 testValues.applyTo(context);
             }

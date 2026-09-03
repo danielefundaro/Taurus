@@ -1,5 +1,7 @@
 # Eventi ricorrenti del calendario
 
+La consegna delle notifiche interne descritte in questa specifica segue `docs/notification-delivery-generalization-spec.md`.
+
 ## Stato del documento
 
 Specifica funzionale e tecnica approvata per la successiva fase di sviluppo.
