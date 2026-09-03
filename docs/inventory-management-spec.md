@@ -1,5 +1,7 @@
 # Gestione inventario tenant
 
+La consegna delle notifiche interne descritte in questa specifica segue `docs/notification-delivery-generalization-spec.md`.
+
 ## Obiettivo
 
 La funzionalità introduce un inventario separato da album, tracce e dall'anagrafica degli strumenti musicali assegnabile a utenti e tracce. L'inventario rappresenta beni fisici di proprietà del tenant: strumenti musicali, divise, leggii, libretti e altro materiale.
@@ -142,6 +144,8 @@ Il documento contiene:
 - richieste e completamenti di riconsegna;
 - stato, note e fotografie allegate quando richieste;
 - data di generazione e numerazione delle pagine.
+
+L'intestazione è il modello comune dei PDF generati da Taurus ed è resa tramite `TenantPdfHeaderService` e `PdfPageWriter`. Logo, denominazione, sede, paese, codice fiscale, partita IVA, data di generazione e stile non devono essere reimplementati nei singoli servizi di reportistica.
 
 Limiti applicati:
 

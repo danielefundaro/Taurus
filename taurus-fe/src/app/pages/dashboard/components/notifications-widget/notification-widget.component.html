@@ -8,9 +8,7 @@
     @if (notices?.content?.length) {
         @for (notice of notices!.content; track notice.id) {
             <app-list-row compact>
-                <span rowMedia class="notice-icon" [class.notice-icon--unread]="!notice.readDate"
-                    ><i class="pi" [class.pi-wallet]="notice.source === 'FINANCE' && !notice.readDate" [class.pi-box]="notice.source !== 'FINANCE' && !notice.readDate" [class.pi-check]="notice.readDate" aria-hidden="true"></i
-                ></span>
+                <span rowMedia class="notice-icon" [class.notice-icon--unread]="!notice.readDate"><i [class]="noticeIcon(notice)" aria-hidden="true"></i></span>
                 <button rowIdentity type="button" class="notice-main" [class.notice-main--unread]="!notice.readDate" (click)="mark(notice)" [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
                     <strong>{{ notice.name }}</strong>
                     <small>{{ notice.message }}</small>

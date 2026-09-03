@@ -842,7 +842,7 @@ Per uno specifico conto e intervallo:
 - XLSX per analisi e filtri;
 - PDF per stampa e archiviazione.
 
-I report devono essere generati dal backend per evitare divergenze nei calcoli. Ogni esportazione deve riportare tenant, periodo, filtri, data di generazione e utente richiedente.
+I report devono essere generati dal backend per evitare divergenze nei calcoli. Ogni esportazione deve riportare tenant, periodo, filtri, data di generazione e utente richiedente. Tutti i PDF usano la stessa intestazione del prospetto inventario tramite `TenantPdfHeaderService`: logo, denominazione completa, sede comprensiva di paese, codice fiscale e partita IVA del tenant. Se il logo non è disponibile, il documento viene generato comunque; se l'anagrafica tenant non è risolvibile, viene mostrato come fallback il codice tenant.
 
 ## Migrazione dei dati
 
@@ -889,14 +889,14 @@ Si applica integralmente `docs/notification-editorial-style.md`:
 - `NoticesAspect` è l'unico punto che definisce titolo, descrizione e ruoli destinatari;
 - i service economici eseguono esclusivamente la logica di dominio;
 - `FinanceNoticeDataService` fornisce all'aspect snapshot di supporto privi di testo editoriale;
-- `NoticesService` persiste nell'outbox la notifica già composta e mantiene la responsabilità tecnica della distribuzione;
-- `FinanceNotificationDispatcher` risolve gli utenti e crea le notifiche applicative.
+- `NotificationOutboxPublisher` persiste nell'outbox la notifica già composta;
+- `NotificationDispatcher` risolve gli utenti e crea le notifiche applicative tramite `NoticesService`.
 
 I titoli seguono il formato `Economia: <evento>`. Le rimozioni usano il verbo `rimosso`; le operazioni automatiche iniziano dall'entità interessata e non dalla formula `Il sistema ha…`. Se il nome dell'autore non è disponibile si usa una formulazione leggibile e impersonale, senza mostrare UUID o identificativi tecnici.
 
 ### Outbox e consegna
 
-La tabella tenant `finance_notification_outbox` conserva evento, aggregato, operazione, contenuto già composto, severità, percorso di navigazione, autore e ruoli destinatari. La scrittura dell'evento partecipa alla stessa transazione dell'operazione economica: un rollback del dominio annulla anche la notifica.
+Le tabelle tenant `notification_outbox` e `notification_outbox_audience` conservano evento, aggregato, operazione, contenuto già composto, severità, percorso di navigazione, autore e pubblico. La scrittura dell'evento partecipa alla stessa transazione dell'operazione economica: un rollback del dominio annulla anche la notifica.
 
 Il dispatcher elabora periodicamente gli eventi `PENDING`, applica un lock pessimista e crea una riga `notices` per ciascun destinatario. La coppia `source_event_key`/`user_id` è univoca, quindi retry e istanze concorrenti non producono duplicati. In caso di errore l'evento resta pendente e viene riprovato con attesa esponenziale fino a 60 minuti. Gli eventi consegnati dell'outbox vengono eliminati dopo 30 giorni; le normali notifiche dell'utente seguono invece la retention applicativa esistente.
 

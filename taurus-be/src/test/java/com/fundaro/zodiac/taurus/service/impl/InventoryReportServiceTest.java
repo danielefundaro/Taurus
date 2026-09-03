@@ -37,7 +37,6 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -52,12 +51,20 @@ class InventoryReportServiceTest {
     @Mock TenantLogoLoader tenantLogoLoader;
     @Mock MediaService mediaService;
     @Mock MediaRepository mediaRepository;
-    @InjectMocks InventoryReportService reportService;
+    private InventoryReportService reportService;
 
     private final Media storedMedia = new Media();
 
     @BeforeEach
     void setUp() {
+        reportService = new InventoryReportService(
+            inventoryService,
+            usersService,
+            reportExportRepository,
+            new TenantPdfHeaderService(tenantsService, tenantLogoLoader),
+            mediaService,
+            mediaRepository
+        );
         storedMedia.setId(99L);
         MediaDTO media = new MediaDTO();
         media.setId(99L);

@@ -10,17 +10,26 @@ import static org.mockito.Mockito.when;
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
-import com.fundaro.zodiac.taurus.service.NoticesService;
-import com.fundaro.zodiac.taurus.service.NoticesService.FinanceNoticeCommand;
+import com.fundaro.zodiac.taurus.service.TenantsService;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+
+import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountYearBalanceDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryTotalDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import javax.imageio.ImageIO;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,14 +44,20 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 class FinanceReportServiceTest {
 
     @Mock FinancialMovementRepository movementRepository;
-    @Mock NoticesService noticesService;
+    @Mock NotificationOutboxPublisher notificationPublisher;
     @Mock FinanceService financeService;
+    @Mock TenantsService tenantsService;
+    @Mock TenantLogoLoader tenantLogoLoader;
     private FinanceReportService service;
 
     @BeforeEach
     void setUp() {
-        FinanceReportService target = new FinanceReportService(movementRepository, financeService);
-        NoticesAspect noticesAspect = new NoticesAspect(noticesService, null, null, null, null, null, null, null, null);
+        FinanceReportService target = new FinanceReportService(
+            movementRepository,
+            financeService,
+            new TenantPdfHeaderService(tenantsService, tenantLogoLoader)
+        );
+        NoticesAspect noticesAspect = new NoticesAspect(notificationPublisher, null, null, null, null, null, null, null, null, null);
         AspectJProxyFactory proxyFactory = new AspectJProxyFactory(target);
         proxyFactory.addAspect(noticesAspect);
         service = proxyFactory.getProxy();
@@ -57,8 +72,8 @@ class FinanceReportServiceTest {
 
         assertThat(report.mimeType()).startsWith("text/csv");
         assertThat(new String(report.bytes(), StandardCharsets.UTF_8)).contains("tenant-a", "01/01/2026 - 31/12/2026");
-        ArgumentCaptor<FinanceNoticeCommand> notification = ArgumentCaptor.forClass(FinanceNoticeCommand.class);
-        verify(noticesService).enqueueFinanceNotice(notification.capture());
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().title()).isEqualTo("Economia: rendiconto esportato");
         assertThat(notification.getValue().message()).contains("Mario Rossi", "01/01/2026–31/12/2026").endsWith(".");
     }
@@ -78,6 +93,40 @@ class FinanceReportServiceTest {
     }
 
     @Test
+    void exportsPdfWithTheCanonicalTenantHeader() throws Exception {
+        JwtAuthenticationToken token = authentication();
+        TenantsDTO tenant = new TenantsDTO();
+        tenant.setCode("tenant-a");
+        tenant.setName("Associazione Musicale Taurus");
+        tenant.setAddress("Via Roma 10");
+        tenant.setPostalCode("00100");
+        tenant.setCity("Roma");
+        tenant.setProvince("RM");
+        tenant.setCountry("IT");
+        tenant.setTaxCode("RSSMRA80A01H501U");
+        tenant.setVatNumber("12345678901");
+        tenant.setLogoUrl("https://example.test/logo.png");
+        when(tenantsService.findByCode("tenant-a", token)).thenReturn(Optional.of(tenant));
+        when(tenantLogoLoader.load(tenant.getLogoUrl())).thenReturn(Optional.of(logoPng()));
+
+        var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "pdf", token);
+
+        try (var document = Loader.loadPDF(report.bytes())) {
+            assertThat(new PDFTextStripper().getText(document))
+                .contains(
+                    "Associazione Musicale Taurus",
+                    "Sede: Via Roma 10, 00100, Roma, RM, IT",
+                    "Codice fiscale: RSSMRA80A01H501U - Partita IVA: 12345678901"
+                );
+            boolean containsLogo = false;
+            for (var name : document.getPage(0).getResources().getXObjectNames()) {
+                containsLogo |= document.getPage(0).getResources().getXObject(name) instanceof PDImageXObject;
+            }
+            assertThat(containsLogo).isTrue();
+        }
+    }
+
+    @Test
     void exportsTheAnnualReportWithItsSectionsAndTotals() {
         when(financeService.yearSummary(eq(2026), any())).thenReturn(summary());
 
@@ -94,8 +143,8 @@ class FinanceReportServiceTest {
 
         service.annual(2026, "pdf", authentication());
 
-        ArgumentCaptor<FinanceNoticeCommand> notification = ArgumentCaptor.forClass(FinanceNoticeCommand.class);
-        verify(noticesService).enqueueFinanceNotice(notification.capture());
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().message()).contains("il rendiconto annuale", "PDF", "01/01/2026–31/12/2026").endsWith(".");
     }
 
@@ -133,5 +182,13 @@ class FinanceReportServiceTest {
             .claim("given_name", "Mario").claim("family_name", "Rossi")
             .issuedAt(now).expiresAt(now.plusSeconds(300)).build();
         return new JwtAuthenticationToken(jwt);
+    }
+
+    private static byte[] logoPng() throws Exception {
+        BufferedImage image = new BufferedImage(20, 10, BufferedImage.TYPE_INT_RGB);
+        image.setRGB(0, 0, java.awt.Color.BLUE.getRGB());
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

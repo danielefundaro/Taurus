@@ -39,9 +39,12 @@ export class FinanceComponent implements OnInit {
     protected categories: FinancialCategory[] = [];
     protected movements: FinancialMovement[] = [];
     protected events: FinancialEventSummary[] = [];
+    protected eventOptions: FinancialEventSummary[] = [];
     protected years: AccountingYear[] = [];
     protected totalMovements = 0;
+    protected totalEvents = 0;
     protected loading = false;
+    protected eventsLoading = false;
     protected activeTab = 'movements';
 
     protected movementFilters: {
@@ -75,6 +78,7 @@ export class FinanceComponent implements OnInit {
     ];
 
     private movementLazyEvent: TableLazyLoadEvent = { first: 0, rows: 20, sortField: 'bookingDate', sortOrder: -1 };
+    private eventLazyEvent: TableLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: -1 };
     private handledRouteAction = false;
 
     constructor(
@@ -164,7 +168,7 @@ export class FinanceComponent implements OnInit {
                 movement: movement ? { ...movement } : undefined,
                 accounts: this.accounts,
                 categories: this.categories,
-                events: this.events,
+                events: this.eventOptions,
                 eventId
             },
             closable: true,
@@ -251,12 +255,17 @@ export class FinanceComponent implements OnInit {
                 .subscribe(() => {
                     this.toastService.success('Preventivo aggiornato', 'Compenso e costi previsti sono stati salvati.');
                     this.loadReferenceData();
+                    this.loadEvents(this.eventLazyEvent);
                 });
         });
     }
 
     protected onMovementLazyLoad(event: TableLazyLoadEvent): void {
         this.loadMovements(event);
+    }
+
+    protected onEventLazyLoad(event: TableLazyLoadEvent): void {
+        this.loadEvents(event);
     }
 
     protected applyFilters(): void {
@@ -402,15 +411,15 @@ export class FinanceComponent implements OnInit {
             dashboard: this.financeService.getDashboard(),
             accounts: this.financeService.getAccounts(true),
             categories: this.financeService.getCategories(true),
-            events: this.financeService.getEvents(0, 100),
+            eventOptions: this.financeService.getEvents(0, 100),
             years: this.financeService.getYears()
         })
             .pipe(first())
-            .subscribe(({ dashboard, accounts, categories, events, years }) => {
+            .subscribe(({ dashboard, accounts, categories, eventOptions, years }) => {
                 this.dashboard = dashboard;
                 this.accounts = accounts;
                 this.categories = categories;
-                this.events = events.content;
+                this.eventOptions = eventOptions.content;
                 this.years = years;
                 this.handleRouteAction();
             });
@@ -476,6 +485,26 @@ export class FinanceComponent implements OnInit {
             });
     }
 
+    private loadEvents(event: TableLazyLoadEvent): void {
+        this.eventLazyEvent = event;
+        const rows = event.rows ?? 12;
+        const page = Math.floor((event.first ?? 0) / rows);
+        const sortField = typeof event.sortField === 'string' ? event.sortField : 'startDate';
+        const sortDirection = event.sortOrder === 1 ? 'asc' : 'desc';
+        this.eventsLoading = true;
+        this.financeService
+            .getEvents(page, rows, `${sortField},${sortDirection}`)
+            .pipe(first())
+            .subscribe({
+                next: (events) => {
+                    this.events = events.content;
+                    this.totalEvents = events.totalElements;
+                    this.eventsLoading = false;
+                },
+                error: () => (this.eventsLoading = false)
+            });
+    }
+
     private uploadFile(movementId: number, file: File, description?: string): void {
         this.financeService
             .uploadAttachment(movementId, file, description)
@@ -486,6 +515,7 @@ export class FinanceComponent implements OnInit {
     private refreshAfterMovement(): void {
         this.loadReferenceData();
         this.loadMovements(this.movementLazyEvent);
+        this.loadEvents(this.eventLazyEvent);
         if (this.statementAccount) this.loadStatement();
     }
 
