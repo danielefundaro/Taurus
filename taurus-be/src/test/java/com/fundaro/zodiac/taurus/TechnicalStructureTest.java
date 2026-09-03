@@ -21,6 +21,7 @@ class TechnicalStructureTest {
         .layer("Web").definedBy("..web..")
         .optionalLayer("Service").definedBy("..service..")
         .layer("Security").definedBy("..security..")
+        .optionalLayer("Multitenancy").definedBy("..multitenancy..")
         .optionalLayer("Persistence").definedBy("..repository..")
         .layer("Domain").definedBy("..domain..")
         .optionalLayer("Aop").definedBy("..aop..")
@@ -30,9 +31,9 @@ class TechnicalStructureTest {
         .whereLayer("Config").mayNotBeAccessedByAnyLayer()
         .whereLayer("Web").mayOnlyBeAccessedByLayers("Config", "Service")
         .whereLayer("Service").mayOnlyBeAccessedByLayers("Web", "Config", "Aop", "Rabbitmq")
-        .whereLayer("Security").mayOnlyBeAccessedByLayers("Config", "Service", "Web", "Aop")
-        .whereLayer("Persistence").mayOnlyBeAccessedByLayers("Service", "Security", "Web", "Config")
-        .whereLayer("Domain").mayOnlyBeAccessedByLayers("Persistence", "Service", "Security", "Web", "Config", "Aop", "Utils")
+        .whereLayer("Security").mayOnlyBeAccessedByLayers("Config", "Service", "Web", "Aop", "Multitenancy", "Rabbitmq")
+        .whereLayer("Persistence").mayOnlyBeAccessedByLayers("Service", "Security", "Web", "Config", "Rabbitmq")
+        .whereLayer("Domain").mayOnlyBeAccessedByLayers("Persistence", "Service", "Security", "Web", "Config", "Aop", "Rabbitmq", "Utils")
 
         .ignoreDependency(belongToAnyOf(TaurusApp.class), alwaysTrue())
         .ignoreDependency(alwaysTrue(), belongToAnyOf(
@@ -42,5 +43,10 @@ class TechnicalStructureTest {
         .ignoreDependency(
             resideInAPackage("..service.."),
             resideInAPackage("..config.changelog..")
+        )
+        // Spring Data uses this service record as a read-only interface projection.
+        .ignoreDependency(
+            com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository.class,
+            com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary.class
         );
 }

@@ -4,7 +4,8 @@ La funzionalità estende la [gestione inventario tenant](inventory-management-sp
 
 ## Stato del documento
 
-Specifica funzionale e tecnica proposta. Il documento definisce le decisioni necessarie per una successiva implementazione, ma non autorizza ancora lo sviluppo e non modifica il comportamento corrente di Taurus.
+ID catalogo: `inventory-qr-code`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

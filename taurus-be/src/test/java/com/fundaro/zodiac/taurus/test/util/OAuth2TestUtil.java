@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -70,7 +70,7 @@ public class OAuth2TestUtil {
     }
 
     public static OAuth2AuthenticationToken registerAuthenticationToken(
-        ReactiveOAuth2AuthorizedClientService authorizedClientService,
+        OAuth2AuthorizedClientService authorizedClientService,
         ClientRegistration clientRegistration,
         OAuth2AuthenticationToken authentication
     ) {
@@ -83,9 +83,10 @@ public class OAuth2TestUtil {
             (Instant) userDetails.get("exp")
         );
 
-        authorizedClientService
-            .saveAuthorizedClient(new OAuth2AuthorizedClient(clientRegistration, authentication.getName(), token), authentication)
-            .block();
+        authorizedClientService.saveAuthorizedClient(
+            new OAuth2AuthorizedClient(clientRegistration, authentication.getName(), token),
+            authentication
+        );
 
         return authentication;
     }

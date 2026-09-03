@@ -2,9 +2,8 @@
 
 ## Stato del documento
 
-Questa specifica raccoglie le decisioni funzionali e tecniche approvate per introdurre in Taurus la gestione economica del tenant. Il documento è pensato come riferimento autonomo per riprendere lo sviluppo in un momento successivo.
-
-Le decisioni qui riportate sono definitive salvo nuova richiesta esplicita. Dove è indicata una raccomandazione implementativa, essa costituisce il comportamento predefinito da adottare.
+ID catalogo: `financial-management`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

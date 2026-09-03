@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.mapper;
 
-import static com.fundaro.zodiac.taurus.domain.PreferencesAsserts.*;
 import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +19,9 @@ class PreferencesMapperTest {
     void shouldConvertToDtoAndBack() {
         var expected = getPreferencesSample1();
         var actual = preferencesMapper.toEntity(preferencesMapper.toDto(expected));
-        assertPreferencesAllPropertiesEquals(expected, actual);
+        assertThat(actual)
+            .usingRecursiveComparison()
+            .ignoringFields("insertBy", "insertDate", "editBy", "editDate")
+            .isEqualTo(expected);
     }
 }

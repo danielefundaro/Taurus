@@ -2,9 +2,8 @@
 
 ## Stato del documento
 
-Specifica approvata e implementata per i flussi applicativi esistenti. La migrazione mantiene la compatibilità con i file storici tramite uno stato tecnico transitorio, descritto di seguito.
-
-Il documento definisce il modello adottato per i file gestiti da Taurus.
+ID catalogo: `media-asset`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

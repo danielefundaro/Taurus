@@ -2,9 +2,8 @@
 
 ## Stato del documento
 
-Questa specifica definisce la proposta funzionale e tecnica per trasformare la dashboard di Taurus in un punto di lavoro operativo trasversale.
-
-Il documento costituisce la progettazione della funzionalita, ma non autorizza ancora l'avvio dell'implementazione. Le soglie indicate sono valori predefiniti configurabili e possono essere cambiate senza modificare il contratto API.
+ID catalogo: `operational-dashboard`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

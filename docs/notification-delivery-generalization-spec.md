@@ -2,7 +2,11 @@
 
 ## Stato del documento
 
-- **Scopo**: evolutiva implementata nel backend e nel frontend.
+ID catalogo: `notification-delivery-generalization`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
+## Ambito
+
 - **Ambito**: backend, modello dati tenant, migrazione delle notifiche esistenti, osservabilità e verifiche frontend.
 - **Comportamento utente**: invariato. Le notifiche rimangono interne all'applicazione; non vengono introdotti popup, e-mail o push.
 - **Riferimento editoriale obbligatorio**: `docs/notification-editorial-style.md`.

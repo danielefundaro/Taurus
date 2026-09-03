@@ -2,11 +2,8 @@
 
 ## Stato del documento
 
-Specifica approvata il 2026-09-01, estesa a modali e avvisi e alle pagine di dettaglio il 2026-09-02. Definisce il layout delle pagine elenco, delle pagine di dettaglio, dei dialoghi e degli avvisi di `taurus-fe`, e vincola gli sviluppi successivi su quelle superfici.
-
-**L'ordine di migrazione è stato eseguito per intero il 2026-09-02.** Tutti i diciassette passi sono applicati: i componenti condivisi esistono e sono adottati, le nove pagine elenco e le nove di dettaglio usano il guscio comune, i dialoghi il guscio di dialogo, e i widget della dashboard i componenti condivisi. Ciò che resta fuori è quanto la sezione «Fuori scope» esclude già, più le tre eccezioni elencate in fondo, sotto «Scostamenti consapevoli».
-
-Sono stati applicati anche due interventi preparatori, la collocazione degli stili di `preview` e l'adeguamento del budget sugli stili di componente, descritti in fondo al documento.
+ID catalogo: `taurus-layout-standard`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

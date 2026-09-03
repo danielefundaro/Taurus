@@ -4,7 +4,8 @@ La funzionalità estende il calendario esistente con un feed iCalendar/ICS sotto
 
 ## Stato del documento
 
-Specifica funzionale e tecnica proposta. Il documento definisce il comportamento atteso e le decisioni per una futura implementazione, ma non autorizza ancora lo sviluppo.
+ID catalogo: `external-calendar-feed`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

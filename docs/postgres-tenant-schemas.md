@@ -1,5 +1,10 @@
 # PostgreSQL schema per tenant
 
+## Stato del documento
+
+ID catalogo: `postgres-tenant-schemas`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 Il backend usa il claim JWT `tenant` per selezionare lo schema PostgreSQL delle entità tenant-scoped.
 Le entità globali, come `legal_document`, restano nello schema `public`.
 Le tabelle degli schemi tenant non contengono `tenant_code`: l'appartenenza è determinata esclusivamente dallo
