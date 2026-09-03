@@ -35,6 +35,11 @@ spring:
         provider:
           oidc:
             issuer-uri: http://DO_NOT_CALL:9080/realms/jhipster
+        registration:
+          oidc:
+            client-id: web_app
+            client-secret: web_app
+            scope: openid, profile, email
       resourceserver:
         jwt:
           principal-claim-name: preferred_username
@@ -85,7 +90,8 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  base-path: target/test-storage
 management:
   health:
     mail:

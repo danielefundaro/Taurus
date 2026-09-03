@@ -2,9 +2,8 @@
 
 ## Stato del documento
 
-Questa specifica definisce la proposta funzionale e tecnica per introdurre in Taurus un percorso guidato di configurazione iniziale e importazione dati tramite XLSX o CSV.
-
-Il documento costituisce la progettazione della funzionalità e non autorizza ancora l'avvio dell'implementazione. Le decisioni predefinite privilegiano sicurezza, ripetibilità e possibilità di recupero rispetto alla massima flessibilità dell'importazione.
+ID catalogo: `tenant-onboarding-import`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 

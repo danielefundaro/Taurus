@@ -1,5 +1,10 @@
 # Stile editoriale delle notifiche interne
 
+## Stato del documento
+
+ID catalogo: `notification-editorial-style`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+
 ## Obiettivo
 
 Questa specifica definisce lo stile editoriale comune per tutte le notifiche interne di Taurus. Deve essere usata come riferimento quando si aggiunge o si modifica una notifica, indipendentemente dall'ambito funzionale e dai destinatari.

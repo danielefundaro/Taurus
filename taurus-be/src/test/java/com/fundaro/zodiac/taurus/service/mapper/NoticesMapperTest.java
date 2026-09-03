@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.mapper;
 
-import static com.fundaro.zodiac.taurus.domain.NoticesAsserts.*;
 import static com.fundaro.zodiac.taurus.domain.NoticesTestSamples.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +19,9 @@ class NoticesMapperTest {
     void shouldConvertToDtoAndBack() {
         var expected = getNoticesSample1();
         var actual = noticesMapper.toEntity(noticesMapper.toDto(expected));
-        assertNoticesAllPropertiesEquals(expected, actual);
+        assertThat(actual)
+            .usingRecursiveComparison()
+            .ignoringFields("insertBy", "insertDate", "editBy", "editDate")
+            .isEqualTo(expected);
     }
 }

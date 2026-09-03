@@ -8,7 +8,8 @@ Quando implementata, questa specifica sostituisce soltanto la decisione **Canale
 
 ## Stato del documento
 
-Specifica funzionale e tecnica proposta. Il documento definisce il comportamento atteso e le decisioni per una futura implementazione, ma non autorizza ancora lo sviluppo.
+ID catalogo: `notification-preferences`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 
