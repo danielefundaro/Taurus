@@ -1,18 +1,13 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header
-        kicker="Istanza"
-        [title]="tenant.name || 'Nuova istanza'"
-        backLink="/tenants"
-        [dirty]="isDirty"
-        [state]="tenant.active === false ? 'Disabilitata' : undefined"
+    <app-page-header kicker="Tenant" [title]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
         ><div pageMetadata>{{ tenant.code }}</div>
-        <div pageActions><p-button label="Salva istanza" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
+        <div pageActions><p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
     ></app-page-header>
 
-    <app-detail-section title="Dati istanza" description="Anagrafica, limiti e sede. Si salva con «Salva istanza» in alto." [dirty]="isDirty">
+    <app-detail-section title="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome dell’istanza.'">
+            <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'">
                 <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Codice" forId="code">
@@ -57,7 +52,7 @@
             <app-form-field label="URL logo" forId="logoUrl" [error]="logoUrlInvalid ? 'Inserisci un URL completo che inizi con http:// o https://.' : undefined">
                 <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+" placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Stato istanza" forId="active">
+            <app-form-field label="Stato tenant" forId="active">
                 <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
@@ -66,10 +61,29 @@
         </div>
     </app-detail-section>
 
+    <app-detail-section title="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex items-start gap-3">
+                <p-checkbox inputId="financeEnabled" [binary]="true" [(ngModel)]="tenant.financeEnabled" (ngModelChange)="isDirty = true" />
+                <div>
+                    <label for="financeEnabled" class="font-medium cursor-pointer">Economia</label>
+                    <p class="text-surface-500 text-sm mt-1 mb-0">Nasconde conti, movimenti, rendiconti e informazioni economiche degli eventi. I dati saranno conservati.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <p-checkbox inputId="inventoryEnabled" [binary]="true" [(ngModel)]="tenant.inventoryEnabled" (ngModelChange)="isDirty = true" />
+                <div>
+                    <label for="inventoryEnabled" class="font-medium cursor-pointer">Inventario</label>
+                    <p class="text-surface-500 text-sm mt-1 mb-0">Nasconde oggetti, assegnazioni, fotografie, riconsegne e report. I dati saranno conservati.</p>
+                </div>
+            </div>
+        </div>
+    </app-detail-section>
+
     <app-danger-zone
         [operations]="[
-            { id: 'archive', title: 'Archivia istanza', consequence: 'L’istanza verrà archiviata conservando dati, indici, file e autorizzazioni.', label: 'Archivia istanza', icon: 'pi pi-archive' },
-            { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'L’istanza e tutti i dati associati verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
+            { id: 'archive', title: 'Archivia tenant', consequence: 'Il tenant verrà archiviato conservando dati, indici, file e autorizzazioni.', label: 'Archivia tenant', icon: 'pi pi-archive' },
+            { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'Il tenant e tutti i dati associati verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
         ]"
         (execute)="$event === 'archive' ? confirmDelete() : confirmGdprDeletion()"
     />

@@ -9,7 +9,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { CalendarEventDialogResult, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, RecurrenceEndType, RecurrenceFrequency, RecurrenceWeekDay } from '../../module';
-import { CalendarEventSeriesService } from '../../service';
+import { CalendarEventSeriesService, TenantFeatureService } from '../../service';
 import { first } from 'rxjs';
 import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
 import { FormFieldComponent } from '../../components/form-field/form-field.component';
@@ -30,6 +30,7 @@ export class AddCalendarEventsDialogComponent {
     protected untilDate?: Date;
     protected previewResult?: CalendarEventSeriesPreview;
     protected isPreviewing = false;
+    protected readonly financeEnabled;
     protected readonly frequencyOptions: { value: RecurrenceFrequency; label: string }[] = [
         { value: 'DAILY', label: 'Giornaliera' },
         { value: 'WEEKLY', label: 'Settimanale' },
@@ -49,8 +50,10 @@ export class AddCalendarEventsDialogComponent {
     constructor(
         private readonly dialogRef: DynamicDialogRef<AddCalendarEventsDialogComponent>,
         private readonly config: DynamicDialogConfig,
-        private readonly seriesService: CalendarEventSeriesService
+        private readonly seriesService: CalendarEventSeriesService,
+        tenantFeatureService: TenantFeatureService
     ) {
+        this.financeEnabled = tenantFeatureService.financeEnabled;
         this.event = new CalendarEvents();
         if (config.data?.startDate) {
             this.event.startDate = new Date(config.data.startDate);
@@ -64,6 +67,10 @@ export class AddCalendarEventsDialogComponent {
 
     protected save(): void {
         if (!this.event.name?.trim() || !this.event.startDate || this.recurrenceInvalid) return;
+        if (!this.financeEnabled()) {
+            this.event.fee = undefined;
+            this.event.costs = [];
+        }
         const result: CalendarEventDialogResult = this.recurring ? { series: this.buildSeriesRequest() } : { event: this.event };
         this.dialogRef.close(result);
     }

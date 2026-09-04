@@ -4,7 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { ChildrenEntities, Tenants } from '../../../module';
+import { ChildrenEntities, Instruments } from '../../../module';
 import { ConfirmService, InstrumentsService, ToastService } from '../../../service';
 
 @Component({
@@ -17,7 +17,7 @@ import { ConfirmService, InstrumentsService, ToastService } from '../../../servi
 export class DetailComponent extends DetailPageBase implements OnInit {
     public sortOptions!: SelectItem[];
     public totalRecords: number = 0;
-    public instrument: Tenants = new Tenants();
+    public instrument: Instruments = new Instruments();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
 
@@ -69,7 +69,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 finalize(() => (this.saving = false))
             )
             .subscribe({
-                next: (instrument: Tenants) => {
+                next: (instrument: Instruments) => {
                     this.isDirty = false;
                     this.toastService.success('Successo', 'Strumento aggiornato con successo');
                     this.loadElement(instrument.id);
@@ -82,7 +82,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .getById(Number(id))
             .pipe(first())
             .subscribe({
-                next: (instrument: Tenants) => {
+                next: (instrument: Instruments) => {
                     this.instrument = instrument;
                     this.isDirty = false;
                 }

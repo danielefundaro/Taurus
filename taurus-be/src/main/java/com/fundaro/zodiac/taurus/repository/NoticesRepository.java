@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 /**
  * Spring Data JPA repository for the Notices entity.
@@ -21,6 +22,9 @@ public interface NoticesRepository extends CommonRepository<Notices, NoticesCrit
 
     @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
     long countUnread(@Param("userId") String userId);
+
+    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false AND n.source NOT IN :excludedSources")
+    long countUnreadExcludingSources(@Param("userId") String userId, @Param("excludedSources") Collection<String> excludedSources);
 
     Optional<Notices> findBySourceEventKeyAndUserId(String sourceEventKey, String userId);
 }

@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
+import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.io.ByteArrayOutputStream;
@@ -115,28 +116,28 @@ public class InventoryReportService {
                 writer.heading(assignment.inventoryNumber() + " - " + assignment.itemName());
                 writer.line("Descrizione oggetto: " + safe(assignment.itemDescription()), false);
                 writer.line("Valore unitario stimato: " + (assignment.estimatedUnitValue() == null ? "-" : assignment.estimatedUnitValue().toPlainString() + " " + safe(assignment.currency())), false);
-                writer.line("Stato di conservazione: " + assignment.conditionStatus(), false);
+                writer.line("Stato di conservazione: " + ReportLabels.inventoryCondition(assignment.conditionStatus()), false);
                 writer.line("Note di conservazione: " + safe(assignment.conditionNotes()), false);
                 writer.line("Data di scadenza: " + (assignment.expirationDate() == null ? "-" : DATE.format(assignment.expirationDate())), false);
                 writer.line("Quantità assegnata: " + assignment.assignedQuantity(), false);
                 writer.line("Quantità riconsegnata: " + assignment.returnedQuantity(), false);
                 writer.line("Quantità ancora consegnata: " + assignment.outstandingQuantity(), false);
                 writer.line("Data assegnazione: " + DATE_TIME.format(assignment.assignedAt()), false);
-                writer.line("Stato: " + assignment.status(), false);
+                writer.line("Stato: " + ReportLabels.inventoryAssignmentStatus(assignment.status()), false);
                 writer.line("Descrizione assegnazione: " + safe(assignment.description()), false);
                 writer.line("Revisione presa visione: " + assignment.revision() + " - hash SHA-256 " + assignment.revisionHash(), false);
                 if (assignment.decision() == null) {
                     writer.line("Presa visione: in attesa", true);
                 } else {
-                    writer.line("Presa visione: " + assignment.decision().decision() + " il " + DATE_TIME.format(assignment.decision().decidedAt()), true);
+                    writer.line("Presa visione: " + ReportLabels.inventoryDecision(assignment.decision().decision()) + " il " + DATE_TIME.format(assignment.decision().decidedAt()), true);
                     if (assignment.decision().rejectionReason() != null) writer.line("Motivazione: " + assignment.decision().rejectionReason(), false);
                 }
                 if (!assignment.returns().isEmpty()) {
                     writer.subheading("Riconsegne");
                     for (InventoryReturnDTO inventoryReturn : assignment.returns()) {
                         String completed = inventoryReturn.completedAt() == null ? "" : ", completata il " + DATE_TIME.format(inventoryReturn.completedAt());
-                        writer.line("- Quantità " + inventoryReturn.quantity() + ", stato " + inventoryReturn.status() + completed, false);
-                        if (inventoryReturn.condition() != null) writer.line("  Conservazione alla riconsegna: " + inventoryReturn.condition(), false);
+                        writer.line("- Quantità " + inventoryReturn.quantity() + ", stato " + ReportLabels.inventoryReturnStatus(inventoryReturn.status()) + completed, false);
+                        if (inventoryReturn.condition() != null) writer.line("  Conservazione alla riconsegna: " + ReportLabels.inventoryCondition(inventoryReturn.condition()), false);
                         if (inventoryReturn.notes() != null) writer.line("  Note: " + inventoryReturn.notes(), false);
                         if (includePhotos) {
                             for (InventoryPhotoDTO returnPhoto : inventoryReturn.photos()) {

@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapperImpl;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
@@ -27,11 +28,12 @@ class NoticesServiceImplTest {
 
     @Mock NoticesRepository noticesRepository;
     @Mock NoticesMapper noticesMapper;
+    @Mock TenantFeatureService tenantFeatureService;
     private NoticesServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new NoticesServiceImpl(noticesRepository, noticesMapper);
+        service = new NoticesServiceImpl(noticesRepository, noticesMapper, tenantFeatureService);
     }
 
     @Test

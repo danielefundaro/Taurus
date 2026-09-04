@@ -1,4 +1,4 @@
-import { CommonFieldsOpenSearch } from "./common-fields-open-search.module";
+import { CommonFieldsOpenSearch } from './common-fields-open-search.module';
 
 export class Tenants extends CommonFieldsOpenSearch {
     code?: string;
@@ -16,4 +16,7 @@ export class Tenants extends CommonFieldsOpenSearch {
     vatNumber?: string;
     logoUrl?: string;
     timeZone?: string = 'Europe/Rome';
+    financeEnabled: boolean = true;
+    inventoryEnabled: boolean = true;
+    entityVersion?: number;
 }

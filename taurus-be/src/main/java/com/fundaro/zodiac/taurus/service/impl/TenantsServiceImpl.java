@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import jakarta.persistence.criteria.Predicate;
@@ -53,6 +54,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     public TenantsDTO save(TenantsDTO dto, AbstractAuthenticationToken token) {
         normalizeTimeZone(dto);
+        normalizeFeatureFlags(dto);
         if (getRepository().findByCodeAndDeletedFalse(dto.getCode()).isPresent()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant code already exists", getEntityName(), "code.exists");
         }
@@ -74,7 +76,23 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     public TenantsDTO update(Long id, TenantsDTO dto, AbstractAuthenticationToken token) {
         normalizeTimeZone(dto);
-        return super.update(id, dto, token);
+        normalizeFeatureFlags(dto);
+        Tenants previous = getRepository().findByIdAndDeletedFalse(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notFound"));
+        if (dto.getEntityVersion() != null && !Objects.equals(dto.getEntityVersion(), previous.getEntityVersion())) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Tenant was modified by another request", getEntityName(), "version.conflict");
+        }
+        Boolean previousFinance = previous.getFinanceEnabled();
+        Boolean previousInventory = previous.getInventoryEnabled();
+        TenantsDTO saved = super.update(id, dto, token);
+        if (!Objects.equals(previousFinance, saved.getFinanceEnabled()) || !Objects.equals(previousInventory, saved.getInventoryEnabled())) {
+            getLogger().info(
+                "tenant_features_updated tenantId={} tenantCode={} financeBefore={} financeAfter={} inventoryBefore={} inventoryAfter={} actor={} version={} occurredAt={}",
+                saved.getId(), saved.getCode(), previousFinance, saved.getFinanceEnabled(), previousInventory, saved.getInventoryEnabled(),
+                SecurityUtils.getUserIdFromAuthentication(token), saved.getEntityVersion(), java.time.Instant.now()
+            );
+        }
+        return saved;
     }
 
     @Override
@@ -144,5 +162,10 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         } catch (DateTimeException exception) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid tenant time zone", getEntityName(), "timeZone.invalid");
         }
+    }
+
+    private void normalizeFeatureFlags(TenantsDTO dto) {
+        if (dto.getFinanceEnabled() == null) dto.setFinanceEnabled(true);
+        if (dto.getInventoryEnabled() == null) dto.setInventoryEnabled(true);
     }
 }

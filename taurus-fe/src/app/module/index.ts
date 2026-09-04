@@ -22,3 +22,4 @@ export * from './users.module';
 export * from './inventory.module';
 export * from './finance.module';
 export * from './operational-dashboard';
+export * from './tenant-features.module';

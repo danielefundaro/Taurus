@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalDashboardDTO;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalSummaryDTO;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -45,17 +46,20 @@ public class OperationalDashboardService {
     private final TenantTimeZoneService tenantTimeZoneService;
     private final DashboardMetrics metrics;
     private final ApplicationProperties.DashboardProperties properties;
+    private final TenantFeatureService tenantFeatureService;
 
     public OperationalDashboardService(
         List<DashboardOperationProvider> providers,
         TenantTimeZoneService tenantTimeZoneService,
         DashboardMetrics metrics,
-        ApplicationProperties applicationProperties
+        ApplicationProperties applicationProperties,
+        TenantFeatureService tenantFeatureService
     ) {
         this.providers = List.copyOf(providers);
         this.tenantTimeZoneService = tenantTimeZoneService;
         this.metrics = metrics;
         this.properties = applicationProperties.getDashboard();
+        this.tenantFeatureService = tenantFeatureService;
     }
 
     public OperationalDashboardDTO getOperations(AbstractAuthenticationToken authentication) {
@@ -91,6 +95,8 @@ public class OperationalDashboardService {
         Map<DashboardOperationType, OperationalItemDTO> uniqueItems = new LinkedHashMap<>();
         EnumSet<DashboardDomain> unavailable = EnumSet.noneOf(DashboardDomain.class);
         for (DashboardOperationProvider provider : providers) {
+            if (provider.domain() == DashboardDomain.INVENTORY && !tenantFeatureService.isEnabled(TenantFeature.INVENTORY)) continue;
+            if (provider.domain() == DashboardDomain.FINANCE && !tenantFeatureService.isEnabled(TenantFeature.FINANCE)) continue;
             long providerStartedAt = System.nanoTime();
             try {
                 for (OperationalItemDTO item : provider.getOperations(context)) {

@@ -6,11 +6,13 @@ import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
@@ -21,7 +23,10 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -36,37 +41,49 @@ public class CalendarEventsServiceImpl
 
     private final UsersRepository usersRepository;
     private final EventReminderProducer reminderProducer;
+    private final TenantFeatureService tenantFeatureService;
 
     public CalendarEventsServiceImpl(
         CalendarEventsRepository repository,
         CalendarEventsMapper mapper,
         UsersRepository usersRepository,
-        EventReminderProducer reminderProducer
+        EventReminderProducer reminderProducer,
+        TenantFeatureService tenantFeatureService
     ) {
         super(repository, mapper, CalendarEventsService.class, CalendarEvents.class);
         this.usersRepository = usersRepository;
         this.reminderProducer = reminderProducer;
+        this.tenantFeatureService = tenantFeatureService;
     }
 
     @Override
     public CalendarEventsDTO save(CalendarEventsDTO dto, AbstractAuthenticationToken token) {
         applyDefaultEndDate(dto);
+        if (!financeEnabled()) {
+            dto.setFee(null);
+            dto.setCosts(List.of());
+        }
         CalendarEvents entity = getMapper().toEntity(dto);
         entity.setAvailabilities(new ArrayList<>());
         entity.setPresences(new ArrayList<>());
-        return saveEntity(entity, token, true);
+        return featureSafe(saveEntity(entity, token, true));
     }
 
     @Override
     public CalendarEventsDTO update(Long id, CalendarEventsDTO dto, AbstractAuthenticationToken token) {
         applyDefaultEndDate(dto);
         CalendarEvents entity = findEntity(id);
+        boolean financeEnabled = financeEnabled();
+        java.math.BigDecimal persistedFee = entity.getFee();
         CalendarEvents values = getMapper().toEntity(dto);
         getMapper().partialUpdate(entity, dto);
+        if (!financeEnabled) entity.setFee(persistedFee);
         if (entity.getSeries() != null) entity.setSeriesException(true);
-        entity.getCosts().clear();
-        if (values.getCosts() != null) entity.getCosts().addAll(values.getCosts());
-        CalendarEventsDTO result = saveEntity(entity, token, false);
+        if (financeEnabled) {
+            entity.getCosts().clear();
+            if (values.getCosts() != null) entity.getCosts().addAll(values.getCosts());
+        }
+        CalendarEventsDTO result = featureSafe(saveEntity(entity, token, false));
         reminderProducer.rescheduleForAvailableUsers(result, availableUsers(entity), token);
         return result;
     }
@@ -74,6 +91,22 @@ public class CalendarEventsServiceImpl
     @Override
     public CalendarEventsDTO partialUpdate(Long id, CalendarEventsDTO dto, AbstractAuthenticationToken token) {
         return update(id, dto, token);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CalendarEventsDTO> findOne(Long id, AbstractAuthenticationToken token) {
+        return super.findOne(id, token).map(this::featureSafe);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CalendarEventsDTO> findEntitiesByCriteria(
+        CalendarEventsCriteria criteria,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
+        return super.findEntitiesByCriteria(criteria, pageable, token).map(this::featureSafe);
     }
 
     @Override
@@ -116,7 +149,7 @@ public class CalendarEventsServiceImpl
         } else {
             reminderProducer.cancelPending(eventId, user.getKeycloakId());
         }
-        return result;
+        return featureSafe(result);
     }
 
     @Override
@@ -126,7 +159,7 @@ public class CalendarEventsServiceImpl
         event.getAvailabilities().removeIf(entry -> entry.getUser().getId().equals(user.getId()));
         CalendarEventsDTO result = saveEntity(event, token, false);
         reminderProducer.cancelPending(eventId, user.getKeycloakId());
-        return result;
+        return featureSafe(result);
     }
 
     @Override
@@ -146,7 +179,7 @@ public class CalendarEventsServiceImpl
         response.setReminderMinutes(minutes);
         CalendarEventsDTO result = saveEntity(event, token, false);
         reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), minutes, token);
-        return result;
+        return featureSafe(result);
     }
 
     @Override
@@ -177,7 +210,7 @@ public class CalendarEventsServiceImpl
                 event.getPresences().add(presence);
             });
         }
-        return saveEntity(event, token, false);
+        return featureSafe(saveEntity(event, token, false));
     }
 
     @Override
@@ -244,7 +277,7 @@ public class CalendarEventsServiceImpl
         event.setEditDate(new Date());
         CalendarEventsDTO result = getMapper().toDto(getRepository().save(event));
         reminderProducer.cancelAllPending(id);
-        return result;
+        return featureSafe(result);
     }
 
     private CalendarEvents findEntity(Long id) {
@@ -269,5 +302,17 @@ public class CalendarEventsServiceImpl
             .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
             .forEach(value -> result.put(value.getUser().getKeycloakId(), value.getReminderMinutes()));
         return result;
+    }
+
+    private boolean financeEnabled() {
+        return tenantFeatureService.isEnabled(TenantFeature.FINANCE);
+    }
+
+    private CalendarEventsDTO featureSafe(CalendarEventsDTO dto) {
+        if (!financeEnabled()) {
+            dto.setFee(null);
+            dto.setCosts(List.of());
+        }
+        return dto;
     }
 }

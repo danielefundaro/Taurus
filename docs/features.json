@@ -271,10 +271,33 @@
       "title": "Funzionalità Economia e Inventario configurabili per tenant",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "not-planned",
+      "deliveryStatus": "implemented",
       "spec": "docs/tenant-feature-flags-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
-      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/TenantFeatureService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventsServiceImpl.java",
+          "taurus-fe/src/app/service/tenant-feature.service.ts",
+          "taurus-fe/src/app/guard/tenant-feature.guard.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260904000000_tenant_feature_flags.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/TenantFeatureServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceRolloverSchedulerTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryExpirationNotificationSchedulerTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationDispatcherTest.java",
+          "taurus-fe/src/app.routes.spec.ts",
+          "taurus-fe/src/app/service/tenant-feature.service.spec.ts",
+          "taurus-fe/src/app/guard/tenant-feature.guard.spec.ts",
+          "taurus-fe/src/app/components/menu/menu.component.spec.ts"
+        ]
+      },
+      "notes": "Le migration sono verificate con PostgreSQL/Testcontainers; i test coprono isolamento, payload minimale, rifiuto dei moduli disabilitati, conservazione dei dati economici, soppressione notifiche, menu e route guard.",
       "release": null,
       "lastVerifiedOn": "2026-09-04"
     },

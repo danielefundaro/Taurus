@@ -1,6 +1,6 @@
 <p-confirmdialog />
-<app-page-header title="Istanze" [subtitle]="totalRecords + (totalRecords === 1 ? ' istanza' : ' istanze')"
-    ><div pageActions><p-button label="Nuova istanza" icon="pi pi-plus" (onClick)="addNew()" /></div
+<app-page-header title="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')"
+    ><div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div
 ></app-page-header>
 
 <app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)" (layoutChange)="onLayoutChange($event)" />
@@ -60,7 +60,7 @@
                         </div>
                         <div rowActions>
                             <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id" />
-                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina istanza" pTooltip="Elimina" (onClick)="deleteElement(item)" />
+                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant" pTooltip="Elimina" (onClick)="deleteElement(item)" />
                         </div>
                     </app-list-row>
                 }
@@ -101,7 +101,7 @@
                             </div>
                             <div cardActions class="contents">
                                 <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" styleClass="flex-1" />
-                                <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina istanza" (onClick)="deleteElement(item)" />
+                                <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant" (onClick)="deleteElement(item)" />
                             </div>
                         </app-entity-card>
                     </div>
@@ -112,9 +112,9 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-building"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessuna istanza'"
-                [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea la prima istanza per iniziare.'"
-                [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuova istanza'"
+                [title]="searchTerm ? 'Nessun risultato' : 'Nessun tenant'"
+                [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo tenant per iniziare.'"
+                [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo tenant'"
                 (action)="searchTerm ? onSearchChange('') : addNew()"
             />
         </ng-template>

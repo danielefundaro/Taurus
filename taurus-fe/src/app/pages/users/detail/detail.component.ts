@@ -2,20 +2,20 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { CalendarEventsTableComponent } from '../../../components/calendar-events-table/calendar-events-table.component';
 import { InventoryAssignmentsComponent } from '../../../components/inventory-assignments/inventory-assignments.component';
-import { RoleEnums } from '../../../constants';
+import { RoleEnums, RoleLabel, RoleLabelsMap } from '../../../constants';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Users } from '../../../module';
-import { EnumConverterPipe } from '../../../pipe';
-import { ConfirmService, InstrumentsService, ToastService, UsersService } from '../../../service';
+import { ConfirmService, InstrumentsService, TenantFeatureService, ToastService, UsersService } from '../../../service';
 import { CommonOpenSearchService } from '../../../service/common-open-search.service';
 
 @Component({
     selector: 'app-user-detail',
-    imports: [ImportsModule, CalendarEventsTableComponent, InventoryAssignmentsComponent],
+    imports: [ImportsModule, MultiSelectModule, CalendarEventsTableComponent, InventoryAssignmentsComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [InstrumentsService]
@@ -25,11 +25,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected user: Users = new Users();
     protected selectedTracks: ChildrenEntities[];
 
-    protected autoFilteredRoles: Array<string>;
+    protected readonly roleOptions: RoleLabel[];
     protected autoFilteredInstruments: ChildrenEntities[] = [];
     private instrumentsChildrenEntities: ChildrenEntities[] = [];
 
-    private readonly roles: Array<RoleEnums>;
     private readonly instruments: Instruments[];
 
     constructor(
@@ -39,14 +38,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly routeService: ActivatedRoute,
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
-        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>
+        protected readonly tenantFeatureService: TenantFeatureService
     ) {
         super();
         this.selectedTracks = [];
 
-        this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
-        this.roles = this.roles.filter((role) => role !== RoleEnums.SUPER_ADMIN);
-        this.autoFilteredRoles = this.roles;
+        this.roleOptions = RoleLabelsMap.filter((role) => role.code !== RoleEnums.SUPER_ADMIN);
 
         this.instruments = [];
 
@@ -135,10 +132,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.loadElement(user.id);
                 }
             });
-    }
-
-    protected filterRoles(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredRoles = this.roles.filter((role) => role?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {

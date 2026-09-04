@@ -45,6 +45,32 @@ public interface MediaRepository extends CatalogRepository<Media> {
     )
     boolean hasActiveSheetMusicReference(@Param("id") Long id);
 
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM financial_movement_attachment WHERE media_asset_id = :id AND deleted = FALSE AND active = TRUE)", nativeQuery = true)
+    boolean hasFinanceReference(@Param("id") Long id);
+
+    @Query(
+        value = """
+            SELECT EXISTS (
+                SELECT 1 FROM inventory_item_photo WHERE media_asset_id = :id AND deleted = FALSE
+                UNION ALL SELECT 1 FROM inventory_return_photo WHERE media_asset_id = :id AND deleted = FALSE
+                UNION ALL SELECT 1 FROM inventory_report_export WHERE media_asset_id = :id AND deleted = FALSE
+            )
+            """,
+        nativeQuery = true
+    )
+    boolean hasInventoryReference(@Param("id") Long id);
+
+    @Query(
+        value = """
+            SELECT EXISTS (
+                SELECT 1 FROM sheet_music_media WHERE media_asset_id = :id AND deleted = FALSE
+                UNION ALL SELECT 1 FROM upload_job WHERE source_media_asset_id = :id AND deleted = FALSE
+            )
+            """,
+        nativeQuery = true
+    )
+    boolean hasUnrestrictedReference(@Param("id") Long id);
+
     @Query(
         value = """
             SELECT asset.*

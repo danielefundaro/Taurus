@@ -9,6 +9,7 @@ import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +32,7 @@ class MediaServiceImplTest {
 
     @Mock MediaRepository repository;
     @Mock MediaMapper mapper;
+    @Mock TenantFeatureService tenantFeatureService;
 
     private MediaServiceImpl service;
     private final List<Media> savedMedia = new ArrayList<>();
@@ -39,7 +41,7 @@ class MediaServiceImplTest {
     void setUp() {
         ApplicationProperties properties = new ApplicationProperties();
         properties.setBasePath(tempDirectory.toString());
-        service = new MediaServiceImpl(repository, mapper, new TenantStorageService(properties));
+        service = new MediaServiceImpl(repository, mapper, new TenantStorageService(properties), tenantFeatureService);
 
         when(repository.save(any(Media.class))).thenAnswer(invocation -> {
             Media media = invocation.getArgument(0);

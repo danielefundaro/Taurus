@@ -11,9 +11,23 @@
         <app-form-field label="Cognome" forId="lastName"><input pInputText id="lastName" [(ngModel)]="user.lastName" /></app-form-field>
         <app-form-field label="Email" forId="email" required [error]="user.email?.trim() ? undefined : 'Inserisci l’indirizzo email.'"><input pInputText id="email" type="email" [(ngModel)]="user.email" /></app-form-field>
         <app-form-field label="Data di nascita" forId="birthDate"><p-datepicker inputId="birthDate" dateFormat="dd-mm-yy" [showIcon]="true" [(ngModel)]="user.birthDate" /></app-form-field>
-        <app-form-field label="Ruoli" required [error]="user.roles?.length ? undefined : 'Seleziona almeno un ruolo.'"
-            ><p-autocomplete [(ngModel)]="user.roles" [suggestions]="autoFilteredRoles" dropdown multiple display="chip" (completeMethod)="filterRoles($event)"
-        /></app-form-field>
+        <app-form-field label="Ruoli" forId="roles" required [error]="user.roles?.length ? undefined : 'Seleziona almeno un ruolo.'">
+            <p-multiselect
+                inputId="roles"
+                [(ngModel)]="user.roles"
+                [options]="roleOptions"
+                optionLabel="name"
+                optionValue="code"
+                display="chip"
+                selectedItemsLabel="{0} ruoli selezionati"
+                [filter]="true"
+                filterBy="name"
+                filterPlaceholder="Cerca un ruolo"
+                emptyFilterMessage="Nessun ruolo trovato"
+                placeholder="Seleziona uno o più ruoli"
+                ariaLabel="Ruoli dell’utente"
+            />
+        </app-form-field>
         <app-form-field label="Stato"
             ><label class="flex items-center gap-2"><p-checkbox [binary]="true" [(ngModel)]="user.active" /> Utente attivo</label></app-form-field
         >

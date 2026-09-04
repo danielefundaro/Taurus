@@ -8,17 +8,16 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { TextareaModule } from 'primeng/textarea';
-import { RoleEnums } from '../../constants';
+import { RoleEnums, RoleLabel, RoleLabelsMap } from '../../constants';
 import { ChildrenEntities, Instruments, Users } from '../../module';
-import { EnumConverterPipe } from '../../pipe';
 import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
 import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
 @Component({
     selector: 'app-add-users-dialog',
-    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, AutoCompleteModule, CheckboxModule, DialogShellComponent, FormFieldComponent],
-    providers: [EnumConverterPipe],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, AutoCompleteModule, MultiSelectModule, CheckboxModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-users-dialog.component.html',
     styleUrl: './add-users-dialog.component.scss'
 })
@@ -26,24 +25,19 @@ export class AddUsersDialogComponent {
     @Input() public readonly instruments: Instruments[];
 
     protected user: Users;
-    protected autoFilteredRoles: Array<string>;
+    protected readonly roleOptions: RoleLabel[];
     protected autoFilteredInstruments: ChildrenEntities[];
 
-    private readonly roles: Array<RoleEnums>;
     private readonly instrumentsChildrenEntities: ChildrenEntities[];
 
     constructor(
         private readonly dialogRef: DynamicDialogRef<AddUsersDialogComponent>,
-        private readonly config: DynamicDialogConfig<any, { instruments: Instruments[] }>,
-        private readonly enumConverterPipe: EnumConverterPipe<RoleEnums>
+        private readonly config: DynamicDialogConfig<any, { instruments: Instruments[] }>
     ) {
         this.user = new Users();
         this.user.active = true;
-        this.roles = this.enumConverterPipe.transform(RoleEnums as unknown as RoleEnums);
-        this.roles = this.roles.filter((role) => role !== RoleEnums.SUPER_ADMIN);
+        this.roleOptions = RoleLabelsMap.filter((role) => role.code !== RoleEnums.SUPER_ADMIN);
         this.instruments = this.config.inputValues?.instruments ?? [];
-
-        this.autoFilteredRoles = this.roles;
 
         this.instrumentsChildrenEntities =
             this.config.inputValues?.instruments.map((instrument) => {
@@ -55,10 +49,6 @@ export class AddUsersDialogComponent {
             }) ?? [];
 
         this.autoFilteredInstruments = this.instrumentsChildrenEntities;
-    }
-
-    protected filterRoles(event: AutoCompleteCompleteEvent) {
-        this.autoFilteredRoles = this.roles.filter((role) => role?.toLowerCase()?.includes(event.query.toLowerCase()));
     }
 
     protected filterInstruments(event: AutoCompleteCompleteEvent) {

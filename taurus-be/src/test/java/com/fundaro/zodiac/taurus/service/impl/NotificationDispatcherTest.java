@@ -14,6 +14,8 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -32,11 +34,13 @@ class NotificationDispatcherTest {
     @Mock NotificationRecipientResolver recipientResolver;
     @Mock NoticesService noticesService;
     @Mock NotificationMetrics metrics;
+    @Mock TenantFeatureService tenantFeatureService;
     private NotificationDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, new ApplicationProperties(), metrics);
+        org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
+        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, new ApplicationProperties(), metrics, tenantFeatureService);
     }
 
     @Test
@@ -60,6 +64,19 @@ class NotificationDispatcherTest {
     }
 
     @Test
+    void suppressesAnEventWhenItsTenantFeatureIsDisabled() {
+        NotificationOutbox event = pendingEvent();
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
+        when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(false);
+
+        dispatcher.dispatch(1L);
+
+        assertThat(event.getStatus()).isEqualTo(NotificationStatus.SUPPRESSED);
+        verify(repository).save(event);
+        verify(noticesService, org.mockito.Mockito.never()).addNoticeToUser(any());
+    }
+
+    @Test
     void schedulesAnExponentialRetryAndSanitizesTheError() {
         NotificationOutbox event = pendingEvent();
         when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
@@ -78,7 +95,7 @@ class NotificationDispatcherTest {
     void marksTheEventFailedWhenTheConfiguredAttemptLimitIsReached() {
         ApplicationProperties properties = new ApplicationProperties();
         properties.getNotifications().getRetry().setMaxAttempts(1);
-        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, properties, metrics);
+        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, properties, metrics, tenantFeatureService);
         NotificationOutbox event = pendingEvent();
         when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
 

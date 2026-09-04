@@ -34,4 +34,5 @@
     <include file="config/liquibase/changelog/20260901000003_finance_notifications.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260903000000_availability_reminder_minutes.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260903000001_generalize_notification_outbox.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>
