@@ -6,7 +6,7 @@ import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, Tenants } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { ConfirmService, TenantsService, ToastService } from '../../../service';
+import { ConfirmService, KeycloakService, TenantFeatureService, TenantsService, ToastService } from '../../../service';
 
 @Component({
     selector: 'app-tenant-detail',
@@ -21,6 +21,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     public tenant: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
+    private originalFinanceEnabled = true;
+    private originalInventoryEnabled = true;
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -28,7 +30,9 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly dateConverterPipe: DateConverterPipe,
         private readonly routeService: ActivatedRoute,
         private readonly router: Router,
-        private readonly confirmService: ConfirmService
+        private readonly confirmService: ConfirmService,
+        private readonly keycloakService: KeycloakService,
+        private readonly tenantFeatureService: TenantFeatureService
     ) {
         super();
         this.cols = ['Codice', 'Ordine', 'Nome'];
@@ -82,6 +86,22 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     public save(): void {
+        const disabled: string[] = [];
+        if (this.originalFinanceEnabled && !this.tenant.financeEnabled) disabled.push('Economia');
+        if (this.originalInventoryEnabled && !this.tenant.inventoryEnabled) disabled.push('Inventario');
+        if (disabled.length) {
+            this.confirmService.confirmReversible({
+                title: 'Disattiva funzionalità',
+                consequence: `${disabled.join(' e ')} non sarà più accessibile agli utenti di questo tenant. Menu, pagine, operazioni e notifiche collegate verranno nascosti o bloccati; tutti i dati saranno conservati.`,
+                actionLabel: 'Disattiva e salva',
+                accept: () => this.persist()
+            });
+            return;
+        }
+        this.persist();
+    }
+
+    private persist(): void {
         this.saving = true;
         this.tenantsService
             .update(this.tenant.id, this.tenant)
@@ -94,6 +114,9 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 next: (tenant: Tenants) => {
                     this.isDirty = false;
                     this.toastService.success('Successo', 'Tenant aggiornato con successo');
+                    if (tenant.code === this.keycloakService.currentUserTenantCode) {
+                        this.tenantFeatureService.refresh(true).subscribe({ error: () => undefined });
+                    }
                     this.loadElement(tenant.id);
                 }
             });
@@ -138,6 +161,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (tenant: Tenants) => {
                     this.tenant = tenant;
+                    this.tenant.financeEnabled ??= true;
+                    this.tenant.inventoryEnabled ??= true;
+                    this.originalFinanceEnabled = this.tenant.financeEnabled;
+                    this.originalInventoryEnabled = this.tenant.inventoryEnabled;
                     this.tenant.country = this.tenant.country?.toUpperCase();
                     this.tenant.expireDate = this.dateConverterPipe.transform(this.tenant.expireDate);
                     this.isDirty = false;

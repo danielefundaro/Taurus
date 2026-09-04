@@ -3,10 +3,12 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -38,10 +40,17 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     private static final String OCTET_STREAM = "application/octet-stream";
 
     private final TenantStorageService tenantStorageService;
+    private final TenantFeatureService tenantFeatureService;
 
-    public MediaServiceImpl(MediaRepository repository, MediaMapper mapper, TenantStorageService tenantStorageService) {
+    public MediaServiceImpl(
+        MediaRepository repository,
+        MediaMapper mapper,
+        TenantStorageService tenantStorageService,
+        TenantFeatureService tenantFeatureService
+    ) {
         super(repository, mapper, MediaService.class, Media.class);
         this.tenantStorageService = tenantStorageService;
+        this.tenantFeatureService = tenantFeatureService;
     }
 
     @Override
@@ -71,7 +80,10 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     @Override
     @Transactional(readOnly = true)
     public Optional<MediaDTO> findOne(Long id, AbstractAuthenticationToken token) {
-        if (isPrivileged(token)) return super.findOne(id, token);
+        if (isPrivileged(token)) {
+            requireFeatureAccess(id);
+            return super.findOne(id, token);
+        }
         return getRepository().findActiveSheetMusicMediaById(id).map(getMapper()::toDto);
     }
 
@@ -92,6 +104,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
 
     @Override
     public MediaContent getContent(Long id, AbstractAuthenticationToken token) {
+        requireFeatureAccess(id);
         Media media = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> notFound("Media asset not found"));
         String tenant = requiredTenant(token);
@@ -343,5 +356,14 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
             getEntityName(),
             "media.managedOnly"
         );
+    }
+
+    private void requireFeatureAccess(Long id) {
+        boolean finance = getRepository().hasFinanceReference(id);
+        boolean inventory = getRepository().hasInventoryReference(id);
+        if ((!finance && !inventory) || getRepository().hasUnrestrictedReference(id)) return;
+        if (finance && tenantFeatureService.isEnabled(TenantFeature.FINANCE)) return;
+        if (inventory && tenantFeatureService.isEnabled(TenantFeature.INVENTORY)) return;
+        tenantFeatureService.requireEnabled(finance ? TenantFeature.FINANCE : TenantFeature.INVENTORY);
     }
 }

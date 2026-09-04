@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
@@ -48,6 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/finance")
+@RequiresTenantFeature(TenantFeature.FINANCE)
 public class FinanceResource {
 
     private final FinanceService financeService;

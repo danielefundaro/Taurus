@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, effect, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
 import { MenuItemComponent } from '../menu-item/menu-item.component';
+import { TenantFeatureService } from '../../service';
 
 @Component({
     selector: 'app-menu',
@@ -15,7 +16,20 @@ import { MenuItemComponent } from '../menu-item/menu-item.component';
 export class MenuComponent implements OnInit {
     model: MenuItem[] = [];
 
+    constructor(private readonly tenantFeatureService: TenantFeatureService) {
+        effect(() => {
+            this.tenantFeatureService.loaded();
+            this.tenantFeatureService.financeEnabled();
+            this.tenantFeatureService.inventoryEnabled();
+            this.buildMenu();
+        });
+    }
+
     ngOnInit() {
+        this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
+    }
+
+    private buildMenu(): void {
         this.model = [
             {
                 label: 'Home',
@@ -41,7 +55,7 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN]
                     },
                     {
-                        label: 'Istanze',
+                        label: 'Tenant',
                         icon: 'pi pi-fw pi-building',
                         routerLink: ['/tenants'],
                         hasRoles: [RoleEnums.SUPER_ADMIN]
@@ -62,13 +76,15 @@ export class MenuComponent implements OnInit {
                         label: 'Economia',
                         icon: 'pi pi-fw pi-wallet',
                         routerLink: ['/finance'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER],
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.financeEnabled()
                     },
                     {
                         label: 'Inventario',
                         icon: 'pi pi-fw pi-box',
                         routerLink: ['/inventory'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.inventoryEnabled()
                     },
                     {
                         separator: true,

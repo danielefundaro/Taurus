@@ -9,7 +9,7 @@ import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { CalendarEventSeries, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, EventCost, FinancialEventSummary, EventPresentUser, RecurrenceWeekDay, Users } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
-import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, FinanceService, KeycloakService, ToastService, UsersService } from '../../../service';
+import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, FinanceService, KeycloakService, TenantFeatureService, ToastService, UsersService } from '../../../service';
 
 interface UserPresenceRow {
     id: number;
@@ -69,6 +69,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected newCostDescription: string = '';
     protected newCostAmount: number | null = null;
     protected economicSummary?: FinancialEventSummary;
+    protected readonly financeEnabled;
 
     protected presenceRows: UserPresenceRow[] = [];
     protected currentUserId?: number;
@@ -109,9 +110,11 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly activatedRoute: ActivatedRoute,
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
-        private readonly dateConverterPipe: DateConverterPipe
+        private readonly dateConverterPipe: DateConverterPipe,
+        tenantFeatureService: TenantFeatureService
     ) {
         super();
+        this.financeEnabled = tenantFeatureService.financeEnabled;
         this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
@@ -503,6 +506,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     }
                     if (this.isAdmin) {
                         this.loadAllUsers();
+                    }
+                    if (this.isAdmin && this.financeEnabled()) {
                         this.financeService
                             .getEvent(this.event.id)
                             .pipe(first())

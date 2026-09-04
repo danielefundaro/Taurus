@@ -3,8 +3,11 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import java.time.Duration;
@@ -26,19 +29,22 @@ public class NotificationDispatcher {
     private final NoticesService noticesService;
     private final ApplicationProperties.NotificationProperties properties;
     private final NotificationMetrics metrics;
+    private final TenantFeatureService tenantFeatureService;
 
     public NotificationDispatcher(
         NotificationOutboxRepository repository,
         NotificationRecipientResolver recipientResolver,
         NoticesService noticesService,
         ApplicationProperties applicationProperties,
-        NotificationMetrics metrics
+        NotificationMetrics metrics,
+        TenantFeatureService tenantFeatureService
     ) {
         this.repository = repository;
         this.recipientResolver = recipientResolver;
         this.noticesService = noticesService;
         this.properties = applicationProperties.getNotifications();
         this.metrics = metrics;
+        this.tenantFeatureService = tenantFeatureService;
     }
 
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
@@ -57,6 +63,14 @@ public class NotificationDispatcher {
         NotificationOutbox event = repository.findByIdForUpdate(id).orElse(null);
         ZonedDateTime now = ZonedDateTime.now();
         if (event == null || event.getStatus() != NotificationStatus.PENDING || event.getNextAttemptAt().isAfter(now)) return;
+        if (!sourceEnabled(event.getSource())) {
+            event.setStatus(NotificationStatus.SUPPRESSED);
+            event.setLastError(null);
+            event.touchAudit(ACTOR);
+            repository.save(event);
+            LOG.info("notification_suppressed tenant={} eventId={} source={} reason=tenant_feature_disabled", tenant(), event.getId(), event.getSource());
+            return;
+        }
         metrics.recordAttempt(event);
         Set<String> recipients = recipientResolver.resolve(event.getAudiences());
         if (recipients.isEmpty()) throw new IllegalStateException("No active notification recipients are available");
@@ -127,5 +141,11 @@ public class NotificationDispatcher {
 
     private static String tenant() {
         return com.fundaro.zodiac.taurus.multitenancy.TenantContext.getTenantCode().orElse("unknown");
+    }
+
+    private boolean sourceEnabled(NotificationSource source) {
+        if (source == NotificationSource.FINANCE) return tenantFeatureService.isEnabled(TenantFeature.FINANCE);
+        if (source == NotificationSource.INVENTORY) return tenantFeatureService.isEnabled(TenantFeature.INVENTORY);
+        return true;
     }
 }

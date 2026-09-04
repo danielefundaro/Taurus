@@ -111,9 +111,11 @@
             <app-form-field label="Data/ora fine" forId="endDate">
                 <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
             </app-form-field>
-            <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
-            </app-form-field>
+            @if (financeEnabled()) {
+                <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                    <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+            }
             <app-form-field label="Promemoria" forId="reminderMinutes" hint="Minuti prima dell’evento, 0 per nessun promemoria" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
                 <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
             </app-form-field>
@@ -123,60 +125,62 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
-            <div class="md:col-span-7">
-                <app-form-field label="Descrizione costo" forId="costDesc">
-                    <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
-                </app-form-field>
+    @if (financeEnabled()) {
+        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
+                <div class="md:col-span-7">
+                    <app-form-field label="Descrizione costo" forId="costDesc">
+                        <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
+                    </app-form-field>
+                </div>
+                <div class="md:col-span-3">
+                    <app-form-field label="Importo" forId="costAmount">
+                        <p-inputnumber inputId="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR" locale="it-IT" />
+                    </app-form-field>
+                </div>
+                <div class="md:col-span-2 flex items-end">
+                    <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" styleClass="w-full" (onClick)="addCost()" [disabled]="!newCostDescription" />
+                </div>
             </div>
-            <div class="md:col-span-3">
-                <app-form-field label="Importo" forId="costAmount">
-                    <p-inputnumber inputId="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR" locale="it-IT" />
-                </app-form-field>
-            </div>
-            <div class="md:col-span-2 flex items-end">
-                <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" styleClass="w-full" (onClick)="addCost()" [disabled]="!newCostDescription" />
-            </div>
-        </div>
 
-        <p-table [value]="event.costs ?? []" [rowHover]="true">
-            <ng-template #header>
-                <tr>
-                    <th scope="col">Descrizione</th>
-                    <th scope="col" class="text-right">Importo</th>
-                    <th scope="col" class="w-12"></th>
-                </tr>
-            </ng-template>
-            <ng-template #body let-cost let-i="rowIndex">
-                <tr>
-                    <td>{{ cost.description }}</td>
-                    <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
-                    <td>
-                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
-                    </td>
-                </tr>
-            </ng-template>
-            <ng-template #emptymessage>
-                <tr>
-                    <td colspan="3">
-                        <app-empty-state compact icon="pi pi-wallet" title="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
-                    </td>
-                </tr>
-            </ng-template>
-            @if ((event.costs?.length ?? 0) > 0) {
-                <ng-template #footer>
-                    <tr class="font-semibold">
-                        <td>Totale</td>
-                        <td class="text-right">{{ totalCosts | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
-                        <td></td>
+            <p-table [value]="event.costs ?? []" [rowHover]="true">
+                <ng-template #header>
+                    <tr>
+                        <th scope="col">Descrizione</th>
+                        <th scope="col" class="text-right">Importo</th>
+                        <th scope="col" class="w-12"></th>
                     </tr>
                 </ng-template>
-            }
-        </p-table>
-    </app-detail-section>
+                <ng-template #body let-cost let-i="rowIndex">
+                    <tr>
+                        <td>{{ cost.description }}</td>
+                        <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
+                        <td>
+                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="3">
+                            <app-empty-state compact icon="pi pi-wallet" title="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
+                        </td>
+                    </tr>
+                </ng-template>
+                @if ((event.costs?.length ?? 0) > 0) {
+                    <ng-template #footer>
+                        <tr class="font-semibold">
+                            <td>Totale</td>
+                            <td class="text-right">{{ totalCosts | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
+                            <td></td>
+                        </tr>
+                    </ng-template>
+                }
+            </p-table>
+        </app-detail-section>
+    }
 
-    @if (economicSummary) {
+    @if (financeEnabled() && economicSummary) {
         <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
             <div sectionActions>
                 <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']" [queryParams]="{ action: 'new', eventId: event.id }" />

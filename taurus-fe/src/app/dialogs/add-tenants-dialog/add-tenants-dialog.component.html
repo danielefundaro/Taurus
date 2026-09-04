@@ -1,13 +1,13 @@
 <app-dialog-shell
-    title="Nuova istanza"
+    title="Nuovo tenant"
     subtitle="Configura l’organizzazione e i suoi limiti iniziali."
-    confirmLabel="Crea istanza"
+    confirmLabel="Crea tenant"
     [invalidCount]="(!tenant.name?.trim() ? 1 : 0) + (!tenant.code?.trim() ? 1 : 0)"
     (cancel)="cancel()"
     (confirm)="save()"
 >
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome dell’istanza.'"><input pInputText id="name" [(ngModel)]="tenant.name" /></app-form-field>
+        <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'"><input pInputText id="name" [(ngModel)]="tenant.name" /></app-form-field>
         <app-form-field label="Codice" forId="code" required [error]="tenant.code?.trim() ? undefined : 'Inserisci un codice.'"><input pInputText id="code" [(ngModel)]="tenant.code" /></app-form-field>
         <app-form-field label="Email" forId="email"><input pInputText id="email" type="email" [(ngModel)]="tenant.email" /></app-form-field>
         <app-form-field label="Dominio" forId="domain"><input pInputText id="domain" [(ngModel)]="tenant.domain" /></app-form-field>

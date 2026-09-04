@@ -101,7 +101,16 @@ class InventoryReportServiceTest {
         assertThat(report.bytes()).startsWith("%PDF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
         try (var document = Loader.loadPDF(report.bytes())) {
             assertThat(document.getNumberOfPages()).isEqualTo(1);
-            assertThat(new PDFTextStripper().getText(document)).contains("Data di scadenza: 30/06/2027");
+            assertThat(new PDFTextStripper().getText(document))
+                .contains(
+                    "Data di scadenza: 30/06/2027",
+                    "Stato di conservazione: Buono",
+                    "Stato: Parzialmente riconsegnata",
+                    "Presa visione: accettata",
+                    "stato completata",
+                    "Conservazione alla riconsegna: Buono"
+                )
+                .doesNotContain("GOOD", "PARTIALLY_RETURNED", "ACCEPTED", "COMPLETED");
         }
         verify(reportExportRepository).save(argThat(export ->
             export.getMediaAsset() == storedMedia &&

@@ -9,6 +9,7 @@ import com.fundaro.zodiac.taurus.domain.EventCost;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceEndType;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceWeekDay;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventSeriesRepository;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
@@ -16,6 +17,7 @@ import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.CalendarEventSeriesService;
 import com.fundaro.zodiac.taurus.service.RecurringEventGenerator;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesDTO;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesPreviewDTO;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesRequest;
@@ -56,6 +58,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
     private final RecurringEventGenerator generator;
     private final TenantTimeZoneService tenantTimeZoneService;
     private final EventReminderProducer reminderProducer;
+    private final TenantFeatureService tenantFeatureService;
     private final int maximumOccurrences;
 
     public CalendarEventSeriesServiceImpl(
@@ -65,6 +68,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         RecurringEventGenerator generator,
         TenantTimeZoneService tenantTimeZoneService,
         EventReminderProducer reminderProducer,
+        TenantFeatureService tenantFeatureService,
         @Value("${application.calendar.recurrence.max-occurrences:500}") int maximumOccurrences
     ) {
         this.seriesRepository = seriesRepository;
@@ -73,6 +77,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         this.generator = generator;
         this.tenantTimeZoneService = tenantTimeZoneService;
         this.reminderProducer = reminderProducer;
+        this.tenantFeatureService = tenantFeatureService;
         this.maximumOccurrences = maximumOccurrences;
     }
 
@@ -94,15 +99,16 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         ZoneId zone = tenantTimeZoneService.currentZoneId();
         SeriesDefinition definition = definition(request, zone);
         String actor = actor(token);
+        boolean economicsWritable = financeEnabled();
 
         CalendarEventSeries series = new CalendarEventSeries();
         initialize(series, actor);
-        applySeriesDefinition(series, request, definition, actor);
+        applySeriesDefinition(series, request, definition, actor, economicsWritable);
         series = seriesRepository.save(series);
 
         List<CalendarEvents> events = new ArrayList<>();
         for (int index = 0; index < definition.occurrences().size(); index++) {
-            events.add(createOccurrence(series, request.getTemplate(), definition.occurrences().get(index), index + 1, definition.durationMinutes(), actor));
+            events.add(createOccurrence(series, request.getTemplate(), definition.occurrences().get(index), index + 1, definition.durationMinutes(), actor, economicsWritable));
         }
         eventRepository.saveAll(events);
         eventRepository.flush();
@@ -127,6 +133,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         ZoneId zone = ZoneId.of(series.getTimeZone());
         SeriesDefinition definition = definition(request, zone);
         String actor = actor(token);
+        boolean economicsWritable = financeEnabled();
         Instant now = Instant.now();
         List<CalendarEvents> allEvents = eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(id);
         CalendarEvents sourceOccurrence = findSourceOccurrence(request.getSourceOccurrenceId(), allEvents);
@@ -178,13 +185,13 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
                 ? byOriginalStart.get(occurrence.toInstant())
                 : bySequence.get(sequence);
             if (existing == null) {
-                changed.add(createOccurrence(series, request.getTemplate(), occurrence, sequence, definition.durationMinutes(), actor));
+                changed.add(createOccurrence(series, request.getTemplate(), occurrence, sequence, definition.durationMinutes(), actor, economicsWritable));
                 created++;
             } else if (existing.getDeleted()) {
                 if (!Boolean.TRUE.equals(existing.getSeriesExcluded())) {
                     existing.setDeleted(false);
                     existing.setSeriesException(false);
-                    applyOccurrenceTemplate(existing, request.getTemplate(), occurrence, definition.durationMinutes(), actor);
+                    applyOccurrenceTemplate(existing, request.getTemplate(), occurrence, definition.durationMinutes(), actor, economicsWritable);
                     existing.setSeriesSequence(sequence);
                     changed.add(existing);
                     updated++;
@@ -192,7 +199,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             } else if (
                 !Boolean.TRUE.equals(existing.getSeriesException()) || Objects.equals(existing.getId(), request.getSourceOccurrenceId())
             ) {
-                applyOccurrenceTemplate(existing, request.getTemplate(), occurrence, definition.durationMinutes(), actor);
+                applyOccurrenceTemplate(existing, request.getTemplate(), occurrence, definition.durationMinutes(), actor, economicsWritable);
                 existing.setSeriesSequence(sequence);
                 if (Objects.equals(existing.getId(), request.getSourceOccurrenceId())) {
                     existing.setSeriesException(false);
@@ -204,7 +211,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             }
         }
 
-        applySeriesDefinition(series, request, definition, actor);
+        applySeriesDefinition(series, request, definition, actor, economicsWritable);
         seriesRepository.save(series);
         eventRepository.saveAll(changed);
         eventRepository.flush();
@@ -253,7 +260,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         event.setDeleted(false);
         event.setSeriesException(false);
         event.setSeriesExcluded(false);
-        applyOccurrenceTemplate(event, template, original, series.getDurationMinutes(), actor);
+        applyOccurrenceTemplate(event, template, original, series.getDurationMinutes(), actor, financeEnabled());
         eventRepository.save(event);
         eventRepository.flush();
         rescheduleReminders(event, token);
@@ -287,14 +294,14 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         }
     }
 
-    private void applySeriesDefinition(CalendarEventSeries series, CalendarEventSeriesRequest request, SeriesDefinition definition, String actor) {
+    private void applySeriesDefinition(CalendarEventSeries series, CalendarEventSeriesRequest request, SeriesDefinition definition, String actor, boolean economicsWritable) {
         CalendarEventsDTO template = request.getTemplate();
         RecurrenceRuleDTO rule = request.getRecurrence();
         series.setName(template.getName().trim());
         series.setDescription(template.getDescription());
         series.setState(template.getState() == null ? StateEnum.DRAFT : template.getState());
         series.setLocation(template.getLocation());
-        series.setFee(template.getFee());
+        if (economicsWritable) series.setFee(template.getFee());
         series.setReminderMinutes(template.getReminderMinutes());
         if (series.getTimeZone() == null) series.setTimeZone(definition.occurrences().get(0).getZone().getId());
         series.setFirstStartLocal(definition.firstStartLocal());
@@ -305,9 +312,11 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         series.setEndType(rule.getEnd().getType());
         series.setOccurrenceCount(rule.getEnd().getType() == RecurrenceEndType.COUNT ? rule.getEnd().getCount() : null);
         series.setUntilLocalDate(rule.getEnd().getType() == RecurrenceEndType.UNTIL ? rule.getEnd().getUntil() : null);
-        series.getCosts().clear();
-        if (template.getCosts() != null) {
-            template.getCosts().forEach(cost -> series.getCosts().add(seriesCost(cost, actor)));
+        if (economicsWritable) {
+            series.getCosts().clear();
+            if (template.getCosts() != null) {
+                template.getCosts().forEach(cost -> series.getCosts().add(seriesCost(cost, actor)));
+            }
         }
         touch(series, actor);
     }
@@ -318,7 +327,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         ZonedDateTime occurrence,
         int sequence,
         int durationMinutes,
-        String actor
+        String actor,
+        boolean economicsWritable
     ) {
         CalendarEvents event = new CalendarEvents();
         initialize(event, actor);
@@ -329,22 +339,24 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         event.setSeriesExcluded(false);
         event.setAvailabilities(new ArrayList<>());
         event.setPresences(new ArrayList<>());
-        applyOccurrenceTemplate(event, template, occurrence, durationMinutes, actor);
+        applyOccurrenceTemplate(event, template, occurrence, durationMinutes, actor, economicsWritable);
         return event;
     }
 
-    private void applyOccurrenceTemplate(CalendarEvents event, CalendarEventsDTO template, ZonedDateTime occurrence, int durationMinutes, String actor) {
+    private void applyOccurrenceTemplate(CalendarEvents event, CalendarEventsDTO template, ZonedDateTime occurrence, int durationMinutes, String actor, boolean economicsWritable) {
         event.setName(template.getName().trim());
         event.setDescription(template.getDescription());
         event.setState(template.getState() == null ? StateEnum.DRAFT : template.getState());
         event.setLocation(template.getLocation());
-        event.setFee(template.getFee());
+        if (economicsWritable) event.setFee(template.getFee());
         event.setReminderMinutes(template.getReminderMinutes());
         event.setStartDate(Date.from(occurrence.toInstant()));
         event.setEndDate(Date.from(occurrence.plusMinutes(durationMinutes).toInstant()));
-        event.getCosts().clear();
-        if (template.getCosts() != null) {
-            template.getCosts().forEach(cost -> event.getCosts().add(eventCost(cost, actor)));
+        if (economicsWritable) {
+            event.getCosts().clear();
+            if (template.getCosts() != null) {
+                template.getCosts().forEach(cost -> event.getCosts().add(eventCost(cost, actor)));
+            }
         }
         touch(event, actor);
     }
@@ -382,6 +394,10 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             dto.setAmount(cost.getAmount());
             return dto;
         }).toList());
+        if (!financeEnabled()) {
+            template.setFee(null);
+            template.setCosts(List.of());
+        }
         return template;
     }
 
@@ -464,6 +480,10 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
     private String actor(AbstractAuthenticationToken token) {
         return SecurityUtils.getUserIdFromAuthentication(token);
+    }
+
+    private boolean financeEnabled() {
+        return tenantFeatureService.isEnabled(TenantFeature.FINANCE);
     }
 
     private RequestAlertException error(HttpStatus status, String message, String key) {

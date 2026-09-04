@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Notices;
@@ -8,11 +9,13 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
@@ -29,6 +32,7 @@ import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +58,7 @@ class NotificationDeliveryIT {
     @MockBean ClientRegistrationRepository clientRegistrationRepository;
     @MockBean JwtDecoder jwtDecoder;
     @MockBean NotificationScheduler notificationScheduler;
+    @MockBean TenantFeatureService tenantFeatureService;
     @Autowired TenantSchemaProvisioningService provisioningService;
     @Autowired TenantTransactionExecutor transactionExecutor;
     @Autowired NotificationOutboxPublisher publisher;
@@ -71,6 +76,12 @@ class NotificationDeliveryIT {
     void provisionTenants() {
         provisioningService.provision(tenantOne);
         provisioningService.provision(tenantTwo);
+    }
+
+    @BeforeEach
+    void enableTenantFeatures() {
+        when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
+        when(tenantFeatureService.isEnabled(TenantFeature.INVENTORY)).thenReturn(true);
     }
 
     @AfterEach

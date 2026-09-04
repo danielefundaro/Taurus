@@ -54,6 +54,12 @@ public class Tenants extends CommonFieldsOpenSearch {
     @Column(name = "time_zone", nullable = false, length = 64)
     private String timeZone = "Europe/Rome";
 
+    @Column(name = "finance_enabled", nullable = false)
+    private Boolean financeEnabled = true;
+
+    @Column(name = "inventory_enabled", nullable = false)
+    private Boolean inventoryEnabled = true;
+
     public String getCode() {
         return code;
     }
@@ -120,6 +126,10 @@ public class Tenants extends CommonFieldsOpenSearch {
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public String getTimeZone() { return timeZone; }
     public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
+    public Boolean getFinanceEnabled() { return financeEnabled; }
+    public void setFinanceEnabled(Boolean financeEnabled) { this.financeEnabled = financeEnabled; }
+    public Boolean getInventoryEnabled() { return inventoryEnabled; }
+    public void setInventoryEnabled(Boolean inventoryEnabled) { this.inventoryEnabled = inventoryEnabled; }
 
     @Override
     public boolean equals(Object o) {
@@ -144,12 +154,14 @@ public class Tenants extends CommonFieldsOpenSearch {
             Objects.equals(taxCode, tenants.taxCode) &&
             Objects.equals(vatNumber, tenants.vatNumber) &&
             Objects.equals(logoUrl, tenants.logoUrl) &&
-            Objects.equals(timeZone, tenants.timeZone);
+            Objects.equals(timeZone, tenants.timeZone) &&
+            Objects.equals(financeEnabled, tenants.financeEnabled) &&
+            Objects.equals(inventoryEnabled, tenants.inventoryEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled);
     }
 
     @Override
@@ -177,6 +189,8 @@ public class Tenants extends CommonFieldsOpenSearch {
             ", vatNumber='" + getVatNumber() + '\'' +
             ", logoUrl='" + getLogoUrl() + '\'' +
             ", timeZone='" + getTimeZone() + '\'' +
+            ", financeEnabled=" + getFinanceEnabled() +
+            ", inventoryEnabled=" + getInventoryEnabled() +
             ", description='" + getDescription() + "'" +
             '}';
     }

@@ -3,6 +3,8 @@ import { RoleEnums } from './app/constants';
 import { canActivateAuthRole } from './app/guard/auth-role.guard';
 import { legalDocumentsGuard } from './app/guard/legal-documents.guard';
 import { canDeactivateUnsavedChanges } from './app/guard/unsaved-changes.guard';
+import { tenantFeatureGuard } from './app/guard/tenant-feature.guard';
+import { TenantFeature } from './app/module';
 import { DashboardComponent } from './app/pages/dashboard/dashboard.component';
 import { Forbidden } from './app/pages/forbidden/forbidden.component';
 import { LayoutComponent } from './app/pages/layout/layout.component';
@@ -64,14 +66,14 @@ export const appRoutes: Routes = [
             {
                 path: 'inventory',
                 loadChildren: () => import('./app/pages/inventory/inventory.routes'),
-                canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                canActivate: [canActivateAuthRole, tenantFeatureGuard],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL], feature: TenantFeature.INVENTORY }
             },
             {
                 path: 'finance',
                 loadChildren: () => import('./app/pages/finance/finance.routes'),
-                canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER] }
+                canActivate: [canActivateAuthRole, tenantFeatureGuard],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER], feature: TenantFeature.FINANCE }
             },
             {
                 path: 'calendar',

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardOperationProvider;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardRequestContext;
@@ -30,6 +31,7 @@ class OperationalDashboardServiceTest {
 
     @Mock TenantTimeZoneService timeZoneService;
     @Mock DashboardMetrics metrics;
+    @Mock TenantFeatureService tenantFeatureService;
 
     @Test
     void ordersItemsAndBuildsAConsistentSummary() {
@@ -102,7 +104,9 @@ class OperationalDashboardServiceTest {
     private OperationalDashboardService service(List<DashboardOperationProvider> providers) {
         ApplicationProperties properties = new ApplicationProperties();
         properties.getDashboard().setEnabled(true);
-        return new OperationalDashboardService(providers, timeZoneService, metrics, properties);
+        org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
+        org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.INVENTORY)).thenReturn(true);
+        return new OperationalDashboardService(providers, timeZoneService, metrics, properties, tenantFeatureService);
     }
 
     private static DashboardOperationProvider provider(DashboardDomain domain, OperationalItemDTO item) {

@@ -51,7 +51,7 @@ public class InventoryExpirationNotificationScheduler {
     )
     public void notifyExpirations() {
         LocalDate today = LocalDate.now(DEFAULT_ZONE);
-        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
+        tenantSchemaRegistry.findInventoryEnabledTenantCodes().forEach(tenantCode -> {
             try {
                 tenantTransactionExecutor.execute(tenantCode, () -> notifyCurrentTenant(today));
             } catch (RuntimeException exception) {

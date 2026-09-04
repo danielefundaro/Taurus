@@ -1,8 +1,8 @@
 import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { KeycloakService, LoadingService, ToastService } from '../service';
+import { KeycloakService, LoadingService, TenantFeatureService, ToastService } from '../service';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -20,7 +20,8 @@ export class HttpInterceptorService implements HttpInterceptor {
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly loadingService: LoadingService,
-        private readonly router: Router
+        private readonly router: Router,
+        private readonly injector: Injector
     ) {
         this.refreshTokenSubject = new BehaviorSubject<any>(null);
     }
@@ -61,9 +62,19 @@ export class HttpInterceptorService implements HttpInterceptor {
             catchError((error: HttpErrorResponse) => {
                 let title = 'Richiesta non riuscita';
                 let detail = 'Non è stato possibile completare l’operazione.';
+                const responseBody = error.error;
+                const responseMessage = responseBody !== null && typeof responseBody === 'object' && 'message' in responseBody && typeof responseBody.message === 'string' ? responseBody.message : undefined;
 
                 if (error.status === 401 && !this.isRefresh(authReq)) {
                     return this.handle401Error(authReq, next);
+                } else if (error.status === 403 && responseMessage?.startsWith('error.tenantFeature.') && responseMessage.endsWith('.disabled')) {
+                    const feature = responseMessage.includes('.inventory.') ? 'Inventario' : 'Economia';
+                    this.toastService.error('Funzionalità non disponibile', `La funzionalità ${feature} non è disponibile per questo tenant.`);
+                    this.injector
+                        .get(TenantFeatureService)
+                        .refresh(true)
+                        .subscribe({ error: () => undefined });
+                    this.router.navigate(['/']);
                 } else if (error.status === 403) {
                     title = 'Permesso negato';
                     detail = 'Non hai i permessi necessari per completare questa operazione.';
@@ -83,9 +94,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                         title = 'Servizio temporaneamente non disponibile';
                         detail = 'Si è verificato un problema sul server. Riprova tra qualche minuto.';
                     }
-                    const responseBody = error.error;
-                    const responseMessage = responseBody !== null && typeof responseBody === 'object' && 'message' in responseBody && typeof responseBody.message === 'string' ? responseBody.message : undefined;
-
                     if (responseMessage) {
                         const message = responseMessage.replace('error.', '').toLowerCase();
 

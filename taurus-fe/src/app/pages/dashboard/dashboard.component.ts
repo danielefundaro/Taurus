@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit } f
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { finalize, first, forkJoin, Subscription } from 'rxjs';
+import { catchError, finalize, first, forkJoin, of, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
 import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, OperationalDashboard, Page, Tracks, TracksCriteria } from '../../module';
@@ -18,6 +18,7 @@ import {
     OperationalDashboardService,
     TenantsService,
     TracksService,
+    TenantFeatureService,
     UserInventoryService,
     UsersService
 } from '../../service';
@@ -56,6 +57,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected operationsError = false;
     protected operationsRefreshWarning = false;
     protected operationsAnnouncement = '';
+    protected readonly inventoryEnabled;
     private operationsLoadedAt = 0;
     private $readSubscription?: Subscription;
     private $deleteSubscription?: Subscription;
@@ -73,10 +75,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly layoutService: LayoutService,
         private readonly notificationCenter: NotificationCenterService,
         private readonly operationalDashboardService: OperationalDashboardService,
+        private readonly tenantFeatureService: TenantFeatureService,
         private readonly router: Router
-    ) {}
+    ) {
+        this.inventoryEnabled = this.tenantFeatureService.inventoryEnabled;
+    }
 
     ngOnInit(): void {
+        this.tenantFeatureService
+            .refresh()
+            .pipe(
+                first(),
+                catchError(() => of(null))
+            )
+            .subscribe(() => this.initializeDashboard());
+    }
+
+    private initializeDashboard(): void {
         this.loadOperations();
         const role = this.keycloakService.currentUserRole;
 
@@ -203,6 +218,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.totalUsers = users.totalElements;
             });
         this.loadCommonDashboardData();
+        if (!this.inventoryEnabled()) {
+            this.inventoryLoading = false;
+            return;
+        }
         this.inventoryService
             .getSummary()
             .pipe(first())
@@ -218,6 +237,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private userMethods() {
         this.inventoryMode = 'user';
         this.loadCommonDashboardData();
+        if (!this.inventoryEnabled()) {
+            this.inventoryLoading = false;
+            return;
+        }
         forkJoin({
             summary: this.userInventoryService.getSummary(),
             assignments: this.userInventoryService.getAssignments('', 'POSSESSED', 0, 3, 'assignedAt,desc')
