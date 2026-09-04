@@ -36,7 +36,7 @@ public class FinanceRolloverScheduler {
     )
     public void updateAnnualOpenings() {
         int previousYear = LocalDate.now(DEFAULT_ZONE).getYear() - 1;
-        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
+        tenantSchemaRegistry.findFinanceEnabledTenantCodes().forEach(tenantCode -> {
             try {
                 tenantTransactionExecutor.execute(tenantCode, () -> financeService.rolloverForActor(previousYear, SYSTEM_ACTOR));
             } catch (RuntimeException exception) {

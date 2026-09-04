@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, Renderer2, ViewChild } from '@angular/core';
+import { Component, effect, Renderer2, ViewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../components/topbar/topbar.component';
-import { LayoutService, NotificationCenterService } from '../../service';
+import { LayoutService, NotificationCenterService, TenantFeatureService } from '../../service';
 
 @Component({
     selector: 'app-layout',
@@ -26,10 +26,19 @@ export class LayoutComponent {
     constructor(
         public layoutService: LayoutService,
         private readonly notificationCenter: NotificationCenterService,
+        private readonly tenantFeatureService: TenantFeatureService,
         public renderer: Renderer2,
         public router: Router
     ) {
         this.notificationCenter.start();
+        this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
+        effect(() => {
+            if (!this.tenantFeatureService.loaded()) return;
+            const url = this.router.url;
+            if ((url.startsWith('/finance') && !this.tenantFeatureService.financeEnabled()) || (url.startsWith('/inventory') && !this.tenantFeatureService.inventoryEnabled())) {
+                this.router.navigate(['/']);
+            }
+        });
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
             this.menuOutsideClickListener ??= this.renderer.listen('document', 'click', (event) => {
                 if (this.isOutsideClicked(event)) {
@@ -44,6 +53,7 @@ export class LayoutComponent {
 
         this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
             this.hideMenu();
+            this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
         });
     }
 

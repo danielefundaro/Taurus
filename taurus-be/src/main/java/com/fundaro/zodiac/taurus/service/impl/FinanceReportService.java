@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLi
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.StatementLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.io.ByteArrayOutputStream;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -102,8 +104,8 @@ public class FinanceReportService {
                 new Object[] {
                     movement.getBookingDate(),
                     movement.getAccount().getName(),
-                    movement.getDirection().name(),
-                    movement.getNature().name(),
+                    ReportLabels.financialDirection(movement.getDirection()),
+                    ReportLabels.financialMovementNature(movement.getNature()),
                     movement.getCategory() == null ? null : movement.getCategory().getName(),
                     movement.getEventNameSnapshot(),
                     movement.getDescription(),
@@ -214,7 +216,7 @@ public class FinanceReportService {
             "Rendiconto annuale " + year,
             summary.year().startDate(),
             summary.year().endDate(),
-            List.of("Esercizio: " + year + " (" + summary.year().status() + ")"),
+            List.of("Esercizio: " + year + " (" + ReportLabels.accountingYearStatus(summary.year().status()) + ")"),
             token
         );
         return render("rendiconto-annuale-" + year, meta, List.of(accounts, totals, categories, openEvents), format, token);
@@ -251,7 +253,7 @@ public class FinanceReportService {
                     line.actualResult(),
                     line.remainingIncome(),
                     line.remainingExpense(),
-                    economicStatusLabel(line.economicStatus())
+                    ReportLabels.economicStatus(line.economicStatus())
                 }
             );
         }
@@ -268,7 +270,7 @@ public class FinanceReportService {
             rows.add(
                 new Object[] {
                     total.categoryName(),
-                    total.direction() == null ? "" : total.direction().name(),
+                    total.direction() == null ? "" : ReportLabels.financialCategoryDirection(total.direction()),
                     total.income(),
                     total.expense(),
                     total.net(),
@@ -277,18 +279,6 @@ public class FinanceReportService {
             );
         }
         return rows;
-    }
-
-    private static String economicStatusLabel(String status) {
-        return switch (status) {
-            case "NO_BUDGET" -> "Nessun preventivo";
-            case "NO_MOVEMENTS" -> "Nessun movimento";
-            case "UNPLANNED_MOVEMENTS" -> "Movimenti senza preventivo";
-            case "PARTIALLY_SETTLED" -> "Parzialmente saldato";
-            case "OVERPAID_OR_OVERRUN" -> "Scostamento";
-            case "SETTLED" -> "Saldato";
-            default -> status;
-        };
     }
 
     private Meta meta(String title, LocalDate from, LocalDate to, List<String> filters, AbstractAuthenticationToken token) {
@@ -387,21 +377,23 @@ public class FinanceReportService {
         try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
             PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PdfPageWriter writer = new PdfPageWriter(document, regular, bold);
+            boolean landscape = false;
+            for (Section section : sections) {
+                landscape |= PdfPageWriter.requiresLandscape(section.headers(), tableRows(section), regular, bold);
+            }
+            PDRectangle pageSize = landscape
+                ? new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth())
+                : PDRectangle.A4;
+            PdfPageWriter writer = new PdfPageWriter(document, regular, bold, pageSize);
             tenantPdfHeaderService.write(writer, meta.title(), meta.tenant(), meta.generatedAt(), token);
             writer.line("Periodo: " + meta.periodLabel(), false);
             writer.line("Filtri: " + meta.filtersLabel(), false);
             writer.line("Richiesto da: " + meta.requestedBy(), false);
             writer.space(10);
-            for (Section section : sections) {
-                writer.heading(section.title());
-                writer.line(String.join(" | ", section.headers()), true);
-                for (Object[] row : section.rows()) {
-                    List<String> cells = new ArrayList<>();
-                    for (Object cell : row) cells.add(text(cell));
-                    writer.line(String.join(" | ", cells), false);
-                }
-                writer.separator();
+            for (int sectionIndex = 0; sectionIndex < sections.size(); sectionIndex++) {
+                Section section = sections.get(sectionIndex);
+                writer.tableSection(section.title(), section.headers(), tableRows(section));
+                if (sectionIndex < sections.size() - 1) writer.separator();
             }
             writer.closeCurrentPage();
             PdfPageWriter.addPageNumbers(document, regular);
@@ -410,6 +402,16 @@ public class FinanceReportService {
         } catch (IOException exception) {
             throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile generare il PDF", "finance.report.generationFailed");
         }
+    }
+
+    private static List<List<String>> tableRows(Section section) {
+        List<List<String>> rows = new ArrayList<>();
+        for (Object[] values : section.rows()) {
+            List<String> cells = new ArrayList<>();
+            for (Object value : values) cells.add(text(value));
+            rows.add(cells);
+        }
+        return rows;
     }
 
     private static String sheetName(XSSFWorkbook workbook, String title) {

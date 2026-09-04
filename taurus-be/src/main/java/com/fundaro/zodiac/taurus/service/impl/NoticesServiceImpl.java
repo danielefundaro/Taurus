@@ -5,10 +5,14 @@ import com.fundaro.zodiac.taurus.domain.criteria.NoticesCriteria;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,8 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, NoticesCriteria, NoticesMapper, NoticesRepository> implements NoticesService {
 
-    public NoticesServiceImpl(NoticesRepository noticesRepository, NoticesMapper noticesMapper) {
+    private final TenantFeatureService tenantFeatureService;
+
+    public NoticesServiceImpl(NoticesRepository noticesRepository, NoticesMapper noticesMapper, TenantFeatureService tenantFeatureService) {
         super(noticesRepository, noticesMapper, NoticesService.class, Notices.class.getSimpleName());
+        this.tenantFeatureService = tenantFeatureService;
     }
 
     @Override
@@ -55,7 +62,10 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     @Override
     @Transactional(readOnly = true)
     public long countUnread(AbstractAuthenticationToken authentication) {
-        return getRepository().countUnread(SecurityUtils.getUserIdFromAuthentication(authentication));
+        return getRepository().countUnreadExcludingSources(
+            SecurityUtils.getUserIdFromAuthentication(authentication),
+            disabledSources()
+        );
     }
 
     @Override
@@ -74,5 +84,19 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
     public void deleteAll(AbstractAuthenticationToken authentication) {
         String userId = SecurityUtils.getUserIdFromAuthentication(authentication);
         getRepository().findAllByUserId(userId).forEach(notice -> super.delete(notice.getId(), authentication));
+    }
+
+    @Override
+    protected Specification<Notices> buildSpecification(NoticesCriteria criteria, String userId) {
+        return super.buildSpecification(criteria, userId).and((root, query, cb) -> root.get("source").in(disabledSources()).not());
+    }
+
+    private List<String> disabledSources() {
+        var features = tenantFeatureService.current();
+        List<String> disabled = new ArrayList<>();
+        if (!features.financeEnabled()) disabled.add("FINANCE");
+        if (!features.inventoryEnabled()) disabled.add("INVENTORY");
+        if (disabled.isEmpty()) disabled.add("__NONE__");
+        return disabled;
     }
 }

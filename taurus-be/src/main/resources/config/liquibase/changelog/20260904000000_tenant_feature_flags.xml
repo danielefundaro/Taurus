@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260904000000-1" author="codex">
+        <comment>Add per-tenant finance and inventory feature flags.</comment>
+        <addColumn schemaName="public" tableName="tenant">
+            <column name="finance_enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="inventory_enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn schemaName="public" tableName="tenant" columnName="inventory_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="finance_enabled"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -126,6 +126,17 @@ class InventoryExpirationNotificationSchedulerTest {
         verify(notificationPublisher, never()).enqueue(any());
     }
 
+    @Test
+    void shouldScheduleOnlyInventoryEnabledTenants() {
+        when(tenantSchemaRegistry.findInventoryEnabledTenantCodes()).thenReturn(List.of("inventory-on"));
+
+        scheduler.notifyExpirations();
+
+        verify(tenantTransactionExecutor).execute(eq("inventory-on"), any(Runnable.class));
+        verify(tenantSchemaRegistry).findInventoryEnabledTenantCodes();
+        verify(tenantSchemaRegistry, never()).findActiveTenantCodes();
+    }
+
     private InventoryAssignment assignment(LocalDate expirationDate) {
         InventoryItem item = new InventoryItem();
         item.setId(10L);

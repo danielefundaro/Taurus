@@ -1,5 +1,8 @@
 package com.fundaro.zodiac.taurus.web.rest.user;
 
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.web.rest.RequiresTenantFeature;
+
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
@@ -32,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController("UserInventoryResource")
 @RequestMapping("/api/user/inventory")
+@RequiresTenantFeature(TenantFeature.INVENTORY)
 public class InventoryResource {
 
     private final InventoryService inventoryService;

@@ -14,11 +14,10 @@ export interface RoleLabel {
 }
 
 export const RoleLabelsMap: RoleLabel[] = [
-    // { name: 'Super Admin', code: RoleEnums.SUPER_ADMIN },
-    { name: 'Admin', code: RoleEnums.ADMIN },
+    { name: 'Super amministratore', code: RoleEnums.SUPER_ADMIN },
+    { name: 'Amministratore', code: RoleEnums.ADMIN },
     { name: 'Tesoriere', code: RoleEnums.TREASURER },
     { name: 'Archivista', code: RoleEnums.ARCHIVIST },
     { name: 'Utente', code: RoleEnums.USER },
-    { name: 'Utente Esterno', code: RoleEnums.USER_EXTERNAL }
-    // { name: 'Sconosciuto', code: RoleEnums.UNKNOWN },
+    { name: 'Utente esterno', code: RoleEnums.USER_EXTERNAL }
 ];

@@ -41,6 +41,10 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     @Size(max = 64)
     private String timeZone = "Europe/Rome";
 
+    private Boolean financeEnabled = true;
+    private Boolean inventoryEnabled = true;
+    private Long entityVersion;
+
     public String getCode() {
         return code;
     }
@@ -107,6 +111,12 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public String getTimeZone() { return timeZone; }
     public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
+    public Boolean getFinanceEnabled() { return financeEnabled; }
+    public void setFinanceEnabled(Boolean financeEnabled) { this.financeEnabled = financeEnabled; }
+    public Boolean getInventoryEnabled() { return inventoryEnabled; }
+    public void setInventoryEnabled(Boolean inventoryEnabled) { this.inventoryEnabled = inventoryEnabled; }
+    public Long getEntityVersion() { return entityVersion; }
+    public void setEntityVersion(Long entityVersion) { this.entityVersion = entityVersion; }
 
     @Override
     public boolean equals(Object o) {
@@ -131,12 +141,15 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(taxCode, that.taxCode) &&
             Objects.equals(vatNumber, that.vatNumber) &&
             Objects.equals(logoUrl, that.logoUrl) &&
-            Objects.equals(timeZone, that.timeZone);
+            Objects.equals(timeZone, that.timeZone) &&
+            Objects.equals(financeEnabled, that.financeEnabled) &&
+            Objects.equals(inventoryEnabled, that.inventoryEnabled) &&
+            Objects.equals(entityVersion, that.entityVersion);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, entityVersion);
     }
 
     @Override
@@ -160,6 +173,9 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", vatNumber='" + vatNumber + '\'' +
             ", logoUrl='" + logoUrl + '\'' +
             ", timeZone='" + timeZone + '\'' +
+            ", financeEnabled=" + financeEnabled +
+            ", inventoryEnabled=" + inventoryEnabled +
+            ", entityVersion=" + entityVersion +
             '}';
     }
 }

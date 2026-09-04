@@ -19,4 +19,16 @@ describe('NotificationPresentationService', () => {
         expect(service.icon('FINANCE')).toBe('pi pi-wallet');
         expect(service.icon('UNKNOWN')).toBe('pi pi-bell');
     });
+
+    it('translates notification codes into Italian presentation labels', () => {
+        expect(service.sourceLabel('FINANCE')).toBe('Economia');
+        expect(service.statusLabel('DELIVERED')).toBe('Consegnata');
+        expect(service.operationLabel('ACCOUNT_CREATED')).toBe('Conto creato');
+        expect(service.operationLabel('MOVEMENT_UNRECONCILED')).toBe('Riconciliazione annullata');
+    });
+
+    it('maps generated Italian operations and hides unknown technical codes', () => {
+        expect(service.operationLabel('ALBUM_PUBBLICATO')).toBe('Album pubblicato');
+        expect(service.operationLabel('NEW_OPERATION')).toBe('Operazione non catalogata');
+    });
 });

@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.config;
 
 import com.fundaro.zodiac.taurus.multitenancy.TenantContextInterceptor;
+import com.fundaro.zodiac.taurus.web.rest.TenantFeatureInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -29,10 +30,16 @@ public class WebConfigurer implements WebMvcConfigurer {
     private final JHipsterProperties jHipsterProperties;
 
     private final TenantContextInterceptor tenantContextInterceptor;
+    private final TenantFeatureInterceptor tenantFeatureInterceptor;
 
-    public WebConfigurer(JHipsterProperties jHipsterProperties, TenantContextInterceptor tenantContextInterceptor) {
+    public WebConfigurer(
+        JHipsterProperties jHipsterProperties,
+        TenantContextInterceptor tenantContextInterceptor,
+        TenantFeatureInterceptor tenantFeatureInterceptor
+    ) {
         this.jHipsterProperties = jHipsterProperties;
         this.tenantContextInterceptor = tenantContextInterceptor;
+        this.tenantFeatureInterceptor = tenantFeatureInterceptor;
     }
 
     @Bean
@@ -58,5 +65,6 @@ public class WebConfigurer implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(tenantContextInterceptor).addPathPatterns("/api/**");
+        registry.addInterceptor(tenantFeatureInterceptor).addPathPatterns("/api/**");
     }
 }

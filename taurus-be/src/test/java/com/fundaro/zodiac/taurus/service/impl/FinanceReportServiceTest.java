@@ -9,13 +9,22 @@ import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialAccount;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialAccountType;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialCategoryDirection;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialMovement;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountYearBalanceDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryTotalDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
 import java.awt.image.BufferedImage;
@@ -86,10 +95,19 @@ class FinanceReportServiceTest {
     }
 
     @Test
-    void exportsPdfDocument() {
+    void exportsPdfDocumentAsARealLandscapeTable() throws Exception {
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(movement()));
+
         var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "pdf", authentication());
 
         assertThat(new String(report.bytes(), 0, 4, StandardCharsets.US_ASCII)).isEqualTo("%PDF");
+        try (var document = Loader.loadPDF(report.bytes())) {
+            assertThat(document.getPage(0).getMediaBox().getWidth()).isGreaterThan(document.getPage(0).getMediaBox().getHeight());
+            assertThat(new PDFTextStripper().getText(document))
+                .contains("Data", "Conto", "Direzione", "Descrizione estesa del movimento", "125.50", "EUR")
+                .doesNotContain("Data | Conto | Direzione");
+        }
     }
 
     @Test
@@ -134,7 +152,8 @@ class FinanceReportServiceTest {
 
         String content = new String(report.bytes(), StandardCharsets.UTF_8);
         assertThat(content).contains("Rendiconto annuale 2026", "Conti", "Totali", "Categorie", "Eventi aperti", "Cassa", "Quote");
-        assertThat(content).contains("01/01/2026 - 31/12/2026", "tenant-a", "Mario Rossi");
+        assertThat(content).contains("01/01/2026 - 31/12/2026", "tenant-a", "Mario Rossi", "Esercizio: 2026 (Da generare)");
+        assertThat(content).doesNotContain("(OPEN)");
     }
 
     @Test
@@ -158,6 +177,30 @@ class FinanceReportServiceTest {
         assertThat(new String(report.bytes(), StandardCharsets.UTF_8)).contains("Rendiconto per categoria", "Quote", "80,00");
     }
 
+    @Test
+    void exportsEveryFinancialPdfWithTheSharedTableLayout() throws Exception {
+        JwtAuthenticationToken token = authentication();
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 12, 31);
+        when(financeService.accountStatement(10L, from, to, token)).thenReturn(statement(from, to));
+        when(financeService.eventLines(from, to, token)).thenReturn(List.of(eventLine()));
+        when(financeService.categoryTotals(from, to, token)).thenReturn(List.of(categoryTotal()));
+        when(financeService.yearSummary(2026, token)).thenReturn(summary());
+
+        assertPdfUsesTable(service.accountStatement(10L, from, to, "pdf", token), "Estratto conto", "Saldo iniziale", "Saldo finale");
+        assertPdfUsesTable(service.events(from, to, "pdf", token), "Rendiconto per evento", "Concerto d'estate", "Saldato");
+        assertPdfUsesTable(service.categories(from, to, "pdf", token), "Rendiconto per categoria", "Quote associative", "Entrata");
+        assertPdfUsesTable(
+            service.annual(2026, "pdf", token),
+            "Rendiconto annuale 2026",
+            "Conti",
+            "Totali",
+            "Categorie",
+            "Eventi aperti",
+            "Nessun dato disponibile"
+        );
+    }
+
     private static YearSummaryDTO summary() {
         return new YearSummaryDTO(
             new YearDTO(2026, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AccountingYearStatus.OPEN, null, null),
@@ -174,6 +217,87 @@ class FinanceReportServiceTest {
             new BigDecimal("110.00"),
             null
         );
+    }
+
+    private static AccountStatementDTO statement(LocalDate from, LocalDate to) {
+        AccountDTO account = new AccountDTO(
+            10L,
+            "Cassa",
+            null,
+            FinancialAccountType.CASH,
+            "EUR",
+            null,
+            null,
+            true,
+            0,
+            new BigDecimal("50.00"),
+            1
+        );
+        return new AccountStatementDTO(
+            account,
+            from,
+            to,
+            new BigDecimal("20.00"),
+            new BigDecimal("80.00"),
+            new BigDecimal("50.00"),
+            new BigDecimal("50.00"),
+            List.of()
+        );
+    }
+
+    private static EventEconomicLineDTO eventLine() {
+        return new EventEconomicLineDTO(
+            20L,
+            "Concerto d'estate",
+            LocalDate.of(2026, 7, 10),
+            new BigDecimal("500.00"),
+            new BigDecimal("200.00"),
+            new BigDecimal("300.00"),
+            new BigDecimal("500.00"),
+            new BigDecimal("200.00"),
+            new BigDecimal("300.00"),
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            "SETTLED"
+        );
+    }
+
+    private static CategoryTotalDTO categoryTotal() {
+        return new CategoryTotalDTO(
+            5L,
+            "Quote associative",
+            FinancialCategoryDirection.INCOME,
+            new BigDecimal("80.00"),
+            BigDecimal.ZERO,
+            new BigDecimal("80.00"),
+            1
+        );
+    }
+
+    private static void assertPdfUsesTable(FinanceReportService.ReportContent report, String... expectedText) throws Exception {
+        assertThat(report.mimeType()).isEqualTo("application/pdf");
+        try (var document = Loader.loadPDF(report.bytes())) {
+            assertThat(new PDFTextStripper().getText(document)).contains(expectedText).doesNotContain(" | ");
+        }
+    }
+
+    private static FinancialMovement movement() {
+        FinancialAccount account = new FinancialAccount();
+        account.setId(4L);
+        account.setName("Conto corrente principale");
+        FinancialMovement movement = new FinancialMovement();
+        movement.setId(10L);
+        movement.setAccount(account);
+        movement.setBookingDate(LocalDate.of(2026, 9, 3));
+        movement.setDirection(FinancialDirection.INCOME);
+        movement.setNature(FinancialMovementNature.ORDINARY);
+        movement.setDescription("Descrizione estesa del movimento per verificare il ritorno a capo nella cella");
+        movement.setCounterparty("Associazione di esempio");
+        movement.setDocumentReference("DOC-2026-000123");
+        movement.setAmount(new BigDecimal("125.50"));
+        movement.setCurrency("EUR");
+        movement.setReconciled(false);
+        return movement;
     }
 
     private static JwtAuthenticationToken authentication() {

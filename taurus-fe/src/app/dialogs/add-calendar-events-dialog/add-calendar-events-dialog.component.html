@@ -31,9 +31,11 @@
             <app-form-field label="Luogo" forId="location">
                 <input pInputText id="location" type="text" [(ngModel)]="event.location" />
             </app-form-field>
-            <app-form-field label="Compenso" forId="fee">
-                <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" />
-            </app-form-field>
+            @if (financeEnabled()) {
+                <app-form-field label="Compenso" forId="fee">
+                    <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" />
+                </app-form-field>
+            }
         </div>
 
         <label class="flex items-center gap-2 cursor-pointer">

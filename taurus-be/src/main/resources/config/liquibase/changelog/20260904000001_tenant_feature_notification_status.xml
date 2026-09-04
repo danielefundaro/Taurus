@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="20260904000001-1" author="codex">
+        <comment>Allow outbox events for disabled tenant features to be permanently suppressed.</comment>
+        <sql>
+            ALTER TABLE notification_outbox DROP CONSTRAINT ck_notification_status;
+            ALTER TABLE notification_outbox ADD CONSTRAINT ck_notification_status
+                CHECK (status IN ('PENDING', 'DELIVERED', 'FAILED', 'SUPPRESSED'));
+        </sql>
+        <rollback>
+            <sql>
+                DELETE FROM notification_outbox WHERE status = 'SUPPRESSED';
+                ALTER TABLE notification_outbox DROP CONSTRAINT ck_notification_status;
+                ALTER TABLE notification_outbox ADD CONSTRAINT ck_notification_status
+                    CHECK (status IN ('PENDING', 'DELIVERED', 'FAILED'));
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

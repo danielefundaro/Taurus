@@ -21,16 +21,20 @@
                 <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Ruoli" forId="roles">
-                <p-autocomplete
+                <p-multiselect
                     inputId="roles"
                     [(ngModel)]="user!.roles"
-                    [suggestions]="autoFilteredRoles"
-                    [virtualScroll]="true"
-                    [virtualScrollItemSize]="34"
-                    dropdown
-                    multiple
+                    [options]="roleOptions"
+                    optionLabel="name"
+                    optionValue="code"
                     display="chip"
-                    (completeMethod)="filterRoles($event)"
+                    selectedItemsLabel="{0} ruoli selezionati"
+                    [filter]="true"
+                    filterBy="name"
+                    filterPlaceholder="Cerca un ruolo"
+                    emptyFilterMessage="Nessun ruolo trovato"
+                    placeholder="Seleziona uno o più ruoli"
+                    ariaLabel="Ruoli dell’utente"
                     (ngModelChange)="isDirty = true"
                 />
             </app-form-field>
@@ -65,7 +69,7 @@
         <app-calendar-events-table [userId]="user.id" />
     </app-detail-section>
 
-    @if (user.id) {
+    @if (user.id && tenantFeatureService.inventoryEnabled()) {
         <app-inventory-assignments [userIndex]="user.id" />
     }
 

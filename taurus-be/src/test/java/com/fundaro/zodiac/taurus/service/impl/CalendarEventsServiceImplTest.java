@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fundaro.zodiac.taurus.domain.CalendarEventAvailability;
 import com.fundaro.zodiac.taurus.domain.CalendarEventPresence;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
+import com.fundaro.zodiac.taurus.domain.EventCost;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
@@ -15,6 +16,7 @@ import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.lang.reflect.Proxy;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -163,6 +165,51 @@ class CalendarEventsServiceImplTest {
             .isInstanceOf(RequestAlertException.class);
     }
 
+    @Test
+    void preservesPersistedEconomicsWhenFinanceIsDisabled() {
+        CalendarEvents event = event();
+        event.setFee(new BigDecimal("250.00"));
+        EventCost persistedCost = new EventCost();
+        persistedCost.setDescription("Trasporto");
+        persistedCost.setAmount(new BigDecimal("40.00"));
+        event.getCosts().add(persistedCost);
+        CalendarEventsDTO request = new CalendarEventsDTO();
+        request.setId(event.getId());
+        request.setName("Evento aggiornato");
+        request.setStartDate(event.getStartDate());
+        request.setFee(BigDecimal.ZERO);
+        request.setCosts(List.of());
+
+        CalendarEventsRepository repository = org.mockito.Mockito.mock(CalendarEventsRepository.class);
+        CalendarEventsMapper mapper = org.mockito.Mockito.mock(CalendarEventsMapper.class);
+        UsersRepository usersRepository = org.mockito.Mockito.mock(UsersRepository.class);
+        EventReminderProducer reminderProducer = org.mockito.Mockito.mock(EventReminderProducer.class);
+        com.fundaro.zodiac.taurus.service.TenantFeatureService features = org.mockito.Mockito.mock(com.fundaro.zodiac.taurus.service.TenantFeatureService.class);
+        org.mockito.Mockito.when(repository.findByIdAndDeletedFalse(event.getId())).thenReturn(Optional.of(event));
+        org.mockito.Mockito.when(repository.save(event)).thenReturn(event);
+        CalendarEvents values = new CalendarEvents();
+        values.setCosts(List.of());
+        org.mockito.Mockito.when(mapper.toEntity(request)).thenReturn(values);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            event.setName(request.getName());
+            event.setFee(request.getFee());
+            return null;
+        }).when(mapper).partialUpdate(event, request);
+        CalendarEventsDTO response = new CalendarEventsDTO();
+        response.setFee(event.getFee());
+        response.setCosts(List.of());
+        org.mockito.Mockito.when(mapper.toDto(event)).thenReturn(response);
+        org.mockito.Mockito.when(features.isEnabled(com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature.FINANCE)).thenReturn(false);
+        CalendarEventsServiceImpl service = new CalendarEventsServiceImpl(repository, mapper, usersRepository, reminderProducer, features);
+
+        CalendarEventsDTO result = service.update(event.getId(), request, authentication());
+
+        assertThat(event.getFee()).isEqualByComparingTo("250.00");
+        assertThat(event.getCosts()).containsExactly(persistedCost);
+        assertThat(result.getFee()).isNull();
+        assertThat(result.getCosts()).isEmpty();
+    }
+
     private static CalendarEventsServiceImpl service(CalendarEvents event, Users user, EventReminderProducer reminderProducer) {
         return service(event, user, reminderProducer, () -> {});
     }
@@ -209,7 +256,9 @@ class CalendarEventsServiceImplTest {
                 return dto;
             }
         );
-        return new CalendarEventsServiceImpl(eventsRepository, mapper, usersRepository, reminderProducer);
+        com.fundaro.zodiac.taurus.service.TenantFeatureService tenantFeatureService = org.mockito.Mockito.mock(com.fundaro.zodiac.taurus.service.TenantFeatureService.class);
+        org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature.FINANCE)).thenReturn(true);
+        return new CalendarEventsServiceImpl(eventsRepository, mapper, usersRepository, reminderProducer, tenantFeatureService);
     }
 
     private static CalendarEvents event() {
