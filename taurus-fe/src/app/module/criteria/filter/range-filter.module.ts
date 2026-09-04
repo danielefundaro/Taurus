@@ -1,4 +1,4 @@
-import { Filter } from ".";
+import { Filter } from './filter.module';
 
 export class RangeFilter<T> extends Filter<T> {
     greaterThan?: T;

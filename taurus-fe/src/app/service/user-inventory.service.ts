@@ -10,9 +10,10 @@ export class UserInventoryService {
 
     constructor(private readonly http: HttpClient) {}
 
-    getAssignments(query = '', scope: InventoryAssignmentScope = 'POSSESSED', page = 0, size = 10, sort = 'assignedAt,desc'): Observable<Page<InventoryAssignmentSummary>> {
+    getAssignments(query = '', scope: InventoryAssignmentScope = 'POSSESSED', page = 0, size = 10, sort = 'assignedAt,desc', attention?: string): Observable<Page<InventoryAssignmentSummary>> {
         let params = new HttpParams().set('scope', scope).set('page', page).set('size', size).set('sort', sort);
         if (query.trim()) params = params.set('query', query.trim());
+        if (attention) params = params.set('attention', attention);
         return this.http.get<Page<InventoryAssignmentSummary>>(`${this.baseUrl}/assignments`, { params });
     }
 

@@ -1,0 +1,143 @@
+<p-confirmdialog />
+
+<app-page-header title="Consegne notifiche" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento tecnico' : ' eventi tecnici')">
+    <div pageActions>
+        <p-button label="Aggiorna" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading" [disabled]="bulkRetrying || retryingId !== undefined" (onClick)="load()" />
+    </div>
+</app-page-header>
+
+@if (loadError) {
+    <app-inline-alert class="block mb-4" severity="error" title="Consegne non disponibili" detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
+}
+
+<app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions" (sortChange)="onSortChange($event)">
+    <div listFilters class="delivery-status-filter">
+        <label for="notification-delivery-status">Stato</label>
+        <p-select
+            inputId="notification-delivery-status"
+            class="delivery-status-filter__control"
+            [ngModel]="status"
+            (ngModelChange)="onStatusChange($event)"
+            [options]="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            ariaLabel="Filtra per stato della consegna"
+        />
+    </div>
+</app-list-toolbar>
+
+<app-selection-bar
+    [count]="selected.length"
+    [allSelected]="allVisibleSelected"
+    actionLabel="Riprova selezionate"
+    actionIcon="pi pi-replay"
+    [actionSeverity]="null"
+    [actionLoading]="bulkRetrying"
+    (toggleAll)="toggleAllVisible($event)"
+    (clear)="selected = []"
+    (action)="retrySelected()"
+/>
+
+<div class="card !p-0 overflow-hidden">
+    <p-table
+        [value]="loading ? skeletonRows : deliveries"
+        [(selection)]="selected"
+        dataKey="id"
+        [lazy]="true"
+        [lazyLoadOnInit]="true"
+        [loading]="loading"
+        [showLoader]="false"
+        [paginator]="true"
+        paginatorPosition="bottom"
+        [first]="tableFirst"
+        [rows]="tableRows"
+        [rowsPerPageOptions]="[12, 24, 48]"
+        paginatorDropdownAppendTo="body"
+        [totalRecords]="totalRecords"
+        [sortField]="tableSortField"
+        [sortOrder]="tableSortOrder"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+        [scrollable]="true"
+        [attr.aria-busy]="loading"
+        (onLazyLoad)="load($event)"
+    >
+        <ng-template #header>
+            <tr>
+                @if (status === 'FAILED') {
+                    <th scope="col" class="selection-column"><p-tableHeaderCheckbox ariaLabel="Seleziona tutte le consegne nella pagina" /></th>
+                }
+                <th scope="col" pSortableColumn="id">ID <p-sortIcon field="id" /></th>
+                <th scope="col">Sorgente / operazione</th>
+                <th scope="col">Stato</th>
+                <th scope="col" pSortableColumn="occurredAt">Evento <p-sortIcon field="occurredAt" /></th>
+                <th scope="col" pSortableColumn="attempts">Tentativi <p-sortIcon field="attempts" /></th>
+                <th scope="col" pSortableColumn="editDate">Aggiornamento <p-sortIcon field="editDate" /></th>
+                <th scope="col">Errore</th>
+                <th scope="col">Chiave</th>
+                <th scope="col"><span class="sr-only">Azioni</span></th>
+            </tr>
+        </ng-template>
+
+        <ng-template #body let-delivery>
+            @if (loading) {
+                <tr class="delivery-skeleton" aria-hidden="true">
+                    @if (status === 'FAILED') {
+                        <td><p-skeleton shape="square" size="1.1rem" /></td>
+                    }
+                    <td><p-skeleton width="3rem" /></td>
+                    <td>
+                        <p-skeleton width="10rem" />
+                        <p-skeleton width="7rem" styleClass="mt-2" />
+                    </td>
+                    <td><p-skeleton width="5rem" height="1.5rem" /></td>
+                    <td><p-skeleton width="8rem" /></td>
+                    <td><p-skeleton width="2rem" /></td>
+                    <td><p-skeleton width="8rem" /></td>
+                    <td><p-skeleton width="6rem" /></td>
+                    <td><p-skeleton width="7rem" /></td>
+                    <td><p-skeleton width="5rem" height="2rem" /></td>
+                </tr>
+            } @else {
+                <tr>
+                    @if (status === 'FAILED') {
+                        <td><p-tableCheckbox [value]="delivery" [attr.aria-label]="'Seleziona consegna ' + delivery.id" /></td>
+                    }
+                    <td class="font-mono">{{ delivery.id }}</td>
+                    <td [attr.title]="delivery.source + ' · ' + delivery.operation">
+                        <strong>{{ notificationPresentation.sourceLabel(delivery.source) }}</strong
+                        ><small class="block text-muted-color">{{ notificationPresentation.operationLabel(delivery.operation) }}</small>
+                    </td>
+                    <td>
+                        <p-tag [value]="notificationPresentation.statusLabel(delivery.status)" [severity]="delivery.status === 'FAILED' ? 'danger' : delivery.status === 'PENDING' ? 'warn' : 'success'" />
+                    </td>
+                    <td>{{ delivery.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                    <td>{{ delivery.attempts }}</td>
+                    <td>
+                        {{ delivery.updatedAt | date: 'dd/MM/yyyy HH:mm:ss' }}
+                        @if (delivery.nextAttemptAt) {
+                            <small class="block text-muted-color">Prossimo: {{ delivery.nextAttemptAt | date: 'dd/MM/yyyy HH:mm:ss' }}</small>
+                        }
+                    </td>
+                    <td>{{ delivery.errorClass || '—' }}</td>
+                    <td>
+                        <code>{{ delivery.eventKeyHash }}</code>
+                    </td>
+                    <td>
+                        @if (delivery.status === 'FAILED') {
+                            <p-button label="Riprova" icon="pi pi-replay" size="small" [loading]="retryingId === delivery.id" [disabled]="bulkRetrying || (retryingId !== undefined && retryingId !== delivery.id)" (onClick)="retry(delivery)" />
+                        }
+                    </td>
+                </tr>
+            }
+        </ng-template>
+
+        <ng-template #emptymessage>
+            <tr>
+                <td [attr.colspan]="status === 'FAILED' ? 10 : 9">
+                    <app-empty-state compact icon="pi pi-check-circle" [title]="emptyTitle()" [message]="emptyMessage()" actionLabel="Aggiorna" (action)="load()" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

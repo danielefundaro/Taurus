@@ -169,6 +169,23 @@ class InventoryServiceTest {
     }
 
     @Test
+    void shouldDefaultMissingEstimatedUnitValueToZero() {
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, null, "EUR", InventoryCondition.GOOD, null);
+        when(itemRepository.save(any(InventoryItem.class)))
+            .thenAnswer(invocation -> {
+                InventoryItem item = invocation.getArgument(0);
+                item.setId(1L);
+                return item;
+            });
+
+        var result = service.createItem(request, authentication());
+
+        assertThat(result.estimatedUnitValue()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(result.currency()).isEqualTo("EUR");
+        verify(itemRepository).save(argThat(item -> BigDecimal.ZERO.compareTo(item.getEstimatedUnitValue()) == 0));
+    }
+
+    @Test
     void shouldNotifyAdminsWhenAnItemIsModified() {
         InventoryItem item = item(1L);
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));

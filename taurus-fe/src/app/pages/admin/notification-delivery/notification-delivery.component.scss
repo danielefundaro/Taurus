@@ -1,0 +1,46 @@
+:host {
+    display: block;
+}
+
+.selection-column {
+    width: 3rem;
+}
+
+.delivery-status-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delivery-status-filter label {
+    font-weight: 600;
+}
+
+.delivery-skeleton td {
+    height: 4.5rem;
+}
+
+code,
+.font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:host ::ng-deep .p-datatable-table {
+    min-width: 76rem;
+}
+
+:host ::ng-deep .delivery-status-filter__control {
+    min-width: 12rem;
+}
+
+@media (max-width: 640px) {
+    .delivery-status-filter {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    :host ::ng-deep .delivery-status-filter__control {
+        width: 100%;
+    }
+}

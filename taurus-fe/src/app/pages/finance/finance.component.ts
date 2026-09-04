@@ -90,6 +90,9 @@ export class FinanceComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
+        const params = this.route.snapshot.queryParamMap;
+        if (params.get('section') === 'movements') this.activeTab = 'movements';
+        if (params.get('reconciled') === 'false') this.movementFilters.reconciled = false;
         this.loadReferenceData();
         this.loadMovements(this.movementLazyEvent);
     }

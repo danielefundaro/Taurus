@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.repository;
 
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.repository.projection.UserRoleProjection;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -42,4 +43,14 @@ public interface UsersRepository extends CatalogRepository<Users> {
           and u.keycloakId is not null
         """)
     List<String> findAllActiveKeycloakIds();
+
+    @Query("""
+        select distinct u.keycloakId as keycloakId, role as role from Users u
+        join u.roles role
+        where u.deleted = false
+          and u.active = true
+          and u.keycloakId is not null
+          and role in :roles
+        """)
+    List<UserRoleProjection> findActiveUserRoles(@Param("roles") Collection<RoleEnum> roles);
 }

@@ -211,6 +211,12 @@ jhipster:
 # application:
 
 application:
+  dashboard:
+    enabled: false
+    calendar-look-ahead-days: 14
+    inventory-expiration-look-ahead-days: 30
+    inventory-warning-days: 7
+    finance-unreconciled-warning-days: 30
   notifications:
     dispatch-delay: 5000
     batch-size: 100

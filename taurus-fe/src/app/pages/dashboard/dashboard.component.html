@@ -2,8 +2,20 @@
 <header class="mb-6">
     <h1 class="text-3xl font-semibold m-0">Dashboard</h1>
     <p class="text-surface-500 mt-2 mb-0">Panoramica delle attività e dei contenuti più recenti.</p>
+    @if (operations?.generatedAt) {
+        <p class="text-surface-500 text-sm mt-1 mb-0">Ultimo aggiornamento: {{ operations!.generatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+    }
 </header>
 <div class="grid grid-cols-12 gap-8">
+    <app-operations-widget
+        [dashboard]="operations"
+        [initialLoading]="operationsInitialLoading"
+        [refreshing]="operationsRefreshing"
+        [error]="operationsError"
+        [refreshWarning]="operationsRefreshWarning"
+        [announcement]="operationsAnnouncement"
+        (refreshRequested)="refreshOperations()"
+    />
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan" [value]="totalTenants" [link]="'tenants'" />
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue" [value]="totalUsers" [link]="'users'" />
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]" label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
@@ -7,9 +7,9 @@ import { delay, finalize, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
-import { CalendarEventDialogResult, CalendarEvents, CalendarEventsCriteria, Page } from '../../module';
+import { CalendarEventDialogResult, CalendarEvents, CalendarEventsCriteria, Page, Users, UsersCriteria } from '../../module';
 import { DateFilter, StringFilter } from '../../module/criteria/filter';
-import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, ListLayout, ListLayoutService, ToastService } from '../../service';
+import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, KeycloakService, ListLayout, ListLayoutService, ToastService, UsersService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 
 interface CalendarDay {
@@ -34,6 +34,10 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     protected events: CalendarEvents[] = [];
     protected selectedEvents: CalendarEvents[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
+    protected attention?: 'my-missing-availability' | 'missing-availability';
+    private attentionUsers: Users[] = [];
+    private attentionContextReady = false;
+    private attentionContextLoading = false;
 
     // Calendar (grid) mode state
     protected currentMonth: Date = new Date();
@@ -49,20 +53,27 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmService: ConfirmService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly route: ActivatedRoute,
+        private readonly usersService: UsersService,
+        private readonly keycloakService: KeycloakService
     ) {
         super();
         this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: 1 };
     }
 
     ngOnInit(): void {
+        const attention = this.route.snapshot.queryParamMap.get('attention');
+        if (attention && ['my-missing-availability', 'missing-availability'].includes(attention)) {
+            this.attention = attention as typeof this.attention;
+        }
         this.sortOptions = [
             { label: 'Data ↑', value: 'startDate' },
             { label: 'Data ↓', value: '!startDate' },
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
         ];
-        this.listLayoutService.observe('calendar', (value) => this.applyLayout(value));
+        this.listLayoutService.observe('calendar', (value) => this.applyLayout(this.attention ? 'list' : value));
     }
 
     protected onLayoutChange(value: ListLayout): void {
@@ -224,16 +235,26 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     }
 
     protected loadElements(search?: string): void {
+        if (this.attention && !this.attentionContextReady) {
+            this.loadAttentionContext();
+            return;
+        }
         this.loading = true;
         this.selectedEvents = [];
         const criteria = new CalendarEventsCriteria();
-        criteria.page = this.pageIndex;
-        criteria.size = this.pageSize;
+        criteria.page = this.attention ? 0 : this.pageIndex;
+        criteria.size = this.attention ? 500 : this.pageSize;
         criteria.sort = this.sortCriteria;
 
         if (search) {
             criteria.name = new StringFilter();
             criteria.name.contains = search;
+        }
+        if (this.attention) {
+            const now = new Date();
+            criteria.startDate = new DateFilter();
+            criteria.startDate.greaterThanOrEqual = now;
+            criteria.startDate.lessThanOrEqual = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
         }
 
         this.calendarEventsService
@@ -244,10 +265,52 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
             )
             .subscribe({
                 next: (value: Page<CalendarEvents>) => {
-                    this.events = value.content;
-                    this.totalRecords = value.totalElements;
+                    const filtered = this.attention ? value.content.filter((event) => this.matchesAttention(event)) : value.content;
+                    this.totalRecords = this.attention ? filtered.length : value.totalElements;
+                    this.events = this.attention ? filtered.slice(this.pageIndex * this.pageSize, (this.pageIndex + 1) * this.pageSize) : filtered;
                 }
             });
+    }
+
+    private loadAttentionContext(): void {
+        if (this.attentionContextLoading) return;
+        this.attentionContextLoading = true;
+        const criteria = new UsersCriteria();
+        criteria.page = 0;
+        criteria.size = 1000;
+        criteria.active = { equals: true };
+        if (this.attention === 'missing-availability' && this.keycloakService.isAdmin) {
+            this.usersService
+                .getAll(criteria)
+                .pipe(first())
+                .subscribe({ next: (result) => this.finishAttentionContext(result.content), error: () => this.finishAttentionContext([]) });
+        } else {
+            this.usersService
+                .getOwn()
+                .pipe(first())
+                .subscribe({ next: (result) => this.finishAttentionContext([result]), error: () => this.finishAttentionContext([]) });
+        }
+    }
+
+    private finishAttentionContext(users: Users[]): void {
+        this.attentionUsers = users;
+        this.attentionContextReady = true;
+        this.attentionContextLoading = false;
+        this.loadElements(this.searchTerm);
+    }
+
+    private matchesAttention(event: CalendarEvents): boolean {
+        if (event.state !== 'COMPLETE' && event.state !== 'PUBLIC') return false;
+        const responded = new Set([...(event.availableUsers ?? []), ...(event.unavailableUsers ?? [])].map((user) => user.index));
+        if (this.attention === 'my-missing-availability') {
+            const currentUser = this.attentionUsers[0];
+            return !!currentUser?.id && !responded.has(currentUser.id);
+        }
+        const expected = this.attentionUsers.filter((user) => {
+            const roles = user.roles ?? [];
+            return roles.includes(RoleEnums.USER) || (event.state === 'PUBLIC' && roles.includes(RoleEnums.USER_EXTERNAL));
+        });
+        return expected.some((user) => !!user.id && !responded.has(user.id));
     }
 
     private loadCalendarMonth(): void {

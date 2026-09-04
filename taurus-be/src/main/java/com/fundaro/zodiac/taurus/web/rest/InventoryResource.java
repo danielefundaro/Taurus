@@ -9,6 +9,8 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryErasureService;
@@ -16,6 +18,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDT
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ContentDisposition;
@@ -42,16 +45,32 @@ public class InventoryResource {
     private final InventoryService inventoryService;
     private final InventoryReportService inventoryReportService;
     private final InventoryErasureService inventoryErasureService;
+    private final ApplicationProperties.DashboardProperties dashboardProperties;
+    private final TenantTimeZoneService tenantTimeZoneService;
 
-    public InventoryResource(InventoryService inventoryService, InventoryReportService inventoryReportService, InventoryErasureService inventoryErasureService) {
+    public InventoryResource(
+        InventoryService inventoryService,
+        InventoryReportService inventoryReportService,
+        InventoryErasureService inventoryErasureService,
+        ApplicationProperties applicationProperties,
+        TenantTimeZoneService tenantTimeZoneService
+    ) {
         this.inventoryService = inventoryService;
         this.inventoryReportService = inventoryReportService;
         this.inventoryErasureService = inventoryErasureService;
+        this.dashboardProperties = applicationProperties.getDashboard();
+        this.tenantTimeZoneService = tenantTimeZoneService;
     }
 
     @GetMapping("/items")
-    public Page<InventoryItemDTO> getItems(@RequestParam(required = false) String query, Pageable pageable, AbstractAuthenticationToken token) {
-        return inventoryService.findItems(query, pageable, token);
+    public Page<InventoryItemDTO> getItems(@RequestParam(required = false) String query, @RequestParam(required = false) String attention, Pageable pageable, AbstractAuthenticationToken token) {
+        return inventoryService.findItems(
+            query,
+            attention,
+            LocalDate.now(tenantTimeZoneService.currentZoneId()).plusDays(dashboardProperties.getInventoryExpirationLookAheadDays()),
+            pageable,
+            token
+        );
     }
 
     @GetMapping("/summary")

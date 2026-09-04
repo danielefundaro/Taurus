@@ -95,6 +95,7 @@ public class SecurityConfiguration {
 
                     // Endpoints available to every authenticated user.
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/dashboard/operations").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/logout").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/legal/status").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/legal/acceptances").authenticated()

@@ -1,4 +1,4 @@
-import { Filter } from ".";
+import { Filter } from './filter.module';
 
 export class StringFilter extends Filter<string> {
     public contains?: string;

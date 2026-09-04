@@ -49,6 +49,7 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -122,6 +123,26 @@ public class InventoryService {
         Page<InventoryItem> page = query == null || query.isBlank()
             ? itemRepository.findAllByDeletedFalse(pageable)
             : itemRepository.search(query.trim(), pageable);
+        return page.map(item -> toItemDto(item, false));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InventoryItemDTO> findItems(
+        String query,
+        String attention,
+        LocalDate maximumExpirationDate,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        String normalizedQuery = trimToNull(query);
+        String search = normalizedQuery == null ? "" : normalizedQuery;
+        Page<InventoryItem> page = switch (attention == null ? "" : attention) {
+            case "pending-decisions" -> itemRepository.findWithPendingDecisions(search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+            case "pending-returns" -> itemRepository.findWithPendingReturns(search, pageable);
+            case "expiring" -> itemRepository.findWithExpiringAssignments(search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
+            default -> normalizedQuery == null ? itemRepository.findAllByDeletedFalse(pageable) : itemRepository.search(normalizedQuery, pageable);
+        };
         return page.map(item -> toItemDto(item, false));
     }
 
@@ -321,6 +342,27 @@ public class InventoryService {
             ? assignmentRepository.findAllByUserKeycloakIdAndDeletedFalseAndStatusIn(actor(token), statuses, pageable)
             : assignmentRepository.searchOwn(actor(token), normalizedQuery, statuses, pageable);
         return assignments.map(this::toAssignmentSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InventoryAssignmentSummaryDTO> findOwnAssignments(
+        String query,
+        InventoryAssignmentScope scope,
+        String attention,
+        LocalDate maximumExpirationDate,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        String userId = actor(token);
+        String search = Objects.requireNonNullElse(trimToNull(query), "");
+        if (scope != InventoryAssignmentScope.POSSESSED) return findOwnAssignments(query, scope, pageable, token);
+        Page<InventoryAssignment> assignments = switch (attention == null ? "" : attention) {
+            case "pending-decisions" -> assignmentRepository.findOwnWithPendingDecision(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+            case "expiring" -> assignmentRepository.findOwnExpiring(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
+            default -> null;
+        };
+        return assignments == null ? findOwnAssignments(query, scope, pageable, token) : assignments.map(this::toAssignmentSummaryDto);
     }
 
     @Transactional(readOnly = true)
@@ -792,7 +834,7 @@ public class InventoryService {
         item.setName(request.name().trim());
         item.setDescription(trimToNull(request.description()));
         item.setTotalQuantity(request.totalQuantity());
-        item.setEstimatedUnitValue(request.estimatedUnitValue());
+        item.setEstimatedUnitValue(normalizedEstimatedUnitValue(request));
         item.setCurrency(request.currency() == null ? null : request.currency().toUpperCase(Locale.ROOT));
         item.setConditionStatus(request.conditionStatus());
         item.setConditionNotes(trimToNull(request.conditionNotes()));
@@ -802,7 +844,7 @@ public class InventoryService {
         return !Objects.equals(item.getInventoryNumber(), request.inventoryNumber().trim())
             || !Objects.equals(item.getName(), request.name().trim())
             || !Objects.equals(item.getDescription(), trimToNull(request.description()))
-            || !sameAmount(item.getEstimatedUnitValue(), request.estimatedUnitValue())
+            || !sameAmount(item.getEstimatedUnitValue(), normalizedEstimatedUnitValue(request))
             || !Objects.equals(item.getCurrency(), request.currency() == null ? null : request.currency().toUpperCase(Locale.ROOT))
             || item.getConditionStatus() != request.conditionStatus()
             || !Objects.equals(item.getConditionNotes(), trimToNull(request.conditionNotes()));
@@ -812,8 +854,14 @@ public class InventoryService {
         return a == null ? b == null : b != null && a.compareTo(b) == 0;
     }
 
+    private static BigDecimal normalizedEstimatedUnitValue(InventoryItemRequest request) {
+        return request.estimatedUnitValue() == null && request.currency() != null && !request.currency().isBlank()
+            ? BigDecimal.ZERO
+            : request.estimatedUnitValue();
+    }
+
     private static void validateValueCurrency(BigDecimal value, String currency) {
-        if ((value == null) != (currency == null || currency.isBlank())) {
+        if (value != null && (currency == null || currency.isBlank())) {
             throw error(HttpStatus.BAD_REQUEST, "Valore unitario e valuta devono essere indicati insieme", "inventory.value.currencyRequired");
         }
     }
