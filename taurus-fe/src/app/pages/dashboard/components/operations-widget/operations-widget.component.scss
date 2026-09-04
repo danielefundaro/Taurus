@@ -1,0 +1,121 @@
+:host {
+    display: block;
+    grid-column: 1 / -1;
+}
+
+.operations-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.operation-icon {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+}
+
+.operation-icon--danger {
+    color: var(--p-red-600);
+    background: color-mix(in srgb, var(--p-red-500) 14%, transparent);
+}
+
+.operation-icon--warning {
+    color: var(--p-orange-600);
+    background: color-mix(in srgb, var(--p-orange-500) 14%, transparent);
+}
+
+.operation-icon--info {
+    color: var(--p-blue-600);
+    background: color-mix(in srgb, var(--p-blue-500) 14%, transparent);
+}
+
+.operation-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.operation-description {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+}
+
+.operation-count {
+    display: flex;
+    flex-direction: column;
+}
+
+.operation-count strong {
+    font-size: 1.125rem;
+}
+
+.operation-count small {
+    color: var(--p-text-muted-color);
+}
+
+.operations-alert {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.operations-skeleton__row {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 4.25rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.operations-skeleton__row:last-child {
+    border-bottom: 0;
+}
+
+:host ::ng-deep [rowActions] .p-button {
+    min-height: 44px;
+}
+
+@media (max-width: 520px) {
+    :host ::ng-deep app-list-row .list-row--compact {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+
+    :host ::ng-deep app-list-row .list-row__media {
+        display: none;
+    }
+
+    :host ::ng-deep app-list-row .list-row__metrics {
+        display: flex;
+        text-align: left;
+    }
+
+    :host ::ng-deep app-list-row .list-row__actions {
+        grid-column: 1;
+        justify-content: stretch;
+    }
+
+    .operation-title {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    :host ::ng-deep [rowActions] .p-button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :host *,
+    :host *::before,
+    :host *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+}

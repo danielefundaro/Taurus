@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.repository.inventory;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
+import com.fundaro.zodiac.taurus.repository.projection.InventoryExpirationProjection;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -88,4 +89,60 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
     @Modifying
     @Query("update InventoryAssignment a set a.userKeycloakId = :pseudonym, a.userName = 'Utente', a.userLastName = 'eliminato' where a.userKeycloakId = :userId")
     int pseudonymizeUser(@Param("userId") String userId, @Param("pseudonym") String pseudonym);
+
+    @Query("""
+        select count(a.id) as assignmentCount,
+               min(a.expirationDate) as earliestExpirationDate,
+               coalesce(sum(case when a.expirationDate < :today then 1 else 0 end), 0) as overdueCount
+        from InventoryAssignment a
+        where a.deleted = false
+          and a.status in :statuses
+          and a.assignedQuantity > a.returnedQuantity
+          and a.expirationDate is not null
+          and a.expirationDate <= :maximumDate
+          and (:userId is null or a.userKeycloakId = :userId)
+        """)
+    InventoryExpirationProjection summarizeExpiring(
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        @Param("today") LocalDate today,
+        @Param("maximumDate") LocalDate maximumDate,
+        @Param("userId") String userId
+    );
+
+    @Query("""
+        select a from InventoryAssignment a
+        where a.userKeycloakId = :userId
+          and a.deleted = false
+          and a.status in :statuses
+          and (:query = '' or lower(a.item.name) like lower(concat('%', :query, '%')) or lower(a.item.inventoryNumber) like lower(concat('%', :query, '%')))
+          and not exists (
+            select decision.id from InventoryAssignmentDecision decision
+            where decision.revision.assignment = a
+              and decision.revision.revisionNumber = a.currentRevision
+          )
+        """)
+    Page<InventoryAssignment> findOwnWithPendingDecision(
+        @Param("userId") String userId,
+        @Param("query") String query,
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        Pageable pageable
+    );
+
+    @Query("""
+        select a from InventoryAssignment a
+        where a.userKeycloakId = :userId
+          and a.deleted = false
+          and a.status in :statuses
+          and a.assignedQuantity > a.returnedQuantity
+          and a.expirationDate is not null
+          and a.expirationDate <= :maximumDate
+          and (:query = '' or lower(a.item.name) like lower(concat('%', :query, '%')) or lower(a.item.inventoryNumber) like lower(concat('%', :query, '%')))
+        """)
+    Page<InventoryAssignment> findOwnExpiring(
+        @Param("userId") String userId,
+        @Param("query") String query,
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        @Param("maximumDate") LocalDate maximumDate,
+        Pageable pageable
+    );
 }

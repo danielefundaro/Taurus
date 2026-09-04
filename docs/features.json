@@ -190,11 +190,24 @@
       "id": "operational-dashboard",
       "title": "Dashboard operativa trasversale",
       "kind": "feature",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
       "spec": "docs/operational-dashboard-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
-      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java",
+          "taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.ts",
+          "taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts"
+        ],
+        "migrations": [],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java",
+          "taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts"
+        ]
+      },
       "release": null,
       "lastVerifiedOn": "2026-09-04"
     },

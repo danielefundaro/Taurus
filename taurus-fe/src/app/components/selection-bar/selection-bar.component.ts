@@ -8,7 +8,20 @@ export class SelectionBarComponent {
     @Input() count = 0;
     @Input() allSelected = false;
     @Input() deleteLabel = 'Elimina selezionati';
+    @Input() actionLabel?: string;
+    @Input() actionIcon = 'pi pi-trash';
+    @Input() actionSeverity: 'secondary' | 'success' | 'info' | 'warn' | 'help' | 'danger' | 'contrast' | null = 'danger';
+    @Input() actionLoading = false;
     @Output() toggleAll = new EventEmitter<boolean>();
     @Output() clear = new EventEmitter<void>();
     @Output() delete = new EventEmitter<void>();
+    @Output() action = new EventEmitter<void>();
+
+    protected invokeAction(): void {
+        if (this.actionLabel) {
+            this.action.emit();
+        } else {
+            this.delete.emit();
+        }
+    }
 }

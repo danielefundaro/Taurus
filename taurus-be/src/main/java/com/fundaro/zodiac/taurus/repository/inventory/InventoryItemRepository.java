@@ -1,7 +1,10 @@
 package com.fundaro.zodiac.taurus.repository.inventory;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -29,4 +32,60 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     long sumTotalQuantity();
 
     List<InventoryItem> findAllByDeletedFalse();
+
+    @Query("""
+        select item from InventoryItem item
+        where item.deleted = false
+          and (:query = '' or lower(item.name) like lower(concat('%', :query, '%')) or lower(item.inventoryNumber) like lower(concat('%', :query, '%')))
+          and exists (
+            select assignment.id from InventoryAssignment assignment
+            where assignment.item = item
+              and assignment.deleted = false
+              and assignment.status in :statuses
+              and not exists (
+                select decision.id from InventoryAssignmentDecision decision
+                where decision.revision.assignment = assignment
+                  and decision.revision.revisionNumber = assignment.currentRevision
+              )
+          )
+        """)
+    Page<InventoryItem> findWithPendingDecisions(
+        @Param("query") String query,
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        Pageable pageable
+    );
+
+    @Query("""
+        select item from InventoryItem item
+        where item.deleted = false
+          and (:query = '' or lower(item.name) like lower(concat('%', :query, '%')) or lower(item.inventoryNumber) like lower(concat('%', :query, '%')))
+          and exists (
+            select inventoryReturn.id from InventoryReturn inventoryReturn
+            where inventoryReturn.assignment.item = item
+              and inventoryReturn.deleted = false
+              and inventoryReturn.status = com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus.REQUESTED
+          )
+        """)
+    Page<InventoryItem> findWithPendingReturns(@Param("query") String query, Pageable pageable);
+
+    @Query("""
+        select item from InventoryItem item
+        where item.deleted = false
+          and (:query = '' or lower(item.name) like lower(concat('%', :query, '%')) or lower(item.inventoryNumber) like lower(concat('%', :query, '%')))
+          and exists (
+            select assignment.id from InventoryAssignment assignment
+            where assignment.item = item
+              and assignment.deleted = false
+              and assignment.status in :statuses
+              and assignment.assignedQuantity > assignment.returnedQuantity
+              and assignment.expirationDate is not null
+              and assignment.expirationDate <= :maximumDate
+          )
+        """)
+    Page<InventoryItem> findWithExpiringAssignments(
+        @Param("query") String query,
+        @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
+        @Param("maximumDate") LocalDate maximumDate,
+        Pageable pageable
+    );
 }

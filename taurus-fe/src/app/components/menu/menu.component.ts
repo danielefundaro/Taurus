@@ -29,7 +29,7 @@ export class MenuComponent implements OnInit {
                 ]
             },
             {
-                label: 'Pagine',
+                label: 'Menu',
                 icon: 'pi pi-fw pi-briefcase',
                 routerLink: ['/pages'],
                 hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
@@ -45,6 +45,12 @@ export class MenuComponent implements OnInit {
                         icon: 'pi pi-fw pi-building',
                         routerLink: ['/tenants'],
                         hasRoles: [RoleEnums.SUPER_ADMIN]
+                    },
+                    {
+                        label: 'Consegne notifiche',
+                        icon: 'pi pi-fw pi-send',
+                        routerLink: ['/admin/notification-delivery'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
                     },
                     {
                         label: 'Utenti',

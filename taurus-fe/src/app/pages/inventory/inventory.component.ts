@@ -39,6 +39,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected reportIncludeAssigned = true;
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
+    protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring';
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',
@@ -89,6 +90,10 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     ngOnInit(): void {
         this.listLayoutService.observe('inventory', (value) => (this.layout = value));
         this.viewMode = this.isAdmin && this.route.snapshot.queryParamMap.get('view') !== 'mine' ? 'TENANT' : 'MINE';
+        const attention = this.route.snapshot.queryParamMap.get('attention');
+        if (attention && ['pending-decisions', 'pending-returns', 'expiring'].includes(attention)) {
+            this.attention = attention as typeof this.attention;
+        }
         this.configureSortOptions();
         if (this.isAdmin) this.loadErasureRequests();
         if (this.isAdmin && this.route.snapshot.queryParamMap.get('action') === 'new') {
@@ -111,11 +116,12 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         this.viewMode = mode;
         this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: { view: mode === 'MINE' ? 'mine' : null },
+            queryParams: { view: mode === 'MINE' ? 'mine' : null, attention: null },
             queryParamsHandling: 'merge',
             replaceUrl: true
         });
         this.searchTerm = '';
+        this.attention = undefined;
         this.selectedItems = [];
         this.totalRecords = 0;
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
@@ -288,7 +294,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         const sort = `${sortField},${(this.dataViewLazyLoadEvent.sortOrder || 1) > 0 ? 'asc' : 'desc'}`;
         this.loading = true;
         this.inventoryService
-            .getItems(this.searchTerm, page, rows, sort)
+            .getItems(this.searchTerm, page, rows, sort, this.attention)
             .pipe(first())
             .subscribe({
                 next: (result: Page<InventoryItem>) => {
@@ -307,7 +313,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         const sort = `${sortField},${(this.dataViewLazyLoadEvent.sortOrder || -1) > 0 ? 'asc' : 'desc'}`;
         this.loading = true;
         this.userInventoryService
-            .getAssignments(this.searchTerm, this.scope, page, rows, sort)
+            .getAssignments(this.searchTerm, this.scope, page, rows, sort, this.attention)
             .pipe(first())
             .subscribe({
                 next: (result) => {

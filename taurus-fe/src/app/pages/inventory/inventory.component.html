@@ -7,6 +7,21 @@
             }</div
     ></app-page-header>
 
+    @if (attention) {
+        <app-inline-alert
+            class="block mb-4"
+            severity="info"
+            title="Filtro attività applicato"
+            [detail]="
+                attention === 'pending-decisions'
+                    ? 'Sono mostrate le assegnazioni senza presa visione.'
+                    : attention === 'pending-returns'
+                      ? 'Sono mostrati gli oggetti con riconsegne aperte.'
+                      : 'Sono mostrate le assegnazioni scadute o prossime alla scadenza.'
+            "
+        />
+    }
+
     @if (isAdmin && !personalView && erasureRequests.length > 0) {
         <div class="card flex flex-col gap-4">
             <app-inline-alert severity="warn" title="Cancellazioni GDPR in attesa di riconsegna" detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />

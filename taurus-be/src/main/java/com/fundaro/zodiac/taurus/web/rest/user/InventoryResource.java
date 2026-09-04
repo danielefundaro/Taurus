@@ -1,5 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest.user;
 
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentSummaryDTO;
@@ -12,6 +14,7 @@ import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import jakarta.validation.Valid;
 import java.io.IOException;
+import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -33,20 +36,37 @@ public class InventoryResource {
 
     private final InventoryService inventoryService;
     private final InventoryReportService inventoryReportService;
+    private final ApplicationProperties.DashboardProperties dashboardProperties;
+    private final TenantTimeZoneService tenantTimeZoneService;
 
-    public InventoryResource(InventoryService inventoryService, InventoryReportService inventoryReportService) {
+    public InventoryResource(
+        InventoryService inventoryService,
+        InventoryReportService inventoryReportService,
+        ApplicationProperties applicationProperties,
+        TenantTimeZoneService tenantTimeZoneService
+    ) {
         this.inventoryService = inventoryService;
         this.inventoryReportService = inventoryReportService;
+        this.dashboardProperties = applicationProperties.getDashboard();
+        this.tenantTimeZoneService = tenantTimeZoneService;
     }
 
     @GetMapping("/assignments")
     public Page<InventoryAssignmentSummaryDTO> getAssignments(
         @RequestParam(required = false) String query,
         @RequestParam(defaultValue = "POSSESSED") InventoryAssignmentScope scope,
+        @RequestParam(required = false) String attention,
         Pageable pageable,
         AbstractAuthenticationToken token
     ) {
-        return inventoryService.findOwnAssignments(query, scope, pageable, token);
+        return inventoryService.findOwnAssignments(
+            query,
+            scope,
+            attention,
+            LocalDate.now(tenantTimeZoneService.currentZoneId()).plusDays(dashboardProperties.getInventoryExpirationLookAheadDays()),
+            pageable,
+            token
+        );
     }
 
     @GetMapping("/summary")

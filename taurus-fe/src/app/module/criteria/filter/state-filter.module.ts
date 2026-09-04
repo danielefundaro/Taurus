@@ -1,5 +1,5 @@
-import { Filter } from ".";
-import { StateEnums } from "../../../constants";
+import { Filter } from './filter.module';
+import { StateEnums } from '../../../constants';
 
 export class StateFilter extends Filter<StateEnums> {
     constructor(stateFilter?: StateFilter) {

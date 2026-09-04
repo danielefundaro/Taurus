@@ -21,3 +21,4 @@ export * from './tracks.module';
 export * from './users.module';
 export * from './inventory.module';
 export * from './finance.module';
+export * from './operational-dashboard';
