@@ -10,6 +10,7 @@ import { LegalAcceptanceComponent } from './app/pages/legal-acceptance/legal-acc
 import { Notfound } from './app/pages/notfound/notfound.component';
 import { PreviewComponent } from './app/pages/preview/preview.component';
 import { ProfileComponent } from './app/pages/profile/profile.component';
+import { NotificationDeliveryComponent } from './app/pages/admin/notification-delivery/notification-delivery.component';
 
 export const appRoutes: Routes = [
     { path: 'legal/accept', component: LegalAcceptanceComponent },
@@ -77,6 +78,12 @@ export const appRoutes: Routes = [
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+            },
+            {
+                path: 'admin/notification-delivery',
+                component: NotificationDeliveryComponent,
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
             },
             {
                 path: 'preview',

@@ -3,11 +3,13 @@ package com.fundaro.zodiac.taurus.repository.notification;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary;
+import com.fundaro.zodiac.taurus.repository.projection.NotificationFailureProjection;
 import jakarta.persistence.LockModeType;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -32,4 +34,17 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
     boolean existsByEventKey(String eventKey);
 
     long deleteAllByStatusAndDeliveredAtBefore(NotificationStatus status, ZonedDateTime cutoff);
+
+    @Query("""
+        select count(event.id) as failureCount, min(event.occurredAt) as oldestOccurredAt
+        from NotificationOutbox event
+        where event.deleted = false and event.status = :status
+        """)
+    NotificationFailureProjection summarizeFailures(@Param("status") NotificationStatus status);
+
+    Page<NotificationOutbox> findAllByDeletedFalseAndStatus(NotificationStatus status, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select event from NotificationOutbox event where event.deleted = false and event.id in :ids order by event.id")
+    List<NotificationOutbox> findAllByIdsForUpdate(@Param("ids") List<Long> ids);
 }

@@ -16,7 +16,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `notification-editorial-style` | [Stile editoriale delle notifiche interne](notification-editorial-style.md) | standard | approved | implemented | BE, FE | 0 | [2](#notification-editorial-style-evidenze) | non rilasciata | 2026-09-04 |
 | `notification-preferences` | [Preferenze notifiche granulari](notification-preferences-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-04 |
 | `opensearch-postgresql-migration` | [Migrazione strutturale da OpenSearch a PostgreSQL](migrazione-opensearch-postgresql.md) | migration | approved | implemented | BE | [1](#opensearch-postgresql-migration-evidenze) | [1](#opensearch-postgresql-migration-evidenze) | non rilasciata | 2026-09-04 |
-| `operational-dashboard` | [Dashboard operativa trasversale](operational-dashboard-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-04 |
+| `operational-dashboard` | [Dashboard operativa trasversale](operational-dashboard-spec.md) | feature | approved | implemented | BE, FE | 0 | [3](#operational-dashboard-evidenze) | non rilasciata | 2026-09-04 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE | [1](#postgres-tenant-schemas-evidenze) | [1](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-09-04 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [1](#recurring-calendar-events-evidenze) | [1](#recurring-calendar-events-evidenze) | non rilasciata | 2026-09-04 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [1](#taurus-layout-standard-evidenze) | non rilasciata | 2026-09-04 |
@@ -109,9 +109,9 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 <a id="operational-dashboard-evidenze"></a>
 ### Dashboard operativa trasversale
 
-- Implementazione: nessuna
+- Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java), [`taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.ts`](../taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.ts), [`taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts`](../taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts)
 - Migrazioni: nessuna
-- Test: nessuna
+- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java), [`taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts`](../taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts)
 
 <a id="postgres-tenant-schemas-evidenze"></a>
 ### PostgreSQL schema per tenant

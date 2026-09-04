@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 })
 export class DetailSectionComponent {
     @Input({ required: true }) title = '';
+    @Input() titleId?: string;
     @Input() description?: string;
     @Input() count?: number;
     @Input({ transform: booleanAttribute }) dirty = false;

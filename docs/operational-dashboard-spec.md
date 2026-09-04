@@ -5,6 +5,12 @@
 ID catalogo: `operational-dashboard`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
+## Stato dell'implementazione e rilascio
+
+La prima versione è implementata nei moduli backend e frontend. Il contratto API, le soglie e il comportamento parziale descritti in questo documento sono quelli effettivamente esposti dall'applicazione. La console amministrativa delle consegne tecniche è disponibile in `/admin/notification-delivery` e non espone contenuti, payload o destinatari.
+
+Il rollout iniziale mantiene `application.dashboard.enabled=false`: l'attivazione deve essere eseguita tramite configurazione esterna prima in staging e poi in produzione. Non sono richieste migrazioni del database; eventuali indici devono derivare dalla misurazione dei query plan PostgreSQL su dati realistici.
+
 ## Obiettivo
 
 La dashboard deve rispondere alla domanda «che cosa richiede la mia attenzione adesso?» usando informazioni gia presenti in calendario, inventario, economia, notifiche e conformita legale.

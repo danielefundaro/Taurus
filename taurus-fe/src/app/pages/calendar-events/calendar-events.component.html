@@ -3,6 +3,15 @@
     ><div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"><p-button label="Nuovo evento" icon="pi pi-plus" (onClick)="addNew()" /></div
 ></app-page-header>
 
+@if (attention) {
+    <app-inline-alert
+        class="block mb-4"
+        severity="info"
+        title="Filtro attività applicato"
+        [detail]="attention === 'my-missing-availability' ? 'Sono mostrati gli eventi futuri a cui devi ancora rispondere.' : 'Sono mostrati gli eventi futuri con almeno una risposta attesa mancante.'"
+    />
+}
+
 @if (layout === 'grid') {
     <div class="card flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-1">
@@ -66,14 +75,7 @@
                 <div class="flex flex-col">
                     @for (item of items; track item.id) {
                         <app-list-row>
-                            <p-checkbox
-                                rowSelection
-                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
-                                [binary]="true"
-                                [ngModel]="isSelected(item)"
-                                (ngModelChange)="toggleSelection(item)"
-                                [attr.aria-label]="'Seleziona ' + item.name"
-                            />
+                            <p-checkbox rowSelection *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [binary]="true" [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
                             <a rowMedia class="list-thumbnail list-thumbnail--date" [routerLink]="item.id" [attr.aria-label]="item.name">
                                 <span class="text-lg font-bold leading-none">{{ item.startDate | date: 'dd' }}</span>
                                 <span class="text-xs uppercase">{{ item.startDate | date: 'MMM' }}</span>

@@ -1,0 +1,62 @@
+<app-detail-section title="Da fare" titleId="operations-widget-title" [count]="dashboard?.summary?.groupCount">
+    <div sectionActions>
+        <p-button label="Aggiorna" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" [loading]="refreshing" [disabled]="refreshing || initialLoading" (onClick)="refreshRequested.emit()" />
+    </div>
+
+    <div class="sr-only" aria-live="polite">{{ announcement }}</div>
+    <div [attr.aria-busy]="initialLoading">
+        @if (initialLoading) {
+            <div class="operations-skeleton" aria-label="Caricamento attività">
+                @for (row of [1, 2, 3]; track row) {
+                    <div class="operations-skeleton__row">
+                        <p-skeleton shape="circle" size="2.25rem" />
+                        <div>
+                            <p-skeleton width="12rem" height="1rem" />
+                            <p-skeleton width="min(28rem, 70vw)" height="0.75rem" styleClass="mt-2" />
+                        </div>
+                        <p-skeleton width="6rem" height="2.25rem" />
+                    </div>
+                }
+            </div>
+        } @else if (error && !dashboard) {
+            <app-inline-alert severity="error" title="Attività non disponibili" detail="Non è stato possibile caricare la sezione Da fare." actionLabel="Riprova" (action)="refreshRequested.emit()" />
+        } @else {
+            @if (dashboard?.status === 'PARTIAL') {
+                <app-inline-alert class="operations-alert" severity="warn" title="Alcune attività non sono disponibili" detail="Riprova tra poco." />
+            }
+            @if (refreshWarning) {
+                <app-inline-alert class="operations-alert" severity="warn" title="Aggiornamento non riuscito" detail="Sono ancora visibili i dati dell’ultimo caricamento riuscito." />
+            }
+            @if (dashboard?.items?.length) {
+                <ul class="operations-list" aria-label="Attività che richiedono attenzione">
+                    @for (item of dashboard!.items; track item.key) {
+                        <li>
+                            <app-list-row compact>
+                                <span rowMedia class="operation-icon" [class]="'operation-icon operation-icon--' + item.severity.toLowerCase()">
+                                    <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                                </span>
+                                <div rowIdentity>
+                                    <div class="operation-title">
+                                        <strong>{{ item.title }}</strong>
+                                        <p-tag [severity]="severity(item)" [value]="severityLabel(item.severity)" [rounded]="true" />
+                                    </div>
+                                    <span class="operation-description">{{ item.description }}</span>
+                                    <span class="sr-only">Quantità: {{ item.count }}.</span>
+                                </div>
+                                <div rowMetrics class="operation-count" [attr.aria-label]="'Quantità ' + item.count">
+                                    <strong>{{ item.count }}</strong>
+                                    <small>{{ item.count === 1 ? 'elemento' : 'elementi' }}</small>
+                                </div>
+                                <div rowActions>
+                                    <p-button [label]="item.actionLabel" icon="pi pi-arrow-right" iconPos="right" size="small" (onClick)="navigate(item)" />
+                                </div>
+                            </app-list-row>
+                        </li>
+                    }
+                </ul>
+            } @else if (dashboard) {
+                <app-empty-state compact icon="pi pi-check-circle" title="Tutto sotto controllo" message="Non ci sono attività che richiedono la tua attenzione." />
+            }
+        }
+    </div>
+</app-detail-section>

@@ -1,6 +1,11 @@
 package com.fundaro.zodiac.taurus.config;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
@@ -11,6 +16,7 @@ import java.util.List;
  * See {@link tech.jhipster.config.JHipsterProperties} for a good example.
  */
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
+@Validated
 public class ApplicationProperties {
     private String basePath;
 
@@ -25,6 +31,9 @@ public class ApplicationProperties {
     private CalendarProperties calendar = new CalendarProperties();
 
     private NotificationProperties notifications = new NotificationProperties();
+
+    @Valid
+    private DashboardProperties dashboard = new DashboardProperties();
 
     public String getBasePath() {
         return basePath;
@@ -77,6 +86,10 @@ public class ApplicationProperties {
     public NotificationProperties getNotifications() { return notifications; }
 
     public void setNotifications(NotificationProperties notifications) { this.notifications = notifications; }
+
+    public DashboardProperties getDashboard() { return dashboard; }
+
+    public void setDashboard(DashboardProperties dashboard) { this.dashboard = dashboard; }
 
     private TesseractProperties tesseract = new TesseractProperties();
 
@@ -287,5 +300,41 @@ public class ApplicationProperties {
         public void setMaxDelayMinutes(int maxDelayMinutes) { this.maxDelayMinutes = maxDelayMinutes; }
         public int getMaxAttempts() { return maxAttempts; }
         public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+    }
+
+    public static class DashboardProperties {
+        private boolean enabled;
+
+        @Min(0)
+        @Max(366)
+        private int calendarLookAheadDays = 14;
+
+        @Min(0)
+        @Max(366)
+        private int inventoryExpirationLookAheadDays = 30;
+
+        @Min(0)
+        @Max(366)
+        private int inventoryWarningDays = 7;
+
+        @Min(0)
+        @Max(366)
+        private int financeUnreconciledWarningDays = 30;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public int getCalendarLookAheadDays() { return calendarLookAheadDays; }
+        public void setCalendarLookAheadDays(int calendarLookAheadDays) { this.calendarLookAheadDays = calendarLookAheadDays; }
+        public int getInventoryExpirationLookAheadDays() { return inventoryExpirationLookAheadDays; }
+        public void setInventoryExpirationLookAheadDays(int inventoryExpirationLookAheadDays) { this.inventoryExpirationLookAheadDays = inventoryExpirationLookAheadDays; }
+        public int getInventoryWarningDays() { return inventoryWarningDays; }
+        public void setInventoryWarningDays(int inventoryWarningDays) { this.inventoryWarningDays = inventoryWarningDays; }
+        public int getFinanceUnreconciledWarningDays() { return financeUnreconciledWarningDays; }
+        public void setFinanceUnreconciledWarningDays(int financeUnreconciledWarningDays) { this.financeUnreconciledWarningDays = financeUnreconciledWarningDays; }
+
+        @AssertTrue(message = "inventory-warning-days must not exceed inventory-expiration-look-ahead-days")
+        public boolean isInventoryWarningWindowValid() {
+            return inventoryWarningDays <= inventoryExpirationLookAheadDays;
+        }
     }
 }

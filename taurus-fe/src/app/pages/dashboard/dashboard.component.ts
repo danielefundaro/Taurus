@@ -1,21 +1,36 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { first, forkJoin, Subscription } from 'rxjs';
+import { finalize, first, forkJoin, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
-import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, Page, Tracks, TracksCriteria } from '../../module';
+import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, OperationalDashboard, Page, Tracks, TracksCriteria } from '../../module';
 import { DateFilter } from '../../module/criteria/filter';
-import { AlbumsService, CalendarEventsService, InventoryService, KeycloakService, LayoutService, NoticesService, NotificationCenterService, TenantsService, TracksService, UserInventoryService, UsersService } from '../../service';
+import {
+    AlbumsService,
+    CalendarEventsService,
+    InventoryService,
+    KeycloakService,
+    LayoutService,
+    NoticesService,
+    NotificationCenterService,
+    OperationalDashboardService,
+    TenantsService,
+    TracksService,
+    UserInventoryService,
+    UsersService
+} from '../../service';
 import { CalendarEventsWidgetComponent } from './components/calendar-events-widget/calendar-events-widget.component';
 import { InventoryWidgetComponent, InventoryWidgetMode } from './components/inventory-widget/inventory-widget.component';
 import { NotificationsWidgetComponent } from './components/notifications-widget/notification-widget.component';
 import { RecentsWidgetComponent } from './components/recents-widget/recents-widget.component';
 import { StatsWidgetComponent } from './components/stats-widget/stats-widget.component';
+import { OperationsWidgetComponent } from './components/operations-widget/operations-widget.component';
 
 @Component({
     selector: 'app-dashboard',
-    imports: [ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, HasRolesDirective],
+    imports: [DatePipe, ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, OperationsWidgetComponent, HasRolesDirective],
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.scss',
     providers: [KeycloakService, TenantsService, UsersService, AlbumsService, TracksService, CalendarEventsService, InventoryService, UserInventoryService],
@@ -35,6 +50,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected recentInventoryAssignments: InventoryAssignmentSummary[] = [];
     protected inventoryLoading: boolean = true;
     protected readonly RoleEnums: typeof RoleEnums = RoleEnums;
+    protected operations?: OperationalDashboard;
+    protected operationsInitialLoading = true;
+    protected operationsRefreshing = false;
+    protected operationsError = false;
+    protected operationsRefreshWarning = false;
+    protected operationsAnnouncement = '';
+    private operationsLoadedAt = 0;
     private $readSubscription?: Subscription;
     private $deleteSubscription?: Subscription;
 
@@ -50,10 +72,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
         private readonly notificationCenter: NotificationCenterService,
+        private readonly operationalDashboardService: OperationalDashboardService,
         private readonly router: Router
     ) {}
 
     ngOnInit(): void {
+        this.loadOperations();
         const role = this.keycloakService.currentUserRole;
 
         switch (role) {
@@ -78,6 +102,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.userMethods();
                 break;
         }
+    }
+
+    @HostListener('document:visibilitychange')
+    protected onVisibilityChange(): void {
+        if (document.visibilityState === 'visible' && this.operationsLoadedAt > 0 && Date.now() - this.operationsLoadedAt >= 5 * 60 * 1000) {
+            this.loadOperations();
+        }
+    }
+
+    protected refreshOperations(): void {
+        this.loadOperations(true);
     }
 
     ngOnDestroy(): void {
@@ -255,6 +290,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
             .pipe(first())
             .subscribe((count) => {
                 this.layoutService.notificationNumber.set(count);
+            });
+    }
+
+    private loadOperations(manual = false): void {
+        const hasSnapshot = !!this.operations;
+        this.operationsInitialLoading = !hasSnapshot;
+        this.operationsRefreshing = hasSnapshot;
+        this.operationsError = false;
+        this.operationsRefreshWarning = false;
+        if (manual) this.operationsAnnouncement = '';
+        this.operationalDashboardService
+            .getOperations()
+            .pipe(
+                first(),
+                finalize(() => {
+                    this.operationsInitialLoading = false;
+                    this.operationsRefreshing = false;
+                })
+            )
+            .subscribe({
+                next: (dashboard) => {
+                    this.operations = dashboard;
+                    this.operationsLoadedAt = Date.now();
+                    if (manual) this.operationsAnnouncement = 'Attività aggiornate.';
+                },
+                error: () => {
+                    if (hasSnapshot) this.operationsRefreshWarning = true;
+                    else this.operationsError = true;
+                    if (manual) this.operationsAnnouncement = 'Aggiornamento non riuscito.';
+                }
             });
     }
 }
