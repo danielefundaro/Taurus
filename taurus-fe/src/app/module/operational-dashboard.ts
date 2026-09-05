@@ -42,17 +42,31 @@ export interface OperationalDashboard {
     unavailableDomains: DashboardDomain[];
 }
 
-export type NotificationDeliveryStatus = 'PENDING' | 'DELIVERED' | 'FAILED';
+export type NotificationDeliveryStatus = 'PENDING' | 'DELIVERED' | 'FAILED' | 'SKIPPED';
+
+export type NotificationDeliveryOrigin = 'OUTBOX' | 'PUSH' | 'REMINDER';
 
 export interface NotificationDeliveryAdmin {
+    rowKey: string;
     id: number;
+    origin: NotificationDeliveryOrigin;
     source: string;
-    operation: string;
+    operation?: string | null;
+    deliveryType: string;
     status: NotificationDeliveryStatus;
     occurredAt: string;
     attempts: number;
     updatedAt: string;
     nextAttemptAt?: string | null;
     errorClass?: string | null;
+    skipReason?: string | null;
     eventKeyHash: string;
+}
+
+export interface NotificationDeliveryFilters {
+    origin?: NotificationDeliveryOrigin | null;
+    source?: string | null;
+    operation?: string | null;
+    from?: string | null;
+    to?: string | null;
 }

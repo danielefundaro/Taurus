@@ -37,13 +37,28 @@
       "id": "external-calendar-feed",
       "title": "Feed calendario esterno in sola lettura",
       "kind": "feature",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
       "spec": "docs/external-calendar-feed-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
-      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/CalendarSubscriptionResource.java",
+          "taurus-fe/src/app/components/calendar-feed-panel/calendar-feed-panel.component.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260905020000_calendar_feed_registry.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260905020001_external_calendar_feed.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/calendarfeed/CalendarFeedTokenServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/calendarfeed/IcalendarRendererTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/calendarfeed/CalendarFeedMigrationIT.java",
+          "taurus-fe/src/app/service/calendar-feed.service.spec.ts"
+        ]
+      },
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-09-05"
     },
     {
       "id": "financial-management",
@@ -162,13 +177,41 @@
       "id": "notification-preferences",
       "title": "Preferenze notifiche granulari",
       "kind": "feature",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
       "spec": "docs/notification-preferences-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
-      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationPreferenceResolver.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationPushDeliveryService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/notification/NotificationDeliveryAdminQueryRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/notification/NotificationPreferenceMetrics.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/NoticesServiceImpl.java",
+          "taurus-fe/src/app/pages/profile/profile.component.ts",
+          "taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts",
+          "taurus-fe/src/app/pages/dashboard/components/notifications-widget/notification-widget.component.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260905000000_notification_preferences.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260905010000_notification_delivery_console.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferenceResolverTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPushDeliveryServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationTimingTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationPreferencesIT.java",
+          "taurus-fe/src/app/service/notification-delivery-admin.service.spec.ts",
+          "taurus-fe/src/app/pages/dashboard/components/notifications-widget/notification-widget.component.spec.ts"
+        ]
+      },
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-09-05",
+      "notes": "Fasi 1-5 complete: profilo tipizzato, categorie e snooze, push immediati, silenzioso e digest, console FAILED estesa alle tre origini con retry e chiusura tecnica. Restano attive per scelta le compatibilità della fase contract: doppia lettura della chiave legacy defaultReminderMinutes e booleano push_reminders.sent, da rimuovere dopo un rilascio compatibile."
     },
     {
       "id": "opensearch-postgresql-migration",

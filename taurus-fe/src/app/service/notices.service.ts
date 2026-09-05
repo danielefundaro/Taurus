@@ -8,7 +8,7 @@ import { CommonService } from './common.service';
 })
 export class NoticesService extends CommonService<Notices, NoticesCriteria> {
     override resourceName(): string {
-        return "notices";
+        return 'notices';
     }
 
     public countUnread(): Observable<number> {
@@ -25,5 +25,13 @@ export class NoticesService extends CommonService<Notices, NoticesCriteria> {
 
     public deleteAll(): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/delete-all`, {});
+    }
+
+    public snooze(id: number, until: Date): Observable<Notices> {
+        return this.http.patch<Notices>(`${this.baseUrl}/${this.resourceName()}/${id}/snooze`, { until: until.toISOString() });
+    }
+
+    public unsnooze(id: number): Observable<Notices> {
+        return this.http.patch<Notices>(`${this.baseUrl}/${this.resourceName()}/${id}/unsnooze`, {});
     }
 }

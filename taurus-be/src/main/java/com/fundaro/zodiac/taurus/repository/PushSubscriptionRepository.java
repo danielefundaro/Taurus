@@ -17,4 +17,6 @@ public interface PushSubscriptionRepository extends CommonRepository<PushSubscri
     Optional<PushSubscription> findByUserIdAndEndpoint(String userId, String endpoint);
 
     void deleteByEndpointAndUserId(String endpoint, String userId);
+
+    boolean existsByUserIdAndDeletedFalse(String userId);
 }

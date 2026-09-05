@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20260905020000-1" author="taurus">
+    <createTable schemaName="public" tableName="calendar_feed_token_registry">
+      <column name="token_digest" type="bytea"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="subscription_id" type="uuid"><constraints nullable="false"/></column>
+      <column name="tenant_id" type="bigint"><constraints nullable="false"/></column>
+      <column name="token_version" type="integer"><constraints nullable="false"/></column>
+      <column name="status" type="varchar(16)"><constraints nullable="false"/></column>
+      <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+      <column name="revoked_at" type="timestamp with time zone"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableSchemaName="public" baseTableName="calendar_feed_token_registry" baseColumnNames="tenant_id"
+      referencedTableSchemaName="public" referencedTableName="tenant" referencedColumnNames="id"
+      constraintName="fk_calendar_feed_registry_tenant" onDelete="CASCADE"/>
+    <createIndex schemaName="public" tableName="calendar_feed_token_registry" indexName="idx_calendar_feed_registry_subscription">
+      <column name="subscription_id"/><column name="status"/>
+    </createIndex>
+    <sql>ALTER TABLE public.calendar_feed_token_registry ADD CONSTRAINT chk_calendar_feed_registry_status CHECK (status IN ('ACTIVE','REVOKED'))</sql>
+  </changeSet>
+</databaseChangeLog>

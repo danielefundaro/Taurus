@@ -6,3 +6,26 @@
         font-size: 1.75rem;
     }
 }
+
+.notification-block {
+    padding-block: 0.25rem;
+}
+
+:host ::ng-deep .notification-category-table {
+    th,
+    td {
+        vertical-align: middle;
+    }
+
+    @media (max-width: 640px) {
+        th:nth-child(2),
+        td:nth-child(2) {
+            min-width: 10rem;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            min-width: 13rem;
+        }
+    }
+}

@@ -1,11 +1,15 @@
 package com.fundaro.zodiac.taurus.domain;
 
+import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.ZonedDateTime;
+import jakarta.persistence.Version;
 
 /**
  * A Notices.
@@ -36,6 +40,21 @@ public class Notices extends CommonFields {
 
     @Column(name = "source_event_key", length = 160)
     private String sourceEventKey;
+
+    /** Copia della politica dell'outbox: una riga REQUIRED non offre l'opt-out di categoria. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preference_policy", nullable = false, length = 20)
+    private NotificationPreferencePolicy preferencePolicy = NotificationPreferencePolicy.CONFIGURABLE;
+
+    @Column(name = "snoozed_until")
+    private ZonedDateTime snoozedUntil;
+
+    @Column(name = "snooze_revision", nullable = false)
+    private int snoozeRevision;
+
+    @Version
+    @Column(name = "entity_version", nullable = false)
+    private long entityVersion;
 
     public Notices() {
         super();
@@ -136,6 +155,15 @@ public class Notices extends CommonFields {
     public String getSourceEventKey() { return sourceEventKey; }
 
     public void setSourceEventKey(String sourceEventKey) { this.sourceEventKey = sourceEventKey; }
+
+    public NotificationPreferencePolicy getPreferencePolicy() { return preferencePolicy; }
+    public void setPreferencePolicy(NotificationPreferencePolicy value) { preferencePolicy = value; }
+
+    public ZonedDateTime getSnoozedUntil() { return snoozedUntil; }
+    public void setSnoozedUntil(ZonedDateTime snoozedUntil) { this.snoozedUntil = snoozedUntil; }
+    public int getSnoozeRevision() { return snoozeRevision; }
+    public void setSnoozeRevision(int snoozeRevision) { this.snoozeRevision = snoozeRevision; }
+    public long getEntityVersion() { return entityVersion; }
 
     @Override
     public boolean equals(Object o) {

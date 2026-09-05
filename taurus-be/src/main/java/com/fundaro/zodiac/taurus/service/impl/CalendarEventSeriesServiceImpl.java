@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +48,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedEventLifecycle;
 
 @Service
 @Transactional
 public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesService {
+    private CalendarFeedEventLifecycle calendarFeedLifecycle;
 
     private final CalendarEventSeriesRepository seriesRepository;
     private final CalendarEventsRepository eventRepository;
@@ -80,6 +84,9 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         this.tenantFeatureService = tenantFeatureService;
         this.maximumOccurrences = maximumOccurrences;
     }
+
+    @Autowired
+    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) { this.calendarFeedLifecycle = value; }
 
     @Override
     @Transactional(readOnly = true)
@@ -136,6 +143,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         boolean economicsWritable = financeEnabled();
         Instant now = Instant.now();
         List<CalendarEvents> allEvents = eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(id);
+        Map<CalendarEvents, CalendarFeedEventLifecycle.Snapshot> feedSnapshots = new IdentityHashMap<>();
+        if (calendarFeedLifecycle != null) allEvents.forEach(event -> feedSnapshots.put(event, calendarFeedLifecycle.snapshot(event)));
         CalendarEvents sourceOccurrence = findSourceOccurrence(request.getSourceOccurrenceId(), allEvents);
         Integer sourceSequence = sourceOccurrence == null ? null : sourceOccurrence.getSeriesSequence();
         Map<Instant, CalendarEvents> byOriginalStart = new HashMap<>();
@@ -169,6 +178,10 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
                 reminderProducer.cancelAllPending(event.getId());
                 deleted++;
             }
+        }
+        if (calendarFeedLifecycle != null) {
+            allEvents.forEach(event -> calendarFeedLifecycle.apply(event, feedSnapshots.get(event)));
+            allEvents.forEach(event -> feedSnapshots.put(event, calendarFeedLifecycle.snapshot(event)));
         }
         eventRepository.saveAll(allEvents);
         eventRepository.flush();
@@ -213,6 +226,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
         applySeriesDefinition(series, request, definition, actor, economicsWritable);
         seriesRepository.save(series);
+        if (calendarFeedLifecycle != null) changed.forEach(event -> calendarFeedLifecycle.apply(event, feedSnapshots.get(event)));
         eventRepository.saveAll(changed);
         eventRepository.flush();
 
@@ -232,10 +246,12 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         List<CalendarEvents> events = eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(id);
         for (CalendarEvents event : events) {
             if (!event.getDeleted() && event.getStartDate() != null && !event.getStartDate().toInstant().isBefore(now)) {
+                CalendarFeedEventLifecycle.Snapshot feedBefore = calendarFeedLifecycle == null ? null : calendarFeedLifecycle.snapshot(event);
                 event.setDeleted(true);
                 event.setSeriesExcluded(true);
                 touch(event, actor);
                 reminderProducer.cancelAllPending(event.getId());
+                if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(event, feedBefore);
                 deleted++;
             }
         }
@@ -254,6 +270,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         CalendarEvents event = eventRepository.findById(eventId)
             .filter(value -> value.getSeries() != null && Objects.equals(value.getSeries().getId(), seriesId))
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Occurrence not found", "occurrence.notFound"));
+        CalendarFeedEventLifecycle.Snapshot feedBefore = calendarFeedLifecycle == null ? null : calendarFeedLifecycle.snapshot(event);
         String actor = actor(token);
         ZonedDateTime original = event.getOriginalStartDate().toInstant().atZone(ZoneId.of(series.getTimeZone()));
         CalendarEventsDTO template = templateFrom(series);
@@ -261,6 +278,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         event.setSeriesException(false);
         event.setSeriesExcluded(false);
         applyOccurrenceTemplate(event, template, original, series.getDurationMinutes(), actor, financeEnabled());
+        if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(event, feedBefore);
         eventRepository.save(event);
         eventRepository.flush();
         rescheduleReminders(event, token);
@@ -340,6 +358,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         event.setAvailabilities(new ArrayList<>());
         event.setPresences(new ArrayList<>());
         applyOccurrenceTemplate(event, template, occurrence, durationMinutes, actor, economicsWritable);
+        if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(event, null);
         return event;
     }
 

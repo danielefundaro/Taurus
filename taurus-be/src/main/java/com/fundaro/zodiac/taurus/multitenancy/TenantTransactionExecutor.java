@@ -1,5 +1,5 @@
 package com.fundaro.zodiac.taurus.multitenancy;
-te
+
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
