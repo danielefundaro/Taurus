@@ -1,0 +1,118 @@
+<p-fluid>
+    <app-page-header title="Configurazione iniziale" subtitle="Importa in modo controllato i dati del tenant attivo">
+        <div actions class="flex gap-2">
+            <p-button label="Modello XLSX" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadXlsx()" />
+            @if (job) { <p-button label="Rapporto" icon="pi pi-file-excel" severity="secondary" [outlined]="true" (onClick)="downloadReport()" /> }
+        </div>
+    </app-page-header>
+
+    @if (context) {
+        <section class="card tenant-summary" aria-label="Tenant attivo">
+            <div><span class="text-muted-color">Tenant attivo</span><strong>{{ context.tenantName }} · {{ context.tenantCode }}</strong></div>
+            <div><span class="text-muted-color">Utenti</span><strong>{{ context.users }}{{ context.maxUsers != null ? ' / ' + context.maxUsers : '' }}</strong></div>
+            <div><span class="text-muted-color">Strumenti</span><strong>{{ context.instruments }}</strong></div>
+            <div><span class="text-muted-color">Inventario</span><strong>{{ context.inventoryItems }}</strong></div>
+            <div><span class="text-muted-color">Conti</span><strong>{{ context.financialAccounts }}</strong></div>
+        </section>
+    }
+
+    <div class="card" [attr.aria-busy]="locked || busy">
+        <p-stepper [value]="activeStep" [linear]="!job">
+            <p-step-list>
+                <p-step [value]="1" [disabled]="locked">Prepara</p-step>
+                <p-step [value]="2" [disabled]="locked">Carica</p-step>
+                <p-step [value]="3" [disabled]="!job || locked">Controlla</p-step>
+                <p-step [value]="4" [disabled]="job?.status !== 'READY' || locked">Conferma</p-step>
+                <p-step [value]="5" [disabled]="!job">Esito</p-step>
+            </p-step-list>
+            <p-step-panels>
+                <p-step-panel [value]="1">
+                    <ng-template #content>
+                        <div class="step-content">
+                            <h2>Prepara il file</h2>
+                            <p>Scarica il workbook completo oppure un CSV per una sola sezione. L’importazione è additiva: non modifica e non elimina dati esistenti.</p>
+                            <div class="section-grid">
+                                @for (section of sections; track section.value) {
+                                    <article><i class="pi pi-check-circle"></i><div><strong>{{ section.label }}</strong><button type="button" class="link-button" (click)="downloadCsv(section.value)">Scarica CSV</button></div></article>
+                                }
+                            </div>
+                            @if (context) { <p-message severity="info">Limiti: {{ context.limits.maxTotalRows }} righe complessive, {{ context.limits.maxUserRows }} utenti, {{ context.limits.maxFileSizeBytes / 1048576 | number: '1.0-0' }} MB.</p-message> }
+                            <div class="step-actions"><p-button label="Continua" icon="pi pi-arrow-right" iconPos="right" (onClick)="activeStep = 2" /></div>
+                        </div>
+                    </ng-template>
+                </p-step-panel>
+
+                <p-step-panel [value]="2">
+                    <ng-template #content>
+                        <div class="step-content">
+                            <h2>Carica e verifica</h2>
+                            <div class="format-row">
+                                <label><input type="radio" name="format" [(ngModel)]="format" value="XLSX" /> Workbook XLSX</label>
+                                <label><input type="radio" name="format" [(ngModel)]="format" value="CSV" /> CSV singola sezione</label>
+                            </div>
+                            @if (format === 'XLSX') {
+                                <fieldset><legend>Sezioni attese</legend><div class="checkbox-grid">@for (section of sections; track section.value) { <label><p-checkbox name="selectedSections" [value]="section.value" [(ngModel)]="selectedSections" /> {{ section.label }}</label> }</div></fieldset>
+                            } @else {
+                                <label class="field-label">Tipo di dati<p-select [options]="sections" optionLabel="label" optionValue="value" [(ngModel)]="csvSection" appendTo="body" /></label>
+                            }
+                            <p-fileupload mode="advanced" [customUpload]="true" [auto]="false" [multiple]="false" accept=".xlsx,.csv" [maxFileSize]="context?.limits?.maxFileSizeBytes || 10485760" [showUploadButton]="false" [showCancelButton]="false" chooseLabel="Scegli file" (onSelect)="selectFile($event)">
+                                <ng-template #empty><div class="upload-empty"><i class="pi pi-cloud-upload"></i><span>Trascina qui il file oppure usa “Scegli file”</span></div></ng-template>
+                            </p-fileupload>
+                            @if (selectedFile) { <p-message severity="secondary">{{ selectedFile.name }} · {{ selectedFile.size / 1024 | number: '1.0-0' }} KB</p-message> }
+                            <div class="step-actions between"><p-button label="Indietro" severity="secondary" [outlined]="true" (onClick)="activeStep = 1" /><p-button label="Carica e verifica" icon="pi pi-shield" [loading]="busy" [disabled]="!selectedFile || (format === 'XLSX' && selectedSections.length === 0)" (onClick)="upload()" /></div>
+                        </div>
+                    </ng-template>
+                </p-step-panel>
+
+                <p-step-panel [value]="3">
+                    <ng-template #content>
+                        <div class="step-content">
+                            <h2>Controlla i dati normalizzati</h2>
+                            @if (job) {
+                                <div class="status-heading"><p-tag [value]="job.status" [severity]="severity(job.status)" /><span>{{ job.stage }}</span></div>
+                                @if (job.status === 'UPLOADED' || job.status === 'VALIDATING') { <p-progressbar [value]="job.progressPercentage" ariaLabel="Avanzamento validazione" /><div class="sr-live" aria-live="polite">{{ job.stage }}</div> }
+                                <div class="summary-grid">@for (summary of summaries; track summary.section) { <article><strong>{{ sectionLabel(summary.section) }}</strong><span>{{ summary.total }} righe</span><small>{{ summary.create }} nuove · {{ summary.reuse }} riutilizzate · {{ summary.errors }} errori</small></article> }</div>
+                                <div class="filters"><p-select [options]="sections" optionLabel="label" optionValue="value" [(ngModel)]="sectionFilter" placeholder="Tutte le sezioni" [showClear]="true" (onChange)="loadPreview(); loadProblems()" /><p-select [options]="statusOptions" optionLabel="label" optionValue="value" [(ngModel)]="rowStatusFilter" placeholder="Tutti gli esiti" [showClear]="true" (onChange)="loadPreview()" /><p-button label="Azzera filtri" severity="secondary" [text]="true" (onClick)="resetFilters()" /></div>
+                                <p-table [value]="preview" [lazy]="true" [paginator]="true" [rows]="50" [totalRecords]="previewTotal" [rowsPerPageOptions]="[25, 50, 100]" (onLazyLoad)="loadPreview(($event.first || 0) / ($event.rows || 50))" responsiveLayout="scroll">
+                                    <ng-template #header><tr><th>Posizione</th><th>Esito</th><th>Azione</th><th>Valori normalizzati</th></tr></ng-template>
+                                    <ng-template #body let-row><tr><td>{{ sectionLabel(row.section) }} · riga {{ row.rowNumber }}</td><td><p-tag [value]="statusLabel(row.status)" [severity]="severity(row.status)" /></td><td>{{ row.action }}</td><td><dl class="values-list">@for (entry of entries(row); track entry.key) { <div><dt>{{ entry.key }}</dt><dd>{{ entry.value || '—' }}</dd></div> }</dl></td></tr></ng-template>
+                                    <ng-template #emptymessage><tr><td colspan="4"><div class="empty-inline"><i class="pi pi-check-circle"></i><strong>Nessuna riga per i filtri selezionati</strong></div></td></tr></ng-template>
+                                </p-table>
+                                <h3>Problemi e avvisi</h3>
+                                @if (problems.length === 0) { <p-message severity="success">Nessun errore rilevato</p-message> } @else { <div class="issues">@for (problem of problems; track problem.id) { <article [class.error]="problem.severity === 'ERROR'"><p-tag [value]="problem.severity" [severity]="severity(problem.severity)" /><div><strong>{{ problem.code }}</strong><span>{{ sectionLabel(problem.section) }}{{ problem.rowNumber ? ' · riga ' + problem.rowNumber : '' }}{{ problem.columnName ? ' · ' + problem.columnName : '' }}</span><p>{{ problem.message }}</p></div></article> }</div> }
+                                <div class="step-actions between">@if (job.status === 'INVALID' || job.status === 'FAILED') { <p-button label="Riprova validazione" severity="secondary" (onClick)="retryValidation()" /> }<p-button label="Vai alla conferma" [disabled]="job.status !== 'READY'" (onClick)="activeStep = 4" /></div>
+                            }
+                        </div>
+                    </ng-template>
+                </p-step-panel>
+
+                <p-step-panel [value]="4">
+                    <ng-template #content>
+                        <div class="step-content confirm-panel"><h2>Conferma importazione</h2><p>I dati relazionali saranno applicati insieme. Le identità vengono preparate in Keycloak e compensate automaticamente se il commit applicativo fallisce.</p>
+                            @if (job) { <div class="count-callout"><strong>{{ job.counts.total }}</strong><span>righe verificate</span><strong>{{ job.counts.warnings }}</strong><span>avvisi</span></div>
+                                @if (job.counts.warnings > 0) { <label class="check-line"><p-checkbox [binary]="true" [(ngModel)]="warningsAccepted" /> Ho letto e accetto gli avvisi del rapporto</label> }
+                                <label class="check-line"><p-checkbox [binary]="true" [(ngModel)]="sendSetupEmails" /> Invia e-mail di configurazione ai nuovi utenti dopo il commit</label>
+                            }
+                            <div class="step-actions between"><p-button label="Indietro" severity="secondary" [outlined]="true" (onClick)="activeStep = 3" /><p-button label="Avvia importazione" icon="pi pi-play" [loading]="busy" [disabled]="!canApply" (onClick)="apply()" /></div>
+                        </div>
+                    </ng-template>
+                </p-step-panel>
+
+                <p-step-panel [value]="5">
+                    <ng-template #content>
+                        <div class="step-content outcome">@if (job) { <i class="pi" [ngClass]="job.status === 'COMPLETED' ? 'pi-check-circle success-icon' : job.status === 'COMPENSATION_REQUIRED' ? 'pi-exclamation-triangle danger-icon' : 'pi-spin pi-spinner'"></i><h2>{{ job.status === 'COMPLETED' ? 'Importazione completata' : job.status === 'COMPENSATION_REQUIRED' ? 'Ripristino incompleto' : job.status === 'FAILED' ? 'Importazione non applicata' : 'Importazione in corso' }}</h2><p>{{ job.stage }}</p>
+                            @if (locked) { <p-progressbar [value]="job.progressPercentage" /><div aria-live="polite">{{ job.stage }}</div> }
+                            @if (job.status === 'COMPENSATION_REQUIRED') { <p-message severity="error">Una parte delle modifiche identità richiede un nuovo tentativo di ripristino.</p-message><p-button label="Ritenta ripristino" severity="danger" (onClick)="retryCompensation()" /> }
+                            @if (job.status === 'COMPLETED' && job.setupEmailFailures > 0) { <p-message severity="warn">{{ job.setupEmailFailures }} e-mail di configurazione non inviate.</p-message><p-button label="Ritenta e-mail" severity="secondary" (onClick)="retryEmails()" /> }
+                            @if (job.status === 'COMPLETED') { <div class="links"><a routerLink="/users">Utenti</a><a routerLink="/inventory">Inventario</a><a routerLink="/finance">Economia</a></div> }
+                        }</div>
+                    </ng-template>
+                </p-step-panel>
+            </p-step-panels>
+        </p-stepper>
+    </div>
+
+    @if (!job && recentJobs.length) {
+        <section class="card"><h2>Importazioni recenti</h2><div class="recent-list">@for (recent of recentJobs; track recent.id) { <button type="button" (click)="open(recent)"><span><strong>{{ recent.fileName }}</strong><small>{{ recent.createdAt | date: 'short' }}</small></span><p-tag [value]="recent.status" [severity]="severity(recent.status)" /></button> }</div></section>
+    }
+</p-fluid>

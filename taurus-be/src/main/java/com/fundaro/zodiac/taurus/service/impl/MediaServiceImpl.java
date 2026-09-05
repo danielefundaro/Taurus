@@ -105,9 +105,15 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     @Override
     public MediaContent getContent(Long id, AbstractAuthenticationToken token) {
         requireFeatureAccess(id);
+        return getContent(id, requiredTenant(token));
+    }
+
+    @Override
+    public MediaContent getContent(Long id, String tenant) {
+        requireFeatureAccess(id);
         Media media = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> notFound("Media asset not found"));
-        String tenant = requiredTenant(token);
+        if (tenant == null || tenant.isBlank()) throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Tenant is required", "mediaAsset", "tenant.missing");
         hydrateLegacyMetadata(media, tenant);
         if (media.getStatus() != MediaAssetStatus.READY) {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Media asset is not available", getEntityName(), "media.notReady");

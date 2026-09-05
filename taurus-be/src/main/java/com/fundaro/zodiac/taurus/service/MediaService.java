@@ -14,6 +14,8 @@ public interface MediaService extends CommonOpenSearchService<Media, MediaDTO, M
 
     MediaContent getContent(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 
+    MediaContent getContent(Long id, String tenantCode);
+
     MediaDTO store(
         byte[] content,
         String originalFilename,

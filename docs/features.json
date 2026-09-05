@@ -348,13 +348,34 @@
       "id": "tenant-onboarding-import",
       "title": "Onboarding guidato e importazione iniziale del tenant",
       "kind": "feature",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "in-progress",
       "spec": "docs/tenant-onboarding-import-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
-      "evidence": { "implementation": [], "migrations": [], "tests": [] },
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OnboardingResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingImportService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingValidationService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingDomainApplicationService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingIdentitySagaService.java",
+          "taurus-fe/src/app/pages/onboarding/onboarding.component.ts",
+          "taurus-fe/src/app/service/onboarding.service.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260905030000_tenant_onboarding_import.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingTemplateServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingFileInspectionServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingReportServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingIdentitySagaServiceTest.java",
+          "taurus-fe/src/app/service/onboarding.service.spec.ts"
+        ]
+      },
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-09-05",
+      "notes": "La migration è inclusa nel master tenant e viene verificata dal plugin Liquibase; i test mirati coprono template, parsing sicuro e reportistica. I test di integrazione end-to-end restano da completare prima di marcare la feature come implementata."
     },
     {
       "id": "web-push-reminders",

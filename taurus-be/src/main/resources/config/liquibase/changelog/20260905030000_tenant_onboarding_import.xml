@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="20260905030000-1" author="codex">
+        <comment>Add tenant-scoped staging and identity journal for onboarding imports.</comment>
+        <sql>
+            CREATE TABLE onboarding_import_job (
+                id BIGSERIAL PRIMARY KEY,
+                source_media_asset_id BIGINT NOT NULL REFERENCES media_asset(id) ON DELETE RESTRICT,
+                file_name VARCHAR(500) NOT NULL,
+                file_sha256 CHAR(64) NOT NULL,
+                format VARCHAR(8) NOT NULL,
+                csv_section VARCHAR(32),
+                selected_sections VARCHAR(255),
+                template_version INTEGER NOT NULL DEFAULT 1,
+                status VARCHAR(32) NOT NULL,
+                stage VARCHAR(64) NOT NULL,
+                progress_percentage INTEGER NOT NULL DEFAULT 0,
+                upload_idempotency_key UUID NOT NULL,
+                apply_idempotency_key UUID,
+                requested_by VARCHAR(255) NOT NULL,
+                executed_by VARCHAR(255),
+                send_setup_emails BOOLEAN NOT NULL DEFAULT TRUE,
+                warnings_accepted_at TIMESTAMP WITH TIME ZONE,
+                total_rows INTEGER NOT NULL DEFAULT 0,
+                valid_rows INTEGER NOT NULL DEFAULT 0,
+                warning_rows INTEGER NOT NULL DEFAULT 0,
+                error_rows INTEGER NOT NULL DEFAULT 0,
+                setup_email_failures INTEGER NOT NULL DEFAULT 0,
+                started_at TIMESTAMP WITH TIME ZONE,
+                completed_at TIMESTAMP WITH TIME ZONE,
+                last_error_code VARCHAR(128),
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                edit_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL DEFAULT 'system',
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT uq_onboarding_upload_actor UNIQUE (requested_by, upload_idempotency_key),
+                CONSTRAINT ck_onboarding_format CHECK (format IN ('XLSX', 'CSV')),
+                CONSTRAINT ck_onboarding_progress CHECK (progress_percentage BETWEEN 0 AND 100),
+                CONSTRAINT ck_onboarding_status CHECK (status IN ('UPLOADED','VALIDATING','INVALID','READY','APPLYING','COMPENSATING','COMPLETED','FAILED','COMPENSATION_REQUIRED','CANCELLED'))
+            );
+            CREATE INDEX idx_onboarding_job_status_edit ON onboarding_import_job(status, edit_date);
+            CREATE UNIQUE INDEX uq_onboarding_single_apply
+                ON onboarding_import_job ((1))
+                WHERE status IN ('APPLYING', 'COMPENSATING') AND deleted = FALSE;
+
+            CREATE TABLE onboarding_import_section (
+                id BIGSERIAL PRIMARY KEY,
+                job_id BIGINT NOT NULL REFERENCES onboarding_import_job(id) ON DELETE CASCADE,
+                section VARCHAR(32) NOT NULL,
+                total_count INTEGER NOT NULL DEFAULT 0,
+                valid_count INTEGER NOT NULL DEFAULT 0,
+                warning_count INTEGER NOT NULL DEFAULT 0,
+                error_count INTEGER NOT NULL DEFAULT 0,
+                create_count INTEGER NOT NULL DEFAULT 0,
+                reuse_count INTEGER NOT NULL DEFAULT 0,
+                skip_count INTEGER NOT NULL DEFAULT 0,
+                applied_count INTEGER NOT NULL DEFAULT 0,
+                CONSTRAINT uq_onboarding_section UNIQUE (job_id, section)
+            );
+
+            CREATE TABLE onboarding_import_row (
+                id BIGSERIAL PRIMARY KEY,
+                job_id BIGINT NOT NULL REFERENCES onboarding_import_job(id) ON DELETE CASCADE,
+                section VARCHAR(32) NOT NULL,
+                row_number INTEGER NOT NULL,
+                status VARCHAR(16) NOT NULL,
+                action VARCHAR(16) NOT NULL DEFAULT 'CREATE',
+                normalized_payload JSONB NOT NULL,
+                CONSTRAINT uq_onboarding_row UNIQUE (job_id, section, row_number),
+                CONSTRAINT ck_onboarding_row_status CHECK (status IN ('VALID','WARNING','ERROR','APPLIED','SKIPPED')),
+                CONSTRAINT ck_onboarding_row_action CHECK (action IN ('CREATE','REUSE','SKIP'))
+            );
+            CREATE INDEX idx_onboarding_row_query ON onboarding_import_row(job_id, section, status, row_number);
+
+            CREATE TABLE onboarding_import_issue (
+                id BIGSERIAL PRIMARY KEY,
+                job_id BIGINT NOT NULL REFERENCES onboarding_import_job(id) ON DELETE CASCADE,
+                row_id BIGINT REFERENCES onboarding_import_row(id) ON DELETE CASCADE,
+                severity VARCHAR(8) NOT NULL,
+                code VARCHAR(128) NOT NULL,
+                section VARCHAR(32),
+                row_number INTEGER,
+                column_name VARCHAR(128),
+                message TEXT NOT NULL,
+                suggestion TEXT,
+                CONSTRAINT ck_onboarding_issue_severity CHECK (severity IN ('ERROR','WARNING'))
+            );
+            CREATE INDEX idx_onboarding_issue_query ON onboarding_import_issue(job_id, severity, section, row_number);
+
+            CREATE TABLE onboarding_identity_operation (
+                id BIGSERIAL PRIMARY KEY,
+                job_id BIGINT NOT NULL REFERENCES onboarding_import_job(id) ON DELETE CASCADE,
+                row_id BIGINT NOT NULL REFERENCES onboarding_import_row(id) ON DELETE CASCADE,
+                operation_type VARCHAR(32) NOT NULL,
+                keycloak_id VARCHAR(255),
+                created_by_job BOOLEAN NOT NULL DEFAULT FALSE,
+                previously_in_group BOOLEAN NOT NULL DEFAULT FALSE,
+                previous_roles TEXT,
+                status VARCHAR(32) NOT NULL DEFAULT 'PLANNED',
+                last_error_code VARCHAR(128),
+                CONSTRAINT uq_onboarding_identity_row UNIQUE (row_id),
+                CONSTRAINT ck_onboarding_identity_type CHECK (operation_type IN ('CREATE','LINK_EXISTING')),
+                CONSTRAINT ck_onboarding_identity_status CHECK (status IN ('PLANNED','APPLIED','COMPENSATED','COMPENSATION_FAILED'))
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

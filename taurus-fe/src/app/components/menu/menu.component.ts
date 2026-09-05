@@ -79,6 +79,12 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
                     },
                     {
+                        label: 'Configurazione iniziale',
+                        icon: 'pi pi-fw pi-file-import',
+                        routerLink: ['/onboarding'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                    },
+                    {
                         label: 'Economia',
                         icon: 'pi pi-fw pi-wallet',
                         routerLink: ['/finance'],

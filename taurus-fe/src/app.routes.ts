@@ -41,6 +41,12 @@ export const appRoutes: Routes = [
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
             },
             {
+                path: 'onboarding',
+                loadChildren: () => import('./app/pages/onboarding/onboarding.routes'),
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+            },
+            {
                 path: 'legal-documents',
                 loadChildren: () => import('./app/pages/legal-documents/legal-documents.routes'),
                 canActivate: [canActivateAuthRole],
