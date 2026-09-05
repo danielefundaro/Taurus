@@ -92,6 +92,9 @@ public class SecurityConfiguration {
                 authz
                     // Public authentication metadata.
                     .requestMatchers(HttpMethod.GET, "/api/authenticate", "/api/auth-info").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/calendar-subscriptions/v1/*/calendar.ics").permitAll()
+                    .requestMatchers(HttpMethod.HEAD, "/api/calendar-subscriptions/v1/*/calendar.ics").permitAll()
+                    .requestMatchers("/api/calendar-subscriptions/**").denyAll()
 
                     // Endpoints available to every authenticated user.
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
@@ -103,6 +106,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PATCH, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
+                    .requestMatchers("/api/calendar-feeds/**").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
                     .authenticated()
                     .requestMatchers(

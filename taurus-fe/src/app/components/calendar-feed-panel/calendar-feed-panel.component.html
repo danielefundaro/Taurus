@@ -1,0 +1,47 @@
+<div class="flex flex-col gap-5">
+    <p-message severity="warn">Chiunque possieda questo link può leggere gli eventi inclusi. Non inoltrarlo e ruotalo se pensi che sia stato esposto.</p-message>
+
+    @if (secret) {
+        <div class="secret-box" role="status" aria-live="polite">
+            <strong>Link mostrato una sola volta</strong>
+            <div class="flex flex-col md:flex-row gap-2 mt-2">
+                <input pInputText [value]="secret.subscriptionUrl" readonly aria-label="URL segreto della sottoscrizione calendario" class="flex-1" />
+                <p-button label="Copia link" icon="pi pi-copy" (onClick)="copySecret()" />
+                <p-button label="Apri in Apple Calendar" icon="pi pi-calendar" severity="secondary" (onClick)="openWebcal()" />
+            </div>
+        </div>
+    }
+
+    <div class="feed-form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <app-form-field label="Nome del feed" forId="feedName"><input pInputText id="feedName" [(ngModel)]="draft.name" maxlength="120" placeholder="Il mio calendario Taurus" /></app-form-field>
+        @if (admin) { <app-form-field label="Ambito" forId="feedScope"><p-select inputId="feedScope" [(ngModel)]="draft.visibilityScope" [options]="scopes" optionLabel="label" optionValue="value" /></app-form-field> }
+        <app-form-field label="Dettaglio" forId="feedDetail"><p-select inputId="feedDetail" [(ngModel)]="draft.detailLevel" [options]="details" optionLabel="label" optionValue="value" /></app-form-field>
+        <app-form-field label="Giorni passati" forId="feedPast"><p-inputnumber inputId="feedPast" [(ngModel)]="draft.pastDays" [min]="0" [max]="365" [showButtons]="true" /></app-form-field>
+        <app-form-field label="Mesi futuri" forId="feedFuture"><p-inputnumber inputId="feedFuture" [(ngModel)]="draft.futureMonths" [min]="1" [max]="36" [showButtons]="true" /></app-form-field>
+    </div>
+    <div><p-button label="Crea feed" icon="pi pi-plus" [loading]="saving" [disabled]="!draft.name.trim()" (onClick)="create()" /></div>
+
+    @if (loading) { <p-skeleton height="8rem" /> }
+    @else if (feeds.length) {
+        <p-table [value]="feeds" responsiveLayout="scroll">
+            <ng-template #header><tr><th>Feed</th><th>Ambito</th><th>Finestra</th><th>Ultimo accesso</th><th>Stato</th><th><span class="sr-only">Azioni</span></th></tr></ng-template>
+            <ng-template #body let-feed><tr>
+                <td><strong>{{ feed.name }}</strong><small class="block text-muted-color">{{ feed.detailLevel }} · {{ feed.tokenFingerprint }}</small></td>
+                <td>{{ feed.visibilityScope === 'INTERNAL' ? 'Interno' : 'Solo pubblico' }}</td>
+                <td>{{ feed.pastDays }} giorni / {{ feed.futureMonths }} mesi</td>
+                <td>{{ feed.lastAccessedAt ? (feed.lastAccessedAt | date: 'short') : 'Mai' }}</td>
+                <td><p-tag [value]="feed.status === 'ACTIVE' ? 'Attivo' : 'Revocato'" [severity]="feed.status === 'ACTIVE' ? 'success' : 'secondary'" /></td>
+                <td><div class="flex gap-1 justify-end">
+                    @if (canRotate(feed)) { <p-button icon="pi pi-refresh" [text]="true" ariaLabel="Ruota link" pTooltip="Ruota link" (onClick)="rotate(feed)" /> }
+                    @if (feed.status === 'ACTIVE') { <p-button icon="pi pi-trash" severity="danger" [text]="true" ariaLabel="Revoca feed" pTooltip="Revoca feed" (onClick)="revoke(feed)" /> }
+                </div></td>
+            </tr></ng-template>
+        </p-table>
+    } @else { <app-empty-state icon="pi pi-calendar" title="Nessun feed calendario" description="Crea un link per iniziare una sottoscrizione esterna." /> }
+
+    <div class="instructions text-sm text-muted-color">
+        <strong class="text-color">Come sottoscrivere</strong>
+        <p>Google Calendar: da browser desktop usa «Altri calendari → Da URL». Apple Calendar: aggiungi un calendario sottoscritto. Outlook: usa «Sottoscrivi dal Web», non «Carica da file».</p>
+        <p>Questa è una sottoscrizione in sola lettura, non un’importazione statica. Il provider decide quando aggiornare e possono servire molte ore; rotazione e revoca non eliminano subito le copie già memorizzate.</p>
+    </div>
+</div>

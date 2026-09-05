@@ -38,6 +38,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedOwnerRevocationService;
 import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.LongFilter;
 import jakarta.persistence.criteria.Predicate;
@@ -64,6 +66,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     private final InstrumentsRepository instrumentsRepository;
     private final TenantUserMembershipRepository membershipRepository;
     private final TenantsRepository tenantsRepository;
+    private CalendarFeedOwnerRevocationService calendarFeedRevocationService;
 
     public UsersServiceImpl(UsersRepository repository, UsersMapper mapper, KeycloakService keycloakService, TenantsService tenantsService, CalendarEventsService calendarEventsService, DataErasureService dataErasureService, UserIdentityRepository userIdentityRepository, InstrumentsRepository instrumentsRepository, TenantUserMembershipRepository membershipRepository, TenantsRepository tenantsRepository) {
         super(repository, mapper, UsersService.class, Users.class);
@@ -76,6 +79,9 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         this.membershipRepository = membershipRepository;
         this.tenantsRepository = tenantsRepository;
     }
+
+    @Autowired
+    void setCalendarFeedRevocationService(CalendarFeedOwnerRevocationService value) { this.calendarFeedRevocationService = value; }
 
     @Override
     public UsersDTO save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
@@ -175,7 +181,9 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
                 entity.getInstruments().addAll(instruments);
             }
         }
-        return saveEntity(entity, abstractAuthenticationToken, false);
+        UsersDTO result = saveEntity(entity, abstractAuthenticationToken, false);
+        if (calendarFeedRevocationService != null) calendarFeedRevocationService.revokeUnauthorized(entity, SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken));
+        return result;
     }
 
     @Override

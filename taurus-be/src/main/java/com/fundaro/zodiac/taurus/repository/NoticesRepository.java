@@ -17,13 +17,13 @@ import java.util.Collection;
 @Repository
 public interface NoticesRepository extends CommonRepository<Notices, NoticesCriteria> {
 
-    @Query("SELECT n FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
+    @Query("SELECT n FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false AND (n.snoozedUntil IS NULL OR n.snoozedUntil <= CURRENT_TIMESTAMP)")
     List<Notices> findAllUnread(@Param("userId") String userId);
 
-    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false")
+    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false AND (n.snoozedUntil IS NULL OR n.snoozedUntil <= CURRENT_TIMESTAMP)")
     long countUnread(@Param("userId") String userId);
 
-    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false AND n.source NOT IN :excludedSources")
+    @Query("SELECT COUNT(n) FROM Notices n WHERE n.userId = :userId AND n.readDate IS NULL AND n.deleted = false AND (n.snoozedUntil IS NULL OR n.snoozedUntil <= CURRENT_TIMESTAMP) AND n.source NOT IN :excludedSources")
     long countUnreadExcludingSources(@Param("userId") String userId, @Param("excludedSources") Collection<String> excludedSources);
 
     Optional<Notices> findBySourceEventKeyAndUserId(String sourceEventKey, String userId);

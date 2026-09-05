@@ -14,6 +14,21 @@ public interface CalendarEventsRepository extends CatalogRepository<CalendarEven
     List<CalendarEvents> findAllBySeries_IdOrderByOriginalStartDateAsc(Long seriesId);
 
     @Query("""
+        select distinct e from CalendarEvents e
+        join fetch e.availabilities availability
+        join fetch availability.user user
+        where e.deleted = false
+          and e.startDate > :now
+          and user.keycloakId = :userId
+          and availability.availability = :availability
+        """)
+    List<CalendarEvents> findFutureAvailableForUser(
+        @Param("userId") String userId,
+        @Param("now") Date now,
+        @Param("availability") com.fundaro.zodiac.taurus.domain.CalendarEventAvailability.Availability availability
+    );
+
+    @Query("""
         select count(e.id) as eventCount, min(e.startDate) as earliestStartDate
         from CalendarEvents e
         where e.deleted = false

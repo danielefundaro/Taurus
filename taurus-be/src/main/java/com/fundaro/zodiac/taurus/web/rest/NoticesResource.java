@@ -10,6 +10,8 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import tech.jhipster.web.util.HeaderUtil;
+import com.fundaro.zodiac.taurus.service.dto.notification.SnoozeNoticeRequest;
+import jakarta.validation.Valid;
 
 /**
  * REST controller for managing {@link com.fundaro.zodiac.taurus.domain.Notices}.
@@ -45,6 +47,20 @@ public class NoticesResource extends CommonResource<Notices, NoticesDTO, Notices
         return ResponseEntity.ok()
             .headers(HeaderUtil.createEntityUpdateAlert(getApplicationName(), false, getEntityName(), result.getId().toString()))
             .body(result);
+    }
+
+    @PatchMapping("/{id}/snooze")
+    public ResponseEntity<NoticesDTO> snooze(
+        @PathVariable Long id,
+        @Valid @RequestBody SnoozeNoticeRequest request,
+        AbstractAuthenticationToken authentication
+    ) {
+        return ResponseEntity.ok(getService().snooze(id, request.until(), authentication));
+    }
+
+    @PatchMapping("/{id}/unsnooze")
+    public ResponseEntity<NoticesDTO> unsnooze(@PathVariable Long id, AbstractAuthenticationToken authentication) {
+        return ResponseEntity.ok(getService().unsnooze(id, authentication));
     }
 
     @DeleteMapping("delete-all")

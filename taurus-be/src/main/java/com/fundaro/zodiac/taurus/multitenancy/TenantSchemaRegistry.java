@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.multitenancy;
 
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -47,6 +48,13 @@ public class TenantSchemaRegistry {
             log.debug("Tenant schema registry is not ready yet", exception);
             return List.of();
         }
+    }
+
+    public Optional<String> findActiveTenantCode(Long tenantId) {
+        return jdbcTemplate.query(
+            "SELECT tenant_code FROM public.tenant_schema_registry WHERE tenant_id = ? AND status = 'ACTIVE' AND deleted = FALSE",
+            rs -> rs.next() ? Optional.of(rs.getString(1)) : Optional.empty(), tenantId
+        );
     }
 
     public List<String> requireActiveTenantCodes() {

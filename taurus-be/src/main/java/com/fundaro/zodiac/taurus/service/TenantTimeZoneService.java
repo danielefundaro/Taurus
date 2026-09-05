@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.service;
 
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -13,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantTimeZoneService {
 
     private final TenantsRepository tenantsRepository;
+    private final ZoneId defaultZoneId;
 
-    public TenantTimeZoneService(TenantsRepository tenantsRepository) {
+    public TenantTimeZoneService(TenantsRepository tenantsRepository, ApplicationProperties applicationProperties) {
         this.tenantsRepository = tenantsRepository;
+        this.defaultZoneId = ZoneId.of(applicationProperties.getNotificationPreferences().getDefaultTimeZone());
     }
 
     @Transactional(readOnly = true)
@@ -25,11 +28,12 @@ public class TenantTimeZoneService {
         );
         String timeZone = tenantsRepository.findByCodeAndDeletedFalse(tenantCode)
             .map(tenant -> tenant.getTimeZone())
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", "CalendarEventSeries", "tenant.notFound"));
+            .orElse(null);
+        if (timeZone == null || timeZone.isBlank()) return defaultZoneId;
         try {
             return ZoneId.of(timeZone);
         } catch (DateTimeException exception) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid tenant time zone", "CalendarEventSeries", "timeZone.invalid");
+            return defaultZoneId;
         }
     }
 }

@@ -211,6 +211,24 @@ jhipster:
 # application:
 
 application:
+  notification-preferences:
+    enabled: true
+    default-calendar-reminder-minutes: 30
+    default-time-zone: Europe/Rome
+    default-digest-local-time: "08:00"
+    max-pause-days: 30
+    min-snooze-minutes: 5
+    max-snooze-days: 30
+  notification-push-delivery:
+    batch-size: 100
+    poll-delay: 5000
+    max-attempts: 8
+    retry-initial-minutes: 1
+    retry-max-minutes: 60
+    default-expiration-hours: 24
+    delivered-retention-days: 30
+    skipped-retention-days: 30
+    failed-retention-days: 90
   dashboard:
     enabled: false
     calendar-look-ahead-days: 14
@@ -229,6 +247,15 @@ application:
   calendar:
     recurrence:
       max-occurrences: 500
+  calendar-feed:
+    enabled: ${CALENDAR_FEED_ENABLED:true}
+    public-base-url: ${TAURUS_PUBLIC_BASE_URL:http://localhost:8080}
+    default-past-days: 90
+    default-future-months: 18
+    max-components: 10000
+    tombstone-retention-days: 90
+    suggested-refresh: PT6H
+    rate-limit-per-token-hour: 120
   base-path: D:\data
   keycloak:
     master-uri: http://localhost:9080/realms/master

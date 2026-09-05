@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260905000000-1-notification-preferences" author="codex">
+        <comment>Add tenant-scoped notification profiles, channel jobs, snooze, and reliable reminder state.</comment>
+        <sql splitStatements="false">
+            CREATE TABLE notification_profile (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+                time_zone VARCHAR(64) NOT NULL,
+                event_reminders_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                default_calendar_reminder_minutes INTEGER NOT NULL DEFAULT 30,
+                quiet_hours_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                quiet_start TIME NOT NULL DEFAULT '22:00',
+                quiet_end TIME NOT NULL DEFAULT '07:00',
+                push_paused_until TIMESTAMPTZ,
+                digest_local_time TIME NOT NULL DEFAULT '08:00',
+                push_preview VARCHAR(16) NOT NULL DEFAULT 'PRIVATE',
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL,
+                edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL,
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_notification_profile_reminder CHECK (default_calendar_reminder_minutes BETWEEN 0 AND 1440),
+                CONSTRAINT ck_notification_profile_preview CHECK (push_preview IN ('PRIVATE', 'FULL')),
+                CONSTRAINT ck_notification_profile_quiet CHECK (NOT quiet_hours_enabled OR quiet_start &lt;&gt; quiet_end)
+            );
+            CREATE UNIQUE INDEX uq_notification_profile_active_user ON notification_profile(user_id) WHERE deleted = FALSE;
+
+            CREATE TABLE notification_category_preference (
+                id BIGSERIAL PRIMARY KEY,
+                profile_id BIGINT NOT NULL REFERENCES notification_profile(id) ON DELETE CASCADE,
+                source VARCHAR(32) NOT NULL,
+                in_app_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                push_mode VARCHAR(20) NOT NULL DEFAULT 'OFF',
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL,
+                edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL,
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_notification_category_source CHECK (source IN ('GENERAL', 'CONTENT', 'CALENDAR', 'IDENTITY', 'TENANT', 'INVENTORY', 'FINANCE')),
+                CONSTRAINT ck_notification_category_push_mode CHECK (push_mode IN ('OFF', 'IMMEDIATE', 'DAILY_DIGEST'))
+            );
+            CREATE UNIQUE INDEX uq_notification_category_active ON notification_category_preference(profile_id, source) WHERE deleted = FALSE;
+
+            ALTER TABLE notification_outbox
+                ADD COLUMN preference_policy VARCHAR(20) NOT NULL DEFAULT 'CONFIGURABLE',
+                ADD CONSTRAINT ck_notification_preference_policy CHECK (preference_policy IN ('CONFIGURABLE', 'REQUIRED'));
+
+            ALTER TABLE notices
+                ADD COLUMN snoozed_until TIMESTAMPTZ,
+                ADD COLUMN snooze_revision INTEGER NOT NULL DEFAULT 0,
+                ADD COLUMN entity_version BIGINT NOT NULL DEFAULT 0,
+                ADD CONSTRAINT ck_notices_snooze_revision CHECK (snooze_revision &gt;= 0);
+            CREATE INDEX idx_notices_active_unread ON notices(user_id, read_date, snoozed_until) WHERE deleted = FALSE;
+            CREATE INDEX idx_notices_snoozed ON notices(user_id, snoozed_until) WHERE deleted = FALSE AND snoozed_until IS NOT NULL;
+
+            ALTER TABLE push_reminders
+                ADD COLUMN event_start_at TIMESTAMPTZ,
+                ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+                ADD COLUMN reminder_origin VARCHAR(16) NOT NULL DEFAULT 'APPLICATION',
+                ADD COLUMN schedule_revision INTEGER NOT NULL DEFAULT 0,
+                ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0,
+                ADD COLUMN next_attempt_at TIMESTAMPTZ,
+                ADD COLUMN delivered_at TIMESTAMPTZ,
+                ADD COLUMN skip_reason VARCHAR(32),
+                ADD COLUMN last_error VARCHAR(1000),
+                ADD CONSTRAINT ck_push_reminder_status CHECK (status IN ('PENDING', 'DELIVERED', 'SKIPPED', 'FAILED')),
+                ADD CONSTRAINT ck_push_reminder_origin CHECK (reminder_origin IN ('PERSONAL', 'EVENT', 'PROFILE', 'APPLICATION')),
+                ADD CONSTRAINT ck_push_reminder_attempts CHECK (attempts &gt;= 0);
+            UPDATE push_reminders
+               SET status = CASE WHEN sent THEN 'DELIVERED' ELSE 'PENDING' END,
+                   delivered_at = CASE WHEN sent THEN edit_date ELSE NULL END,
+                   next_attempt_at = CASE WHEN sent THEN NULL ELSE send_at END;
+            UPDATE push_reminders reminder
+               SET event_start_at = event.start_date
+              FROM calendar_event event
+             WHERE event.id = reminder.event_id;
+            CREATE INDEX idx_push_reminders_delivery ON push_reminders(status, next_attempt_at, id) WHERE deleted = FALSE;
+
+            CREATE TABLE notification_push_delivery (
+                id BIGSERIAL PRIMARY KEY,
+                source_event_key VARCHAR(160) NOT NULL,
+                user_id VARCHAR(255) NOT NULL,
+                source VARCHAR(32) NOT NULL,
+                delivery_type VARCHAR(16) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                message VARCHAR(255) NOT NULL,
+                target_path VARCHAR(500),
+                notice_id BIGINT REFERENCES notices(id) ON DELETE CASCADE,
+                snooze_revision INTEGER,
+                digest_local_date DATE,
+                scheduled_at TIMESTAMPTZ NOT NULL,
+                expires_at TIMESTAMPTZ NOT NULL,
+                status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                next_attempt_at TIMESTAMPTZ,
+                delivered_at TIMESTAMPTZ,
+                skip_reason VARCHAR(32),
+                last_error VARCHAR(1000),
+                deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                insert_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                insert_by VARCHAR(255) NOT NULL,
+                edit_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                edit_by VARCHAR(255) NOT NULL,
+                entity_version BIGINT NOT NULL DEFAULT 0,
+                CONSTRAINT ck_notification_push_source CHECK (source IN ('GENERAL', 'CONTENT', 'CALENDAR', 'IDENTITY', 'TENANT', 'INVENTORY', 'FINANCE')),
+                CONSTRAINT ck_notification_push_type CHECK (delivery_type IN ('IMMEDIATE', 'DIGEST_ITEM', 'SNOOZE')),
+                CONSTRAINT ck_notification_push_status CHECK (status IN ('PENDING', 'DELIVERED', 'SKIPPED', 'FAILED')),
+                CONSTRAINT ck_notification_push_attempts CHECK (attempts &gt;= 0),
+                CONSTRAINT ck_notification_push_shape CHECK (
+                    (delivery_type = 'DIGEST_ITEM' AND digest_local_date IS NOT NULL AND snooze_revision IS NULL)
+                    OR (delivery_type = 'SNOOZE' AND notice_id IS NOT NULL AND snooze_revision IS NOT NULL AND digest_local_date IS NULL)
+                    OR (delivery_type = 'IMMEDIATE' AND snooze_revision IS NULL AND digest_local_date IS NULL)
+                )
+            );
+            CREATE UNIQUE INDEX uq_notification_push_event ON notification_push_delivery(source_event_key, user_id, delivery_type)
+                WHERE deleted = FALSE AND delivery_type IN ('IMMEDIATE', 'DIGEST_ITEM');
+            CREATE UNIQUE INDEX uq_notification_push_snooze ON notification_push_delivery(notice_id, snooze_revision)
+                WHERE deleted = FALSE AND delivery_type = 'SNOOZE';
+            CREATE INDEX idx_notification_push_ready ON notification_push_delivery(status, next_attempt_at, id) WHERE deleted = FALSE;
+            CREATE INDEX idx_notification_push_digest ON notification_push_delivery(user_id, digest_local_date, status) WHERE deleted = FALSE;
+
+            INSERT INTO notification_profile(
+                user_id, time_zone, event_reminders_enabled, default_calendar_reminder_minutes,
+                quiet_hours_enabled, quiet_start, quiet_end, digest_local_time, push_preview,
+                deleted, insert_date, insert_by, edit_date, edit_by, entity_version
+            )
+            SELECT selected.user_id, 'Europe/Rome', TRUE, selected.reminder_minutes,
+                   FALSE, '22:00', '07:00', '08:00', 'PRIVATE',
+                   FALSE, CURRENT_TIMESTAMP, selected.keycloak_id, CURRENT_TIMESTAMP, selected.keycloak_id, 0
+            FROM (
+                SELECT DISTINCT ON (u.id)
+                    u.id AS user_id,
+                    u.keycloak_id,
+                    p.value::INTEGER AS reminder_minutes
+                FROM preferences p
+                JOIN app_user u ON u.keycloak_id = p.user_id AND u.deleted = FALSE
+                WHERE p.deleted = FALSE
+                  AND p.key = 'defaultReminderMinutes'
+                  AND btrim(p.value) ~ '^[0-9]+$'
+                  AND p.value::NUMERIC BETWEEN 0 AND 1440
+                ORDER BY u.id, COALESCE(p.edit_date, p.insert_date) DESC, p.id DESC
+            ) selected
+            ON CONFLICT DO NOTHING;
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                DROP TABLE notification_push_delivery;
+                DROP INDEX idx_push_reminders_delivery;
+                ALTER TABLE push_reminders
+                    DROP CONSTRAINT ck_push_reminder_attempts,
+                    DROP CONSTRAINT ck_push_reminder_origin,
+                    DROP CONSTRAINT ck_push_reminder_status,
+                    DROP COLUMN last_error,
+                    DROP COLUMN skip_reason,
+                    DROP COLUMN delivered_at,
+                    DROP COLUMN next_attempt_at,
+                    DROP COLUMN attempts,
+                    DROP COLUMN schedule_revision,
+                    DROP COLUMN reminder_origin,
+                    DROP COLUMN status,
+                    DROP COLUMN event_start_at;
+                DROP INDEX idx_notices_snoozed;
+                DROP INDEX idx_notices_active_unread;
+                ALTER TABLE notices DROP CONSTRAINT ck_notices_snooze_revision, DROP COLUMN entity_version, DROP COLUMN snooze_revision, DROP COLUMN snoozed_until;
+                ALTER TABLE notification_outbox DROP CONSTRAINT ck_notification_preference_policy, DROP COLUMN preference_policy;
+                DROP TABLE notification_category_preference;
+                DROP TABLE notification_profile;
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
