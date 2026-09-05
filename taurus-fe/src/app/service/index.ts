@@ -31,3 +31,4 @@ export * from './operational-dashboard.service';
 export * from './notification-delivery-admin.service';
 export * from './calendar-feed.service';
 export * from './tenant-feature.service';
+export * from './onboarding.service';

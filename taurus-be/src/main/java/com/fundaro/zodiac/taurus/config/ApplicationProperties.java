@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.util.unit.DataSize;
 
 import java.util.List;
 
@@ -43,6 +44,9 @@ public class ApplicationProperties {
 
     @Valid
     private DashboardProperties dashboard = new DashboardProperties();
+
+    @Valid
+    private OnboardingProperties onboarding = new OnboardingProperties();
 
     public String getBasePath() {
         return basePath;
@@ -110,6 +114,10 @@ public class ApplicationProperties {
     public DashboardProperties getDashboard() { return dashboard; }
 
     public void setDashboard(DashboardProperties dashboard) { this.dashboard = dashboard; }
+
+    public OnboardingProperties getOnboarding() { return onboarding; }
+
+    public void setOnboarding(OnboardingProperties onboarding) { this.onboarding = onboarding; }
 
     private TesseractProperties tesseract = new TesseractProperties();
 
@@ -395,6 +403,46 @@ public class ApplicationProperties {
         public void setSkippedRetentionDays(int value) { skippedRetentionDays = value; }
         public int getFailedRetentionDays() { return failedRetentionDays; }
         public void setFailedRetentionDays(int value) { failedRetentionDays = value; }
+    }
+
+    public static class OnboardingProperties {
+        private boolean enabled = true;
+        @Min(250) private long workerDelay = 2000;
+        private DataSize maxFileSize = DataSize.ofMegabytes(10);
+        @Min(1) private int maxTotalRows = 5000;
+        @Min(1) private int maxUserRows = 2000;
+        @Min(1) @Max(256) private int maxColumns = 64;
+        @Min(1) private int maxCellLength = 10000;
+        @Min(1) private int maxIssues = 10000;
+        @Min(1) private int sourceRetentionDays = 30;
+        @Min(1) private int auditRetentionDays = 365;
+        @Min(1) private int workerBatchSize = 5;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean value) { enabled = value; }
+        public long getWorkerDelay() { return workerDelay; }
+        public void setWorkerDelay(long value) { workerDelay = value; }
+        public DataSize getMaxFileSize() { return maxFileSize; }
+        public void setMaxFileSize(DataSize value) { maxFileSize = value; }
+        public int getMaxTotalRows() { return maxTotalRows; }
+        public void setMaxTotalRows(int value) { maxTotalRows = value; }
+        public int getMaxUserRows() { return maxUserRows; }
+        public void setMaxUserRows(int value) { maxUserRows = value; }
+        public int getMaxColumns() { return maxColumns; }
+        public void setMaxColumns(int value) { maxColumns = value; }
+        public int getMaxCellLength() { return maxCellLength; }
+        public void setMaxCellLength(int value) { maxCellLength = value; }
+        public int getMaxIssues() { return maxIssues; }
+        public void setMaxIssues(int value) { maxIssues = value; }
+        public int getSourceRetentionDays() { return sourceRetentionDays; }
+        public void setSourceRetentionDays(int value) { sourceRetentionDays = value; }
+        public int getAuditRetentionDays() { return auditRetentionDays; }
+        public void setAuditRetentionDays(int value) { auditRetentionDays = value; }
+        public int getWorkerBatchSize() { return workerBatchSize; }
+        public void setWorkerBatchSize(int value) { workerBatchSize = value; }
+
+        @AssertTrue(message = "max-user-rows must not exceed max-total-rows")
+        public boolean isUserRowsValid() { return maxUserRows <= maxTotalRows; }
     }
 
     public static class DashboardProperties {
