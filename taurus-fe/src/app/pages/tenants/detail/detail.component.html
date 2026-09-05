@@ -2,7 +2,7 @@
 <p-fluid>
     <app-page-header kicker="Tenant" [title]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
         ><div pageMetadata>{{ tenant.code }}</div>
-        <div pageActions><p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
+        <div pageActions class="flex gap-2">@if (canConfigureData) { <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" /> }<p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
     ></app-page-header>
 
     <app-detail-section title="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">

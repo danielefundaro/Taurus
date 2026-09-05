@@ -38,4 +38,5 @@
     <include file="config/liquibase/changelog/20260905000000_notification_preferences.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260905010000_notification_delivery_console.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260905020001_external_calendar_feed.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260905030000_tenant_onboarding_import.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

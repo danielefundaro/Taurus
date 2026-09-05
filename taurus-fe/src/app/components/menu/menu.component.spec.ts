@@ -23,6 +23,7 @@ describe('MenuComponent', () => {
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
+        expect(menuItem(component, 'Configurazione iniziale')?.routerLink).toEqual(['/onboarding']);
 
         loaded.set(true);
         financeEnabled.set(true);

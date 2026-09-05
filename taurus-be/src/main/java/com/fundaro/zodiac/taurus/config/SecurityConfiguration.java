@@ -135,6 +135,10 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/finance/**")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.TREASURER)
 
+                    // Tenant initial configuration and additive imports.
+                    .requestMatchers("/api/onboarding/**")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+
                     // All users can get instruments information
                     .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()
 

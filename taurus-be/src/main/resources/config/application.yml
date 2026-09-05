@@ -211,6 +211,18 @@ jhipster:
 # application:
 
 application:
+  onboarding:
+    enabled: true
+    worker-delay: 2000
+    max-file-size: 10MB
+    max-total-rows: 5000
+    max-user-rows: 2000
+    max-columns: 64
+    max-cell-length: 10000
+    max-issues: 10000
+    source-retention-days: 30
+    audit-retention-days: 365
+    worker-batch-size: 5
   notification-preferences:
     enabled: true
     default-calendar-reminder-minutes: 30

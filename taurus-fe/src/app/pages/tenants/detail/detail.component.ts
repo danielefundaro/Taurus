@@ -154,6 +154,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         }
     }
 
+    public get canConfigureData(): boolean {
+        return !!this.tenant.id && this.tenant.active !== false && this.tenant.code === this.keycloakService.currentUserTenantCode;
+    }
+
     private loadElement(id: number | string) {
         this.tenantsService
             .getById(Number(id))
