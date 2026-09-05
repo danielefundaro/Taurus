@@ -15,10 +15,12 @@ import {
     LayoutService,
     NoticesService,
     NotificationCenterService,
+    NotificationPreferencesService,
     OperationalDashboardService,
     TenantsService,
     TracksService,
     TenantFeatureService,
+    ToastService,
     UserInventoryService,
     UsersService
 } from '../../service';
@@ -45,6 +47,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected tracks: Tracks[] = [];
     protected upcomingEvents?: Page<CalendarEvents>;
     protected notices?: Page<Notices>;
+    protected noticeView: 'ACTIVE' | 'SNOOZED' = 'ACTIVE';
     protected inventoryMode: InventoryWidgetMode = 'user';
     protected inventoryAdminSummary?: InventoryAdminSummary;
     protected inventoryUserSummary?: InventoryUserSummary;
@@ -74,8 +77,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
         private readonly notificationCenter: NotificationCenterService,
+        private readonly notificationPreferencesService: NotificationPreferencesService,
         private readonly operationalDashboardService: OperationalDashboardService,
         private readonly tenantFeatureService: TenantFeatureService,
+        private readonly toastService: ToastService,
         private readonly router: Router
     ) {
         this.inventoryEnabled = this.tenantFeatureService.inventoryEnabled;
@@ -142,6 +147,63 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     protected pageChange(event: { page: number; size: number }): void {
         this.loadNotices(event.page, event.size);
+    }
+
+    protected changeNoticeView(view: 'ACTIVE' | 'SNOOZED'): void {
+        this.noticeView = view;
+        this.loadNotices();
+    }
+
+    protected snoozeNotice(event: { notice: Notices; until: Date }): void {
+        this.noticesService
+            .snooze(event.notice.id, event.until)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Promemoria impostato', `La notifica tornerà il ${event.until.toLocaleString('it-IT')}.`);
+                this.notificationCenter.refresh();
+                this.loadNotices();
+            });
+    }
+
+    protected unsnoozeNotice(notice: Notices): void {
+        this.noticesService
+            .unsnooze(notice.id)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Notifica ripristinata', 'La notifica è di nuovo tra quelle attive.');
+                this.notificationCenter.refresh();
+                this.loadNotices();
+            });
+    }
+
+    /**
+     * Opt-out rapido dal centro notifiche: disattiva il canale in-app della categoria
+     * riscrivendo l'intero aggregato delle preferenze, come richiede la PUT del backend.
+     * Vale solo per i nuovi eventi: le notifiche già presenti restano visibili.
+     */
+    protected disableNoticeCategory(notice: Notices): void {
+        const source = notice.source;
+        if (!source) return;
+        this.notificationPreferencesService
+            .getPreferences()
+            .pipe(first())
+            .subscribe((preferences) => {
+                const category = preferences.categories.find((entry) => entry.source === source);
+                if (!category || !category.inAppEnabled) {
+                    this.toastService.success('Categoria già disattivata', 'Non riceverai nuove notifiche di questa categoria nel centro.');
+                    return;
+                }
+                category.inAppEnabled = false;
+                this.notificationPreferencesService
+                    .savePreferences(preferences)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success(
+                            'Categoria disattivata',
+                            'I nuovi aggiornamenti di questa categoria non compariranno nel centro notifiche. Le notifiche già presenti restano visibili.'
+                        );
+                    });
+            });
     }
 
     protected upcomingEventsPageChange(event: { page: number; size: number }): void {
@@ -300,6 +362,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         noticesCriteria.page = page;
         noticesCriteria.size = size;
         noticesCriteria.sort = ['insertDate,desc'];
+        noticesCriteria.view = this.noticeView;
 
         this.noticesService
             .getAll(noticesCriteria)

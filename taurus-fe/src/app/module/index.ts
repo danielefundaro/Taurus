@@ -13,6 +13,8 @@ export * from './last-researches.module';
 export * from './legal.module';
 export * from './media.module';
 export * from './notices.module';
+export * from './notification-preferences.module';
+export * from './calendar-feed.module';
 export * from './page.module';
 export * from './preferences.module';
 export * from './sheets-music.module';

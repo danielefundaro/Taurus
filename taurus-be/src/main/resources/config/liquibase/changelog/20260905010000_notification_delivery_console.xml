@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260905010000-1-notice-preference-policy" author="codex">
+        <comment>Propagate the outbox preference policy onto notices so the notification centre can hide the per-category opt-out on required rows.</comment>
+        <sql splitStatements="false">
+            ALTER TABLE notices
+                ADD COLUMN preference_policy VARCHAR(20) NOT NULL DEFAULT 'CONFIGURABLE',
+                ADD CONSTRAINT ck_notices_preference_policy CHECK (preference_policy IN ('CONFIGURABLE', 'REQUIRED'));
+
+            UPDATE notices notice
+               SET preference_policy = outbox.preference_policy
+              FROM notification_outbox outbox
+             WHERE outbox.event_key = notice.source_event_key
+               AND outbox.preference_policy = 'REQUIRED';
+
+            CREATE INDEX idx_notification_push_delivery_admin
+                ON notification_push_delivery(status, scheduled_at, id) WHERE deleted = FALSE;
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                DROP INDEX idx_notification_push_delivery_admin;
+                ALTER TABLE notices DROP CONSTRAINT ck_notices_preference_policy, DROP COLUMN preference_policy;
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

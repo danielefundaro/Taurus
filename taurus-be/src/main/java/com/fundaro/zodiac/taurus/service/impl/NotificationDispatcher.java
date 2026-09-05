@@ -7,15 +7,22 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
+import com.fundaro.zodiac.taurus.service.NotificationPreferenceResolver;
+import com.fundaro.zodiac.taurus.service.NotificationPushDeliveryService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutChannel;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutResult;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +37,9 @@ public class NotificationDispatcher {
     private final ApplicationProperties.NotificationProperties properties;
     private final NotificationMetrics metrics;
     private final TenantFeatureService tenantFeatureService;
+    private NotificationPreferenceResolver preferenceResolver;
+    private NotificationPushDeliveryService pushDeliveryService;
+    private NotificationPreferenceMetrics preferenceMetrics;
 
     public NotificationDispatcher(
         NotificationOutboxRepository repository,
@@ -45,6 +55,33 @@ public class NotificationDispatcher {
         this.properties = applicationProperties.getNotifications();
         this.metrics = metrics;
         this.tenantFeatureService = tenantFeatureService;
+    }
+
+    @Autowired
+    void setPreferenceResolver(NotificationPreferenceResolver preferenceResolver) {
+        this.preferenceResolver = preferenceResolver;
+    }
+
+    @Autowired
+    void setPushDeliveryService(NotificationPushDeliveryService pushDeliveryService) {
+        this.pushDeliveryService = pushDeliveryService;
+    }
+
+    @Autowired
+    void setPreferenceMetrics(NotificationPreferenceMetrics preferenceMetrics) {
+        this.preferenceMetrics = preferenceMetrics;
+    }
+
+    private void recordInApp(NotificationSource source, NotificationPreferenceDecision decision) {
+        recordDecision(
+            source,
+            FanoutChannel.IN_APP,
+            decision != null && decision.requiredOverride() ? FanoutResult.REQUIRED_OVERRIDE : FanoutResult.DELIVERED
+        );
+    }
+
+    private void recordDecision(NotificationSource source, FanoutChannel channel, FanoutResult result) {
+        if (preferenceMetrics != null) preferenceMetrics.recordFanoutDecision(source, channel, result);
     }
 
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
@@ -74,22 +111,41 @@ public class NotificationDispatcher {
         metrics.recordAttempt(event);
         Set<String> recipients = recipientResolver.resolve(event.getAudiences());
         if (recipients.isEmpty()) throw new IllegalStateException("No active notification recipients are available");
-        recipients.forEach(userId -> noticesService.addNoticeToUser(new NotificationDelivery(
-            userId,
-            event.getEventKey(),
-            event.getTitle(),
-            event.getMessage(),
-            event.getSource(),
-            event.getSeverity(),
-            event.getTargetPath(),
-            event.getActorId()
-        )));
+        var decisions = preferenceResolver == null
+            ? java.util.Map.<String, com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision>of()
+            : preferenceResolver.resolve(event.getSource(), event.getPreferencePolicy(), recipients);
+        int inAppDeliveries = 0;
+        for (String userId : recipients) {
+            var decision = decisions.get(userId);
+            Long noticeId = null;
+            if (decision == null || decision.inAppEnabled()) {
+                NotificationDelivery delivery = new NotificationDelivery(
+                    userId,
+                    event.getEventKey(),
+                    event.getTitle(),
+                    event.getMessage(),
+                    event.getSource(),
+                    event.getSeverity(),
+                    event.getTargetPath(),
+                    event.getActorId(),
+                    event.getPreferencePolicy()
+                );
+                noticeId = noticesService.addNoticeToUserAndGetId(delivery);
+                inAppDeliveries++;
+                recordInApp(event.getSource(), decision);
+            } else {
+                recordDecision(event.getSource(), FanoutChannel.IN_APP, FanoutResult.SUPPRESSED);
+            }
+            if (decision != null && pushDeliveryService != null) {
+                pushDeliveryService.enqueue(event, decision, noticeId);
+            }
+        }
         event.setStatus(NotificationStatus.DELIVERED);
         event.setDeliveredAt(now);
         event.setLastError(null);
         event.touchAudit(ACTOR);
         repository.save(event);
-        metrics.recordDelivered(event, recipients.size(), now);
+        metrics.recordDelivered(event, inAppDeliveries, now);
         LOG.info(
             "notification_delivered tenant={} eventId={} eventKeyHash={} source={} operation={} attempt={} recipients={} deliveredAt={}",
             tenant(), event.getId(), NotificationEventKey.hashForLog(event.getEventKey()), event.getSource(), event.getOperation(),

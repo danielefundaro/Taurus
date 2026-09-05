@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
-import { NotificationDeliveryAdmin, NotificationDeliveryStatus } from '../../../module';
+import { NotificationDeliveryAdmin, NotificationDeliveryFilters, NotificationDeliveryOrigin, NotificationDeliveryStatus } from '../../../module';
 import { ConfirmService, NotificationDeliveryAdminService, NotificationPresentationService, ToastService } from '../../../service';
 
 @Component({
@@ -20,7 +20,29 @@ export class NotificationDeliveryComponent implements OnInit {
     protected readonly statusOptions = [
         { label: 'Fallite', value: 'FAILED' },
         { label: 'In attesa', value: 'PENDING' },
-        { label: 'Consegnate', value: 'DELIVERED' }
+        { label: 'Consegnate', value: 'DELIVERED' },
+        { label: 'Saltate', value: 'SKIPPED' }
+    ];
+    protected readonly originOptions: { label: string; value: NotificationDeliveryOrigin | null }[] = [
+        { label: 'Tutte le origini', value: null },
+        { label: 'Fan-out in-app', value: 'OUTBOX' },
+        { label: 'Consegna push', value: 'PUSH' },
+        { label: 'Promemoria evento', value: 'REMINDER' }
+    ];
+    protected readonly sourceOptions = [
+        { label: 'Tutte le categorie', value: null },
+        { label: 'Calendario', value: 'CALENDAR' },
+        { label: 'Inventario', value: 'INVENTORY' },
+        { label: 'Economia', value: 'FINANCE' },
+        { label: 'Contenuti', value: 'CONTENT' },
+        { label: 'Utenti e accessi', value: 'IDENTITY' },
+        { label: 'Organizzazione', value: 'TENANT' },
+        { label: 'Generali', value: 'GENERAL' }
+    ];
+    protected readonly closeReasons = [
+        { label: 'Non più pertinente', value: 'NO_LONGER_RELEVANT' },
+        { label: 'Dispositivo non raggiungibile', value: 'DEVICE_UNREACHABLE' },
+        { label: 'Chiusura manuale', value: 'MANUAL_CLOSE' }
     ];
     protected readonly sortOptions = [
         { label: 'Evento meno recente', value: 'occurredAt,asc' },
@@ -33,9 +55,13 @@ export class NotificationDeliveryComponent implements OnInit {
     protected loading = false;
     protected loadError = false;
     protected status: NotificationDeliveryStatus = 'FAILED';
+    protected filters: NotificationDeliveryFilters = { origin: null, source: null, operation: null, from: null, to: null };
+    protected fromDate?: Date;
+    protected toDate?: Date;
     protected sort = 'occurredAt,asc';
-    protected retryingId?: number;
+    protected pendingRowKey?: string;
     protected bulkRetrying = false;
+    protected rangeInvalid = false;
     protected lazyEvent: TableLazyLoadEvent = { first: 0, rows: 12, sortField: 'occurredAt', sortOrder: 1 };
 
     protected get tableFirst(): number {
@@ -65,7 +91,18 @@ export class NotificationDeliveryComponent implements OnInit {
 
     ngOnInit(): void {
         const status = this.route.snapshot.queryParamMap.get('status');
-        if (status && ['PENDING', 'DELIVERED', 'FAILED'].includes(status)) this.status = status as NotificationDeliveryStatus;
+        if (status && ['PENDING', 'DELIVERED', 'FAILED', 'SKIPPED'].includes(status)) this.status = status as NotificationDeliveryStatus;
+        const origin = this.route.snapshot.queryParamMap.get('origin');
+        if (origin && ['OUTBOX', 'PUSH', 'REMINDER'].includes(origin)) this.filters.origin = origin as NotificationDeliveryOrigin;
+    }
+
+    protected originLabel(origin: NotificationDeliveryOrigin): string {
+        return this.originOptions.find((option) => option.value === origin)?.label ?? origin;
+    }
+
+    /** Il fan-out in-app non ha una chiusura tecnica: solo le code push possono essere chiuse. */
+    protected canClose(delivery: NotificationDeliveryAdmin): boolean {
+        return delivery.origin !== 'OUTBOX' && (delivery.status === 'FAILED' || delivery.status === 'PENDING');
     }
 
     protected load(event: TableLazyLoadEvent = this.lazyEvent): void {
@@ -76,7 +113,7 @@ export class NotificationDeliveryComponent implements OnInit {
         this.loading = true;
         this.loadError = false;
         this.service
-            .getDeliveries(this.status, Math.floor((event.first ?? 0) / rows), rows, this.sort)
+            .getDeliveries(this.status, Math.floor((event.first ?? 0) / rows), rows, this.sort, this.filters)
             .pipe(
                 first(),
                 finalize(() => (this.loading = false))
@@ -85,7 +122,7 @@ export class NotificationDeliveryComponent implements OnInit {
                 next: (page) => {
                     this.deliveries = page.content;
                     this.totalRecords = page.totalElements;
-                    this.selected = this.selected.filter((selected) => page.content.some((entry) => entry.id === selected.id));
+                    this.selected = this.selected.filter((selected) => page.content.some((entry) => entry.rowKey === selected.rowKey));
                 },
                 error: () => (this.loadError = true)
             });
@@ -93,6 +130,20 @@ export class NotificationDeliveryComponent implements OnInit {
 
     protected onStatusChange(status: NotificationDeliveryStatus): void {
         this.status = status;
+        this.resetAndLoad();
+    }
+
+    protected onFilterChange(): void {
+        // Il backend riceve istanti ISO completi di offset; il picker lavora su Date locali.
+        this.filters.from = this.fromDate ? this.fromDate.toISOString() : null;
+        this.filters.to = this.toDate ? this.toDate.toISOString() : null;
+        this.rangeInvalid = !!this.fromDate && !!this.toDate && this.fromDate >= this.toDate;
+        if (this.rangeInvalid) return;
+        this.resetAndLoad();
+    }
+
+
+    private resetAndLoad(): void {
         this.selected = [];
         this.lazyEvent = { ...this.lazyEvent, first: 0 };
         this.load();
@@ -106,7 +157,7 @@ export class NotificationDeliveryComponent implements OnInit {
     }
 
     protected get allVisibleSelected(): boolean {
-        return this.deliveries.length > 0 && this.deliveries.every((delivery) => this.selected.some((selected) => selected.id === delivery.id));
+        return this.deliveries.length > 0 && this.deliveries.every((delivery) => this.selected.some((selected) => selected.rowKey === delivery.rowKey));
     }
 
     protected toggleAllVisible(select: boolean): void {
@@ -116,27 +167,29 @@ export class NotificationDeliveryComponent implements OnInit {
     protected emptyTitle(): string {
         if (this.status === 'PENDING') return 'Nessuna consegna in attesa';
         if (this.status === 'DELIVERED') return 'Nessuna consegna completata';
+        if (this.status === 'SKIPPED') return 'Nessuna consegna saltata';
         return 'Nessuna consegna fallita';
     }
 
     protected emptyMessage(): string {
         if (this.status === 'PENDING') return 'Non ci sono eventi tecnici in attesa di elaborazione.';
         if (this.status === 'DELIVERED') return 'Non ci sono eventi tecnici consegnati da mostrare.';
+        if (this.status === 'SKIPPED') return 'Non ci sono consegne chiuse senza invio: le soppressioni per preferenza non sono guasti.';
         return 'Non ci sono eventi tecnici che richiedono un retry.';
     }
 
     protected retry(delivery: NotificationDeliveryAdmin): void {
         this.confirmService.confirmReversible({
             title: 'Riprova consegna',
-            consequence: `La consegna tecnica ${delivery.id} verrà riportata in coda mantenendo la stessa chiave evento.`,
+            consequence: `La consegna tecnica ${delivery.rowKey} verrà riportata in coda mantenendo la stessa chiave evento. Utente, preferenze e sottoscrizioni vengono rivalidati prima dell'invio.`,
             actionLabel: 'Riprova',
             accept: () => {
-                this.retryingId = delivery.id;
+                this.pendingRowKey = delivery.rowKey;
                 this.service
-                    .retry(delivery.id)
+                    .retry(delivery.origin, delivery.id)
                     .pipe(
                         first(),
-                        finalize(() => (this.retryingId = undefined))
+                        finalize(() => (this.pendingRowKey = undefined))
                     )
                     .subscribe(() => {
                         this.toastService.success('Retry richiesto', 'La consegna è stata riportata in coda.');
@@ -146,17 +199,38 @@ export class NotificationDeliveryComponent implements OnInit {
         });
     }
 
+    protected close(delivery: NotificationDeliveryAdmin, reason: string): void {
+        this.confirmService.confirmReversible({
+            title: 'Chiudi consegna',
+            consequence: `La consegna tecnica ${delivery.rowKey} verrà chiusa senza invio con motivo ${reason}.`,
+            actionLabel: 'Chiudi',
+            accept: () => {
+                this.pendingRowKey = delivery.rowKey;
+                this.service
+                    .close(delivery.origin, delivery.id, reason)
+                    .pipe(
+                        first(),
+                        finalize(() => (this.pendingRowKey = undefined))
+                    )
+                    .subscribe(() => {
+                        this.toastService.success('Consegna chiusa', 'La consegna non verrà più tentata.');
+                        this.load();
+                    });
+            }
+        });
+    }
+
     protected retrySelected(): void {
-        const ids = this.selected.map((delivery) => delivery.id);
-        if (ids.length === 0 || ids.length > 100) return;
+        const refs = this.selected.map((delivery) => ({ origin: delivery.origin, id: delivery.id }));
+        if (refs.length === 0 || refs.length > 100) return;
         this.confirmService.confirmReversible({
             title: 'Riprova consegne selezionate',
-            consequence: `${ids.length} consegne verranno riportate in coda mantenendo le rispettive chiavi evento.`,
+            consequence: `${refs.length} consegne verranno riportate in coda mantenendo le rispettive chiavi evento.`,
             actionLabel: 'Riprova selezionate',
             accept: () => {
                 this.bulkRetrying = true;
                 this.service
-                    .retrySelected(ids)
+                    .retrySelected(refs)
                     .pipe(
                         first(),
                         finalize(() => (this.bulkRetrying = false))

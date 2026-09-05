@@ -3,21 +3,21 @@ import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
-import { ConfirmService, KeycloakService, PushNotificationService, ToastService, UserPreferenceService, UsersService } from '../../service';
+import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, ToastService, UsersService } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
+import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
+import { NotificationCategoryPreference, NotificationPreferences, NotificationPushMode, NotificationSource } from '../../module';
 
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule, CalendarEventsTableComponent],
+    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [UsersService],
     changeDetection: ChangeDetectionStrategy.Default
 })
 export class ProfileComponent extends DetailPageBase implements OnInit {
-    private static readonly REMINDER_KEY = 'defaultReminderMinutes';
-
     private readonly keycloak = inject(Keycloak);
 
     protected firstName: string = '';
@@ -28,12 +28,34 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     /** Notifiche: consenso del browser e promemoria predefinito degli eventi. */
     protected pushEnabled = false;
     protected pushBusy = false;
-    protected defaultReminderMinutes = 30;
-    protected savingReminder = false;
+    protected notificationPreferences?: NotificationPreferences;
+    protected pushPausedUntil?: Date;
+    protected savingNotifications = false;
+    private savedNotificationPreferences?: NotificationPreferences;
 
-    private savedReminderMinutes = 30;
+    protected readonly pushModes: { label: string; value: NotificationPushMode }[] = [
+        { label: 'Nessuno', value: 'OFF' },
+        { label: 'Immediato', value: 'IMMEDIATE' },
+        { label: 'Riepilogo giornaliero', value: 'DAILY_DIGEST' }
+    ];
+    protected readonly previewModes = [
+        { label: 'Privata', value: 'PRIVATE' },
+        { label: 'Completa', value: 'FULL' }
+    ];
+    protected readonly minPushPause = new Date(Date.now() + 5 * 60 * 1000);
+    protected readonly maxPushPause = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    protected readonly categoryLabels: Record<NotificationSource, string> = {
+        CALENDAR: 'Calendario',
+        INVENTORY: 'Inventario',
+        FINANCE: 'Economia',
+        CONTENT: 'Contenuti',
+        IDENTITY: 'Utenti e accessi',
+        TENANT: 'Organizzazione',
+        GENERAL: 'Generali'
+    };
 
     protected readonly reminderUnit = 'notifiche';
+    protected readonly calendarFeedVisible: boolean;
 
     constructor(
         private readonly keycloakService: KeycloakService,
@@ -41,9 +63,10 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly toastService: ToastService,
         private readonly pushNotificationService: PushNotificationService,
-        private readonly userPreferenceService: UserPreferenceService
+        private readonly notificationPreferencesService: NotificationPreferencesService
     ) {
         super();
+        this.calendarFeedVisible = keycloakService.isUser || keycloakService.isUserExternal;
     }
 
     ngOnInit(): void {
@@ -56,13 +79,12 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
 
         this.pushNotificationService.refreshState().then((subscribed) => (this.pushEnabled = subscribed));
 
-        this.userPreferenceService
-            .get(ProfileComponent.REMINDER_KEY)
+        this.notificationPreferencesService
+            .getPreferences()
             .pipe(first())
-            .subscribe((value) => {
-                const minutes = Number(value);
-                this.savedReminderMinutes = Number.isFinite(minutes) && value !== undefined ? minutes : 30;
-                this.defaultReminderMinutes = this.savedReminderMinutes;
+            .subscribe({
+                next: (value) => this.setNotificationPreferences(value),
+                error: () => this.toastService.error('Preferenze non disponibili', 'Non è stato possibile caricare le preferenze di notifica.')
             });
     }
 
@@ -80,8 +102,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         return 'Il promemoria arriva anche ad applicazione chiusa, sui dispositivi su cui hai dato il consenso.';
     }
 
-    protected get reminderDirty(): boolean {
-        return this.defaultReminderMinutes !== this.savedReminderMinutes;
+    protected get notificationPreferencesDirty(): boolean {
+        return !!this.notificationPreferences && JSON.stringify(this.notificationPreferences) !== JSON.stringify(this.savedNotificationPreferences);
     }
 
     protected onPushToggle(enabled: boolean): void {
@@ -100,27 +122,77 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         });
     }
 
-    protected onReminderChange(): void {
-        this.setUnitDirty(this.reminderUnit, this.reminderDirty);
+    protected get usesDigest(): boolean {
+        return this.notificationPreferences?.categories.some((category) => category.pushMode === 'DAILY_DIGEST') ?? false;
     }
 
-    protected saveReminder(): void {
-        this.savingReminder = true;
-        this.userPreferenceService
-            .set(ProfileComponent.REMINDER_KEY, String(this.defaultReminderMinutes))
+    protected get digestInsideQuietHours(): boolean {
+        const value = this.notificationPreferences;
+        if (!value || !this.usesDigest || !value.quietHours.enabled) return false;
+        const start = value.quietHours.start.slice(0, 5);
+        const end = value.quietHours.end.slice(0, 5);
+        const digest = value.digestLocalTime.slice(0, 5);
+        return start < end ? digest >= start && digest < end : digest >= start || digest < end;
+    }
+
+    protected get notificationPreferencesInvalid(): boolean {
+        const value = this.notificationPreferences;
+        return (
+            !value || !value.timeZone.trim() || value.defaultCalendarReminderMinutes < 0 || value.defaultCalendarReminderMinutes > 1440 || (value.quietHours.enabled && value.quietHours.start === value.quietHours.end) || this.digestInsideQuietHours
+        );
+    }
+
+    protected notificationPreferenceChanged(): void {
+        if (this.notificationPreferences) {
+            this.notificationPreferences.pushPausedUntil = this.pushPausedUntil?.toISOString() ?? null;
+        }
+        this.setUnitDirty(this.reminderUnit, this.notificationPreferencesDirty);
+    }
+
+    protected categoryLabel(category: NotificationCategoryPreference): string {
+        return this.categoryLabels[category.source] ?? category.source;
+    }
+
+    protected clearPushPause(): void {
+        this.pushPausedUntil = undefined;
+        this.notificationPreferenceChanged();
+    }
+
+    protected saveNotificationPreferences(): void {
+        if (!this.notificationPreferences || this.notificationPreferencesInvalid) return;
+        this.savingNotifications = true;
+        this.notificationPreferencesService
+            .savePreferences(this.notificationPreferences)
             .pipe(first())
             .subscribe({
-                next: () => {
-                    this.savedReminderMinutes = this.defaultReminderMinutes;
-                    this.savingReminder = false;
+                next: (value) => {
+                    this.setNotificationPreferences(value);
+                    this.savingNotifications = false;
                     this.setUnitDirty(this.reminderUnit, false);
-                    this.toastService.success('Promemoria aggiornato', 'Il nuovo anticipo vale per gli eventi senza promemoria personalizzato.');
+                    this.toastService.success('Preferenze aggiornate', 'Le nuove regole verranno applicate alle prossime notifiche.');
                 },
-                error: () => {
-                    this.savingReminder = false;
-                    this.toastService.error('Salvataggio non riuscito', 'Non è stato possibile salvare il promemoria predefinito.');
+                error: (error) => {
+                    this.savingNotifications = false;
+                    if (error.status === 409) {
+                        this.toastService.warn('Preferenze modificate altrove', 'Ricarica la pagina prima di salvare di nuovo.');
+                    } else {
+                        this.toastService.error('Salvataggio non riuscito', 'Non è stato possibile salvare le preferenze di notifica.');
+                    }
                 }
             });
+    }
+
+    private setNotificationPreferences(value: NotificationPreferences): void {
+        value.quietHours.start = value.quietHours.start.slice(0, 5);
+        value.quietHours.end = value.quietHours.end.slice(0, 5);
+        value.digestLocalTime = value.digestLocalTime.slice(0, 5);
+        this.notificationPreferences = this.clonePreferences(value);
+        this.savedNotificationPreferences = this.clonePreferences(value);
+        this.pushPausedUntil = value.pushPausedUntil ? new Date(value.pushPausedUntil) : undefined;
+    }
+
+    private clonePreferences(value: NotificationPreferences): NotificationPreferences {
+        return JSON.parse(JSON.stringify(value)) as NotificationPreferences;
     }
 
     protected saveProfile(): void {

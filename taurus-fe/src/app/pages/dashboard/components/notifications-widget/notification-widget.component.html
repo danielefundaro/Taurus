@@ -1,5 +1,9 @@
 <app-detail-section title="Notifiche" [count]="unreadCount || undefined" description="Aggiornamenti che richiedono attenzione">
     <div sectionActions class="header-actions">
+        <div class="flex" role="group" aria-label="Vista notifiche">
+            <button type="button" class="mark-all" [class.font-bold]="view === 'ACTIVE'" (click)="viewChange.emit('ACTIVE')">Attive</button>
+            <button type="button" class="mark-all" [class.font-bold]="view === 'SNOOZED'" (click)="viewChange.emit('SNOOZED')">Posticipate</button>
+        </div>
         <button type="button" class="mark-all" [disabled]="unreadCount === 0" (click)="markAll()">Segna tutte come lette</button>
         <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain" aria-label="Altre azioni" (click)="menu.toggle($event)"></button>
         <p-menu #menu [popup]="true" [model]="items"></p-menu>
@@ -12,21 +16,49 @@
                 <button rowIdentity type="button" class="notice-main" [class.notice-main--unread]="!notice.readDate" (click)="mark(notice)" [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
                     <strong>{{ notice.name }}</strong>
                     <small>{{ notice.message }}</small>
-                    <em>{{ notice.readDate ? 'Letta' : 'Da leggere' }}</em>
+                    <em>{{ view === 'SNOOZED' && notice.snoozedUntil ? 'Ritorna ' + (notice.snoozedUntil | date: 'dd/MM/yyyy HH:mm') : notice.readDate ? 'Letta' : 'Da leggere' }}</em>
                 </button>
-                <button
-                    pButton
-                    rowActions
-                    type="button"
-                    icon="pi pi-trash"
-                    class="p-button-rounded p-button-text p-button-plain"
-                    [attr.aria-label]="'Elimina ' + notice.name"
-                    (click)="deleteOne(notice)"
-                ></button>
+                <div rowActions class="flex items-center gap-1">
+                    @if (view === 'ACTIVE' && !notice.readDate) {
+                        <button pButton type="button" icon="pi pi-clock" class="p-button-rounded p-button-text p-button-plain" [attr.aria-label]="'Ricordamelo tra un’ora: ' + notice.name" (click)="snoozeForOneHour(notice)"></button>
+                        <button pButton type="button" icon="pi pi-sun" class="p-button-rounded p-button-text p-button-plain" [attr.aria-label]="'Ricordamelo domani mattina: ' + notice.name" (click)="snoozeUntilTomorrow(notice)"></button>
+                        <p-datepicker
+                            [(ngModel)]="customSnooze[notice.id]"
+                            [showIcon]="true"
+                            [showTime]="true"
+                            hourFormat="24"
+                            dateFormat="dd/mm/yy"
+                            appendTo="body"
+                            [showOnFocus]="false"
+                            [inputStyle]="{ width: '1px', padding: 0, border: 0 }"
+                            [attr.aria-label]="'Scegli data e ora per ' + notice.name"
+                            (onSelect)="applyCustomSnooze(notice)"
+                        />
+                    }
+                    @if (view === 'SNOOZED') {
+                        <button pButton type="button" icon="pi pi-bell" class="p-button-rounded p-button-text p-button-plain" [attr.aria-label]="'Mostra ora: ' + notice.name" (click)="unsnooze.emit(notice)"></button>
+                    }
+                    @if (canDisableCategory(notice)) {
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-bell-slash"
+                            class="p-button-rounded p-button-text p-button-plain"
+                            [attr.aria-label]="'Disattiva questa categoria: ' + notice.name"
+                            (click)="disableCategory.emit(notice)"
+                        ></button>
+                    }
+                    <button pButton type="button" icon="pi pi-trash" class="p-button-rounded p-button-text p-button-plain" [attr.aria-label]="'Elimina ' + notice.name" (click)="deleteOne(notice)"></button>
+                </div>
             </app-list-row>
         }
     } @else {
-        <app-empty-state icon="pi pi-bell" title="Nessuna notifica" message="Non ci sono aggiornamenti che richiedono attenzione." compact />
+        <app-empty-state
+            icon="pi pi-bell"
+            [title]="view === 'ACTIVE' ? 'Nessuna notifica' : 'Nessuna notifica posticipata'"
+            [message]="view === 'ACTIVE' ? 'Non ci sono aggiornamenti che richiedono attenzione.' : 'Non hai notifiche che devono tornare più tardi.'"
+            compact
+        />
     }
 
     <footer class="widget-footer">

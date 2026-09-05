@@ -13,6 +13,7 @@ import { Notfound } from './app/pages/notfound/notfound.component';
 import { PreviewComponent } from './app/pages/preview/preview.component';
 import { ProfileComponent } from './app/pages/profile/profile.component';
 import { NotificationDeliveryComponent } from './app/pages/admin/notification-delivery/notification-delivery.component';
+import { CalendarFeedsComponent } from './app/pages/admin/calendar-feeds/calendar-feeds.component';
 
 export const appRoutes: Routes = [
     { path: 'legal/accept', component: LegalAcceptanceComponent },
@@ -84,6 +85,12 @@ export const appRoutes: Routes = [
             {
                 path: 'admin/notification-delivery',
                 component: NotificationDeliveryComponent,
+                canActivate: [canActivateAuthRole],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+            },
+            {
+                path: 'admin/calendar-feeds',
+                component: CalendarFeedsComponent,
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
             },

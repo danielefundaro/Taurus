@@ -19,6 +19,9 @@ import com.fundaro.zodiac.taurus.repository.UserLegalAcceptanceRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRepository;
+import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
+import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import java.io.IOException;
 import java.time.Instant;
@@ -31,6 +34,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.repository.calendarfeed.CalendarFeedTokenRegistryRepository;
+import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 
 @Service
 @Transactional
@@ -54,6 +60,10 @@ public class DataErasureService {
     private final InventoryErasureRequestRepository inventoryErasureRequestRepository;
     private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
     private final TenantTransactionExecutor tenantTransactionExecutor;
+    private NotificationProfileRepository notificationProfileRepository;
+    private NotificationPushDeliveryRepository notificationPushDeliveryRepository;
+    private CalendarFeedTokenRegistryRepository calendarFeedTokenRegistryRepository;
+    private TenantsRepository tenantsRepository;
 
     public DataErasureService(
         NoticesRepository noticesRepository,
@@ -89,6 +99,21 @@ public class DataErasureService {
         this.inventoryErasureRequestRepository = inventoryErasureRequestRepository;
         this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
         this.tenantTransactionExecutor = tenantTransactionExecutor;
+    }
+
+    @Autowired
+    void setNotificationErasureRepositories(
+        NotificationProfileRepository notificationProfileRepository,
+        NotificationPushDeliveryRepository notificationPushDeliveryRepository
+    ) {
+        this.notificationProfileRepository = notificationProfileRepository;
+        this.notificationPushDeliveryRepository = notificationPushDeliveryRepository;
+    }
+
+    @Autowired
+    void setCalendarFeedErasureRepositories(CalendarFeedTokenRegistryRepository registry, TenantsRepository tenantsRepository) {
+        this.calendarFeedTokenRegistryRepository = registry;
+        this.tenantsRepository = tenantsRepository;
     }
 
     public boolean requestInventoryAwareErasure(
@@ -141,6 +166,9 @@ public class DataErasureService {
     }
 
     public void eraseTenantData(String tenantCode) {
+        if (calendarFeedTokenRegistryRepository != null && tenantsRepository != null) {
+            tenantsRepository.findByCodeAndDeletedFalse(tenantCode).ifPresent(tenant -> calendarFeedTokenRegistryRepository.deleteAllByTenantId(tenant.getId()));
+        }
         try {
             tenantStorageService.deleteTenantDirectory(tenantCode);
         } catch (IOException exception) {
@@ -156,7 +184,11 @@ public class DataErasureService {
         long reminders = pushReminderRepository.deleteAllBySentTrueAndSendAtBefore(
             Instant.now().minusSeconds(retentionProperties.getSentPushRemindersDays() * 86_400L)
         );
-        log.info("Retention cleanup physically deleted {} notices, {} searches and {} sent reminders", notices, searches, reminders);
+        long pushDeliveries = notificationPushDeliveryRepository == null ? 0 :
+            notificationPushDeliveryRepository.deleteAllByStatusAndDeliveredAtBefore(NotificationStatus.DELIVERED, now.minusDays(30)) +
+            notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.SKIPPED, now.minusDays(30)) +
+            notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.FAILED, now.minusDays(90));
+        log.info("Retention cleanup physically deleted {} notices, {} searches, {} sent reminders and {} push jobs", notices, searches, reminders, pushDeliveries);
     }
 
     private void eraseUserDataInCurrentTenant(String userId) {
@@ -194,6 +226,8 @@ public class DataErasureService {
         deleted += pushSubscriptionRepository.deleteAllByUserId(userId);
         deleted += pushReminderRepository.deleteAllByUserId(userId);
         deleted += userLegalAcceptanceRepository.deleteAllByUserId(userId);
+        if (notificationPushDeliveryRepository != null) deleted += notificationPushDeliveryRepository.deleteAllByUserId(userId);
+        if (notificationProfileRepository != null) deleted += notificationProfileRepository.deleteAllByUserKeycloakId(userId);
         log.info("Physically deleted {} relational records for user {}", deleted, userId);
     }
 

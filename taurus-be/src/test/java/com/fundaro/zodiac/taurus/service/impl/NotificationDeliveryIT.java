@@ -299,7 +299,8 @@ class NotificationDeliveryIT {
             NotificationSource.INVENTORY,
             NotificationSeverity.SUCCESS,
             "/inventory",
-            "actor-1"
+            "actor-1",
+            com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy.CONFIGURABLE
         );
     }
 

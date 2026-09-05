@@ -35,4 +35,7 @@
     <include file="config/liquibase/changelog/20260903000000_availability_reminder_minutes.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260903000001_generalize_notification_outbox.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260905000000_notification_preferences.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260905010000_notification_delivery_console.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260905020001_external_calendar_feed.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

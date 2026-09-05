@@ -36,27 +36,171 @@
         <app-calendar-events-table />
     </app-detail-section>
 
-    <app-detail-section title="Notifiche" description="Promemoria degli eventi a cui hai dato disponibilità." [dirty]="reminderDirty">
+    @if (calendarFeedVisible) {
+        <app-detail-section title="Calendario esterno" description="Pubblica gli eventi che puoi consultare come calendario esterno in sola lettura.">
+            <app-calendar-feed-panel />
+        </app-detail-section>
+    }
+
+    <app-detail-section title="Notifiche" description="Scegli quali aggiornamenti ricevere, su quali canali e in quali orari." [dirty]="notificationPreferencesDirty">
         <div sectionActions>
-            <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
+            <p-button label="Salva preferenze" icon="pi pi-check" size="small" [loading]="savingNotifications" [disabled]="!notificationPreferencesDirty || notificationPreferencesInvalid" (onClick)="saveNotificationPreferences()" />
         </div>
-        <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-                <p-togglebutton
-                    [ngModel]="pushEnabled"
-                    (ngModelChange)="onPushToggle($event)"
-                    [disabled]="!pushSupported || pushDenied || pushBusy"
-                    onLabel="Notifiche push attive"
-                    offLabel="Notifiche push disattivate"
-                    onIcon="pi pi-bell"
-                    offIcon="pi pi-bell-slash"
-                />
-                <small class="text-muted-color">{{ pushHint }}</small>
+        @if (notificationPreferences; as preferences) {
+            <div class="flex flex-col gap-6">
+                <div class="notification-block flex flex-col gap-2">
+                    <h3 class="m-0 text-base">Questo dispositivo</h3>
+                    <p-togglebutton
+                        [ngModel]="pushEnabled"
+                        (ngModelChange)="onPushToggle($event)"
+                        [disabled]="!pushSupported || pushDenied || pushBusy"
+                        onLabel="Notifiche push attive"
+                        offLabel="Notifiche push disattivate"
+                        onIcon="pi pi-bell"
+                        offIcon="pi pi-bell-slash"
+                    />
+                    <small class="text-muted-color">{{ pushHint }}</small>
+                </div>
+
+                <div class="notification-block flex flex-col gap-4">
+                    <div>
+                        <h3 class="m-0 text-base">Promemoria eventi</h3>
+                        <small class="text-muted-color">Restano separati dagli aggiornamenti del calendario e non entrano nel riepilogo.</small>
+                    </div>
+                    <p-togglebutton
+                        [(ngModel)]="preferences.eventRemindersEnabled"
+                        (ngModelChange)="notificationPreferenceChanged()"
+                        onLabel="Promemoria eventi attivi"
+                        offLabel="Promemoria eventi disattivati"
+                        onIcon="pi pi-clock"
+                        offIcon="pi pi-clock"
+                        ariaLabel="Abilita o disabilita i promemoria degli eventi"
+                    />
+                    <app-form-field label="Anticipo predefinito" forId="defaultReminderMinutes" hint="Da 0 a 1.440 minuti. Zero disattiva il promemoria al livello predefinito.">
+                        <p-inputnumber inputId="defaultReminderMinutes" [(ngModel)]="preferences.defaultCalendarReminderMinutes" (ngModelChange)="notificationPreferenceChanged()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" />
+                    </app-form-field>
+                </div>
+
+                <div class="notification-block flex flex-col gap-3">
+                    <div>
+                        <h3 class="m-0 text-base">Categorie</h3>
+                        <small class="text-muted-color">Il centro notifiche e i push sono indipendenti. Le notifiche obbligatorie restano sempre nel centro.</small>
+                    </div>
+                    <p-table [value]="preferences.categories" styleClass="notification-category-table">
+                        <ng-template #header>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Nel centro notifiche</th>
+                                <th>Push</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-category>
+                            <tr>
+                                <td>
+                                    <strong>{{ categoryLabel(category) }}</strong>
+                                </td>
+                                <td>
+                                    <p-togglebutton
+                                        [(ngModel)]="category.inAppEnabled"
+                                        (ngModelChange)="notificationPreferenceChanged()"
+                                        onLabel="Attive"
+                                        offLabel="Disattivate"
+                                        [attr.aria-label]="'Notifiche nel centro per ' + categoryLabel(category)"
+                                    />
+                                </td>
+                                <td>
+                                    <p-select
+                                        [(ngModel)]="category.pushMode"
+                                        (ngModelChange)="notificationPreferenceChanged()"
+                                        [options]="pushModes"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        [inputId]="'push-mode-' + category.source"
+                                        [attr.aria-label]="'Modalità push per ' + categoryLabel(category)"
+                                    />
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+
+                <div class="notification-block grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <app-form-field label="Fuso orario" forId="notificationTimeZone" hint="Identificatore IANA, per esempio Europe/Rome.">
+                        <input pInputText id="notificationTimeZone" [(ngModel)]="preferences.timeZone" (ngModelChange)="notificationPreferenceChanged()" autocomplete="off" />
+                    </app-form-field>
+                    @if (usesDigest) {
+                        <app-form-field label="Ora del riepilogo" forId="digestLocalTime" [error]="digestInsideQuietHours ? 'L’orario del riepilogo non può cadere nelle ore silenziose.' : undefined">
+                            <input pInputText id="digestLocalTime" type="time" [(ngModel)]="preferences.digestLocalTime" (ngModelChange)="notificationPreferenceChanged()" />
+                        </app-form-field>
+                    }
+                </div>
+
+                <div class="notification-block flex flex-col gap-4">
+                    <div>
+                        <h3 class="m-0 text-base">Ore silenziose</h3>
+                        <small class="text-muted-color">Sospendono i push, ma non il centro notifiche. I promemoria troppo vicini all’evento possono essere saltati.</small>
+                    </div>
+                    <p-togglebutton
+                        [(ngModel)]="preferences.quietHours.enabled"
+                        (ngModelChange)="notificationPreferenceChanged()"
+                        onLabel="Ore silenziose attive"
+                        offLabel="Ore silenziose disattivate"
+                        onIcon="pi pi-moon"
+                        offIcon="pi pi-moon"
+                        ariaLabel="Abilita o disabilita le ore silenziose"
+                    />
+                    @if (preferences.quietHours.enabled) {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <app-form-field label="Dalle" forId="quietStart">
+                                <input pInputText id="quietStart" type="time" [(ngModel)]="preferences.quietHours.start" (ngModelChange)="notificationPreferenceChanged()" />
+                            </app-form-field>
+                            <app-form-field label="Alle" forId="quietEnd" [error]="preferences.quietHours.start === preferences.quietHours.end ? 'L’inizio e la fine devono essere diversi.' : undefined">
+                                <input pInputText id="quietEnd" type="time" [(ngModel)]="preferences.quietHours.end" (ngModelChange)="notificationPreferenceChanged()" />
+                            </app-form-field>
+                        </div>
+                    }
+                </div>
+
+                <div class="notification-block grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <app-form-field label="Pausa push fino a" forId="pushPausedUntil" hint="Facoltativa, per un massimo di 30 giorni.">
+                        <div class="flex gap-2 items-center">
+                            <p-datepicker
+                                inputId="pushPausedUntil"
+                                [(ngModel)]="pushPausedUntil"
+                                (ngModelChange)="notificationPreferenceChanged()"
+                                [showIcon]="true"
+                                [showTime]="true"
+                                hourFormat="24"
+                                dateFormat="dd/mm/yy"
+                                [minDate]="minPushPause"
+                                [maxDate]="maxPushPause"
+                                [showClear]="true"
+                            />
+                            @if (pushPausedUntil) {
+                                <p-button icon="pi pi-times" severity="secondary" [text]="true" ariaLabel="Rimuovi pausa push" (onClick)="clearPushPause()" />
+                            }
+                        </div>
+                    </app-form-field>
+                    <app-form-field label="Anteprima sullo schermo bloccato" forId="pushPreview" hint="La modalità privata non mostra titoli o descrizioni originali.">
+                        <p-selectbutton
+                            id="pushPreview"
+                            [(ngModel)]="preferences.pushPreview"
+                            (ngModelChange)="notificationPreferenceChanged()"
+                            [options]="previewModes"
+                            optionLabel="label"
+                            optionValue="value"
+                            [allowEmpty]="false"
+                            ariaLabel="Anteprima delle notifiche push"
+                        />
+                    </app-form-field>
+                </div>
             </div>
-            <app-form-field label="Promemoria predefinito" forId="defaultReminderMinutes" hint="Minuti di anticipo. Zero disattiva il promemoria degli eventi che non ne indicano uno proprio.">
-                <p-inputnumber inputId="defaultReminderMinutes" [(ngModel)]="defaultReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" />
-            </app-form-field>
-        </div>
+        } @else {
+            <div class="flex flex-col gap-3" aria-label="Caricamento preferenze notifiche">
+                <p-skeleton height="2.5rem" />
+                <p-skeleton height="8rem" />
+            </div>
+        }
     </app-detail-section>
 
     <app-detail-section title="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">

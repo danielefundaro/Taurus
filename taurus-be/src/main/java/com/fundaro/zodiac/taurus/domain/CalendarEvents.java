@@ -17,11 +17,23 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
+import java.util.UUID;
+import jakarta.persistence.PrePersist;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Entity
 @Table(name = "calendar_event")
 public class CalendarEvents extends StateFieldsOpenSearch {
+
+    @Column(name = "calendar_uid", nullable = false, unique = true, updatable = false)
+    private UUID calendarUid;
+
+    @Column(name = "calendar_sequence", nullable = false)
+    private Integer calendarSequence = 0;
+
+    @Column(name = "calendar_feed_modified_at", nullable = false)
+    private Instant calendarFeedModifiedAt;
 
     @JsonProperty("start_date")
     @Column(name = "start_date", nullable = false)
@@ -164,6 +176,19 @@ public class CalendarEvents extends StateFieldsOpenSearch {
     public void setSeriesException(Boolean seriesException) { this.seriesException = seriesException; }
     public Boolean getSeriesExcluded() { return seriesExcluded; }
     public void setSeriesExcluded(Boolean seriesExcluded) { this.seriesExcluded = seriesExcluded; }
+    public UUID getCalendarUid() { return calendarUid; }
+    public void setCalendarUid(UUID calendarUid) { this.calendarUid = calendarUid; }
+    public Integer getCalendarSequence() { return calendarSequence; }
+    public void setCalendarSequence(Integer calendarSequence) { this.calendarSequence = calendarSequence; }
+    public Instant getCalendarFeedModifiedAt() { return calendarFeedModifiedAt; }
+    public void setCalendarFeedModifiedAt(Instant calendarFeedModifiedAt) { this.calendarFeedModifiedAt = calendarFeedModifiedAt; }
+
+    @PrePersist
+    void initializeCalendarIdentity() {
+        if (calendarUid == null) calendarUid = UUID.randomUUID();
+        if (calendarSequence == null) calendarSequence = 0;
+        if (calendarFeedModifiedAt == null) calendarFeedModifiedAt = Instant.now();
+    }
 
     @Override
     public boolean equals(Object o) {

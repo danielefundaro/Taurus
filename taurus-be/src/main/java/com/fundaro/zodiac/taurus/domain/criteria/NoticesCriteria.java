@@ -4,6 +4,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.ZonedDateTimeFilter;
+import tech.jhipster.service.filter.BooleanFilter;
+import com.fundaro.zodiac.taurus.domain.notification.NoticeView;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +31,12 @@ public class NoticesCriteria extends CommonCriteria {
 
     private ZonedDateTimeFilter readDate;
 
+    private StringFilter source;
+
+    private BooleanFilter unread;
+
+    private NoticeView view = NoticeView.ACTIVE;
+
     public NoticesCriteria() {
         super();
     }
@@ -39,6 +47,9 @@ public class NoticesCriteria extends CommonCriteria {
         this.name = other.optionalName().map(StringFilter::copy).orElse(null);
         this.message = other.optionalMessage().map(StringFilter::copy).orElse(null);
         this.readDate = other.optionalReadDate().map(ZonedDateTimeFilter::copy).orElse(null);
+        this.source = other.optionalSource().map(StringFilter::copy).orElse(null);
+        this.unread = other.optionalUnread().map(BooleanFilter::copy).orElse(null);
+        this.view = other.view;
     }
 
     @Override
@@ -122,6 +133,15 @@ public class NoticesCriteria extends CommonCriteria {
         this.readDate = readDate;
     }
 
+    public StringFilter getSource() { return source; }
+    public Optional<StringFilter> optionalSource() { return Optional.ofNullable(source); }
+    public void setSource(StringFilter source) { this.source = source; }
+    public BooleanFilter getUnread() { return unread; }
+    public Optional<BooleanFilter> optionalUnread() { return Optional.ofNullable(unread); }
+    public void setUnread(BooleanFilter unread) { this.unread = unread; }
+    public NoticeView getView() { return view; }
+    public void setView(NoticeView view) { this.view = view == null ? NoticeView.ACTIVE : view; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -136,13 +156,16 @@ public class NoticesCriteria extends CommonCriteria {
                 Objects.equals(userId, that.userId) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(message, that.message) &&
-                Objects.equals(readDate, that.readDate)
+                Objects.equals(readDate, that.readDate) &&
+                Objects.equals(source, that.source) &&
+                Objects.equals(unread, that.unread) &&
+                view == that.view
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), userId, name, message, readDate);
+        return Objects.hash(super.hashCode(), userId, name, message, readDate, source, unread, view);
     }
 
     // prettier-ignore

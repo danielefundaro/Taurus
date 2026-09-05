@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
+import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.ZonedDateTime;
@@ -26,6 +27,14 @@ public class NoticesDTO extends CommonFieldsDTO {
     private String targetPath;
 
     private String sourceEventKey;
+
+    private NotificationPreferencePolicy preferencePolicy = NotificationPreferencePolicy.CONFIGURABLE;
+
+    private ZonedDateTime snoozedUntil;
+
+    private int snoozeRevision;
+
+    private long entityVersion;
 
     public String getName() {
         return name;
@@ -66,6 +75,21 @@ public class NoticesDTO extends CommonFieldsDTO {
     public String getSourceEventKey() { return sourceEventKey; }
 
     public void setSourceEventKey(String sourceEventKey) { this.sourceEventKey = sourceEventKey; }
+
+    public NotificationPreferencePolicy getPreferencePolicy() {
+        return preferencePolicy;
+    }
+
+    public void setPreferencePolicy(NotificationPreferencePolicy preferencePolicy) {
+        this.preferencePolicy = preferencePolicy;
+    }
+
+    public ZonedDateTime getSnoozedUntil() { return snoozedUntil; }
+    public void setSnoozedUntil(ZonedDateTime snoozedUntil) { this.snoozedUntil = snoozedUntil; }
+    public int getSnoozeRevision() { return snoozeRevision; }
+    public void setSnoozeRevision(int snoozeRevision) { this.snoozeRevision = snoozeRevision; }
+    public long getEntityVersion() { return entityVersion; }
+    public void setEntityVersion(long entityVersion) { this.entityVersion = entityVersion; }
 
     @Override
     public boolean equals(Object o) {

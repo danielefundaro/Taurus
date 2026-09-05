@@ -8,4 +8,8 @@ export class Notices extends CommonFields {
     severity?: 'INFO' | 'SUCCESS' | 'WARNING';
     targetPath?: string;
     sourceEventKey?: string;
+    preferencePolicy?: 'CONFIGURABLE' | 'REQUIRED';
+    snoozedUntil?: Date;
+    snoozeRevision?: number;
+    entityVersion?: number;
 }

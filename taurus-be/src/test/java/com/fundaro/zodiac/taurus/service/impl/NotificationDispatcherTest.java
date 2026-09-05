@@ -52,7 +52,7 @@ class NotificationDispatcherTest {
         dispatcher.dispatch(1L);
 
         ArgumentCaptor<NotificationDelivery> delivery = ArgumentCaptor.forClass(NotificationDelivery.class);
-        verify(noticesService, org.mockito.Mockito.times(2)).addNoticeToUser(delivery.capture());
+        verify(noticesService, org.mockito.Mockito.times(2)).addNoticeToUserAndGetId(delivery.capture());
         assertThat(delivery.getAllValues()).extracting(NotificationDelivery::userId).containsExactlyInAnyOrder("admin-1", "treasurer-1");
         assertThat(delivery.getAllValues()).allSatisfy(value -> {
             assertThat(value.eventKey()).isEqualTo("event-1");
@@ -73,7 +73,7 @@ class NotificationDispatcherTest {
 
         assertThat(event.getStatus()).isEqualTo(NotificationStatus.SUPPRESSED);
         verify(repository).save(event);
-        verify(noticesService, org.mockito.Mockito.never()).addNoticeToUser(any());
+        verify(noticesService, org.mockito.Mockito.never()).addNoticeToUserAndGetId(any());
     }
 
     @Test

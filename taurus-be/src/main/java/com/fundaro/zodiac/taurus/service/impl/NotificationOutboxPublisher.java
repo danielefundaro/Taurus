@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationAudienceType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutboxAudience;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
@@ -46,6 +47,7 @@ public class NotificationOutboxPublisher {
         event.setTitle(command.title());
         event.setMessage(command.message());
         event.setSeverity(command.severity());
+        event.setPreferencePolicy(command.preferencePolicy());
         event.setTargetPath(command.targetPath());
         event.setActorId(command.actorId());
         event.setActorDisplayName(command.actorDisplayName());
@@ -73,6 +75,9 @@ public class NotificationOutboxPublisher {
         String actorDisplayName = required(command.actorDisplayName(), "actorDisplayName", 255);
         if (command.source() == null) throw new IllegalArgumentException("source is required");
         NotificationSeverity severity = command.severity() == null ? NotificationSeverity.INFO : command.severity();
+        NotificationPreferencePolicy preferencePolicy = command.preferencePolicy() == null
+            ? NotificationPreferencePolicy.CONFIGURABLE
+            : command.preferencePolicy();
         String targetPath = trimToNull(command.targetPath());
         if (targetPath != null && (!targetPath.startsWith("/") || targetPath.contains("://") || targetPath.toLowerCase(Locale.ROOT).contains("javascript:"))) {
             throw new IllegalArgumentException("targetPath must be an internal application path");
@@ -102,6 +107,7 @@ public class NotificationOutboxPublisher {
             title,
             message,
             severity,
+            preferencePolicy,
             targetPath,
             actorId,
             actorDisplayName,

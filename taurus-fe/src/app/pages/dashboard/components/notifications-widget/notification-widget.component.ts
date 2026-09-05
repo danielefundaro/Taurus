@@ -1,6 +1,9 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
+import { DatePickerModule } from 'primeng/datepicker';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { DetailSectionComponent } from '../../../../components/detail-section/detail-section.component';
 import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
 import { ListRowComponent } from '../../../../components/list-row/list-row.component';
@@ -10,7 +13,7 @@ import { ConfirmService, NotificationPresentationService } from '../../../../ser
 @Component({
     standalone: true,
     selector: 'app-notifications-widget',
-    imports: [ButtonModule, MenuModule, DetailSectionComponent, EmptyStateComponent, ListRowComponent],
+    imports: [ButtonModule, MenuModule, DatePickerModule, FormsModule, DatePipe, DetailSectionComponent, EmptyStateComponent, ListRowComponent],
     templateUrl: './notification-widget.component.html',
     styleUrl: './notification-widget.component.scss'
 })
@@ -21,10 +24,16 @@ export class NotificationsWidgetComponent implements OnChanges {
     protected totalRecords: number = 0;
 
     @Input() notices?: Page<Notices>;
+    @Input() view: 'ACTIVE' | 'SNOOZED' = 'ACTIVE';
     @Output() markAsRead: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() navigateToNotice: EventEmitter<Notices> = new EventEmitter<Notices>();
     @Output() delete: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() pageChange: EventEmitter<{ page: number; size: number }> = new EventEmitter<{ page: number; size: number }>();
+    @Output() viewChange = new EventEmitter<'ACTIVE' | 'SNOOZED'>();
+    @Output() snooze = new EventEmitter<{ notice: Notices; until: Date }>();
+    @Output() unsnooze = new EventEmitter<Notices>();
+    @Output() disableCategory = new EventEmitter<Notices>();
+    protected readonly customSnooze: Record<number, Date | undefined> = {};
 
     constructor(
         private readonly confirmService: ConfirmService,
@@ -91,6 +100,30 @@ export class NotificationsWidgetComponent implements OnChanges {
             actionLabel: 'Elimina',
             accept: () => this.delete.emit([notice.id])
         });
+    }
+
+    /**
+     * L'opt-out di categoria vale soltanto per le notifiche configurabili: una riga
+     * con politica REQUIRED non può essere soppressa dal centro notifiche.
+     */
+    protected canDisableCategory(notice: Notices): boolean {
+        return !!notice.source && notice.preferencePolicy !== 'REQUIRED';
+    }
+
+    protected snoozeForOneHour(notice: Notices): void {
+        this.snooze.emit({ notice, until: new Date(Date.now() + 60 * 60 * 1000) });
+    }
+
+    protected snoozeUntilTomorrow(notice: Notices): void {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(8, 0, 0, 0);
+        this.snooze.emit({ notice, until: tomorrow });
+    }
+
+    protected applyCustomSnooze(notice: Notices): void {
+        const until = this.customSnooze[notice.id];
+        if (until) this.snooze.emit({ notice, until });
     }
 
     protected previousPage(): void {

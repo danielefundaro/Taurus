@@ -32,6 +32,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedEventLifecycle;
 
 @Service
 @Transactional
@@ -42,6 +44,7 @@ public class CalendarEventsServiceImpl
     private final UsersRepository usersRepository;
     private final EventReminderProducer reminderProducer;
     private final TenantFeatureService tenantFeatureService;
+    private CalendarFeedEventLifecycle calendarFeedLifecycle;
 
     public CalendarEventsServiceImpl(
         CalendarEventsRepository repository,
@@ -56,6 +59,9 @@ public class CalendarEventsServiceImpl
         this.tenantFeatureService = tenantFeatureService;
     }
 
+    @Autowired
+    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) { this.calendarFeedLifecycle = value; }
+
     @Override
     public CalendarEventsDTO save(CalendarEventsDTO dto, AbstractAuthenticationToken token) {
         applyDefaultEndDate(dto);
@@ -66,6 +72,7 @@ public class CalendarEventsServiceImpl
         CalendarEvents entity = getMapper().toEntity(dto);
         entity.setAvailabilities(new ArrayList<>());
         entity.setPresences(new ArrayList<>());
+        if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(entity, null);
         return featureSafe(saveEntity(entity, token, true));
     }
 
@@ -73,6 +80,7 @@ public class CalendarEventsServiceImpl
     public CalendarEventsDTO update(Long id, CalendarEventsDTO dto, AbstractAuthenticationToken token) {
         applyDefaultEndDate(dto);
         CalendarEvents entity = findEntity(id);
+        CalendarFeedEventLifecycle.Snapshot feedBefore = calendarFeedLifecycle == null ? null : calendarFeedLifecycle.snapshot(entity);
         boolean financeEnabled = financeEnabled();
         java.math.BigDecimal persistedFee = entity.getFee();
         CalendarEvents values = getMapper().toEntity(dto);
@@ -83,6 +91,7 @@ public class CalendarEventsServiceImpl
             entity.getCosts().clear();
             if (values.getCosts() != null) entity.getCosts().addAll(values.getCosts());
         }
+        if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(entity, feedBefore);
         CalendarEventsDTO result = featureSafe(saveEntity(entity, token, false));
         reminderProducer.rescheduleForAvailableUsers(result, availableUsers(entity), token);
         return result;
@@ -271,10 +280,12 @@ public class CalendarEventsServiceImpl
     @Override
     public CalendarEventsDTO delete(Long id, AbstractAuthenticationToken token) {
         CalendarEvents event = findEntity(id);
+        CalendarFeedEventLifecycle.Snapshot feedBefore = calendarFeedLifecycle == null ? null : calendarFeedLifecycle.snapshot(event);
         if (event.getSeries() != null) event.setSeriesExcluded(true);
         event.setDeleted(true);
         event.setEditBy(SecurityUtils.getUserIdFromAuthentication(token));
         event.setEditDate(new Date());
+        if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(event, feedBefore);
         CalendarEventsDTO result = getMapper().toDto(getRepository().save(event));
         reminderProducer.cancelAllPending(id);
         return featureSafe(result);

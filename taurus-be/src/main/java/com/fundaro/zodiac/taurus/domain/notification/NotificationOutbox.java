@@ -44,6 +44,10 @@ public class NotificationOutbox extends TenantAuditedEntity {
     @Column(name = "severity", nullable = false, length = 16)
     private NotificationSeverity severity = NotificationSeverity.INFO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preference_policy", nullable = false, length = 20)
+    private NotificationPreferencePolicy preferencePolicy = NotificationPreferencePolicy.CONFIGURABLE;
+
     @Column(name = "target_path", length = 500)
     private String targetPath;
 
@@ -97,6 +101,8 @@ public class NotificationOutbox extends TenantAuditedEntity {
     public void setMessage(String message) { this.message = message; }
     public NotificationSeverity getSeverity() { return severity; }
     public void setSeverity(NotificationSeverity severity) { this.severity = severity; }
+    public NotificationPreferencePolicy getPreferencePolicy() { return preferencePolicy; }
+    public void setPreferencePolicy(NotificationPreferencePolicy preferencePolicy) { this.preferencePolicy = preferencePolicy; }
     public String getTargetPath() { return targetPath; }
     public void setTargetPath(String targetPath) { this.targetPath = targetPath; }
     public String getActorId() { return actorId; }

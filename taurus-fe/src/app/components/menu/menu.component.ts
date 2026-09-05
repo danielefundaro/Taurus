@@ -67,6 +67,12 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
                     },
                     {
+                        label: 'Feed calendario',
+                        icon: 'pi pi-fw pi-calendar-plus',
+                        routerLink: ['/admin/calendar-feeds'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                    },
+                    {
                         label: 'Utenti',
                         icon: 'pi pi-fw pi-users',
                         routerLink: ['/users'],

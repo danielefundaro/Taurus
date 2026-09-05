@@ -30,7 +30,16 @@ public class ApplicationProperties {
 
     private CalendarProperties calendar = new CalendarProperties();
 
+    @Valid
+    private CalendarFeedProperties calendarFeed = new CalendarFeedProperties();
+
     private NotificationProperties notifications = new NotificationProperties();
+
+    @Valid
+    private NotificationPreferencesProperties notificationPreferences = new NotificationPreferencesProperties();
+
+    @Valid
+    private NotificationPushDeliveryProperties notificationPushDelivery = new NotificationPushDeliveryProperties();
 
     @Valid
     private DashboardProperties dashboard = new DashboardProperties();
@@ -83,9 +92,20 @@ public class ApplicationProperties {
         this.calendar = calendar;
     }
 
+    public CalendarFeedProperties getCalendarFeed() { return calendarFeed; }
+    public void setCalendarFeed(CalendarFeedProperties value) { calendarFeed = value; }
+
     public NotificationProperties getNotifications() { return notifications; }
 
     public void setNotifications(NotificationProperties notifications) { this.notifications = notifications; }
+
+    public NotificationPreferencesProperties getNotificationPreferences() { return notificationPreferences; }
+
+    public void setNotificationPreferences(NotificationPreferencesProperties value) { notificationPreferences = value; }
+
+    public NotificationPushDeliveryProperties getNotificationPushDelivery() { return notificationPushDelivery; }
+
+    public void setNotificationPushDelivery(NotificationPushDeliveryProperties value) { notificationPushDelivery = value; }
 
     public DashboardProperties getDashboard() { return dashboard; }
 
@@ -270,6 +290,25 @@ public class ApplicationProperties {
         }
     }
 
+    public static class CalendarFeedProperties {
+        private boolean enabled = true;
+        private String publicBaseUrl = "http://localhost:8080";
+        @Min(0) @Max(365) private int defaultPastDays = 90;
+        @Min(1) @Max(36) private int defaultFutureMonths = 18;
+        @Min(1) private int maxComponents = 10000;
+        @Min(1) private int tombstoneRetentionDays = 90;
+        private String suggestedRefresh = "PT6H";
+        @Min(1) private int rateLimitPerTokenHour = 120;
+        public boolean isEnabled() { return enabled; } public void setEnabled(boolean v) { enabled = v; }
+        public String getPublicBaseUrl() { return publicBaseUrl; } public void setPublicBaseUrl(String v) { publicBaseUrl = v; }
+        public int getDefaultPastDays() { return defaultPastDays; } public void setDefaultPastDays(int v) { defaultPastDays = v; }
+        public int getDefaultFutureMonths() { return defaultFutureMonths; } public void setDefaultFutureMonths(int v) { defaultFutureMonths = v; }
+        public int getMaxComponents() { return maxComponents; } public void setMaxComponents(int v) { maxComponents = v; }
+        public int getTombstoneRetentionDays() { return tombstoneRetentionDays; } public void setTombstoneRetentionDays(int v) { tombstoneRetentionDays = v; }
+        public String getSuggestedRefresh() { return suggestedRefresh; } public void setSuggestedRefresh(String v) { suggestedRefresh = v; }
+        public int getRateLimitPerTokenHour() { return rateLimitPerTokenHour; } public void setRateLimitPerTokenHour(int v) { rateLimitPerTokenHour = v; }
+    }
+
     public static class NotificationProperties {
         private long dispatchDelay = 5000;
         private int batchSize = 100;
@@ -300,6 +339,62 @@ public class ApplicationProperties {
         public void setMaxDelayMinutes(int maxDelayMinutes) { this.maxDelayMinutes = maxDelayMinutes; }
         public int getMaxAttempts() { return maxAttempts; }
         public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+    }
+
+    public static class NotificationPreferencesProperties {
+        private boolean enabled = true;
+        private int defaultCalendarReminderMinutes = 30;
+        private String defaultTimeZone = "Europe/Rome";
+        private String defaultDigestLocalTime = "08:00";
+        private int maxPauseDays = 30;
+        private int minSnoozeMinutes = 5;
+        private int maxSnoozeDays = 30;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean value) { enabled = value; }
+        public int getDefaultCalendarReminderMinutes() { return defaultCalendarReminderMinutes; }
+        public void setDefaultCalendarReminderMinutes(int value) { defaultCalendarReminderMinutes = value; }
+        public String getDefaultTimeZone() { return defaultTimeZone; }
+        public void setDefaultTimeZone(String value) { defaultTimeZone = value; }
+        public String getDefaultDigestLocalTime() { return defaultDigestLocalTime; }
+        public void setDefaultDigestLocalTime(String value) { defaultDigestLocalTime = value; }
+        public int getMaxPauseDays() { return maxPauseDays; }
+        public void setMaxPauseDays(int value) { maxPauseDays = value; }
+        public int getMinSnoozeMinutes() { return minSnoozeMinutes; }
+        public void setMinSnoozeMinutes(int value) { minSnoozeMinutes = value; }
+        public int getMaxSnoozeDays() { return maxSnoozeDays; }
+        public void setMaxSnoozeDays(int value) { maxSnoozeDays = value; }
+    }
+
+    public static class NotificationPushDeliveryProperties {
+        private int batchSize = 100;
+        private long pollDelay = 5000;
+        private int maxAttempts = 8;
+        private int retryInitialMinutes = 1;
+        private int retryMaxMinutes = 60;
+        private int defaultExpirationHours = 24;
+        private int deliveredRetentionDays = 30;
+        private int skippedRetentionDays = 30;
+        private int failedRetentionDays = 90;
+
+        public int getBatchSize() { return batchSize; }
+        public void setBatchSize(int value) { batchSize = value; }
+        public long getPollDelay() { return pollDelay; }
+        public void setPollDelay(long value) { pollDelay = value; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int value) { maxAttempts = value; }
+        public int getRetryInitialMinutes() { return retryInitialMinutes; }
+        public void setRetryInitialMinutes(int value) { retryInitialMinutes = value; }
+        public int getRetryMaxMinutes() { return retryMaxMinutes; }
+        public void setRetryMaxMinutes(int value) { retryMaxMinutes = value; }
+        public int getDefaultExpirationHours() { return defaultExpirationHours; }
+        public void setDefaultExpirationHours(int value) { defaultExpirationHours = value; }
+        public int getDeliveredRetentionDays() { return deliveredRetentionDays; }
+        public void setDeliveredRetentionDays(int value) { deliveredRetentionDays = value; }
+        public int getSkippedRetentionDays() { return skippedRetentionDays; }
+        public void setSkippedRetentionDays(int value) { skippedRetentionDays = value; }
+        public int getFailedRetentionDays() { return failedRetentionDays; }
+        public void setFailedRetentionDays(int value) { failedRetentionDays = value; }
     }
 
     public static class DashboardProperties {
