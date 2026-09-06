@@ -2,7 +2,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAdminSummary, InventoryAssignment, InventoryAssignmentRequest, InventoryErasureRequest, InventoryItem, InventoryPhoto, InventoryReturn, Page } from '../module';
+import {
+    InventoryAdminSummary,
+    InventoryAssignment,
+    InventoryAssignmentRequest,
+    InventoryErasureRequest,
+    InventoryIssue,
+    InventoryIssueSeverity,
+    InventoryIssueStatus,
+    InventoryItem,
+    InventoryLabelRequest,
+    InventoryPhoto,
+    InventoryReturn,
+    Page
+} from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
@@ -89,5 +102,31 @@ export class InventoryService {
     }
     completeErasureRequest(id: number): Observable<InventoryErasureRequest> {
         return this.http.post<InventoryErasureRequest>(`${this.baseUrl}/erasure-requests/${id}/complete`, null);
+    }
+    qrCodeUrl(itemId: number, size: 256 | 512 = 256): string {
+        return `${this.baseUrl}/items/${itemId}/qr-code.png?size=${size}`;
+    }
+    generateLabels(request: InventoryLabelRequest): Observable<Blob> {
+        return this.http.post(`${this.baseUrl}/labels`, request, { responseType: 'blob' });
+    }
+    rotateQrCode(itemId: number, reason: string): Observable<{ version: number; issuedAt: string }> {
+        return this.http.post<{ version: number; issuedAt: string }>(`${this.baseUrl}/items/${itemId}/qr-code/rotate`, { reason });
+    }
+    getIssues(itemId: number): Observable<InventoryIssue[]> {
+        return this.http.get<InventoryIssue[]>(`${this.baseUrl}/items/${itemId}/issues`);
+    }
+    createIssue(itemId: number, reportedQuantity: number, severity: InventoryIssueSeverity, description: string): Observable<InventoryIssue> {
+        return this.http.post<InventoryIssue>(`${this.baseUrl}/items/${itemId}/issues`, { reportedQuantity, severity, description });
+    }
+    transitionIssue(id: number, status: InventoryIssueStatus, version: number, resolutionNotes?: string, itemConditionStatus?: string): Observable<InventoryIssue> {
+        return this.http.patch<InventoryIssue>(`${this.baseUrl}/issues/${id}/status`, { status, version, resolutionNotes, itemConditionStatus });
+    }
+    uploadIssuePhoto(issueId: number, file: File): Observable<unknown> {
+        const data = new FormData();
+        data.append('file', file);
+        return this.http.post(`${this.baseUrl}/issues/${issueId}/photos`, data);
+    }
+    issuePhotoUrl(id: number): string {
+        return `${this.baseUrl}/issue-photos/${id}`;
     }
 }

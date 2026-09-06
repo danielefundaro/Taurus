@@ -3,9 +3,12 @@ package com.fundaro.zodiac.taurus.service.dashboard;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.repository.projection.InventoryExpirationProjection;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
@@ -31,17 +34,22 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     private final InventoryAssignmentDecisionRepository decisionRepository;
     private final InventoryReturnRepository returnRepository;
     private final ApplicationProperties.DashboardProperties properties;
+    private final InventoryIssueReportRepository issueRepository;
+    private final ApplicationProperties.QrProperties qrProperties;
 
     public InventoryOperationProvider(
         InventoryAssignmentRepository assignmentRepository,
         InventoryAssignmentDecisionRepository decisionRepository,
         InventoryReturnRepository returnRepository,
-        ApplicationProperties applicationProperties
+        ApplicationProperties applicationProperties,
+        InventoryIssueReportRepository issueRepository
     ) {
         this.assignmentRepository = assignmentRepository;
         this.decisionRepository = decisionRepository;
         this.returnRepository = returnRepository;
         this.properties = applicationProperties.getDashboard();
+        this.qrProperties = applicationProperties.getInventory().getQr();
+        this.issueRepository = issueRepository;
     }
 
     @Override
@@ -54,6 +62,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
         List<OperationalItemDTO> result = new ArrayList<>();
         boolean administrator = context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN);
+        if (administrator && qrProperties.isEnabled()) addIssues(result);
         long pendingDecisions = administrator
             ? decisionRepository.countPendingCurrentRevisions(OUTSTANDING)
             : decisionRepository.countPendingCurrentRevisionsForUser(context.subject(), OUTSTANDING);
@@ -89,6 +98,16 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
         }
         addExpiring(context, administrator, result);
         return result;
+    }
+
+    private void addIssues(List<OperationalItemDTO> result) {
+        List<InventoryIssueStatus> open = List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED);
+        long unsafe = issueRepository.countBySeverityAndStatusInAndDeletedFalse(InventoryIssueSeverity.UNSAFE, open);
+        if (unsafe > 0) result.add(item(DashboardOperationType.INVENTORY_UNSAFE_ISSUES, DashboardSeverity.DANGER, unsafe,
+            "Guasti non sicuri", "Segnalazioni che bloccano prudenzialmente nuove assegnazioni.", null, "Verifica", "/inventory?attention=issues-unsafe"));
+        long limiting = issueRepository.countBySeverityAndStatusInAndDeletedFalse(InventoryIssueSeverity.LIMITING, open);
+        if (limiting > 0) result.add(item(DashboardOperationType.INVENTORY_LIMITING_ISSUES, DashboardSeverity.WARNING, limiting,
+            "Guasti limitanti", "Segnalazioni che richiedono una valutazione amministrativa.", null, "Verifica", "/inventory?attention=issues-limiting"));
     }
 
     private void addExpiring(DashboardRequestContext context, boolean administrator, List<OperationalItemDTO> result) {

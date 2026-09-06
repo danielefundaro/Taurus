@@ -11,7 +11,11 @@
     }
     @if (assignment; as value) {
         <app-page-header kicker="Assegnazione inventario" [title]="value.itemName" [subtitle]="value.inventoryNumber" [backLink]="['/inventory']"
-            ><span pageMetadata><p-tag [value]="value.status" severity="info" /></span
+            ><span pageMetadata><p-tag [value]="value.status" severity="info" /></span>
+            <div pageActions>
+                @if (inventoryQrEnabled() && value.outstandingQuantity > 0) {
+                    <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportIssue()" />
+                }</div
         ></app-page-header>
 
         <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">

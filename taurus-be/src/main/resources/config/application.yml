@@ -211,6 +211,13 @@ jhipster:
 # application:
 
 application:
+  inventory:
+    qr:
+      enabled: ${INVENTORY_QR_ENABLED:false}
+      public-base-url: ${INVENTORY_QR_PUBLIC_BASE_URL:https://app.example.org}
+      resolution-limit-per-minute: ${INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE:60}
+  event-preparation:
+    enabled: false
   onboarding:
     enabled: true
     worker-delay: 2000

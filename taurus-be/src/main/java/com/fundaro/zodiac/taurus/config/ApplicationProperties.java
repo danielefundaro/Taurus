@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.util.unit.DataSize;
 
 import java.util.List;
+import java.net.URI;
 
 /**
  * Properties specific to Taurus.
@@ -47,6 +48,12 @@ public class ApplicationProperties {
 
     @Valid
     private OnboardingProperties onboarding = new OnboardingProperties();
+
+    @Valid
+    private EventPreparationProperties eventPreparation = new EventPreparationProperties();
+
+    @Valid
+    private InventoryProperties inventory = new InventoryProperties();
 
     public String getBasePath() {
         return basePath;
@@ -118,6 +125,14 @@ public class ApplicationProperties {
     public OnboardingProperties getOnboarding() { return onboarding; }
 
     public void setOnboarding(OnboardingProperties onboarding) { this.onboarding = onboarding; }
+
+    public EventPreparationProperties getEventPreparation() { return eventPreparation; }
+
+    public void setEventPreparation(EventPreparationProperties value) { eventPreparation = value; }
+
+    public InventoryProperties getInventory() { return inventory; }
+
+    public void setInventory(InventoryProperties value) { inventory = value; }
 
     private TesseractProperties tesseract = new TesseractProperties();
 
@@ -443,6 +458,50 @@ public class ApplicationProperties {
 
         @AssertTrue(message = "max-user-rows must not exceed max-total-rows")
         public boolean isUserRowsValid() { return maxUserRows <= maxTotalRows; }
+    }
+
+    public static class EventPreparationProperties {
+        private boolean enabled;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean value) { enabled = value; }
+    }
+
+    public static class InventoryProperties {
+        @Valid
+        private QrProperties qr = new QrProperties();
+
+        public QrProperties getQr() { return qr; }
+        public void setQr(QrProperties value) { qr = value; }
+    }
+
+    public static class QrProperties {
+        private boolean enabled;
+        private String publicBaseUrl;
+        @Min(1)
+        @Max(1000)
+        private int resolutionLimitPerMinute = 60;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean value) { enabled = value; }
+        public String getPublicBaseUrl() { return publicBaseUrl; }
+        public void setPublicBaseUrl(String value) { publicBaseUrl = value; }
+        public int getResolutionLimitPerMinute() { return resolutionLimitPerMinute; }
+        public void setResolutionLimitPerMinute(int value) { resolutionLimitPerMinute = value; }
+
+        @AssertTrue(message = "inventory.qr.public-base-url must be an HTTPS URL without credentials, query or fragment; HTTP is allowed only for localhost")
+        public boolean isPublicBaseUrlValid() {
+            if (!enabled) return true;
+            try {
+                URI uri = URI.create(publicBaseUrl == null ? "" : publicBaseUrl.trim());
+                if (!uri.isAbsolute() || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null) return false;
+                if ("https".equalsIgnoreCase(uri.getScheme())) return true;
+                return "http".equalsIgnoreCase(uri.getScheme())
+                    && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()) || "::1".equals(uri.getHost()));
+            } catch (IllegalArgumentException exception) {
+                return false;
+            }
+        }
     }
 
     public static class DashboardProperties {

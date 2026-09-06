@@ -2,16 +2,19 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { InventoryIssueDialogComponent } from '../../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
-import { ToastService, UserInventoryService } from '../../../service';
+import { TenantFeatureService, ToastService, UserInventoryService } from '../../../service';
+import { DialogService } from 'primeng/dynamicdialog';
 
 @Component({
     selector: 'app-inventory-assignment-detail',
     standalone: true,
     imports: [ImportsModule, InventoryExpirationBadgeComponent],
     templateUrl: './assignment-detail.component.html',
-    styleUrl: './assignment-detail.component.scss'
+    styleUrl: './assignment-detail.component.scss',
+    providers: [DialogService]
 })
 export class InventoryAssignmentDetailComponent implements OnInit {
     protected assignment?: InventoryAssignment;
@@ -23,6 +26,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     protected reportIncludeAssigned = true;
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
+    protected readonly inventoryQrEnabled;
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',
@@ -36,9 +40,13 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     constructor(
         private readonly inventoryService: UserInventoryService,
         private readonly toastService: ToastService,
+        private readonly dialogService: DialogService,
+        tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
-    ) {}
+    ) {
+        this.inventoryQrEnabled = tenantFeatureService.inventoryQrEnabled;
+    }
 
     protected get canConfirmDecision(): boolean {
         return !!this.assignment && !!this.decision && (this.decision !== 'REJECTED' || !!this.rejectionReason.trim());
@@ -94,6 +102,22 @@ export class InventoryAssignmentDetailComponent implements OnInit {
                 this.returnQuantity = 1;
                 this.returnNotes = '';
                 this.load(this.assignment!.id);
+            });
+    }
+
+    protected reportIssue(): void {
+        if (!this.assignment?.outstandingQuantity) return;
+        this.dialogService
+            .open(InventoryIssueDialogComponent, {
+                header: 'Segnala guasto',
+                modal: true,
+                width: '34rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                data: { assignmentId: this.assignment.id, maxQuantity: this.assignment.outstandingQuantity }
+            })
+            .onClose.pipe(first())
+            .subscribe((issue) => {
+                if (issue) this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato e notificato agli amministratori.');
             });
     }
 

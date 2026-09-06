@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,6 +19,8 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     Page<InventoryItem> findAllByDeletedFalse(Pageable pageable);
     long countByDeletedFalse();
     Optional<InventoryItem> findByIdAndDeletedFalse(Long id);
+    Optional<InventoryItem> findByQrPublicIdAndDeletedFalse(UUID qrPublicId);
+    List<InventoryItem> findAllByIdInAndDeletedFalse(Collection<Long> ids);
     boolean existsByInventoryNumberIgnoreCaseAndDeletedFalse(String inventoryNumber);
     boolean existsByInventoryNumberIgnoreCaseAndIdNotAndDeletedFalse(String inventoryNumber, Long id);
 
@@ -86,6 +89,22 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
         @Param("query") String query,
         @Param("statuses") Collection<InventoryAssignmentStatus> statuses,
         @Param("maximumDate") LocalDate maximumDate,
+        Pageable pageable
+    );
+
+    @Query("""
+        select item from InventoryItem item
+        where item.deleted = false
+          and (:query = '' or lower(item.name) like lower(concat('%', :query, '%')) or lower(item.inventoryNumber) like lower(concat('%', :query, '%')))
+          and exists (
+            select issue.id from InventoryIssueReport issue
+            where issue.item = item and issue.deleted = false and issue.severity = :severity and issue.status in :statuses
+          )
+        """)
+    Page<InventoryItem> findWithOpenIssues(
+        @Param("query") String query,
+        @Param("severity") com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity severity,
+        @Param("statuses") Collection<com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus> statuses,
         Pageable pageable
     );
 }

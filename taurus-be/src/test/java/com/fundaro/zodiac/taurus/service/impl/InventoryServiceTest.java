@@ -30,6 +30,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentReposit
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
 import com.fundaro.zodiac.taurus.service.AlbumsService;
@@ -85,6 +86,8 @@ class InventoryServiceTest {
     @Mock UsersService usersService;
     @Mock MediaService mediaService;
     @Mock MediaRepository mediaRepository;
+    @Mock InventoryQrCodeService qrCodeService;
+    @Mock InventoryIssueReportRepository issueRepository;
     @Mock NotificationOutboxPublisher notificationPublisher;
     @Mock TenantsService tenantsService;
     @Mock InstrumentsService instrumentsService;
@@ -132,7 +135,9 @@ class InventoryServiceTest {
             usersService,
             mediaService,
             mediaRepository,
-            new ObjectMapper()
+            new ObjectMapper(),
+            qrCodeService,
+            issueRepository
         );
         AspectJProxyFactory serviceProxyFactory = new AspectJProxyFactory(target);
         serviceProxyFactory.addAspect(noticesAspect);

@@ -61,6 +61,16 @@ export class MenuComponent implements OnInit {
                         hasRoles: [RoleEnums.SUPER_ADMIN]
                     },
                     {
+                        separator: true,
+                        hasRoles: [RoleEnums.SUPER_ADMIN]
+                    },
+                    {
+                        label: 'Configurazione iniziale',
+                        icon: 'pi pi-fw pi-file-import',
+                        routerLink: ['/onboarding'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                    },
+                    {
                         label: 'Consegne notifiche',
                         icon: 'pi pi-fw pi-send',
                         routerLink: ['/admin/notification-delivery'],
@@ -76,12 +86,6 @@ export class MenuComponent implements OnInit {
                         label: 'Utenti',
                         icon: 'pi pi-fw pi-users',
                         routerLink: ['/users'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
-                    },
-                    {
-                        label: 'Configurazione iniziale',
-                        icon: 'pi pi-fw pi-file-import',
-                        routerLink: ['/onboarding'],
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
                     },
                     {

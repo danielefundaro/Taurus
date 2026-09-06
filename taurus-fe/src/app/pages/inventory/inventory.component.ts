@@ -4,10 +4,11 @@ import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { first, forkJoin } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
+import { InventoryLabelDialogComponent } from '../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { ImportsModule } from '../../imports';
-import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, Page } from '../../module';
-import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, ToastService, UserInventoryService } from '../../service';
+import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, InventoryLabelRequest, Page } from '../../module';
+import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, TenantFeatureService, ToastService, UserInventoryService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 
 type InventoryViewMode = 'TENANT' | 'MINE';
@@ -39,7 +40,8 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected reportIncludeAssigned = true;
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
-    protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring';
+    protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring' | 'issues-unsafe' | 'issues-limiting';
+    protected readonly inventoryQrEnabled;
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',
@@ -58,10 +60,12 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly listLayoutService: ListLayoutService,
         private readonly dialogService: DialogService,
+        tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
     ) {
         super();
+        this.inventoryQrEnabled = tenantFeatureService.inventoryQrEnabled;
         this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'name', sortOrder: 1 };
     }
 
@@ -91,7 +95,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         this.listLayoutService.observe('inventory', (value) => (this.layout = value));
         this.viewMode = this.isAdmin && this.route.snapshot.queryParamMap.get('view') !== 'mine' ? 'TENANT' : 'MINE';
         const attention = this.route.snapshot.queryParamMap.get('attention');
-        if (attention && ['pending-decisions', 'pending-returns', 'expiring'].includes(attention)) {
+        if (attention && ['pending-decisions', 'pending-returns', 'expiring', 'issues-unsafe', 'issues-limiting'].includes(attention)) {
             this.attention = attention as typeof this.attention;
         }
         this.configureSortOptions();
@@ -185,6 +189,33 @@ export class InventoryComponent extends ListPageBase implements OnInit {
 
     protected clearSelection(): void {
         this.selectedItems = [];
+    }
+
+    protected generateLabels(): void {
+        if (!this.selectedItems.length) return;
+        this.dialogService
+            .open(InventoryLabelDialogComponent, {
+                header: 'Genera etichette',
+                modal: true,
+                width: '42rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                data: { items: this.selectedItems }
+            })
+            .onClose.pipe(first())
+            .subscribe((request?: InventoryLabelRequest) => {
+                if (!request) return;
+                this.inventoryService
+                    .generateLabels(request)
+                    .pipe(first())
+                    .subscribe((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const anchor = document.createElement('a');
+                        anchor.href = url;
+                        anchor.download = 'etichette-inventario.pdf';
+                        anchor.click();
+                        URL.revokeObjectURL(url);
+                    });
+            });
     }
 
     protected deleteSelectedItems(): void {

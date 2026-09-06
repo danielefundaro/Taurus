@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryReturn, InventoryUserSummary, Page } from '../module';
+import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryIssue, InventoryIssueSeverity, InventoryReturn, InventoryUserSummary, Page } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class UserInventoryService {
@@ -50,5 +50,19 @@ export class UserInventoryService {
     downloadReport(includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
         const params = new HttpParams().set('includeAssigned', includeAssigned).set('includeReturned', includeReturned).set('includePhotos', includePhotos);
         return this.http.get(`${this.baseUrl}/report`, { params, responseType: 'blob' });
+    }
+    createIssue(assignmentId: number, reportedQuantity: number, severity: InventoryIssueSeverity, description: string): Observable<InventoryIssue> {
+        return this.http.post<InventoryIssue>(`${this.baseUrl}/assignments/${assignmentId}/issues`, { reportedQuantity, severity, description });
+    }
+    getIssue(id: number): Observable<InventoryIssue> {
+        return this.http.get<InventoryIssue>(`${this.baseUrl}/issues/${id}`);
+    }
+    uploadIssuePhoto(issueId: number, file: File): Observable<unknown> {
+        const data = new FormData();
+        data.append('file', file);
+        return this.http.post(`${this.baseUrl}/issues/${issueId}/photos`, data);
+    }
+    issuePhotoUrl(id: number): string {
+        return `${this.baseUrl}/issue-photos/${id}`;
     }
 }

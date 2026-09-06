@@ -4,6 +4,9 @@
         ><div pageActions>
             @if (!personalView) {
                 <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+                @if (inventoryQrEnabled()) {
+                    <p-button label="Genera etichette" icon="pi pi-print" severity="secondary" [disabled]="!selectedItems.length" (onClick)="generateLabels()" />
+                }
             }</div
     ></app-page-header>
 
@@ -17,7 +20,11 @@
                     ? 'Sono mostrate le assegnazioni senza presa visione.'
                     : attention === 'pending-returns'
                       ? 'Sono mostrati gli oggetti con riconsegne aperte.'
-                      : 'Sono mostrate le assegnazioni scadute o prossime alla scadenza.'
+                      : attention === 'issues-unsafe'
+                        ? 'Sono mostrati gli oggetti con guasti non sicuri aperti.'
+                        : attention === 'issues-limiting'
+                          ? 'Sono mostrati gli oggetti con guasti limitanti aperti.'
+                          : 'Sono mostrate le assegnazioni scadute o prossime alla scadenza.'
             "
         />
     }

@@ -64,6 +64,19 @@
         @if (isNew) {
             <app-inline-alert severity="info" title="Completa prima il salvataggio" detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
         } @else {
+            @if (inventoryQrEnabled()) {
+                <app-detail-section title="Codice QR" description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
+                    <div sectionActions class="flex flex-wrap gap-2">
+                        <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
+                        <p-button label="Ruota codice" icon="pi pi-refresh" severity="danger" [outlined]="true" (onClick)="rotateQrCode()" />
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + item.inventoryNumber" class="w-48 h-48 bg-white border border-surface rounded-lg" />
+                        <app-inline-alert severity="info" title="Etichetta privata" detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
+                    </div>
+                </app-detail-section>
+            }
+
             <app-detail-section
                 title="Fotografie"
                 [count]="item.photos?.length"
@@ -139,12 +152,7 @@
                 </div>
             </app-detail-section>
 
-            <app-detail-section
-                title="Assegnazioni e riconsegne"
-                [count]="item.assignments?.length"
-                description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»."
-                [dirty]="dirtyAssignments.size > 0"
-            >
+            <app-detail-section title="Assegnazioni e riconsegne" [count]="item.assignments?.length" description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»." [dirty]="dirtyAssignments.size > 0">
                 <p-table
                     [value]="item.assignments || []"
                     [paginator]="true"
@@ -274,6 +282,10 @@
                     </ng-template>
                 </p-table>
             </app-detail-section>
+
+            @if (inventoryQrEnabled()) {
+                <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" />
+            }
 
             <app-danger-zone [operations]="[{ id: 'delete', title: 'Elimina oggetto', consequence: 'L’oggetto può essere eliminato solo se non risulta ancora assegnato.', label: 'Elimina oggetto' }]" (execute)="confirmDelete()" />
         }

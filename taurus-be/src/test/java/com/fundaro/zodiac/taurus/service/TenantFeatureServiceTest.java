@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.Tenants;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
@@ -16,7 +17,8 @@ import org.junit.jupiter.api.Test;
 class TenantFeatureServiceTest {
 
     private final TenantsRepository repository = mock(TenantsRepository.class);
-    private final TenantFeatureService service = new TenantFeatureService(repository);
+    private final ApplicationProperties properties = new ApplicationProperties();
+    private final TenantFeatureService service = new TenantFeatureService(repository, properties);
 
     @Test
     void readsOnlyTheTenantSelectedByTheContext() {
@@ -41,6 +43,8 @@ class TenantFeatureServiceTest {
             assertThat(result.version()).isEqualTo(12L);
             assertThat(result.financeEnabled()).isTrue();
             assertThat(result.inventoryEnabled()).isFalse();
+            assertThat(result.eventPreparationEnabled()).isFalse();
+            assertThat(result.inventoryQrEnabled()).isFalse();
         });
     }
 
