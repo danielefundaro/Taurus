@@ -24,6 +24,12 @@ public class EventPreparationResource {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.get(eventId));
     }
 
+    @GetMapping("/catalogue")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_ARCHIVIST')")
+    public ResponseEntity<View> catalogue(@PathVariable Long eventId) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.getCatalogue(eventId));
+    }
+
     @PutMapping("/configuration")
     @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     public View configure(@PathVariable Long eventId, @Valid @RequestBody Configuration request, AbstractAuthenticationToken token) { return service.configure(eventId, request, token); }

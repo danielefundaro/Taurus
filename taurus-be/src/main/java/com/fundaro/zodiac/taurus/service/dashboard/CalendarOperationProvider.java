@@ -13,6 +13,8 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
+import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     private final CalendarEventsRepository eventsRepository;
     private final UsersRepository usersRepository;
     private final ApplicationProperties.DashboardProperties properties;
+    private EventPreparationService eventPreparationService;
 
     public CalendarOperationProvider(
         CalendarEventsRepository eventsRepository,
@@ -45,6 +49,11 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         this.eventsRepository = eventsRepository;
         this.usersRepository = usersRepository;
         this.properties = applicationProperties.getDashboard();
+    }
+
+    @Autowired(required = false)
+    void setEventPreparationService(EventPreparationService eventPreparationService) {
+        this.eventPreparationService = eventPreparationService;
     }
 
     @Override
@@ -57,9 +66,52 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
         List<OperationalItemDTO> result = new ArrayList<>();
         ZonedDateTime limit = context.generatedAt().plusDays(properties.getCalendarLookAheadDays());
+        List<DashboardEntry> preparationEntries = preparationEntries(context, limit);
+        Set<Long> preparationAvailabilityEvents = preparationEntries.stream()
+            .filter(entry -> entry.issueCodes().contains("AVAILABILITY_INCOMPLETE"))
+            .map(DashboardEntry::eventId)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
         personalOperation(context, limit).ifPresent(result::add);
-        administrativeOperation(context, limit).ifPresent(result::add);
+        administrativeOperation(context, limit, preparationAvailabilityEvents).ifPresent(result::add);
+        result.addAll(preparationOperations(context, preparationEntries));
         return result;
+    }
+
+    private List<DashboardEntry> preparationEntries(DashboardRequestContext context, ZonedDateTime limit) {
+        if (eventPreparationService == null || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return List.of();
+        return eventPreparationService.dashboardEntries(context.generatedAt().minusDays(30), limit);
+    }
+
+    private List<OperationalItemDTO> preparationOperations(DashboardRequestContext context, List<DashboardEntry> entries) {
+        List<OperationalItemDTO> result = new ArrayList<>();
+        List<DashboardEntry> blocked = entries.stream()
+            .filter(entry -> !entry.dueAt().isBefore(context.generatedAt()) && entry.preparationStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus.BLOCKED)
+            .toList();
+        List<DashboardEntry> attention = entries.stream()
+            .filter(entry -> !entry.dueAt().isBefore(context.generatedAt()) && !entry.dueAt().isAfter(context.generatedAt().plusDays(7)) && entry.preparationStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus.ATTENTION)
+            .toList();
+        List<DashboardEntry> followUp = entries.stream()
+            .filter(entry -> entry.closureStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.ClosureStatus.TO_CLOSE)
+            .toList();
+        if (!blocked.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_BLOCKED, DashboardSeverity.DANGER, blocked, "Eventi con preparazione bloccata", "Completa la preparazione", "/calendar?attention=event-preparation"));
+        if (!attention.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_ATTENTION, DashboardSeverity.WARNING, attention, "Eventi da verificare", "Verifica la preparazione", "/calendar?attention=event-preparation"));
+        if (!followUp.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, DashboardSeverity.WARNING, followUp, "Eventi da chiudere", "Completa le attività successive", "/calendar?attention=event-follow-up"));
+        return result;
+    }
+
+    private static OperationalItemDTO preparationItem(
+        DashboardOperationType type,
+        DashboardSeverity severity,
+        List<DashboardEntry> entries,
+        String title,
+        String actionLabel,
+        String targetPath
+    ) {
+        DashboardEntry nearest = entries.stream().min(java.util.Comparator.comparing(DashboardEntry::dueAt)).orElseThrow();
+        String description = entries.size() == 1
+            ? "“" + nearest.eventName() + "” richiede attenzione."
+            : "Il primo evento è “" + nearest.eventName() + "”; altri " + (entries.size() - 1) + " richiedono attenzione.";
+        return item(type, severity, entries.size(), null, title, description, nearest.dueAt(), actionLabel, targetPath);
     }
 
     private java.util.Optional<OperationalItemDTO> personalOperation(DashboardRequestContext context, ZonedDateTime limit) {
@@ -102,7 +154,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         ));
     }
 
-    private java.util.Optional<OperationalItemDTO> administrativeOperation(DashboardRequestContext context, ZonedDateTime limit) {
+    private java.util.Optional<OperationalItemDTO> administrativeOperation(DashboardRequestContext context, ZonedDateTime limit, Set<Long> preparationAvailabilityEvents) {
         if (!context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) {
             return java.util.Optional.empty();
         }
@@ -126,6 +178,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         long missingResponses = 0;
         CalendarResponseProjection nearest = null;
         for (CalendarResponseProjection summary : summaries) {
+            if (preparationAvailabilityEvents.contains(summary.getEventId())) continue;
             long expected = summary.getState() == StateEnum.COMPLETE ? internal.size() : publicAudience.size();
             long missing = Math.max(0, expected - summary.getResponseCount());
             if (missing == 0) continue;

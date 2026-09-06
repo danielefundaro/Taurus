@@ -150,15 +150,27 @@
                 [count]="programDraft.length"
                 description="Scaletta musicale dell’occorrenza. Ogni salvataggio è atomico e indipendente dai dati evento."
                 [dirty]="isDirtyProgram"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
             >
                 <div class="flex flex-col gap-4">
-                    <div class="flex flex-col sm:flex-row gap-3 items-end">
-                        <app-form-field class="flex-1" label="Brano da aggiungere" forId="preparationTrack"
-                            ><p-select inputId="preparationTrack" class="w-full" [options]="availableTracks" optionLabel="name" optionValue="id" [filter]="true" filterBy="name" placeholder="Seleziona dal catalogo" [(ngModel)]="selectedTrackId"
-                        /></app-form-field>
-                        <p-button label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedTrackId" (onClick)="addProgramEntry()" />
-                    </div>
+                    @if (canManageProgram) {
+                        <div class="flex flex-col sm:flex-row gap-3 items-end">
+                            <app-form-field class="flex-1" label="Brano da aggiungere" forId="preparationTrack"
+                                ><p-autocomplete
+                                    inputId="preparationTrack"
+                                    class="w-full"
+                                    inputStyleClass="w-full"
+                                    [(ngModel)]="selectedTrack"
+                                    [suggestions]="availableTracks"
+                                    (completeMethod)="searchPreparationTracks($event)"
+                                    optionLabel="name"
+                                    [forceSelection]="true"
+                                    [dropdown]="true"
+                                    placeholder="Cerca nel catalogo"
+                            /></app-form-field>
+                            <p-button label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedTrack" (onClick)="addProgramEntry()" />
+                        </div>
+                    }
                     @if (programDraft.length) {
                         <div class="flex flex-col gap-3">
                             @for (row of programDraft; track $index; let i = $index) {
@@ -167,20 +179,26 @@
                                         <strong>{{ i + 1 }}. {{ row.trackName }}</strong
                                         ><small class="block text-surface-500">{{ row.trackState }}</small>
                                     </div>
-                                    <div class="md:col-span-2"><p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" (ngModelChange)="markProgramDirty()" /></div>
-                                    <div class="md:col-span-4"><input pInputText class="w-full" [(ngModel)]="row.notes" placeholder="Note per questa esecuzione" (ngModelChange)="markProgramDirty()" /></div>
-                                    <div class="md:col-span-3 flex justify-end gap-1">
-                                        <p-button icon="pi pi-arrow-up" severity="secondary" text rounded ariaLabel="Sposta prima" [disabled]="i === 0" (onClick)="moveProgramEntry(i, -1)" />
-                                        <p-button icon="pi pi-arrow-down" severity="secondary" text rounded ariaLabel="Sposta dopo" [disabled]="i === programDraft.length - 1" (onClick)="moveProgramEntry(i, 1)" />
-                                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi dal programma" (onClick)="removeProgramEntry(i)" />
+                                    <div class="md:col-span-2">
+                                        <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" [disabled]="!canManageProgram" (ngModelChange)="markProgramDirty()" />
                                     </div>
+                                    <div class="md:col-span-4"><input pInputText class="w-full" [(ngModel)]="row.notes" placeholder="Note per questa esecuzione" [readonly]="!canManageProgram" (ngModelChange)="markProgramDirty()" /></div>
+                                    @if (canManageProgram) {
+                                        <div class="md:col-span-3 flex justify-end gap-1">
+                                            <p-button icon="pi pi-arrow-up" severity="secondary" text rounded ariaLabel="Sposta prima" [disabled]="i === 0" (onClick)="moveProgramEntry(i, -1)" />
+                                            <p-button icon="pi pi-arrow-down" severity="secondary" text rounded ariaLabel="Sposta dopo" [disabled]="i === programDraft.length - 1" (onClick)="moveProgramEntry(i, 1)" />
+                                            <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi dal programma" (onClick)="removeProgramEntry(i)" />
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
                     } @else {
                         <app-empty-state compact icon="pi pi-list" title="Programma vuoto" message="Aggiungi almeno un brano per soddisfare la verifica." />
                     }
-                    <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
+                    @if (canManageProgram) {
+                        <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
+                    }
                 </div>
             </app-detail-section>
         }
@@ -197,16 +215,17 @@
                 <div class="flex flex-col gap-4">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                         <app-form-field class="md:col-span-4" label="Oggetto" forId="preparationItem"
-                            ><p-select
+                            ><p-autocomplete
                                 inputId="preparationItem"
                                 class="w-full"
-                                [options]="availableItems"
+                                inputStyleClass="w-full"
+                                [suggestions]="availableItems"
+                                (completeMethod)="searchPreparationItems($event)"
                                 optionLabel="name"
-                                optionValue="id"
-                                [filter]="true"
-                                filterBy="name"
-                                placeholder="Seleziona dall’inventario"
-                                [(ngModel)]="selectedItemId"
+                                [forceSelection]="true"
+                                [dropdown]="true"
+                                placeholder="Cerca nell’inventario"
+                                [(ngModel)]="selectedItem"
                                 (ngModelChange)="selectMaterialItem($event)"
                         /></app-form-field>
                         <app-form-field class="md:col-span-4" label="Assegnazione" forId="preparationAssignment"
@@ -221,7 +240,7 @@
                                 [(ngModel)]="selectedAssignmentId"
                         /></app-form-field>
                         <app-form-field class="md:col-span-2" label="Quantità" forId="preparationQuantity"><p-inputnumber inputId="preparationQuantity" [(ngModel)]="selectedMaterialQuantity" [min]="1" [showButtons]="true" /></app-form-field>
-                        <p-button class="md:col-span-2" label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedItemId" (onClick)="addMaterial()" />
+                        <p-button class="md:col-span-2" label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedItem" (onClick)="addMaterial()" />
                     </div>
                     @if (materialsDraft.length) {
                         <div class="flex flex-col gap-2">
@@ -257,7 +276,12 @@
         }
     }
 
-    <app-detail-section title="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto." [dirty]="isDirtyForm">
+    <app-detail-section
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+        title="Dati evento"
+        description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
+        [dirty]="isDirtyForm"
+    >
         @if (series) {
             <div class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm mb-6">
                 <div class="flex items-center gap-2">
@@ -418,7 +442,7 @@
     }
 
     @if (financeEnabled() && economicSummary) {
-        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
+        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]" title="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
             <div sectionActions>
                 <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']" [queryParams]="{ action: 'new', eventId: event.id }" />
             </div>
