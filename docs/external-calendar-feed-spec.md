@@ -440,6 +440,8 @@ Esempio di creazione:
 }
 ```
 
+La rotazione richiede anch'essa una chiave UUID v4 e accetta il corpo `{ "idempotencyKey": "..." }`. Il retry con la stessa chiave restituisce lo stesso URL finché quella versione del token è ancora corrente; il riuso della chiave con un payload diverso restituisce `409 Conflict`.
+
 Risposta `201 Created`:
 
 ```json
@@ -563,6 +565,8 @@ application:
     tombstone-retention-days: 90
     suggested-refresh: PT6H
     rate-limit-per-token-hour: 120
+    rate-limit-per-ip-hour: 2000
+    rate-limit-global-hour: 100000
 ```
 
 Nessun segreto viene inserito nella configurazione per generare i token: la sicurezza deriva dal CSPRNG e dalla non persistenza del valore originale.

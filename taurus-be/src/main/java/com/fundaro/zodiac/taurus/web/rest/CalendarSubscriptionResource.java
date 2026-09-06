@@ -19,7 +19,7 @@ public class CalendarSubscriptionResource {
         @RequestHeader(value = HttpHeaders.IF_MODIFIED_SINCE, required = false) String ifModifiedSince,
         jakarta.servlet.http.HttpServletRequest request) {
         try {
-            Download result = resolver.resolve(token).orElse(null); if (result == null) return ResponseEntity.notFound().build();
+            Download result = resolver.resolve(token, request.getRemoteAddr()).orElse(null); if (result == null) return ResponseEntity.notFound().build();
             HttpHeaders headers = headers(result);
             if (result.etag().equals(ifNoneMatch) || ifNoneMatch == null && notModifiedSince(ifModifiedSince, result.lastModified())) return new ResponseEntity<>(null, headers, HttpStatus.NOT_MODIFIED);
             byte[] body = "HEAD".equals(request.getMethod()) ? null : result.body(); return new ResponseEntity<>(body, headers, HttpStatus.OK);

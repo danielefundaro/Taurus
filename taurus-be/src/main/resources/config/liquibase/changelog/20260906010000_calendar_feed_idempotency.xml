@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20260906010000-1" author="taurus">
+    <createTable tableName="calendar_feed_idempotency">
+      <column name="request_digest" type="bytea"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="subscription_id" type="uuid"><constraints nullable="false"/></column>
+      <column name="request_fingerprint" type="bytea"><constraints nullable="false"/></column>
+      <column name="token_version" type="integer"><constraints nullable="false"/></column>
+      <column name="token_ciphertext" type="bytea"><constraints nullable="false"/></column>
+      <column name="token_nonce" type="bytea"><constraints nullable="false"/></column>
+      <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="calendar_feed_idempotency" baseColumnNames="subscription_id"
+      referencedTableName="calendar_feed_subscription" referencedColumnNames="id"
+      constraintName="fk_calendar_feed_idempotency_subscription" onDelete="CASCADE"/>
+    <createIndex tableName="calendar_feed_idempotency" indexName="idx_calendar_feed_idempotency_created_at"><column name="created_at"/></createIndex>
+  </changeSet>
+</databaseChangeLog>
