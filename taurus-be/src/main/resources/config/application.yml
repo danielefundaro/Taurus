@@ -220,6 +220,7 @@ application:
     enabled: false
   onboarding:
     enabled: true
+    recovery-enabled: true
     worker-delay: 2000
     max-file-size: 10MB
     max-total-rows: 5000
@@ -275,6 +276,8 @@ application:
     tombstone-retention-days: 90
     suggested-refresh: PT6H
     rate-limit-per-token-hour: 120
+    rate-limit-per-ip-hour: ${CALENDAR_FEED_RATE_LIMIT_PER_IP_HOUR:2000}
+    rate-limit-global-hour: ${CALENDAR_FEED_RATE_LIMIT_GLOBAL_HOUR:100000}
   base-path: D:\data
   keycloak:
     master-uri: http://localhost:9080/realms/master

@@ -322,6 +322,8 @@ public class ApplicationProperties {
         @Min(1) private int tombstoneRetentionDays = 90;
         private String suggestedRefresh = "PT6H";
         @Min(1) private int rateLimitPerTokenHour = 120;
+        @Min(1) private int rateLimitPerIpHour = 2000;
+        @Min(1) private int rateLimitGlobalHour = 100000;
         public boolean isEnabled() { return enabled; } public void setEnabled(boolean v) { enabled = v; }
         public String getPublicBaseUrl() { return publicBaseUrl; } public void setPublicBaseUrl(String v) { publicBaseUrl = v; }
         public int getDefaultPastDays() { return defaultPastDays; } public void setDefaultPastDays(int v) { defaultPastDays = v; }
@@ -330,6 +332,8 @@ public class ApplicationProperties {
         public int getTombstoneRetentionDays() { return tombstoneRetentionDays; } public void setTombstoneRetentionDays(int v) { tombstoneRetentionDays = v; }
         public String getSuggestedRefresh() { return suggestedRefresh; } public void setSuggestedRefresh(String v) { suggestedRefresh = v; }
         public int getRateLimitPerTokenHour() { return rateLimitPerTokenHour; } public void setRateLimitPerTokenHour(int v) { rateLimitPerTokenHour = v; }
+        public int getRateLimitPerIpHour() { return rateLimitPerIpHour; } public void setRateLimitPerIpHour(int v) { rateLimitPerIpHour = v; }
+        public int getRateLimitGlobalHour() { return rateLimitGlobalHour; } public void setRateLimitGlobalHour(int v) { rateLimitGlobalHour = v; }
     }
 
     public static class NotificationProperties {
@@ -422,6 +426,7 @@ public class ApplicationProperties {
 
     public static class OnboardingProperties {
         private boolean enabled = true;
+        private boolean recoveryEnabled = true;
         @Min(250) private long workerDelay = 2000;
         private DataSize maxFileSize = DataSize.ofMegabytes(10);
         @Min(1) private int maxTotalRows = 5000;
@@ -435,6 +440,8 @@ public class ApplicationProperties {
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean value) { enabled = value; }
+        public boolean isRecoveryEnabled() { return recoveryEnabled; }
+        public void setRecoveryEnabled(boolean value) { recoveryEnabled = value; }
         public long getWorkerDelay() { return workerDelay; }
         public void setWorkerDelay(long value) { workerDelay = value; }
         public DataSize getMaxFileSize() { return maxFileSize; }
