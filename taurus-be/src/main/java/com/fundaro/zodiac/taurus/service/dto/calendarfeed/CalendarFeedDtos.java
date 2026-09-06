@@ -14,8 +14,10 @@ public final class CalendarFeedDtos {
         CalendarFeedDetailLevel detailLevel,
         @Min(0) @Max(365) Integer pastDays,
         @Min(1) @Max(36) Integer futureMonths,
-        UUID idempotencyKey
+        @NotNull UUID idempotencyKey
     ) {}
+
+    public record RotateRequest(@NotNull UUID idempotencyKey) {}
 
     public record Feed(
         UUID id, String name, CalendarFeedType feedType, CalendarFeedScope visibilityScope,

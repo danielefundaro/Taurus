@@ -9,7 +9,8 @@ describe('CalendarFeedService', () => {
     let http: HttpTestingController;
     beforeEach(() => {
         TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
-        service = TestBed.inject(CalendarFeedService); http = TestBed.inject(HttpTestingController);
+        service = TestBed.inject(CalendarFeedService);
+        http = TestBed.inject(HttpTestingController);
     });
     afterEach(() => http.verify());
 
@@ -24,12 +25,18 @@ describe('CalendarFeedService', () => {
         const request = { name: 'Feed', detailLevel: 'MINIMAL' as const, pastDays: 90, futureMonths: 18, idempotencyKey: crypto.randomUUID() };
         service.create(request).subscribe();
         const create = http.expectOne(`${environment.baseUrl}/calendar-feeds`);
-        expect(create.request.method).toBe('POST'); expect(create.request.body).toEqual(request); create.flush({});
-        service.rotate('feed-id').subscribe();
+        expect(create.request.method).toBe('POST');
+        expect(create.request.body).toEqual(request);
+        create.flush({});
+        const rotationKey = crypto.randomUUID();
+        service.rotate('feed-id', false, rotationKey).subscribe();
         const rotate = http.expectOne(`${environment.baseUrl}/calendar-feeds/feed-id/rotate`);
-        expect(rotate.request.method).toBe('POST'); rotate.flush({});
+        expect(rotate.request.method).toBe('POST');
+        expect(rotate.request.body.idempotencyKey).toBe(rotationKey);
+        rotate.flush({});
         service.revoke('feed-id').subscribe();
         const revoke = http.expectOne(`${environment.baseUrl}/calendar-feeds/feed-id`);
-        expect(revoke.request.method).toBe('DELETE'); revoke.flush(null);
+        expect(revoke.request.method).toBe('DELETE');
+        revoke.flush(null);
     });
 });

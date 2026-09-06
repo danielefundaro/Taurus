@@ -30,6 +30,7 @@ class CalendarFeedMigrationIT {
         String schema = names.resolve(tenant);
         assertThat(tableExists("public", "calendar_feed_token_registry")).isTrue();
         assertThat(tableExists(schema, "calendar_feed_subscription")).isTrue();
+        assertThat(tableExists(schema, "calendar_feed_idempotency")).isTrue();
         assertThat(tableExists(schema, "calendar_event_feed_tombstone")).isTrue();
         Integer columns = jdbc.queryForObject("select count(*) from information_schema.columns where table_schema=? and table_name='calendar_event' and column_name in ('calendar_uid','calendar_sequence','calendar_feed_modified_at')", Integer.class, schema);
         assertThat(columns).isEqualTo(3);
