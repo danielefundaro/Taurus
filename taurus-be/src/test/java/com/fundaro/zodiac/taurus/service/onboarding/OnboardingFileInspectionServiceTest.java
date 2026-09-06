@@ -1,11 +1,13 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.onboarding.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.EnumSet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
@@ -30,5 +32,18 @@ class OnboardingFileInspectionServiceTest {
         }
         assertThatThrownBy(() -> service.inspect(bytes, OnboardingImportFormat.XLSX, null, EnumSet.of(OnboardingSection.INSTRUMENTS)))
             .isInstanceOf(OnboardingFileInspectionService.InspectionException.class).hasMessageContaining("formule");
+    }
+
+    @Test
+    void validatesTheConfiguredFiveThousandRowBatchWithinTheReleaseTarget() {
+        StringBuilder csv = new StringBuilder("riferimento,nome,descrizione\r\n");
+        for (int row = 1; row <= 5_000; row++) csv.append("REF-").append(row).append(",Strumento ").append(row).append(",\r\n");
+
+        var inspection = assertTimeoutPreemptively(
+            Duration.ofSeconds(60),
+            () -> service.inspect(csv.toString().getBytes(StandardCharsets.UTF_8), OnboardingImportFormat.CSV, OnboardingSection.INSTRUMENTS, EnumSet.noneOf(OnboardingSection.class))
+        );
+
+        assertThat(inspection.rows()).hasSize(5_000);
     }
 }

@@ -47,10 +47,39 @@ class OnboardingIdentitySagaServiceTest {
         verify(keycloak, never()).updateUser(any());
     }
 
+    @Test
+    void retriesOnlySetupEmailsThatPreviouslyFailed() {
+        OnboardingIdentityOperation sent = emailOperation("sent-id");
+        OnboardingIdentityOperation failed = emailOperation("failed-id");
+        when(operations.findAllByJob_IdOrderByRow_RowNumberDesc(7L)).thenReturn(List.of(sent, failed));
+        doThrow(new IllegalStateException("mail unavailable"))
+            .doNothing()
+            .when(keycloak)
+            .sendExecuteActionsEmail(eq("failed-id"), anyList());
+
+        assertThat(service.sendSetupEmails(7L)).isEqualTo(1);
+        assertThat(sent.getSetupEmailStatus()).isEqualTo(OnboardingIdentityOperation.SetupEmailStatus.SENT);
+        assertThat(failed.getSetupEmailStatus()).isEqualTo(OnboardingIdentityOperation.SetupEmailStatus.FAILED);
+
+        assertThat(service.retryFailedSetupEmails(7L)).isZero();
+        verify(keycloak, times(1)).sendExecuteActionsEmail(eq("sent-id"), anyList());
+        verify(keycloak, times(2)).sendExecuteActionsEmail(eq("failed-id"), anyList());
+        assertThat(failed.getSetupEmailStatus()).isEqualTo(OnboardingIdentityOperation.SetupEmailStatus.SENT);
+    }
+
     private static OnboardingImportRow userRow() {
         OnboardingImportRow row = new OnboardingImportRow();
         row.setAction(OnboardingRowAction.CREATE);
         row.setNormalizedPayload(Map.of("email", "member@example.org"));
         return row;
+    }
+
+    private static OnboardingIdentityOperation emailOperation(String keycloakId) {
+        OnboardingIdentityOperation operation = new OnboardingIdentityOperation();
+        operation.setCreatedByJob(true);
+        operation.setKeycloakId(keycloakId);
+        operation.setStatus(OnboardingIdentityOperation.Status.APPLIED);
+        operation.setSetupEmailStatus(OnboardingIdentityOperation.SetupEmailStatus.PENDING);
+        return operation;
     }
 }

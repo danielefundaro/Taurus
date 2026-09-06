@@ -5,6 +5,7 @@ import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
+import java.util.Collection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
@@ -20,4 +21,5 @@ public interface OnboardingImportJobRepository extends JpaRepository<OnboardingI
     Optional<OnboardingImportJob> findForUpdate(@Param("id") Long id);
     boolean existsByStatus(OnboardingJobStatus status);
     List<OnboardingImportJob> findTop5ByStatusOrderByInsertDateAsc(OnboardingJobStatus status);
+    List<OnboardingImportJob> findTop5ByStatusInOrderByInsertDateAsc(Collection<OnboardingJobStatus> statuses);
 }

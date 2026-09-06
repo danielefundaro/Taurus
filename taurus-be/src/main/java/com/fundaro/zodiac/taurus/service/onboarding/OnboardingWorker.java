@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -19,10 +18,11 @@ public class OnboardingWorker {
     private final OnboardingImportRowRepository rows;
     private final OnboardingIdentitySagaService identities;
     private final OnboardingDomainApplicationService domains;
+    private final OnboardingJobStateService states;
 
     public OnboardingWorker(OnboardingValidationService validation, OnboardingImportJobRepository jobs, OnboardingImportRowRepository rows,
-        OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains) {
-        this.validation = validation; this.jobs = jobs; this.rows = rows; this.identities = identities; this.domains = domains;
+        OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains, OnboardingJobStateService states) {
+        this.validation = validation; this.jobs = jobs; this.rows = rows; this.identities = identities; this.domains = domains; this.states = states;
     }
 
     @Async
@@ -37,6 +37,14 @@ public class OnboardingWorker {
         TenantContext.run(event.tenantCode(), () -> applyCurrentTenant(event));
     }
 
+    public void resumeApply(Long jobId, String tenantCode, String actor) {
+        TenantContext.run(tenantCode, () -> applyCurrentTenant(new OnboardingWorkEvents.Apply(jobId, tenantCode, actor)));
+    }
+
+    public void resumeCompensation(Long jobId, String tenantCode) {
+        TenantContext.run(tenantCode, () -> compensateCurrentTenant(jobId, tenantCode));
+    }
+
     private void applyCurrentTenant(OnboardingWorkEvents.Apply event) {
         OnboardingImportJob job = jobs.findByIdAndDeletedFalse(event.jobId()).orElseThrow();
         List<OnboardingImportRow> staged = rows.findAllByJob_IdOrderBySectionAscRowNumberAsc(event.jobId());
@@ -46,24 +54,19 @@ public class OnboardingWorker {
             .toList();
         try {
             Map<Long, String> prepared = identities.prepare(job, userRows, event.tenantCode());
-            domains.apply(staged, prepared, event.tenantCode(), event.actor());
+            domains.apply(job.getId(), staged, prepared, event.tenantCode(), event.actor());
             int emailFailures = job.isSendSetupEmails() ? identities.sendSetupEmails(job.getId()) : 0;
-            complete(job.getId(), emailFailures);
+            states.complete(job.getId(), emailFailures);
         } catch (RuntimeException exception) {
-            boolean compensated;
-            try { compensated = identities.compensate(job.getId(), event.tenantCode()); }
-            catch (RuntimeException compensationException) { compensated = false; }
-            fail(job.getId(), compensated);
+            states.markCompensating(job.getId());
+            compensateCurrentTenant(job.getId(), event.tenantCode());
         }
     }
 
-    @Transactional
-    public void complete(Long id, int emailFailures) {
-        OnboardingImportJob job = jobs.findByIdAndDeletedFalse(id).orElseThrow(); job.setStatus(OnboardingJobStatus.COMPLETED); job.setStage("COMPLETED"); job.setProgressPercentage(100); job.setSetupEmailFailures(emailFailures); job.setCompletedAt(ZonedDateTime.now()); jobs.save(job);
-    }
-
-    @Transactional
-    public void fail(Long id, boolean compensated) {
-        OnboardingImportJob job = jobs.findByIdAndDeletedFalse(id).orElseThrow(); job.setStatus(compensated ? OnboardingJobStatus.FAILED : OnboardingJobStatus.COMPENSATION_REQUIRED); job.setStage(compensated ? "COMPENSATED" : "COMPENSATION_REQUIRED"); job.setLastErrorCode(compensated ? "APPLICATION_FAILED" : "COMPENSATION_INCOMPLETE"); job.setCompletedAt(ZonedDateTime.now()); jobs.save(job);
+    private void compensateCurrentTenant(Long jobId, String tenantCode) {
+        boolean compensated;
+        try { compensated = identities.compensate(jobId, tenantCode); }
+        catch (RuntimeException compensationException) { compensated = false; }
+        states.fail(jobId, compensated);
     }
 }

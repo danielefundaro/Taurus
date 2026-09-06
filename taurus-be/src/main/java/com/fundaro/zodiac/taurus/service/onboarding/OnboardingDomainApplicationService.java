@@ -14,6 +14,7 @@ import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -39,8 +40,8 @@ public class OnboardingDomainApplicationService {
         this.inventory = inventory; this.categories = categories; this.accounts = accounts; this.years = years; this.movements = movements; this.summaries = summaries; this.stagingRows = stagingRows;
     }
 
-    @Transactional
-    public void apply(List<OnboardingImportRow> rows, Map<Long, String> keycloakIds, String tenantCode, String actor) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void apply(Long jobId, List<OnboardingImportRow> rows, Map<Long, String> keycloakIds, String tenantCode, String actor) {
         Date now = new Date();
         Map<String, Instruments> instrumentRefs = new HashMap<>();
         Map<String, Instruments> instrumentNames = instruments.findAll().stream().filter(i -> !Boolean.TRUE.equals(i.getDeleted())).collect(Collectors.toMap(i -> key(i.getName()), i -> i, (a,b) -> a));
@@ -66,7 +67,8 @@ public class OnboardingDomainApplicationService {
 
         for (OnboardingImportRow row : scoped(rows, OnboardingSection.INVENTORY)) {
             InventoryItem item = new InventoryItem(); item.initializeAudit(actor); item.setInventoryNumber(value(row, "numero_inventario")); item.setName(value(row, "nome")); item.setDescription(blankToNull(value(row, "descrizione")));
-            item.setTotalQuantity(integer(row, "quantita_totale")); item.setEstimatedUnitValue(decimalOrNull(row, "valore_unitario_stimato")); item.setCurrency(blankToNull(value(row, "valuta"))); item.setConditionStatus(InventoryCondition.valueOf(value(row, "condizione"))); item.setConditionNotes(blankToNull(value(row, "note_condizione"))); inventory.save(item); applied(row);
+            item.setTotalQuantity(integer(row, "quantita_totale")); item.setEstimatedUnitValue(decimalOrNull(row, "valore_unitario_stimato")); item.setCurrency(blankToNull(value(row, "valuta"))); item.setConditionStatus(InventoryCondition.valueOf(value(row, "condizione"))); item.setConditionNotes(blankToNull(value(row, "note_condizione")));
+            item.setQrPublicId(UUID.randomUUID()); item.setQrVersion(1); item.setQrIssuedAt(ZonedDateTime.now()); item.setQrIssuedBy(actor); inventory.save(item); applied(row);
         }
 
         Map<String, FinancialCategory> categoryNames = categories.findAllByDeletedFalseAndActiveTrueOrderByDisplayOrderAscNameAsc().stream().collect(Collectors.toMap(c -> key(c.getName()), c -> c, (a,b) -> a));
@@ -94,7 +96,7 @@ public class OnboardingDomainApplicationService {
             FinancialMovement movement = new FinancialMovement(); movement.initializeAudit(actor); movement.setAccountingYear(year); movement.setAccount(account); movement.setDirection(signed.signum() > 0 ? FinancialDirection.INCOME : FinancialDirection.EXPENSE); movement.setNature(FinancialMovementNature.OPENING); movement.setBookingDate(date); movement.setValueDate(date); movement.setAmount(signed.abs()); movement.setCurrency(account.getCurrency()); movement.setDescription("Saldo iniziale"); movements.save(movement); applied(row);
         }
         Map<OnboardingSection, Long> applied = rows.stream().filter(r -> r.getStatus() == OnboardingRowStatus.APPLIED).collect(Collectors.groupingBy(OnboardingImportRow::getSection, Collectors.counting()));
-        for (OnboardingImportSection summary : summaries.findAllByJob_IdOrderBySectionAsc(rows.get(0).getJob().getId())) { summary.setApplied(Math.toIntExact(applied.getOrDefault(summary.getSection(), 0L))); summaries.save(summary); }
+        for (OnboardingImportSection summary : summaries.findAllByJob_IdOrderBySectionAsc(jobId)) { summary.setApplied(Math.toIntExact(applied.getOrDefault(summary.getSection(), 0L))); summaries.save(summary); }
         stagingRows.saveAll(rows);
     }
 

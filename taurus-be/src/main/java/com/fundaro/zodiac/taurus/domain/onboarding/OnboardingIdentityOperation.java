@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 public class OnboardingIdentityOperation {
     public enum Type { CREATE, LINK_EXISTING }
     public enum Status { PLANNED, APPLIED, COMPENSATED, COMPENSATION_FAILED }
+    public enum SetupEmailStatus { NOT_REQUESTED, PENDING, SENT, FAILED }
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "job_id", nullable = false) private OnboardingImportJob job;
     @OneToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "row_id", nullable = false) private OnboardingImportRow row;
@@ -15,6 +16,7 @@ public class OnboardingIdentityOperation {
     @Column(name = "previously_in_group", nullable = false) private boolean previouslyInGroup;
     @Column(name = "previous_roles", columnDefinition = "text") private String previousRoles;
     @Enumerated(EnumType.STRING) @Column(name = "status", nullable = false, length = 32) private Status status = Status.PLANNED;
+    @Enumerated(EnumType.STRING) @Column(name = "setup_email_status", nullable = false, length = 32) private SetupEmailStatus setupEmailStatus = SetupEmailStatus.NOT_REQUESTED;
     @Column(name = "last_error_code", length = 128) private String lastErrorCode;
     public Long getId() { return id; }
     public OnboardingImportJob getJob() { return job; } public void setJob(OnboardingImportJob v) { job = v; }
@@ -25,5 +27,6 @@ public class OnboardingIdentityOperation {
     public boolean isPreviouslyInGroup() { return previouslyInGroup; } public void setPreviouslyInGroup(boolean v) { previouslyInGroup = v; }
     public String getPreviousRoles() { return previousRoles; } public void setPreviousRoles(String v) { previousRoles = v; }
     public Status getStatus() { return status; } public void setStatus(Status v) { status = v; }
+    public SetupEmailStatus getSetupEmailStatus() { return setupEmailStatus; } public void setSetupEmailStatus(SetupEmailStatus v) { setupEmailStatus = v; }
     public String getLastErrorCode() { return lastErrorCode; } public void setLastErrorCode(String v) { lastErrorCode = v; }
 }

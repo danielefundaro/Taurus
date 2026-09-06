@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -43,10 +44,15 @@ public class OnboardingValidationService {
         this.accounts = accounts; this.tenants = tenants;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void validate(Long jobId, byte[] content) {
         OnboardingImportJob job = jobs.findForUpdate(jobId).orElseThrow();
-        if (job.getStatus() != OnboardingJobStatus.UPLOADED && job.getStatus() != OnboardingJobStatus.INVALID && job.getStatus() != OnboardingJobStatus.FAILED) return;
+        if (
+            job.getStatus() != OnboardingJobStatus.UPLOADED &&
+            job.getStatus() != OnboardingJobStatus.VALIDATING &&
+            job.getStatus() != OnboardingJobStatus.INVALID &&
+            job.getStatus() != OnboardingJobStatus.FAILED
+        ) return;
         job.setStatus(OnboardingJobStatus.VALIDATING); job.setStage("INSPECTING_FILE"); job.setProgressPercentage(5); job.setStartedAt(ZonedDateTime.now()); job.setLastErrorCode(null);
         issues.deleteAllByJob_Id(jobId); rows.deleteAllByJob_Id(jobId); sections.deleteAllByJob_Id(jobId);
         try {
