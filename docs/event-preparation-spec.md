@@ -7,6 +7,8 @@ La funzionalità estende il dettaglio calendario esistente e coordina catalogo m
 ID catalogo: `event-preparation`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
+Implementazione completata il 6 settembre 2026. La verifica comprende viste REST minimizzate per ruolo, selettori frontend paginati, conferme economiche isolate sotto `/api/finance/**`, notifiche outbox idempotenti e integrazione con la dashboard operativa senza duplicare le disponibilità mancanti.
+
 ## Obiettivo
 
 Trasformare la pagina dell'evento in una cabina di regia unica, capace di rispondere in modo immediato a queste domande:

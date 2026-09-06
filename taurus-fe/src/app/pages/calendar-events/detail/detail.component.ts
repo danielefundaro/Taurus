@@ -24,8 +24,10 @@ import {
     EventPresentUser,
     RecurrenceWeekDay,
     Tracks,
+    TracksCriteria,
     Users
 } from '../../../module';
+import { StringFilter } from '../../../module/criteria/filter';
 import { DateConverterPipe } from '../../../pipe';
 import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, TracksService, UsersService } from '../../../service';
 
@@ -103,8 +105,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected availableTracks: Tracks[] = [];
     protected availableItems: InventoryItem[] = [];
     protected availableAssignments: InventoryAssignment[] = [];
-    protected selectedTrackId?: number;
-    protected selectedItemId?: number;
+    protected selectedTrack?: Tracks;
+    protected selectedItem?: InventoryItem;
     protected selectedAssignmentId?: number;
     protected selectedMaterialQuantity = 1;
     protected readonly preparationProfiles: { label: string; value: PreparationProfile }[] = [
@@ -183,6 +185,18 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return this.keycloakService.isUser;
     }
 
+    protected get isArchivist(): boolean {
+        return this.keycloakService.currentUserRole === RoleEnums.ARCHIVIST;
+    }
+
+    protected get isTreasurer(): boolean {
+        return this.keycloakService.currentUserRole === RoleEnums.TREASURER;
+    }
+
+    protected get canManageProgram(): boolean {
+        return this.isAdmin || this.isArchivist;
+    }
+
     protected get isDirtyPreparation(): boolean {
         return this.isUnitDirty(DetailComponent.PREPARATION_UNIT);
     }
@@ -224,11 +238,11 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected confirmPreparationArea(area: 'budget' | 'presence' | 'finance' | 'material', materialId?: number): void {
         const operation =
             area === 'budget'
-                ? this.eventPreparationService.confirmBudget(this.event.id)
+                ? this.eventPreparationService.confirmBudget(this.event.id, this.keycloakService.currentUserRole)
                 : area === 'presence'
                   ? this.eventPreparationService.confirmPresence(this.event.id)
                   : area === 'finance'
-                    ? this.eventPreparationService.confirmNoMovements(this.event.id)
+                    ? this.eventPreparationService.confirmNoMovements(this.event.id, this.keycloakService.currentUserRole)
                     : this.eventPreparationService.confirmMaterial(this.event.id, materialId!);
         operation.pipe(first()).subscribe((view) => {
             this.preparation = view;
@@ -247,11 +261,27 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected addProgramEntry(): void {
-        const track = this.availableTracks.find((value) => value.id === this.selectedTrackId);
+        const track = this.selectedTrack;
         if (!track?.id) return;
         this.programDraft.push({ id: 0, trackId: track.id, trackName: track.name ?? '', trackState: track.state ?? 'DRAFT', order: this.programDraft.length });
-        this.selectedTrackId = undefined;
+        this.selectedTrack = undefined;
         this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
+    }
+
+    protected searchPreparationTracks(event: AutoCompleteCompleteEvent): void {
+        const criteria = new TracksCriteria();
+        criteria.page = 0;
+        criteria.size = 25;
+        criteria.sort = ['name,asc'];
+        const query = event.query.trim();
+        if (query) {
+            criteria.name = new StringFilter();
+            criteria.name.contains = query;
+        }
+        this.tracksService
+            .getAll(criteria)
+            .pipe(first())
+            .subscribe((page) => (this.availableTracks = page.content));
     }
     protected markProgramDirty(): void {
         this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
@@ -285,10 +315,17 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             });
     }
 
-    protected selectMaterialItem(itemId?: number): void {
-        this.selectedItemId = itemId;
+    protected searchPreparationItems(event: AutoCompleteCompleteEvent): void {
+        this.inventoryService
+            .getItems(event.query, 0, 25)
+            .pipe(first())
+            .subscribe((page) => (this.availableItems = page.content));
+    }
+
+    protected selectMaterialItem(item?: InventoryItem): void {
         this.selectedAssignmentId = undefined;
         this.availableAssignments = [];
+        const itemId = item?.id;
         if (!itemId) return;
         this.inventoryService
             .getItem(itemId)
@@ -297,7 +334,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected addMaterial(): void {
-        const item = this.availableItems.find((value) => value.id === this.selectedItemId);
+        const item = this.selectedItem;
         if (!item?.id || this.selectedMaterialQuantity < 1) return;
         const assignment = this.availableAssignments.find((value) => value.id === this.selectedAssignmentId);
         this.materialsDraft.push({
@@ -310,7 +347,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             condition: item.conditionStatus,
             confirmed: false
         });
-        this.selectedItemId = undefined;
+        this.selectedItem = undefined;
         this.selectedAssignmentId = undefined;
         this.selectedMaterialQuantity = 1;
         this.availableAssignments = [];
@@ -576,27 +613,18 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.toastService.success('Successo', msg);
                     this.updateEventDates(updated);
                     this.loadPersonalReminder();
-                    if (this.isAdmin && this.eventPreparationEnabled()) this.loadPreparation();
+                    if (this.eventPreparationEnabled()) this.loadPreparation();
                 }
             });
     }
 
     private loadPreparation(): void {
         this.eventPreparationService
-            .get(this.event.id)
+            .get(this.event.id, this.keycloakService.currentUserRole)
             .pipe(first())
             .subscribe((view) => {
                 this.applyPreparationView(view);
                 this.setUnitDirty(DetailComponent.PREPARATION_UNIT, false);
-                this.tracksService
-                    .getAll({ size: 500, sort: ['name,asc'] } as any)
-                    .pipe(first())
-                    .subscribe((page) => (this.availableTracks = page.content));
-                if (this.inventoryEnabled())
-                    this.inventoryService
-                        .getItems('', 0, 500)
-                        .pipe(first())
-                        .subscribe((page) => (this.availableItems = page.content));
             });
     }
 
@@ -659,6 +687,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.toastService.success('Successo', 'Disponibilità annullata');
                     this.updateEventDates(updated);
                     this.loadPersonalReminder();
+                    if (this.eventPreparationEnabled()) this.loadPreparation();
                 }
             });
     }
@@ -747,6 +776,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     private loadElement(id: number | string): void {
+        if (this.isTreasurer) {
+            this.loadTreasurerElement(Number(id));
+            return;
+        }
         this.calendarEventsService
             .getById(Number(id))
             .pipe(first())
@@ -757,7 +790,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.event.startDate = this.dateConverterPipe.transform(this.event.startDate);
                     this.event.endDate = this.dateConverterPipe.transform(this.event.endDate);
                     this.loadPersonalReminder();
-                    if (this.isAdmin && this.eventPreparationEnabled()) this.loadPreparation();
+                    if (this.eventPreparationEnabled()) this.loadPreparation();
                     if (this.event.seriesId && this.isAdmin) {
                         this.loadSeries(this.event.seriesId);
                     } else {
@@ -773,6 +806,23 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                             .subscribe((summary) => (this.economicSummary = summary));
                     }
                 }
+            });
+    }
+
+    private loadTreasurerElement(id: number): void {
+        this.financeService
+            .getEvent(id)
+            .pipe(first())
+            .subscribe((summary) => {
+                const event = new CalendarEvents();
+                event.id = summary.eventId;
+                event.name = summary.eventName;
+                event.fee = summary.expectedFee;
+                event.costs = summary.expectedCostItems.map((cost) => ({ ...cost }) as EventCost);
+                this.event = event;
+                this.economicSummary = summary;
+                this.isDirty = false;
+                if (this.eventPreparationEnabled()) this.loadPreparation();
             });
     }
 

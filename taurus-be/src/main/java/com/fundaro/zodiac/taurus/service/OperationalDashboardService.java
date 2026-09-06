@@ -179,6 +179,9 @@ public class OperationalDashboardService {
         paths.put(DashboardOperationType.LEGAL_ACCEPTANCE_REQUIRED, Set.of("/legal/accept"));
         paths.put(DashboardOperationType.CALENDAR_AVAILABILITY_REQUIRED, Set.of("/calendar?attention=my-missing-availability"));
         paths.put(DashboardOperationType.CALENDAR_RESPONSES_MISSING, Set.of("/calendar?attention=missing-availability"));
+        paths.put(DashboardOperationType.EVENT_PREPARATION_BLOCKED, Set.of("/calendar?attention=event-preparation"));
+        paths.put(DashboardOperationType.EVENT_PREPARATION_ATTENTION, Set.of("/calendar?attention=event-preparation"));
+        paths.put(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, Set.of("/calendar?attention=event-follow-up"));
         paths.put(DashboardOperationType.INVENTORY_DECISION_REQUIRED, Set.of("/inventory?view=mine&attention=pending-decisions"));
         paths.put(DashboardOperationType.INVENTORY_DECISIONS_PENDING, Set.of("/inventory?attention=pending-decisions"));
         paths.put(DashboardOperationType.INVENTORY_RETURNS_PENDING, Set.of("/inventory?attention=pending-returns"));

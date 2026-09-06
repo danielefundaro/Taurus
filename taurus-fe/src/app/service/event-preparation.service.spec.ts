@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
+import { RoleEnums } from '../constants';
 import { EventPreparationConfiguration } from '../module';
 import { EventPreparationService } from './event-preparation.service';
 
@@ -14,6 +15,23 @@ describe('EventPreparationService', () => {
         http = TestBed.inject(HttpTestingController);
     });
     afterEach(() => http.verify());
+
+    it('loads the preparation view from the endpoint dedicated to each role', () => {
+        const cases = [
+            [RoleEnums.ADMIN, `${environment.baseUrl}/calendar-events/42/preparation`],
+            [RoleEnums.ARCHIVIST, `${environment.baseUrl}/calendar-events/42/preparation/catalogue`],
+            [RoleEnums.USER, `${environment.baseUrl}/user/calendar-events/42/preparation`],
+            [RoleEnums.USER_EXTERNAL, `${environment.baseUrl}/external/calendar-events/42/preparation`],
+            [RoleEnums.TREASURER, `${environment.baseUrl}/finance/events/42/preparation`]
+        ] as const;
+
+        cases.forEach(([role, url]) => {
+            service.get(42, role).subscribe();
+            const request = http.expectOne(url);
+            expect(request.request.method).toBe('GET');
+            request.flush({});
+        });
+    });
 
     it('saves configuration as an independent unit', () => {
         const configuration: EventPreparationConfiguration = {
@@ -46,5 +64,17 @@ describe('EventPreparationService', () => {
         const materials = http.expectOne(`${environment.baseUrl}/calendar-events/42/preparation/materials`);
         expect(materials.request.body).toEqual({ materials: [{ itemId: 9, assignmentId: 11, requiredQuantity: 2 }] });
         materials.flush({});
+    });
+
+    it('keeps treasurer confirmations inside the finance API', () => {
+        service.confirmBudget(42, RoleEnums.TREASURER).subscribe();
+        const budget = http.expectOne(`${environment.baseUrl}/finance/events/42/budget-confirmation`);
+        expect(budget.request.method).toBe('POST');
+        budget.flush({});
+
+        service.confirmNoMovements(42, RoleEnums.TREASURER).subscribe();
+        const noMovements = http.expectOne(`${environment.baseUrl}/finance/events/42/no-movements-confirmation`);
+        expect(noMovements.request.method).toBe('POST');
+        noMovements.flush({});
     });
 });
