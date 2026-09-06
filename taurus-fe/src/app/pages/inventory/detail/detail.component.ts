@@ -2,18 +2,22 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { InventoryIssueListComponent } from '../../../components/inventory-issue-list/inventory-issue-list.component';
+import { InventoryLabelDialogComponent } from '../../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
+import { InventoryQrRotateDialogComponent } from '../../../dialogs/inventory-qr-rotate-dialog/inventory-qr-rotate-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryReturn, Users, UsersCriteria } from '../../../module';
-import { ConfirmService, InventoryService, ToastService, UsersService } from '../../../service';
+import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryLabelRequest, InventoryReturn, Users, UsersCriteria } from '../../../module';
+import { ConfirmService, InventoryService, TenantFeatureService, ToastService, UsersService } from '../../../service';
+import { DialogService } from 'primeng/dynamicdialog';
 
 @Component({
     selector: 'app-inventory-detail',
     standalone: true,
-    imports: [ImportsModule, InventoryExpirationBadgeComponent],
+    imports: [ImportsModule, InventoryExpirationBadgeComponent, InventoryIssueListComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
-    providers: [UsersService]
+    providers: [UsersService, DialogService]
 })
 export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected item: InventoryItem = this.emptyItem();
@@ -38,6 +42,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     ];
 
     protected readonly dirtyAssignments = new Set<number>();
+    protected readonly inventoryQrEnabled;
 
     private static readonly PHOTO_ORDER_UNIT = 'ordine fotografie';
     private static readonly ASSIGNMENTS_UNIT = 'assegnazioni';
@@ -61,10 +66,13 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         private readonly usersService: UsersService,
         private readonly toastService: ToastService,
         private readonly confirmService: ConfirmService,
+        private readonly dialogService: DialogService,
+        tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
     ) {
         super();
+        this.inventoryQrEnabled = tenantFeatureService.inventoryQrEnabled;
     }
 
     private syncAssignmentsUnit(): void {
@@ -99,6 +107,59 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
 
     protected markItemDirty(): void {
         this.isDirty = true;
+    }
+
+    protected printLabel(): void {
+        this.dialogService
+            .open(InventoryLabelDialogComponent, {
+                header: 'Stampa etichetta',
+                modal: true,
+                width: '38rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                data: { items: [this.item] }
+            })
+            .onClose.pipe(first())
+            .subscribe((request?: InventoryLabelRequest) => {
+                if (!request) return;
+                this.inventoryService
+                    .generateLabels(request)
+                    .pipe(first())
+                    .subscribe((blob) => this.downloadLabels(blob));
+            });
+    }
+
+    protected rotateQrCode(): void {
+        if (!this.item.id) return;
+        this.dialogService
+            .open(InventoryQrRotateDialogComponent, {
+                header: 'Ruota codice QR',
+                modal: true,
+                width: '34rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' }
+            })
+            .onClose.pipe(first())
+            .subscribe((reason?: string) => {
+                if (!reason) return;
+                this.inventoryService
+                    .rotateQrCode(this.item.id!, reason)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success('Codice ruotato', 'Stampa una nuova etichetta per rendere nuovamente scansionabile il bene.');
+                    });
+            });
+    }
+
+    protected qrCodeUrl(): string {
+        return this.inventoryService.qrCodeUrl(this.item.id!, 256);
+    }
+
+    private downloadLabels(blob: Blob): void {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'etichette-inventario.pdf';
+        anchor.click();
+        URL.revokeObjectURL(url);
     }
 
     protected markAssignmentDirty(id: number): void {

@@ -1,0 +1,34 @@
+<app-dialog-shell
+    title="Genera etichette"
+    [subtitle]="totalLabels + (totalLabels === 1 ? ' etichetta pronta per la stampa' : ' etichette pronte per la stampa')"
+    confirmLabel="Scarica PDF"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field label="Layout" forId="labelLayout">
+            <p-select inputId="labelLayout" [options]="layouts" optionLabel="label" optionValue="value" [(ngModel)]="layout" class="w-full" />
+        </app-form-field>
+        @if (layout === 'A4_GRID_3X8') {
+            <app-form-field label="Prima cella libera" forId="startCell" hint="Da 0 a 23, contando da sinistra a destra.">
+                <p-inputnumber inputId="startCell" [(ngModel)]="startCell" [min]="0" [max]="23" [showButtons]="true" class="w-full" />
+            </app-form-field>
+            <label class="flex items-center gap-2 md:col-span-2" for="cutMarks"> <p-checkbox inputId="cutMarks" [(ngModel)]="showCutMarks" [binary]="true" /> Mostra indicatori di taglio </label>
+        }
+    </div>
+    <div class="mt-5 flex flex-col gap-3">
+        @for (item of items; track item.id) {
+            <div class="grid grid-cols-[1fr_8rem] items-center gap-3 border-t border-surface pt-3">
+                <div>
+                    <strong>{{ item.inventoryNumber }}</strong
+                    ><span class="block text-sm text-muted-color">{{ item.name }}</span>
+                </div>
+                <app-form-field label="Copie" [forId]="'copies-' + item.id">
+                    <p-inputnumber [inputId]="'copies-' + item.id" [(ngModel)]="copies[item.id!]" [min]="1" [max]="20" [showButtons]="true" />
+                </app-form-field>
+            </div>
+        }
+    </div>
+    <app-inline-alert class="block mt-4" severity="info" title="Stampa al 100%" detail="Disattiva «Adatta alla pagina» nel dialogo di stampa per mantenere le dimensioni fisiche previste." />
+</app-dialog-shell>

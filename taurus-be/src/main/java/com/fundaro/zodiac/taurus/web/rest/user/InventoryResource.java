@@ -15,6 +15,8 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
 import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryIssueService;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryIssueDtos;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -42,17 +44,20 @@ public class InventoryResource {
     private final InventoryReportService inventoryReportService;
     private final ApplicationProperties.DashboardProperties dashboardProperties;
     private final TenantTimeZoneService tenantTimeZoneService;
+    private final InventoryIssueService inventoryIssueService;
 
     public InventoryResource(
         InventoryService inventoryService,
         InventoryReportService inventoryReportService,
         ApplicationProperties applicationProperties,
-        TenantTimeZoneService tenantTimeZoneService
+        TenantTimeZoneService tenantTimeZoneService,
+        InventoryIssueService inventoryIssueService
     ) {
         this.inventoryService = inventoryService;
         this.inventoryReportService = inventoryReportService;
         this.dashboardProperties = applicationProperties.getDashboard();
         this.tenantTimeZoneService = tenantTimeZoneService;
+        this.inventoryIssueService = inventoryIssueService;
     }
 
     @GetMapping("/assignments")
@@ -130,5 +135,33 @@ public class InventoryResource {
         return com.fundaro.zodiac.taurus.web.rest.InventoryResource.reportResponse(
             inventoryReportService.createOwn(includeAssigned, includeReturned, includePhotos, token)
         );
+    }
+
+    @PostMapping("/assignments/{id}/issues")
+    public ResponseEntity<InventoryIssueDtos.Response> createIssue(
+        @PathVariable long id,
+        @Valid @RequestBody InventoryIssueDtos.CreateRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.status(201).body(inventoryIssueService.createOwn(id, request, token));
+    }
+
+    @GetMapping("/issues/{id}")
+    public InventoryIssueDtos.Response getIssue(@PathVariable long id, AbstractAuthenticationToken token) {
+        return inventoryIssueService.findOwn(id, token);
+    }
+
+    @PostMapping(value = "/issues/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InventoryIssueDtos.Photo> addIssuePhoto(
+        @PathVariable long id,
+        @RequestPart("file") MultipartFile file,
+        AbstractAuthenticationToken token
+    ) throws IOException {
+        return ResponseEntity.status(201).body(inventoryIssueService.addPhoto(id, file, true, token));
+    }
+
+    @GetMapping("/issue-photos/{id}")
+    public ResponseEntity<byte[]> getIssuePhoto(@PathVariable long id, AbstractAuthenticationToken token) {
+        return com.fundaro.zodiac.taurus.web.rest.InventoryResource.photoResponse(inventoryIssueService.getPhoto(id, true, token));
     }
 }

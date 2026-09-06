@@ -9,6 +9,8 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturn;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnPhoto;
@@ -18,6 +20,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentReposit
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
@@ -90,6 +93,8 @@ public class InventoryService {
     private final MediaService mediaService;
     private final MediaRepository mediaRepository;
     private final ObjectMapper objectMapper;
+    private final InventoryQrCodeService qrCodeService;
+    private final InventoryIssueReportRepository issueRepository;
 
     public InventoryService(
         InventoryItemRepository itemRepository,
@@ -102,7 +107,9 @@ public class InventoryService {
         UsersService usersService,
         MediaService mediaService,
         MediaRepository mediaRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        InventoryQrCodeService qrCodeService,
+        InventoryIssueReportRepository issueRepository
     ) {
         this.itemRepository = itemRepository;
         this.photoRepository = photoRepository;
@@ -115,6 +122,8 @@ public class InventoryService {
         this.mediaService = mediaService;
         this.mediaRepository = mediaRepository;
         this.objectMapper = objectMapper;
+        this.qrCodeService = qrCodeService;
+        this.issueRepository = issueRepository;
     }
 
     @Transactional(readOnly = true)
@@ -141,6 +150,8 @@ public class InventoryService {
             case "pending-decisions" -> itemRepository.findWithPendingDecisions(search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
             case "pending-returns" -> itemRepository.findWithPendingReturns(search, pageable);
             case "expiring" -> itemRepository.findWithExpiringAssignments(search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
+            case "issues-unsafe" -> itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.UNSAFE, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
+            case "issues-limiting" -> itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.LIMITING, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
             default -> normalizedQuery == null ? itemRepository.findAllByDeletedFalse(pageable) : itemRepository.search(normalizedQuery, pageable);
         };
         return page.map(item -> toItemDto(item, false));
@@ -186,6 +197,7 @@ public class InventoryService {
         item.setInsertBy(actor);
         item.setEditDate(now);
         item.setEditBy(actor);
+        qrCodeService.issueNew(item, actor);
         apply(item, request);
         itemRepository.save(item);
         return toItemDto(item, true);
@@ -228,6 +240,13 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        if (issueRepository.existsByItem_IdAndSeverityAndStatusInAndDeletedFalse(
+            itemId,
+            InventoryIssueSeverity.UNSAFE,
+            List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED)
+        )) {
+            throw error(HttpStatus.CONFLICT, "Nuove assegnazioni bloccate da una segnalazione di sicurezza aperta", "inventory.issue.unsafe");
+        }
         long available = item.getTotalQuantity() - outstanding(itemId);
         if (request.quantity() > available) {
             throw error(HttpStatus.CONFLICT, "Quantità disponibile insufficiente", "inventory.quantity.unavailable");
@@ -686,6 +705,14 @@ public class InventoryService {
         return new InventoryItemDTO(item.getId(), item.getInventoryNumber(), item.getName(), item.getDescription(), item.getTotalQuantity(), assigned,
             item.getTotalQuantity() - assigned, item.getEstimatedUnitValue(), item.getCurrency(), item.getConditionStatus(), item.getConditionNotes(),
             item.getEntityVersion(), photos, assignments);
+    }
+
+    void updateConditionFromIssue(InventoryItem item, com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition condition, String actor) {
+        if (item.getConditionStatus() == condition) return;
+        item.setConditionStatus(condition);
+        touch(item, actor);
+        itemRepository.save(item);
+        reviseOutstandingAssignments(item, InventoryRevisionReason.ITEM_UPDATED, actor);
     }
 
     private InventoryAssignmentDTO toAssignmentDto(InventoryAssignment assignment) {

@@ -24,6 +24,7 @@ class InventoryAuditSchemaTest {
     void everyInventoryTableMustContainAllAuditColumns() throws Exception {
         assertInventoryTablesHaveAuditColumns("/config/liquibase/changelog/20260818090000_add_inventory.xml");
         assertInventoryTablesHaveAuditColumns("/config/liquibase/changelog/20260901000001_inventory_expiration_notices.xml");
+        assertInventoryTablesHaveAuditColumns("/config/liquibase/changelog/20260906000000_inventory_qr_code.xml");
     }
 
     private void assertInventoryTablesHaveAuditColumns(String resource) throws Exception {
