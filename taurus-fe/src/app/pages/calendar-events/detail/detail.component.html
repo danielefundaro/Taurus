@@ -20,6 +20,243 @@
             <p-button [label]="event.seriesId ? 'Salva solo questo evento' : 'Salva evento'" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm" (onClick)="save()" /></div
     ></app-page-header>
 
+    @if (eventPreparationEnabled()) {
+        <app-detail-section id="preparation" title="Preparazione operativa" description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento." [dirty]="isDirtyPreparation">
+            @if (preparation) {
+                <div class="flex flex-col gap-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4 rounded border border-surface-200 dark:border-surface-700 p-4" aria-live="polite">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <p-tag [value]="preparationStatusLabel()" [severity]="preparationSeverity()" [rounded]="true" />
+                                <p-tag [value]="preparation.evaluation.phase === 'FOLLOW_UP' ? 'Chiusura' : preparation.evaluation.phase === 'IN_PROGRESS' ? 'In corso' : 'Preparazione'" severity="secondary" [rounded]="true" />
+                            </div>
+                            <strong class="text-xl">{{ preparation.evaluation.completionPercent }}%</strong>
+                            <span class="text-surface-500 ml-2">{{ preparation.evaluation.passedChecks }} di {{ preparation.evaluation.applicableChecks }} verifiche completate</span>
+                        </div>
+                        @if (preparation.evaluation.closureStatus !== 'NOT_REQUIRED') {
+                            <div>
+                                <small class="text-surface-500 block">Chiusura successiva</small><strong>{{ preparation.evaluation.closureStatus }}</strong>
+                            </div>
+                        }
+                    </div>
+
+                    @if (preparation.evaluation.issues.length) {
+                        <div class="grid gap-2">
+                            @for (issue of preparation.evaluation.issues; track issue.code + issue.area) {
+                                <p-message [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" variant="outlined" [closable]="false">{{ issue.message }}</p-message>
+                            }
+                        </div>
+                    }
+
+                    @if (preparation.configuration) {
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            @if (preparation.configuration.availabilityRequired) {
+                                <div>
+                                    <small class="text-surface-500 block">Disponibili</small><strong>{{ preparation.availability.available }} / {{ preparation.availability.minimumRequired }}</strong
+                                    ><span class="block text-surface-500">{{ preparation.availability.missing }} risposte mancanti</span>
+                                </div>
+                            }
+                            @if (preparation.configuration.programRequired) {
+                                <div>
+                                    <small class="text-surface-500 block">Programma</small><strong>{{ preparation.program.length }} brani</strong>
+                                </div>
+                            }
+                            @if (preparation.configuration.materialsRequired) {
+                                <div>
+                                    <small class="text-surface-500 block">Materiali</small><strong>{{ preparation.materials.length }} pianificati</strong>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" class="border-t border-surface-200 dark:border-surface-700 pt-5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+                            <app-form-field label="Natura dell’evento" forId="preparationProfile" hint="Il profilo propone i requisiti iniziali; puoi modificarli singolarmente.">
+                                <p-select
+                                    inputId="preparationProfile"
+                                    class="w-full"
+                                    [options]="preparationProfiles"
+                                    optionLabel="label"
+                                    optionValue="value"
+                                    [(ngModel)]="preparationConfiguration.profile"
+                                    (ngModelChange)="applyPreparationProfile($event)"
+                                />
+                            </app-form-field>
+                            @if (preparationConfiguration.availabilityRequired) {
+                                <app-form-field label="Partecipanti minimi" forId="minimumAvailableParticipants" required [error]="preparationConfiguration.minimumAvailableParticipants ? undefined : 'Indica almeno un partecipante.'">
+                                    <p-inputnumber inputId="minimumAvailableParticipants" [(ngModel)]="preparationConfiguration.minimumAvailableParticipants" [min]="1" [showButtons]="true" (ngModelChange)="markPreparationDirty()" />
+                                </app-form-field>
+                                <app-form-field label="Scadenza disponibilità" forId="availabilityDeadlineMinutes" hint="Minuti prima dell’inizio">
+                                    <p-inputnumber inputId="availabilityDeadlineMinutes" [(ngModel)]="preparationConfiguration.availabilityDeadlineMinutes" [min]="0" [max]="43200" suffix=" min" (ngModelChange)="markPreparationDirty()" />
+                                </app-form-field>
+                            }
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <label class="flex items-center gap-2"><p-checkbox inputId="prepLocation" [(ngModel)]="preparationConfiguration.locationRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Luogo richiesto</span></label>
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox
+                                    inputId="prepProgram"
+                                    [(ngModel)]="preparationConfiguration.programRequired"
+                                    [binary]="true"
+                                    (onChange)="preparationConfiguration.scoresRequired = preparationConfiguration.programRequired && preparationConfiguration.scoresRequired; markPreparationDirty()"
+                                /><span>Programma musicale</span></label
+                            >
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepScores" [(ngModel)]="preparationConfiguration.scoresRequired" [binary]="true" [disabled]="!preparationConfiguration.programRequired" (onChange)="markPreparationDirty()" /><span
+                                    >Spartiti</span
+                                ></label
+                            >
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepAvailability" [(ngModel)]="preparationConfiguration.availabilityRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Disponibilità</span></label
+                            >
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepMaterials" [(ngModel)]="preparationConfiguration.materialsRequired" [binary]="true" [disabled]="!inventoryEnabled()" (onChange)="markPreparationDirty()" /><span>Materiali</span></label
+                            >
+                            <label class="flex items-center gap-2"><p-checkbox inputId="prepBudget" [(ngModel)]="preparationConfiguration.budgetRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Preventivo</span></label>
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepPresence" [(ngModel)]="preparationConfiguration.presenceClosureRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Verifica presenze dopo l’evento</span></label
+                            >
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepFinance" [(ngModel)]="preparationConfiguration.financialClosureRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Chiusura economica</span></label
+                            >
+                        </div>
+                        <div class="flex flex-wrap justify-end gap-2 mt-5">
+                            @if (preparation.configuration?.budgetRequired) {
+                                <p-button label="Conferma preventivo" severity="secondary" outlined icon="pi pi-check" (onClick)="confirmPreparationArea('budget')" />
+                            }
+                            @if (preparation.evaluation.phase === 'FOLLOW_UP' && preparation.configuration?.presenceClosureRequired) {
+                                <p-button label="Conferma presenze" severity="secondary" outlined icon="pi pi-users" (onClick)="confirmPreparationArea('presence')" />
+                            }
+                            @if (preparation.evaluation.phase === 'FOLLOW_UP' && preparation.configuration?.financialClosureRequired) {
+                                <p-button label="Nessun movimento previsto" severity="secondary" outlined icon="pi pi-wallet" (onClick)="confirmPreparationArea('finance')" />
+                            }
+                            <p-button
+                                label="Salva preparazione"
+                                icon="pi pi-check"
+                                [loading]="savingPreparation"
+                                [disabled]="!isDirtyPreparation || (preparationConfiguration.availabilityRequired && !preparationConfiguration.minimumAvailableParticipants)"
+                                (onClick)="savePreparation()"
+                            />
+                        </div>
+                    </div>
+                </div>
+            }
+        </app-detail-section>
+
+        @if (preparation?.configuration?.programRequired) {
+            <app-detail-section
+                id="preparation-program"
+                title="Programma"
+                [count]="programDraft.length"
+                description="Scaletta musicale dell’occorrenza. Ogni salvataggio è atomico e indipendente dai dati evento."
+                [dirty]="isDirtyProgram"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+            >
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col sm:flex-row gap-3 items-end">
+                        <app-form-field class="flex-1" label="Brano da aggiungere" forId="preparationTrack"
+                            ><p-select inputId="preparationTrack" class="w-full" [options]="availableTracks" optionLabel="name" optionValue="id" [filter]="true" filterBy="name" placeholder="Seleziona dal catalogo" [(ngModel)]="selectedTrackId"
+                        /></app-form-field>
+                        <p-button label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedTrackId" (onClick)="addProgramEntry()" />
+                    </div>
+                    @if (programDraft.length) {
+                        <div class="flex flex-col gap-3">
+                            @for (row of programDraft; track $index; let i = $index) {
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center rounded border border-surface-200 dark:border-surface-700 p-3">
+                                    <div class="md:col-span-3">
+                                        <strong>{{ i + 1 }}. {{ row.trackName }}</strong
+                                        ><small class="block text-surface-500">{{ row.trackState }}</small>
+                                    </div>
+                                    <div class="md:col-span-2"><p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" (ngModelChange)="markProgramDirty()" /></div>
+                                    <div class="md:col-span-4"><input pInputText class="w-full" [(ngModel)]="row.notes" placeholder="Note per questa esecuzione" (ngModelChange)="markProgramDirty()" /></div>
+                                    <div class="md:col-span-3 flex justify-end gap-1">
+                                        <p-button icon="pi pi-arrow-up" severity="secondary" text rounded ariaLabel="Sposta prima" [disabled]="i === 0" (onClick)="moveProgramEntry(i, -1)" />
+                                        <p-button icon="pi pi-arrow-down" severity="secondary" text rounded ariaLabel="Sposta dopo" [disabled]="i === programDraft.length - 1" (onClick)="moveProgramEntry(i, 1)" />
+                                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi dal programma" (onClick)="removeProgramEntry(i)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    } @else {
+                        <app-empty-state compact icon="pi pi-list" title="Programma vuoto" message="Aggiungi almeno un brano per soddisfare la verifica." />
+                    }
+                    <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
+                </div>
+            </app-detail-section>
+        }
+
+        @if (preparation?.configuration?.materialsRequired) {
+            <app-detail-section
+                id="preparation-materials"
+                title="Materiali"
+                [count]="materialsDraft.length"
+                description="Oggetti e assegnazioni necessari per questa singola occorrenza."
+                [dirty]="isDirtyMaterials"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+            >
+                <div class="flex flex-col gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        <app-form-field class="md:col-span-4" label="Oggetto" forId="preparationItem"
+                            ><p-select
+                                inputId="preparationItem"
+                                class="w-full"
+                                [options]="availableItems"
+                                optionLabel="name"
+                                optionValue="id"
+                                [filter]="true"
+                                filterBy="name"
+                                placeholder="Seleziona dall’inventario"
+                                [(ngModel)]="selectedItemId"
+                                (ngModelChange)="selectMaterialItem($event)"
+                        /></app-form-field>
+                        <app-form-field class="md:col-span-4" label="Assegnazione" forId="preparationAssignment"
+                            ><p-select
+                                inputId="preparationAssignment"
+                                class="w-full"
+                                [options]="availableAssignments"
+                                optionLabel="userName"
+                                optionValue="id"
+                                placeholder="Seleziona il responsabile"
+                                [showClear]="true"
+                                [(ngModel)]="selectedAssignmentId"
+                        /></app-form-field>
+                        <app-form-field class="md:col-span-2" label="Quantità" forId="preparationQuantity"><p-inputnumber inputId="preparationQuantity" [(ngModel)]="selectedMaterialQuantity" [min]="1" [showButtons]="true" /></app-form-field>
+                        <p-button class="md:col-span-2" label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedItemId" (onClick)="addMaterial()" />
+                    </div>
+                    @if (materialsDraft.length) {
+                        <div class="flex flex-col gap-2">
+                            @for (row of materialsDraft; track $index; let i = $index) {
+                                <div class="flex flex-wrap items-center justify-between gap-3 rounded border border-surface-200 dark:border-surface-700 p-3">
+                                    <div>
+                                        <strong>{{ row.itemName }}</strong
+                                        ><span class="ml-2">× {{ row.requiredQuantity }}</span
+                                        ><small class="block text-surface-500">{{ row.assignee || 'Nessuna assegnazione collegata' }} · {{ row.condition }}</small>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        @if (row.id) {
+                                            <p-button
+                                                [label]="row.confirmed ? 'Confermato' : 'Conferma preparazione'"
+                                                [icon]="row.confirmed ? 'pi pi-check-circle' : 'pi pi-check'"
+                                                [severity]="row.confirmed ? 'success' : 'secondary'"
+                                                outlined
+                                                [disabled]="row.confirmed"
+                                                (onClick)="confirmPreparationArea('material', row.id)"
+                                            />
+                                        }
+                                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi materiale" (onClick)="removeMaterial(i)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    } @else {
+                        <app-empty-state compact icon="pi pi-box" title="Nessun materiale" message="Aggiungi almeno un oggetto e collegalo a un’assegnazione." />
+                    }
+                    <div class="flex justify-end"><p-button label="Salva materiali" icon="pi pi-check" [loading]="savingMaterials" [disabled]="!isDirtyMaterials" (onClick)="saveMaterials()" /></div>
+                </div>
+            </app-detail-section>
+        }
+    }
+
     <app-detail-section title="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto." [dirty]="isDirtyForm">
         @if (series) {
             <div class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm mb-6">

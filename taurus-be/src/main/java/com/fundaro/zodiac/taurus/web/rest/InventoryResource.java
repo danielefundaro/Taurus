@@ -16,6 +16,11 @@ import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryErasureService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDTO;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryIssueDtos;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos;
+import com.fundaro.zodiac.taurus.service.impl.InventoryIssueService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryLabelService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryQrCodeService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
@@ -23,6 +28,7 @@ import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +37,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,19 +56,28 @@ public class InventoryResource {
     private final InventoryErasureService inventoryErasureService;
     private final ApplicationProperties.DashboardProperties dashboardProperties;
     private final TenantTimeZoneService tenantTimeZoneService;
+    private final InventoryQrCodeService inventoryQrCodeService;
+    private final InventoryLabelService inventoryLabelService;
+    private final InventoryIssueService inventoryIssueService;
 
     public InventoryResource(
         InventoryService inventoryService,
         InventoryReportService inventoryReportService,
         InventoryErasureService inventoryErasureService,
         ApplicationProperties applicationProperties,
-        TenantTimeZoneService tenantTimeZoneService
+        TenantTimeZoneService tenantTimeZoneService,
+        InventoryQrCodeService inventoryQrCodeService,
+        InventoryLabelService inventoryLabelService,
+        InventoryIssueService inventoryIssueService
     ) {
         this.inventoryService = inventoryService;
         this.inventoryReportService = inventoryReportService;
         this.inventoryErasureService = inventoryErasureService;
         this.dashboardProperties = applicationProperties.getDashboard();
         this.tenantTimeZoneService = tenantTimeZoneService;
+        this.inventoryQrCodeService = inventoryQrCodeService;
+        this.inventoryLabelService = inventoryLabelService;
+        this.inventoryIssueService = inventoryIssueService;
     }
 
     @GetMapping("/items")
@@ -214,6 +230,67 @@ public class InventoryResource {
         return inventoryErasureService.complete(id, token);
     }
 
+    @GetMapping(value = "/items/{id}/qr-code.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getQrCode(@PathVariable long id, @RequestParam(defaultValue = "256") int size, AbstractAuthenticationToken token) {
+        return binaryResponse(inventoryLabelService.png(id, size, token), ContentDisposition.inline());
+    }
+
+    @PostMapping(value = "/labels", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> createLabels(@Valid @RequestBody InventoryQrDtos.LabelRequest request, AbstractAuthenticationToken token) {
+        return binaryResponse(inventoryLabelService.labels(request, token), ContentDisposition.attachment());
+    }
+
+    @PostMapping("/items/{id}/qr-code/rotate")
+    public InventoryQrDtos.RotateResponse rotateQrCode(
+        @PathVariable long id,
+        @Valid @RequestBody InventoryQrDtos.RotateRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        return inventoryQrCodeService.rotate(id, request.reason(), token);
+    }
+
+    @GetMapping("/items/{id}/issues")
+    public List<InventoryIssueDtos.Response> getIssues(@PathVariable long id, AbstractAuthenticationToken token) {
+        return inventoryIssueService.findForItem(id, token);
+    }
+
+    @PostMapping("/items/{id}/issues")
+    public ResponseEntity<InventoryIssueDtos.Response> createIssue(
+        @PathVariable long id,
+        @Valid @RequestBody InventoryIssueDtos.CreateRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        return ResponseEntity.status(201).body(inventoryIssueService.createAdmin(id, request, token));
+    }
+
+    @GetMapping("/issues/{id}")
+    public InventoryIssueDtos.Response getIssue(@PathVariable long id, AbstractAuthenticationToken token) {
+        return inventoryIssueService.findAdmin(id, token);
+    }
+
+    @PatchMapping("/issues/{id}/status")
+    public InventoryIssueDtos.Response transitionIssue(
+        @PathVariable long id,
+        @Valid @RequestBody InventoryIssueDtos.TransitionRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        return inventoryIssueService.transition(id, request, token);
+    }
+
+    @PostMapping(value = "/issues/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InventoryIssueDtos.Photo> addIssuePhoto(
+        @PathVariable long id,
+        @RequestPart("file") MultipartFile file,
+        AbstractAuthenticationToken token
+    ) throws IOException {
+        return ResponseEntity.status(201).body(inventoryIssueService.addPhoto(id, file, false, token));
+    }
+
+    @GetMapping("/issue-photos/{id}")
+    public ResponseEntity<byte[]> getIssuePhoto(@PathVariable long id, AbstractAuthenticationToken token) {
+        return photoResponse(inventoryIssueService.getPhoto(id, false, token));
+    }
+
     public static ResponseEntity<byte[]> photoResponse(InventoryService.PhotoContent photo) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(photo.contentType()));
@@ -226,5 +303,13 @@ public class InventoryResource {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(ContentDisposition.attachment().filename(report.fileName()).build());
         return ResponseEntity.ok().headers(headers).body(report.bytes());
+    }
+
+    private static ResponseEntity<byte[]> binaryResponse(InventoryQrDtos.BinaryContent content, ContentDisposition.Builder disposition) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(content.contentType()));
+        headers.setContentDisposition(disposition.filename(content.fileName()).build());
+        headers.setCacheControl(CacheControl.noStore());
+        return ResponseEntity.ok().headers(headers).body(content.bytes());
     }
 }

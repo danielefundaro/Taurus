@@ -76,6 +76,13 @@ class TenantSchemaProvisioningServiceIT {
         assertThat(queryLong("SELECT COUNT(*) FROM " + quote(schemaName) + ".preferences")).isZero();
         assertThat(queryString("SELECT status FROM public.tenant_schema_registry WHERE tenant_code = ?", tenantCode)).isEqualTo("ACTIVE");
         assertThat(queryBoolean("SELECT to_regclass(?) IS NOT NULL", schemaName + ".inventory_item")).isTrue();
+        assertThat(queryBoolean("SELECT to_regclass(?) IS NOT NULL", schemaName + ".inventory_qr_rotation")).isTrue();
+        assertThat(queryBoolean("SELECT to_regclass(?) IS NOT NULL", schemaName + ".inventory_issue_report")).isTrue();
+        assertThat(queryBoolean("SELECT to_regclass(?) IS NOT NULL", schemaName + ".inventory_issue_photo")).isTrue();
+        assertThat(queryBoolean(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND table_name = 'inventory_item' AND column_name = 'qr_public_id' AND is_nullable = 'NO')",
+            schemaName
+        )).isTrue();
         assertThat(queryBoolean(
             "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND column_name = 'tenant_code')",
             schemaName

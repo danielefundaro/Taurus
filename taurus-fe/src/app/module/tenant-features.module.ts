@@ -8,4 +8,6 @@ export interface TenantFeatures {
     version: number;
     financeEnabled: boolean;
     inventoryEnabled: boolean;
+    eventPreparationEnabled: boolean;
+    inventoryQrEnabled: boolean;
 }

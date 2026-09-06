@@ -14,6 +14,8 @@ export class TenantFeatureService {
     readonly loaded = computed(() => this.features() !== null);
     readonly financeEnabled = computed(() => this.features()?.financeEnabled === true);
     readonly inventoryEnabled = computed(() => this.features()?.inventoryEnabled === true);
+    readonly eventPreparationEnabled = computed(() => this.features()?.eventPreparationEnabled === true);
+    readonly inventoryQrEnabled = computed(() => this.features()?.inventoryQrEnabled === true);
     readonly current = this.features.asReadonly();
 
     constructor(private readonly http: HttpClient) {

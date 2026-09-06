@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.domain.Tenants;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
@@ -15,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantFeatureService {
 
     private final TenantsRepository tenantsRepository;
+    private final ApplicationProperties properties;
 
-    public TenantFeatureService(TenantsRepository tenantsRepository) {
+    public TenantFeatureService(TenantsRepository tenantsRepository, ApplicationProperties properties) {
         this.tenantsRepository = tenantsRepository;
+        this.properties = properties;
     }
 
     public TenantFeaturesDTO current() {
@@ -26,7 +29,9 @@ public class TenantFeatureService {
             tenant.getCode(),
             tenant.getEntityVersion(),
             Boolean.TRUE.equals(tenant.getFinanceEnabled()),
-            Boolean.TRUE.equals(tenant.getInventoryEnabled())
+            Boolean.TRUE.equals(tenant.getInventoryEnabled()),
+            properties.getEventPreparation().isEnabled(),
+            properties.getInventory().getQr().isEnabled()
         );
     }
 

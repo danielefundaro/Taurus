@@ -1,0 +1,10 @@
+<app-dialog-shell title="Ruota codice QR" subtitle="Questa operazione non può essere annullata automaticamente." confirmLabel="Ruota e invalida" [invalidCount]="(reason.trim() ? 0 : 1) + (confirmed ? 0 : 1)" (cancel)="cancel()" (confirm)="save()">
+    <app-inline-alert severity="warn" title="Le vecchie etichette smetteranno di funzionare" detail="Dopo la rotazione dovrai scaricare e applicare una nuova etichetta." />
+    <app-form-field class="block mt-4" label="Motivazione" forId="rotationReason" required [error]="reason.trim() ? undefined : 'Inserisci la motivazione.'">
+        <textarea pTextarea id="rotationReason" rows="4" maxlength="500" [(ngModel)]="reason"></textarea>
+    </app-form-field>
+    <label class="flex items-start gap-2 mt-4" for="rotationConfirm">
+        <p-checkbox inputId="rotationConfirm" [(ngModel)]="confirmed" [binary]="true" />
+        <span>Confermo di voler invalidare tutte le etichette stampate con il codice attuale.</span>
+    </label>
+</app-dialog-shell>

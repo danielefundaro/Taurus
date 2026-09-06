@@ -129,3 +129,67 @@ export interface InventoryUserSummary {
     pendingDecisions: number;
     lastAssignedAt?: string | null;
 }
+
+export type InventoryLabelLayout = 'SINGLE_62X40' | 'A4_GRID_3X8';
+export type InventoryIssueSeverity = 'MINOR' | 'LIMITING' | 'UNSAFE';
+export type InventoryIssueStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'DISMISSED';
+export type InventoryScanAction = 'ASSIGN' | 'RETURN' | 'ADD_ITEM_PHOTO' | 'REPORT_ISSUE' | 'PRINT_LABEL' | 'ROTATE_CODE' | 'VIEW' | 'REQUEST_RETURN' | 'COMPLETE_DECISION';
+
+export interface InventoryLabelRequest {
+    layout: InventoryLabelLayout;
+    startCell: number;
+    showCutMarks: boolean;
+    entries: Array<{ itemId: number; copies: number }>;
+}
+
+export interface InventoryIssuePhoto {
+    id: number;
+    fileName: string;
+    contentType: string;
+    fileSize: number;
+    displayOrder: number;
+}
+
+export interface InventoryIssue {
+    id: number;
+    itemId: number;
+    assignmentId?: number;
+    inventoryNumber: string;
+    itemName: string;
+    reportedQuantity: number;
+    severity: InventoryIssueSeverity;
+    description: string;
+    status: InventoryIssueStatus;
+    resolutionNotes?: string;
+    reportedAt: string;
+    acknowledgedAt?: string;
+    resolvedAt?: string;
+    version: number;
+    photos: InventoryIssuePhoto[];
+}
+
+export interface InventoryScanAssignment {
+    assignmentId: number;
+    inventoryNumber: string;
+    itemName: string;
+    outstandingQuantity: number;
+    status: InventoryAssignmentStatus;
+    previewPhotoId?: number;
+    allowedActions: InventoryScanAction[];
+}
+
+export interface InventoryScanResult {
+    target: 'ADMIN_ITEM' | 'OWN_ASSIGNMENTS';
+    itemId?: number;
+    inventoryNumber?: string;
+    name?: string;
+    conditionStatus?: InventoryCondition;
+    totalQuantity?: number;
+    assignedQuantity?: number;
+    availableQuantity?: number;
+    previewPhotoId?: number;
+    openIssueCount?: number;
+    unsafe?: boolean;
+    allowedActions: InventoryScanAction[];
+    assignments: InventoryScanAssignment[];
+}

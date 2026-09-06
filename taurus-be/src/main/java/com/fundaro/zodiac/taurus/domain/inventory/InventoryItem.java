@@ -7,6 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "inventory_item")
@@ -37,6 +39,18 @@ public class InventoryItem extends TenantAuditedEntity {
     @Column(name = "condition_notes", length = 2000)
     private String conditionNotes;
 
+    @Column(name = "qr_public_id", nullable = false, unique = true)
+    private UUID qrPublicId;
+
+    @Column(name = "qr_version", nullable = false)
+    private int qrVersion;
+
+    @Column(name = "qr_issued_at", nullable = false)
+    private ZonedDateTime qrIssuedAt;
+
+    @Column(name = "qr_issued_by", nullable = false)
+    private String qrIssuedBy;
+
     public String getInventoryNumber() { return inventoryNumber; }
     public void setInventoryNumber(String inventoryNumber) { this.inventoryNumber = inventoryNumber; }
     public String getName() { return name; }
@@ -53,4 +67,12 @@ public class InventoryItem extends TenantAuditedEntity {
     public void setConditionStatus(InventoryCondition conditionStatus) { this.conditionStatus = conditionStatus; }
     public String getConditionNotes() { return conditionNotes; }
     public void setConditionNotes(String conditionNotes) { this.conditionNotes = conditionNotes; }
+    public UUID getQrPublicId() { return qrPublicId; }
+    public void setQrPublicId(UUID value) { qrPublicId = value; }
+    public int getQrVersion() { return qrVersion; }
+    public void setQrVersion(int value) { qrVersion = value; }
+    public ZonedDateTime getQrIssuedAt() { return qrIssuedAt; }
+    public void setQrIssuedAt(ZonedDateTime value) { qrIssuedAt = value; }
+    public String getQrIssuedBy() { return qrIssuedBy; }
+    public void setQrIssuedBy(String value) { qrIssuedBy = value; }
 }

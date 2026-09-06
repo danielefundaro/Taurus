@@ -106,6 +106,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PATCH, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
                     .requestMatchers(HttpMethod.DELETE, "/api/users/me/gdpr").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/inventory-scan/v1/*").authenticated()
                     .requestMatchers("/api/calendar-feeds/**").authenticated()
                     .requestMatchers("/api/preferences/**", "/api/last-researches/**", "/api/notices/**", "/api/push-subscriptions/**")
                     .authenticated()
@@ -114,6 +115,8 @@ public class SecurityConfiguration {
                         "/api/user/inventory/assignments/**",
                         "/api/user/inventory/photos/**",
                         "/api/user/inventory/return-photos/**",
+                        "/api/user/inventory/issues/**",
+                        "/api/user/inventory/issue-photos/**",
                         "/api/user/inventory/summary",
                         "/api/user/inventory/report"
                     )
@@ -122,6 +125,8 @@ public class SecurityConfiguration {
                         HttpMethod.POST,
                         "/api/user/inventory/assignments/{id}/decision",
                         "/api/user/inventory/assignments/{id}/returns",
+                        "/api/user/inventory/assignments/{id}/issues",
+                        "/api/user/inventory/issues/{id}/photos",
                         "/api/user/inventory/returns/{id}/photos"
                     )
                     .authenticated()
@@ -168,6 +173,8 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
 
                     // Calendar event administration and personal availability.
+                    .requestMatchers(HttpMethod.PUT, "/api/calendar-events/{eventId}/preparation/program")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/{id}/availability")

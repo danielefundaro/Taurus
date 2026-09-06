@@ -1,0 +1,54 @@
+<app-detail-section title="Segnalazioni guasto" [count]="issues.length" description="Le segnalazioni mantengono uno storico indipendente dalle note di conservazione.">
+    <div sectionActions><p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="create()" /></div>
+    @if (loading) {
+        <p-skeleton height="8rem" />
+    } @else if (!issues.length) {
+        <app-empty-state compact icon="pi pi-check-circle" title="Nessun guasto segnalato" message="Non risultano segnalazioni per questo oggetto." />
+    } @else {
+        <div class="flex flex-col gap-4">
+            @for (issue of issues; track issue.id) {
+                <article class="border border-surface rounded-xl p-4 flex flex-col gap-3">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <strong>Segnalazione #{{ issue.id }}</strong
+                            ><span class="block text-sm text-muted-color">{{ issue.reportedAt | date: 'dd/MM/yyyy HH:mm' }} · {{ issue.reportedQuantity }} unità</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <p-tag [value]="severityLabel(issue)" [severity]="issue.severity === 'UNSAFE' ? 'danger' : issue.severity === 'LIMITING' ? 'warn' : 'info'" />
+                            <p-tag [value]="statusLabel(issue.status)" [severity]="isTerminal(issue) ? 'success' : 'warn'" />
+                        </div>
+                    </div>
+                    <p class="m-0">{{ issue.description }}</p>
+                    @if (issue.resolutionNotes) {
+                        <app-inline-alert severity="info" title="Esito" [detail]="issue.resolutionNotes" />
+                    }
+                    @if (issue.photos.length) {
+                        <div class="flex flex-wrap gap-2">
+                            @for (photo of issue.photos; track photo.id) {
+                                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" class="w-20 h-20 object-cover rounded-lg border border-surface" />
+                            }
+                        </div>
+                    }
+                    @if (!isTerminal(issue)) {
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-surface">
+                            <label class="p-button p-component p-button-secondary cursor-pointer justify-center"
+                                ><i class="pi pi-camera mr-2"></i><span>Aggiungi fotografia</span><input type="file" accept="image/jpeg,image/png" capture="environment" class="hidden" (change)="upload(issue, $event)"
+                            /></label>
+                            @if (issue.status === 'OPEN') {
+                                <p-button label="Prendi in carico" icon="pi pi-user-edit" severity="secondary" (onClick)="transition(issue, 'ACKNOWLEDGED')" />
+                            }
+                            <app-form-field class="md:col-span-2" label="Note di chiusura" [forId]="'resolution-' + issue.id">
+                                <textarea pTextarea [id]="'resolution-' + issue.id" rows="3" maxlength="2000" [(ngModel)]="resolutionNotes[issue.id]"></textarea>
+                            </app-form-field>
+                            <app-form-field class="md:col-span-2" label="Aggiorna stato del bene" [forId]="'condition-' + issue.id"
+                                ><p-select [inputId]="'condition-' + issue.id" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="resolutionConditions[issue.id]" class="w-full"
+                            /></app-form-field>
+                            <p-button label="Risolvi" icon="pi pi-check" severity="success" [disabled]="!hasResolutionNotes(issue)" (onClick)="transition(issue, 'RESOLVED')" />
+                            <p-button label="Respingi" icon="pi pi-times" severity="danger" [outlined]="true" [disabled]="!hasResolutionNotes(issue)" (onClick)="transition(issue, 'DISMISSED')" />
+                        </div>
+                    }
+                </article>
+            }
+        </div>
+    }
+</app-detail-section>

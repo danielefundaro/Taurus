@@ -28,6 +28,8 @@ export class OperationsWidgetComponent {
         INVENTORY_DECISIONS_PENDING: ['/inventory?attention=pending-decisions'],
         INVENTORY_RETURNS_PENDING: ['/inventory?attention=pending-returns'],
         INVENTORY_ASSIGNMENTS_EXPIRING: ['/inventory?attention=expiring', '/inventory?view=mine&attention=expiring'],
+        INVENTORY_UNSAFE_ISSUES: ['/inventory?attention=issues-unsafe'],
+        INVENTORY_LIMITING_ISSUES: ['/inventory?attention=issues-limiting'],
         FINANCE_MOVEMENTS_UNRECONCILED: ['/finance?section=movements&reconciled=false'],
         NOTIFICATION_DELIVERY_FAILED: ['/admin/notification-delivery?status=FAILED']
     };

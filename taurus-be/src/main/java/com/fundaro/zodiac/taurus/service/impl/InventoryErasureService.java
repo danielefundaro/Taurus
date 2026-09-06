@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryErasureRequest;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryErasureStatus;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDTO;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
@@ -23,17 +24,20 @@ public class InventoryErasureService {
     private final InventoryAssignmentRepository assignmentRepository;
     private final DataErasureService dataErasureService;
     private final KeycloakService keycloakService;
+    private final InventoryIssueReportRepository issueRepository;
 
     public InventoryErasureService(
         InventoryErasureRequestRepository requestRepository,
         InventoryAssignmentRepository assignmentRepository,
         DataErasureService dataErasureService,
-        KeycloakService keycloakService
+        KeycloakService keycloakService,
+        InventoryIssueReportRepository issueRepository
     ) {
         this.requestRepository = requestRepository;
         this.assignmentRepository = assignmentRepository;
         this.dataErasureService = dataErasureService;
         this.keycloakService = keycloakService;
+        this.issueRepository = issueRepository;
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +59,9 @@ public class InventoryErasureService {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Esiste ancora materiale da riconsegnare", "inventoryErasure", "inventory.erasure.outstanding");
         }
 
-        assignmentRepository.pseudonymizeUser(request.getUserKeycloakId(), "erased:" + UUID.randomUUID());
+        String pseudonym = "erased:" + UUID.randomUUID();
+        assignmentRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
+        issueRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
         dataErasureService.eraseUserData(request.getUserKeycloakId(), tenant);
         var groups = keycloakService.getUserGroups(request.getUserKeycloakId());
         if (groups.size() <= 1) {

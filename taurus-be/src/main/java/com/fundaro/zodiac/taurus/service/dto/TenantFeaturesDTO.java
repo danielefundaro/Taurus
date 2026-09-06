@@ -4,5 +4,7 @@ public record TenantFeaturesDTO(
     String tenantCode,
     Long version,
     boolean financeEnabled,
-    boolean inventoryEnabled
+    boolean inventoryEnabled,
+    boolean eventPreparationEnabled,
+    boolean inventoryQrEnabled
 ) {}
