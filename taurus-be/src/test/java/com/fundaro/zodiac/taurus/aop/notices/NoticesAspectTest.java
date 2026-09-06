@@ -157,7 +157,7 @@ class NoticesAspectTest {
             "Evento: disponibilità confermata",
             "Mario Rossi ha confermato la disponibilità per l'evento “Prova generale”.",
             NotificationSeverity.SUCCESS,
-            "/calendar-events",
+            "/calendar",
             Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN))
         );
     }

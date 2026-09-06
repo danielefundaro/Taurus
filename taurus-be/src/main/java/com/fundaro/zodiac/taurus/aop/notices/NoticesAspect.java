@@ -1238,7 +1238,7 @@ public class NoticesAspect {
                 case "STRUMENTO" -> "/instruments";
                 default -> "/albums";
             };
-            case CALENDAR -> "/calendar-events";
+            case CALENDAR -> "/calendar";
             case IDENTITY -> "/users";
             case INVENTORY -> "/inventory";
             case FINANCE -> "/finance";

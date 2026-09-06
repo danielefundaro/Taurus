@@ -23,6 +23,7 @@ describe('NotificationPresentationService', () => {
     it('translates notification codes into Italian presentation labels', () => {
         expect(service.sourceLabel('FINANCE')).toBe('Economia');
         expect(service.statusLabel('DELIVERED')).toBe('Consegnata');
+        expect(service.statusLabel('SKIPPED')).toBe('Saltata');
         expect(service.operationLabel('ACCOUNT_CREATED')).toBe('Conto creato');
         expect(service.operationLabel('MOVEMENT_UNRECONCILED')).toBe('Riconciliazione annullata');
     });
