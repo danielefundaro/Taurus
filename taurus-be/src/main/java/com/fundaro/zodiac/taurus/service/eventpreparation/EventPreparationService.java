@@ -14,6 +14,12 @@ import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.eventpreparation.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.*;
+import com.fundaro.zodiac.taurus.service.impl.NotificationOutboxPublisher;
+import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +27,7 @@ import java.security.MessageDigest;
 import java.time.*;
 import java.util.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +47,7 @@ public class EventPreparationService {
     private final InventoryAssignmentRepository assignments;
     private final UsersRepository users;
     private final FinancialMovementRepository movements;
+    private NotificationOutboxPublisher notificationPublisher;
 
     public EventPreparationService(
         CalendarEventsRepository events,
@@ -63,6 +71,11 @@ public class EventPreparationService {
         this.movements = movements;
     }
 
+    @Autowired(required = false)
+    void setNotificationPublisher(NotificationOutboxPublisher notificationPublisher) {
+        this.notificationPublisher = notificationPublisher;
+    }
+
     @Transactional(readOnly = true)
     public View get(Long eventId) {
         CalendarEvents event = event(eventId);
@@ -72,6 +85,66 @@ public class EventPreparationService {
         List<CalendarEventMaterial> materialRows = materials.findCurrent(eventId);
         return new View(configuration(preparation), evaluate(event, preparation, program, materialRows), program.stream().map(this::programDto).toList(), availability(event, preparation), materialRows.stream().map(this::materialDto).toList());
     }
+
+    @Transactional(readOnly = true)
+    public View getCatalogue(Long eventId) {
+        View full = get(eventId);
+        return new View(catalogueConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY")), full.program(), full.availability(), List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public View getPersonal(Long eventId, AbstractAuthenticationToken token, boolean external) {
+        CalendarEvents current = event(eventId);
+        if (external ? current.getState() != StateEnum.PUBLIC : current.getState() == StateEnum.DRAFT) throw notFound();
+        String userId = actor(token);
+        users.findByKeycloakIdAndDeletedFalse(userId).orElseThrow(EventPreparationService::notFound);
+        View full = get(eventId);
+        List<ProgramEntry> visibleProgram = full.program().stream()
+            .filter(row -> external ? StateEnum.PUBLIC.name().equals(row.trackState()) : !StateEnum.DRAFT.name().equals(row.trackState()))
+            .toList();
+        return new View(personalConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("PROGRAM", "SCORES", "AVAILABILITY")), visibleProgram, ownAvailability(current, full.configuration(), userId), List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public View getFinance(Long eventId) {
+        View full = get(eventId);
+        return new View(financeConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("BUDGET", "FINANCE")), List.of(), emptyAvailability(), List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public List<DashboardEntry> dashboardEntries(ZonedDateTime from, ZonedDateTime to) {
+        return preparations.findDashboardCandidates(Date.from(from.toInstant()), Date.from(to.toInstant())).stream().map(preparation -> {
+            CalendarEvents current = preparation.getEvent();
+            Evaluation evaluation = evaluate(current, preparation, programs.findCurrent(current.getId()), materials.findCurrent(current.getId()));
+            return new DashboardEntry(
+                current.getId(),
+                current.getName(),
+                ZonedDateTime.ofInstant(current.getStartDate().toInstant(), from.getZone()),
+                ZonedDateTime.ofInstant(current.getEndDate().toInstant(), from.getZone()),
+                preparation.isAvailabilityRequired()
+                    ? ZonedDateTime.ofInstant(current.getStartDate().toInstant(), from.getZone()).minusMinutes(preparation.getAvailabilityDeadlineMinutes())
+                    : null,
+                evaluation.preparationStatus(),
+                evaluation.closureStatus(),
+                evaluation.blockerCount(),
+                evaluation.warningCount(),
+                evaluation.issues().stream().map(Issue::code).collect(java.util.stream.Collectors.toUnmodifiableSet())
+            );
+        }).toList();
+    }
+
+    public record DashboardEntry(
+        Long eventId,
+        String eventName,
+        ZonedDateTime dueAt,
+        ZonedDateTime endedAt,
+        ZonedDateTime availabilityDeadline,
+        PreparationStatus preparationStatus,
+        ClosureStatus closureStatus,
+        int blockerCount,
+        int warningCount,
+        Set<String> issueCodes
+    ) {}
 
     public View configure(Long eventId, Configuration request, AbstractAuthenticationToken token) {
         validate(request);
@@ -90,12 +163,11 @@ public class EventPreparationService {
     }
 
     public View replaceProgram(Long eventId, ProgramRequest request, AbstractAuthenticationToken token) {
-        event(eventId);
+        CalendarEvents event = event(eventId);
         List<CalendarEventProgramEntry> old = programs.findCurrent(eventId);
         old.forEach(value -> { value.setDeleted(true); value.touchAudit(actor(token)); });
         programs.saveAll(old);
         programs.flush();
-        CalendarEvents event = event(eventId);
         int order = 0;
         List<CalendarEventProgramEntry> added = new ArrayList<>();
         for (ProgramEntryRequest row : request.entries()) {
@@ -106,6 +178,7 @@ public class EventPreparationService {
             entry.initializeAudit(actor(token)); added.add(entry);
         }
         programs.saveAll(added);
+        notifyProgramChanged(event, added, token);
         return get(eventId);
     }
 
@@ -127,6 +200,7 @@ public class EventPreparationService {
             material.initializeAudit(actor(token)); added.add(material);
         }
         materials.saveAll(added);
+        notifyMaterialsChanged(event, added, token);
         return get(eventId);
     }
 
@@ -238,6 +312,14 @@ public class EventPreparationService {
         ZonedDateTime deadline = preparation == null || event.getStartDate() == null ? null : ZonedDateTime.ofInstant(event.getStartDate().toInstant(), ZoneId.systemDefault()).minusMinutes(preparation.getAvailabilityDeadlineMinutes());
         return new Availability(expected.size(), available, unavailable, Math.max(0, expected.size() - available - unavailable), preparation == null ? null : preparation.getMinimumAvailableParticipants(), deadline);
     }
+    private Availability ownAvailability(CalendarEvents event, Configuration configuration, String userId) {
+        CalendarEventAvailability response = event.getAvailabilities().stream().filter(value -> userId.equals(value.getUser().getKeycloakId())).findFirst().orElse(null);
+        int available = response != null && response.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE ? 1 : 0;
+        int unavailable = response != null && response.getAvailability() == CalendarEventAvailability.Availability.UNAVAILABLE ? 1 : 0;
+        ZonedDateTime deadline = configuration == null || event.getStartDate() == null ? null : ZonedDateTime.ofInstant(event.getStartDate().toInstant(), ZoneId.systemDefault()).minusMinutes(configuration.availabilityDeadlineMinutes());
+        return new Availability(1, available, unavailable, response == null ? 1 : 0, null, deadline);
+    }
+    private static Availability emptyAvailability() { return new Availability(0, 0, 0, 0, null, null); }
     private boolean materialsExpired(CalendarEvents event, CalendarEventPreparation p) { return event.getStartDate() != null && Instant.now().isAfter(event.getStartDate().toInstant().minusSeconds(p.getMaterialsDeadlineMinutes() * 60L)); }
     private Phase phase(CalendarEvents event) { if (event.getStartDate() == null || event.getEndDate() == null) return Phase.UNKNOWN; Instant now = Instant.now(); return now.isBefore(event.getStartDate().toInstant()) ? Phase.PREPARATION : now.isAfter(event.getEndDate().toInstant()) ? Phase.FOLLOW_UP : Phase.IN_PROGRESS; }
 
@@ -245,6 +327,19 @@ public class EventPreparationService {
     private ProgramEntry programDto(CalendarEventProgramEntry row) { return new ProgramEntry(row.getId(), row.getTrack().getId(), row.getTrack().getName(), row.getTrack().getState().name(), row.getDisplayOrder(), row.getPlannedDurationSeconds(), row.getNotes()); }
     private Material materialDto(CalendarEventMaterial row) { return new Material(row.getId(), row.getItem().getId(), row.getItem().getName(), row.getAssignment() == null ? null : row.getAssignment().getId(), row.getAssignment() == null ? null : row.getAssignment().getUserName() + " " + row.getAssignment().getUserLastName(), row.getRequiredQuantity(), row.getItem().getConditionStatus().name(), materialReady(row), row.getNotes()); }
     private Configuration configuration(CalendarEventPreparation p) { return new Configuration(p.getProfile(), p.isLocationRequired(), p.isProgramRequired(), p.isScoresRequired(), p.isAvailabilityRequired(), p.getMinimumAvailableParticipants(), p.getAvailabilityDeadlineMinutes(), p.isMaterialsRequired(), p.getMaterialsDeadlineMinutes(), p.isBudgetRequired(), p.isPresenceClosureRequired(), p.isFinancialClosureRequired(), p.getEntityVersion()); }
+    private static Configuration catalogueConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, c.programRequired(), c.scoresRequired(), c.availabilityRequired(), c.minimumAvailableParticipants(), c.availabilityDeadlineMinutes(), false, 0, false, false, false, c.version()); }
+    private static Configuration personalConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, c.programRequired(), c.scoresRequired(), c.availabilityRequired(), null, c.availabilityDeadlineMinutes(), false, 0, false, false, false, c.version()); }
+    private static Configuration financeConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, false, false, false, null, 0, false, 0, c.budgetRequired(), false, c.financialClosureRequired(), c.version()); }
+    private static Evaluation filterEvaluation(Evaluation source, Set<String> areas) {
+        List<Issue> issues = source.issues().stream().filter(issue -> areas.contains(issue.area())).toList();
+        int blockers = (int) issues.stream().filter(issue -> issue.severity() == Severity.BLOCKER).count();
+        int warnings = (int) issues.stream().filter(issue -> issue.severity() == Severity.WARNING).count();
+        PreparationStatus preparationStatus = source.preparationStatus() == PreparationStatus.NOT_CONFIGURED
+            ? PreparationStatus.NOT_CONFIGURED
+            : blockers > 0 ? PreparationStatus.BLOCKED : warnings > 0 ? PreparationStatus.ATTENTION : PreparationStatus.READY;
+        ClosureStatus closureStatus = areas.contains("FINANCE") ? source.closureStatus() : ClosureStatus.NOT_REQUIRED;
+        return new Evaluation(source.evaluatedAt(), source.phase(), preparationStatus, closureStatus, issues.isEmpty() ? 100 : 0, issues.isEmpty() ? 1 : 0, 1, blockers, warnings, issues);
+    }
     private void apply(CalendarEventPreparation p, Configuration c) { p.setProfile(c.profile()); p.setLocationRequired(c.locationRequired()); p.setProgramRequired(c.programRequired()); p.setScoresRequired(c.scoresRequired()); p.setAvailabilityRequired(c.availabilityRequired()); p.setMinimumAvailableParticipants(c.availabilityRequired() ? c.minimumAvailableParticipants() : null); p.setAvailabilityDeadlineMinutes(c.availabilityDeadlineMinutes()); p.setMaterialsRequired(c.materialsRequired()); p.setMaterialsDeadlineMinutes(c.materialsDeadlineMinutes()); p.setBudgetRequired(c.budgetRequired()); p.setPresenceClosureRequired(c.presenceClosureRequired()); p.setFinancialClosureRequired(c.financialClosureRequired()); }
     private void validate(Configuration c) { if (c.scoresRequired() && !c.programRequired()) throw invalid("Gli spartiti richiedono il programma"); if (c.availabilityRequired() && (c.minimumAvailableParticipants() == null || c.minimumAvailableParticipants() < 1)) throw invalid("Indica il numero minimo di partecipanti"); }
 
@@ -260,6 +355,60 @@ public class EventPreparationService {
     private static String trim(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     private static RequestAlertException invalid(String message) { return new RequestAlertException(HttpStatus.BAD_REQUEST, message, ENTITY, "invalid"); }
     private static void conflict() { throw new RequestAlertException(HttpStatus.CONFLICT, "La configurazione è stata modificata", ENTITY, "concurrentModification"); }
+    private static RequestAlertException notFound() { return new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "notFound"); }
+
+    private void notifyProgramChanged(CalendarEvents event, List<CalendarEventProgramEntry> rows, AbstractAuthenticationToken token) {
+        if (notificationPublisher == null || event.getStartDate() == null || !event.getStartDate().toInstant().isAfter(Instant.now()) || event.getState() == StateEnum.DRAFT) return;
+        Set<NotificationAudience> audiences = event.getAvailabilities().stream()
+            .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
+            .map(value -> NotificationAudience.user(value.getUser().getKeycloakId()))
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        if (audiences.isEmpty()) return;
+        List<Object> snapshot = new ArrayList<>();
+        rows.forEach(row -> {
+            snapshot.add(row.getTrack().getId());
+            snapshot.add(row.getDisplayOrder());
+            snapshot.add(row.getPlannedDurationSeconds());
+            snapshot.add(row.getNotes());
+        });
+        enqueue(event, token, "PROGRAM_UPDATED", hash(snapshot.toArray()), "Programma evento aggiornato", "Il programma di “" + event.getName() + "” è stato aggiornato.", audiences);
+    }
+
+    private void notifyMaterialsChanged(CalendarEvents event, List<CalendarEventMaterial> rows, AbstractAuthenticationToken token) {
+        if (notificationPublisher == null) return;
+        Set<NotificationAudience> audiences = new LinkedHashSet<>();
+        audiences.add(NotificationAudience.role(RoleEnum.ROLE_ADMIN));
+        audiences.add(NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN));
+        rows.stream().map(CalendarEventMaterial::getAssignment).filter(Objects::nonNull).map(InventoryAssignment::getUserKeycloakId).filter(Objects::nonNull).map(NotificationAudience::user).forEach(audiences::add);
+        List<Object> snapshot = new ArrayList<>();
+        rows.forEach(row -> {
+            snapshot.add(row.getItem().getId());
+            snapshot.add(row.getAssignment() == null ? null : row.getAssignment().getId());
+            snapshot.add(row.getRequiredQuantity());
+            snapshot.add(row.getNotes());
+        });
+        enqueue(event, token, "MATERIALS_UPDATED", hash(snapshot.toArray()), "Materiali evento aggiornati", "I materiali di “" + event.getName() + "” sono stati aggiornati.", Set.copyOf(audiences));
+    }
+
+    private void enqueue(CalendarEvents event, AbstractAuthenticationToken token, String operation, String revision, String title, String message, Set<NotificationAudience> audiences) {
+        String actor = actor(token);
+        notificationPublisher.enqueue(new NotificationCommand(
+            "event-preparation:" + event.getId() + ":" + operation + ":" + revision,
+            NotificationSource.CALENDAR,
+            "CALENDAR_EVENT",
+            event.getId().toString(),
+            operation,
+            title,
+            message,
+            NotificationSeverity.INFO,
+            NotificationPreferencePolicy.CONFIGURABLE,
+            "/calendar/" + event.getId() + "#preparation",
+            actor,
+            actor,
+            audiences,
+            null
+        ));
+    }
 
     private static final class Checks {
         private int applicable; private int passed; private final List<Issue> issues = new ArrayList<>();

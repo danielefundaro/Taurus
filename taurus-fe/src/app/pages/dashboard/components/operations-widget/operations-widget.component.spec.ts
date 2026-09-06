@@ -88,4 +88,15 @@ describe('OperationsWidgetComponent', () => {
 
         expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/calendar?attention=my-missing-availability');
     });
+
+    it('accepts the event preparation target for its matching operation', () => {
+        component['navigate']({
+            ...item,
+            key: 'EVENT_PREPARATION_BLOCKED',
+            type: 'EVENT_PREPARATION_BLOCKED',
+            targetPath: '/calendar?attention=event-preparation'
+        });
+
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/calendar?attention=event-preparation');
+    });
 });
