@@ -25,6 +25,7 @@ import java.time.Instant;
 public class PushReminderScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(PushReminderScheduler.class);
+    private static final String CALENDAR_EVENT_PATH = "/calendar/";
 
     private final PushReminderRepository reminderRepository;
     private final PushService pushService;
@@ -98,7 +99,7 @@ public class PushReminderScheduler {
             String title = preference.pushPreview() == NotificationPushPreview.PRIVATE ? "Taurus" : "Promemoria evento";
             if (preference.pushPreview() == NotificationPushPreview.PRIVATE) body = "Hai un promemoria per un evento";
             var result = pushService.sendToUserNow(
-                reminder.getUserId(), TenantContext.getTenantCode().orElseThrow(), title, body, "/calendar-events/" + reminder.getEventId()
+                reminder.getUserId(), TenantContext.getTenantCode().orElseThrow(), title, body, CALENDAR_EVENT_PATH + reminder.getEventId()
             );
             if (metrics != null) metrics.recordSubscriptionsRemoved(result.invalid());
             if (result.delivered()) {

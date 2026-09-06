@@ -23,7 +23,8 @@ const SOURCE_LABELS: Readonly<Record<string, string>> = {
 const STATUS_LABELS: Readonly<Record<string, string>> = {
     PENDING: 'In attesa',
     DELIVERED: 'Consegnata',
-    FAILED: 'Fallita'
+    FAILED: 'Fallita',
+    SKIPPED: 'Saltata'
 };
 
 const OPERATION_LABELS: Readonly<Record<string, string>> = {
