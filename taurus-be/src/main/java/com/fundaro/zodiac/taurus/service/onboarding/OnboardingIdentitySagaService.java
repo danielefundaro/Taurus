@@ -34,6 +34,7 @@ public class OnboardingIdentitySagaService {
             operation.setJob(job); operation.setRow(row);
             operation.setOperationType(created ? OnboardingIdentityOperation.Type.CREATE : OnboardingIdentityOperation.Type.LINK_EXISTING);
             operation.setCreatedByJob(created);
+            if (previousOperation.isEmpty()) operation.setSetupEmailStatus(created ? OnboardingIdentityOperation.SetupEmailStatus.PENDING : OnboardingIdentityOperation.SetupEmailStatus.NOT_REQUESTED);
             if (created && id == null) {
                 operations.save(operation);
                 User user = new User(); user.setUsername(email); user.setEmail(email); user.setFirstName(value(row, "nome")); user.setLastName(value(row, "cognome"));
@@ -60,7 +61,16 @@ public class OnboardingIdentitySagaService {
             try {
                 if (operation.isCreatedByJob()) {
                     String id = operation.getKeycloakId() == null ? find(value(operation.getRow(), "email")) : operation.getKeycloakId();
-                    if (id != null) keycloak.deleteUser(id);
+                    if (id != null) {
+                        boolean linkedElsewhere = keycloak.getUserGroups(id).stream().anyMatch(group -> !tenantCode.equals(group.getName()));
+                        if (linkedElsewhere) {
+                            User user = keycloak.getUser(id);
+                            user.setEnabled(false);
+                            keycloak.updateUser(user);
+                            throw new IllegalStateException("Created identity is linked to another group");
+                        }
+                        keycloak.deleteUser(id);
+                    }
                 }
                 else {
                     User user = keycloak.getUser(operation.getKeycloakId()); Map<String, List<String>> attributes = user.getAttributes() == null ? new HashMap<>() : new HashMap<>(user.getAttributes());
@@ -75,11 +85,30 @@ public class OnboardingIdentitySagaService {
     }
 
     public int sendSetupEmails(Long jobId) {
-        int failures = 0;
-        for (OnboardingIdentityOperation operation : operations.findAllByJob_IdOrderByRow_RowNumberDesc(jobId)) if (operation.isCreatedByJob() && operation.getStatus() == OnboardingIdentityOperation.Status.APPLIED) {
-            try { keycloak.sendExecuteActionsEmail(operation.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL")); } catch (RuntimeException exception) { failures++; }
+        return deliverSetupEmails(jobId, false);
+    }
+
+    public int retryFailedSetupEmails(Long jobId) {
+        return deliverSetupEmails(jobId, true);
+    }
+
+    private int deliverSetupEmails(Long jobId, boolean failedOnly) {
+        List<OnboardingIdentityOperation> journal = operations.findAllByJob_IdOrderByRow_RowNumberDesc(jobId);
+        for (OnboardingIdentityOperation operation : journal) {
+            if (!operation.isCreatedByJob() || operation.getStatus() != OnboardingIdentityOperation.Status.APPLIED) continue;
+            if (failedOnly && operation.getSetupEmailStatus() != OnboardingIdentityOperation.SetupEmailStatus.FAILED) continue;
+            if (!failedOnly && operation.getSetupEmailStatus() != OnboardingIdentityOperation.SetupEmailStatus.PENDING && operation.getSetupEmailStatus() != OnboardingIdentityOperation.SetupEmailStatus.FAILED) continue;
+            try {
+                keycloak.sendExecuteActionsEmail(operation.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
+                operation.setSetupEmailStatus(OnboardingIdentityOperation.SetupEmailStatus.SENT);
+                operation.setLastErrorCode(null);
+            } catch (RuntimeException exception) {
+                operation.setSetupEmailStatus(OnboardingIdentityOperation.SetupEmailStatus.FAILED);
+                operation.setLastErrorCode("SETUP_EMAIL_FAILED");
+            }
+            operations.save(operation);
         }
-        return failures;
+        return Math.toIntExact(journal.stream().filter(operation -> operation.getSetupEmailStatus() == OnboardingIdentityOperation.SetupEmailStatus.FAILED).count());
     }
     private String find(String email) {
         return keycloak.getUsers().stream()

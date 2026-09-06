@@ -92,6 +92,8 @@ jhipster:
 
 application:
   base-path: target/test-storage
+  onboarding:
+    recovery-enabled: false
 management:
   health:
     mail:
