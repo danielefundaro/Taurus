@@ -35,10 +35,11 @@ public class CalendarFeedTokenResolver {
         this.rateLimiter = rateLimiter; this.properties = properties.getCalendarFeed();
     }
 
-    public Optional<Download> resolve(String token) {
+    public Optional<Download> resolve(String token, String remoteAddress) {
         if (!properties.isEnabled()) return Optional.empty();
+        if (!rateLimiter.allowRequest(remoteAddress)) throw new CalendarFeedRateLimitException();
         byte[] digest = tokenService.decodeAndDigest(token); if (digest == null) return Optional.empty();
-        if (!rateLimiter.allow(digest)) throw new CalendarFeedRateLimitException();
+        if (!rateLimiter.allowToken(digest)) throw new CalendarFeedRateLimitException();
         CalendarFeedTokenRegistry route = TenantContext.call(null, () -> registry.resolveActive(digest).orElse(null));
         if (route == null) return Optional.empty();
         String tenantCode = schemas.findActiveTenantCode(route.getTenantId()).orElse(null); if (tenantCode == null) return Optional.empty();
