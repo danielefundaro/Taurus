@@ -17,6 +17,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `notification-preferences` | [Preferenze notifiche granulari](notification-preferences-spec.md) | feature | approved | implemented | BE, FE | [2](#notification-preferences-evidenze) | [9](#notification-preferences-evidenze) | non rilasciata | 2026-09-06 |
 | `opensearch-postgresql-migration` | [Migrazione strutturale da OpenSearch a PostgreSQL](migrazione-opensearch-postgresql.md) | migration | approved | implemented | BE | [1](#opensearch-postgresql-migration-evidenze) | [1](#opensearch-postgresql-migration-evidenze) | non rilasciata | 2026-09-04 |
 | `operational-dashboard` | [Dashboard operativa trasversale](operational-dashboard-spec.md) | feature | approved | implemented | BE, FE | 0 | [3](#operational-dashboard-evidenze) | non rilasciata | 2026-09-04 |
+| `operational-runbook` | [Runbook operativo dell'applicativo Taurus](runbook-operativo.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-07 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE | [1](#postgres-tenant-schemas-evidenze) | [1](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-09-04 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [1](#recurring-calendar-events-evidenze) | [1](#recurring-calendar-events-evidenze) | non rilasciata | 2026-09-04 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [4](#taurus-layout-standard-evidenze) | non rilasciata | 2026-09-07 |
@@ -117,6 +118,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java), [`taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.ts`](../taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.ts), [`taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts`](../taurus-fe/src/app/pages/admin/notification-delivery/notification-delivery.component.ts)
 - Migrazioni: nessuna
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java), [`taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts`](../taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts)
+
+<a id="operational-runbook-evidenze"></a>
+### Runbook operativo dell'applicativo Taurus
+
+- Implementazione: [`README.md`](../README.md), [`docs/runbook-operativo.md`](runbook-operativo.md)
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Il runbook consolida esercizio, rilascio, osservabilità, backup/restore, incident response e disaster recovery. Resta in-progress finché i gap bloccanti di produzione elencati nel documento non dispongono di una baseline infrastrutturale validata e di prove periodiche.
 
 <a id="postgres-tenant-schemas-evidenze"></a>
 ### PostgreSQL schema per tenant

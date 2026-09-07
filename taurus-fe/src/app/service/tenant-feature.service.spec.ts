@@ -26,6 +26,7 @@ describe('TenantFeatureService', () => {
         const result = firstValueFrom(service.refresh());
         http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({
             tenantCode: 'A',
+            tenantName: 'Orchestra Aurora',
             version: 4,
             financeEnabled: true,
             inventoryEnabled: false,
@@ -39,6 +40,7 @@ describe('TenantFeatureService', () => {
 
         await result;
         expect(service.loaded()).toBeTrue();
+        expect(service.current()?.tenantName).toBe('Orchestra Aurora');
         expect(service.financeEnabled()).toBeTrue();
         expect(service.inventoryEnabled()).toBeFalse();
         expect(service.onboardingImportEnabled()).toBeTrue();

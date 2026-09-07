@@ -11,6 +11,7 @@ export enum TenantFeature {
 
 export interface TenantFeatures {
     tenantCode: string;
+    tenantName: string;
     version: number;
     financeEnabled: boolean;
     inventoryEnabled: boolean;

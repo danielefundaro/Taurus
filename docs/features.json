@@ -333,6 +333,26 @@
       "lastVerifiedOn": "2026-09-04"
     },
     {
+      "id": "operational-runbook",
+      "title": "Runbook operativo dell'applicativo Taurus",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "in-progress",
+      "spec": "docs/runbook-operativo.md",
+      "modules": ["repository"],
+      "evidence": {
+        "implementation": [
+          "README.md",
+          "docs/runbook-operativo.md"
+        ],
+        "migrations": [],
+        "tests": []
+      },
+      "notes": "Il runbook consolida esercizio, rilascio, osservabilità, backup/restore, incident response e disaster recovery. Resta in-progress finché i gap bloccanti di produzione elencati nel documento non dispongono di una baseline infrastrutturale validata e di prove periodiche.",
+      "release": null,
+      "lastVerifiedOn": "2026-09-07"
+    },
+    {
       "id": "postgres-tenant-schemas",
       "title": "PostgreSQL schema per tenant",
       "kind": "platform",
