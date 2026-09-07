@@ -38,5 +38,9 @@ describe('CalendarFeedService', () => {
         const revoke = http.expectOne(`${environment.baseUrl}/calendar-feeds/feed-id`);
         expect(revoke.request.method).toBe('DELETE');
         revoke.flush(null);
+        service.remove('feed-id', true).subscribe();
+        const remove = http.expectOne(`${environment.baseUrl}/admin/calendar-feeds/feed-id/record`);
+        expect(remove.request.method).toBe('DELETE');
+        remove.flush(null);
     });
 });

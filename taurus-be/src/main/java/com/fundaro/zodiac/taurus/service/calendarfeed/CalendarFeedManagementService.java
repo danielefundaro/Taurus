@@ -46,11 +46,11 @@ public class CalendarFeedManagementService {
     @Transactional(readOnly = true)
     public List<Feed> listPersonal(AbstractAuthenticationToken auth) {
         Users owner = currentUser(auth);
-        return subscriptions.findAllByOwner_IdOrderByCreatedAtDesc(owner.getId()).stream().map(this::dto).toList();
+        return subscriptions.findAllByOwner_IdAndDeletedFalseOrderByInsertDateDesc(owner.getId()).stream().map(this::dto).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<Feed> listAdmin() { return subscriptions.findAllByOrderByCreatedAtDesc().stream().map(this::dto).toList(); }
+    public List<Feed> listAdmin() { return subscriptions.findAllByDeletedFalseOrderByInsertDateDesc().stream().map(this::dto).toList(); }
 
     public SecretFeed createPersonal(CreateRequest request, AbstractAuthenticationToken auth) {
         requireEnabled();
@@ -63,7 +63,7 @@ public class CalendarFeedManagementService {
         lock(requestDigest);
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
-        if (subscriptions.countByOwner_IdAndStatus(owner.getId(), CalendarFeedStatus.ACTIVE) >= 3) throw conflict("Maximum active personal feeds reached");
+        if (subscriptions.countByOwner_IdAndStatusAndDeletedFalse(owner.getId(), CalendarFeedStatus.ACTIVE) >= 3) throw conflict("Maximum active personal feeds reached");
         return create(request, CalendarFeedType.PERSONAL, scope, owner, actor, requestDigest, fingerprint);
     }
 
@@ -77,7 +77,7 @@ public class CalendarFeedManagementService {
         lock(requestDigest);
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
-        if (subscriptions.countByFeedTypeAndStatus(CalendarFeedType.TENANT, CalendarFeedStatus.ACTIVE) >= 10) throw conflict("Maximum active tenant feeds reached");
+        if (subscriptions.countByFeedTypeAndStatusAndDeletedFalse(CalendarFeedType.TENANT, CalendarFeedStatus.ACTIVE) >= 10) throw conflict("Maximum active tenant feeds reached");
         return create(request, CalendarFeedType.TENANT, scope, null, actor, requestDigest, fingerprint);
     }
 
@@ -99,7 +99,7 @@ public class CalendarFeedManagementService {
         CalendarFeedTokenService.Token token = tokens.generate();
         subscription.setTokenVersion(subscription.getTokenVersion() + 1);
         subscription.setTokenFingerprint(tokens.fingerprint(token.digest()));
-        subscription.setUpdatedAt(now); subscription.setUpdatedBy(actor);
+        subscription.setEditDate(now); subscription.setEditBy(actor);
         subscriptions.save(subscription);
         saveRegistry(subscription, token.digest(), now);
         saveIdempotency(requestDigest, fingerprint, request.idempotencyKey(), subscription, token.value(), now);
@@ -115,8 +115,22 @@ public class CalendarFeedManagementService {
         }
         if (subscription.getStatus() == CalendarFeedStatus.REVOKED) return;
         Instant now = Instant.now();
-        subscription.setStatus(CalendarFeedStatus.REVOKED); subscription.setUpdatedAt(now); subscription.setUpdatedBy(actor(auth));
+        subscription.setStatus(CalendarFeedStatus.REVOKED); subscription.setEditDate(now); subscription.setEditBy(actor(auth));
         registry.revokeActive(id, now); subscriptions.save(subscription);
+    }
+
+    public void deleteRevoked(UUID id, boolean admin, AbstractAuthenticationToken auth) {
+        CalendarFeedSubscription subscription = subscriptions.findByIdForUpdate(id).orElse(null);
+        if (subscription == null) return;
+        if (!admin) {
+            Users caller = currentUser(auth);
+            if (subscription.getFeedType() != CalendarFeedType.PERSONAL || !Objects.equals(subscription.getOwner().getId(), caller.getId())) throw notFound();
+        }
+        if (subscription.getStatus() != CalendarFeedStatus.REVOKED) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Revoke the feed before deleting it", "CalendarFeed", "calendarFeed.active");
+        }
+        Instant now = Instant.now(); String actor = actor(auth);
+        subscription.setDeleted(true); subscription.setEditDate(now); subscription.setEditBy(actor); subscriptions.save(subscription);
     }
 
     private SecretFeed create(CreateRequest request, CalendarFeedType type, CalendarFeedScope scope, Users owner, String actor,
@@ -127,8 +141,8 @@ public class CalendarFeedManagementService {
         s.setDetailLevel(request.detailLevel() == null ? CalendarFeedDetailLevel.MINIMAL : request.detailLevel());
         s.setPastDays(request.pastDays() == null ? properties.getDefaultPastDays() : request.pastDays());
         s.setFutureMonths(request.futureMonths() == null ? properties.getDefaultFutureMonths() : request.futureMonths());
-        s.setStatus(CalendarFeedStatus.ACTIVE); s.setTokenVersion(1); s.setTokenFingerprint(tokens.fingerprint(token.digest()));
-        s.setCreatedAt(now); s.setUpdatedAt(now); s.setCreatedBy(actor); s.setUpdatedBy(actor); subscriptions.save(s);
+        s.setStatus(CalendarFeedStatus.ACTIVE); s.setTokenVersion(1); s.setTokenFingerprint(tokens.fingerprint(token.digest())); s.setDeleted(false);
+        s.setInsertDate(now); s.setEditDate(now); s.setInsertBy(actor); s.setEditBy(actor); subscriptions.save(s);
         saveRegistry(s, token.digest(), now);
         saveIdempotency(requestDigest, fingerprint, request.idempotencyKey(), s, token.value(), now);
         return secret(s, token.value());
@@ -138,7 +152,7 @@ public class CalendarFeedManagementService {
         CalendarFeedIdempotency receipt = idempotency.findById(requestDigest).orElse(null);
         if (receipt == null) return null;
         if (!MessageDigest.isEqual(receipt.getRequestFingerprint(), fingerprint)) throw conflict("Idempotency key already used for a different request");
-        CalendarFeedSubscription subscription = subscriptions.findById(receipt.getSubscriptionId()).orElseThrow(this::notFound);
+        CalendarFeedSubscription subscription = subscriptions.findByIdAndDeletedFalse(receipt.getSubscriptionId()).orElseThrow(this::notFound);
         if (subscription.getStatus() != CalendarFeedStatus.ACTIVE || subscription.getTokenVersion() != receipt.getTokenVersion()) {
             throw conflict("Idempotency response is no longer current");
         }
@@ -191,8 +205,8 @@ public class CalendarFeedManagementService {
         if (owner.getRoles().contains(RoleEnum.ROLE_USER_EXTERNAL)) return CalendarFeedScope.PUBLIC_ONLY;
         throw new RequestAlertException(HttpStatus.FORBIDDEN, "A participant role is required", "CalendarFeed", "calendarFeed.role");
     }
-    private Feed dto(CalendarFeedSubscription s) { return new Feed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), s.getStatus(), s.getTokenFingerprint(), s.getOwner() == null ? null : s.getOwner().getId(), s.getCreatedBy(), s.getCreatedAt(), s.getLastAccessedAt()); }
-    private SecretFeed secret(CalendarFeedSubscription s, String token) { String base = properties.getPublicBaseUrl().replaceAll("/+$", ""); return new SecretFeed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), base + "/api/calendar-subscriptions/v1/" + token + "/calendar.ics", true, s.getCreatedAt()); }
+    private Feed dto(CalendarFeedSubscription s) { return new Feed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), s.getStatus(), s.getTokenFingerprint(), s.getOwner() == null ? null : s.getOwner().getId(), s.getInsertBy(), s.getInsertDate(), s.getLastAccessedAt()); }
+    private SecretFeed secret(CalendarFeedSubscription s, String token) { String base = properties.getPublicBaseUrl().replaceAll("/+$", ""); return new SecretFeed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), base + "/api/calendar-subscriptions/v1/" + token + "/calendar.ics", true, s.getInsertDate()); }
     private String actor(AbstractAuthenticationToken auth) { return Optional.ofNullable(SecurityUtils.getUserIdFromAuthentication(auth)).orElse("system"); }
     private void requireEnabled() { if (!properties.isEnabled()) throw notFound(); }
     private RequestAlertException notFound() { return new RequestAlertException(HttpStatus.NOT_FOUND, "Feed not found", "CalendarFeed", "calendarFeed.notFound"); }

@@ -20,10 +20,11 @@ public class CalendarFeedSubscription {
     @Column(name = "token_version", nullable = false) private int tokenVersion;
     @Column(name = "token_fingerprint", nullable = false, length = 12) private String tokenFingerprint;
     @Column(name = "last_accessed_at") private Instant lastAccessedAt;
-    @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
-    @Column(name = "created_by", nullable = false) private String createdBy;
-    @Column(name = "updated_at", nullable = false) private Instant updatedAt;
-    @Column(name = "updated_by", nullable = false) private String updatedBy;
+    @Column(nullable = false) private boolean deleted;
+    @Column(name = "insert_date", nullable = false, updatable = false) private Instant insertDate;
+    @Column(name = "insert_by", nullable = false, updatable = false) private String insertBy;
+    @Column(name = "edit_date", nullable = false) private Instant editDate;
+    @Column(name = "edit_by", nullable = false) private String editBy;
     @Version @Column(name = "entity_version", nullable = false) private long entityVersion;
 
     public UUID getId() { return id; } public void setId(UUID v) { id = v; }
@@ -38,9 +39,10 @@ public class CalendarFeedSubscription {
     public int getTokenVersion() { return tokenVersion; } public void setTokenVersion(int v) { tokenVersion = v; }
     public String getTokenFingerprint() { return tokenFingerprint; } public void setTokenFingerprint(String v) { tokenFingerprint = v; }
     public Instant getLastAccessedAt() { return lastAccessedAt; } public void setLastAccessedAt(Instant v) { lastAccessedAt = v; }
-    public Instant getCreatedAt() { return createdAt; } public void setCreatedAt(Instant v) { createdAt = v; }
-    public String getCreatedBy() { return createdBy; } public void setCreatedBy(String v) { createdBy = v; }
-    public Instant getUpdatedAt() { return updatedAt; } public void setUpdatedAt(Instant v) { updatedAt = v; }
-    public String getUpdatedBy() { return updatedBy; } public void setUpdatedBy(String v) { updatedBy = v; }
+    public boolean isDeleted() { return deleted; } public void setDeleted(boolean v) { deleted = v; }
+    public Instant getInsertDate() { return insertDate; } public void setInsertDate(Instant v) { insertDate = v; }
+    public String getInsertBy() { return insertBy; } public void setInsertBy(String v) { insertBy = v; }
+    public Instant getEditDate() { return editDate; } public void setEditDate(Instant v) { editDate = v; }
+    public String getEditBy() { return editBy; } public void setEditBy(String v) { editBy = v; }
     public long getEntityVersion() { return entityVersion; }
 }

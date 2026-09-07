@@ -153,8 +153,10 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryLabelService.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryScanService.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryIssueService.java",
+          "taurus-be/src/main/resources/config/application-dev.yml",
           "taurus-fe/src/app/pages/inventory/scan/inventory-scan.component.ts",
-          "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.ts"
+          "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.ts",
+          "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.scss"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260906000000_inventory_qr_code.xml"
@@ -166,8 +168,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-06",
-      "notes": "Implementazione verificata con test unitari, build Angular e applicazione Liquibase su PostgreSQL 17. La verifica generale ha rilevato una regressione nella fixture SQL di RelationalSoftDeleteIT, che non valorizza il nuovo campo obbligatorio qr_public_id: il difetto di test non modifica lo stato implementato, ma mantiene non verde il quality gate backend. Prima del rilascio resta inoltre la validazione fisica delle etichette su stampanti e dispositivi reali prevista dalla specifica."
+      "lastVerifiedOn": "2026-09-07",
+      "notes": "Implementazione verificata con test unitari, build Angular e applicazione Liquibase su PostgreSQL 17. Il profilo dev abilita i QR con il frontend locale e la card delle segnalazioni rispetta la separazione prevista prima della zona pericolosa; le ultime modifiche sono state verificate con compilazione backend e build Angular. La verifica generale ha rilevato una regressione nella fixture SQL di RelationalSoftDeleteIT, che non valorizza il nuovo campo obbligatorio qr_public_id: il difetto di test non modifica lo stato implementato, ma mantiene non verde il quality gate backend. Prima del rilascio resta inoltre la validazione fisica delle etichette su stampanti e dispositivi reali prevista dalla specifica."
     },
     {
       "id": "media-asset",
@@ -448,6 +450,7 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingWorker.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingRecoveryScheduler.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingJobStateService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingReportService.java",
           "taurus-fe/src/app/pages/onboarding/onboarding.component.ts",
           "taurus-fe/src/app/service/onboarding.service.ts"
         ],
@@ -463,12 +466,13 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingRecoverySchedulerTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingImportIT.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingKeycloakIT.java",
-          "taurus-fe/src/app/service/onboarding.service.spec.ts"
+          "taurus-fe/src/app/service/onboarding.service.spec.ts",
+          "taurus-fe/src/app/pages/onboarding/onboarding.component.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-06",
-      "notes": "Implementazione verificata con test unitari, PostgreSQL/Testcontainers e Keycloak 26.5.2 reale in container. Il worker usa transazioni autonome per validazione, applicazione e cambi di stato; lo scheduler riprende i job interrotti anche durante applicazione e compensazione. Il journal registra l'esito delle e-mail per consentire retry selettivi senza reinvii duplicati. Il parser CSV è collaudato automaticamente su 5.000 righe entro il limite di 60 secondi."
+      "lastVerifiedOn": "2026-09-07",
+      "notes": "Implementazione verificata con test unitari, PostgreSQL/Testcontainers e Keycloak 26.5.2 reale in container. Il worker usa transazioni autonome per validazione, applicazione e cambi di stato; lo scheduler riprende i job interrotti anche durante applicazione e compensazione. Il journal registra l'esito delle e-mail per consentire retry selettivi senza reinvii duplicati. Il parser CSV è collaudato automaticamente su 5.000 righe entro il limite di 60 secondi. L'interfaccia sincronizza la navigazione dello stepper, usa colori semantici compatibili con i temi, omette codice ed etichetta del tenant dal riepilogo e localizza stati, fasi, azioni, problemi ed esiti del rapporto."
     },
     {
       "id": "web-push-reminders",

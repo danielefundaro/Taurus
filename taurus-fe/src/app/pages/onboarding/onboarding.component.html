@@ -1,5 +1,5 @@
 <p-fluid>
-    <app-page-header title="Configurazione iniziale" subtitle="Importa in modo controllato i dati del tenant attivo">
+    <app-page-header title="Configurazione iniziale" subtitle="Importa in modo controllato i dati iniziali">
         <div actions class="flex gap-2">
             <p-button label="Modello XLSX" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadXlsx()" />
             @if (job) { <p-button label="Rapporto" icon="pi pi-file-excel" severity="secondary" [outlined]="true" (onClick)="downloadReport()" /> }
@@ -7,8 +7,8 @@
     </app-page-header>
 
     @if (context) {
-        <section class="card tenant-summary" aria-label="Tenant attivo">
-            <div><span class="text-muted-color">Tenant attivo</span><strong>{{ context.tenantName }} · {{ context.tenantCode }}</strong></div>
+        <section class="card tenant-summary" aria-label="Riepilogo configurazione iniziale">
+            <div><strong>{{ context.tenantName }}</strong></div>
             <div><span class="text-muted-color">Utenti</span><strong>{{ context.users }}{{ context.maxUsers != null ? ' / ' + context.maxUsers : '' }}</strong></div>
             <div><span class="text-muted-color">Strumenti</span><strong>{{ context.instruments }}</strong></div>
             <div><span class="text-muted-color">Inventario</span><strong>{{ context.inventoryItems }}</strong></div>
@@ -17,7 +17,7 @@
     }
 
     <div class="card" [attr.aria-busy]="locked || busy">
-        <p-stepper [value]="activeStep" [linear]="!job">
+        <p-stepper [(value)]="activeStep" [linear]="!job">
             <p-step-list>
                 <p-step [value]="1" [disabled]="locked">Prepara</p-step>
                 <p-step [value]="2" [disabled]="locked">Carica</p-step>
@@ -69,17 +69,17 @@
                         <div class="step-content">
                             <h2>Controlla i dati normalizzati</h2>
                             @if (job) {
-                                <div class="status-heading"><p-tag [value]="job.status" [severity]="severity(job.status)" /><span>{{ job.stage }}</span></div>
-                                @if (job.status === 'UPLOADED' || job.status === 'VALIDATING') { <p-progressbar [value]="job.progressPercentage" ariaLabel="Avanzamento validazione" /><div class="sr-live" aria-live="polite">{{ job.stage }}</div> }
+                                <div class="status-heading"><p-tag [value]="statusLabel(job.status)" [severity]="severity(job.status)" /><span>{{ stageLabel(job.stage) }}</span></div>
+                                @if (job.status === 'UPLOADED' || job.status === 'VALIDATING') { <p-progressbar [value]="job.progressPercentage" ariaLabel="Avanzamento validazione" /><div class="sr-live" aria-live="polite">{{ stageLabel(job.stage) }}</div> }
                                 <div class="summary-grid">@for (summary of summaries; track summary.section) { <article><strong>{{ sectionLabel(summary.section) }}</strong><span>{{ summary.total }} righe</span><small>{{ summary.create }} nuove · {{ summary.reuse }} riutilizzate · {{ summary.errors }} errori</small></article> }</div>
                                 <div class="filters"><p-select [options]="sections" optionLabel="label" optionValue="value" [(ngModel)]="sectionFilter" placeholder="Tutte le sezioni" [showClear]="true" (onChange)="loadPreview(); loadProblems()" /><p-select [options]="statusOptions" optionLabel="label" optionValue="value" [(ngModel)]="rowStatusFilter" placeholder="Tutti gli esiti" [showClear]="true" (onChange)="loadPreview()" /><p-button label="Azzera filtri" severity="secondary" [text]="true" (onClick)="resetFilters()" /></div>
                                 <p-table [value]="preview" [lazy]="true" [paginator]="true" [rows]="50" [totalRecords]="previewTotal" [rowsPerPageOptions]="[25, 50, 100]" (onLazyLoad)="loadPreview(($event.first || 0) / ($event.rows || 50))" responsiveLayout="scroll">
                                     <ng-template #header><tr><th>Posizione</th><th>Esito</th><th>Azione</th><th>Valori normalizzati</th></tr></ng-template>
-                                    <ng-template #body let-row><tr><td>{{ sectionLabel(row.section) }} · riga {{ row.rowNumber }}</td><td><p-tag [value]="statusLabel(row.status)" [severity]="severity(row.status)" /></td><td>{{ row.action }}</td><td><dl class="values-list">@for (entry of entries(row); track entry.key) { <div><dt>{{ entry.key }}</dt><dd>{{ entry.value || '—' }}</dd></div> }</dl></td></tr></ng-template>
+                                    <ng-template #body let-row><tr><td>{{ sectionLabel(row.section) }} · riga {{ row.rowNumber }}</td><td><p-tag [value]="statusLabel(row.status)" [severity]="severity(row.status)" /></td><td>{{ actionLabel(row.action) }}</td><td><dl class="values-list">@for (entry of entries(row); track entry.key) { <div><dt>{{ entry.key }}</dt><dd>{{ entry.value || '—' }}</dd></div> }</dl></td></tr></ng-template>
                                     <ng-template #emptymessage><tr><td colspan="4"><div class="empty-inline"><i class="pi pi-check-circle"></i><strong>Nessuna riga per i filtri selezionati</strong></div></td></tr></ng-template>
                                 </p-table>
                                 <h3>Problemi e avvisi</h3>
-                                @if (problems.length === 0) { <p-message severity="success">Nessun errore rilevato</p-message> } @else { <div class="issues">@for (problem of problems; track problem.id) { <article [class.error]="problem.severity === 'ERROR'"><p-tag [value]="problem.severity" [severity]="severity(problem.severity)" /><div><strong>{{ problem.code }}</strong><span>{{ sectionLabel(problem.section) }}{{ problem.rowNumber ? ' · riga ' + problem.rowNumber : '' }}{{ problem.columnName ? ' · ' + problem.columnName : '' }}</span><p>{{ problem.message }}</p></div></article> }</div> }
+                                @if (problems.length === 0) { <p-message severity="success">Nessun errore rilevato</p-message> } @else { <div class="issues">@for (problem of problems; track problem.id) { <article [class.error]="problem.severity === 'ERROR'"><p-tag [value]="statusLabel(problem.severity)" [severity]="severity(problem.severity)" /><div><strong>{{ issueLabel(problem.code) }}</strong><span>{{ sectionLabel(problem.section) }}{{ problem.rowNumber ? ' · riga ' + problem.rowNumber : '' }}{{ problem.columnName ? ' · ' + problem.columnName : '' }}</span><p>{{ problem.message }}</p></div></article> }</div> }
                                 <div class="step-actions between">@if (job.status === 'INVALID' || job.status === 'FAILED') { <p-button label="Riprova validazione" severity="secondary" (onClick)="retryValidation()" /> }<p-button label="Vai alla conferma" [disabled]="job.status !== 'READY'" (onClick)="activeStep = 4" /></div>
                             }
                         </div>
@@ -100,8 +100,8 @@
 
                 <p-step-panel [value]="5">
                     <ng-template #content>
-                        <div class="step-content outcome">@if (job) { <i class="pi" [ngClass]="job.status === 'COMPLETED' ? 'pi-check-circle success-icon' : job.status === 'COMPENSATION_REQUIRED' ? 'pi-exclamation-triangle danger-icon' : 'pi-spin pi-spinner'"></i><h2>{{ job.status === 'COMPLETED' ? 'Importazione completata' : job.status === 'COMPENSATION_REQUIRED' ? 'Ripristino incompleto' : job.status === 'FAILED' ? 'Importazione non applicata' : 'Importazione in corso' }}</h2><p>{{ job.stage }}</p>
-                            @if (locked) { <p-progressbar [value]="job.progressPercentage" /><div aria-live="polite">{{ job.stage }}</div> }
+                        <div class="step-content outcome">@if (job) { <i class="pi" [ngClass]="job.status === 'COMPLETED' ? 'pi-check-circle success-icon' : job.status === 'COMPENSATION_REQUIRED' ? 'pi-exclamation-triangle danger-icon' : 'pi-spin pi-spinner'"></i><h2>{{ job.status === 'COMPLETED' ? 'Importazione completata' : job.status === 'COMPENSATION_REQUIRED' ? 'Ripristino incompleto' : job.status === 'FAILED' ? 'Importazione non applicata' : 'Importazione in corso' }}</h2><p>{{ stageLabel(job.stage) }}</p>
+                            @if (locked) { <p-progressbar [value]="job.progressPercentage" /><div aria-live="polite">{{ stageLabel(job.stage) }}</div> }
                             @if (job.status === 'COMPENSATION_REQUIRED') { <p-message severity="error">Una parte delle modifiche identità richiede un nuovo tentativo di ripristino.</p-message><p-button label="Ritenta ripristino" severity="danger" (onClick)="retryCompensation()" /> }
                             @if (job.status === 'COMPLETED' && job.setupEmailFailures > 0) { <p-message severity="warn">{{ job.setupEmailFailures }} e-mail di configurazione non inviate.</p-message><p-button label="Ritenta e-mail" severity="secondary" (onClick)="retryEmails()" /> }
                             @if (job.status === 'COMPLETED') { <div class="links"><a routerLink="/users">Utenti</a><a routerLink="/inventory">Inventario</a><a routerLink="/finance">Economia</a></div> }
@@ -113,6 +113,6 @@
     </div>
 
     @if (!job && recentJobs.length) {
-        <section class="card"><h2>Importazioni recenti</h2><div class="recent-list">@for (recent of recentJobs; track recent.id) { <button type="button" (click)="open(recent)"><span><strong>{{ recent.fileName }}</strong><small>{{ recent.createdAt | date: 'short' }}</small></span><p-tag [value]="recent.status" [severity]="severity(recent.status)" /></button> }</div></section>
+        <section class="card"><h2>Importazioni recenti</h2><div class="recent-list">@for (recent of recentJobs; track recent.id) { <button type="button" (click)="open(recent)"><span><strong>{{ recent.fileName }}</strong><small>{{ recent.createdAt | date: 'short' }}</small></span><p-tag [value]="statusLabel(recent.status)" [severity]="severity(recent.status)" /></button> }</div></section>
     }
 </p-fluid>

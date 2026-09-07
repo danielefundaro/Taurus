@@ -12,77 +12,86 @@
 
 <app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions" (sortChange)="onSortChange($event)">
     <div listFilters class="delivery-status-filter">
-        <label for="notification-delivery-status">Stato</label>
-        <p-select
-            inputId="notification-delivery-status"
-            class="delivery-status-filter__control"
-            [ngModel]="status"
-            (ngModelChange)="onStatusChange($event)"
-            [options]="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            ariaLabel="Filtra per stato della consegna"
-        />
-        <label for="notification-delivery-origin">Origine</label>
-        <p-select
-            inputId="notification-delivery-origin"
-            class="delivery-status-filter__control"
-            [(ngModel)]="filters.origin"
-            (ngModelChange)="onFilterChange()"
-            [options]="originOptions"
-            optionLabel="label"
-            optionValue="value"
-            ariaLabel="Filtra per origine della consegna"
-        />
-        <label for="notification-delivery-source">Categoria</label>
-        <p-select
-            inputId="notification-delivery-source"
-            class="delivery-status-filter__control"
-            [(ngModel)]="filters.source"
-            (ngModelChange)="onFilterChange()"
-            [options]="sourceOptions"
-            optionLabel="label"
-            optionValue="value"
-            ariaLabel="Filtra per categoria"
-        />
-        <label for="notification-delivery-operation">Operazione</label>
-        <input
-            id="notification-delivery-operation"
-            pInputText
-            class="delivery-status-filter__control"
-            [(ngModel)]="filters.operation"
-            (change)="onFilterChange()"
-            placeholder="Codice operazione"
-            aria-label="Filtra per codice operazione"
-        />
-        <label for="notification-delivery-from">Dal</label>
-        <p-datepicker
-            inputId="notification-delivery-from"
-            class="delivery-status-filter__control"
-            [(ngModel)]="fromDate"
-            (onSelect)="onFilterChange()"
-            (onClear)="onFilterChange()"
-            [showTime]="true"
-            [showClear]="true"
-            hourFormat="24"
-            dateFormat="dd/mm/yy"
-            appendTo="body"
-            ariaLabel="Filtra dalla data"
-        />
-        <label for="notification-delivery-to">Al</label>
-        <p-datepicker
-            inputId="notification-delivery-to"
-            class="delivery-status-filter__control"
-            [(ngModel)]="toDate"
-            (onSelect)="onFilterChange()"
-            (onClear)="onFilterChange()"
-            [showTime]="true"
-            [showClear]="true"
-            hourFormat="24"
-            dateFormat="dd/mm/yy"
-            appendTo="body"
-            ariaLabel="Filtra fino alla data"
-        />
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-status">Stato</label>
+            <p-select
+                inputId="notification-delivery-status"
+                class="delivery-status-filter__control"
+                [fluid]="true"
+                [ngModel]="status"
+                (ngModelChange)="onStatusChange($event)"
+                [options]="statusOptions"
+                optionLabel="label"
+                optionValue="value"
+                ariaLabel="Filtra per stato della consegna"
+            />
+        </div>
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-origin">Origine</label>
+            <p-select
+                inputId="notification-delivery-origin"
+                class="delivery-status-filter__control"
+                [fluid]="true"
+                [(ngModel)]="filters.origin"
+                (ngModelChange)="onFilterChange()"
+                [options]="originOptions"
+                optionLabel="label"
+                optionValue="value"
+                ariaLabel="Filtra per origine della consegna"
+            />
+        </div>
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-source">Categoria</label>
+            <p-select
+                inputId="notification-delivery-source"
+                class="delivery-status-filter__control"
+                [fluid]="true"
+                [(ngModel)]="filters.source"
+                (ngModelChange)="onFilterChange()"
+                [options]="sourceOptions"
+                optionLabel="label"
+                optionValue="value"
+                ariaLabel="Filtra per categoria"
+            />
+        </div>
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-operation">Operazione</label>
+            <input id="notification-delivery-operation" pInputText class="delivery-status-filter__control" [(ngModel)]="filters.operation" (change)="onFilterChange()" placeholder="Codice operazione" aria-label="Filtra per codice operazione" />
+        </div>
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-from">Dal</label>
+            <p-datepicker
+                inputId="notification-delivery-from"
+                class="delivery-status-filter__control"
+                [fluid]="true"
+                [(ngModel)]="fromDate"
+                (onSelect)="onFilterChange()"
+                (onClear)="onFilterChange()"
+                [showTime]="true"
+                [showClear]="true"
+                hourFormat="24"
+                dateFormat="dd/mm/yy"
+                appendTo="body"
+                ariaLabel="Filtra dalla data"
+            />
+        </div>
+        <div class="delivery-status-filter__field">
+            <label for="notification-delivery-to">Al</label>
+            <p-datepicker
+                inputId="notification-delivery-to"
+                class="delivery-status-filter__control"
+                [fluid]="true"
+                [(ngModel)]="toDate"
+                (onSelect)="onFilterChange()"
+                (onClear)="onFilterChange()"
+                [showTime]="true"
+                [showClear]="true"
+                hourFormat="24"
+                dateFormat="dd/mm/yy"
+                appendTo="body"
+                ariaLabel="Filtra fino alla data"
+            />
+        </div>
         @if (rangeInvalid) {
             <small class="delivery-range-error" role="alert">L'inizio dell'intervallo deve precedere la fine.</small>
         }
@@ -180,10 +189,7 @@
                         }
                     </td>
                     <td>
-                        <p-tag
-                            [value]="notificationPresentation.statusLabel(delivery.status)"
-                            [severity]="delivery.status === 'FAILED' ? 'danger' : delivery.status === 'PENDING' ? 'warn' : delivery.status === 'SKIPPED' ? 'secondary' : 'success'"
-                        />
+                        <p-tag [value]="notificationPresentation.statusLabel(delivery.status)" [severity]="delivery.status === 'FAILED' ? 'danger' : delivery.status === 'PENDING' ? 'warn' : delivery.status === 'SKIPPED' ? 'secondary' : 'success'" />
                         @if (delivery.skipReason) {
                             <small class="block text-muted-color">{{ delivery.skipReason }}</small>
                         }

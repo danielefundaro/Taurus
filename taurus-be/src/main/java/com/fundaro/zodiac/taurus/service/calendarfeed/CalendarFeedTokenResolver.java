@@ -47,7 +47,7 @@ public class CalendarFeedTokenResolver {
     }
 
     private Optional<Download> generate(CalendarFeedTokenRegistry route, byte[] digest) {
-        CalendarFeedSubscription subscription = subscriptions.findById(route.getSubscriptionId()).orElse(null);
+        CalendarFeedSubscription subscription = subscriptions.findByIdAndDeletedFalse(route.getSubscriptionId()).orElse(null);
         if (!consistent(subscription, route, digest) || !authorized(subscription)) return Optional.empty();
         Instant now = Instant.now(); Instant from = now.minus(subscription.getPastDays(), java.time.temporal.ChronoUnit.DAYS);
         Instant to = ZonedDateTime.ofInstant(now, ZoneOffset.UTC).plusMonths(subscription.getFutureMonths()).toInstant();
@@ -57,7 +57,7 @@ public class CalendarFeedTokenResolver {
         CalendarFeedAudience audience = subscription.getVisibilityScope() == CalendarFeedScope.INTERNAL ? CalendarFeedAudience.INTERNAL : CalendarFeedAudience.EXTERNAL;
         List<CalendarEventFeedTombstone> cancelled = tombstones.findByAudienceAndExpiresAtAfterAndOriginalEndDateGreaterThanEqualAndOriginalStartDateLessThanEqualOrderByOriginalStartDate(audience, now, from, to);
         if (active.size() + cancelled.size() > properties.getMaxComponents()) throw new CalendarFeedUnavailableException();
-        Set<UUID> activeUids = new HashSet<>(); List<RenderEvent> projected = new ArrayList<>(); Instant modified = subscription.getUpdatedAt();
+        Set<UUID> activeUids = new HashSet<>(); List<RenderEvent> projected = new ArrayList<>(); Instant modified = subscription.getEditDate();
         String base = properties.getPublicBaseUrl().replaceAll("/+$", "");
         for (CalendarEventFeedProjection e : active) {
             activeUids.add(e.getUid()); Instant eventModified = e.getModifiedAt().toInstant(); if (eventModified.isAfter(modified)) modified = eventModified;

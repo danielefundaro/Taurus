@@ -18,11 +18,20 @@
             <app-form-field label="Nome" forId="name" required [error]="track.name?.trim() ? undefined : 'Inserisci il nome della traccia.'">
                 <input pInputText id="name" type="text" [(ngModel)]="track!.name" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
             </app-form-field>
+            <app-form-field label="Sottotitolo" forId="subName">
+                <input pInputText id="subName" type="text" [(ngModel)]="track!.subName" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
             <app-form-field label="Compositore" forId="composer">
                 <input pInputText id="composer" type="text" [(ngModel)]="track!.composer" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Arrangiatore" forId="arranger">
                 <input pInputText id="arranger" type="text" [(ngModel)]="track!.arranger" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Tempo" forId="tempo">
+                <input pInputText id="tempo" type="text" [(ngModel)]="track!.tempo" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="Tonalità" forId="tone">
+                <input pInputText id="tone" type="text" [(ngModel)]="track!.tone" [readOnly]="isUser" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Stato" forId="states" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
                 <p-autocomplete inputId="states" [(ngModel)]="track!.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
