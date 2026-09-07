@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.*;
 import com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.*;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.*;
@@ -43,7 +44,7 @@ class CalendarFeedManagementServiceTest {
             savedSubscription.set(value);
             return value;
         });
-        when(subscriptions.findById(any())).thenAnswer(invocation -> Optional.ofNullable(savedSubscription.get()));
+        when(subscriptions.findByIdAndDeletedFalse(any())).thenAnswer(invocation -> Optional.ofNullable(savedSubscription.get()));
         when(idempotency.findById(any())).thenAnswer(invocation -> Optional.ofNullable(savedReceipt.get()));
         when(idempotency.save(any())).thenAnswer(invocation -> {
             CalendarFeedIdempotency value = invocation.getArgument(0);
@@ -71,5 +72,52 @@ class CalendarFeedManagementServiceTest {
         verify(subscriptions, times(1)).save(any());
         verify(registry, times(1)).save(any());
         verify(idempotency, times(1)).save(any());
+    }
+
+    @Test
+    void softDeletesARevokedFeedAndKeepsAuditInformation() {
+        CalendarFeedSubscriptionRepository subscriptions = mock(CalendarFeedSubscriptionRepository.class);
+        CalendarFeedSubscription feed = new CalendarFeedSubscription();
+        feed.setId(UUID.randomUUID());
+        feed.setStatus(CalendarFeedStatus.REVOKED);
+        when(subscriptions.findByIdForUpdate(feed.getId())).thenReturn(Optional.of(feed));
+        JwtAuthenticationToken authentication = authentication("admin-1");
+        CalendarFeedManagementService service = service(subscriptions);
+
+        service.deleteRevoked(feed.getId(), true, authentication);
+
+        assertThat(feed.isDeleted()).isTrue();
+        assertThat(feed.getEditDate()).isNotNull();
+        assertThat(feed.getEditBy()).isEqualTo("admin-1");
+        verify(subscriptions).save(feed);
+    }
+
+    @Test
+    void refusesToSoftDeleteAnActiveFeed() {
+        CalendarFeedSubscriptionRepository subscriptions = mock(CalendarFeedSubscriptionRepository.class);
+        CalendarFeedSubscription feed = new CalendarFeedSubscription();
+        feed.setId(UUID.randomUUID());
+        feed.setStatus(CalendarFeedStatus.ACTIVE);
+        when(subscriptions.findByIdForUpdate(feed.getId())).thenReturn(Optional.of(feed));
+        CalendarFeedManagementService service = service(subscriptions);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.deleteRevoked(feed.getId(), true, authentication("admin-1")))
+            .isInstanceOfSatisfying(RequestAlertException.class,
+                error -> assertThat(error.getErrorKey()).isEqualTo("calendarFeed.active"));
+
+        verify(subscriptions, never()).save(any());
+    }
+
+    private static CalendarFeedManagementService service(CalendarFeedSubscriptionRepository subscriptions) {
+        ApplicationProperties properties = new ApplicationProperties();
+        return new CalendarFeedManagementService(subscriptions, mock(CalendarFeedTokenRegistryRepository.class),
+            mock(CalendarFeedIdempotencyRepository.class), mock(UsersRepository.class), mock(TenantsRepository.class),
+            new CalendarFeedTokenService(), new CalendarFeedIdempotencyCodec(), mock(EntityManager.class), properties);
+    }
+
+    private static JwtAuthenticationToken authentication(String subject) {
+        JwtAuthenticationToken authentication = mock(JwtAuthenticationToken.class);
+        when(authentication.getTokenAttributes()).thenReturn(Map.of("sub", subject));
+        return authentication;
     }
 }

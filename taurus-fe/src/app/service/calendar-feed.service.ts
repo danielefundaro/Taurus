@@ -19,6 +19,9 @@ export class CalendarFeedService {
     revoke(id: string, admin = false): Observable<void> {
         return this.http.delete<void>(`${this.url(admin)}/${id}`);
     }
+    remove(id: string, admin = false): Observable<void> {
+        return this.http.delete<void>(`${this.url(admin)}/${id}/record`);
+    }
     private url(admin: boolean): string {
         return `${environment.baseUrl}${admin ? '/admin' : ''}/calendar-feeds`;
     }

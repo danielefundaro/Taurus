@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260907000000-1-calendar-feed-audit" author="codex">
+        <comment>Align calendar feed auditing with the tenant-wide convention and enable soft delete.</comment>
+        <renameColumn tableName="calendar_feed_subscription" oldColumnName="created_at" newColumnName="insert_date" columnDataType="timestamp with time zone"/>
+        <renameColumn tableName="calendar_feed_subscription" oldColumnName="created_by" newColumnName="insert_by" columnDataType="varchar(255)"/>
+        <renameColumn tableName="calendar_feed_subscription" oldColumnName="updated_at" newColumnName="edit_date" columnDataType="timestamp with time zone"/>
+        <renameColumn tableName="calendar_feed_subscription" oldColumnName="updated_by" newColumnName="edit_by" columnDataType="varchar(255)"/>
+        <addColumn tableName="calendar_feed_subscription">
+            <column name="deleted" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createIndex tableName="calendar_feed_subscription" indexName="idx_calendar_feed_not_deleted_insert_date">
+            <column name="deleted"/>
+            <column name="insert_date" descending="true"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="calendar_feed_subscription" indexName="idx_calendar_feed_not_deleted_insert_date"/>
+            <dropColumn tableName="calendar_feed_subscription" columnName="deleted"/>
+            <renameColumn tableName="calendar_feed_subscription" oldColumnName="edit_by" newColumnName="updated_by" columnDataType="varchar(255)"/>
+            <renameColumn tableName="calendar_feed_subscription" oldColumnName="edit_date" newColumnName="updated_at" columnDataType="timestamp with time zone"/>
+            <renameColumn tableName="calendar_feed_subscription" oldColumnName="insert_by" newColumnName="created_by" columnDataType="varchar(255)"/>
+            <renameColumn tableName="calendar_feed_subscription" oldColumnName="insert_date" newColumnName="created_at" columnDataType="timestamp with time zone"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

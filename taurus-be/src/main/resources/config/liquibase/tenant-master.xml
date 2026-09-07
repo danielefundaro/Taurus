@@ -43,4 +43,5 @@
     <include file="config/liquibase/changelog/20260906000000_inventory_qr_code.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260906010000_calendar_feed_idempotency.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260906020000_onboarding_recovery.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260907000000_calendar_feed_audit.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

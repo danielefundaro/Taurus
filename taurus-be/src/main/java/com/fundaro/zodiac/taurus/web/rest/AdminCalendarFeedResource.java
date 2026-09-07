@@ -17,4 +17,5 @@ public class AdminCalendarFeedResource {
     @PostMapping public ResponseEntity<SecretFeed> create(@Valid @RequestBody CreateRequest request, AbstractAuthenticationToken auth) { return ResponseEntity.status(HttpStatus.CREATED).body(service.createTenant(request, auth)); }
     @PostMapping("/{id}/rotate") public SecretFeed rotate(@PathVariable UUID id, @Valid @RequestBody RotateRequest request, AbstractAuthenticationToken auth) { return service.rotate(id, request, true, auth); }
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void revoke(@PathVariable UUID id, AbstractAuthenticationToken auth) { service.revoke(id, true, auth); }
+    @DeleteMapping("/{id}/record") @ResponseStatus(HttpStatus.NO_CONTENT) public void deleteRevoked(@PathVariable UUID id, AbstractAuthenticationToken auth) { service.deleteRevoked(id, true, auth); }
 }

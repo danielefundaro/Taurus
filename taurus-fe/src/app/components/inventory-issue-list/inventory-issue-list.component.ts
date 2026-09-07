@@ -11,6 +11,7 @@ import { InventoryService, ToastService } from '../../service';
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './inventory-issue-list.component.html',
+    styleUrl: './inventory-issue-list.component.scss',
     providers: [DialogService]
 })
 export class InventoryIssueListComponent implements OnChanges {

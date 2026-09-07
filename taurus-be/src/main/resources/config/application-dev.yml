@@ -98,4 +98,12 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  inventory:
+    qr:
+      enabled: true
+      public-base-url: http://localhost:4200
+  event-preparation:
+    enabled: true
+  dashboard:
+    enabled: true

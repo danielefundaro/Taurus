@@ -41,7 +41,7 @@ class CalendarFeedTenantIsolationTest {
         when(limiter.allowToken(any(byte[].class))).thenReturn(true);
         when(transactions.execute(eq("tenant-a"), ArgumentMatchers.<Supplier<Optional<Download>>>any()))
             .thenAnswer(invocation -> invocation.<Supplier<Optional<Download>>>getArgument(1).get());
-        when(subscriptions.findById(route.getSubscriptionId())).thenReturn(Optional.empty());
+        when(subscriptions.findByIdAndDeletedFalse(route.getSubscriptionId())).thenReturn(Optional.empty());
 
         CalendarFeedTokenResolver resolver = new CalendarFeedTokenResolver(tokenService, registry, schemas, transactions,
             subscriptions, events, tombstones, renderer, limiter, properties);
@@ -49,7 +49,7 @@ class CalendarFeedTenantIsolationTest {
         assertThat(resolver.resolve(token.value(), "192.0.2.1")).isEmpty();
         verify(transactions).execute(eq("tenant-a"), ArgumentMatchers.<Supplier<Optional<Download>>>any());
         verify(transactions, never()).execute(eq("tenant-b"), ArgumentMatchers.<Supplier<Optional<Download>>>any());
-        verify(subscriptions).findById(route.getSubscriptionId());
+        verify(subscriptions).findByIdAndDeletedFalse(route.getSubscriptionId());
         verifyNoInteractions(events, tombstones, renderer);
     }
 

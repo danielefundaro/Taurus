@@ -100,6 +100,8 @@ application:
 
 L'avvio fallisce con un errore di configurazione chiaro se la generazione etichette è abilitata e l'URL non è valido. HTTP è ammesso soltanto per host di sviluppo locali.
 
+Il profilo `dev` abilita automaticamente la funzionalità e usa `http://localhost:4200` come base pubblica, così il frontend locale espone subito i comandi QR senza richiedere variabili d'ambiente. Gli altri profili mantengono il valore predefinito disabilitato e richiedono una configurazione esplicita dell'URL pubblico; le variabili d'ambiente continuano ad avere precedenza anche in sviluppo.
+
 ### Emissione
 
 - I nuovi oggetti ricevono il codice nella stessa transazione della creazione.
@@ -535,6 +537,8 @@ Componenti previsti:
 - metodi dedicati in `InventoryService` e `UserInventoryService` oppure un piccolo `InventoryScanService` frontend condiviso.
 
 La rotta di scansione accetta tutti i ruoli già ammessi alla sezione inventario; il resolver decide il contenuto. Le rotte amministrative esistenti restano protette da admin e super admin.
+
+Nella scheda amministrativa `InventoryIssueListComponent` partecipa al ritmo verticale standard delle sezioni con una separazione di `2rem`, mantenendo la card “Segnalazioni guasto” visivamente distinta dalla “Zona pericolosa” conclusiva secondo il [Taurus Layout Standard](taurus-layout-standard.md).
 
 ### Esperienza mobile
 
