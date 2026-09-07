@@ -34,12 +34,14 @@ class TenantFeatureServiceTest {
     @Test
     void returnsTheMinimalCurrentTenantPayload() {
         Tenants tenant = tenant("ORCHESTRA_A", true, false);
+        tenant.setName("Orchestra Aurora");
         tenant.setEntityVersion(12L);
         when(repository.findByCodeAndDeletedFalse("ORCHESTRA_A")).thenReturn(Optional.of(tenant));
 
         TenantContext.run("ORCHESTRA_A", () -> {
             var result = service.current();
             assertThat(result.tenantCode()).isEqualTo("ORCHESTRA_A");
+            assertThat(result.tenantName()).isEqualTo("Orchestra Aurora");
             assertThat(result.version()).isEqualTo(12L);
             assertThat(result.financeEnabled()).isTrue();
             assertThat(result.inventoryEnabled()).isFalse();
