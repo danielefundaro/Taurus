@@ -279,9 +279,11 @@ Se gli errori superano il massimo, la validazione si interrompe con un problema 
 
 ### Passo 1 - Prepara
 
+La pagina usa il titolo **Configurazione iniziale** e il sottotitolo **Importa in modo controllato i dati iniziali**.
+
 Il wizard mostra:
 
-- nome e codice del tenant attivo;
+- nome dell'organizzazione, senza etichette tecniche né codice del tenant;
 - checklist delle sezioni disponibili;
 - conteggi attuali del tenant;
 - pulsante **Scarica modello completo XLSX**;
@@ -304,7 +306,7 @@ La pagina mostra:
 - riepilogo per sezione: totali, validi, avvisi, errori, riutilizzati e nuovi;
 - tabella paginata delle righe normalizzate;
 - filtri per sezione e stato;
-- elenco di problemi con foglio, riga, colonna, codice, messaggio e suggerimento;
+- elenco di problemi con foglio, riga, colonna, etichetta italiana, messaggio e suggerimento; il codice tecnico stabile resta disponibile nell'API e nel rapporto;
 - download del rapporto errori XLSX.
 
 Le celle non sono modificabili nel browser nella prima versione. L'utente corregge il proprio file e crea un nuovo job; questo evita che l'anteprima diverga dal documento conservato e rende riproducibile ogni applicazione.
@@ -319,7 +321,7 @@ Il comando **Avvia importazione** è disponibile soltanto se:
 - il tenant del job coincide con quello della sessione corrente;
 - nessun altro job è in applicazione nello stesso tenant.
 
-Prima della conferma vengono mostrati i numeri esatti di record nuovi, riutilizzati e saltati. L'opzione **Invia e-mail di configurazione ai nuovi utenti** è selezionata per impostazione predefinita; non riguarda identità Keycloak già esistenti.
+Prima della conferma vengono mostrati il totale delle righe verificate e il numero di avvisi. Il riepilogo usa colori semantici del tema, con sfondo, bordo e testo leggibili sia in modalità chiara sia scura. L'opzione **Invia e-mail di configurazione ai nuovi utenti** è selezionata per impostazione predefinita; non riguarda identità Keycloak già esistenti.
 
 ### Passo 5 - Esito
 
@@ -416,9 +418,9 @@ Esempi di codici:
 - `KEYCLOAK_IDENTITY_WILL_BE_LINKED`;
 - `EXISTING_RECORD_WILL_BE_REUSED`.
 
-Gli `ERROR` bloccano l'applicazione. I `WARNING` richiedono una conferma unica nel passo finale e restano nel rapporto di audit.
+Gli `ERROR` bloccano l'applicazione. I `WARNING` richiedono una conferma unica nel passo finale e restano nel rapporto di audit. Nell'interfaccia questi valori e i codici problema sono presentati tramite etichette italiane; i codici originali non vengono modificati nel contratto API.
 
-Il rapporto XLSX riproduce i fogli caricati aggiungendo colonne finali `esito`, `codici_problema` e `messaggi`. Qualunque testo che inizi con `=`, `+`, `-` o `@` viene neutralizzato nell'export per impedire formula injection.
+Il rapporto XLSX riproduce i fogli caricati aggiungendo colonne finali `esito`, `codici_problema` e `messaggi`. La colonna `esito` usa etichette italiane; `codici_problema` conserva i codici tecnici stabili per diagnosi e assistenza. Qualunque testo che inizi con `=`, `+`, `-` o `@` viene neutralizzato nell'export per impedire formula injection.
 
 ## Modello persistente di staging
 
@@ -816,7 +818,7 @@ Il wizard usa `p-stepper` lineare con cinque passi:
 4. **Conferma**;
 5. **Esito**.
 
-I passi completati possono essere riaperti finché il job non entra in `APPLYING`. Dopo l'avvio, navigazione e selezioni sono bloccate e resta disponibile soltanto la vista di stato.
+I passi completati possono essere riaperti finché il job non entra in `APPLYING`. Il valore attivo dello stepper è sincronizzato in entrambe le direzioni con lo stato del componente, così i comandi **Vai alla conferma** e **Indietro** restano funzionanti anche dopo la navigazione tramite le intestazioni dei passi. Dopo l'avvio, navigazione e selezioni sono bloccate e resta disponibile soltanto la vista di stato.
 
 Il file usa `p-fileupload` con `customUpload`, `multiple=false`, caricamento non automatico e limite locale coerente con il backend. Il componente mantiene il proprio input nativo accessibile; l'area drag-and-drop non è l'unico modo per selezionare il file.
 
@@ -826,13 +828,16 @@ Il file usa `p-fileupload` con `customUpload`, `multiple=false`, caricamento non
 - filtri per sezione ed esito;
 - colonne variabili ma definite dal DTO della sezione;
 - riga e cella con errore collegate tramite `aria-describedby` al messaggio;
-- `p-tag` con testo `Valida`, `Avviso`, `Errore`, `Riutilizzata`;
+- `p-tag` con stati italiani `Valida`, `Avviso`, `Errore`, `Applicata`, `Saltata`;
+- azioni delle righe localizzate come `Crea`, `Riutilizza`, `Ignora`;
 - nessun editor di cella;
 - vista compatta a schede sotto 768 pixel per evitare tabelle orizzontali ingestibili.
 
 ### Progresso e stati
 
 `p-progressbar` mostra percentuale e descrizione testuale della fase. Il contenitore espone `aria-busy`; gli avanzamenti non vengono annunciati a ogni punto percentuale, ma soltanto al cambio fase tramite live region `polite`.
+
+Stati del job, fasi, severità, azioni e titoli dei problemi sono sempre mostrati in italiano, comprese le importazioni recenti e la vista **Esito**. I valori enum e i codici tecnici continuano a essere scambiati in forma stabile con il backend, ma non vengono presentati direttamente all'utente. Per codici futuri non ancora mappati viene mostrata un'etichetta italiana neutra.
 
 Stati vuoti distinti:
 
@@ -855,6 +860,8 @@ Durante `APPLYING` la chiusura della pagina non interrompe il worker. Al ritorno
 - `422`: file leggibile ma non conforme al template;
 - errore di rete dopo upload: recupero tramite stessa `Idempotency-Key`;
 - risultato `COMPENSATION_REQUIRED`: banner `danger`, istruzione operativa e comando di retry autorizzato.
+
+Se il caricamento non riesce, il messaggio operativo è **Controlla formato e dimensione del file, quindi riprova.** Se il contesto dell'onboarding non è disponibile, il messaggio è **Verifica di avere accesso alla configurazione iniziale.** Questi testi non mostrano né richiedono il codice del tenant e non usano la dicitura “tenant attivo”.
 
 ## Osservabilità
 
@@ -1083,7 +1090,8 @@ La funzionalità è completa quando:
 27. la chiusura del browser non interrompe validazione o applicazione;
 28. il wizard è utilizzabile da tastiera e su schermi mobili;
 29. i test PostgreSQL e Keycloak dimostrano isolamento e recupero;
-30. il job da 5.000 righe rispetta i limiti di memoria e tempo approvati in staging.
+30. il job da 5.000 righe rispetta i limiti di memoria e tempo approvati in staging;
+31. l'interfaccia e la colonna `esito` del rapporto mostrano etichette italiane senza esporre direttamente stati, fasi, azioni o severità tecniche.
 
 ## Prestazioni attese
 
