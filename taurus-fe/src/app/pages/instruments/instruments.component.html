@@ -26,6 +26,7 @@
         paginatorDropdownAppendTo="body"
         (onLazyLoad)="onLazyLoad($event)"
     >
+        <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
         <ng-template #list let-items>
             <div class="flex flex-col">
                 @for (item of items; track item.id) {

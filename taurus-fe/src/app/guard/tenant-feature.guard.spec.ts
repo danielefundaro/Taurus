@@ -9,16 +9,14 @@ describe('tenantFeatureGuard', () => {
     let router: jasmine.SpyObj<Router>;
     let service: {
         refresh: jasmine.Spy;
-        financeEnabled: jasmine.Spy;
-        inventoryEnabled: jasmine.Spy;
+        isEnabled: jasmine.Spy;
     };
 
     beforeEach(() => {
         router = jasmine.createSpyObj<Router>('Router', ['createUrlTree']);
         service = {
             refresh: jasmine.createSpy().and.returnValue(of({})),
-            financeEnabled: jasmine.createSpy().and.returnValue(false),
-            inventoryEnabled: jasmine.createSpy().and.returnValue(true)
+            isEnabled: jasmine.createSpy().and.callFake((feature: TenantFeature) => feature === TenantFeature.INVENTORY)
         };
         TestBed.configureTestingModule({
             providers: [
@@ -32,9 +30,7 @@ describe('tenantFeatureGuard', () => {
         const redirect = {} as UrlTree;
         router.createUrlTree.and.returnValue(redirect);
 
-        const result = TestBed.runInInjectionContext(() =>
-            tenantFeatureGuard({ data: { feature: TenantFeature.FINANCE } } as never, {} as never)
-        );
+        const result = TestBed.runInInjectionContext(() => tenantFeatureGuard({ data: { feature: TenantFeature.FINANCE } } as never, {} as never));
 
         await expectAsync(firstValueFrom(result as Observable<boolean | UrlTree>)).toBeResolvedTo(redirect);
         expect(service.refresh).toHaveBeenCalled();
@@ -42,9 +38,7 @@ describe('tenantFeatureGuard', () => {
     });
 
     it('allows navigation when the requested feature is enabled', async () => {
-        const result = TestBed.runInInjectionContext(() =>
-            tenantFeatureGuard({ data: { feature: TenantFeature.INVENTORY } } as never, {} as never)
-        );
+        const result = TestBed.runInInjectionContext(() => tenantFeatureGuard({ data: { feature: TenantFeature.INVENTORY } } as never, {} as never));
 
         await expectAsync(firstValueFrom(result as Observable<boolean | UrlTree>)).toBeResolvedTo(true);
         expect(router.createUrlTree).not.toHaveBeenCalled();

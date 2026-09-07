@@ -16,7 +16,13 @@ export class Tenants extends CommonFieldsOpenSearch {
     vatNumber?: string;
     logoUrl?: string;
     timeZone?: string = 'Europe/Rome';
-    financeEnabled: boolean = true;
-    inventoryEnabled: boolean = true;
+    financeEnabled: boolean = false;
+    inventoryEnabled: boolean = false;
+    onboardingImportEnabled: boolean = false;
+    externalCalendarFeedEnabled: boolean = false;
+    inventoryQrEnabled: boolean = false;
+    notificationPreferencesEnabled: boolean = false;
+    webPushRemindersEnabled: boolean = false;
+    eventPreparationEnabled: boolean = false;
     entityVersion?: number;
 }

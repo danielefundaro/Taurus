@@ -95,6 +95,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected readonly financeEnabled;
     protected readonly inventoryEnabled;
     protected readonly eventPreparationEnabled;
+    protected readonly webPushRemindersEnabled;
     protected preparation?: EventPreparationView;
     protected preparationConfiguration: EventPreparationConfiguration = this.profileConfiguration('OTHER');
     protected savingPreparation = false;
@@ -164,6 +165,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.financeEnabled = tenantFeatureService.financeEnabled;
         this.inventoryEnabled = tenantFeatureService.inventoryEnabled;
         this.eventPreparationEnabled = tenantFeatureService.eventPreparationEnabled;
+        this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
         this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
@@ -400,7 +402,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .pipe(first())
                     .subscribe({
                         next: () => {
-                            this.toastService.success('Successo', 'Evento eliminato');
+                            this.toastService.success('Evento eliminato', 'L’evento non è più visibile nel calendario.');
                             this.router.navigate(['/calendar']);
                         }
                     });
@@ -420,7 +422,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (updated: CalendarEvents) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Evento aggiornato con successo');
+                    this.toastService.success('Evento aggiornato', 'Le modifiche sono state salvate.');
                     if (this.isDirtyPresence) {
                         this.toastService.info('Presenze non salvate', 'Le presenze modificate restano da salvare con «Salva presenze».');
                     }
@@ -443,7 +445,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 next: (updated) => {
                     this.series = updated;
                     this.isDirty = false;
-                    this.toastService.success('Successo', `${updated.updatedCount ?? 0} eventi aggiornati da questa occorrenza in poi`);
+                    this.toastService.success('Serie aggiornata', `${updated.updatedCount ?? 0} eventi sono stati aggiornati da questa occorrenza in poi.`);
                     this.loadElement(this.event.id);
                 }
             });
@@ -503,7 +505,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (updated) => {
                     this.series = updated;
-                    this.toastService.success('Successo', 'Occorrenza ripristinata dai valori della serie');
+                    this.toastService.success('Occorrenza ripristinata', 'Sono stati applicati i valori della serie.');
                     this.loadElement(this.event.id);
                 }
             });
@@ -522,7 +524,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: (result) => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', `${result.deletedCount ?? 0} eventi futuri eliminati`);
+                            this.toastService.success('Eventi futuri eliminati', `${result.deletedCount ?? 0} eventi non sono più visibili.`);
                             this.router.navigate(['/calendar']);
                         }
                     })
@@ -598,7 +600,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 .subscribe({
                     next: (result) => {
                         const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
-                        this.toastService.success('Successo', `${msg} per ${result.affectedOccurrences} eventi futuri`);
+                        this.toastService.success('Disponibilità aggiornata', `${msg} per ${result.affectedOccurrences} eventi futuri.`);
                         this.loadElement(this.event.id);
                     }
                 });
@@ -610,7 +612,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (updated: CalendarEvents) => {
                     const msg = available ? 'Disponibilità confermata' : 'Non disponibile registrato';
-                    this.toastService.success('Successo', msg);
+                    this.toastService.success('Disponibilità aggiornata', msg);
                     this.updateEventDates(updated);
                     this.loadPersonalReminder();
                     if (this.eventPreparationEnabled()) this.loadPreparation();
@@ -673,7 +675,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 .pipe(first())
                 .subscribe({
                     next: (result) => {
-                        this.toastService.success('Successo', `Disponibilità annullata per ${result.affectedOccurrences} eventi futuri`);
+                        this.toastService.success('Disponibilità annullata', `La risposta è stata rimossa per ${result.affectedOccurrences} eventi futuri.`);
                         this.loadElement(this.event.id);
                     }
                 });
@@ -684,7 +686,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .pipe(delay(500), first())
             .subscribe({
                 next: (updated: CalendarEvents) => {
-                    this.toastService.success('Successo', 'Disponibilità annullata');
+                    this.toastService.success('Disponibilità annullata', 'La risposta per questo evento è stata rimossa.');
                     this.updateEventDates(updated);
                     this.loadPersonalReminder();
                     if (this.eventPreparationEnabled()) this.loadPreparation();
@@ -722,7 +724,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (updated: CalendarEvents) => {
                     this.isDirtyPresence = false;
-                    this.toastService.success('Successo', 'Presenze salvate');
+                    this.toastService.success('Presenze salvate', 'L’elenco dei partecipanti è stato aggiornato.');
                     this.updateEventDates(updated);
                 }
             });
@@ -776,13 +778,14 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     private loadElement(id: number | string): void {
+        this.loading = true;
         if (this.isTreasurer) {
             this.loadTreasurerElement(Number(id));
             return;
         }
         this.calendarEventsService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe({
                 next: (ev: CalendarEvents) => {
                     this.event = ev;
@@ -812,7 +815,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     private loadTreasurerElement(id: number): void {
         this.financeService
             .getEvent(id)
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe((summary) => {
                 const event = new CalendarEvents();
                 event.id = summary.eventId;

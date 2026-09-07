@@ -19,4 +19,5 @@
     <include file="config/liquibase/changelog/20260831000002_tenant_timezone.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260904000000_tenant_feature_flags.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260905020000_calendar_feed_registry.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260907000000_tenant_extended_feature_flags.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

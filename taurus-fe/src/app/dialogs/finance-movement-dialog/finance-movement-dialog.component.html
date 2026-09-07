@@ -1,4 +1,5 @@
 <app-dialog-shell
+    #shell
     [title]="editing ? 'Modifica movimento' : 'Nuovo movimento'"
     subtitle="La modifica corregge direttamente il movimento: non servono storni."
     [confirmLabel]="editing ? 'Salva movimento' : 'Registra movimento'"
@@ -10,7 +11,7 @@
         <app-form-field label="Direzione" forId="movement-direction" required>
             <p-select inputId="movement-direction" [(ngModel)]="movement.direction" [options]="directions" optionLabel="label" optionValue="value" />
         </app-form-field>
-        <app-form-field label="Conto" forId="movement-account" required [error]="accountError">
+        <app-form-field label="Conto" forId="movement-account" required [error]="shell.validationAttempted ? accountError : undefined">
             <p-select inputId="movement-account" [(ngModel)]="movement.accountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
         </app-form-field>
         <app-form-field label="Data contabile" forId="movement-date" required hint="Determina l'esercizio di competenza.">
@@ -19,7 +20,7 @@
         <app-form-field label="Data valuta" forId="movement-value-date">
             <p-datepicker inputId="movement-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" />
         </app-form-field>
-        <app-form-field label="Importo" forId="movement-amount" required [error]="amountError">
+        <app-form-field label="Importo" forId="movement-amount" required [error]="shell.validationAttempted ? amountError : undefined">
             <p-inputnumber inputId="movement-amount" [(ngModel)]="movement.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
         </app-form-field>
         <app-form-field label="Categoria" forId="movement-category">
@@ -28,7 +29,7 @@
         <app-form-field class="md:col-span-2" label="Evento" forId="movement-event">
             <p-select inputId="movement-event" [(ngModel)]="movement.eventId" [options]="events" optionLabel="eventName" optionValue="eventId" [filter]="true" [showClear]="true" placeholder="Nessun evento" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="movement-description" required [error]="descriptionError">
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="movement-description" required [error]="shell.validationAttempted ? descriptionError : undefined">
             <input id="movement-description" pInputText [(ngModel)]="movement.description" />
         </app-form-field>
         <app-form-field label="Controparte" forId="movement-counterparty">

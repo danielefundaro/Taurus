@@ -6,7 +6,11 @@ import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.service.dto.TenantFeaturesDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantFeatureCapabilityDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,31 +32,102 @@ public class TenantFeatureService {
         return new TenantFeaturesDTO(
             tenant.getCode(),
             tenant.getEntityVersion(),
-            Boolean.TRUE.equals(tenant.getFinanceEnabled()),
-            Boolean.TRUE.equals(tenant.getInventoryEnabled()),
-            properties.getEventPreparation().isEnabled(),
-            properties.getInventory().getQr().isEnabled()
+            enabled(tenant, TenantFeature.FINANCE),
+            enabled(tenant, TenantFeature.INVENTORY),
+            enabled(tenant, TenantFeature.ONBOARDING_IMPORT),
+            enabled(tenant, TenantFeature.EXTERNAL_CALENDAR_FEED),
+            enabled(tenant, TenantFeature.INVENTORY_QR),
+            enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES),
+            enabled(tenant, TenantFeature.WEB_PUSH_REMINDERS),
+            enabled(tenant, TenantFeature.EVENT_PREPARATION)
         );
     }
 
     public boolean isEnabled(TenantFeature feature) {
-        Tenants tenant = currentTenant();
-        return switch (feature) {
-            case FINANCE -> Boolean.TRUE.equals(tenant.getFinanceEnabled());
-            case INVENTORY -> Boolean.TRUE.equals(tenant.getInventoryEnabled());
-        };
+        return enabled(currentTenant(), feature);
+    }
+
+    public boolean isEnabledForTenant(Long tenantId, TenantFeature feature) {
+        return tenantsRepository.findByIdAndDeletedFalse(tenantId)
+            .filter(tenant -> Boolean.TRUE.equals(tenant.getActive()))
+            .map(tenant -> enabled(tenant, feature))
+            .orElse(false);
+    }
+
+    public boolean isEnabledForTenant(String tenantCode, TenantFeature feature) {
+        return tenantsRepository.findByCodeAndDeletedFalse(tenantCode)
+            .filter(tenant -> Boolean.TRUE.equals(tenant.getActive()))
+            .map(tenant -> enabled(tenant, feature))
+            .orElse(false);
+    }
+
+    public Map<TenantFeature, TenantFeatureCapabilityDTO> capabilities() {
+        Map<TenantFeature, TenantFeatureCapabilityDTO> result = new EnumMap<>(TenantFeature.class);
+        for (TenantFeature feature : TenantFeature.values()) {
+            boolean available = applicationAvailable(feature);
+            result.put(feature, new TenantFeatureCapabilityDTO(
+                available,
+                available ? null : "tenantFeature.capability." + feature.errorKey() + ".unavailable",
+                dependencies(feature)
+            ));
+        }
+        return result;
     }
 
     public void requireEnabled(TenantFeature feature) {
         if (!isEnabled(feature)) {
-            String featureName = feature.name().toLowerCase(java.util.Locale.ROOT);
             throw new RequestAlertException(
                 HttpStatus.FORBIDDEN,
                 "Tenant feature is disabled",
                 "TenantFeature",
-                "tenantFeature." + featureName + ".disabled"
+                "tenantFeature." + feature.errorKey() + ".disabled"
             );
         }
+    }
+
+    private boolean enabled(Tenants tenant, TenantFeature feature) {
+        if (!applicationAvailable(feature)) return false;
+        return switch (feature) {
+            case FINANCE -> Boolean.TRUE.equals(tenant.getFinanceEnabled());
+            case INVENTORY -> Boolean.TRUE.equals(tenant.getInventoryEnabled());
+            case ONBOARDING_IMPORT -> Boolean.TRUE.equals(tenant.getOnboardingImportEnabled());
+            case EXTERNAL_CALENDAR_FEED -> Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled());
+            case INVENTORY_QR -> Boolean.TRUE.equals(tenant.getInventoryQrEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
+            case NOTIFICATION_PREFERENCES -> Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled());
+            case WEB_PUSH_REMINDERS -> Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())
+                && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES);
+            case EVENT_PREPARATION -> Boolean.TRUE.equals(tenant.getEventPreparationEnabled());
+        };
+    }
+
+    private boolean applicationAvailable(TenantFeature feature) {
+        return switch (feature) {
+            case FINANCE, INVENTORY -> true;
+            case ONBOARDING_IMPORT -> properties.getOnboarding().isEnabled();
+            case EXTERNAL_CALENDAR_FEED -> properties.getCalendarFeed().isEnabled();
+            case INVENTORY_QR -> properties.getInventory().getQr().isEnabled()
+                && properties.getInventory().getQr().isPublicBaseUrlValid();
+            case NOTIFICATION_PREFERENCES -> properties.getNotificationPreferences().isEnabled();
+            case WEB_PUSH_REMINDERS -> vapidConfigured();
+            case EVENT_PREPARATION -> properties.getEventPreparation().isEnabled();
+        };
+    }
+
+    private List<TenantFeature> dependencies(TenantFeature feature) {
+        return switch (feature) {
+            case INVENTORY_QR -> List.of(TenantFeature.INVENTORY);
+            case WEB_PUSH_REMINDERS -> List.of(TenantFeature.NOTIFICATION_PREFERENCES);
+            default -> List.of();
+        };
+    }
+
+    private boolean vapidConfigured() {
+        var vapid = properties.getVapid();
+        return configuredSecret(vapid.getPublicKey()) && configuredSecret(vapid.getPrivateKey());
+    }
+
+    private static boolean configuredSecret(String value) {
+        return value != null && !value.isBlank() && !"CHANGE_ME".equals(value);
     }
 
     private Tenants currentTenant() {

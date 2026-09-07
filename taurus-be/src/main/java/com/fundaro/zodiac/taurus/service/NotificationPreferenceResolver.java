@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolic
 import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -15,6 +16,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -23,6 +25,7 @@ public class NotificationPreferenceResolver {
     private final NotificationProfileRepository repository;
     private final TenantTimeZoneService tenantTimeZoneService;
     private final ZoneId applicationDefaultZone;
+    private TenantFeatureService tenantFeatureService;
 
     public NotificationPreferenceResolver(
         NotificationProfileRepository repository,
@@ -34,6 +37,11 @@ public class NotificationPreferenceResolver {
         this.applicationDefaultZone = ZoneId.of(applicationProperties.getNotificationPreferences().getDefaultTimeZone());
     }
 
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, NotificationPreferenceDecision> resolve(
         NotificationSource source,
@@ -43,6 +51,7 @@ public class NotificationPreferenceResolver {
         Map<String, NotificationPreferenceDecision> decisions = new LinkedHashMap<>();
         ZoneId defaultZone = currentTenantZoneOrDefault();
         userIds.forEach(userId -> decisions.put(userId, defaults(userId, defaultZone)));
+        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.NOTIFICATION_PREFERENCES)) return decisions;
         for (NotificationProfile profile : repository.findAllByUserKeycloakIdInAndDeletedFalse(userIds)) {
             String userId = profile.getUser().getKeycloakId();
             NotificationCategoryPreference category = profile.getCategories().stream()

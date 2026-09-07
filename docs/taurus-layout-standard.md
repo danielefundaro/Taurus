@@ -384,7 +384,7 @@ Quattro gravità e due forme. Il toast è effimero e riguarda un'azione appena c
 
 **Misure in rem, breakpoint sempre dichiarati.** Tre taglie: 28, 40 e 56rem.
 
-**L'azione di conferma è un pulsante pieno.** In dialoghi e conferme. La rinuncia è `text`. Nessuna delle due è `[outlined]`.
+**L'azione primaria dei dialoghi è un pulsante pieno.** Nelle conferme, invece, la gravità determina la resa: pieno `danger` per le azioni distruttive, `outlined` `warn` per quelle reversibili e `outlined` `info` per l'uscita con modifiche non salvate. La rinuncia è sempre `text`.
 
 **La validazione si spiega.** Messaggio sotto il campo e conteggio dei campi da correggere nel piede. Il pulsante resta attivo e il tentativo di salvataggio rivela gli errori.
 
@@ -611,7 +611,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 ## Ordine di migrazione
 
-Si parte dai difetti che comportano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine. Tutti i passi sono stati eseguiti.
+Si parte dai difetti che comportano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine. La migrazione strutturale e la verifica di conformità sono state completate; l'esito verificato è registrato nel catalogo delle funzionalità.
 
 1. Il salvataggio delle presenze in `calendar-events/detail`: è una perdita di dati e non aspetta il resto.
 2. La doppia dichiarazione di `p-confirmdialog key="guard"`, la spaziatura delle card e l'immagine remota di `forbidden`: correzioni di poche righe ciascuna.
@@ -633,11 +633,9 @@ Si parte dai difetti che comportano una perdita di dati o un comportamento errat
 
 ## Scostamenti consapevoli
 
-Tre punti divergono dalla lettera della specifica, per ragioni che vale la pena mettere a verbale.
+Due punti divergono dalla lettera della specifica, per ragioni che vale la pena mettere a verbale.
 
 **La barra strumenti di `finance` resta il suo pannello di filtri.** `finance` non adotta `list-toolbar`: la zona barra strumenti è occupata dalla propria griglia di otto filtri con «Applica» e «Azzera», che il componente condiviso — una riga sola con ricerca, ordinamento e cambio vista — non può contenere senza peggiorare la pagina. La zona è al posto giusto e nell'ordine giusto; cambia soltanto il componente che la riempie. `legal-documents`, che ha la sola ricerca, adotta invece `list-toolbar` con il selettore di vista disattivato.
-
-**`inventory` non ha barra di selezione.** La pagina non ha selezione multipla né azioni massive, e la zona è dichiarata opzionale.
 
 **La shell resta su `*ngIf` e `*ngFor`.** `topbar`, `menu`, `menu-item`, `configurator` e `loading-spinner` non sono stati migrati alla nuova sintassi: sono codice di piattaforma e il loro ridisegno è fuori scope. Ognuno importa da sé le direttive che usa, così `NgIf` e `NgFor` sono stati rimossi da `imports.ts` e non sono più disponibili globalmente: ogni superficie di contenuto è su `@if` e `@for`, `preview` compresa.
 

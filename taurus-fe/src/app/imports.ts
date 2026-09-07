@@ -42,6 +42,8 @@ import { EntityCardComponent } from './components/entity-card/entity-card.compon
 import { FormFieldComponent } from './components/form-field/form-field.component';
 import { InlineAlertComponent } from './components/inline-alert/inline-alert.component';
 import { ListRowComponent } from './components/list-row/list-row.component';
+import { ListLoadingSkeletonComponent } from './components/list-loading-skeleton/list-loading-skeleton.component';
+import { DetailLoadingSkeletonComponent } from './components/detail-loading-skeleton/detail-loading-skeleton.component';
 import { ListToolbarComponent } from './components/list-toolbar/list-toolbar.component';
 import { PageHeaderComponent } from './components/page-header/page-header.component';
 import { SelectionBarComponent } from './components/selection-bar/selection-bar.component';
@@ -95,6 +97,8 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         PageHeaderComponent,
         ListToolbarComponent,
         ListRowComponent,
+        ListLoadingSkeletonComponent,
+        DetailLoadingSkeletonComponent,
         EntityCardComponent,
         EmptyStateComponent,
         SelectionBarComponent,
@@ -151,6 +155,8 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         PageHeaderComponent,
         ListToolbarComponent,
         ListRowComponent,
+        ListLoadingSkeletonComponent,
+        DetailLoadingSkeletonComponent,
         EntityCardComponent,
         EmptyStateComponent,
         SelectionBarComponent,

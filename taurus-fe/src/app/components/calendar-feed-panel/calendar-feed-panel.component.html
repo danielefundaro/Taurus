@@ -1,8 +1,10 @@
 <div class="flex flex-col gap-5">
-    <p-message severity="info"><strong>Nome obbligatorio:</strong>&nbsp;inseriscilo per creare un feed, scegli quali informazioni includere e premi «Crea feed e mostra il link».</p-message>
-    <p-message severity="warn">
-        Il link completo viene mostrato soltanto subito dopo la creazione. Copialo e conservalo in modo sicuro: chiunque lo possieda può leggere gli eventi inclusi. Se lo perdi, dovrai generarne uno nuovo e il precedente smetterà di funzionare.
-    </p-message>
+    <app-inline-alert severity="info" title="Nome del feed obbligatorio" detail="Inseriscilo, scegli le informazioni da includere e crea il feed per visualizzare il link." />
+    <app-inline-alert
+        severity="warn"
+        title="Il link viene mostrato una sola volta"
+        detail="Copialo e conservalo in modo sicuro: chiunque lo possieda può leggere gli eventi inclusi. Se lo perdi, dovrai generarne uno nuovo e il precedente smetterà di funzionare."
+    />
 
     @if (secret) {
         <div class="secret-box" role="status" aria-live="polite">
@@ -72,7 +74,7 @@
             ></ng-template>
         </p-table>
     } @else {
-        <app-empty-state icon="pi pi-calendar" title="Nessun feed calendario" description="Crea un link per iniziare una sottoscrizione esterna." />
+        <app-empty-state icon="pi pi-calendar" title="Nessun feed calendario" message="Crea un link per iniziare una sottoscrizione esterna." />
     }
 
     <div class="instructions text-sm text-muted-color">

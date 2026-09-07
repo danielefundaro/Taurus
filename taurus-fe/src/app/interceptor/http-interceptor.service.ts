@@ -68,7 +68,20 @@ export class HttpInterceptorService implements HttpInterceptor {
                 if (error.status === 401 && !this.isRefresh(authReq)) {
                     return this.handle401Error(authReq, next);
                 } else if (error.status === 403 && responseMessage?.startsWith('error.tenantFeature.') && responseMessage.endsWith('.disabled')) {
-                    const feature = responseMessage.includes('.inventory.') ? 'Inventario' : 'Economia';
+                    const featureKey: string = responseMessage.slice('error.tenantFeature.'.length, -'.disabled'.length);
+                    const feature =
+                        (
+                            {
+                                finance: 'Economia',
+                                inventory: 'Inventario',
+                                onboardingImport: 'Configurazione iniziale',
+                                externalCalendarFeed: 'Feed calendario esterno',
+                                inventoryQr: 'QR code inventario',
+                                notificationPreferences: 'Preferenze notifiche',
+                                webPushReminders: 'Promemoria eventi Web Push',
+                                eventPreparation: 'Preparazione evento'
+                            } as Record<string, string>
+                        )[featureKey] ?? 'richiesta';
                     this.toastService.error('Funzionalità non disponibile', `La funzionalità ${feature} non è disponibile per questo tenant.`);
                     this.injector
                         .get(TenantFeatureService)

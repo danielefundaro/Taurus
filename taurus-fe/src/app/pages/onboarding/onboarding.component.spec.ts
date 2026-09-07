@@ -19,6 +19,7 @@ describe('OnboardingComponent', () => {
         inventoryItems: 0,
         financialAccounts: 0,
         supportedTemplateVersions: [1],
+        availableSections: ['INSTRUMENTS', 'USERS', 'INVENTORY', 'CATEGORIES', 'ACCOUNTS', 'OPENING_BALANCES'],
         limits: { maxFileSizeBytes: 10485760, maxTotalRows: 1000, maxUserRows: 100 }
     };
 

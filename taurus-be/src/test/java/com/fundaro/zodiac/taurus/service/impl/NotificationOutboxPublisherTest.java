@@ -3,6 +3,8 @@ package com.fundaro.zodiac.taurus.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
@@ -13,6 +15,8 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,6 +75,23 @@ class NotificationOutboxPublisherTest {
             .startsWith("sha256:")
             .hasSize(71)
             .isEqualTo(com.fundaro.zodiac.taurus.service.notification.NotificationEventKey.fit(longKey));
+    }
+
+    @Test
+    void suppressesNotificationsOwnedByADisabledFeature() {
+        NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
+        TenantFeatureService tenantFeatures = mock(TenantFeatureService.class);
+        publisher.setFeaturePolicy(new NotificationFeaturePolicy());
+        publisher.setTenantFeatures(tenantFeatures);
+        NotificationCommand base = command("issue-1", "/inventory/issues/1");
+
+        publisher.enqueue(new NotificationCommand(
+            base.eventKey(), base.source(), "INVENTORY_ISSUE", base.aggregateId(), base.operation(),
+            base.title(), base.message(), base.severity(), base.targetPath(), base.actorId(),
+            base.actorDisplayName(), base.audiences(), null
+        ));
+
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     private static NotificationCommand command(String eventKey, String targetPath) {

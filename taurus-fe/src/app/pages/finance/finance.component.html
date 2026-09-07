@@ -141,11 +141,20 @@
                                 </td>
                                 <td>
                                     <div class="flex justify-end gap-1">
-                                        <p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica" (onClick)="openMovement(movement)" />
-                                        <p-button icon="pi pi-trash" severity="danger" [text]="true" pTooltip="Elimina" (onClick)="deleteMovement(movement)" />
+                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica movimento" [text]="true" pTooltip="Modifica" (onClick)="openMovement(movement)" />
+                                        <p-button icon="pi pi-trash" ariaLabel="Elimina movimento" severity="danger" [text]="true" pTooltip="Elimina" (onClick)="deleteMovement(movement)" />
                                     </div>
                                 </td>
                             </tr>
+                        </ng-template>
+                        <ng-template #loadingbody>
+                            @for (row of [0, 1, 2, 3, 4, 5]; track row) {
+                                <tr>
+                                    @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
+                                        <td><p-skeleton /></td>
+                                    }
+                                </tr>
+                            }
                         </ng-template>
                         <ng-template #emptymessage>
                             <tr>
@@ -318,7 +327,7 @@
                                 <td><p-tag [value]="category.active ? 'Attiva' : 'Archiviata'" [severity]="category.active ? 'success' : 'secondary'" /></td>
                                 <td>
                                     <div class="flex justify-end gap-1">
-                                        <p-button icon="pi pi-pencil" [text]="true" (onClick)="openCategory(category)" />
+                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica categoria" [text]="true" (onClick)="openCategory(category)" />
                                         @if (category.active) {
                                             <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia categoria" ariaLabel="Archivia categoria" (onClick)="archiveCategory(category)" />
                                         }
@@ -387,7 +396,7 @@
                                     }}<small class="block text-surface-500">Da pagare {{ event.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td><p-tag [value]="eventStatusLabel(event.economicStatus)" [severity]="eventStatusSeverity(event.economicStatus)" /></td>
-                                <td><p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
+                                <td><p-button icon="pi pi-pencil" ariaLabel="Modifica preventivo" [text]="true" pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
                             </tr>
                         </ng-template>
                         <ng-template #emptymessage>

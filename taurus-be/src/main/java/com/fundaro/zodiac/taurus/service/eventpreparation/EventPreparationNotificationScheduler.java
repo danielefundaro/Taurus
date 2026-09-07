@@ -54,7 +54,7 @@ public class EventPreparationNotificationScheduler {
     )
     public void notifyDeadlines() {
         ZonedDateTime now = ZonedDateTime.now(DEFAULT_ZONE);
-        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
+        tenantSchemaRegistry.findEventPreparationEnabledTenantCodes().forEach(tenantCode -> {
             try {
                 tenantTransactionExecutor.execute(tenantCode, () -> notifyCurrentTenant(now));
             } catch (RuntimeException exception) {
@@ -90,7 +90,7 @@ public class EventPreparationNotificationScheduler {
         notificationPublisher.enqueue(new NotificationCommand(
             "event-preparation:" + entry.eventId() + ":" + operation + ":" + triggerAt.toInstant(),
             NotificationSource.CALENDAR,
-            "CALENDAR_EVENT",
+            "EVENT_PREPARATION",
             entry.eventId().toString(),
             operation,
             title,

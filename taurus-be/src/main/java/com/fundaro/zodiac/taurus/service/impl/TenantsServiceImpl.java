@@ -54,7 +54,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     public TenantsDTO save(TenantsDTO dto, AbstractAuthenticationToken token) {
         normalizeTimeZone(dto);
-        normalizeFeatureFlags(dto);
+        normalizeFeatureFlagsForCreate(dto);
         if (getRepository().findByCodeAndDeletedFalse(dto.getCode()).isPresent()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant code already exists", getEntityName(), "code.exists");
         }
@@ -76,19 +76,19 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     @Override
     public TenantsDTO update(Long id, TenantsDTO dto, AbstractAuthenticationToken token) {
         normalizeTimeZone(dto);
-        normalizeFeatureFlags(dto);
         Tenants previous = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notFound"));
+        preserveOmittedFeatureFlags(dto, previous);
         if (dto.getEntityVersion() != null && !Objects.equals(dto.getEntityVersion(), previous.getEntityVersion())) {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Tenant was modified by another request", getEntityName(), "version.conflict");
         }
-        Boolean previousFinance = previous.getFinanceEnabled();
-        Boolean previousInventory = previous.getInventoryEnabled();
+        Map<String, Boolean> previousFeatures = featureFlags(previous);
         TenantsDTO saved = super.update(id, dto, token);
-        if (!Objects.equals(previousFinance, saved.getFinanceEnabled()) || !Objects.equals(previousInventory, saved.getInventoryEnabled())) {
+        Map<String, Boolean> savedFeatures = featureFlags(saved);
+        if (!previousFeatures.equals(savedFeatures)) {
             getLogger().info(
-                "tenant_features_updated tenantId={} tenantCode={} financeBefore={} financeAfter={} inventoryBefore={} inventoryAfter={} actor={} version={} occurredAt={}",
-                saved.getId(), saved.getCode(), previousFinance, saved.getFinanceEnabled(), previousInventory, saved.getInventoryEnabled(),
+                "tenant_features_updated tenantId={} tenantCode={} before={} after={} actor={} version={} occurredAt={}",
+                saved.getId(), saved.getCode(), previousFeatures, savedFeatures,
                 SecurityUtils.getUserIdFromAuthentication(token), saved.getEntityVersion(), java.time.Instant.now()
             );
         }
@@ -164,8 +164,51 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         }
     }
 
-    private void normalizeFeatureFlags(TenantsDTO dto) {
-        if (dto.getFinanceEnabled() == null) dto.setFinanceEnabled(true);
-        if (dto.getInventoryEnabled() == null) dto.setInventoryEnabled(true);
+    private void normalizeFeatureFlagsForCreate(TenantsDTO dto) {
+        if (dto.getFinanceEnabled() == null) dto.setFinanceEnabled(false);
+        if (dto.getInventoryEnabled() == null) dto.setInventoryEnabled(false);
+        if (dto.getOnboardingImportEnabled() == null) dto.setOnboardingImportEnabled(false);
+        if (dto.getExternalCalendarFeedEnabled() == null) dto.setExternalCalendarFeedEnabled(false);
+        if (dto.getInventoryQrEnabled() == null) dto.setInventoryQrEnabled(false);
+        if (dto.getNotificationPreferencesEnabled() == null) dto.setNotificationPreferencesEnabled(false);
+        if (dto.getWebPushRemindersEnabled() == null) dto.setWebPushRemindersEnabled(false);
+        if (dto.getEventPreparationEnabled() == null) dto.setEventPreparationEnabled(false);
+    }
+
+    private void preserveOmittedFeatureFlags(TenantsDTO dto, Tenants previous) {
+        if (dto.getFinanceEnabled() == null) dto.setFinanceEnabled(previous.getFinanceEnabled());
+        if (dto.getInventoryEnabled() == null) dto.setInventoryEnabled(previous.getInventoryEnabled());
+        if (dto.getOnboardingImportEnabled() == null) dto.setOnboardingImportEnabled(previous.getOnboardingImportEnabled());
+        if (dto.getExternalCalendarFeedEnabled() == null) dto.setExternalCalendarFeedEnabled(previous.getExternalCalendarFeedEnabled());
+        if (dto.getInventoryQrEnabled() == null) dto.setInventoryQrEnabled(previous.getInventoryQrEnabled());
+        if (dto.getNotificationPreferencesEnabled() == null) dto.setNotificationPreferencesEnabled(previous.getNotificationPreferencesEnabled());
+        if (dto.getWebPushRemindersEnabled() == null) dto.setWebPushRemindersEnabled(previous.getWebPushRemindersEnabled());
+        if (dto.getEventPreparationEnabled() == null) dto.setEventPreparationEnabled(previous.getEventPreparationEnabled());
+    }
+
+    private Map<String, Boolean> featureFlags(Tenants tenant) {
+        return Map.of(
+            "finance", Boolean.TRUE.equals(tenant.getFinanceEnabled()),
+            "inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled()),
+            "onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled()),
+            "externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled()),
+            "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
+            "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
+            "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
+            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())
+        );
+    }
+
+    private Map<String, Boolean> featureFlags(TenantsDTO tenant) {
+        return Map.of(
+            "finance", Boolean.TRUE.equals(tenant.getFinanceEnabled()),
+            "inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled()),
+            "onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled()),
+            "externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled()),
+            "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
+            "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
+            "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
+            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())
+        );
     }
 }

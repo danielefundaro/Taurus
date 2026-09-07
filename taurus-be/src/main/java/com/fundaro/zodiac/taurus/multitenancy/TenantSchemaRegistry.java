@@ -69,6 +69,20 @@ public class TenantSchemaRegistry {
         return queryFeatureEnabledTenantCodes(INVENTORY_ENABLED_TENANTS_QUERY);
     }
 
+    public List<String> findEventPreparationEnabledTenantCodes() {
+        return queryFeatureEnabledTenantCodes("""
+            SELECT registry.tenant_code
+            FROM public.tenant_schema_registry registry
+            JOIN public.tenant tenant ON tenant.id = registry.tenant_id
+            WHERE registry.status = 'ACTIVE'
+              AND registry.deleted = FALSE
+              AND tenant.deleted = FALSE
+              AND tenant.active = TRUE
+              AND tenant.event_preparation_enabled = TRUE
+            ORDER BY registry.tenant_code
+            """);
+    }
+
     private List<String> queryActiveTenantCodes() {
         return jdbcTemplate.queryForList(
             "SELECT tenant_code FROM public.tenant_schema_registry WHERE status = 'ACTIVE' AND deleted = FALSE ORDER BY tenant_code",

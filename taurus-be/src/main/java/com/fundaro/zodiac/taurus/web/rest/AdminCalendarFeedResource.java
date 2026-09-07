@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import static com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.*;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedManagementService;
 import jakarta.validation.Valid;
 import java.util.*;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/calendar-feeds")
+@RequiresTenantFeature(TenantFeature.EXTERNAL_CALENDAR_FEED)
 public class AdminCalendarFeedResource {
     private final CalendarFeedManagementService service;
     public AdminCalendarFeedResource(CalendarFeedManagementService service) { this.service = service; }

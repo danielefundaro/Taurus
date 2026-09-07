@@ -16,12 +16,12 @@
     <div class="card flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-1">
             <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary" (onClick)="goToToday()" />
-            <p-button icon="pi pi-chevron-left" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente" tooltipPosition="bottom" />
+            <p-button icon="pi pi-chevron-left" ariaLabel="Mese precedente" [text]="true" (onClick)="prevMonth()" pTooltip="Mese precedente" tooltipPosition="bottom" />
         </div>
 
         <p-button [label]="currentMonthLabel" [text]="true" icon="pi pi-chevron-down" iconPos="right" styleClass="text-xl! font-semibold!" (onClick)="monthPicker.toggle($event)" />
 
-        <p-button icon="pi pi-chevron-right" [text]="true" (onClick)="nextMonth()" pTooltip="Mese successivo" tooltipPosition="bottom" />
+        <p-button icon="pi pi-chevron-right" ariaLabel="Mese successivo" [text]="true" (onClick)="nextMonth()" pTooltip="Mese successivo" tooltipPosition="bottom" />
     </div>
 
     <p-popover #monthPicker>
@@ -71,6 +71,7 @@
             paginatorDropdownAppendTo="body"
             (onLazyLoad)="onLazyLoad($event)"
         >
+            <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
             <ng-template #list let-items>
                 <div class="flex flex-col">
                     @for (item of items; track item.id) {

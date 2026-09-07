@@ -8,6 +8,7 @@
             <div class="sidebar-header-actions">
                 <p-button
                     [icon]="allExcluded ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                    [ariaLabel]="allExcluded ? 'Includi tutte le pagine' : 'Escludi tutte le pagine'"
                     [pTooltip]="allExcluded ? 'Includi tutte le pagine' : 'Escludi tutte le pagine'"
                     [severity]="allExcluded ? 'success' : 'secondary'"
                     [text]="true"
@@ -16,7 +17,7 @@
                     (onClick)="toggleExcludeAll($event)"
                 />
                 @if (cropCount > 0) {
-                    <p-button icon="pi pi-times" pTooltip="Rimuovi tutti i crop" severity="secondary" [text]="true" size="small" (onClick)="removeCropFromAll()" />
+                    <p-button icon="pi pi-times" ariaLabel="Rimuovi tutti i ritagli" pTooltip="Rimuovi tutti i crop" severity="secondary" [text]="true" size="small" (onClick)="removeCropFromAll()" />
                 }
             </div>
         </div>
@@ -28,6 +29,7 @@
                         <div class="page-actions">
                             <p-button
                                 [icon]="isExcluded(page) ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                                [ariaLabel]="isExcluded(page) ? 'Includi pagina ' + page : 'Escludi pagina ' + page"
                                 [pTooltip]="isExcluded(page) ? 'Includi pagina' : 'Escludi pagina'"
                                 [severity]="isExcluded(page) ? 'success' : 'danger'"
                                 [text]="true"
@@ -37,6 +39,7 @@
                         </div>
                         <p-button
                             icon="pi pi-arrow-down-left-and-arrow-up-right-to-center"
+                            [ariaLabel]="hasCrop(page) ? 'Modifica ritagli pagina' : 'Ritaglia pagina'"
                             [pTooltip]="hasCrop(page) ? cropCountForPage(page) + ' zona/e di crop' : 'Ritaglia pagina'"
                             severity="primary"
                             [outlined]="!hasCrop(page)"
@@ -119,7 +122,7 @@
                             <span class="crop-chip" (click)="editPageCrop(i)" pTooltip="Clicca per modificare questa zona" tooltipPosition="top">
                                 <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>
                                 Zona {{ i + 1 }}
-                                <button class="crop-chip-remove" (click)="removePageCrop(i, $event)">
+                                <button type="button" class="crop-chip-remove" [attr.aria-label]="'Rimuovi zona ' + (i + 1)" (click)="removePageCrop(i, $event)">
                                     <i class="pi pi-times"></i>
                                 </button>
                             </span>

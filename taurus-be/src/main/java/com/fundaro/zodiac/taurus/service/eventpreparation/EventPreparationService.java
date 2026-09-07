@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.*;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.eventpreparation.*;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovement;
@@ -15,6 +16,7 @@ import com.fundaro.zodiac.taurus.repository.eventpreparation.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.*;
 import com.fundaro.zodiac.taurus.service.impl.NotificationOutboxPublisher;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
@@ -48,6 +50,7 @@ public class EventPreparationService {
     private final UsersRepository users;
     private final FinancialMovementRepository movements;
     private NotificationOutboxPublisher notificationPublisher;
+    private TenantFeatureService tenantFeatures;
 
     public EventPreparationService(
         CalendarEventsRepository events,
@@ -76,6 +79,11 @@ public class EventPreparationService {
         this.notificationPublisher = notificationPublisher;
     }
 
+    @Autowired(required = false)
+    void setTenantFeatures(TenantFeatureService tenantFeatures) {
+        this.tenantFeatures = tenantFeatures;
+    }
+
     @Transactional(readOnly = true)
     public View get(Long eventId) {
         CalendarEvents event = event(eventId);
@@ -83,7 +91,8 @@ public class EventPreparationService {
         if (preparation == null) return new View(null, notConfigured(event), List.of(), availability(event, null), List.of());
         List<CalendarEventProgramEntry> program = programs.findCurrent(eventId);
         List<CalendarEventMaterial> materialRows = materials.findCurrent(eventId);
-        return new View(configuration(preparation), evaluate(event, preparation, program, materialRows), program.stream().map(this::programDto).toList(), availability(event, preparation), materialRows.stream().map(this::materialDto).toList());
+        View result = new View(configuration(preparation), evaluate(event, preparation, program, materialRows), program.stream().map(this::programDto).toList(), availability(event, preparation), materialRows.stream().map(this::materialDto).toList());
+        return degradeUnavailableAreas(result);
     }
 
     @Transactional(readOnly = true)
@@ -330,6 +339,24 @@ public class EventPreparationService {
     private static Configuration catalogueConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, c.programRequired(), c.scoresRequired(), c.availabilityRequired(), c.minimumAvailableParticipants(), c.availabilityDeadlineMinutes(), false, 0, false, false, false, c.version()); }
     private static Configuration personalConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, c.programRequired(), c.scoresRequired(), c.availabilityRequired(), null, c.availabilityDeadlineMinutes(), false, 0, false, false, false, c.version()); }
     private static Configuration financeConfiguration(Configuration c) { return c == null ? null : new Configuration(c.profile(), false, false, false, false, null, 0, false, 0, c.budgetRequired(), false, c.financialClosureRequired(), c.version()); }
+    private View degradeUnavailableAreas(View source) {
+        boolean inventoryEnabled = tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.INVENTORY);
+        boolean financeEnabled = tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.FINANCE);
+        Configuration configuration = source.configuration();
+        if (configuration != null && (!inventoryEnabled || !financeEnabled)) {
+            configuration = new Configuration(
+                configuration.profile(), configuration.locationRequired(), configuration.programRequired(), configuration.scoresRequired(),
+                configuration.availabilityRequired(), configuration.minimumAvailableParticipants(), configuration.availabilityDeadlineMinutes(),
+                inventoryEnabled && configuration.materialsRequired(), configuration.materialsDeadlineMinutes(),
+                financeEnabled && configuration.budgetRequired(), configuration.presenceClosureRequired(),
+                financeEnabled && configuration.financialClosureRequired(), configuration.version()
+            );
+        }
+        Set<String> visibleAreas = new HashSet<>(Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY", "PRESENCE"));
+        if (inventoryEnabled) visibleAreas.add("MATERIALS");
+        if (financeEnabled) visibleAreas.addAll(Set.of("BUDGET", "FINANCE"));
+        return new View(configuration, filterEvaluation(source.evaluation(), visibleAreas), source.program(), source.availability(), inventoryEnabled ? source.materials() : List.of());
+    }
     private static Evaluation filterEvaluation(Evaluation source, Set<String> areas) {
         List<Issue> issues = source.issues().stream().filter(issue -> areas.contains(issue.area())).toList();
         int blockers = (int) issues.stream().filter(issue -> issue.severity() == Severity.BLOCKER).count();
@@ -340,7 +367,12 @@ public class EventPreparationService {
         ClosureStatus closureStatus = areas.contains("FINANCE") ? source.closureStatus() : ClosureStatus.NOT_REQUIRED;
         return new Evaluation(source.evaluatedAt(), source.phase(), preparationStatus, closureStatus, issues.isEmpty() ? 100 : 0, issues.isEmpty() ? 1 : 0, 1, blockers, warnings, issues);
     }
-    private void apply(CalendarEventPreparation p, Configuration c) { p.setProfile(c.profile()); p.setLocationRequired(c.locationRequired()); p.setProgramRequired(c.programRequired()); p.setScoresRequired(c.scoresRequired()); p.setAvailabilityRequired(c.availabilityRequired()); p.setMinimumAvailableParticipants(c.availabilityRequired() ? c.minimumAvailableParticipants() : null); p.setAvailabilityDeadlineMinutes(c.availabilityDeadlineMinutes()); p.setMaterialsRequired(c.materialsRequired()); p.setMaterialsDeadlineMinutes(c.materialsDeadlineMinutes()); p.setBudgetRequired(c.budgetRequired()); p.setPresenceClosureRequired(c.presenceClosureRequired()); p.setFinancialClosureRequired(c.financialClosureRequired()); }
+    private void apply(CalendarEventPreparation p, Configuration c) {
+        p.setProfile(c.profile()); p.setLocationRequired(c.locationRequired()); p.setProgramRequired(c.programRequired()); p.setScoresRequired(c.scoresRequired()); p.setAvailabilityRequired(c.availabilityRequired()); p.setMinimumAvailableParticipants(c.availabilityRequired() ? c.minimumAvailableParticipants() : null); p.setAvailabilityDeadlineMinutes(c.availabilityDeadlineMinutes());
+        if (tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.INVENTORY)) { p.setMaterialsRequired(c.materialsRequired()); p.setMaterialsDeadlineMinutes(c.materialsDeadlineMinutes()); }
+        if (tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.FINANCE)) { p.setBudgetRequired(c.budgetRequired()); p.setFinancialClosureRequired(c.financialClosureRequired()); }
+        p.setPresenceClosureRequired(c.presenceClosureRequired());
+    }
     private void validate(Configuration c) { if (c.scoresRequired() && !c.programRequired()) throw invalid("Gli spartiti richiedono il programma"); if (c.availabilityRequired() && (c.minimumAvailableParticipants() == null || c.minimumAvailableParticipants() < 1)) throw invalid("Indica il numero minimo di partecipanti"); }
 
     private String materialHash(CalendarEventMaterial m) { InventoryAssignment a = m.getAssignment(); return hash(m.getItem().getId(), a == null ? null : a.getId(), a == null ? null : a.getOutstandingQuantity(), a == null ? null : a.getStatus(), m.getItem().getConditionStatus(), m.getRequiredQuantity()); }
@@ -395,7 +427,7 @@ public class EventPreparationService {
         notificationPublisher.enqueue(new NotificationCommand(
             "event-preparation:" + event.getId() + ":" + operation + ":" + revision,
             NotificationSource.CALENDAR,
-            "CALENDAR_EVENT",
+            "EVENT_PREPARATION",
             event.getId().toString(),
             operation,
             title,

@@ -7,6 +7,10 @@
     max-height: calc(100vh - 8rem);
 }
 header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     padding: 0 0 1rem;
     border-bottom: 1px solid var(--p-content-border-color);
 }

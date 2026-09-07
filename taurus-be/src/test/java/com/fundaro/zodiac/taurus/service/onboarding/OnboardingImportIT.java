@@ -291,6 +291,7 @@ class OnboardingImportIT {
         tenant.setMaxUsers(100L);
         tenant.setFinanceEnabled(true);
         tenant.setInventoryEnabled(true);
+        tenant.setOnboardingImportEnabled(true);
         tenant.setDeleted(false);
         tenant.setInsertBy(ACTOR);
         tenant.setInsertDate(now);

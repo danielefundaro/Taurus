@@ -12,7 +12,7 @@ public final class OnboardingDtos {
     public record Context(
         String tenantCode, String tenantName, boolean schemaActive, Long maxUsers, long users,
         long instruments, long inventoryItems, long financialAccounts, List<Integer> supportedTemplateVersions,
-        Job lastImport, Limits limits
+        List<OnboardingSection> availableSections, Job lastImport, Limits limits
     ) {}
     public record Limits(long maxFileSizeBytes, int maxTotalRows, int maxUserRows) {}
     public record Counts(int total, int valid, int warnings, int errors) {}

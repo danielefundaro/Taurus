@@ -4,7 +4,7 @@ import { SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { ChildrenEntities, Tenants } from '../../../module';
+import { ChildrenEntities, TenantFeature, Tenants } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
 import { ConfirmService, KeycloakService, TenantFeatureService, TenantsService, ToastService } from '../../../service';
 
@@ -21,8 +21,17 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     public tenant: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
-    private originalFinanceEnabled = true;
-    private originalInventoryEnabled = true;
+    protected readonly tenantFeatures: { key: TenantFeatureField; feature: TenantFeature; label: string; description: string; dependency?: TenantFeatureField }[] = [
+        { key: 'financeEnabled', feature: TenantFeature.FINANCE, label: 'Economia', description: 'Conti, movimenti, rendiconti e informazioni economiche degli eventi.' },
+        { key: 'inventoryEnabled', feature: TenantFeature.INVENTORY, label: 'Inventario', description: 'Oggetti, assegnazioni, fotografie, riconsegne e report.' },
+        { key: 'onboardingImportEnabled', feature: TenantFeature.ONBOARDING_IMPORT, label: 'Onboarding e importazione iniziale', description: 'Wizard, template e importazioni iniziali del tenant.' },
+        { key: 'externalCalendarFeedEnabled', feature: TenantFeature.EXTERNAL_CALENDAR_FEED, label: 'Feed calendario esterno', description: 'Feed personali e condivisi in formato iCalendar.' },
+        { key: 'eventPreparationEnabled', feature: TenantFeature.EVENT_PREPARATION, label: 'Preparazione evento', description: 'Workspace operativo, indicatori, materiali e follow-up.' },
+        { key: 'inventoryQrEnabled', feature: TenantFeature.INVENTORY_QR, label: 'QR code inventario', description: 'Etichette, scansione, azioni rapide e segnalazioni.', dependency: 'inventoryEnabled' },
+        { key: 'notificationPreferencesEnabled', feature: TenantFeature.NOTIFICATION_PREFERENCES, label: 'Preferenze notifiche', description: 'Categorie, canali, digest, pausa e ore silenziose.' },
+        { key: 'webPushRemindersEnabled', feature: TenantFeature.WEB_PUSH_REMINDERS, label: 'Promemoria eventi Web Push', description: 'Pianificazione e invio dei promemoria prima degli eventi.', dependency: 'notificationPreferencesEnabled' }
+    ];
+    private originalFeatureValues: Partial<Record<TenantFeatureField, boolean>> = {};
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -40,6 +49,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.tenantFeatureService.loadCapabilities().subscribe({ error: () => undefined });
         this.routeService.params.pipe(first()).subscribe((params) => {
             this.loadElement(params['id']);
         });
@@ -57,7 +67,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Tenant eliminato');
+                            this.toastService.success('Tenant eliminato', 'L’istanza non è più visibile.');
                             this.router.navigate(['/tenants']);
                         }
                     });
@@ -77,7 +87,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Tenant eliminato definitivamente ai sensi del GDPR');
+                            this.toastService.success('Dati del tenant eliminati', 'La cancellazione prevista dal GDPR è stata completata.');
                             this.router.navigate(['/tenants']);
                         }
                     });
@@ -86,9 +96,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     public save(): void {
-        const disabled: string[] = [];
-        if (this.originalFinanceEnabled && !this.tenant.financeEnabled) disabled.push('Economia');
-        if (this.originalInventoryEnabled && !this.tenant.inventoryEnabled) disabled.push('Inventario');
+        const disabled = this.tenantFeatures.filter((item) => this.originalFeatureValues[item.key] === true && this.tenant[item.key] !== true).map((item) => item.label);
+        if (this.originalFeatureValues.inventoryEnabled && this.tenant.inventoryEnabled !== true && this.tenant.inventoryQrEnabled === true && !disabled.includes('QR code inventario')) disabled.push('QR code inventario (per dipendenza)');
+        if (this.originalFeatureValues.notificationPreferencesEnabled && this.tenant.notificationPreferencesEnabled !== true && this.tenant.webPushRemindersEnabled === true && !disabled.includes('Promemoria eventi Web Push'))
+            disabled.push('Promemoria eventi Web Push (per dipendenza)');
         if (disabled.length) {
             this.confirmService.confirmReversible({
                 title: 'Disattiva funzionalità',
@@ -113,7 +124,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (tenant: Tenants) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Tenant aggiornato con successo');
+                    this.toastService.success('Tenant aggiornato', 'Le modifiche sono state salvate.');
                     if (tenant.code === this.keycloakService.currentUserTenantCode) {
                         this.tenantFeatureService.refresh(true).subscribe({ error: () => undefined });
                     }
@@ -155,20 +166,28 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     public get canConfigureData(): boolean {
-        return !!this.tenant.id && this.tenant.active !== false && this.tenant.code === this.keycloakService.currentUserTenantCode;
+        return !!this.tenant.id && this.tenant.active !== false && this.tenant.code === this.keycloakService.currentUserTenantCode && this.tenantFeatureService.onboardingImportEnabled();
+    }
+
+    protected featureStatus(item: { feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
+        const capability = this.tenantFeatureService.capabilities()?.[item.feature];
+        if (capability && !capability.available) return 'Non disponibile nell’installazione';
+        if (item.dependency && this.tenant[item.dependency] !== true) return 'Richiede un’altra funzionalità';
+        return 'Disponibile';
     }
 
     private loadElement(id: number | string) {
+        this.loading = true;
         this.tenantsService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe({
                 next: (tenant: Tenants) => {
                     this.tenant = tenant;
-                    this.tenant.financeEnabled ??= true;
-                    this.tenant.inventoryEnabled ??= true;
-                    this.originalFinanceEnabled = this.tenant.financeEnabled;
-                    this.originalInventoryEnabled = this.tenant.inventoryEnabled;
+                    for (const item of this.tenantFeatures) {
+                        this.tenant[item.key] ??= false;
+                        this.originalFeatureValues[item.key] = this.tenant[item.key];
+                    }
                     this.tenant.country = this.tenant.country?.toUpperCase();
                     this.tenant.expireDate = this.dateConverterPipe.transform(this.tenant.expireDate);
                     this.isDirty = false;
@@ -176,3 +195,5 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             });
     }
 }
+
+type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled';

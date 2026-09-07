@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.onboarding;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.*;
 import com.fundaro.zodiac.taurus.domain.onboarding.*;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.*;
 import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialAccountRepository;
@@ -10,6 +11,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.onboarding.*;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.onboarding.OnboardingDtos;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -42,6 +45,7 @@ public class OnboardingImportService {
     private final FinancialAccountRepository accounts;
     private final ApplicationEventPublisher events;
     private final OnboardingIdentitySagaService identitySaga;
+    private TenantFeatureService tenantFeatures;
 
     public OnboardingImportService(ApplicationProperties applicationProperties, OnboardingImportJobRepository jobs,
         OnboardingImportSectionRepository sections, OnboardingImportRowRepository rows, OnboardingImportIssueRepository issues,
@@ -53,11 +57,16 @@ public class OnboardingImportService {
         this.inventory = inventory; this.accounts = accounts; this.events = events; this.identitySaga = identitySaga;
     }
 
+    @Autowired(required = false)
+    void setTenantFeatures(TenantFeatureService tenantFeatures) {
+        this.tenantFeatures = tenantFeatures;
+    }
+
     @Transactional(readOnly = true)
     public OnboardingDtos.Context context(AbstractAuthenticationToken token) {
         Tenant tenant = tenant(token);
         OnboardingDtos.Job last = jobs.findFirstByStatusOrderByCompletedAtDesc(OnboardingJobStatus.COMPLETED).map(this::dto).orElse(null);
-        return new OnboardingDtos.Context(tenant.code, tenant.entity.getName(), true, tenant.entity.getMaxUsers(), activeUsers(), activeInstruments(), inventory.countByDeletedFalse(), accounts.findAllByDeletedFalseAndActiveTrueOrderByDisplayOrderAscNameAsc().size(), List.of(1), last,
+        return new OnboardingDtos.Context(tenant.code, tenant.entity.getName(), true, tenant.entity.getMaxUsers(), activeUsers(), activeInstruments(), inventory.countByDeletedFalse(), accounts.findAllByDeletedFalseAndActiveTrueOrderByDisplayOrderAscNameAsc().size(), List.of(1), List.copyOf(availableSections()), last,
             new OnboardingDtos.Limits(properties.getMaxFileSize().toBytes(), properties.getMaxTotalRows(), properties.getMaxUserRows()));
     }
 
@@ -70,6 +79,7 @@ public class OnboardingImportService {
         if (file.getSize() > properties.getMaxFileSize().toBytes()) throw problem(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", "file.tooLarge");
         if (format == OnboardingImportFormat.CSV && csvSection == null) throw problem(HttpStatus.BAD_REQUEST, "La sezione CSV è obbligatoria", "csvSection.required");
         if (format == OnboardingImportFormat.XLSX && (selectedSections == null || selectedSections.isEmpty())) throw problem(HttpStatus.BAD_REQUEST, "Selezionare almeno una sezione", "selectedSections.required");
+        requireAvailableSections(format == OnboardingImportFormat.CSV ? Set.of(csvSection) : selectedSections);
         try {
             byte[] content = file.getBytes(); MediaDTO stored = mediaService.store(content, file.getOriginalFilename(), file.getContentType(), "onboarding-imports", token);
             OnboardingImportJob job = new OnboardingImportJob(); job.initializeAudit(actor); job.setSourceMediaAsset(media.getReferenceById(stored.getId())); job.setFileName(stored.getOriginalFilename()); job.setFileSha256(stored.getSha256()); job.setFormat(format); job.setCsvSection(csvSection);
@@ -96,6 +106,12 @@ public class OnboardingImportService {
         if (job.getApplyIdempotencyKey() != null && !key.equals(job.getApplyIdempotencyKey())) throw problem(HttpStatus.CONFLICT, "Chiave di applicazione differente", "idempotency.conflict");
         if (job.getWarningRows() > 0 && !Boolean.TRUE.equals(request.warningsAccepted())) throw problem(HttpStatus.CONFLICT, "È necessario accettare gli avvisi", "warnings.notAccepted");
         if (jobs.existsByStatus(OnboardingJobStatus.APPLYING)) throw problem(HttpStatus.CONFLICT, "Un'altra importazione è già in corso", "tenant.busy");
+        if (!jobSectionsAvailable(job)) {
+            job.setStatus(OnboardingJobStatus.INVALID);
+            job.setStage("FEATURE_DEPENDENCY_DISABLED");
+            job.setLastErrorCode("FEATURE_DEPENDENCY_DISABLED");
+            return dto(jobs.save(job));
+        }
         job.setApplyIdempotencyKey(key); job.setSendSetupEmails(Boolean.TRUE.equals(request.sendSetupEmails())); job.setWarningsAcceptedAt(Boolean.TRUE.equals(request.warningsAccepted()) ? ZonedDateTime.now() : null); job.setExecutedBy(actor); job.setStatus(OnboardingJobStatus.APPLYING); job.setStage("PREPARING_IDENTITIES"); job.setProgressPercentage(5); jobs.save(job);
         events.publishEvent(new OnboardingWorkEvents.Apply(id, tenant.code, actor)); return dto(job);
     }
@@ -108,6 +124,23 @@ public class OnboardingImportService {
     private Tenant tenant(AbstractAuthenticationToken token) { requireEnabled(); String code = SecurityUtils.getTenantIdFromAuthentication(token); if (code == null || code.isBlank()) throw problem(HttpStatus.UNAUTHORIZED, "Tenant attivo richiesto", "tenant.missing"); Tenants entity = tenants.findByCodeAndDeletedFalse(code).filter(t -> Boolean.TRUE.equals(t.getActive())).orElseThrow(() -> problem(HttpStatus.CONFLICT, "Tenant non attivo", "tenant.inactive")); if (schemas.findActiveTenantCode(entity.getId()).filter(code::equals).isEmpty()) throw problem(HttpStatus.CONFLICT, "Schema tenant non attivo", "tenant.schemaInactive"); return new Tenant(code, entity); }
     private String actor(AbstractAuthenticationToken token) { String actor = SecurityUtils.getUserIdFromAuthentication(token); if (actor == null || actor.isBlank()) throw problem(HttpStatus.UNAUTHORIZED, "Identità richiesta", "identity.missing"); return actor; }
     private void requireEnabled() { if (!properties.isEnabled()) throw problem(HttpStatus.NOT_FOUND, "Onboarding non disponibile", "disabled"); }
+    public Set<OnboardingSection> availableSections() {
+        EnumSet<OnboardingSection> result = EnumSet.of(OnboardingSection.INSTRUMENTS, OnboardingSection.USERS);
+        if (tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.INVENTORY)) result.add(OnboardingSection.INVENTORY);
+        if (tenantFeatures == null || tenantFeatures.isEnabled(TenantFeature.FINANCE)) result.addAll(EnumSet.of(OnboardingSection.CATEGORIES, OnboardingSection.ACCOUNTS, OnboardingSection.OPENING_BALANCES));
+        return Set.copyOf(result);
+    }
+    public void requireAvailableSection(OnboardingSection section) { requireAvailableSections(Set.of(section)); }
+    private void requireAvailableSections(Set<OnboardingSection> requested) {
+        if (requested == null || availableSections().containsAll(requested)) return;
+        throw problem(HttpStatus.BAD_REQUEST, "La sezione richiede una funzionalità tenant non disponibile", "section.featureDisabled");
+    }
+    private boolean jobSectionsAvailable(OnboardingImportJob job) {
+        Set<OnboardingSection> requested = EnumSet.noneOf(OnboardingSection.class);
+        if (job.getCsvSection() != null) requested.add(job.getCsvSection());
+        if (job.getSelectedSections() != null && !job.getSelectedSections().isBlank()) Arrays.stream(job.getSelectedSections().split(",")).map(OnboardingSection::valueOf).forEach(requested::add);
+        return availableSections().containsAll(requested);
+    }
     private OnboardingImportJob required(Long id) { return jobs.findByIdAndDeletedFalse(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "id.notFound")); }
     private long activeUsers() { return users.findAll().stream().filter(u -> !Boolean.TRUE.equals(u.getDeleted()) && Boolean.TRUE.equals(u.getActive())).count(); }
     private long activeInstruments() { return instruments.findAll().stream().filter(i -> !Boolean.TRUE.equals(i.getDeleted())).count(); }

@@ -38,5 +38,18 @@ describe('ConfirmService', () => {
         const confirmation = primeConfirm.confirm.calls.mostRecent().args[0];
         expect(confirmation.key).toBe('guard');
         expect(confirmation.rejectLabel).toBe('Rimani');
+        expect(confirmation.acceptButtonProps).toEqual(jasmine.objectContaining({ severity: 'info', outlined: true }));
+    });
+
+    it('uses an outlined warning action for reversible confirmations', () => {
+        service.confirmReversible({
+            title: 'Archivia elemento',
+            consequence: 'L’elemento resterà recuperabile.',
+            actionLabel: 'Archivia',
+            accept: () => undefined
+        });
+
+        const confirmation = primeConfirm.confirm.calls.mostRecent().args[0];
+        expect(confirmation.acceptButtonProps).toEqual(jasmine.objectContaining({ severity: 'warn', outlined: true }));
     });
 });

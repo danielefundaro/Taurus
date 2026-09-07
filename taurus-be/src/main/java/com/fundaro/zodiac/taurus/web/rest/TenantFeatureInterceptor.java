@@ -27,7 +27,9 @@ public class TenantFeatureInterceptor implements HandlerInterceptor {
         if (requirement == null) {
             requirement = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getBeanType(), RequiresTenantFeature.class);
         }
-        if (requirement != null) tenantFeatureService.requireEnabled(requirement.value());
+        if (requirement != null) {
+            for (var feature : requirement.value()) tenantFeatureService.requireEnabled(feature);
+        }
         return true;
     }
 }

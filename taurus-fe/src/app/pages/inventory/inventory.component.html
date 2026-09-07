@@ -104,6 +104,7 @@
             [showCurrentPageReport]="true"
             (onLazyLoad)="onLazyLoad($event)"
         >
+            <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
             <ng-template #list let-listValues>
                 <div class="flex flex-col">
                     @for (entry of listValues; track entry.id) {

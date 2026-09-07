@@ -44,6 +44,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.initializeListState('users');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
@@ -62,7 +63,8 @@ export class UsersComponent extends ListPageBase implements OnInit {
             inputValues: {
                 instruments: this.instruments
             },
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -77,7 +79,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (user: Users) => {
-                            this.toastService.success('Successo', 'Utente aggiunto con successo');
+                            this.toastService.success('Utente aggiunto', 'Il nuovo utente è disponibile nell’elenco.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -95,7 +97,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
                     .sendSetupEmail(user.id)
                     .pipe(first())
                     .subscribe({
-                        next: () => this.toastService.success('Successo', 'Email di configurazione inviata')
+                        next: () => this.toastService.success('E-mail di configurazione inviata', 'L’utente può completare la configurazione del proprio account.')
                     });
             }
         });
@@ -112,7 +114,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (value: any) => {
-                            this.toastService.success('Successo', 'Utente eliminato con successo');
+                            this.toastService.success('Utente eliminato', 'L’utente non è più visibile.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -165,7 +167,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.selectedUsers = [];
-                            this.toastService.success('Successo', `${count} utenti eliminati con successo`);
+                            this.toastService.success('Utenti eliminati', `${count} utenti non sono più visibili.`);
                             this.loadElements(this.searchTerm);
                         }
                     });

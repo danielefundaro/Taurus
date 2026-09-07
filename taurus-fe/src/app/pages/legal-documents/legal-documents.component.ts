@@ -61,7 +61,7 @@ export class LegalDocumentsComponent implements OnInit {
     private openDialog(document?: LegalDocument): void {
         const ref: DynamicDialogRef = this.dialogService.open(LegalDocumentDialogComponent, {
             inputValues: { document: document ? { ...document } : undefined },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '40rem',
@@ -112,7 +112,7 @@ export class LegalDocumentsComponent implements OnInit {
             )
             .subscribe({
                 next: (documents) => (this.documents = documents),
-                error: () => this.toastService.error('Errore', 'Impossibile caricare i documenti legali.')
+                error: () => this.toastService.error('Caricamento non riuscito', 'I documenti legali non sono disponibili. Riprova.')
             });
     }
 }

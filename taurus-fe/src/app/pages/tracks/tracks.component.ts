@@ -40,6 +40,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.initializeListState('tracks');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
@@ -55,7 +56,8 @@ export class TracksComponent extends ListPageBase implements OnInit {
     public addNewFile(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddFilesDialogComponent, {
             header: 'Aggiungi traccia',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -65,7 +67,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
 
         dynamicDialogRef.onClose.pipe(first()).subscribe((result: any) => {
             if (result) {
-                this.toastService.success('Successo', 'Traccia aggiunta con successo');
+                this.toastService.success('Traccia caricata', 'Il nuovo spartito è disponibile nell’elenco.');
                 this.loadElements(this.searchTerm);
             }
         });
@@ -74,7 +76,8 @@ export class TracksComponent extends ListPageBase implements OnInit {
     public addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
             header: 'Aggiungi traccia',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -89,7 +92,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (track: Tracks) => {
-                            this.toastService.success('Successo', 'Traccia aggiunta con successo');
+                            this.toastService.success('Traccia aggiunta', 'La nuova traccia è disponibile nell’elenco.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -108,7 +111,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (value: any) => {
-                            this.toastService.success('Successo', 'Traccia eliminata con successo');
+                            this.toastService.success('Traccia eliminata', 'La traccia non è più visibile.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -165,7 +168,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.selectedTracks = [];
-                            this.toastService.success('Successo', `${count} tracce eliminate con successo`);
+                            this.toastService.success('Tracce eliminate', `${count} tracce non sono più visibili.`);
                             this.loadElements(this.searchTerm);
                         }
                     });
