@@ -55,10 +55,28 @@ public class Tenants extends CommonFieldsOpenSearch {
     private String timeZone = "Europe/Rome";
 
     @Column(name = "finance_enabled", nullable = false)
-    private Boolean financeEnabled = true;
+    private Boolean financeEnabled = false;
 
     @Column(name = "inventory_enabled", nullable = false)
-    private Boolean inventoryEnabled = true;
+    private Boolean inventoryEnabled = false;
+
+    @Column(name = "onboarding_import_enabled", nullable = false)
+    private Boolean onboardingImportEnabled = false;
+
+    @Column(name = "external_calendar_feed_enabled", nullable = false)
+    private Boolean externalCalendarFeedEnabled = false;
+
+    @Column(name = "inventory_qr_enabled", nullable = false)
+    private Boolean inventoryQrEnabled = false;
+
+    @Column(name = "notification_preferences_enabled", nullable = false)
+    private Boolean notificationPreferencesEnabled = false;
+
+    @Column(name = "web_push_reminders_enabled", nullable = false)
+    private Boolean webPushRemindersEnabled = false;
+
+    @Column(name = "event_preparation_enabled", nullable = false)
+    private Boolean eventPreparationEnabled = false;
 
     public String getCode() {
         return code;
@@ -130,6 +148,18 @@ public class Tenants extends CommonFieldsOpenSearch {
     public void setFinanceEnabled(Boolean financeEnabled) { this.financeEnabled = financeEnabled; }
     public Boolean getInventoryEnabled() { return inventoryEnabled; }
     public void setInventoryEnabled(Boolean inventoryEnabled) { this.inventoryEnabled = inventoryEnabled; }
+    public Boolean getOnboardingImportEnabled() { return onboardingImportEnabled; }
+    public void setOnboardingImportEnabled(Boolean value) { onboardingImportEnabled = value; }
+    public Boolean getExternalCalendarFeedEnabled() { return externalCalendarFeedEnabled; }
+    public void setExternalCalendarFeedEnabled(Boolean value) { externalCalendarFeedEnabled = value; }
+    public Boolean getInventoryQrEnabled() { return inventoryQrEnabled; }
+    public void setInventoryQrEnabled(Boolean value) { inventoryQrEnabled = value; }
+    public Boolean getNotificationPreferencesEnabled() { return notificationPreferencesEnabled; }
+    public void setNotificationPreferencesEnabled(Boolean value) { notificationPreferencesEnabled = value; }
+    public Boolean getWebPushRemindersEnabled() { return webPushRemindersEnabled; }
+    public void setWebPushRemindersEnabled(Boolean value) { webPushRemindersEnabled = value; }
+    public Boolean getEventPreparationEnabled() { return eventPreparationEnabled; }
+    public void setEventPreparationEnabled(Boolean value) { eventPreparationEnabled = value; }
 
     @Override
     public boolean equals(Object o) {
@@ -156,12 +186,18 @@ public class Tenants extends CommonFieldsOpenSearch {
             Objects.equals(logoUrl, tenants.logoUrl) &&
             Objects.equals(timeZone, tenants.timeZone) &&
             Objects.equals(financeEnabled, tenants.financeEnabled) &&
-            Objects.equals(inventoryEnabled, tenants.inventoryEnabled);
+            Objects.equals(inventoryEnabled, tenants.inventoryEnabled) &&
+            Objects.equals(onboardingImportEnabled, tenants.onboardingImportEnabled) &&
+            Objects.equals(externalCalendarFeedEnabled, tenants.externalCalendarFeedEnabled) &&
+            Objects.equals(inventoryQrEnabled, tenants.inventoryQrEnabled) &&
+            Objects.equals(notificationPreferencesEnabled, tenants.notificationPreferencesEnabled) &&
+            Objects.equals(webPushRemindersEnabled, tenants.webPushRemindersEnabled) &&
+            Objects.equals(eventPreparationEnabled, tenants.eventPreparationEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled);
     }
 
     @Override
@@ -191,6 +227,12 @@ public class Tenants extends CommonFieldsOpenSearch {
             ", timeZone='" + getTimeZone() + '\'' +
             ", financeEnabled=" + getFinanceEnabled() +
             ", inventoryEnabled=" + getInventoryEnabled() +
+            ", onboardingImportEnabled=" + getOnboardingImportEnabled() +
+            ", externalCalendarFeedEnabled=" + getExternalCalendarFeedEnabled() +
+            ", inventoryQrEnabled=" + getInventoryQrEnabled() +
+            ", notificationPreferencesEnabled=" + getNotificationPreferencesEnabled() +
+            ", webPushRemindersEnabled=" + getWebPushRemindersEnabled() +
+            ", eventPreparationEnabled=" + getEventPreparationEnabled() +
             ", description='" + getDescription() + "'" +
             '}';
     }

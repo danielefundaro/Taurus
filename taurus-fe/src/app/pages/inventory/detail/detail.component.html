@@ -98,12 +98,13 @@
                                 @if (photo.preview) {
                                     <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
                                 }
-                                <p-button icon="pi pi-times" severity="danger" size="small" [rounded]="true" class="absolute top-2 right-2" pTooltip="Rimuovi fotografia" (onClick)="removePhoto(photo.id)" />
+                                <p-button icon="pi pi-times" ariaLabel="Rimuovi fotografia" severity="danger" size="small" [rounded]="true" class="absolute top-2 right-2" pTooltip="Rimuovi fotografia" (onClick)="removePhoto(photo.id)" />
                                 <span class="photo-name">{{ photo.fileName }}</span>
                                 <div class="photo-actions">
-                                    <p-button icon="pi pi-arrow-left" severity="secondary" size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima" (onClick)="movePhoto(index, -1)" />
+                                    <p-button icon="pi pi-arrow-left" ariaLabel="Sposta fotografia prima" severity="secondary" size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima" (onClick)="movePhoto(index, -1)" />
                                     <p-button
                                         icon="pi pi-star"
+                                        ariaLabel="Usa fotografia come anteprima"
                                         severity="secondary"
                                         size="small"
                                         [text]="!photo.preview"
@@ -111,7 +112,7 @@
                                         [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'"
                                         (onClick)="setPreviewPhoto(photo.id)"
                                     />
-                                    <p-button icon="pi pi-arrow-right" severity="secondary" size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo" (onClick)="movePhoto(index, 1)" />
+                                    <p-button icon="pi pi-arrow-right" ariaLabel="Sposta fotografia dopo" severity="secondary" size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo" (onClick)="movePhoto(index, 1)" />
                                 </div>
                             </div>
                         }
@@ -223,7 +224,7 @@
                                             >
                                             <div class="flex items-center gap-1">
                                                 <p-tag [value]="itemReturn.status" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
-                                                <p-button icon="pi pi-trash" severity="danger" size="small" [text]="true" pTooltip="Elimina riconsegna" (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
+                                                <p-button icon="pi pi-trash" ariaLabel="Elimina riconsegna" severity="danger" size="small" [text]="true" pTooltip="Elimina riconsegna" (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
                                             </div>
                                         </div>
                                         <div class="text-xs text-surface-500 mt-1">

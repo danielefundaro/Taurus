@@ -49,9 +49,18 @@
                     <p-tag [value]="document.active ? 'Attivo' : 'Non attivo'" [severity]="document.active ? 'success' : 'secondary'" />
                 </td>
                 <td class="text-right">
-                    <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" pTooltip="Modifica" (onClick)="editDocument(document)" />
+                    <p-button icon="pi pi-pencil" ariaLabel="Modifica documento" [rounded]="true" [text]="true" pTooltip="Modifica" (onClick)="editDocument(document)" />
                 </td>
             </tr>
+        </ng-template>
+        <ng-template #loadingbody>
+            @for (row of [0, 1, 2, 3, 4, 5]; track row) {
+                <tr>
+                    @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
+                        <td><p-skeleton /></td>
+                    }
+                </tr>
+            }
         </ng-template>
         <ng-template #emptymessage>
             <tr>

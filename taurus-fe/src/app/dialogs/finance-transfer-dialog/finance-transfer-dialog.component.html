@@ -1,4 +1,5 @@
 <app-dialog-shell
+    #shell
     title="Trasferimento tra conti"
     subtitle="Genera due scritture coerenti: un'uscita dal conto di origine e un'entrata su quello di destinazione."
     confirmLabel="Registra trasferimento"
@@ -7,10 +8,10 @@
     (confirm)="save()"
 >
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Conto di origine" forId="transfer-source" required [error]="sourceError">
+        <app-form-field label="Conto di origine" forId="transfer-source" required [error]="shell.validationAttempted ? sourceError : undefined">
             <p-select inputId="transfer-source" [(ngModel)]="transfer.sourceAccountId" [options]="accounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
         </app-form-field>
-        <app-form-field label="Conto di destinazione" forId="transfer-destination" required [error]="destinationError">
+        <app-form-field label="Conto di destinazione" forId="transfer-destination" required [error]="shell.validationAttempted ? destinationError : undefined">
             <p-select inputId="transfer-destination" [(ngModel)]="transfer.destinationAccountId" [options]="accounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
         </app-form-field>
         <app-form-field label="Data contabile" forId="transfer-date" required>
@@ -19,10 +20,10 @@
         <app-form-field label="Data valuta" forId="transfer-value-date">
             <p-datepicker inputId="transfer-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="Importo" forId="transfer-amount" required [error]="amountError">
+        <app-form-field class="md:col-span-2" label="Importo" forId="transfer-amount" required [error]="shell.validationAttempted ? amountError : undefined">
             <p-inputnumber inputId="transfer-amount" [(ngModel)]="transfer.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="transfer-description" required [error]="descriptionError">
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="transfer-description" required [error]="shell.validationAttempted ? descriptionError : undefined">
             <input id="transfer-description" pInputText [(ngModel)]="transfer.description" />
         </app-form-field>
         <app-form-field class="md:col-span-2" label="Note" forId="transfer-notes">

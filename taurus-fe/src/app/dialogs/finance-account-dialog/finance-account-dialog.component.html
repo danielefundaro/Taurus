@@ -1,4 +1,5 @@
 <app-dialog-shell
+    #shell
     [title]="editing ? 'Modifica conto' : 'Nuovo conto'"
     subtitle="Casse fisiche e conti correnti su cui vengono registrati i movimenti."
     [confirmLabel]="editing ? 'Salva conto' : 'Aggiungi conto'"
@@ -7,13 +8,13 @@
     (confirm)="save()"
 >
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field class="md:col-span-2" label="Nome" forId="account-name" required [error]="nameError">
+        <app-form-field class="md:col-span-2" label="Nome" forId="account-name" required [error]="shell.validationAttempted ? nameError : undefined">
             <input id="account-name" pInputText [(ngModel)]="account.name" />
         </app-form-field>
         <app-form-field label="Tipo" forId="account-type" required>
             <p-select inputId="account-type" [(ngModel)]="account.accountType" [options]="accountTypes" optionLabel="label" optionValue="value" />
         </app-form-field>
-        <app-form-field label="Valuta" forId="account-currency" required [error]="currencyError" hint="Codice ISO a tre lettere.">
+        <app-form-field label="Valuta" forId="account-currency" required [error]="shell.validationAttempted ? currencyError : undefined" hint="Codice ISO a tre lettere.">
             <input id="account-currency" pInputText maxlength="3" [(ngModel)]="account.currency" />
         </app-form-field>
         @if (account.accountType === 'BANK') {

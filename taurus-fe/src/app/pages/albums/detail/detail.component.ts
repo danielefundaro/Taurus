@@ -66,7 +66,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Album eliminato');
+                            this.toastService.success('Album eliminato', 'L’album non è più visibile.');
                             this.router.navigate(['/albums']);
                         }
                     });
@@ -86,7 +86,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (album: Albums) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Album aggiornato con successo');
+                    this.toastService.success('Album aggiornato', 'Le modifiche sono state salvate.');
                     this.loadElement(album.id);
                 }
             });
@@ -124,11 +124,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(IncludeTracksDialogComponent, {
             header: 'Aggiungi traccia',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
-            width: '50vw',
+            width: '56rem',
             breakpoints: { '1199px': '75vw', '575px': '90vw' }
         });
 
@@ -177,9 +178,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     private loadElement(id: number | string): void {
+        this.loading = true;
         this.albumsService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe({
                 next: (album: Albums) => {
                     this.album = album;

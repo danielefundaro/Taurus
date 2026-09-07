@@ -4,6 +4,8 @@ import com.fundaro.zodiac.taurus.domain.PushReminder;
 import com.fundaro.zodiac.taurus.domain.criteria.PreferencesCriteria;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.service.PreferencesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.domain.notification.ReminderOrigin;
@@ -29,6 +31,7 @@ public class EventReminderProducer {
     private final PreferencesService preferencesService;
     private NotificationProfileRepository notificationProfileRepository;
     private NotificationPreferenceMetrics metrics;
+    private TenantFeatureService tenantFeatureService;
 
     public EventReminderProducer(PushReminderRepository reminderRepository, PreferencesService preferencesService) {
         this.reminderRepository = reminderRepository;
@@ -45,6 +48,11 @@ public class EventReminderProducer {
         this.metrics = metrics;
     }
 
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
     public void scheduleIfNeeded(CalendarEventsDTO event, String userId, AbstractAuthenticationToken token) {
         scheduleIfNeeded(event, userId, null, token);
     }
@@ -56,6 +64,7 @@ public class EventReminderProducer {
      */
     public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes, AbstractAuthenticationToken token) {
         cancelPending(event.getId(), userId);
+        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.WEB_PUSH_REMINDERS)) return;
         if (event.getStartDate() == null) return;
 
         ResolvedReminder resolved = resolveReminder(personalMinutes, event.getReminderMinutes(), userId, token);

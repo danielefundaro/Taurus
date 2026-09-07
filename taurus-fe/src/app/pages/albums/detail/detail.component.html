@@ -1,5 +1,6 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Album" [title]="album.name || 'Nuovo album'" backLink="/albums" [dirty]="isDirty" [state]="album.state === StateEnum.PUBLIC ? 'Pubblico' : undefined"
         ><div pageMetadata>{{ album.date ? (album.date | date: 'dd-MM-yyyy') : 'Senza data' }}</div>
         <div pageActions class="flex gap-2">
@@ -89,10 +90,11 @@
                     <td>
                         <div class="flex flex-col md:flex-row gap-2">
                             <a [routerLink]="'/tracks/' + track.index">
-                                <p-button icon="pi pi-search" [rounded]="true" [outlined]="true" pTooltip="Visualizza" tooltipPosition="top" />
+                            <p-button icon="pi pi-search" ariaLabel="Visualizza traccia" [rounded]="true" [outlined]="true" pTooltip="Visualizza" tooltipPosition="top" />
                             </a>
                             <p-button
                                 icon="pi pi-trash"
+                                ariaLabel="Rimuovi traccia dall’album"
                                 severity="danger"
                                 [rounded]="true"
                                 [outlined]="true"

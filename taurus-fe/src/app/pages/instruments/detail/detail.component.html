@@ -1,5 +1,6 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Strumento" [title]="instrument.name || 'Nuovo strumento'" backLink="/instruments" [dirty]="isDirty"
         ><div pageActions><p-button label="Salva strumento" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
     ></app-page-header>

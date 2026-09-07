@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260907000000-1" author="codex">
+        <comment>Default tenant features to disabled and add per-tenant switches for optional modules.</comment>
+        <dropDefaultValue schemaName="public" tableName="tenant" columnName="finance_enabled" columnDataType="boolean"/>
+        <addDefaultValue schemaName="public" tableName="tenant" columnName="finance_enabled" columnDataType="boolean" defaultValueBoolean="false"/>
+        <dropDefaultValue schemaName="public" tableName="tenant" columnName="inventory_enabled" columnDataType="boolean"/>
+        <addDefaultValue schemaName="public" tableName="tenant" columnName="inventory_enabled" columnDataType="boolean" defaultValueBoolean="false"/>
+        <addColumn schemaName="public" tableName="tenant">
+            <column name="onboarding_import_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="external_calendar_feed_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="inventory_qr_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="notification_preferences_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="web_push_reminders_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="event_preparation_enabled" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+        </addColumn>
+        <rollback>
+            <dropColumn schemaName="public" tableName="tenant" columnName="event_preparation_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="web_push_reminders_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="notification_preferences_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="inventory_qr_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="external_calendar_feed_enabled"/>
+            <dropColumn schemaName="public" tableName="tenant" columnName="onboarding_import_enabled"/>
+            <dropDefaultValue schemaName="public" tableName="tenant" columnName="inventory_enabled" columnDataType="boolean"/>
+            <addDefaultValue schemaName="public" tableName="tenant" columnName="inventory_enabled" columnDataType="boolean" defaultValueBoolean="true"/>
+            <dropDefaultValue schemaName="public" tableName="tenant" columnName="finance_enabled" columnDataType="boolean"/>
+            <addDefaultValue schemaName="public" tableName="tenant" columnName="finance_enabled" columnDataType="boolean" defaultValueBoolean="true"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -10,8 +10,7 @@ export const tenantFeatureGuard: CanActivateFn = (route) => {
     const feature = route.data['feature'] as TenantFeature;
     return service.refresh().pipe(
         map(() => {
-            const enabled = feature === TenantFeature.FINANCE ? service.financeEnabled() : service.inventoryEnabled();
-            return enabled ? true : router.createUrlTree(['/']);
+            return service.isEnabled(feature) ? true : router.createUrlTree(['/']);
         }),
         catchError(() => of(router.createUrlTree(['/'])))
     );

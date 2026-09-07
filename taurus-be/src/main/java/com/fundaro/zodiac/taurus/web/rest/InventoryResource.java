@@ -231,16 +231,19 @@ public class InventoryResource {
     }
 
     @GetMapping(value = "/items/{id}/qr-code.png", produces = MediaType.IMAGE_PNG_VALUE)
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<byte[]> getQrCode(@PathVariable long id, @RequestParam(defaultValue = "256") int size, AbstractAuthenticationToken token) {
         return binaryResponse(inventoryLabelService.png(id, size, token), ContentDisposition.inline());
     }
 
     @PostMapping(value = "/labels", produces = MediaType.APPLICATION_PDF_VALUE)
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<byte[]> createLabels(@Valid @RequestBody InventoryQrDtos.LabelRequest request, AbstractAuthenticationToken token) {
         return binaryResponse(inventoryLabelService.labels(request, token), ContentDisposition.attachment());
     }
 
     @PostMapping("/items/{id}/qr-code/rotate")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public InventoryQrDtos.RotateResponse rotateQrCode(
         @PathVariable long id,
         @Valid @RequestBody InventoryQrDtos.RotateRequest request,
@@ -250,11 +253,13 @@ public class InventoryResource {
     }
 
     @GetMapping("/items/{id}/issues")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public List<InventoryIssueDtos.Response> getIssues(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryIssueService.findForItem(id, token);
     }
 
     @PostMapping("/items/{id}/issues")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<InventoryIssueDtos.Response> createIssue(
         @PathVariable long id,
         @Valid @RequestBody InventoryIssueDtos.CreateRequest request,
@@ -264,11 +269,13 @@ public class InventoryResource {
     }
 
     @GetMapping("/issues/{id}")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public InventoryIssueDtos.Response getIssue(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryIssueService.findAdmin(id, token);
     }
 
     @PatchMapping("/issues/{id}/status")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public InventoryIssueDtos.Response transitionIssue(
         @PathVariable long id,
         @Valid @RequestBody InventoryIssueDtos.TransitionRequest request,
@@ -278,6 +285,7 @@ public class InventoryResource {
     }
 
     @PostMapping(value = "/issues/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<InventoryIssueDtos.Photo> addIssuePhoto(
         @PathVariable long id,
         @RequestPart("file") MultipartFile file,
@@ -287,6 +295,7 @@ public class InventoryResource {
     }
 
     @GetMapping("/issue-photos/{id}")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<byte[]> getIssuePhoto(@PathVariable long id, AbstractAuthenticationToken token) {
         return photoResponse(inventoryIssueService.getPhoto(id, false, token));
     }

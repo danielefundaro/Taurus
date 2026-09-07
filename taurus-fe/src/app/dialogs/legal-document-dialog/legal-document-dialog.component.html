@@ -1,4 +1,5 @@
 <app-dialog-shell
+    #shell
     [title]="editing ? 'Modifica documento' : 'Nuovo documento'"
     subtitle="Pubblica la versione legale che gli utenti dovranno consultare."
     [confirmLabel]="editing ? 'Salva documento' : 'Crea documento'"
@@ -10,13 +11,13 @@
         <app-form-field label="Tipo documento" forId="documentType" required>
             <p-select inputId="documentType" [options]="documentTypes" optionLabel="label" optionValue="value" [(ngModel)]="document.documentType" (ngModelChange)="documentTypeChanged($event)" appendTo="body" />
         </app-form-field>
-        <app-form-field label="Versione" forId="version" required [error]="versionError">
+        <app-form-field label="Versione" forId="version" required [error]="shell.validationAttempted ? versionError : undefined">
             <input pInputText id="version" [(ngModel)]="document.version" autocomplete="off" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="Titolo" forId="title" required [error]="titleError">
+        <app-form-field class="md:col-span-2" label="Titolo" forId="title" required [error]="shell.validationAttempted ? titleError : undefined">
             <input pInputText id="title" [(ngModel)]="document.title" autocomplete="off" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="URL pubblico del documento" forId="url" required [error]="urlError">
+        <app-form-field class="md:col-span-2" label="URL pubblico del documento" forId="url" required [error]="shell.validationAttempted ? urlError : undefined">
             <input pInputText id="url" type="url" [(ngModel)]="document.url" autocomplete="off" />
         </app-form-field>
         <app-form-field label="Modalità di conferma" forId="action">

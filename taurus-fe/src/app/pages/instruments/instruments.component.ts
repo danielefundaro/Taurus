@@ -35,6 +35,7 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.initializeListState('instruments');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
@@ -50,7 +51,8 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddInstrumentsDialogComponent, {
             header: 'Aggiungi strumento',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,

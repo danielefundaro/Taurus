@@ -1,5 +1,6 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Utente" [title]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users" [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined"
         ><div pageMetadata>{{ user.email }}</div>
         <div pageActions class="flex gap-2">

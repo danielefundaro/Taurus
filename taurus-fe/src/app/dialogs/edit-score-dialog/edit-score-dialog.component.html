@@ -1,7 +1,7 @@
-<app-dialog-shell title="Modifica parte" subtitle="Definisci ordine, strumenti e pagine dello spartito." confirmLabel="Salva parte" [invalidCount]="currentScore.order ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell title="Modifica parte" subtitle="Definisci ordine, strumenti e pagine dello spartito." confirmLabel="Salva parte" [invalidCount]="currentScore.order ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <p-fluid>
         <div class="flex flex-col gap-4">
-            <app-form-field label="Ordine" forId="order" required [error]="currentScore.order ? undefined : 'Indica la posizione della parte.'">
+            <app-form-field label="Ordine" forId="order" required [error]="shell.validationAttempted && !currentScore.order ? 'Indica la posizione della parte.' : undefined">
                 <p-inputnumber inputId="order" [(ngModel)]="currentScore!.order" [showButtons]="true" (onInput)="onReorderScores($event)" [min]="1" [max]="scores.length" mode="decimal" />
             </app-form-field>
             <app-form-field label="Strumenti" forId="scoreInstruments">

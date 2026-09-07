@@ -40,7 +40,7 @@ class NotificationDispatcherTest {
     @BeforeEach
     void setUp() {
         org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
-        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, new ApplicationProperties(), metrics, tenantFeatureService);
+        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, new ApplicationProperties(), metrics, tenantFeatureService, new com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy());
     }
 
     @Test
@@ -95,7 +95,7 @@ class NotificationDispatcherTest {
     void marksTheEventFailedWhenTheConfiguredAttemptLimitIsReached() {
         ApplicationProperties properties = new ApplicationProperties();
         properties.getNotifications().getRetry().setMaxAttempts(1);
-        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, properties, metrics, tenantFeatureService);
+        dispatcher = new NotificationDispatcher(repository, recipientResolver, noticesService, properties, metrics, tenantFeatureService, new com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy());
         NotificationOutbox event = pendingEvent();
         when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
 

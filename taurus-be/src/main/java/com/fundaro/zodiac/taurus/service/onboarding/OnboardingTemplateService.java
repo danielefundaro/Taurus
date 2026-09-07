@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Set;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,10 @@ public class OnboardingTemplateService {
     public static final int VERSION = 1;
 
     public byte[] xlsx() {
+        return xlsx(Set.of(OnboardingSection.values()));
+    }
+
+    public byte[] xlsx(Set<OnboardingSection> availableSections) {
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             workbook.getProperties().getCoreProperties().setCreator("Taurus");
             workbook.getProperties().getCoreProperties().setCreated(java.util.Optional.of(new Date(0)));
@@ -34,6 +39,7 @@ public class OnboardingTemplateService {
             workbook.setSheetHidden(workbook.getSheetIndex(metadata), true);
 
             for (OnboardingSection section : OnboardingSection.values()) {
+                if (!availableSections.contains(section)) continue;
                 Sheet sheet = workbook.createSheet(section.getSheetName());
                 Row row = sheet.createRow(0);
                 for (int i = 0; i < section.getHeaders().size(); i++) {

@@ -1,8 +1,13 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Tenant" [title]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
         ><div pageMetadata>{{ tenant.code }}</div>
-        <div pageActions class="flex gap-2">@if (canConfigureData) { <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" /> }<p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
+        <div pageActions class="flex gap-2">
+            @if (canConfigureData) {
+                <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" />
+            }
+            <p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
     ></app-page-header>
 
     <app-detail-section title="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
@@ -63,20 +68,18 @@
 
     <app-detail-section title="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="flex items-start gap-3">
-                <p-checkbox inputId="financeEnabled" [binary]="true" [(ngModel)]="tenant.financeEnabled" (ngModelChange)="isDirty = true" />
-                <div>
-                    <label for="financeEnabled" class="font-medium cursor-pointer">Economia</label>
-                    <p class="text-surface-500 text-sm mt-1 mb-0">Nasconde conti, movimenti, rendiconti e informazioni economiche degli eventi. I dati saranno conservati.</p>
+            @for (item of tenantFeatures; track item.key) {
+                <div class="flex items-start gap-3">
+                    <p-checkbox [inputId]="item.key" [binary]="true" [(ngModel)]="tenant[item.key]" (ngModelChange)="isDirty = true" />
+                    <div>
+                        <label [for]="item.key" class="font-medium cursor-pointer">{{ item.label }}</label>
+                        <p class="text-surface-500 text-sm mt-1 mb-0">{{ item.description }} I dati saranno conservati.</p>
+                        @if (featureStatus(item); as status) {
+                            <small [class.text-green-600]="status === 'Disponibile'" [class.text-warn-600]="status !== 'Disponibile'">{{ status }}</small>
+                        }
+                    </div>
                 </div>
-            </div>
-            <div class="flex items-start gap-3">
-                <p-checkbox inputId="inventoryEnabled" [binary]="true" [(ngModel)]="tenant.inventoryEnabled" (ngModelChange)="isDirty = true" />
-                <div>
-                    <label for="inventoryEnabled" class="font-medium cursor-pointer">Inventario</label>
-                    <p class="text-surface-500 text-sm mt-1 mb-0">Nasconde oggetti, assegnazioni, fotografie, riconsegne e report. I dati saranno conservati.</p>
-                </div>
-            </div>
+            }
         </div>
     </app-detail-section>
 

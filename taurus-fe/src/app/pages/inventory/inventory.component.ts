@@ -92,6 +92,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit(): void {
+        this.initializeListState('inventory');
         this.listLayoutService.observe('inventory', (value) => (this.layout = value));
         this.viewMode = this.isAdmin && this.route.snapshot.queryParamMap.get('view') !== 'mine' ? 'TENANT' : 'MINE';
         const attention = this.route.snapshot.queryParamMap.get('attention');
@@ -143,7 +144,8 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         if (!this.isAdmin || this.personalView) return;
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddInventoryDialogComponent, {
             header: 'Aggiungi oggetto di inventario',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -157,7 +159,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
                 .createItem(result)
                 .pipe(first())
                 .subscribe(() => {
-                    this.toastService.success('Successo', 'Oggetto aggiunto all’inventario.');
+                    this.toastService.success('Oggetto aggiunto', 'Il bene è disponibile nell’inventario.');
                     this.loadElements(this.searchTerm);
                 });
         });
@@ -196,8 +198,9 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         this.dialogService
             .open(InventoryLabelDialogComponent, {
                 header: 'Genera etichette',
+                showHeader: false,
                 modal: true,
-                width: '42rem',
+                width: '40rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { items: this.selectedItems }
             })

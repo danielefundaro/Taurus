@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.service.NotificationPreferencesService;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationPreferencesDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/notification-preferences")
+@RequiresTenantFeature(TenantFeature.NOTIFICATION_PREFERENCES)
 public class NotificationPreferencesResource {
 
     private final NotificationPreferencesService service;

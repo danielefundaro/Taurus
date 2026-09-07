@@ -110,8 +110,9 @@ export class InventoryAssignmentDetailComponent implements OnInit {
         this.dialogService
             .open(InventoryIssueDialogComponent, {
                 header: 'Segnala guasto',
+                showHeader: false,
                 modal: true,
-                width: '34rem',
+                width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { assignmentId: this.assignment.id, maxQuantity: this.assignment.outstandingQuantity }
             })

@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.onboarding.*;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.onboarding.OnboardingDtos;
 import com.fundaro.zodiac.taurus.service.onboarding.*;
 import jakarta.validation.Valid;
@@ -23,11 +24,12 @@ public class OnboardingResource {
     private final OnboardingReportService reports;
     public OnboardingResource(OnboardingImportService imports, OnboardingTemplateService templates, OnboardingReportService reports) { this.imports = imports; this.templates = templates; this.reports = reports; }
 
-    @GetMapping("/context") public OnboardingDtos.Context context(AbstractAuthenticationToken token) { return imports.context(token); }
-    @GetMapping("/templates/xlsx") public ResponseEntity<byte[]> xlsx(AbstractAuthenticationToken token) { imports.context(token); return download(templates.xlsx(), XLSX, "taurus-onboarding-v1.xlsx"); }
-    @GetMapping("/templates/csv") public ResponseEntity<byte[]> csv(@RequestParam OnboardingSection section, AbstractAuthenticationToken token) { imports.context(token); return download(templates.csv(section), MediaType.parseMediaType("text/csv;charset=UTF-8"), "taurus-onboarding-v1-" + section.name().toLowerCase() + ".csv"); }
+    @GetMapping("/context") @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT) public OnboardingDtos.Context context(AbstractAuthenticationToken token) { return imports.context(token); }
+    @GetMapping("/templates/xlsx") @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT) public ResponseEntity<byte[]> xlsx(AbstractAuthenticationToken token) { imports.context(token); return download(templates.xlsx(imports.availableSections()), XLSX, "taurus-onboarding-v1.xlsx"); }
+    @GetMapping("/templates/csv") @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT) public ResponseEntity<byte[]> csv(@RequestParam OnboardingSection section, AbstractAuthenticationToken token) { imports.context(token); imports.requireAvailableSection(section); return download(templates.csv(section), MediaType.parseMediaType("text/csv;charset=UTF-8"), "taurus-onboarding-v1-" + section.name().toLowerCase() + ".csv"); }
 
     @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT)
     public ResponseEntity<OnboardingDtos.Job> upload(@RequestPart("file") MultipartFile file, @RequestParam OnboardingImportFormat format,
         @RequestParam(required = false) OnboardingSection csvSection, @RequestParam(required = false) Set<OnboardingSection> selectedSections,
         @RequestHeader("Idempotency-Key") UUID key, AbstractAuthenticationToken token) {
@@ -37,8 +39,8 @@ public class OnboardingResource {
     @GetMapping("/imports") public Page<OnboardingDtos.Job> list(@PageableDefault(size = 20, sort = "insertDate", direction = Sort.Direction.DESC) Pageable pageable, AbstractAuthenticationToken token) { return imports.list(pageable, token); }
     @GetMapping("/imports/{id}") public ResponseEntity<OnboardingDtos.Job> get(@PathVariable Long id, AbstractAuthenticationToken token) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(imports.get(id, token)); }
     @DeleteMapping("/imports/{id}") public ResponseEntity<Void> cancel(@PathVariable Long id, AbstractAuthenticationToken token) { imports.cancel(id, token); return ResponseEntity.noContent().build(); }
-    @PostMapping("/imports/{id}/retry-validation") public ResponseEntity<OnboardingDtos.Job> retryValidation(@PathVariable Long id, AbstractAuthenticationToken token) { return ResponseEntity.accepted().body(imports.retryValidation(id, token)); }
-    @PostMapping("/imports/{id}/apply") public ResponseEntity<OnboardingDtos.Job> apply(@PathVariable Long id, @RequestHeader("Idempotency-Key") UUID key, @Valid @RequestBody OnboardingDtos.ApplyRequest request, AbstractAuthenticationToken token) { return ResponseEntity.accepted().body(imports.apply(id, key, request, token)); }
+    @PostMapping("/imports/{id}/retry-validation") @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT) public ResponseEntity<OnboardingDtos.Job> retryValidation(@PathVariable Long id, AbstractAuthenticationToken token) { return ResponseEntity.accepted().body(imports.retryValidation(id, token)); }
+    @PostMapping("/imports/{id}/apply") @RequiresTenantFeature(TenantFeature.ONBOARDING_IMPORT) public ResponseEntity<OnboardingDtos.Job> apply(@PathVariable Long id, @RequestHeader("Idempotency-Key") UUID key, @Valid @RequestBody OnboardingDtos.ApplyRequest request, AbstractAuthenticationToken token) { return ResponseEntity.accepted().body(imports.apply(id, key, request, token)); }
     @PostMapping("/imports/{id}/retry-compensation") public OnboardingDtos.Job retryCompensation(@PathVariable Long id, AbstractAuthenticationToken token) { return imports.retryCompensation(id, token); }
     @PostMapping("/imports/{id}/retry-setup-emails") public OnboardingDtos.Job retryEmails(@PathVariable Long id, AbstractAuthenticationToken token) { return imports.retryEmails(id, token); }
     @GetMapping("/imports/{id}/sections") public ResponseEntity<?> sections(@PathVariable Long id, AbstractAuthenticationToken token) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(imports.sections(id, token)); }
