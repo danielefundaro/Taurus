@@ -57,6 +57,7 @@ Su Windows usare `mvnw.cmd` al posto di `./mvnw`.
 
 ## Documentazione
 
+- [Runbook operativo](docs/runbook-operativo.md): avvio, configurazione, release, deploy, monitoraggio, backup/restore, incident response e disaster recovery;
 - [Catalogo funzionalità](docs/features.md): stato corrente, moduli ed evidenze di ogni iniziativa;
 - [Governance documentazione/implementazione](docs/documentation-implementation-alignment-spec.md): formato del catalogo e flusso di aggiornamento;
 - [Schema PostgreSQL multi-tenant](docs/postgres-tenant-schemas.md) e [migrazione da OpenSearch](docs/migrazione-opensearch-postgresql.md): architettura dei dati;
