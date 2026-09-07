@@ -23,12 +23,34 @@
     white-space: nowrap;
 }
 
+.topbar-tenant-name {
+    min-width: 0;
+    margin: 0 1.5rem;
+    overflow: hidden;
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 575px) {
+    .topbar-tenant-name {
+        margin: 0 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
 
 .blink-animation {
-  animation: blink 2s infinite cubic-bezier(0.4, 0.13, 0, 0.99);
+    animation: blink 2s infinite cubic-bezier(0.4, 0.13, 0, 0.99);
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
 }
