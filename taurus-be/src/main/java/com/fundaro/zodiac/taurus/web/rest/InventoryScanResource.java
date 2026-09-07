@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanResponse;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryScanService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryScanRateLimiter;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
@@ -18,14 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/inventory-scan/v1")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
 public class InventoryScanResource {
     private final InventoryScanService scanService;
     private final InventoryScanRateLimiter rateLimiter;
+    private final TenantFeatureService tenantFeatures;
 
-    public InventoryScanResource(InventoryScanService scanService, InventoryScanRateLimiter rateLimiter) {
+    public InventoryScanResource(InventoryScanService scanService, InventoryScanRateLimiter rateLimiter, TenantFeatureService tenantFeatures) {
         this.scanService = scanService;
         this.rateLimiter = rateLimiter;
+        this.tenantFeatures = tenantFeatures;
     }
 
     @GetMapping("/{publicId}")
@@ -34,6 +36,7 @@ public class InventoryScanResource {
         AbstractAuthenticationToken token,
         HttpServletRequest request
     ) {
+        if (!tenantFeatures.isEnabled(TenantFeature.INVENTORY_QR)) return ResponseEntity.notFound().build();
         if (!rateLimiter.tryAcquire(SecurityUtils.getUserIdFromAuthentication(token), request.getRemoteAddr())) {
             ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Troppe scansioni. Riprova tra un minuto.");
             problem.setTitle("Limite scansioni superato");

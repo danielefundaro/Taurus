@@ -100,7 +100,7 @@ export class FinanceComponent implements OnInit {
     protected openAccount(account?: FinancialAccount): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceAccountDialogComponent, {
             inputValues: { account: account ? { ...account } : undefined },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '40rem',
@@ -134,7 +134,7 @@ export class FinanceComponent implements OnInit {
     protected openCategory(category?: FinancialCategory): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceCategoryDialogComponent, {
             inputValues: { category: category ? { ...category } : undefined },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '40rem',
@@ -174,7 +174,7 @@ export class FinanceComponent implements OnInit {
                 events: this.eventOptions,
                 eventId
             },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '56rem',
@@ -221,7 +221,7 @@ export class FinanceComponent implements OnInit {
     protected openTransfer(): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceTransferDialogComponent, {
             inputValues: { accounts: this.accounts.filter((account) => account.active !== false) },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '40rem',
@@ -243,7 +243,7 @@ export class FinanceComponent implements OnInit {
     protected openEventBudget(event: FinancialEventSummary): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceEventBudgetDialogComponent, {
             inputValues: { event },
-            closable: true,
+            closable: false,
             modal: true,
             showHeader: false,
             width: '40rem',

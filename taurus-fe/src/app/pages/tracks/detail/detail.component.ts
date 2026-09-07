@@ -117,7 +117,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Traccia eliminata');
+                            this.toastService.success('Traccia eliminata', 'La traccia non è più visibile.');
                             this.router.navigate(['/tracks']);
                         }
                     });
@@ -137,7 +137,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (track: Tracks) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Traccia aggiornata con successo');
+                    this.toastService.success('Traccia aggiornata', 'Le modifiche sono state salvate.');
                     this.loadElement(track.id);
                 }
             });
@@ -165,11 +165,11 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected onUploadSuccess(): void {
-        this.toastService.success('Successo', 'File caricato con successo');
+        this.toastService.success('File caricato', 'Lo spartito è disponibile nella traccia.');
     }
 
     protected onUploadError(): void {
-        this.toastService.error('Errore', 'Caricamento file fallito');
+        this.toastService.error('Caricamento non riuscito', 'Il file non è stato aggiunto. Riprova.');
     }
 
     protected onFileSelect(event: any): void {
@@ -361,11 +361,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 instruments: this.instruments
             },
             header: 'Modifica parte',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
-            width: '50vw',
+            width: '56rem',
             breakpoints: { '1199px': '75vw', '575px': '90vw' }
         });
 
@@ -396,9 +397,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     private loadElement(id: number | string) {
+        this.loading = true;
         this.tracksService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe((track) => {
                 this.track = track;
                 this.isDirty = false;

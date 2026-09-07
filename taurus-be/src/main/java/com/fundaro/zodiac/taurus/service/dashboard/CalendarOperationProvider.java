@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dashboard;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.projection.CalendarAttentionProjection;
@@ -14,6 +15,7 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -40,6 +42,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     private final UsersRepository usersRepository;
     private final ApplicationProperties.DashboardProperties properties;
     private EventPreparationService eventPreparationService;
+    private TenantFeatureService tenantFeatureService;
 
     public CalendarOperationProvider(
         CalendarEventsRepository eventsRepository,
@@ -54,6 +57,11 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     @Autowired(required = false)
     void setEventPreparationService(EventPreparationService eventPreparationService) {
         this.eventPreparationService = eventPreparationService;
+    }
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
     }
 
     @Override
@@ -78,7 +86,9 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     }
 
     private List<DashboardEntry> preparationEntries(DashboardRequestContext context, ZonedDateTime limit) {
-        if (eventPreparationService == null || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return List.of();
+        if (eventPreparationService == null
+            || tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.EVENT_PREPARATION)
+            || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return List.of();
         return eventPreparationService.dashboardEntries(context.generatedAt().minusDays(30), limit);
     }
 

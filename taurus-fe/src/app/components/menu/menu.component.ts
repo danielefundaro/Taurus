@@ -21,6 +21,8 @@ export class MenuComponent implements OnInit {
             this.tenantFeatureService.loaded();
             this.tenantFeatureService.financeEnabled();
             this.tenantFeatureService.inventoryEnabled();
+            this.tenantFeatureService.onboardingImportEnabled();
+            this.tenantFeatureService.externalCalendarFeedEnabled();
             this.buildMenu();
         });
     }
@@ -68,7 +70,8 @@ export class MenuComponent implements OnInit {
                         label: 'Configurazione iniziale',
                         icon: 'pi pi-fw pi-file-import',
                         routerLink: ['/onboarding'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.onboardingImportEnabled()
                     },
                     {
                         label: 'Consegne notifiche',
@@ -80,7 +83,8 @@ export class MenuComponent implements OnInit {
                         label: 'Feed calendario',
                         icon: 'pi pi-fw pi-calendar-plus',
                         routerLink: ['/admin/calendar-feeds'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.externalCalendarFeedEnabled()
                     },
                     {
                         label: 'Utenti',

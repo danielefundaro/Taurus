@@ -5,6 +5,10 @@ public record TenantFeaturesDTO(
     Long version,
     boolean financeEnabled,
     boolean inventoryEnabled,
-    boolean eventPreparationEnabled,
-    boolean inventoryQrEnabled
+    boolean onboardingImportEnabled,
+    boolean externalCalendarFeedEnabled,
+    boolean inventoryQrEnabled,
+    boolean notificationPreferencesEnabled,
+    boolean webPushRemindersEnabled,
+    boolean eventPreparationEnabled
 ) {}

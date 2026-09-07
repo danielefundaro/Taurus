@@ -1,17 +1,18 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { first, switchMap } from 'rxjs';
 import { InlineAlertComponent } from './app/components/inline-alert/inline-alert.component';
 import { LoadingSpinnerComponent } from './app/components/loading-spinner/loading-spinner.component';
-import { ImportsModule } from './app/imports';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
 import { LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService, ToastService } from './app/service';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterModule, ImportsModule, ToastModule, LoadingSpinnerComponent, InlineAlertComponent],
+    imports: [RouterModule, ButtonModule, ConfirmDialogModule, ToastModule, LoadingSpinnerComponent, InlineAlertComponent],
     templateUrl: './app.component.html',
     providers: [PreferencesService]
 })

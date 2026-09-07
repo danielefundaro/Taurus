@@ -21,19 +21,29 @@ describe('TenantFeatureService', () => {
         expect(service.loaded()).toBeFalse();
         expect(service.financeEnabled()).toBeFalse();
         expect(service.inventoryEnabled()).toBeFalse();
+        expect(service.eventPreparationEnabled()).toBeFalse();
 
         const result = firstValueFrom(service.refresh());
         http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({
             tenantCode: 'A',
             version: 4,
             financeEnabled: true,
-            inventoryEnabled: false
+            inventoryEnabled: false,
+            onboardingImportEnabled: true,
+            externalCalendarFeedEnabled: false,
+            inventoryQrEnabled: false,
+            notificationPreferencesEnabled: true,
+            webPushRemindersEnabled: false,
+            eventPreparationEnabled: true
         });
 
         await result;
         expect(service.loaded()).toBeTrue();
         expect(service.financeEnabled()).toBeTrue();
         expect(service.inventoryEnabled()).toBeFalse();
+        expect(service.onboardingImportEnabled()).toBeTrue();
+        expect(service.notificationPreferencesEnabled()).toBeTrue();
+        expect(service.eventPreparationEnabled()).toBeTrue();
     });
 
     it('shares concurrent refreshes and supports a forced refresh', async () => {

@@ -40,6 +40,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.initializeListState('albums');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
@@ -55,7 +56,8 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
             header: 'Aggiungi album',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -70,7 +72,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (album: Albums) => {
-                            this.toastService.success('Successo', 'Album aggiunto con successo');
+                            this.toastService.success('Album aggiunto', 'Il nuovo album è disponibile nell’elenco.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -89,7 +91,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (value: any) => {
-                            this.toastService.success('Successo', 'Album eliminato con successo');
+                            this.toastService.success('Album eliminato', 'L’album non è più visibile.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -138,7 +140,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.selectedAlbums = [];
-                            this.toastService.success('Successo', `${count} album eliminati con successo`);
+                            this.toastService.success('Album eliminati', `${count} album non sono più visibili.`);
                             this.loadElements(this.searchTerm);
                         }
                     });

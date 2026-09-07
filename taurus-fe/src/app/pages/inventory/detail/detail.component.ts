@@ -113,8 +113,9 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         this.dialogService
             .open(InventoryLabelDialogComponent, {
                 header: 'Stampa etichetta',
+                showHeader: false,
                 modal: true,
-                width: '38rem',
+                width: '40rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { items: [this.item] }
             })
@@ -133,8 +134,9 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         this.dialogService
             .open(InventoryQrRotateDialogComponent, {
                 header: 'Ruota codice QR',
+                showHeader: false,
                 modal: true,
-                width: '34rem',
+                width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' }
             })
             .onClose.pipe(first())

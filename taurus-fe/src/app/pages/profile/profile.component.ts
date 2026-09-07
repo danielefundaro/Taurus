@@ -3,7 +3,7 @@ import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
-import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, ToastService, UsersService } from '../../service';
+import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
 import { NotificationCategoryPreference, NotificationPreferences, NotificationPushMode, NotificationSource } from '../../module';
@@ -55,7 +55,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     };
 
     protected readonly reminderUnit = 'notifiche';
-    protected readonly calendarFeedVisible: boolean;
+    protected readonly notificationPreferencesEnabled;
+    protected readonly webPushRemindersEnabled;
 
     constructor(
         private readonly keycloakService: KeycloakService,
@@ -63,10 +64,12 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly toastService: ToastService,
         private readonly pushNotificationService: PushNotificationService,
-        private readonly notificationPreferencesService: NotificationPreferencesService
+        private readonly notificationPreferencesService: NotificationPreferencesService,
+        private readonly tenantFeatureService: TenantFeatureService
     ) {
         super();
-        this.calendarFeedVisible = keycloakService.isUser || keycloakService.isUserExternal;
+        this.notificationPreferencesEnabled = tenantFeatureService.notificationPreferencesEnabled;
+        this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
     }
 
     ngOnInit(): void {
@@ -77,8 +80,20 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             this.username = profile.username ?? '';
         });
 
-        this.pushNotificationService.refreshState().then((subscribed) => (this.pushEnabled = subscribed));
+        this.tenantFeatureService.refresh().subscribe({
+            next: () => {
+                if (this.notificationPreferencesEnabled()) this.loadNotificationPreferences();
+            },
+            error: () => undefined
+        });
+    }
 
+    protected get calendarFeedVisible(): boolean {
+        return (this.keycloakService.isUser || this.keycloakService.isUserExternal) && this.tenantFeatureService.externalCalendarFeedEnabled();
+    }
+
+    private loadNotificationPreferences(): void {
+        this.pushNotificationService.refreshState().then((subscribed) => (this.pushEnabled = subscribed));
         this.notificationPreferencesService
             .getPreferences()
             .pipe(first())
@@ -258,7 +273,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: () => this.keycloakService.logout(),
                 error: () => {
-                    this.toastService.error('Errore', "Impossibile eliminare l'account.");
+                    this.toastService.error('Eliminazione non riuscita', "L'account non è stato eliminato. Riprova.");
                 }
             });
     }
@@ -269,7 +284,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             .pipe(first())
             .subscribe({
                 next: () => this.keycloakService.logout(),
-                error: () => this.toastService.error('Errore', "Impossibile completare la cancellazione definitiva dell'account.")
+                error: () => this.toastService.error('Cancellazione non riuscita', "La cancellazione definitiva dell'account non è stata completata. Riprova.")
             });
     }
 }

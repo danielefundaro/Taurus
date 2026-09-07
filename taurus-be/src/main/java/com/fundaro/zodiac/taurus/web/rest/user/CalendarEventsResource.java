@@ -1,5 +1,8 @@
 package com.fundaro.zodiac.taurus.web.rest.user;
 
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.web.rest.RequiresTenantFeature;
+
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
@@ -49,6 +52,7 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
      * @param minutes minutes before the event; {@code 0} disables it and omitting it restores the event default.
      */
     @PatchMapping("/{id}/reminder")
+    @RequiresTenantFeature(TenantFeature.WEB_PUSH_REMINDERS)
     public ResponseEntity<CalendarEventsDTO> setReminder(
         @PathVariable("id") Long id,
         @RequestParam(required = false) Integer minutes,
@@ -59,6 +63,7 @@ public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEve
     }
 
     @GetMapping("/{id}/reminder")
+    @RequiresTenantFeature(TenantFeature.WEB_PUSH_REMINDERS)
     public ResponseEntity<Integer> reminder(@PathVariable("id") Long id, AbstractAuthenticationToken token) {
         return ResponseEntity.ok(getService().findReminderMinutes(id, token));
     }

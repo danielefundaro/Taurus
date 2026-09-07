@@ -35,6 +35,7 @@ export class TenantsComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.initializeListState('tenants');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
             { label: 'Nome Z-A', value: '!name' }
@@ -59,7 +60,8 @@ export class TenantsComponent extends ListPageBase implements OnInit {
     protected addNew(): void {
         const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddTenantsDialogComponent, {
             header: 'Aggiungi tenant',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -74,7 +76,7 @@ export class TenantsComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (tenant: Tenants) => {
-                            this.toastService.success('Successo', 'Tenant aggiunto con successo');
+                            this.toastService.success('Tenant aggiunto', 'La nuova istanza è disponibile nell’elenco.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -93,7 +95,7 @@ export class TenantsComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: (value: any) => {
-                            this.toastService.success('Successo', 'Tenant eliminato con successo');
+                            this.toastService.success('Tenant eliminato', 'L’istanza non è più visibile.');
                             this.loadElements(this.searchTerm);
                         }
                     });
@@ -138,7 +140,7 @@ export class TenantsComponent extends ListPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.selectedTenants = [];
-                            this.toastService.success('Successo', `${count} tenant eliminati con successo`);
+                            this.toastService.success('Tenant eliminati', `${count} istanze non sono più visibili.`);
                             this.loadElements(this.searchTerm);
                         }
                     });

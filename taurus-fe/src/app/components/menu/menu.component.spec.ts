@@ -9,10 +9,14 @@ describe('MenuComponent', () => {
         const loaded = signal(false);
         const financeEnabled = signal(false);
         const inventoryEnabled = signal(false);
+        const onboardingImportEnabled = signal(false);
+        const externalCalendarFeedEnabled = signal(false);
         const service = {
             loaded,
             financeEnabled,
             inventoryEnabled,
+            onboardingImportEnabled,
+            externalCalendarFeedEnabled,
             refresh: jasmine.createSpy().and.returnValue(of({}))
         };
         TestBed.configureTestingModule({
@@ -23,14 +27,16 @@ describe('MenuComponent', () => {
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
-        expect(menuItem(component, 'Configurazione iniziale')?.routerLink).toEqual(['/onboarding']);
+        expect(menuItem(component, 'Configurazione iniziale')?.visible).toBeFalse();
 
         loaded.set(true);
         financeEnabled.set(true);
+        onboardingImportEnabled.set(true);
         TestBed.flushEffects();
 
         expect(menuItem(component, 'Economia')?.visible).toBeTrue();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
+        expect(menuItem(component, 'Configurazione iniziale')?.visible).toBeTrue();
 
         inventoryEnabled.set(true);
         TestBed.flushEffects();

@@ -16,9 +16,14 @@ describe('CalendarFeedService', () => {
 
     it('keeps personal and administrative endpoints separate', () => {
         service.list().subscribe();
-        http.expectOne(`${environment.baseUrl}/calendar-feeds`).flush([]);
+        const personal = http.expectOne(`${environment.baseUrl}/calendar-feeds`);
+        expect(personal.request.method).toBe('GET');
+        personal.flush([]);
+
         service.list(true).subscribe();
-        http.expectOne(`${environment.baseUrl}/admin/calendar-feeds`).flush([]);
+        const administrative = http.expectOne(`${environment.baseUrl}/admin/calendar-feeds`);
+        expect(administrative.request.method).toBe('GET');
+        administrative.flush([]);
     });
 
     it('uses lifecycle endpoints without placing the secret in query parameters', () => {

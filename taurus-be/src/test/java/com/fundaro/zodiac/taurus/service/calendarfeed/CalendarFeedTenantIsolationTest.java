@@ -6,8 +6,10 @@ import static org.mockito.Mockito.*;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.calendarfeed.*;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.*;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.*;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.Download;
 import java.util.*;
 import java.util.function.Supplier;
@@ -33,18 +35,20 @@ class CalendarFeedTenantIsolationTest {
         CalendarEventFeedTombstoneRepository tombstones = mock(CalendarEventFeedTombstoneRepository.class);
         IcalendarRenderer renderer = mock(IcalendarRenderer.class);
         CalendarFeedRateLimiter limiter = mock(CalendarFeedRateLimiter.class);
+        TenantFeatureService tenantFeatures = mock(TenantFeatureService.class);
         ApplicationProperties properties = new ApplicationProperties();
 
         when(registry.resolveActive(any(byte[].class))).thenReturn(Optional.of(route));
         when(schemas.findActiveTenantCode(41L)).thenReturn(Optional.of("tenant-a"));
         when(limiter.allowRequest("192.0.2.1")).thenReturn(true);
         when(limiter.allowToken(any(byte[].class))).thenReturn(true);
+        when(tenantFeatures.isEnabledForTenant(41L, TenantFeature.EXTERNAL_CALENDAR_FEED)).thenReturn(true);
         when(transactions.execute(eq("tenant-a"), ArgumentMatchers.<Supplier<Optional<Download>>>any()))
             .thenAnswer(invocation -> invocation.<Supplier<Optional<Download>>>getArgument(1).get());
         when(subscriptions.findByIdAndDeletedFalse(route.getSubscriptionId())).thenReturn(Optional.empty());
 
         CalendarFeedTokenResolver resolver = new CalendarFeedTokenResolver(tokenService, registry, schemas, transactions,
-            subscriptions, events, tombstones, renderer, limiter, properties);
+            subscriptions, events, tombstones, renderer, limiter, properties, tenantFeatures);
 
         assertThat(resolver.resolve(token.value(), "192.0.2.1")).isEmpty();
         verify(transactions).execute(eq("tenant-a"), ArgumentMatchers.<Supplier<Optional<Download>>>any());
@@ -63,14 +67,16 @@ class CalendarFeedTenantIsolationTest {
         TenantSchemaRegistry schemas = mock(TenantSchemaRegistry.class);
         TenantTransactionExecutor transactions = mock(TenantTransactionExecutor.class);
         CalendarFeedRateLimiter limiter = mock(CalendarFeedRateLimiter.class);
+        TenantFeatureService tenantFeatures = mock(TenantFeatureService.class);
         when(registry.resolveActive(any(byte[].class))).thenReturn(Optional.of(route));
         when(schemas.findActiveTenantCode(41L)).thenReturn(Optional.empty());
         when(limiter.allowRequest(anyString())).thenReturn(true);
         when(limiter.allowToken(any(byte[].class))).thenReturn(true);
+        when(tenantFeatures.isEnabledForTenant(41L, TenantFeature.EXTERNAL_CALENDAR_FEED)).thenReturn(true);
 
         CalendarFeedTokenResolver resolver = new CalendarFeedTokenResolver(tokenService, registry, schemas, transactions,
             mock(CalendarFeedSubscriptionRepository.class), mock(CalendarFeedEventRepository.class),
-            mock(CalendarEventFeedTombstoneRepository.class), mock(IcalendarRenderer.class), limiter, new ApplicationProperties());
+            mock(CalendarEventFeedTombstoneRepository.class), mock(IcalendarRenderer.class), limiter, new ApplicationProperties(), tenantFeatures);
 
         assertThat(resolver.resolve(token.value(), "192.0.2.1")).isEmpty();
         verifyNoInteractions(transactions);

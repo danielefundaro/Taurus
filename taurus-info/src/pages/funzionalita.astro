@@ -8,8 +8,8 @@ const areas = [
     icon: 'dashboard',
     overline: 'Dashboard e notifiche',
     title: 'Quello che conta, appena entri.',
-    text: 'La dashboard adatta contenuti e indicatori al ruolo della persona: numeri del catalogo, ultime tracce, prossimi eventi, materiali assegnati e comunicazioni da leggere.',
-    points: ['Panoramica per ruolo', 'Attività e contenuti recenti', 'Scadenze dell’inventario', 'Centro notifiche personale']
+    text: 'La dashboard adatta contenuti, indicatori e attività da completare al ruolo della persona. Il centro notifiche permette di scegliere categorie, canali, ore silenziose, pause temporanee e riepilogo giornaliero, quando queste opzioni sono abilitate per il tenant.',
+    points: ['Panoramica e attività per ruolo', 'Blocker, scadenze e richiami operativi', 'Centro notifiche personale', 'Preferenze, silenzioso e riepilogo']
   },
   {
     icon: 'catalogue',
@@ -21,30 +21,37 @@ const areas = [
   {
     icon: 'calendar',
     overline: 'Calendario',
-    title: 'Ogni attività, dalla prima data alla presenza.',
-    text: 'Programma prove, concerti e appuntamenti singoli o ricorrenti. Ogni occorrenza conserva disponibilità, presenze, visibilità, compensi e costi, con promemoria push facoltativi sul dispositivo.',
-    points: ['Vista elenco e calendario', 'Serie giornaliere, settimanali, mensili e annuali', 'Disponibilità e presenze', 'Promemoria push']
+    title: 'Dalla prima data alla chiusura dell’evento.',
+    text: 'Programma prove, concerti e appuntamenti singoli o ricorrenti. La preparazione operativa riunisce luogo, programma e partiture, disponibilità, materiali e preventivo; dopo l’evento accompagna la verifica di presenze e movimenti.',
+    points: ['Vista elenco e calendario', 'Serie giornaliere, settimanali, mensili e annuali', 'Indicatore di preparazione e criticità', 'Promemoria push facoltativi']
   },
   {
     icon: 'inventory',
     overline: 'Inventario',
     title: 'Ogni bene ha una storia verificabile.',
-    text: 'Registra oggetti e dotazioni con quantità, stato, valore e fotografie. Le assegnazioni includono presa visione, scadenze, revisioni e riconsegne, così amministratori e assegnatari condividono sempre la stessa situazione.',
-    points: ['Schede e fotografie', 'Assegnazioni e presa visione', 'Scadenze e notifiche mirate', 'Riconsegne e proforma PDF']
+    text: 'Registra oggetti e dotazioni con quantità, stato, valore e fotografie. Le assegnazioni includono presa visione, scadenze, revisioni e riconsegne; QR ed etichette stampabili velocizzano la consultazione e la segnalazione dei guasti senza esporre i dati nel collegamento.',
+    points: ['Schede, fotografie e storico', 'Assegnazioni e presa visione', 'QR privati ed etichette PDF', 'Segnalazioni, scadenze e riconsegne']
   },
   {
     icon: 'finance',
-    overline: 'Economia',
-    title: 'Dai movimenti al risultato dell’anno.',
-    text: 'Gestisci casse e conti correnti, classifica entrate e uscite, registra trasferimenti e allegati e verifica i movimenti. I dati economici degli eventi alimentano preventivi, consuntivi ed esercizi annuali.',
-    points: ['Conti, categorie e movimenti', 'Trasferimenti e riconciliazione', 'Preventivi e consuntivi degli eventi', 'Report CSV, XLSX e PDF']
+    overline: 'Supporto economico',
+    title: 'Un quadro operativo di movimenti e attività.',
+    text: 'Registra casse e conti, classifica entrate e uscite, annota trasferimenti e allegati e confronta i dati economici degli eventi. Questa area è un supporto organizzativo: non sostituisce software, registri, adempimenti o consulenza contabile e fiscale.',
+    points: ['Conti, categorie e movimenti operativi', 'Trasferimenti e verifiche interne', 'Preventivi e consuntivi informativi', 'Esportazioni prive di valore fiscale o legale']
+  },
+  {
+    icon: 'document',
+    overline: 'Avvio e configurazione',
+    title: 'Parti dai dati che hai già.',
+    text: 'Un percorso guidato importa in modo additivo strumenti, utenti, inventario e dati economici da un workbook XLSX o da CSV per singola sezione. Prima dell’applicazione mostra righe normalizzate, avvisi ed errori; i moduli opzionali sono configurati per ciascun tenant in base alle esigenze dell’organizzazione.',
+    points: ['Template XLSX e CSV', 'Validazione e anteprima delle righe', 'Importazione riprendibile e rapporti', 'Otto funzionalità configurabili per tenant']
   },
   {
     icon: 'users',
     overline: 'Persone e ruoli',
     title: 'Responsabilità chiare, accessi coerenti.',
-    text: 'Ogni persona opera nel contesto dell’organizzazione selezionata e con strumenti coerenti con il proprio incarico. Profilo, preferenze, notifiche e scelte di visualizzazione seguono l’utente.',
-    points: ['Gestione utenti e organizzazioni', 'Autorizzazioni basate sui ruoli', 'Preferenze personali persistenti', 'Accesso esterno controllato']
+    text: 'Ogni persona opera nel contesto dell’organizzazione selezionata e con strumenti coerenti con ruolo e funzionalità attive. Profilo, preferenze, notifiche e scelte di visualizzazione seguono l’utente.',
+    points: ['Gestione utenti e organizzazioni', 'Ruoli e moduli verificati insieme', 'Preferenze personali persistenti', 'Accesso esterno controllato']
   },
   {
     icon: 'shield',
@@ -56,21 +63,20 @@ const areas = [
 ] as const;
 
 const roles = [
-  { code: 'SA', name: 'Super Admin', text: 'Governa istanze, documenti legali e configurazione trasversale.' },
-  { code: 'AD', name: 'Admin', text: 'Amministra persone, attività, inventario e operatività del tenant.' },
-  { code: 'TS', name: 'Tesoriere', text: 'Gestisce conti, movimenti, esercizi e rendiconti economici.' },
+  { code: 'AD', name: 'Amministratore', text: 'Amministra persone, attività, inventario e operatività del tenant.' },
+  { code: 'TS', name: 'Tesoriere', text: 'Gestisce dati economici operativi e prepara riepiloghi di supporto.' },
   { code: 'AR', name: 'Archivista', text: 'Cura catalogo, partiture, strumenti e patrimonio materiale.' },
   { code: 'UT', name: 'Utente', text: 'Consulta i contenuti, partecipa agli eventi e gestisce le proprie consegne.' },
   { code: 'UE', name: 'Utente esterno', text: 'Accede alle attività e ai contenuti autorizzati senza funzioni gestionali.' }
 ] as const;
 ---
 
-<BaseLayout title="Funzionalità" description="Scopri catalogo musicale, calendario, inventario, gestione economica, notifiche e sicurezza multi-tenant di Taurus.">
+<BaseLayout title="Funzionalità" description="Scopri catalogo musicale, calendario, inventario, supporto alla gestione economica, notifiche e sicurezza multi-tenant di Taurus.">
   <section class="page-hero">
     <div class="container-shell">
       <span class="eyebrow">Funzionalità</span>
       <h1 class="display-title">Un gestionale costruito intorno alla vita dell’organizzazione.</h1>
-      <p class="body-large">Taurus non è più soltanto un archivio: collega patrimonio musicale, attività, materiali, persone e contabilità in un flusso quotidiano coerente.</p>
+      <p class="body-large">Taurus collega patrimonio musicale, preparazione delle attività, materiali, persone e gestione economica operativa in un flusso quotidiano coerente e configurabile.</p>
     </div>
   </section>
 
@@ -104,9 +110,9 @@ const roles = [
         <h2 class="section-title">Le aree non vivono in silos.</h2>
       </div>
       <div class="connection-flow" aria-label="Esempio di flusso integrato">
-        <article><span>01</span><div><h3>Programmi l’evento</h3><p>Definisci date, partecipanti, compensi e costi previsti.</p></div></article>
-        <article><span>02</span><div><h3>Coordini persone e materiali</h3><p>Raccogli disponibilità, registra presenze e controlla le assegnazioni.</p></div></article>
-        <article><span>03</span><div><h3>Chiudi il cerchio</h3><p>Confronti preventivo e consuntivo ed esporti il rendiconto.</p></div></article>
+        <article><span>01</span><div><h3>Programmi l’evento</h3><p>Definisci date, requisiti, programma, partecipanti, materiali e costi previsti.</p></div></article>
+        <article><span>02</span><div><h3>Segui ciò che manca</h3><p>La dashboard mette in evidenza disponibilità, conferme e criticità da risolvere.</p></div></article>
+        <article><span>03</span><div><h3>Chiudi il cerchio</h3><p>Verifichi presenze e movimenti, confronti preventivo e consuntivo ed esporti un riepilogo operativo.</p></div></article>
       </div>
     </div>
   </section>
@@ -124,7 +130,7 @@ const roles = [
     </div>
   </section>
 
-  <CallToAction title="Vuoi vedere Taurus nel tuo contesto?" text="Raccontaci come gestisci oggi catalogo, attività, materiali e contabilità: partiremo dalle esigenze reali della tua organizzazione." />
+  <CallToAction title="Vuoi vedere Taurus nel tuo contesto?" text="Raccontaci come gestisci oggi catalogo, attività, materiali e dati economici: partiremo dalle esigenze reali della tua organizzazione." />
 </BaseLayout>
 
 <style>

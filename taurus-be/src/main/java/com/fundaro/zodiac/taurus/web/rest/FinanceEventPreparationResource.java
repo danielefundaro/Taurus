@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/finance/events/{eventId}")
-@RequiresTenantFeature(TenantFeature.FINANCE)
+@RequiresTenantFeature({ TenantFeature.FINANCE, TenantFeature.EVENT_PREPARATION })
 @ConditionalOnProperty(prefix = "application.event-preparation", name = "enabled", havingValue = "true")
 public class FinanceEventPreparationResource {
     private final EventPreparationService service;

@@ -1,22 +1,11 @@
 import { Routes } from '@angular/router';
 import { RoleEnums } from './app/constants';
-import { canActivateAuthRole } from './app/guard/auth-role.guard';
-import { legalDocumentsGuard } from './app/guard/legal-documents.guard';
-import { canDeactivateUnsavedChanges } from './app/guard/unsaved-changes.guard';
-import { tenantFeatureGuard } from './app/guard/tenant-feature.guard';
+import { canActivateAuthRole, canDeactivateUnsavedChanges, legalDocumentsGuard, tenantFeatureGuard } from './app/guard';
 import { TenantFeature } from './app/module';
-import { DashboardComponent } from './app/pages/dashboard/dashboard.component';
-import { Forbidden } from './app/pages/forbidden/forbidden.component';
 import { LayoutComponent } from './app/pages/layout/layout.component';
-import { LegalAcceptanceComponent } from './app/pages/legal-acceptance/legal-acceptance.component';
-import { Notfound } from './app/pages/notfound/notfound.component';
-import { PreviewComponent } from './app/pages/preview/preview.component';
-import { ProfileComponent } from './app/pages/profile/profile.component';
-import { NotificationDeliveryComponent } from './app/pages/admin/notification-delivery/notification-delivery.component';
-import { CalendarFeedsComponent } from './app/pages/admin/calendar-feeds/calendar-feeds.component';
 
 export const appRoutes: Routes = [
-    { path: 'legal/accept', component: LegalAcceptanceComponent },
+    { path: 'legal/accept', loadComponent: () => import('./app/pages/legal-acceptance/legal-acceptance.component').then((module) => module.LegalAcceptanceComponent) },
     {
         path: '',
         component: LayoutComponent,
@@ -24,7 +13,7 @@ export const appRoutes: Routes = [
         children: [
             {
                 path: '',
-                component: DashboardComponent,
+                loadComponent: () => import('./app/pages/dashboard/dashboard.component').then((module) => module.DashboardComponent),
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
@@ -43,8 +32,8 @@ export const appRoutes: Routes = [
             {
                 path: 'onboarding',
                 loadChildren: () => import('./app/pages/onboarding/onboarding.routes'),
-                canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+                canActivate: [canActivateAuthRole, tenantFeatureGuard],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN], feature: TenantFeature.ONBOARDING_IMPORT }
             },
             {
                 path: 'legal-documents',
@@ -90,32 +79,32 @@ export const appRoutes: Routes = [
             },
             {
                 path: 'admin/notification-delivery',
-                component: NotificationDeliveryComponent,
+                loadComponent: () => import('./app/pages/admin/notification-delivery/notification-delivery.component').then((module) => module.NotificationDeliveryComponent),
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
             },
             {
                 path: 'admin/calendar-feeds',
-                component: CalendarFeedsComponent,
-                canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+                loadComponent: () => import('./app/pages/admin/calendar-feeds/calendar-feeds.component').then((module) => module.CalendarFeedsComponent),
+                canActivate: [canActivateAuthRole, tenantFeatureGuard],
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN], feature: TenantFeature.EXTERNAL_CALENDAR_FEED }
             },
             {
                 path: 'preview',
-                component: PreviewComponent,
+                loadComponent: () => import('./app/pages/preview/preview.component').then((module) => module.PreviewComponent),
                 canActivate: [canActivateAuthRole],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'profile',
-                component: ProfileComponent,
+                loadComponent: () => import('./app/pages/profile/profile.component').then((module) => module.ProfileComponent),
                 canActivate: [canActivateAuthRole],
                 canDeactivate: [canDeactivateUnsavedChanges],
                 data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             }
         ]
     },
-    { path: 'notfound', component: Notfound },
-    { path: 'forbidden', component: Forbidden },
+    { path: 'notfound', loadComponent: () => import('./app/pages/notfound/notfound.component').then((module) => module.Notfound) },
+    { path: 'forbidden', loadComponent: () => import('./app/pages/forbidden/forbidden.component').then((module) => module.Forbidden) },
     { path: '**', redirectTo: '/notfound' }
 ];

@@ -8,16 +8,16 @@
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    background: var(--surface-ground, #f8fafc);
+    background: var(--p-surface-ground);
 }
 
 .legal-card {
     width: min(46rem, 100%);
     padding: clamp(1.5rem, 4vw, 3rem);
-    border: 1px solid var(--surface-border, #e2e8f0);
+    border: 1px solid var(--p-content-border-color);
     border-radius: 1.5rem;
-    background: var(--surface-card, #fff);
-    box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 0.1);
+    background: var(--p-content-background);
+    box-shadow: var(--p-overlay-popover-shadow);
 }
 
 .legal-icon {
@@ -27,8 +27,8 @@
     place-items: center;
     margin-bottom: 1rem;
     border-radius: 1rem;
-    color: var(--primary-color);
-    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--p-primary-color);
+    background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
     font-size: 1.5rem;
 }
 
@@ -38,7 +38,7 @@ h1 {
 }
 .intro,
 .audit-note {
-    color: var(--text-color-secondary);
+    color: var(--p-text-muted-color);
     line-height: 1.6;
 }
 .documents {
@@ -49,7 +49,7 @@ h1 {
 
 .document-row {
     padding: 1.25rem;
-    border: 1px solid var(--surface-border, #e2e8f0);
+    border: 1px solid var(--p-content-border-color);
     border-radius: 1rem;
 }
 
@@ -65,7 +65,7 @@ h1 {
     font-size: 1.1rem;
 }
 .document-heading span {
-    color: var(--text-color-secondary);
+    color: var(--p-text-muted-color);
     font-size: 0.875rem;
 }
 
@@ -73,7 +73,7 @@ h1 {
     display: inline-flex;
     gap: 0.4rem;
     align-items: center;
-    color: var(--primary-color);
+    color: var(--p-primary-color);
     font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
@@ -85,7 +85,7 @@ h1 {
     gap: 0.75rem;
     margin-top: 1.25rem;
     padding-top: 1.25rem;
-    border-top: 1px solid var(--surface-border, #e2e8f0);
+    border-top: 1px solid var(--p-content-border-color);
 }
 
 .confirmation label {
@@ -93,8 +93,7 @@ h1 {
     cursor: pointer;
 }
 
-.state-message,
-.error-message {
+.state-message {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -104,11 +103,7 @@ h1 {
 }
 
 .state-message {
-    background: var(--surface-100, #f1f5f9);
-}
-.error-message {
-    color: var(--red-700, #b91c1c);
-    background: var(--red-50, #fef2f2);
+    background: var(--p-content-hover-background);
 }
 .actions {
     display: flex;

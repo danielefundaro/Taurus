@@ -63,6 +63,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit(): void {
+        this.initializeListState('calendar-events');
         const attention = this.route.snapshot.queryParamMap.get('attention');
         if (attention && ['my-missing-availability', 'missing-availability'].includes(attention)) {
             this.attention = attention as typeof this.attention;
@@ -131,7 +132,8 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     private openDialog(data?: { startDate?: Date }): void {
         const ref: DynamicDialogRef = this.dialogService.open(AddCalendarEventsDialogComponent, {
             header: 'Aggiungi evento',
-            closable: true,
+            closable: false,
+            showHeader: false,
             draggable: true,
             resizable: true,
             modal: true,
@@ -145,7 +147,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
                 const creation: Observable<unknown> = result.series ? this.calendarEventSeriesService.create(result.series) : this.calendarEventsService.create(result.event!);
                 creation.pipe(delay(1000), first()).subscribe({
                     next: () => {
-                        this.toastService.success('Successo', result.series ? 'Serie di eventi aggiunta con successo' : 'Evento aggiunto con successo');
+                        this.toastService.success(result.series ? 'Serie di eventi aggiunta' : 'Evento aggiunto', 'Il calendario è stato aggiornato.');
                         if (this.layout === 'grid') {
                             this.loadCalendarMonth();
                         } else {
@@ -168,7 +170,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
                     .pipe(delay(1000), first())
                     .subscribe({
                         next: () => {
-                            this.toastService.success('Successo', 'Evento eliminato con successo');
+                            this.toastService.success('Evento eliminato', 'L’evento non è più visibile nel calendario.');
                             if (this.layout === 'grid') {
                                 this.loadCalendarMonth();
                             } else {
@@ -217,7 +219,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.selectedEvents = [];
-                            this.toastService.success('Successo', `${count} eventi eliminati con successo`);
+                            this.toastService.success('Eventi eliminati', `${count} eventi non sono più visibili nel calendario.`);
                             if (this.layout === 'grid') {
                                 this.loadCalendarMonth();
                             } else {

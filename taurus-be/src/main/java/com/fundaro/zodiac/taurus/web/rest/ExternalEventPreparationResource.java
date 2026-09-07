@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.View;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/external/calendar-events/{eventId}/preparation")
 @ConditionalOnProperty(prefix = "application.event-preparation", name = "enabled", havingValue = "true")
+@RequiresTenantFeature(TenantFeature.EVENT_PREPARATION)
 public class ExternalEventPreparationResource {
     private final EventPreparationService service;
 

@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
@@ -15,11 +16,13 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     private final ApplicationProperties.DashboardProperties properties;
     private final InventoryIssueReportRepository issueRepository;
     private final ApplicationProperties.QrProperties qrProperties;
+    private TenantFeatureService tenantFeatureService;
 
     public InventoryOperationProvider(
         InventoryAssignmentRepository assignmentRepository,
@@ -52,6 +56,11 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
         this.issueRepository = issueRepository;
     }
 
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
     @Override
     public DashboardDomain domain() {
         return DashboardDomain.INVENTORY;
@@ -62,7 +71,8 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
         List<OperationalItemDTO> result = new ArrayList<>();
         boolean administrator = context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN);
-        if (administrator && qrProperties.isEnabled()) addIssues(result);
+        if (administrator && qrProperties.isEnabled()
+            && (tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_QR))) addIssues(result);
         long pendingDecisions = administrator
             ? decisionRepository.countPendingCurrentRevisions(OUTSTANDING)
             : decisionRepository.countPendingCurrentRevisionsForUser(context.subject(), OUTSTANDING);

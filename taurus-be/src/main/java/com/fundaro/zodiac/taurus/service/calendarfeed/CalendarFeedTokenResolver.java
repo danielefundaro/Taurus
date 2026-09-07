@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.domain.calendarfeed.*;
 import com.fundaro.zodiac.taurus.domain.enumeration.*;
 import com.fundaro.zodiac.taurus.multitenancy.*;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.*;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.*;
@@ -25,14 +26,15 @@ public class CalendarFeedTokenResolver {
     private final IcalendarRenderer renderer;
     private final CalendarFeedRateLimiter rateLimiter;
     private final ApplicationProperties.CalendarFeedProperties properties;
+    private final TenantFeatureService tenantFeatureService;
 
     public CalendarFeedTokenResolver(CalendarFeedTokenService tokenService, CalendarFeedTokenRegistryRepository registry,
         TenantSchemaRegistry schemas, TenantTransactionExecutor transactions, CalendarFeedSubscriptionRepository subscriptions,
         CalendarFeedEventRepository events, CalendarEventFeedTombstoneRepository tombstones, IcalendarRenderer renderer,
-        CalendarFeedRateLimiter rateLimiter, ApplicationProperties properties) {
+        CalendarFeedRateLimiter rateLimiter, ApplicationProperties properties, TenantFeatureService tenantFeatureService) {
         this.tokenService = tokenService; this.registry = registry; this.schemas = schemas; this.transactions = transactions;
         this.subscriptions = subscriptions; this.events = events; this.tombstones = tombstones; this.renderer = renderer;
-        this.rateLimiter = rateLimiter; this.properties = properties.getCalendarFeed();
+        this.rateLimiter = rateLimiter; this.properties = properties.getCalendarFeed(); this.tenantFeatureService = tenantFeatureService;
     }
 
     public Optional<Download> resolve(String token, String remoteAddress) {
@@ -42,6 +44,7 @@ public class CalendarFeedTokenResolver {
         if (!rateLimiter.allowToken(digest)) throw new CalendarFeedRateLimitException();
         CalendarFeedTokenRegistry route = TenantContext.call(null, () -> registry.resolveActive(digest).orElse(null));
         if (route == null) return Optional.empty();
+        if (!tenantFeatureService.isEnabledForTenant(route.getTenantId(), TenantFeature.EXTERNAL_CALENDAR_FEED)) return Optional.empty();
         String tenantCode = schemas.findActiveTenantCode(route.getTenantId()).orElse(null); if (tenantCode == null) return Optional.empty();
         return transactions.execute(tenantCode, () -> generate(route, digest));
     }

@@ -1,4 +1,5 @@
 <app-dialog-shell
+    #shell
     title="Nuovo evento"
     subtitle="Definisci data, luogo e, se necessario, una ricorrenza."
     confirmLabel="Crea evento"
@@ -7,11 +8,11 @@
     (confirm)="save()"
 >
     <p-fluid class="flex flex-col gap-4">
-        <app-form-field label="Nome" forId="name" required [error]="event.name?.trim() ? undefined : 'Inserisci il nome dell’evento.'">
+        <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !event.name?.trim() ? 'Inserisci il nome dell’evento.' : undefined">
             <input pInputText id="name" type="text" [(ngModel)]="event.name" />
         </app-form-field>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <app-form-field label="Data/ora inizio" forId="startDate" required [error]="event.startDate ? undefined : 'Indica quando inizia l’evento.'">
+            <app-form-field label="Data/ora inizio" forId="startDate" required [error]="shell.validationAttempted && !event.startDate ? 'Indica quando inizia l’evento.' : undefined">
                 <p-datepicker
                     [iconDisplay]="'input'"
                     [showIcon]="true"

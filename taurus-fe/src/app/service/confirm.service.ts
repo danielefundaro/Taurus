@@ -16,10 +16,10 @@ export class ConfirmService {
         this.open(request, 'pi pi-trash', { severity: 'danger' }, 'Annulla');
     }
     confirmReversible(request: ConfirmRequest): void {
-        this.open(request, 'pi pi-exclamation-triangle', { severity: 'secondary', outlined: true }, 'Annulla');
+        this.open(request, 'pi pi-exclamation-triangle', { severity: 'warn', outlined: true }, 'Annulla');
     }
     confirmDiscard(request: ConfirmRequest): void {
-        this.open({ ...request, key: request.key ?? 'guard' }, 'pi pi-info-circle', { severity: 'secondary', outlined: true }, 'Rimani');
+        this.open({ ...request, key: request.key ?? 'guard' }, 'pi pi-info-circle', { severity: 'info', outlined: true }, 'Rimani');
     }
     private open(request: ConfirmRequest, icon: string, acceptButtonProps: Confirmation['acceptButtonProps'], rejectLabel: string): void {
         this.confirmationService.confirm({

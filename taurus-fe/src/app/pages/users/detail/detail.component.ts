@@ -70,7 +70,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .sendSetupEmail(this.user.id)
                     .pipe(first())
                     .subscribe({
-                        next: () => this.toastService.success('Successo', 'Email di configurazione inviata')
+                        next: () => this.toastService.success('E-mail di configurazione inviata', 'L’utente può completare la configurazione del proprio account.')
                     });
             }
         });
@@ -88,7 +88,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Utente eliminato');
+                            this.toastService.success('Utente eliminato', 'L’utente non è più visibile.');
                             this.router.navigate(['/users']);
                         }
                     });
@@ -108,7 +108,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Utente eliminato definitivamente ai sensi del GDPR');
+                            this.toastService.success('Dati utente eliminati', 'La cancellazione prevista dal GDPR è stata completata.');
                             this.router.navigate(['/users']);
                         }
                     });
@@ -128,7 +128,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (user: Users) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Utente aggiornato con successo');
+                    this.toastService.success('Utente aggiornato', 'Le modifiche sono state salvate.');
                     this.loadElement(user.id);
                 }
             });
@@ -144,9 +144,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     private loadElement(id: number | string) {
+        this.loading = true;
         this.usersService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe({
                 next: (user: Users) => {
                     this.user = user;

@@ -11,12 +11,15 @@ import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepos
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
+import com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +29,27 @@ public class NotificationOutboxPublisher {
     private static final Pattern MARKUP = Pattern.compile("<[^>]*>");
     private static final Pattern CONTROL = Pattern.compile("[\\p{Cntrl}&&[^\\r\\n\\t]]");
     private final NotificationOutboxRepository repository;
+    private NotificationFeaturePolicy featurePolicy;
+    private TenantFeatureService tenantFeatures;
 
     public NotificationOutboxPublisher(NotificationOutboxRepository repository) {
         this.repository = repository;
     }
 
+    @Autowired(required = false)
+    void setFeaturePolicy(NotificationFeaturePolicy featurePolicy) {
+        this.featurePolicy = featurePolicy;
+    }
+
+    @Autowired(required = false)
+    void setTenantFeatures(TenantFeatureService tenantFeatures) {
+        this.tenantFeatures = tenantFeatures;
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void enqueue(NotificationCommand rawCommand) {
         NotificationCommand command = normalizeAndValidate(rawCommand);
+        if (featurePolicy != null && tenantFeatures != null && featurePolicy.requiredFeatures(command.source(), command.aggregateType(), command.operation()).stream().anyMatch(feature -> !tenantFeatures.isEnabled(feature))) return;
         if (repository.existsByEventKey(command.eventKey())) return;
 
         ZonedDateTime now = ZonedDateTime.now();

@@ -6,6 +6,8 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.service.PushService;
 import com.fundaro.zodiac.taurus.service.NotificationPreferenceResolver;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.QuietOutcome;
 import com.fundaro.zodiac.taurus.service.notification.NotificationTiming;
@@ -33,6 +35,7 @@ public class PushReminderScheduler {
     private final TenantTransactionExecutor tenantTransactionExecutor;
     private NotificationPreferenceResolver preferenceResolver;
     private NotificationPreferenceMetrics metrics;
+    private TenantFeatureService tenantFeatureService;
 
     public PushReminderScheduler(
         PushReminderRepository reminderRepository,
@@ -56,6 +59,11 @@ public class PushReminderScheduler {
         this.metrics = metrics;
     }
 
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
     @Scheduled(cron = "0 * * * * *")
     public void processReminders() {
         tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode ->
@@ -65,6 +73,10 @@ public class PushReminderScheduler {
 
     private void processCurrentTenantReminders() {
         reminderRepository.findByDeletedFalseAndSentFalseAndSendAtLessThanEqual(Instant.now()).forEach(reminder -> {
+            if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.WEB_PUSH_REMINDERS)) {
+                skipped(reminder, "FEATURE_DISABLED");
+                return;
+            }
             if (preferenceResolver == null) {
                 String body = String.format("L'evento \"%s\" sta per iniziare", reminder.getEventName());
                 pushService.sendToUser(reminder.getUserId(), TenantContext.getTenantCode().orElseThrow(), "Promemoria evento", body);

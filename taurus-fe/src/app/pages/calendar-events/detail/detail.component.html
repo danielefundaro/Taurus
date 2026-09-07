@@ -1,5 +1,6 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Evento" [title]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
         ><div pageMetadata class="flex flex-wrap items-center gap-2">
             <span>{{ event.startDate ? (event.startDate | date: 'dd/MM/yyyy HH:mm') : 'Data non indicata' }}</span>
@@ -43,7 +44,7 @@
                     @if (preparation.evaluation.issues.length) {
                         <div class="grid gap-2">
                             @for (issue of preparation.evaluation.issues; track issue.code + issue.area) {
-                                <p-message [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" variant="outlined" [closable]="false">{{ issue.message }}</p-message>
+                                <app-inline-alert [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" [title]="issue.severity === 'BLOCKER' ? 'Preparazione bloccata' : 'Preparazione da verificare'" [detail]="issue.message" />
                             }
                         </div>
                     }
@@ -112,12 +113,16 @@
                             <label class="flex items-center gap-2"
                                 ><p-checkbox inputId="prepMaterials" [(ngModel)]="preparationConfiguration.materialsRequired" [binary]="true" [disabled]="!inventoryEnabled()" (onChange)="markPreparationDirty()" /><span>Materiali</span></label
                             >
-                            <label class="flex items-center gap-2"><p-checkbox inputId="prepBudget" [(ngModel)]="preparationConfiguration.budgetRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Preventivo</span></label>
+                            <label class="flex items-center gap-2"
+                                ><p-checkbox inputId="prepBudget" [(ngModel)]="preparationConfiguration.budgetRequired" [binary]="true" [disabled]="!financeEnabled()" (onChange)="markPreparationDirty()" /><span>Preventivo</span></label
+                            >
                             <label class="flex items-center gap-2"
                                 ><p-checkbox inputId="prepPresence" [(ngModel)]="preparationConfiguration.presenceClosureRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Verifica presenze dopo l’evento</span></label
                             >
                             <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepFinance" [(ngModel)]="preparationConfiguration.financialClosureRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Chiusura economica</span></label
+                                ><p-checkbox inputId="prepFinance" [(ngModel)]="preparationConfiguration.financialClosureRequired" [binary]="true" [disabled]="!financeEnabled()" (onChange)="markPreparationDirty()" /><span
+                                    >Chiusura economica</span
+                                ></label
                             >
                         </div>
                         <div class="flex flex-wrap justify-end gap-2 mt-5">
@@ -377,9 +382,11 @@
                     <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
                 </app-form-field>
             }
-            <app-form-field label="Promemoria" forId="reminderMinutes" hint="Minuti prima dell’evento, 0 per nessun promemoria" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
-            </app-form-field>
+            @if (webPushRemindersEnabled()) {
+                <app-form-field label="Promemoria" forId="reminderMinutes" hint="Minuti prima dell’evento, 0 per nessun promemoria" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                    <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+            }
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
                 <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description" [readonly]="!isAdmin" (ngModelChange)="isDirty = true"></textarea>
             </app-form-field>
@@ -417,7 +424,7 @@
                         <td>{{ cost.description }}</td>
                         <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
                         <td>
-                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
+                            <p-button icon="pi pi-trash" ariaLabel="Rimuovi questa voce di costo" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
                         </td>
                     </tr>
                 </ng-template>
@@ -479,33 +486,35 @@
                 }
             </div>
             @if (currentUserAvailability === true) {
-                <div class="flex flex-wrap items-end gap-3 mt-1">
-                    <app-form-field label="Promemoria personale" forId="personalReminder" hint="Minuti di anticipo, solo per te. Zero disattiva il promemoria di questo evento.">
-                        <p-inputnumber inputId="personalReminder" [(ngModel)]="personalReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" placeholder="Predefinito" />
-                    </app-form-field>
-                    <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
-                    @if (personalReminderMinutes !== undefined) {
-                        <p-button label="Usa il predefinito" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="clearPersonalReminder()" />
-                    }
-                </div>
-                <div class="flex items-center gap-2 text-sm text-surface-500">
-                    <i class="pi pi-bell text-primary"></i>
-                    @if (personalReminderMinutes === 0) {
-                        <span>Nessun promemoria per questo evento.</span>
-                    } @else if (personalReminderMinutes) {
-                        <span
-                            >Riceverai un promemoria <strong>{{ personalReminderMinutes }} minuti</strong> prima dell'evento.</span
-                        >
-                    } @else if (event.reminderMinutes === 0) {
-                        <span>L'evento non prevede promemoria.</span>
-                    } @else if (event.reminderMinutes) {
-                        <span
-                            >Riceverai il promemoria dell'evento, <strong>{{ event.reminderMinutes }} minuti</strong> prima.</span
-                        >
-                    } @else {
-                        <span>Riceverai un promemoria all'anticipo predefinito impostato nel tuo profilo.</span>
-                    }
-                </div>
+                @if (webPushRemindersEnabled()) {
+                    <div class="flex flex-wrap items-end gap-3 mt-1">
+                        <app-form-field label="Promemoria personale" forId="personalReminder" hint="Minuti di anticipo, solo per te. Zero disattiva il promemoria di questo evento.">
+                            <p-inputnumber inputId="personalReminder" [(ngModel)]="personalReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" placeholder="Predefinito" />
+                        </app-form-field>
+                        <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
+                        @if (personalReminderMinutes !== undefined) {
+                            <p-button label="Usa il predefinito" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="clearPersonalReminder()" />
+                        }
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-surface-500">
+                        <i class="pi pi-bell text-primary"></i>
+                        @if (personalReminderMinutes === 0) {
+                            <span>Nessun promemoria per questo evento.</span>
+                        } @else if (personalReminderMinutes) {
+                            <span
+                                >Riceverai un promemoria <strong>{{ personalReminderMinutes }} minuti</strong> prima dell'evento.</span
+                            >
+                        } @else if (event.reminderMinutes === 0) {
+                            <span>L'evento non prevede promemoria.</span>
+                        } @else if (event.reminderMinutes) {
+                            <span
+                                >Riceverai il promemoria dell'evento, <strong>{{ event.reminderMinutes }} minuti</strong> prima.</span
+                            >
+                        } @else {
+                            <span>Riceverai un promemoria all'anticipo predefinito impostato nel tuo profilo.</span>
+                        }
+                    </div>
+                }
             }
         </div>
     </app-detail-section>

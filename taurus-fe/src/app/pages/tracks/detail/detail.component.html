@@ -1,5 +1,6 @@
 <p-confirmdialog />
-<p-fluid>
+@if (loading) { <app-detail-loading-skeleton /> }
+<p-fluid [class.hidden]="loading">
     <app-page-header kicker="Traccia" [title]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined"
         ><div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
         <div pageActions class="flex gap-2">
@@ -160,11 +161,11 @@
                     </td>
                     <td>
                         <div class="flex flex-col md:flex-row gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-                            <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" pTooltip="Modifica" tooltipPosition="top" (onClick)="editScore(score)" />
+                            <p-button icon="pi pi-pencil" ariaLabel="Modifica parte" [rounded]="true" [outlined]="true" pTooltip="Modifica" tooltipPosition="top" (onClick)="editScore(score)" />
                             @if ((score.media?.length ?? 0) > 1) {
-                                <p-button icon="pi pi-th-large" severity="secondary" [rounded]="true" [outlined]="true" pTooltip="Scorporo" tooltipPosition="top" (onClick)="confirmSplitScore(score)" />
+                                <p-button icon="pi pi-th-large" ariaLabel="Scorpora parte" severity="secondary" [rounded]="true" [outlined]="true" pTooltip="Scorporo" tooltipPosition="top" (onClick)="confirmSplitScore(score)" />
                             }
-                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteScore(score)" />
+                            <p-button icon="pi pi-trash" ariaLabel="Elimina parte" severity="danger" [rounded]="true" [outlined]="true" pTooltip="Elimina" tooltipPosition="top" (onClick)="confirmDeleteScore(score)" />
                         </div>
                     </td>
                 </tr>

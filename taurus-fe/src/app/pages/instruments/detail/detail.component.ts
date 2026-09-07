@@ -51,7 +51,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     .subscribe({
                         next: () => {
                             this.isDirty = false;
-                            this.toastService.success('Successo', 'Strumento eliminato');
+                            this.toastService.success('Strumento eliminato', 'Lo strumento non è più visibile.');
                             this.router.navigate(['/instruments']);
                         }
                     });
@@ -71,16 +71,17 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (instrument: Instruments) => {
                     this.isDirty = false;
-                    this.toastService.success('Successo', 'Strumento aggiornato con successo');
+                    this.toastService.success('Strumento aggiornato', 'Le modifiche sono state salvate.');
                     this.loadElement(instrument.id);
                 }
             });
     }
 
     private loadElement(id: number | string) {
+        this.loading = true;
         this.instrumentsService
             .getById(Number(id))
-            .pipe(first())
+            .pipe(first(), finalize(() => (this.loading = false)))
             .subscribe({
                 next: (instrument: Instruments) => {
                     this.instrument = instrument;

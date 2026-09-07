@@ -389,17 +389,27 @@
       "evidence": {
         "implementation": [
           "taurus-fe/src/app/components/page-header/page-header.component.ts",
-          "taurus-fe/src/app/components/dialog-shell/dialog-shell.component.ts"
+          "taurus-fe/src/app/components/dialog-shell/dialog-shell.component.ts",
+          "taurus-fe/src/app/components/list-loading-skeleton/list-loading-skeleton.component.ts",
+          "taurus-fe/src/app/components/detail-loading-skeleton/detail-loading-skeleton.component.ts",
+          "taurus-fe/src/app/pages/_shared/list-page.base.ts",
+          "taurus-fe/src/app/service/confirm.service.ts"
         ],
         "migrations": [],
-        "tests": ["taurus-fe/src/app/service/list-layout.service.spec.ts"]
+        "tests": [
+          "taurus-fe/src/app/service/list-layout.service.spec.ts",
+          "taurus-fe/src/app/components/dialog-shell/dialog-shell.component.spec.ts",
+          "taurus-fe/src/app/pages/_shared/list-page.base.spec.ts",
+          "taurus-fe/src/app/service/confirm.service.spec.ts"
+        ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-09-07",
+      "notes": "Audit FE completato il 2026-09-07. Allineati protezione delle modifiche non salvate e validazione nei dialoghi, ripristino dello stato delle liste, skeleton di caricamento, messaggi e toast, accessibilità dei pulsanti a sola icona, taglie dei dialoghi e adozione del dialog-shell. Test Angular e build di produzione verificati."
     },
     {
       "id": "tenant-feature-flags",
-      "title": "Funzionalità Economia e Inventario configurabili per tenant",
+      "title": "Funzionalità configurabili per tenant",
       "kind": "feature",
       "designStatus": "approved",
       "deliveryStatus": "implemented",
@@ -408,13 +418,17 @@
       "evidence": {
         "implementation": [
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/TenantFeatureService.java",
-          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventsServiceImpl.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/notification/NotificationFeaturePolicy.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/onboarding/OnboardingImportService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/calendarfeed/CalendarFeedTokenResolver.java",
           "taurus-fe/src/app/service/tenant-feature.service.ts",
-          "taurus-fe/src/app/guard/tenant-feature.guard.ts"
+          "taurus-fe/src/app/guard/tenant-feature.guard.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.ts"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260904000000_tenant_feature_flags.xml",
-          "taurus-be/src/main/resources/config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml"
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260907000000_tenant_extended_feature_flags.xml"
         ],
         "tests": [
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/TenantFeatureServiceTest.java",
@@ -428,9 +442,9 @@
           "taurus-fe/src/app/components/menu/menu.component.spec.ts"
         ]
       },
-      "notes": "Le migration sono verificate con PostgreSQL/Testcontainers; i test coprono isolamento, payload minimale, rifiuto dei moduli disabilitati, conservazione dei dati economici, soppressione notifiche, menu e route guard.",
+      "notes": "Implementati otto flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa.",
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-09-07"
     },
     {
       "id": "tenant-onboarding-import",

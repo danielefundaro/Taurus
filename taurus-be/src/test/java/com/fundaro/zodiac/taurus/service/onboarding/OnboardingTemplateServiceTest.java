@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingSection;
 import java.io.ByteArrayInputStream;
+import java.util.Set;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 
@@ -27,5 +28,17 @@ class OnboardingTemplateServiceTest {
     void createsCsvWithContractHeaders() {
         assertThat(new String(service.csv(OnboardingSection.USERS), java.nio.charset.StandardCharsets.UTF_8))
             .isEqualTo("riferimento,nome,cognome,email,data_nascita,ruoli,strumenti,attivo\r\n");
+    }
+
+    @Test
+    void omitsSectionsWhoseParentFeatureIsUnavailable() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(
+            service.xlsx(Set.of(OnboardingSection.INSTRUMENTS, OnboardingSection.USERS))
+        ))) {
+            assertThat(workbook.getSheet("Strumenti")).isNotNull();
+            assertThat(workbook.getSheet("Utenti")).isNotNull();
+            assertThat(workbook.getSheet("Inventario")).isNull();
+            assertThat(workbook.getSheet("Conti")).isNull();
+        }
     }
 }

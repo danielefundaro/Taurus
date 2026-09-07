@@ -41,8 +41,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     @Size(max = 64)
     private String timeZone = "Europe/Rome";
 
-    private Boolean financeEnabled = true;
-    private Boolean inventoryEnabled = true;
+    private Boolean financeEnabled = false;
+    private Boolean inventoryEnabled = false;
+    private Boolean onboardingImportEnabled = false;
+    private Boolean externalCalendarFeedEnabled = false;
+    private Boolean inventoryQrEnabled = false;
+    private Boolean notificationPreferencesEnabled = false;
+    private Boolean webPushRemindersEnabled = false;
+    private Boolean eventPreparationEnabled = false;
     private Long entityVersion;
 
     public String getCode() {
@@ -115,6 +121,18 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     public void setFinanceEnabled(Boolean financeEnabled) { this.financeEnabled = financeEnabled; }
     public Boolean getInventoryEnabled() { return inventoryEnabled; }
     public void setInventoryEnabled(Boolean inventoryEnabled) { this.inventoryEnabled = inventoryEnabled; }
+    public Boolean getOnboardingImportEnabled() { return onboardingImportEnabled; }
+    public void setOnboardingImportEnabled(Boolean value) { onboardingImportEnabled = value; }
+    public Boolean getExternalCalendarFeedEnabled() { return externalCalendarFeedEnabled; }
+    public void setExternalCalendarFeedEnabled(Boolean value) { externalCalendarFeedEnabled = value; }
+    public Boolean getInventoryQrEnabled() { return inventoryQrEnabled; }
+    public void setInventoryQrEnabled(Boolean value) { inventoryQrEnabled = value; }
+    public Boolean getNotificationPreferencesEnabled() { return notificationPreferencesEnabled; }
+    public void setNotificationPreferencesEnabled(Boolean value) { notificationPreferencesEnabled = value; }
+    public Boolean getWebPushRemindersEnabled() { return webPushRemindersEnabled; }
+    public void setWebPushRemindersEnabled(Boolean value) { webPushRemindersEnabled = value; }
+    public Boolean getEventPreparationEnabled() { return eventPreparationEnabled; }
+    public void setEventPreparationEnabled(Boolean value) { eventPreparationEnabled = value; }
     public Long getEntityVersion() { return entityVersion; }
     public void setEntityVersion(Long entityVersion) { this.entityVersion = entityVersion; }
 
@@ -144,12 +162,18 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(timeZone, that.timeZone) &&
             Objects.equals(financeEnabled, that.financeEnabled) &&
             Objects.equals(inventoryEnabled, that.inventoryEnabled) &&
+            Objects.equals(onboardingImportEnabled, that.onboardingImportEnabled) &&
+            Objects.equals(externalCalendarFeedEnabled, that.externalCalendarFeedEnabled) &&
+            Objects.equals(inventoryQrEnabled, that.inventoryQrEnabled) &&
+            Objects.equals(notificationPreferencesEnabled, that.notificationPreferencesEnabled) &&
+            Objects.equals(webPushRemindersEnabled, that.webPushRemindersEnabled) &&
+            Objects.equals(eventPreparationEnabled, that.eventPreparationEnabled) &&
             Objects.equals(entityVersion, that.entityVersion);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, entityVersion);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, entityVersion);
     }
 
     @Override
@@ -175,6 +199,12 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", timeZone='" + timeZone + '\'' +
             ", financeEnabled=" + financeEnabled +
             ", inventoryEnabled=" + inventoryEnabled +
+            ", onboardingImportEnabled=" + onboardingImportEnabled +
+            ", externalCalendarFeedEnabled=" + externalCalendarFeedEnabled +
+            ", inventoryQrEnabled=" + inventoryQrEnabled +
+            ", notificationPreferencesEnabled=" + notificationPreferencesEnabled +
+            ", webPushRemindersEnabled=" + webPushRemindersEnabled +
+            ", eventPreparationEnabled=" + eventPreparationEnabled +
             ", entityVersion=" + entityVersion +
             '}';
     }

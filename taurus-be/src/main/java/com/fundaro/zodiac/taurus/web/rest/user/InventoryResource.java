@@ -138,6 +138,7 @@ public class InventoryResource {
     }
 
     @PostMapping("/assignments/{id}/issues")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<InventoryIssueDtos.Response> createIssue(
         @PathVariable long id,
         @Valid @RequestBody InventoryIssueDtos.CreateRequest request,
@@ -147,11 +148,13 @@ public class InventoryResource {
     }
 
     @GetMapping("/issues/{id}")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public InventoryIssueDtos.Response getIssue(@PathVariable long id, AbstractAuthenticationToken token) {
         return inventoryIssueService.findOwn(id, token);
     }
 
     @PostMapping(value = "/issues/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<InventoryIssueDtos.Photo> addIssuePhoto(
         @PathVariable long id,
         @RequestPart("file") MultipartFile file,
@@ -161,6 +164,7 @@ public class InventoryResource {
     }
 
     @GetMapping("/issue-photos/{id}")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
     public ResponseEntity<byte[]> getIssuePhoto(@PathVariable long id, AbstractAuthenticationToken token) {
         return com.fundaro.zodiac.taurus.web.rest.InventoryResource.photoResponse(inventoryIssueService.getPhoto(id, true, token));
     }

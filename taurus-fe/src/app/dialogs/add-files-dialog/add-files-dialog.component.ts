@@ -8,22 +8,15 @@ import { KeycloakService, TracksService } from '../../service';
 import { PdfAnnotations } from '../../module/pdf-annotations.module';
 import { PdfManipulatorDialogComponent } from '../pdf-manipulator-dialog/pdf-manipulator-dialog.component';
 import { first } from 'rxjs';
+import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
 
 @Component({
     selector: 'app-add-files-dialog',
     standalone: true,
-    imports: [
-        CommonModule,
-        ButtonModule,
-        FileUploadModule,
-    ],
-    providers: [
-        TracksService,
-        KeycloakService,
-        DialogService,
-    ],
+    imports: [CommonModule, ButtonModule, FileUploadModule, DialogShellComponent],
+    providers: [TracksService, KeycloakService, DialogService],
     templateUrl: './add-files-dialog.component.html',
-    styleUrl: './add-files-dialog.component.scss',
+    styleUrl: './add-files-dialog.component.scss'
 })
 export class AddFilesDialogComponent {
     protected selectedFile: File | null = null;
@@ -35,7 +28,7 @@ export class AddFilesDialogComponent {
         private readonly dialogService: DialogService,
         private readonly tracksService: TracksService,
         private readonly keycloakService: KeycloakService,
-        private readonly http: HttpClient,
+        private readonly http: HttpClient
     ) {}
 
     protected onFileSelect(event: any): void {
@@ -62,8 +55,8 @@ export class AddFilesDialogComponent {
                 padding: '0',
                 display: 'flex',
                 flexDirection: 'column',
-                height: 'calc(90vh - 54px)',
-            },
+                height: 'calc(90vh - 54px)'
+            }
         });
         ref.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
             if (result !== null && result !== undefined) {
@@ -72,8 +65,8 @@ export class AddFilesDialogComponent {
         });
     }
 
-    protected handleUpload(event: any): void {
-        const file: File = event.files?.[0] ?? this.selectedFile;
+    protected upload(): void {
+        const file = this.selectedFile;
         if (!file) return;
 
         this.uploading = true;
@@ -83,7 +76,7 @@ export class AddFilesDialogComponent {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
-        const headers = new HttpHeaders({ 'Authorization': `Bearer ${this.keycloakService.token}` });
+        const headers = new HttpHeaders({ Authorization: `Bearer ${this.keycloakService.token}` });
         this.http.post(this.tracksService.stream(), formData, { headers }).subscribe({
             next: () => {
                 this.uploading = false;
@@ -91,14 +84,15 @@ export class AddFilesDialogComponent {
             },
             error: () => {
                 this.uploading = false;
-            },
+            }
         });
     }
 
+    protected cancel(): void {
+        this.dialogRef.close();
+    }
+
     protected get hasAnnotations(): boolean {
-        return !!(this.annotations && (
-            this.annotations.excludedPages.length > 0 ||
-            this.annotations.cropRegions.length > 0
-        ));
+        return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0));
     }
 }

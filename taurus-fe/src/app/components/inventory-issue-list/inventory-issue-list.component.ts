@@ -45,8 +45,9 @@ export class InventoryIssueListComponent implements OnChanges {
         this.dialogService
             .open(InventoryIssueDialogComponent, {
                 header: 'Segnala guasto',
+                showHeader: false,
                 modal: true,
-                width: '34rem',
+                width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { itemId: this.itemId, maxQuantity: this.totalQuantity }
             })
