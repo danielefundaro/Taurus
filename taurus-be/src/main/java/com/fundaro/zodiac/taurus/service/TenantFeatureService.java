@@ -31,6 +31,7 @@ public class TenantFeatureService {
         Tenants tenant = currentTenant();
         return new TenantFeaturesDTO(
             tenant.getCode(),
+            tenant.getName(),
             tenant.getEntityVersion(),
             enabled(tenant, TenantFeature.FINANCE),
             enabled(tenant, TenantFeature.INVENTORY),
