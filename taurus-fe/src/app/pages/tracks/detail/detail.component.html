@@ -60,6 +60,7 @@
             mode="advanced"
             accept="application/pdf"
             [customUpload]="true"
+            [disabled]="uploading"
             (uploadHandler)="handleUpload($event)"
             (onSelect)="onFileSelect($event)"
             (onClear)="onFileClear()"
@@ -74,6 +75,30 @@
                 <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="openManipulator()" />
                 @if (hasAnnotations) {
                     <span class="flex items-center gap-1 text-sm text-primary font-medium"> <i class="pi pi-check-circle"></i>Annotazioni applicate </span>
+                }
+            </div>
+        }
+        @if (visibleUploadJobs.length) {
+            <div class="flex flex-col gap-2 mt-4" aria-live="polite">
+                @for (job of visibleUploadJobs; track job.id) {
+                    <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface px-4 py-3" role="status">
+                        <div class="flex items-center gap-3 min-w-0">
+                            @if (isPendingUpload(job)) {
+                                <i class="pi pi-spin pi-spinner text-primary" aria-hidden="true"></i>
+                            } @else if (job.status === 'DONE') {
+                                <i class="pi pi-check-circle text-green-500" aria-hidden="true"></i>
+                            } @else {
+                                <i class="pi pi-exclamation-triangle text-red-500" aria-hidden="true"></i>
+                            }
+                            <div class="min-w-0">
+                                <strong class="block truncate">{{ job.name }}</strong>
+                                <span class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
+                            </div>
+                        </div>
+                        @if (job.status === 'ERROR') {
+                            <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" [outlined]="true" size="small" (onClick)="retryUpload(job)" />
+                        }
+                    </div>
                 }
             </div>
         }

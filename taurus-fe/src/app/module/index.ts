@@ -26,4 +26,5 @@ export * from './sheets-music.module';
 export * from './tenant-features.module';
 export * from './tenants.module';
 export * from './tracks.module';
+export * from './track-upload-job.module';
 export * from './users.module';

@@ -102,6 +102,24 @@ class EventPreparationServiceTest {
     }
 
     @Test
+    void completionPercentageCountsEveryApplicableCheck() {
+        CalendarEventPreparation plan = plan();
+        plan.setProgramRequired(true);
+        plan.setAvailabilityRequired(true);
+        plan.setMinimumAvailableParticipants(1);
+        when(preparations.findByEvent_IdAndDeletedFalse(42L)).thenReturn(Optional.of(plan));
+        when(programs.findCurrent(42L)).thenReturn(List.of());
+        when(materials.findCurrent(42L)).thenReturn(List.of());
+        when(users.findActiveKeycloakIdsByRolesIn(any())).thenReturn(List.of("participant"));
+
+        View result = service.get(42L);
+
+        assertThat(result.evaluation().passedChecks()).isEqualTo(1);
+        assertThat(result.evaluation().applicableChecks()).isEqualTo(3);
+        assertThat(result.evaluation().completionPercent()).isEqualTo(33);
+    }
+
+    @Test
     void distantDraftIsWarningAndNeverReady() {
         event.setState(StateEnum.DRAFT);
         event.setStartDate(Date.from(Instant.now().plusSeconds(9 * 86400)));
@@ -137,6 +155,21 @@ class EventPreparationServiceTest {
         assertThat(result.configuration().budgetRequired()).isFalse();
         assertThat(result.materials()).isEmpty();
         assertThat(result.availability()).isEqualTo(new Availability(1, 1, 0, 0, null, result.availability().deadline()));
+    }
+
+    @Test
+    void personalViewUsesTheKeycloakSubjectInsteadOfThePrincipalName() {
+        CalendarEventPreparation plan = plan();
+        Users current = user("keycloak-id");
+        when(users.findByKeycloakIdAndDeletedFalse("keycloak-id")).thenReturn(Optional.of(current));
+        when(preparations.findByEvent_IdAndDeletedFalse(42L)).thenReturn(Optional.of(plan));
+        when(programs.findCurrent(42L)).thenReturn(List.of());
+        when(materials.findCurrent(42L)).thenReturn(List.of());
+
+        service.getPersonal(42L, authentication("keycloak-id", "participant"), false);
+
+        verify(users).findByKeycloakIdAndDeletedFalse("keycloak-id");
+        verify(users, never()).findByKeycloakIdAndDeletedFalse("participant");
     }
 
     @Test
@@ -217,8 +250,12 @@ class EventPreparationServiceTest {
     }
 
     private static JwtAuthenticationToken authentication(String subject) {
+        return authentication(subject, subject);
+    }
+
+    private static JwtAuthenticationToken authentication(String subject, String principalName) {
         Instant now = Instant.now();
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject(subject).issuedAt(now).expiresAt(now.plusSeconds(300)).build();
-        return new JwtAuthenticationToken(jwt);
+        return new JwtAuthenticationToken(jwt, List.of(), principalName);
     }
 }

@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { RoleEnums } from '../constants';
-import { Tracks, TracksCriteria } from '../module';
+import { TrackUploadJob, Tracks, TracksCriteria } from '../module';
 import { CommonOpenSearchService } from './common-open-search.service';
 import { KeycloakService } from './keycloak.service';
 
@@ -30,5 +31,17 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
         }
 
         return `${this.baseUrl}/${this.resourceName()}/stream`;
+    }
+
+    public uploadPdf(formData: FormData, id?: number): Observable<TrackUploadJob> {
+        return this.http.post<TrackUploadJob>(this.stream(id), formData);
+    }
+
+    public getUploadJobs(id: number): Observable<TrackUploadJob[]> {
+        return this.http.get<TrackUploadJob[]>(`${this.baseUrl}/${this.resourceName()}/${id}/upload-jobs`);
+    }
+
+    public retryUploadJob(trackId: number, jobId: number): Observable<TrackUploadJob> {
+        return this.http.post<TrackUploadJob>(`${this.baseUrl}/${this.resourceName()}/${trackId}/upload-jobs/${jobId}/retry`, {});
     }
 }

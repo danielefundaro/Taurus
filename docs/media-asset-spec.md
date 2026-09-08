@@ -142,6 +142,8 @@ Stati iniziali:
 
 Lo stato tecnico del file non sostituisce lo stato delle entità applicative. Ad esempio, lo stato di `upload_job` continua a descrivere il processo di importazione dello spartito.
 
+Il contratto HTTP, le transizioni persistenti del job e la relativa esperienza nel dettaglio della traccia sono definiti in [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md).
+
 ## Processo di caricamento o generazione
 
 1. Recuperare il tenant esclusivamente dal contesto autenticato.

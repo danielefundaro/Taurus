@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.eventpreparation.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.*;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.impl.NotificationOutboxPublisher;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
@@ -38,6 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class EventPreparationService {
     private static final String ENTITY = "eventPreparation";
+    private static final Set<String> ALL_AREAS = Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY", "MATERIALS", "BUDGET", "PRESENCE", "FINANCE");
+    private static final Set<String> CATALOGUE_AREAS = Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY");
+    private static final Set<String> PERSONAL_AREAS = Set.of("PROGRAM", "SCORES", "AVAILABILITY");
+    private static final Set<String> FINANCE_AREAS = Set.of("BUDGET", "FINANCE");
     private static final Set<InventoryAssignmentStatus> ACTIVE_ASSIGNMENTS = EnumSet.of(InventoryAssignmentStatus.ACTIVE, InventoryAssignmentStatus.PARTIALLY_RETURNED);
 
     private final CalendarEventsRepository events;
@@ -86,45 +91,48 @@ public class EventPreparationService {
 
     @Transactional(readOnly = true)
     public View get(Long eventId) {
+        return degradeUnavailableAreas(buildView(eventId, availableAreas(ALL_AREAS)));
+    }
+
+    private View buildView(Long eventId, Set<String> evaluationAreas) {
         CalendarEvents event = event(eventId);
         CalendarEventPreparation preparation = preparations.findByEvent_IdAndDeletedFalse(eventId).orElse(null);
         if (preparation == null) return new View(null, notConfigured(event), List.of(), availability(event, null), List.of());
         List<CalendarEventProgramEntry> program = programs.findCurrent(eventId);
         List<CalendarEventMaterial> materialRows = materials.findCurrent(eventId);
-        View result = new View(configuration(preparation), evaluate(event, preparation, program, materialRows), program.stream().map(this::programDto).toList(), availability(event, preparation), materialRows.stream().map(this::materialDto).toList());
-        return degradeUnavailableAreas(result);
+        return new View(configuration(preparation), evaluate(event, preparation, program, materialRows, evaluationAreas), program.stream().map(this::programDto).toList(), availability(event, preparation), materialRows.stream().map(this::materialDto).toList());
     }
 
     @Transactional(readOnly = true)
     public View getCatalogue(Long eventId) {
-        View full = get(eventId);
-        return new View(catalogueConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY")), full.program(), full.availability(), List.of());
+        View full = buildView(eventId, availableAreas(CATALOGUE_AREAS));
+        return new View(catalogueConfiguration(full.configuration()), full.evaluation(), full.program(), full.availability(), List.of());
     }
 
     @Transactional(readOnly = true)
     public View getPersonal(Long eventId, AbstractAuthenticationToken token, boolean external) {
         CalendarEvents current = event(eventId);
         if (external ? current.getState() != StateEnum.PUBLIC : current.getState() == StateEnum.DRAFT) throw notFound();
-        String userId = actor(token);
+        String userId = SecurityUtils.getUserIdFromAuthentication(token);
         users.findByKeycloakIdAndDeletedFalse(userId).orElseThrow(EventPreparationService::notFound);
-        View full = get(eventId);
+        View full = buildView(eventId, availableAreas(PERSONAL_AREAS));
         List<ProgramEntry> visibleProgram = full.program().stream()
             .filter(row -> external ? StateEnum.PUBLIC.name().equals(row.trackState()) : !StateEnum.DRAFT.name().equals(row.trackState()))
             .toList();
-        return new View(personalConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("PROGRAM", "SCORES", "AVAILABILITY")), visibleProgram, ownAvailability(current, full.configuration(), userId), List.of());
+        return new View(personalConfiguration(full.configuration()), full.evaluation(), visibleProgram, ownAvailability(current, full.configuration(), userId), List.of());
     }
 
     @Transactional(readOnly = true)
     public View getFinance(Long eventId) {
-        View full = get(eventId);
-        return new View(financeConfiguration(full.configuration()), filterEvaluation(full.evaluation(), Set.of("BUDGET", "FINANCE")), List.of(), emptyAvailability(), List.of());
+        View full = buildView(eventId, availableAreas(FINANCE_AREAS));
+        return new View(financeConfiguration(full.configuration()), full.evaluation(), List.of(), emptyAvailability(), List.of());
     }
 
     @Transactional(readOnly = true)
     public List<DashboardEntry> dashboardEntries(ZonedDateTime from, ZonedDateTime to) {
         return preparations.findDashboardCandidates(Date.from(from.toInstant()), Date.from(to.toInstant())).stream().map(preparation -> {
             CalendarEvents current = preparation.getEvent();
-            Evaluation evaluation = evaluate(current, preparation, programs.findCurrent(current.getId()), materials.findCurrent(current.getId()));
+            Evaluation evaluation = evaluate(current, preparation, programs.findCurrent(current.getId()), materials.findCurrent(current.getId()), availableAreas(ALL_AREAS));
             return new DashboardEntry(
                 current.getId(),
                 current.getName(),
@@ -241,25 +249,25 @@ public class EventPreparationService {
         preparation.touchAudit(actor(token)); preparations.save(preparation); return get(eventId);
     }
 
-    private Evaluation evaluate(CalendarEvents event, CalendarEventPreparation preparation, List<CalendarEventProgramEntry> program, List<CalendarEventMaterial> materialRows) {
+    private Evaluation evaluate(CalendarEvents event, CalendarEventPreparation preparation, List<CalendarEventProgramEntry> program, List<CalendarEventMaterial> materialRows, Set<String> areas) {
         Phase phase = phase(event); Checks pre = new Checks();
-        pre.check("EVENT_DATA", "EVENT", validEvent(event, preparation), eventDataSeverity(event, preparation), "Completa i dati e la visibilità dell’evento", "#event-data");
-        if (preparation.isProgramRequired()) pre.check("PROGRAM_MISSING", "PROGRAM", !program.isEmpty() && validProgram(event, program), Severity.BLOCKER, "Definisci un programma pubblicabile", "#preparation-program");
-        if (programExceedsEventDuration(event, program)) pre.warn("PROGRAM_TOO_LONG", "PROGRAM", "La durata pianificata supera quella dell’evento", "#preparation-program");
-        if (preparation.isScoresRequired()) pre.check("SCORE_NOT_READY", "SCORES", scoresReady(event, program), Severity.BLOCKER, "Completa gli spartiti e i relativi file", "#preparation-program");
+        if (areas.contains("EVENT")) pre.check("EVENT_DATA", "EVENT", validEvent(event, preparation), eventDataSeverity(event, preparation), "Completa i dati e la visibilità dell’evento", "#event-data");
+        if (areas.contains("PROGRAM") && preparation.isProgramRequired()) pre.check("PROGRAM_MISSING", "PROGRAM", !program.isEmpty() && validProgram(event, program), Severity.BLOCKER, "Definisci un programma pubblicabile", "#preparation-program");
+        if (areas.contains("PROGRAM") && programExceedsEventDuration(event, program)) pre.warn("PROGRAM_TOO_LONG", "PROGRAM", "La durata pianificata supera quella dell’evento", "#preparation-program");
+        if (areas.contains("SCORES") && preparation.isScoresRequired()) pre.check("SCORE_NOT_READY", "SCORES", scoresReady(event, program), Severity.BLOCKER, "Completa gli spartiti e i relativi file", "#preparation-program");
         Availability availability = availability(event, preparation);
-        if (preparation.isAvailabilityRequired()) {
+        if (areas.contains("AVAILABILITY") && preparation.isAvailabilityRequired()) {
             boolean expired = availability.deadline() != null && !ZonedDateTime.now().isBefore(availability.deadline());
             boolean ready = availability.available() >= preparation.getMinimumAvailableParticipants() && availability.missing() == 0;
             pre.check("AVAILABILITY_INCOMPLETE", "AVAILABILITY", ready, expired ? Severity.BLOCKER : Severity.WARNING, "Raccogli le disponibilità richieste", "#availability");
         }
-        if (preparation.isMaterialsRequired()) pre.check("MATERIAL_NOT_READY", "MATERIALS", materialsReady(materialRows), materialsExpired(event, preparation) ? Severity.BLOCKER : Severity.WARNING, "Assegna e conferma i materiali", "#preparation-materials");
-        if (preparation.isBudgetRequired()) pre.check("BUDGET_NOT_CONFIRMED", "BUDGET", Objects.equals(preparation.getBudgetConfirmationHash(), budgetHash(event)), Severity.BLOCKER, "Verifica e conferma il preventivo", "#preparation-budget");
+        if (areas.contains("MATERIALS") && preparation.isMaterialsRequired()) pre.check("MATERIAL_NOT_READY", "MATERIALS", materialsReady(materialRows), materialsExpired(event, preparation) ? Severity.BLOCKER : Severity.WARNING, "Assegna e conferma i materiali", "#preparation-materials");
+        if (areas.contains("BUDGET") && preparation.isBudgetRequired()) pre.check("BUDGET_NOT_CONFIRMED", "BUDGET", Objects.equals(preparation.getBudgetConfirmationHash(), budgetHash(event)), Severity.BLOCKER, "Verifica e conferma il preventivo", "#preparation-budget");
 
         Checks close = new Checks();
-        if (phase == Phase.FOLLOW_UP && preparation.isPresenceClosureRequired()) close.check("PRESENCE_NOT_CONFIRMED", "PRESENCE", Objects.equals(preparation.getPresenceConfirmationHash(), presenceHash(event)), Severity.BLOCKER, "Verifica il registro presenze", "#presence");
-        if (phase == Phase.FOLLOW_UP && preparation.isFinancialClosureRequired()) close.check("FINANCE_NOT_CLOSED", "FINANCE", financeClosed(event, preparation), Severity.BLOCKER, "Chiudi la posizione economica", "#preparation-budget");
-        if (phase == Phase.FOLLOW_UP && preparation.isFinancialClosureRequired() && hasUnreconciledMovements(event.getId())) close.warn("MOVEMENTS_UNRECONCILED", "FINANCE", "Restano movimenti non riconciliati", "#preparation-budget");
+        if (areas.contains("PRESENCE") && phase == Phase.FOLLOW_UP && preparation.isPresenceClosureRequired()) close.check("PRESENCE_NOT_CONFIRMED", "PRESENCE", Objects.equals(preparation.getPresenceConfirmationHash(), presenceHash(event)), Severity.BLOCKER, "Verifica il registro presenze", "#presence");
+        if (areas.contains("FINANCE") && phase == Phase.FOLLOW_UP && preparation.isFinancialClosureRequired()) close.check("FINANCE_NOT_CLOSED", "FINANCE", financeClosed(event, preparation), Severity.BLOCKER, "Chiudi la posizione economica", "#preparation-budget");
+        if (areas.contains("FINANCE") && phase == Phase.FOLLOW_UP && preparation.isFinancialClosureRequired() && hasUnreconciledMovements(event.getId())) close.warn("MOVEMENTS_UNRECONCILED", "FINANCE", "Restano movimenti non riconciliati", "#preparation-budget");
 
         List<Issue> issues = new ArrayList<>(pre.issues); issues.addAll(close.issues);
         PreparationStatus preparationStatus = phase == Phase.UNKNOWN ? PreparationStatus.UNKNOWN : pre.blockers() > 0 ? PreparationStatus.BLOCKED : pre.warnings() > 0 ? PreparationStatus.ATTENTION : PreparationStatus.READY;
@@ -355,17 +363,17 @@ public class EventPreparationService {
         Set<String> visibleAreas = new HashSet<>(Set.of("EVENT", "PROGRAM", "SCORES", "AVAILABILITY", "PRESENCE"));
         if (inventoryEnabled) visibleAreas.add("MATERIALS");
         if (financeEnabled) visibleAreas.addAll(Set.of("BUDGET", "FINANCE"));
-        return new View(configuration, filterEvaluation(source.evaluation(), visibleAreas), source.program(), source.availability(), inventoryEnabled ? source.materials() : List.of());
+        return new View(configuration, source.evaluation(), source.program(), source.availability(), inventoryEnabled ? source.materials() : List.of());
     }
-    private static Evaluation filterEvaluation(Evaluation source, Set<String> areas) {
-        List<Issue> issues = source.issues().stream().filter(issue -> areas.contains(issue.area())).toList();
-        int blockers = (int) issues.stream().filter(issue -> issue.severity() == Severity.BLOCKER).count();
-        int warnings = (int) issues.stream().filter(issue -> issue.severity() == Severity.WARNING).count();
-        PreparationStatus preparationStatus = source.preparationStatus() == PreparationStatus.NOT_CONFIGURED
-            ? PreparationStatus.NOT_CONFIGURED
-            : blockers > 0 ? PreparationStatus.BLOCKED : warnings > 0 ? PreparationStatus.ATTENTION : PreparationStatus.READY;
-        ClosureStatus closureStatus = areas.contains("FINANCE") ? source.closureStatus() : ClosureStatus.NOT_REQUIRED;
-        return new Evaluation(source.evaluatedAt(), source.phase(), preparationStatus, closureStatus, issues.isEmpty() ? 100 : 0, issues.isEmpty() ? 1 : 0, 1, blockers, warnings, issues);
+
+    private Set<String> availableAreas(Set<String> requestedAreas) {
+        Set<String> areas = new HashSet<>(requestedAreas);
+        if (tenantFeatures != null && !tenantFeatures.isEnabled(TenantFeature.INVENTORY)) areas.remove("MATERIALS");
+        if (tenantFeatures != null && !tenantFeatures.isEnabled(TenantFeature.FINANCE)) {
+            areas.remove("BUDGET");
+            areas.remove("FINANCE");
+        }
+        return areas;
     }
     private void apply(CalendarEventPreparation p, Configuration c) {
         p.setProfile(c.profile()); p.setLocationRequired(c.locationRequired()); p.setProgramRequired(c.programRequired()); p.setScoresRequired(c.scoresRequired()); p.setAvailabilityRequired(c.availabilityRequired()); p.setMinimumAvailableParticipants(c.availabilityRequired() ? c.minimumAvailableParticipants() : null); p.setAvailabilityDeadlineMinutes(c.availabilityDeadlineMinutes());

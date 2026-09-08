@@ -175,6 +175,18 @@ public class SecurityConfiguration {
                     // Calendar event administration and personal availability.
                     .requestMatchers(HttpMethod.PUT, "/api/calendar-events/{eventId}/preparation/program")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/calendar-events/{eventId}/preparation/materials/{materialId}/confirm",
+                        "/api/calendar-events/{eventId}/preparation/presence-confirmation"
+                    )
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/calendar-events/{eventId}/preparation/budget-confirmation",
+                        "/api/calendar-events/{eventId}/preparation/no-movements-confirmation"
+                    )
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/{id}/availability")
