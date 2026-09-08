@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { Media, MediaCriteria } from '../module';
 import { CommonOpenSearchService } from './common-open-search.service';
 
@@ -7,14 +8,14 @@ import { CommonOpenSearchService } from './common-open-search.service';
 })
 export class MediaService extends CommonOpenSearchService<Media, MediaCriteria> {
     override resourceName(): string {
-        return "media";
+        return 'media';
     }
 
     public stream(id: number): string {
         return `${this.baseUrl}/${this.resourceName()}/${id}/stream`;
     }
 
-    public streamImage(id: number) {
-        return this.http.get<any>(`${this.baseUrl}/${this.resourceName()}/${id}/stream`);
+    public streamImage(id: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/${this.resourceName()}/${id}/stream`, { responseType: 'blob' });
     }
 }

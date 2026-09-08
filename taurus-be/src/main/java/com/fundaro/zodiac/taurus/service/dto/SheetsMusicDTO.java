@@ -9,6 +9,8 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SheetsMusicDTO implements Serializable {
 
+    private Long id;
+
     private String description;
 
     private Long order;
@@ -18,6 +20,14 @@ public class SheetsMusicDTO implements Serializable {
     private Set<ChildrenEntitiesDTO> instruments;
 
     private Boolean needsReview = Boolean.FALSE;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getDescription() {
         return description;
@@ -80,7 +90,8 @@ public class SheetsMusicDTO implements Serializable {
     @Override
     public String toString() {
         return "{" +
-            "description='" + getDescription() + "'" +
+            "id=" + getId() +
+            ", description='" + getDescription() + "'" +
             ", order=" + getOrder() +
             ", media=" + getMedia() +
             ", instruments=" + getInstruments() +

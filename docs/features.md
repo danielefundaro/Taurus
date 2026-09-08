@@ -24,7 +24,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE | [3](#tenant-feature-flags-evidenze) | [9](#tenant-feature-flags-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-onboarding-import` | [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md) | feature | approved | implemented | BE, FE | [2](#tenant-onboarding-import-evidenze) | [9](#tenant-onboarding-import-evidenze) | non rilasciata | 2026-09-07 |
 | `test-runbook` | [Runbook di test e qualificazione Taurus](runbook-test.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-08 |
-| `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-08 |
+| `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | in-progress | BE, FE | 0 | [4](#track-parts-workspace-evidenze) | non rilasciata | 2026-09-08 |
 | `track-pdf-processing` | [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-pdf-processing-evidenze) | [4](#track-pdf-processing-evidenze) | non rilasciata | 2026-09-08 |
 | `web-push-reminders` | [Promemoria eventi tramite Web Push](web-push-reminders-spec.md) | feature | approved | implemented | BE, FE | [3](#web-push-reminders-evidenze) | [4](#web-push-reminders-evidenze) | non rilasciata | 2026-09-06 |
 
@@ -180,10 +180,10 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 <a id="track-parts-workspace-evidenze"></a>
 ### Workspace per la gestione delle parti di una traccia
 
-- Implementazione: nessuna
+- Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/SheetsMusicDTO.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/SheetsMusicDTO.java), [`taurus-fe/src/app/pages/tracks/detail/detail.component.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.ts), [`taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts`](../taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts)
 - Migrazioni: nessuna
-- Test: nessuna
-- Note: Direzione UX approvata: workspace master-detail con gestione inline di strumenti e pagine, operazioni equivalenti al drag and drop, stato della bozza separato dai job PDF e requisiti responsive e accessibili. L'implementazione richiede identità stabile delle parti e controllo ottimistico della traccia.
+- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java), [`taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts), [`taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts), [`taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.operations.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.operations.spec.ts)
+- Note: Disponibile l'incremento master-detail con editing inline, organizzazione delle pagine, undo, responsive, identità persistente delle parti e controllo ottimistico compatibile con i payload legacy. Restano da completare i gate E2E, prestazionali e di tenant isolation previsti dalla specifica.
 
 <a id="track-pdf-processing-evidenze"></a>
 ### Elaborazione asincrona dei PDF delle tracce

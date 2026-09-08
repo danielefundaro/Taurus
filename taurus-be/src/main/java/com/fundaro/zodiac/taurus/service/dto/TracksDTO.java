@@ -11,6 +11,8 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TracksDTO extends StateFieldOpenSearchDTO {
 
+    private Long version;
+
     private String subName;
 
     private String composer;
@@ -24,6 +26,14 @@ public class TracksDTO extends StateFieldOpenSearchDTO {
     private Set<String> type;
 
     private Set<SheetsMusicDTO> scores;
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
 
     public String getSubName() {
         return subName;
@@ -103,6 +113,7 @@ public class TracksDTO extends StateFieldOpenSearchDTO {
     public String toString() {
         return "TracksDTO{" +
             "id=" + getId() +
+            ", version=" + getVersion() +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", subName='" + getSubName() + "'" +

@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -150,7 +151,7 @@ class TracksServiceImplTest {
     }
 
     @Test
-    void deletesExistingScoresBeforeInsertingTheirReplacements() {
+    void preservesExistingScoreIdentityAndAddsNewScores() {
         TracksRepository repository = mock(TracksRepository.class);
         TracksMapper mapper = mock(TracksMapper.class);
         TracksServiceImpl service = new TracksServiceImpl(
@@ -163,23 +164,49 @@ class TracksServiceImplTest {
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
-        entity.getScores().add(new SheetsMusic());
+        entity.setEntityVersion(3L);
+        SheetsMusic existing = new SheetsMusic();
+        existing.setId(21L);
+        entity.getScores().add(existing);
         TracksDTO request = new TracksDTO();
         request.setId(8L);
-        request.setScores(Set.of(new SheetsMusicDTO()));
+        request.setVersion(3L);
+        SheetsMusicDTO existingDto = new SheetsMusicDTO();
+        existingDto.setId(21L);
+        SheetsMusicDTO newDto = new SheetsMusicDTO();
+        request.setScores(new java.util.LinkedHashSet<>(java.util.List.of(existingDto, newDto)));
 
         when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
         when(mapper.toDto(entity)).thenReturn(new TracksDTO());
-        org.mockito.Mockito.doAnswer(invocation -> {
-            assertThat(entity.getScores()).isEmpty();
-            return null;
-        }).when(repository).flush();
-
         service.update(8L, request, authentication());
 
-        verify(repository).flush();
-        assertThat(entity.getScores()).hasSize(1);
+        assertThat(entity.getScores()).hasSize(2);
+        assertThat(entity.getScores().get(0)).isSameAs(existing);
+        assertThat(entity.getScores().get(1).getId()).isNull();
+    }
+
+    @Test
+    void rejectsAStaleTrackVersion() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mock(TracksMapper.class),
+            mock(QueueUploadFilesService.class),
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            mock(Sender.class)
+        );
+        Tracks entity = new Tracks();
+        entity.setId(8L);
+        entity.setEntityVersion(4L);
+        TracksDTO request = new TracksDTO();
+        request.setVersion(3L);
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.update(8L, request, authentication()))
+            .isInstanceOf(com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException.class)
+            .hasMessageContaining("modified by another request");
     }
 
     private JwtAuthenticationToken authentication() {

@@ -22,15 +22,18 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface TracksMapper extends EntityOpenSearchMapper<TracksDTO, Tracks> {
     @Mapping(target = "scores", source = "scores", qualifiedByName = "orderScores")
+    @Mapping(target = "version", source = "entityVersion")
     TracksDTO toDto(Tracks s);
 
     @Override
     @Mapping(target = "scores", ignore = true)
+    @Mapping(target = "entityVersion", ignore = true)
     Tracks toEntity(TracksDTO dto);
 
     @Override
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "scores", ignore = true)
+    @Mapping(target = "entityVersion", ignore = true)
     void partialUpdate(@MappingTarget Tracks entity, TracksDTO dto);
 
     @Mapping(target = "instruments", expression = "java(toInstrumentRefs(s.getInstruments()))")
