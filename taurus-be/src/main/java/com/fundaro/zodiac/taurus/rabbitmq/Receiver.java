@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -71,39 +72,45 @@ public class Receiver {
         }
     }
 
-    private void process(UploadFilesPackage uploadFilesPackage, AbstractAuthenticationToken token, String tenantCode) throws IOException {
+    private void process(UploadFilesPackage uploadFilesPackage, AbstractAuthenticationToken token, String tenantCode) {
         QueueUploadFilesDTO upload = queueUploadFilesService.findOne(uploadFilesPackage.getQueueId(), token).orElse(null);
         if (upload == null) {
             log.error("Could not find upload job {} in tenant {}", uploadFilesPackage.getQueueId(), tenantCode);
             return;
         }
 
-        TracksDTO track = tracksService.findOne(upload.getTrackId(), token).orElse(null);
-        if (track == null) {
-            log.error("Could not find track {} in tenant {}", upload.getTrackId(), tenantCode);
+        if (!queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, token)) {
+            log.info("Ignoring upload job {} because it is no longer queued", upload.getId());
             return;
         }
-        if (track.getScores() == null) {
-            track.setScores(new HashSet<>());
-        }
-
-        PdfAnnotations annotations = parseAnnotations(upload.getDescription());
-        MediaService.MediaContent source = mediaService.getContent(upload.getSourceMediaAssetId(), token);
-        Path temporaryDirectory = tenantStorageService.createTemporaryDirectory(tenantCode, "pdf-processing");
         try {
-            log.info("Converting uploaded media asset {} in tenant {}", upload.getSourceMediaAssetId(), tenantCode);
-            List<String> filesPath = Converter.pdfToImage(source.bytes(), source.fileName(), temporaryDirectory.toString(), annotations);
-            if (filesPath.stream().noneMatch(Objects::nonNull)) {
-                log.error("Could not convert uploaded media asset {}", upload.getSourceMediaAssetId());
-                return;
+            TracksDTO track = tracksService.findOne(upload.getTrackId(), token)
+                .orElseThrow(() -> new IllegalStateException("Track " + upload.getTrackId() + " not found"));
+            if (track.getScores() == null) {
+                track.setScores(new HashSet<>());
             }
 
-            List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
-            track.getScores().addAll(sheets);
-            tracksService.update(track.getId(), track, token);
-            log.info("Updated track with {} sheet music parts", sheets.size());
-        } finally {
-            tenantStorageService.deleteDirectoryIfManaged(tenantCode, temporaryDirectory);
+            PdfAnnotations annotations = parseAnnotations(upload.getDescription());
+            MediaService.MediaContent source = mediaService.getContent(upload.getSourceMediaAssetId(), token);
+            Path temporaryDirectory = tenantStorageService.createTemporaryDirectory(tenantCode, "pdf-processing");
+            try {
+                log.info("Converting uploaded media asset {} in tenant {}", upload.getSourceMediaAssetId(), tenantCode);
+                List<String> filesPath = Converter.pdfToImage(source.bytes(), source.fileName(), temporaryDirectory.toString(), annotations);
+                if (filesPath.stream().noneMatch(Objects::nonNull)) {
+                    throw new IllegalStateException("Uploaded PDF did not produce any page");
+                }
+
+                List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
+                track.getScores().addAll(sheets);
+                tracksService.update(track.getId(), track, token);
+                queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token);
+                log.info("Updated track with {} sheet music parts", sheets.size());
+            } finally {
+                tenantStorageService.deleteDirectoryIfManaged(tenantCode, temporaryDirectory);
+            }
+        } catch (Exception exception) {
+            queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.ERROR, token);
+            log.error("Could not process upload job {} in tenant {}", upload.getId(), tenantCode, exception);
         }
     }
 

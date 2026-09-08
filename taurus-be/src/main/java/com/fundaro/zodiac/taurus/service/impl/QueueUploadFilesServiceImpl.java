@@ -117,4 +117,20 @@ public class QueueUploadFilesServiceImpl
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while uploading the file", getEntityName(), "file.upload");
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<QueueUploadFilesDTO> findByTrackId(Long trackId) {
+        return getRepository().findAllByTrack_IdAndDeletedFalseOrderByInsertDateDesc(trackId).stream().map(getMapper()::toDto).toList();
+    }
+
+    @Override
+    public boolean transitionStatus(
+        Long id,
+        UploadFileStatusEnum expected,
+        UploadFileStatusEnum target,
+        AbstractAuthenticationToken token
+    ) {
+        return getRepository().transitionStatus(id, expected, target, SecurityUtils.getUserIdFromAuthentication(token)) == 1;
+    }
 }

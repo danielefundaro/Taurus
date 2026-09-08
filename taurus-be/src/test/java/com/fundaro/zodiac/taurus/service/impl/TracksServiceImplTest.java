@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
@@ -71,10 +72,47 @@ class TracksServiceImplTest {
         TransactionSynchronizationManager.initSynchronization();
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
-        service.uploadFile(8L, file, null, token);
+        assertThat(service.uploadFile(8L, file, null, token)).isSameAs(queued);
 
         verifyNoInteractions(sender);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        verify(sender).send(any(byte[].class));
+    }
+
+    @Test
+    void requeuesAFailedUploadJob() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        Sender sender = mock(Sender.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            sender
+        );
+        JwtAuthenticationToken token = authentication();
+        Tracks track = new Tracks();
+        track.setId(8L);
+        TracksDTO trackDto = new TracksDTO();
+        trackDto.setId(8L);
+        QueueUploadFilesDTO failed = new QueueUploadFilesDTO();
+        failed.setId(3L);
+        failed.setTrackId(8L);
+        failed.setStatus(UploadFileStatusEnum.ERROR);
+        QueueUploadFilesDTO queued = new QueueUploadFilesDTO();
+        queued.setId(3L);
+        queued.setTrackId(8L);
+        queued.setStatus(UploadFileStatusEnum.TO_PROCESS);
+
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(track));
+        when(mapper.toDto(track)).thenReturn(trackDto);
+        when(queueUploadFilesService.findOne(3L, token)).thenReturn(Optional.of(failed), Optional.of(queued));
+        when(queueUploadFilesService.transitionStatus(3L, UploadFileStatusEnum.ERROR, UploadFileStatusEnum.TO_PROCESS, token)).thenReturn(true);
+
+        assertThat(service.retryUploadJob(8L, 3L, token)).isSameAs(queued);
         verify(sender).send(any(byte[].class));
     }
 

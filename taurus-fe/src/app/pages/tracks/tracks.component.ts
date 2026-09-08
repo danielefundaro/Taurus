@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { delay, finalize, first, forkJoin } from 'rxjs';
@@ -7,7 +7,7 @@ import { RoleEnums, StateEnums } from '../../constants';
 import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
 import { AddTracksDialogComponent } from '../../dialogs/add-tracks-dialog/add-tracks-dialog.component';
 import { ImportsModule } from '../../imports';
-import { Page, Tracks, TracksCriteria } from '../../module';
+import { Page, TrackUploadJob, Tracks, TracksCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
 import { ConfirmService, ListLayout, ListLayoutService, PrinterService, ToastService, TracksService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
@@ -33,7 +33,8 @@ export class TracksComponent extends ListPageBase implements OnInit {
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmService: ConfirmService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly router: Router
     ) {
         super();
         this.tracks = [];
@@ -65,10 +66,10 @@ export class TracksComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: any) => {
+        dynamicDialogRef.onClose.pipe(first()).subscribe((result?: TrackUploadJob) => {
             if (result) {
-                this.toastService.success('Traccia caricata', 'Il nuovo spartito è disponibile nell’elenco.');
-                this.loadElements(this.searchTerm);
+                this.toastService.success('PDF ricevuto', 'La nuova traccia è in elaborazione.');
+                this.router.navigate(['/tracks', result.trackId]);
             }
         });
     }

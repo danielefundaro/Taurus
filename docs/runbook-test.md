@@ -392,6 +392,12 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `MED-008 P0`: cleanup elimina solo temporanei/orfani oltre soglia.
 - `MED-009 P0`: file referenziato non viene cancellato.
 - `MED-010 P1`: concorrenza upload/delete/download sullo stesso asset.
+- `MED-011 P0`: upload PDF traccia restituisce `202` con job persistente in `TO_PROCESS`.
+- `MED-012 P0`: worker e persistenza coprono `TO_PROCESS -> IN_PROGRESS -> DONE/ERROR` senza parti parziali visibili.
+- `MED-013 P0`: consultazione e retry rispettano traccia, tenant, ruolo e idempotenza della pubblicazione.
+- `MED-014 P1`: il dettaglio consulta i job una sola volta in `ngOnInit` e mostra lo stato persistente dopo refresh.
+- `MED-015 P1`: `ERROR` presenta un'azione di retry che aggiorna la UI a «In coda» senza avviare polling.
+- `MED-016 P0`: arresto del consumer, redelivery e retry non duplicano parti o media.
 
 ### 14.4 Calendario e ricorrenze
 
@@ -743,5 +749,6 @@ Revisionare il runbook almeno a ogni release maggiore e dopo incidenti, restore 
 - [Onboarding/import](tenant-onboarding-import-spec.md);
 - [Notifiche](notification-delivery-generalization-spec.md);
 - [Media](media-asset-spec.md);
+- [Elaborazione PDF tracce](track-pdf-processing-spec.md);
 - [Feed calendario](external-calendar-feed-spec.md);
 - `.github/workflows/verify.yml` per la CI corrente.

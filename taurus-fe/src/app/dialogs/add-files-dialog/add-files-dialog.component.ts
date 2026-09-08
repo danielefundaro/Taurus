@@ -1,4 +1,3 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -26,9 +25,7 @@ export class AddFilesDialogComponent {
     constructor(
         private readonly dialogRef: DynamicDialogRef,
         private readonly dialogService: DialogService,
-        private readonly tracksService: TracksService,
-        private readonly keycloakService: KeycloakService,
-        private readonly http: HttpClient
+        private readonly tracksService: TracksService
     ) {}
 
     protected onFileSelect(event: any): void {
@@ -76,11 +73,10 @@ export class AddFilesDialogComponent {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
-        const headers = new HttpHeaders({ Authorization: `Bearer ${this.keycloakService.token}` });
-        this.http.post(this.tracksService.stream(), formData, { headers }).subscribe({
-            next: () => {
+        this.tracksService.uploadPdf(formData).subscribe({
+            next: (job) => {
                 this.uploading = false;
-                this.dialogRef.close(true);
+                this.dialogRef.close(job);
             },
             error: () => {
                 this.uploading = false;
