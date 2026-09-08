@@ -51,7 +51,7 @@ public class EventPreparationResource {
     public View confirmMaterial(@PathVariable Long eventId, @PathVariable Long materialId, AbstractAuthenticationToken token) { return service.confirmMaterial(eventId, materialId, token); }
 
     @PostMapping("/budget-confirmation")
-    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @RequiresTenantFeature({TenantFeature.EVENT_PREPARATION, TenantFeature.FINANCE})
     public View confirmBudget(@PathVariable Long eventId, AbstractAuthenticationToken token) { return service.confirmBudget(eventId, token); }
 
@@ -60,7 +60,7 @@ public class EventPreparationResource {
     public View confirmPresence(@PathVariable Long eventId, AbstractAuthenticationToken token) { return service.confirmPresence(eventId, token); }
 
     @PostMapping("/no-movements-confirmation")
-    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @RequiresTenantFeature({TenantFeature.EVENT_PREPARATION, TenantFeature.FINANCE})
     public View confirmNoMovements(@PathVariable Long eventId, AbstractAuthenticationToken token) { return service.confirmNoMovements(eventId, token); }
 }

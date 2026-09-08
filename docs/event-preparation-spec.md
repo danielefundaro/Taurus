@@ -459,10 +459,12 @@ PUT /api/calendar-events/{eventId}/preparation/configuration
 PUT /api/calendar-events/{eventId}/preparation/program
 PUT /api/calendar-events/{eventId}/preparation/materials
 POST /api/calendar-events/{eventId}/preparation/materials/{materialId}/confirm
+POST /api/calendar-events/{eventId}/preparation/budget-confirmation
 POST /api/calendar-events/{eventId}/preparation/presence-confirmation
+POST /api/calendar-events/{eventId}/preparation/no-movements-confirmation
 ```
 
-La lettura completa e materiali/presenze sono riservati ad admin e super admin. Il `PUT` del programma è autorizzato anche per l'archivista tramite matcher esplicito posizionato prima della regola generale del calendario.
+La lettura completa e tutte le conferme esposte sotto `/api/calendar-events` sono riservate ad admin e super admin. Le conferme economiche sono disponibili anche al tesoriere tramite la vista economica `/api/finance/events` e richiedono il modulo finanza. Il `PUT` del programma è autorizzato anche per l'archivista tramite matcher esplicito posizionato prima della regola generale del calendario.
 
 ### Vista archivista
 

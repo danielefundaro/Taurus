@@ -1,5 +1,7 @@
 <p-confirmdialog />
-@if (loading) { <app-detail-loading-skeleton /> }
+@if (loading) {
+    <app-detail-loading-skeleton />
+}
 <p-fluid [class.hidden]="loading">
     <app-page-header kicker="Evento" [title]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
         ><div pageMetadata class="flex flex-wrap items-center gap-2">
@@ -36,7 +38,7 @@
                         </div>
                         @if (preparation.evaluation.closureStatus !== 'NOT_REQUIRED') {
                             <div>
-                                <small class="text-surface-500 block">Chiusura successiva</small><strong>{{ preparation.evaluation.closureStatus }}</strong>
+                                <small class="text-surface-500 block">Chiusura successiva</small><strong>{{ closureStatusLabel(preparation.evaluation.closureStatus) }}</strong>
                             </div>
                         }
                     </div>
@@ -182,7 +184,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center rounded border border-surface-200 dark:border-surface-700 p-3">
                                     <div class="md:col-span-3">
                                         <strong>{{ i + 1 }}. {{ row.trackName }}</strong
-                                        ><small class="block text-surface-500">{{ row.trackState }}</small>
+                                        ><small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
                                     </div>
                                     <div class="md:col-span-2">
                                         <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" [disabled]="!canManageProgram" (ngModelChange)="markProgramDirty()" />
@@ -254,7 +256,7 @@
                                     <div>
                                         <strong>{{ row.itemName }}</strong
                                         ><span class="ml-2">× {{ row.requiredQuantity }}</span
-                                        ><small class="block text-surface-500">{{ row.assignee || 'Nessuna assegnazione collegata' }} · {{ row.condition }}</small>
+                                        ><small class="block text-surface-500">{{ row.assignee || 'Nessuna assegnazione collegata' }} · {{ materialConditionLabel(row.condition) }}</small>
                                     </div>
                                     <div class="flex gap-2">
                                         @if (row.id) {

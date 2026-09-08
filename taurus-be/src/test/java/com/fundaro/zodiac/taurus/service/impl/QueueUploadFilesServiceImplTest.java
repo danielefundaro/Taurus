@@ -117,6 +117,32 @@ class QueueUploadFilesServiceImplTest {
             .hasMessageContaining("Current user not found");
     }
 
+    @Test
+    void transitionsThePersistentProcessingStatusAtomically() {
+        when(repository.transitionStatus(12L, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, "user-1")).thenReturn(1);
+
+        assertThat(service.transitionStatus(12L, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, authentication())).isTrue();
+        verify(repository).transitionStatus(12L, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, "user-1");
+    }
+
+    @Test
+    void listsUploadJobsForATrackInRepositoryOrder() {
+        QueueUploadFiles first = new QueueUploadFiles();
+        first.setId(2L);
+        QueueUploadFiles second = new QueueUploadFiles();
+        second.setId(1L);
+        QueueUploadFilesDTO firstDto = new QueueUploadFilesDTO();
+        firstDto.setId(2L);
+        QueueUploadFilesDTO secondDto = new QueueUploadFilesDTO();
+        secondDto.setId(1L);
+
+        when(repository.findAllByTrack_IdAndDeletedFalseOrderByInsertDateDesc(8L)).thenReturn(List.of(first, second));
+        when(mapper.toDto(first)).thenReturn(firstDto);
+        when(mapper.toDto(second)).thenReturn(secondDto);
+
+        assertThat(service.findByTrackId(8L)).containsExactly(firstDto, secondDto);
+    }
+
     private JwtAuthenticationToken authentication() {
         return authentication("user-1", null);
     }

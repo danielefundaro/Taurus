@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
 import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
@@ -112,7 +113,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     }
 
     @Override
-    public void uploadFile(Long id, MultipartFile file, String annotations, AbstractAuthenticationToken token) {
+    public QueueUploadFilesDTO uploadFile(Long id, MultipartFile file, String annotations, AbstractAuthenticationToken token) {
         if (file == null || file.isEmpty()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
         }
@@ -135,6 +136,39 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         } catch (Exception exception) {
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "queue.error");
         }
+        return queued;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<QueueUploadFilesDTO> findUploadJobs(Long id, AbstractAuthenticationToken token) {
+        if (findOne(id, token).isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound");
+        }
+        return queueUploadFilesService.findByTrackId(id);
+    }
+
+    @Override
+    public QueueUploadFilesDTO retryUploadJob(Long id, Long jobId, AbstractAuthenticationToken token) {
+        if (findOne(id, token).isEmpty()) {
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound");
+        }
+        QueueUploadFilesDTO job = queueUploadFilesService.findOne(jobId, token)
+            .filter(value -> id.equals(value.getTrackId()))
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Upload job not found", getEntityName(), "upload.notFound"));
+        if (job.getStatus() != UploadFileStatusEnum.ERROR) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Only failed upload jobs can be retried", getEntityName(), "upload.notRetryable");
+        }
+        if (!queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.ERROR, UploadFileStatusEnum.TO_PROCESS, token)) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Upload job state changed", getEntityName(), "upload.notRetryable");
+        }
+        try {
+            sendAfterCommit(Converter.objectToBytes(new UploadFilesPackage(jobId, token)));
+        } catch (Exception exception) {
+            queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.ERROR, token);
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "queue.error");
+        }
+        return queueUploadFilesService.findOne(jobId, token).orElseThrow();
     }
 
     private void sendAfterCommit(byte[] message) {

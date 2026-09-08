@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
-import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
+import { inventoryConditionLabel, RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
@@ -12,6 +12,7 @@ import {
     CalendarEventSeriesPreview,
     CalendarEventSeriesRequest,
     CalendarEvents,
+    ClosureStatus,
     EventCost,
     EventPreparationConfiguration,
     EventPreparationMaterial,
@@ -256,6 +257,22 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         const status = this.preparation?.evaluation.preparationStatus;
         return ({ NOT_CONFIGURED: 'Da configurare', BLOCKED: 'Preparazione incompleta', ATTENTION: 'Da verificare', READY: 'Evento pronto', UNKNOWN: 'Valutazione non disponibile' } as Record<string, string>)[status ?? 'NOT_CONFIGURED'];
     }
+
+    protected closureStatusLabel(status: ClosureStatus): string {
+        return {
+            TO_CLOSE: 'Da completare',
+            CLOSED_WITH_WARNINGS: 'Completata con verifiche',
+            CLOSED: 'Completata',
+            NOT_REQUIRED: 'Non richiesta',
+            UNKNOWN: 'Stato non disponibile'
+        }[status];
+    }
+
+    protected trackStateLabel(state: string): string {
+        return StateLabelsMap.find((value) => value.code === state)?.name ?? 'Stato non disponibile';
+    }
+
+    protected readonly materialConditionLabel = inventoryConditionLabel;
 
     protected preparationSeverity(): 'success' | 'warn' | 'danger' | 'secondary' {
         const status = this.preparation?.evaluation.preparationStatus;
@@ -785,7 +802,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         }
         this.calendarEventsService
             .getById(Number(id))
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe({
                 next: (ev: CalendarEvents) => {
                     this.event = ev;
@@ -815,7 +835,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     private loadTreasurerElement(id: number): void {
         this.financeService
             .getEvent(id)
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe((summary) => {
                 const event = new CalendarEvents();
                 event.id = summary.eventId;

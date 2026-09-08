@@ -665,7 +665,9 @@ Non bypassare OIDC e non distribuire client secret nel frontend.
 - verificare connessione del backend e presenza di consumer su `upload.files`;
 - osservare ready/unacked, publish rate e redelivery;
 - verificare spazio/memoria e allarmi RabbitMQ;
-- controllare nei log `queueId` e tenant senza esporre contenuto sensibile;
+- controllare nei log `queueId`/`jobId`, `trackId`, stato e tenant senza esporre contenuto sensibile;
+- confrontare stato e anzianità dei record `upload_job`: molti `TO_PROCESS` indicano in genere una coda o un consumer indisponibile, mentre `IN_PROGRESS` oltre soglia richiede la verifica del worker, delle risorse PDF e dello storage;
+- per un job in `ERROR`, conservare il file sorgente e usare il retry applicativo solo dopo aver escluso un consumer ancora attivo sullo stesso job;
 - non eliminare o requeue massivamente i messaggi senza valutarne l'idempotenza;
 - sospendere nuovi upload se il backlog continua a crescere.
 
@@ -837,6 +839,7 @@ Note/link incidente:
 - `docs/migrazione-opensearch-postgresql.md`: modello dati relazionale e strategia migration;
 - `docs/tenant-feature-flags-spec.md`: feature flag e capability;
 - `docs/media-asset-spec.md`: storage e lifecycle media;
+- `docs/track-pdf-processing-spec.md`: contratto, ciclo di vita e recovery dell'elaborazione PDF delle tracce;
 - `docs/notification-delivery-generalization-spec.md`: outbox e consegna;
 - `docs/web-push-reminders-spec.md`: Web Push e VAPID;
 - `docs/tenant-onboarding-import-spec.md`: import e recovery;

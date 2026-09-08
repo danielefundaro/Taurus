@@ -1,8 +1,9 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { HttpHeaders } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { FileUpload } from 'primeng/fileupload';
 import { Table } from 'primeng/table';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from '../../../components/type-handler/type-handler.component';
@@ -11,7 +12,7 @@ import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edi
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, Tracks } from '../../../module';
+import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
 import { ConfirmService, InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
 
@@ -24,6 +25,8 @@ import { ConfirmService, InstrumentsService, KeycloakService, MediaService, Prin
     changeDetection: ChangeDetectionStrategy.Default
 })
 export class DetailComponent extends DetailPageBase implements OnInit {
+    @ViewChild('fu') private fileUpload?: FileUpload;
+
     protected track: Tracks = new Tracks();
     protected cols: string[];
     protected selectedScores: SheetsMusic[];
@@ -51,6 +54,11 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected selectedFile: File | null = null;
     protected annotations: PdfAnnotations | null = null;
     protected uploading = false;
+    protected uploadJobs: TrackUploadJob[] = [];
+
+    protected get visibleUploadJobs(): TrackUploadJob[] {
+        return this.uploadJobs.slice(0, 5);
+    }
 
     private instruments: Instruments[];
 
@@ -64,8 +72,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly routeService: ActivatedRoute,
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
-        private readonly dialogService: DialogService,
-        private readonly http: HttpClient
+        private readonly dialogService: DialogService
     ) {
         super();
         this.cols = ['Ordine', 'Media', 'Strumenti'];
@@ -78,7 +85,9 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     ngOnInit() {
         this.routeService.params.pipe(first()).subscribe((params) => {
-            this.loadElement(params['id']);
+            const trackId = params['id'];
+            this.loadElement(trackId);
+            this.loadUploadJobs(trackId);
         });
 
         let page = 0;
@@ -164,10 +173,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.isDirty = true;
     }
 
-    protected onUploadSuccess(): void {
-        this.toastService.success('File caricato', 'Lo spartito è disponibile nella traccia.');
-    }
-
     protected onUploadError(): void {
         this.toastService.error('Caricamento non riuscito', 'Il file non è stato aggiunto. Riprova.');
     }
@@ -217,19 +222,44 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
-        const headers = new HttpHeaders({ Authorization: `Bearer ${this.keycloakService.token}` });
-        this.http.post(this.tracksService.stream(this.track.id), formData, { headers }).subscribe({
-            next: () => {
+        this.tracksService.uploadPdf(formData, this.track.id).subscribe({
+            next: (job) => {
                 this.uploading = false;
                 this.selectedFile = null;
                 this.annotations = null;
-                this.onUploadSuccess();
+                this.fileUpload?.clear();
+                this.uploadJobs = [job, ...this.uploadJobs.filter((value) => value.id !== job.id)];
+                this.toastService.success('PDF ricevuto', 'Il file è stato aggiunto alla coda di elaborazione.');
             },
             error: () => {
                 this.uploading = false;
                 this.onUploadError();
             }
         });
+    }
+
+    protected uploadStatusLabel(status: TrackUploadJobStatus): string {
+        return {
+            TO_PROCESS: 'In coda',
+            IN_PROGRESS: 'Elaborazione in corso',
+            DONE: 'Completato',
+            ERROR: 'Elaborazione non riuscita',
+            NOT_FOUND: 'File sorgente non disponibile'
+        }[status];
+    }
+
+    protected isPendingUpload(job: TrackUploadJob): boolean {
+        return job.status === 'TO_PROCESS' || job.status === 'IN_PROGRESS';
+    }
+
+    protected retryUpload(job: TrackUploadJob): void {
+        this.tracksService
+            .retryUploadJob(this.track.id, job.id)
+            .pipe(first())
+            .subscribe((queued) => {
+                this.uploadJobs = this.uploadJobs.map((value) => (value.id === queued.id ? queued : value));
+                this.toastService.success('Elaborazione riavviata', 'Il PDF è stato rimesso in coda.');
+            });
     }
 
     protected get hasAnnotations(): boolean {
@@ -395,5 +425,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 this.track = track;
                 this.isDirty = false;
             });
+    }
+
+    private loadUploadJobs(trackId: number): void {
+        this.tracksService
+            .getUploadJobs(trackId)
+            .pipe(first())
+            .subscribe((jobs) => (this.uploadJobs = jobs));
     }
 }
