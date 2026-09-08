@@ -509,6 +509,26 @@
       "notes": "Implementazione verificata con test unitari, PostgreSQL/Testcontainers e Keycloak 26.5.2 reale in container. Il worker usa transazioni autonome per validazione, applicazione e cambi di stato; lo scheduler riprende i job interrotti anche durante applicazione e compensazione. Il journal registra l'esito delle e-mail per consentire retry selettivi senza reinvii duplicati. Il parser CSV è collaudato automaticamente su 5.000 righe entro il limite di 60 secondi. L'interfaccia sincronizza la navigazione dello stepper, usa colori semantici compatibili con i temi, omette codice ed etichetta del tenant dal riepilogo e localizza stati, fasi, azioni, problemi ed esiti del rapporto."
     },
     {
+      "id": "test-runbook",
+      "title": "Runbook di test e qualificazione Taurus",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "in-progress",
+      "spec": "docs/runbook-test.md",
+      "modules": ["repository"],
+      "evidence": {
+        "implementation": [
+          "README.md",
+          "docs/runbook-test.md"
+        ],
+        "migrations": [],
+        "tests": []
+      },
+      "notes": "Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati.",
+      "release": null,
+      "lastVerifiedOn": "2026-09-08"
+    },
+    {
       "id": "web-push-reminders",
       "title": "Promemoria eventi tramite Web Push",
       "kind": "feature",
