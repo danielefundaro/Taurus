@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueDialogComponent } from '../../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
@@ -27,6 +28,9 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
     protected readonly inventoryQrEnabled;
+    protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
+    protected readonly decisionLabel = inventoryDecisionLabel;
+    protected readonly returnStatusLabel = inventoryReturnStatusLabel;
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',

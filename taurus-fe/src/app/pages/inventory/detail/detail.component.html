@@ -181,7 +181,7 @@
                             <td class="min-w-48">
                                 <strong>{{ assignment.userName }} {{ assignment.userLastName }}</strong>
                                 <div class="text-xs text-surface-500 mt-1">Assegnato il {{ assignment.assignedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
-                                <p-tag [value]="assignment.status" severity="info" class="mt-2" />
+                                <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" class="mt-2" />
                             </td>
                             <td class="min-w-40">
                                 <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity" [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24" (ngModelChange)="markAssignmentDirty(assignment.id)" />
@@ -206,7 +206,7 @@
                             </td>
                             <td class="min-w-44">
                                 @if (assignment.decision) {
-                                    <p-tag [value]="assignment.decision.decision" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
+                                    <p-tag [value]="decisionLabel(assignment.decision.decision)" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
                                     @if (assignment.decision.rejectionReason) {
                                         <div class="text-sm mt-2">{{ assignment.decision.rejectionReason }}</div>
                                     }
@@ -223,7 +223,7 @@
                                                 ><strong>{{ itemReturn.quantity }}</strong> unità</span
                                             >
                                             <div class="flex items-center gap-1">
-                                                <p-tag [value]="itemReturn.status" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
+                                                <p-tag [value]="returnStatusLabel(itemReturn.status)" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
                                                 <p-button icon="pi pi-trash" ariaLabel="Elimina riconsegna" severity="danger" size="small" [text]="true" pTooltip="Elimina riconsegna" (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
                                             </div>
                                         </div>

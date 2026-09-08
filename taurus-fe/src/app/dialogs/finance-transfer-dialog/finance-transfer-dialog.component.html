@@ -15,10 +15,10 @@
             <p-select inputId="transfer-destination" [(ngModel)]="transfer.destinationAccountId" [options]="accounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
         </app-form-field>
         <app-form-field label="Data contabile" forId="transfer-date" required>
-            <p-datepicker inputId="transfer-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" />
+            <p-datepicker inputId="transfer-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" appendTo="body" />
         </app-form-field>
         <app-form-field label="Data valuta" forId="transfer-value-date">
-            <p-datepicker inputId="transfer-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" />
+            <p-datepicker inputId="transfer-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" appendTo="body" />
         </app-form-field>
         <app-form-field class="md:col-span-2" label="Importo" forId="transfer-amount" required [error]="shell.validationAttempted ? amountError : undefined">
             <p-inputnumber inputId="transfer-amount" [(ngModel)]="transfer.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />

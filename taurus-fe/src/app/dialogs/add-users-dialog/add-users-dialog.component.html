@@ -11,7 +11,7 @@
         <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !user.name?.trim() ? 'Inserisci il nome.' : undefined"><input pInputText id="name" [(ngModel)]="user.name" /></app-form-field>
         <app-form-field label="Cognome" forId="lastName"><input pInputText id="lastName" [(ngModel)]="user.lastName" /></app-form-field>
         <app-form-field label="Email" forId="email" required [error]="shell.validationAttempted && !user.email?.trim() ? 'Inserisci l’indirizzo email.' : undefined"><input pInputText id="email" type="email" [(ngModel)]="user.email" /></app-form-field>
-        <app-form-field label="Data di nascita" forId="birthDate"><p-datepicker inputId="birthDate" dateFormat="dd-mm-yy" [showIcon]="true" [(ngModel)]="user.birthDate" /></app-form-field>
+        <app-form-field label="Data di nascita" forId="birthDate"><p-datepicker inputId="birthDate" dateFormat="dd-mm-yy" [showIcon]="true" appendTo="body" [(ngModel)]="user.birthDate" /></app-form-field>
         <app-form-field label="Ruoli" forId="roles" required [error]="shell.validationAttempted && !user.roles?.length ? 'Seleziona almeno un ruolo.' : undefined">
             <p-multiselect
                 inputId="roles"

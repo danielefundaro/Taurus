@@ -178,6 +178,7 @@ export class FinanceComponent implements OnInit {
             modal: true,
             showHeader: false,
             width: '56rem',
+            contentStyle: { overflow: 'hidden' },
             breakpoints: { '960px': '80vw', '640px': '94vw' }
         });
 

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueListComponent } from '../../../components/inventory-issue-list/inventory-issue-list.component';
 import { InventoryLabelDialogComponent } from '../../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryQrRotateDialogComponent } from '../../../dialogs/inventory-qr-rotate-dialog/inventory-qr-rotate-dialog.component';
@@ -43,6 +44,9 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
 
     protected readonly dirtyAssignments = new Set<number>();
     protected readonly inventoryQrEnabled;
+    protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
+    protected readonly decisionLabel = inventoryDecisionLabel;
+    protected readonly returnStatusLabel = inventoryReturnStatusLabel;
 
     private static readonly PHOTO_ORDER_UNIT = 'ordine fotografie';
     private static readonly ASSIGNMENTS_UNIT = 'assegnazioni';

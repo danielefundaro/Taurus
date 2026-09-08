@@ -81,7 +81,6 @@
 
     <app-detail-section title="Parti" [count]="track.scores?.length" description="Ordine, strumenti e pagine di ciascuna parte. L’ordine si salva con «Salva traccia» in alto.">
         <div sectionActions class="flex flex-col md:flex-row gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
-            <p-button severity="primary" label="Aggiungi parte" icon="pi pi-plus" outlined (onClick)="addNew()" />
             <p-button severity="secondary" label="Unisci selezionate" icon="pi pi-link" outlined (onClick)="confirmMergeSelectedScores()" [disabled]="selectedScores.length < 2" />
             <p-button severity="danger" label="Elimina selezionate" icon="pi pi-trash" outlined (onClick)="confirmDeleteSelectedScores()" [disabled]="!selectedScores.length" />
         </div>

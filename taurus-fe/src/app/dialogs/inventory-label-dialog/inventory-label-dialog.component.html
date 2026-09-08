@@ -19,13 +19,13 @@
     </div>
     <div class="mt-5 flex flex-col gap-3">
         @for (item of items; track item.id) {
-            <div class="grid grid-cols-[1fr_8rem] items-center gap-3 border-t border-surface pt-3">
-                <div>
+            <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,8rem)] items-center gap-3 border-t border-surface pt-3">
+                <div class="min-w-0">
                     <strong>{{ item.inventoryNumber }}</strong
                     ><span class="block text-sm text-muted-color">{{ item.name }}</span>
                 </div>
-                <app-form-field label="Copie" [forId]="'copies-' + item.id">
-                    <p-inputnumber [inputId]="'copies-' + item.id" [(ngModel)]="copies[item.id!]" [min]="1" [max]="20" [showButtons]="true" />
+                <app-form-field class="min-w-0" label="Copie" [forId]="'copies-' + item.id">
+                    <p-inputnumber [inputId]="'copies-' + item.id" [(ngModel)]="copies[item.id!]" [min]="1" [max]="20" [showButtons]="true" [fluid]="true" />
                 </app-form-field>
             </div>
         }

@@ -236,19 +236,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0));
     }
 
-    protected addNew(): void {
-        this.track.scores ??= [];
-
-        const score = new SheetsMusic();
-        const max = Math.max(...this.track.scores.map((score) => score.order!), 0);
-        score.order = max + 1;
-        score.media = [];
-        score.instruments = [];
-
-        this.track.scores.push(score);
-        this.isDirty = true;
-    }
-
     protected confirmDeleteSelectedScores(): void {
         this.confirmService.confirmDestructive({
             title: 'Rimuovi parti',
@@ -319,7 +306,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected splitScore(score: SheetsMusic): void {
         if (!this.track.scores || (score.media?.length ?? 0) <= 1) return;
 
-        const scoreIndex = this.track.scores.findIndex((s) => s.order === score.order);
+        const scores = this.track.scores;
+        const scoreIndex = scores.findIndex((s) => s.order === score.order);
+        if (scoreIndex < 0) return;
+
         const newScores: SheetsMusic[] = (score.media ?? []).map((m) => {
             const s = new SheetsMusic();
             s.description = score.description;
@@ -328,7 +318,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             return s;
         });
 
-        this.track.scores.splice(scoreIndex, 1, ...newScores);
+        this.track.scores = [...scores.slice(0, scoreIndex), ...newScores, ...scores.slice(scoreIndex + 1)];
         this.track.scores.forEach((s, i) => (s.order = i + 1));
         this.isDirty = true;
     }
