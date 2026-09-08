@@ -533,18 +533,28 @@
       "title": "Workspace per la gestione delle parti di una traccia",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "planned",
+      "deliveryStatus": "in-progress",
       "spec": "docs/track-parts-workspace-spec.md",
       "modules": [
         "taurus-be",
         "taurus-fe"
       ],
       "evidence": {
-        "implementation": [],
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/SheetsMusicDTO.java",
+          "taurus-fe/src/app/pages/tracks/detail/detail.component.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts"
+        ],
         "migrations": [],
-        "tests": []
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java",
+          "taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.operations.spec.ts"
+        ]
       },
-      "notes": "Direzione UX approvata: workspace master-detail con gestione inline di strumenti e pagine, operazioni equivalenti al drag and drop, stato della bozza separato dai job PDF e requisiti responsive e accessibili. L'implementazione richiede identità stabile delle parti e controllo ottimistico della traccia.",
+      "notes": "Disponibile l'incremento master-detail con editing inline, organizzazione delle pagine, undo, responsive, identità persistente delle parti e controllo ottimistico compatibile con i payload legacy. Restano da completare i gate E2E, prestazionali e di tenant isolation previsti dalla specifica.",
       "release": null,
       "lastVerifiedOn": "2026-09-08"
     },

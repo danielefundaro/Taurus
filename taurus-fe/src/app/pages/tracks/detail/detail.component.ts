@@ -2,23 +2,22 @@ import { HttpHeaders } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { FileUpload } from 'primeng/fileupload';
-import { Table } from 'primeng/table';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from '../../../components/type-handler/type-handler.component';
+import { ScoreWorkspaceComponent } from './score-workspace/score-workspace.component';
 import { RoleEnums, StateEnums, StateLabel, StateLabelsMap } from '../../../constants';
-import { EditScoreDialogComponent } from '../../../dialogs/edit-score-dialog/edit-score-dialog.component';
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
+import { Instruments, InstrumentsCriteria, SheetsMusic, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
-import { ConfirmService, InstrumentsService, KeycloakService, MediaService, PrinterService, ToastService, TracksService } from '../../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, ToastService, TracksService } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
-    imports: [ImportsModule, TypeHandlerComponent],
+    imports: [ImportsModule, TypeHandlerComponent, ScoreWorkspaceComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [TracksService, InstrumentsService, KeycloakService, DialogService],
@@ -28,43 +27,27 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     @ViewChild('fu') private fileUpload?: FileUpload;
 
     protected track: Tracks = new Tracks();
-    protected cols: string[];
-    protected selectedScores: SheetsMusic[];
-    protected images: string[];
-    protected displayGalleria: boolean;
     protected autoFilteredStatesLabels: StateLabel[];
     protected RolesEnum: typeof RoleEnums = RoleEnums;
     protected readonly StateEnum: typeof StateEnums = StateEnums;
     protected readonly previewTooltip = "Aggiungi almeno una parte per abilitare l'anteprima";
-    protected responsiveOptions: any[] = [
-        {
-            breakpoint: '1024px',
-            numVisible: 5
-        },
-        {
-            breakpoint: '960px',
-            numVisible: 4
-        },
-        {
-            breakpoint: '768px',
-            numVisible: 3
-        }
-    ];
-
     protected selectedFile: File | null = null;
     protected annotations: PdfAnnotations | null = null;
     protected uploading = false;
     protected uploadJobs: TrackUploadJob[] = [];
+    protected activeTab = 'details';
+    protected saveError = false;
+    private detailsDirty = false;
+    private scoresDirty = false;
 
     protected get visibleUploadJobs(): TrackUploadJob[] {
         return this.uploadJobs.slice(0, 5);
     }
 
-    private instruments: Instruments[];
+    protected instruments: Instruments[];
 
     constructor(
         private readonly tracksService: TracksService,
-        private readonly mediaService: MediaService,
         private readonly instrumentsService: InstrumentsService,
         private readonly printerService: PrinterService,
         private readonly keycloakService: KeycloakService,
@@ -75,15 +58,13 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly dialogService: DialogService
     ) {
         super();
-        this.cols = ['Ordine', 'Media', 'Strumenti'];
-        this.selectedScores = [];
-        this.images = [];
-        this.displayGalleria = false;
         this.instruments = [];
         this.autoFilteredStatesLabels = StateLabelsMap;
     }
 
     ngOnInit() {
+        const requestedTab = this.routeService.snapshot?.queryParamMap?.get('tab');
+        if (requestedTab && ['details', 'parts', 'pdf'].includes(requestedTab)) this.activeTab = requestedTab;
         this.routeService.params.pipe(first()).subscribe((params) => {
             const trackId = params['id'];
             this.loadElement(trackId);
@@ -111,21 +92,21 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected get isUser(): boolean {
-        return this.keycloakService.isUser;
+        return this.keycloakService.isUser || this.keycloakService.isUserExternal;
     }
 
     protected confirmDelete(): void {
         this.confirmService.confirmDestructive({
             title: 'Elimina traccia',
-            consequence: 'La traccia verrà eliminata definitivamente.',
-            actionLabel: 'Elimina',
+            consequence: `La traccia “${this.track.name || 'Senza nome'}” non sarà più visibile né disponibile negli elenchi.`,
+            actionLabel: 'Elimina definitivamente',
             accept: () => {
                 this.tracksService
                     .delete(this.track.id)
                     .pipe(first())
                     .subscribe({
                         next: () => {
-                            this.isDirty = false;
+                            this.clearDirtyUnits();
                             this.toastService.success('Traccia eliminata', 'La traccia non è più visibile.');
                             this.router.navigate(['/tracks']);
                         }
@@ -135,7 +116,9 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected save(): void {
+        this.normalizeTrackScores();
         this.saving = true;
+        this.saveError = false;
         this.tracksService
             .update(this.track.id, this.track)
             .pipe(
@@ -145,11 +128,33 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             )
             .subscribe({
                 next: (track: Tracks) => {
-                    this.isDirty = false;
+                    this.detailsDirty = false;
+                    this.scoresDirty = false;
+                    this.clearDirtyUnits();
                     this.toastService.success('Traccia aggiornata', 'Le modifiche sono state salvate.');
-                    this.loadElement(track.id);
+                    this.track = track;
+                },
+                error: () => {
+                    this.saveError = true;
+                    this.toastService.error('Salvataggio non riuscito', 'La bozza è ancora disponibile. Correggi l’errore o riprova.');
                 }
             });
+    }
+
+    protected onTabChange(tab: string | number | undefined): void {
+        if (typeof tab !== 'string') return;
+        this.activeTab = tab;
+        this.router.navigate([], { relativeTo: this.routeService, queryParams: { tab }, queryParamsHandling: 'merge', replaceUrl: true });
+    }
+
+    protected onScoresChange(scores: SheetsMusic[]): void {
+        this.track.scores = scores;
+        this.saveError = false;
+    }
+
+    protected onScoresDirtyChange(dirty: boolean): void {
+        this.scoresDirty = dirty;
+        this.syncFormDirty();
     }
 
     protected preview(): void {
@@ -170,7 +175,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected onTypeChange(types: string[]): void {
         this.track!.type = types;
-        this.isDirty = true;
+        this.markDetailsDirty();
+    }
+
+    protected markDetailsDirty(): void {
+        this.detailsDirty = true;
+        this.syncFormDirty();
     }
 
     protected onUploadError(): void {
@@ -266,165 +276,33 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0));
     }
 
-    protected confirmDeleteSelectedScores(): void {
-        this.confirmService.confirmDestructive({
-            title: 'Rimuovi parti',
-            consequence: 'Le parti selezionate verranno rimosse dalla traccia.',
-            actionLabel: 'Rimuovi',
-            accept: () => this.deleteSelectedScores()
-        });
-    }
-
-    protected deleteSelectedScores(): void {
-        for (let selectedScore of this.selectedScores) {
-            this.deleteScore(selectedScore);
-        }
-        this.selectedScores = [];
-    }
-
-    protected confirmMergeSelectedScores(): void {
-        this.confirmService.confirmReversible({
-            title: 'Unisci parti',
-            consequence: `Le ${this.selectedScores.length} parti selezionate verranno unite e i media concatenati nell’ordine delle righe.`,
-            actionLabel: 'Unisci',
-            accept: () => this.mergeSelectedScores()
-        });
-    }
-
-    protected mergeSelectedScores(): void {
-        if (!this.track.scores || this.selectedScores.length < 2) return;
-
-        const sorted = [...this.selectedScores].sort((a, b) => a.order! - b.order!);
-
-        const mergedMedia: ChildrenEntities[] = sorted.flatMap((s) => s.media ?? []).map((m, i) => ({ index: m.index, name: m.name, order: i + 1 }));
-
-        const seenIndexes = new Set<number>();
-        const mergedInstruments: ChildrenEntities[] = [];
-        for (const s of sorted) {
-            for (const inst of s.instruments ?? []) {
-                if (!seenIndexes.has(inst.index)) {
-                    seenIndexes.add(inst.index);
-                    mergedInstruments.push({ index: inst.index, name: inst.name, order: mergedInstruments.length + 1 });
-                }
-            }
-        }
-
-        const merged = new SheetsMusic();
-        merged.order = sorted[0].order!;
-        merged.description = sorted[0].description;
-        merged.media = mergedMedia;
-        merged.instruments = mergedInstruments;
-
-        const selectedOrders = new Set(sorted.map((s) => s.order));
-        this.track.scores = this.track.scores.filter((s) => !selectedOrders.has(s.order));
-        this.track.scores.push(merged);
-        this.track.scores.sort((a, b) => a.order! - b.order!).forEach((s, i) => (s.order = i + 1));
-
-        this.selectedScores = [];
-        this.isDirty = true;
-    }
-
-    protected confirmSplitScore(score: SheetsMusic): void {
-        this.confirmService.confirmReversible({
-            title: 'Scorpora parte',
-            consequence: `La parte verrà suddivisa in ${score.media?.length} righe separate, una per pagina.`,
-            actionLabel: 'Scorpora',
-            accept: () => this.splitScore(score)
-        });
-    }
-
-    protected splitScore(score: SheetsMusic): void {
-        if (!this.track.scores || (score.media?.length ?? 0) <= 1) return;
-
-        const scores = this.track.scores;
-        const scoreIndex = scores.findIndex((s) => s.order === score.order);
-        if (scoreIndex < 0) return;
-
-        const newScores: SheetsMusic[] = (score.media ?? []).map((m) => {
-            const s = new SheetsMusic();
-            s.description = score.description;
-            s.media = [{ index: m.index, name: m.name, order: 1 }];
-            s.instruments = structuredClone(score.instruments ?? []);
-            return s;
-        });
-
-        this.track.scores = [...scores.slice(0, scoreIndex), ...newScores, ...scores.slice(scoreIndex + 1)];
-        this.track.scores.forEach((s, i) => (s.order = i + 1));
-        this.isDirty = true;
-    }
-
-    protected onGlobalFilter(table: Table<SheetsMusic>, event: Event): void {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
-    }
-
-    protected onRowReorder(): void {
-        this.track.scores?.forEach((score, index) => {
-            score.order = index + 1;
-        });
-        this.isDirty = true;
-    }
-
-    protected showMedia(media: ChildrenEntities[]) {
-        this.displayGalleria = true;
-        this.images = media.map((m) => this.mediaService.stream(m.index));
-    }
-
-    protected mediaStream(media: ChildrenEntities): string {
-        return this.mediaService.stream(media.index);
-    }
-
-    protected editScore(score: SheetsMusic): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(EditScoreDialogComponent, {
-            inputValues: {
-                currentScoreOrder: score.order,
-                scores: structuredClone(this.track.scores),
-                instruments: this.instruments
-            },
-            header: 'Modifica parte',
-            closable: false,
-            showHeader: false,
-            draggable: true,
-            resizable: true,
-            modal: true,
-            width: '56rem',
-            breakpoints: { '1199px': '75vw', '575px': '90vw' }
-        });
-
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: SheetsMusic[]) => {
-            if (result) {
-                this.track.scores = result;
-                this.isDirty = true;
-            }
-        });
-    }
-
-    protected confirmDeleteScore(score: SheetsMusic): void {
-        this.confirmService.confirmDestructive({
-            title: 'Rimuovi parte',
-            consequence: 'La parte verrà rimossa dalla traccia.',
-            actionLabel: 'Rimuovi',
-            accept: () => this.deleteScore(score)
-        });
-    }
-
-    protected deleteScore(selectedScore: SheetsMusic): void {
-        this.track.scores?.splice(
-            this.track.scores.findIndex((score) => selectedScore.order === score.order),
-            1
-        );
-        this.track.scores?.sort((a, b) => (a.order! < b.order! ? -1 : 1)).forEach((score, i) => (score.order = i + 1));
-        this.isDirty = true;
-    }
-
     private loadElement(id: number | string) {
         this.loading = true;
         this.tracksService
             .getById(Number(id))
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe((track) => {
                 this.track = track;
-                this.isDirty = false;
+                this.detailsDirty = false;
+                this.scoresDirty = false;
+                this.clearDirtyUnits();
+                this.saveError = false;
             });
+    }
+
+    private normalizeTrackScores(): void {
+        (this.track.scores ?? []).forEach((score, scoreIndex) => {
+            score.order = scoreIndex + 1;
+            (score.media ?? []).forEach((media, mediaIndex) => (media.order = mediaIndex + 1));
+            (score.instruments ?? []).forEach((instrument, instrumentIndex) => (instrument.order = instrumentIndex + 1));
+        });
+    }
+
+    private syncFormDirty(): void {
+        this.isDirty = this.detailsDirty || this.scoresDirty;
     }
 
     private loadUploadJobs(trackId: number): void {

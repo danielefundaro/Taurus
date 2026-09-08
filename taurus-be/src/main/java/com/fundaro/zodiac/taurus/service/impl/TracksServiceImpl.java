@@ -21,6 +21,8 @@ import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -62,8 +64,10 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     public TracksDTO save(TracksDTO dto, AbstractAuthenticationToken token) {
         finalizeOrders(dto);
         Tracks entity = getMapper().toEntity(dto);
-        entity.setScores(resolveScores(dto));
-        return saveEntity(entity, token, true);
+        entity.setScores(resolveScores(dto, List.of()));
+        saveEntity(entity, token, true);
+        getRepository().flush();
+        return getMapper().toDto(entity);
     }
 
     @Override
@@ -71,11 +75,16 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         finalizeOrders(dto);
         Tracks entity = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        if (dto.getVersion() != null && !dto.getVersion().equals(entity.getEntityVersion())) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Track was modified by another request", getEntityName(), "version.conflict");
+        }
         getMapper().partialUpdate(entity, dto);
+        List<SheetsMusic> resolvedScores = resolveScores(dto, entity.getScores());
         entity.getScores().clear();
+        entity.getScores().addAll(resolvedScores);
+        saveEntity(entity, token, false);
         getRepository().flush();
-        entity.getScores().addAll(resolveScores(dto));
-        return saveEntity(entity, token, false);
+        return getMapper().toDto(entity);
     }
 
     @Override
@@ -191,16 +200,26 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         });
     }
 
-    private List<SheetsMusic> resolveScores(TracksDTO dto) {
+    private List<SheetsMusic> resolveScores(TracksDTO dto, List<SheetsMusic> existingScores) {
         if (dto.getScores() == null) return new ArrayList<>();
+        Map<Long, SheetsMusic> existingById = new HashMap<>();
+        existingScores.forEach(score -> existingById.put(score.getId(), score));
         return dto.getScores().stream()
             .sorted(Comparator.comparing(score -> score.getOrder() == null ? Long.MAX_VALUE : score.getOrder()))
-            .map(this::resolveScore)
+            .map(score -> resolveScore(score, existingById))
             .toList();
     }
 
-    private SheetsMusic resolveScore(SheetsMusicDTO dto) {
-        SheetsMusic score = new SheetsMusic();
+    private SheetsMusic resolveScore(SheetsMusicDTO dto, Map<Long, SheetsMusic> existingById) {
+        SheetsMusic score;
+        if (dto.getId() == null) {
+            score = new SheetsMusic();
+        } else {
+            score = existingById.remove(dto.getId());
+            if (score == null) {
+                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Score does not belong to track", getEntityName(), "score.id.invalid");
+            }
+        }
         score.setDescription(dto.getDescription());
         score.setNeedsReview(Boolean.TRUE.equals(dto.getNeedsReview()));
         score.setMedia(dto.getMedia() == null ? List.of() : dto.getMedia().stream()

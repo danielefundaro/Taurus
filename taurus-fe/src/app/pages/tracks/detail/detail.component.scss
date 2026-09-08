@@ -1,13 +1,29 @@
-.minh-2rem {
-    min-height: 2rem;
+.tab-count {
+    display: inline-grid;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    margin-left: 0.35rem;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--p-content-hover-background);
+    font-size: 0.75rem;
 }
 
-.div-image {
-    width: 2rem;
-    font-size: 2rem;
+.detail-page__zones {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
 }
 
-.image-galleria {
-    min-height: 50rem;
-    max-height: 95vh;
+.track-tabs {
+    --p-tabs-tablist-background: var(--surface-card);
+
+    display: block;
+    overflow: hidden;
+    border-radius: var(--content-border-radius);
+}
+
+.track-tabs > p-tabpanels {
+    background: var(--surface-card);
+    padding: 0;
 }

@@ -20,6 +20,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
+import { ImageModule } from 'primeng/image';
 import { MessageModule } from 'primeng/message';
 import { OrderListModule } from 'primeng/orderlist';
 import { PopoverModule } from 'primeng/popover';
@@ -28,6 +29,7 @@ import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
@@ -61,6 +63,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ButtonModule,
         DropdownModule,
         InputTextModule,
+        ImageModule,
         InputNumberModule,
         SelectModule,
         DataViewModule,
@@ -72,6 +75,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         TextareaModule,
         FloatLabelModule,
         TableModule,
+        TabsModule,
         InputIconModule,
         IconFieldModule,
         ToolbarModule,
@@ -119,6 +123,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ButtonModule,
         DropdownModule,
         InputTextModule,
+        ImageModule,
         InputNumberModule,
         SelectModule,
         DataViewModule,
@@ -130,6 +135,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         TextareaModule,
         FloatLabelModule,
         TableModule,
+        TabsModule,
         InputIconModule,
         IconFieldModule,
         ToolbarModule,

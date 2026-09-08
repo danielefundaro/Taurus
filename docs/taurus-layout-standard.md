@@ -416,7 +416,7 @@ A differenza degli elenchi, la struttura di base è condivisa: un `p-fluid` che 
 
 **Il salvataggio principale scarta le presenze.** In `calendar-events/detail` la proprietà `isDirty` è un getter composito, `_isDirtyForm || isDirtyPresence`. Il pulsante «Salva» dell'intestazione è legato a quel getter e si attiva quindi anche quando l'unica cosa modificata sono le presenze. Premendolo, `save()` aggiorna l'evento e invoca `loadElement()`, che ricarica il record dal server e azzera `isDirtyPresence`: le presenze modificate spariscono senza alcun avviso. La sezione ha un proprio pulsante «Salva presenze», ma nulla impedisce di premere prima quello sbagliato.
 
-**Il ritmo verticale varia del doppio.** La classe `.card` dichiara `margin-bottom: 2rem` con `&:last-child { margin-bottom: 0 }`. In `users`, `albums` e `tracks` ogni card è però avvolta in un `<div class="flex mt-4">` ed è quindi figlio unico del wrapper: la regola `:last-child` scatta sempre, il margine sparisce e resta il solo `mt-4`. Ne risulta 1 rem fra le sezioni in quelle pagine e 2 rem in `inventory` e `profile`, che usano card sorelle senza wrapper.
+**Il ritmo verticale dipende dalla profondità del DOM.** La classe `.card` dichiara `margin-bottom: 2rem` con `&:last-child { margin-bottom: 0 }`. Se una card è figlia unica di un componente Angular, di una tab o di un altro wrapper, `:last-child` scatta anche quando visivamente segue un'altra card e il margine scompare. Spostare lo stesso margine su `:host`, mantenendo `:host(:last-child)`, riproduce il difetto un livello più in alto. I wrapper `<div class="flex mt-4">` aggiungono inoltre una seconda tecnica e portano il ritmo a 1 rem in alcune pagine e a 2 rem in altre.
 
 **`p-confirmdialog key="guard"` è dichiarato due volte.** Una in `app.component.html`, valida per tutta l'applicazione, e una in `inventory/detail`. Due istanze contendono la stessa chiave.
 
@@ -471,7 +471,19 @@ L'intestazione è lo stesso componente `page-header` delle pagine elenco: cambia
 
 **Sezione.** Intestazione con titolo `h2`, conteggio dove ha senso, una riga che spiega la sezione, e a destra le azioni della sola sezione. La descrizione è il posto dove dichiarare che la sezione si salva per conto proprio.
 
-**Spaziatura.** Card sorelle nude, senza wrapper e senza `mt-*`: il `margin-bottom: 2rem` di `.card` basta e vale ovunque allo stesso modo. Spariscono i `<div class="flex mt-4">` che oggi disattivano la regola.
+**Spaziatura.** La distanza verticale appartiene al contenitore delle zone, non alle card. Il contenitore diretto delle sezioni usa `display: flex` o `display: grid`, direzione verticale e `gap: 2rem`; le card e gli host di `detail-section`, `danger-zone` e degli altri componenti di sezione non applicano margini esterni né regole `:last-child`. Spariscono i wrapper creati soltanto per spaziare e tutte le utility `mt-*` fra sezioni.
+
+Una tab o un componente intermedio costituisce una zona del layout: deve essere figlio dello stesso contenitore della zona successiva. Il `gap` separa quindi correttamente anche una card contenuta in `p-tabs` dalla zona pericolosa esterna, senza dipendere dalla profondità del DOM.
+
+```scss
+.detail-page__zones {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+```
+
+Non si corregge una singola adiacenza con selettori come `p-tabs + app-danger-zone`, margini locali o eccezioni per pagina: sono soluzioni dipendenti dalla struttura corrente e fanno riapparire il difetto quando viene introdotto un nuovo wrapper.
 
 **Zona pericolosa.** Ultima card, bordo in colore di errore, etichetta «Zona pericolosa». Ogni riga dichiara in grassetto cosa succede e sotto la conseguenza, poi il pulsante. La gravità del pulsante segue la scala fissata per le conferme: la cancellazione logica è distruttiva perché l'utente non ha modo di annullarla, quindi gravità piena senza eccezioni, anche dove sotto compare l'eliminazione GDPR.
 
@@ -505,7 +517,7 @@ Le due classi base rendono la regola strutturale: `DetailPageBase` tiene il regi
 
 **Lo stato ha un testo.** Etichetta «Modifiche non salvate», non un pallino colorato con l'attributo `title`.
 
-**Una sola tecnica di spaziatura.** Card sorelle, nessun wrapper, nessun `mt-*`. Il margine di `.card` governa tutto.
+**Una sola tecnica di spaziatura.** Il contenitore delle zone usa `gap: 2rem`. Card e componenti di sezione non hanno margini esterni; sono vietati `:last-child`, wrapper di sola spaziatura, `mt-*` e selettori locali fra componenti adiacenti.
 
 **Stato di caricamento sempre presente.** Scheletro con la forma della pagina, non un modulo vuoto che si riempie.
 
@@ -605,8 +617,8 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 | --- | --- |
 | `components/page-header/` | Lo stesso componente delle pagine elenco, esteso con gli ingressi `backLink`, `kicker` e `state` e con la proiezione per la riga di metadati. Un solo componente per entrambi i gusci. |
 | `components/form-field/` | Lo stesso componente dei dialoghi, riusato senza modifiche nei moduli di dettaglio, così un campo obbligatorio si comporta allo stesso modo dentro e fuori da un modale. |
-| `components/detail-section/` | Sezione. Card con titolo `h2`, conteggio, descrizione e proiezione per le azioni di sezione. Ingresso `dirty` per dichiarare che la sezione è un'unità salvabile autonoma. L'intestazione unifica le tre varianti di `.widget-header` della dashboard. |
-| `components/danger-zone/` | Zona pericolosa. Accetta un elenco di operazioni, ognuna con titolo, conseguenza, etichetta e gravità. Assorbe i nove blocchi oggi copiati. |
+| `components/detail-section/` | Sezione. Card con titolo `h2`, conteggio, descrizione e proiezione per le azioni di sezione. Ingresso `dirty` per dichiarare che la sezione è un'unità salvabile autonoma. Non applica margini esterni: la distanza dalle altre zone appartiene al contenitore di pagina. L'intestazione unifica le tre varianti di `.widget-header` della dashboard. |
+| `components/danger-zone/` | Zona pericolosa. Accetta un elenco di operazioni, ognuna con titolo, conseguenza, etichetta e gravità. Non applica margini esterni ed è sempre l'ultima figlia del contenitore delle zone. Assorbe i nove blocchi oggi copiati. |
 | `pages/_shared/detail-page.base.ts` | Classe base con il registro delle unità salvabili, `isDirty` composito derivato, `loading`, `saving`, e l'implementazione di `HasUnsavedChanges` che elenca alla guardia le unità modificate. |
 
 ## Ordine di migrazione

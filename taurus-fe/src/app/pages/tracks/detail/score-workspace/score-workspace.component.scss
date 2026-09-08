@@ -1,0 +1,347 @@
+:host {
+    display: block;
+}
+
+.score-workspace {
+    min-width: 0;
+}
+
+.workspace-toolbar,
+.panel-toolbar,
+.editor-heading,
+.pages-heading,
+.parts-actions,
+.page-card-toolbar,
+.page-order-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.workspace-toolbar {
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+h2,
+h3,
+h4,
+p {
+    margin: 0;
+}
+
+.panel-toolbar span,
+.pages-heading span,
+.part-copy small {
+    color: var(--p-text-muted-color);
+}
+
+.workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 34%) minmax(0, 66%);
+    align-items: start;
+    min-height: 38rem;
+}
+
+.parts-panel,
+.editor-panel {
+    min-height: 0;
+    padding: 1.25rem;
+}
+
+.parts-panel {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    flex-direction: column;
+    gap: 1rem;
+    border-right: 1px solid var(--p-content-border-color);
+    background: var(--p-content-hover-background);
+}
+
+.panel-toolbar h3,
+.pages-heading h4 {
+    font-size: 1rem;
+}
+
+.parts-filter,
+.parts-filter input,
+.instrument-picker {
+    width: 100%;
+}
+
+.instrument-picker {
+    display: block;
+}
+
+:host ::ng-deep .instrument-picker .p-autocomplete,
+:host ::ng-deep .instrument-picker .p-autocomplete-input-multiple {
+    width: 100%;
+}
+
+.reorder-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--p-primary-color);
+    font-size: 0.875rem;
+}
+
+.parts-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.part-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    min-height: 4.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    background: var(--p-content-background);
+    cursor: pointer;
+}
+
+.part-row:hover,
+.part-row:focus-visible {
+    border-color: var(--p-primary-color);
+}
+
+.part-row.active {
+    border-color: var(--p-primary-color);
+    box-shadow: inset 3px 0 0 var(--p-primary-color);
+}
+
+.part-row.part-selected {
+    background: color-mix(in srgb, var(--p-primary-color) 12%, var(--p-content-background));
+}
+
+.drag-handle {
+    color: var(--p-text-muted-color);
+    cursor: grab;
+}
+
+.part-order {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--p-content-hover-background);
+    font-weight: 700;
+}
+
+.part-copy {
+    min-width: 0;
+}
+
+.part-copy strong,
+.part-copy small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.review-icon {
+    color: var(--p-orange-500);
+}
+
+.part-reorder {
+    display: flex;
+}
+
+.parts-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 0.75rem;
+    background: var(--p-content-hover-background);
+}
+
+.editor-panel {
+    position: relative;
+    min-width: 0;
+}
+
+.editor-heading {
+    margin-bottom: 1.25rem;
+}
+
+.eyebrow {
+    color: var(--p-primary-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.editor-actions,
+.instrument-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: var(--p-content-hover-background);
+}
+
+.pages-heading {
+    align-items: flex-end;
+    margin: 1.5rem 0 1rem;
+}
+
+.page-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.page-navigation span {
+    min-width: 7rem;
+    text-align: center;
+    color: var(--p-text-muted-color);
+    font-weight: 600;
+}
+
+.page-selection-actions {
+    display: block;
+}
+
+.pages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    padding-bottom: 5rem;
+}
+
+.page-card {
+    min-width: 0;
+    padding: 0.75rem;
+    border: 2px solid var(--p-content-border-color);
+    border-radius: 1rem;
+    background: var(--p-content-background);
+}
+
+.page-card:focus-visible,
+.page-card.current,
+.page-card.selected {
+    border-color: var(--p-primary-color);
+    outline: none;
+}
+
+.page-card.selected {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-primary-color) 28%, transparent);
+}
+
+.page-card-toolbar {
+    min-height: 2.75rem;
+}
+
+.page-handle {
+    cursor: grab;
+    font-weight: 600;
+}
+
+.page-order-actions span {
+    overflow: hidden;
+    color: var(--p-text-muted-color);
+    font-size: 0.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-back {
+    display: none;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+    .workspace-grid {
+        grid-template-columns: minmax(260px, 40%) minmax(0, 60%);
+    }
+
+    .pages-grid {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+
+    .score-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .workspace-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .workspace-grid {
+        display: block;
+        max-height: none;
+        min-height: 32rem;
+    }
+
+    .parts-panel,
+    .editor-panel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+        border: 0;
+    }
+
+    .workspace-grid:not(.mobile-detail-visible) .editor-panel,
+    .workspace-grid.mobile-detail-visible .parts-panel {
+        display: none;
+    }
+
+    .mobile-back {
+        display: block;
+    }
+
+    .editor-heading,
+    .pages-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pages-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-selection-actions {
+        position: sticky;
+        z-index: 2;
+        bottom: 0;
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--p-content-border-color);
+        border-radius: 0.75rem;
+        background: var(--p-content-background);
+        box-shadow: 0 -0.5rem 1.5rem rgb(0 0 0 / 8%);
+    }
+}
