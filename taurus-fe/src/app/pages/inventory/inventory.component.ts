@@ -6,6 +6,7 @@ import { first, forkJoin } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
 import { InventoryLabelDialogComponent } from '../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { inventoryAssignmentStatusLabel, inventoryDecisionLabel } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, InventoryLabelRequest, Page } from '../../module';
 import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, TenantFeatureService, ToastService, UserInventoryService } from '../../service';
@@ -42,6 +43,8 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected reportIncludePhotos = true;
     protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring' | 'issues-unsafe' | 'issues-limiting';
     protected readonly inventoryQrEnabled;
+    protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
+    protected readonly decisionLabel = inventoryDecisionLabel;
 
     private readonly conditionLabels: Record<InventoryCondition, string> = {
         NEW: 'Nuovo',
