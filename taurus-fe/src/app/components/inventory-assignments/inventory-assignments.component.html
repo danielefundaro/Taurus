@@ -30,11 +30,11 @@
                     <td>
                         <div>Consegnata: {{ assignment.assignedQuantity }}</div>
                         <div>Residua: {{ assignment.outstandingQuantity }}</div>
-                        <p-tag [value]="assignment.status" severity="info" />
+                        <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" />
                     </td>
                     <td class="min-w-72">
                         @if (assignment.decision) {
-                            <p-tag [value]="assignment.decision.decision" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
+                            <p-tag [value]="decisionLabel(assignment.decision.decision)" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
                             @if (assignment.decision.rejectionReason) {
                                 <div class="text-sm mt-2">{{ assignment.decision.rejectionReason }}</div>
                             }
@@ -51,7 +51,7 @@
                         }
                         @for (itemReturn of assignment.returns; track itemReturn.id) {
                             <div class="text-sm mb-1">
-                                {{ itemReturn.quantity }} - {{ itemReturn.status }}
+                                {{ itemReturn.quantity }} - {{ returnStatusLabel(itemReturn.status) }}
                                 @if (itemReturn.status === 'REQUESTED') {
                                     <div class="flex flex-col gap-2 mt-2">
                                         <p-select [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="returnConditions[itemReturn.id]" placeholder="Conservazione alla riconsegna" />

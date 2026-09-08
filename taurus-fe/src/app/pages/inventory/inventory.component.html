@@ -1,7 +1,7 @@
 <p-confirmdialog />
 <p-fluid>
     <app-page-header [title]="personalView ? 'Il mio inventario' : 'Inventario'" [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
-        ><div pageActions>
+        ><div pageActions class="flex flex-wrap gap-2">
             @if (!personalView) {
                 <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
                 @if (inventoryQrEnabled()) {
@@ -125,7 +125,7 @@
                                         <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
                                         <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
                                         @if (entry.decision) {
-                                            <p-tag [value]="entry.decision.decision" [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" [rounded]="true" />
+                                            <p-tag [value]="decisionLabel(entry.decision.decision)" [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" [rounded]="true" />
                                         } @else {
                                             <p-tag value="Presa visione in attesa" severity="warn" [rounded]="true" />
                                         }
@@ -194,7 +194,7 @@
                                     <div cardBody>
                                         <div class="flex flex-wrap items-center gap-2">
                                             <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
-                                            <p-tag [value]="entry.status" severity="info" [rounded]="true" />
+                                            <p-tag [value]="assignmentStatusLabel(entry.status)" severity="info" [rounded]="true" />
                                             <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
                                         </div>
                                         <a class="text-base font-semibold block mt-2" [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>

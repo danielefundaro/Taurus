@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { first } from 'rxjs';
+import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryReturn } from '../../module';
 import { InventoryService, ToastService } from '../../service';
@@ -25,6 +26,9 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     protected reportIncludeAssigned = true;
     protected reportIncludeReturned = true;
     protected reportIncludePhotos = true;
+    protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
+    protected readonly decisionLabel = inventoryDecisionLabel;
+    protected readonly returnStatusLabel = inventoryReturnStatusLabel;
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },
         { label: 'Eccellente', value: 'EXCELLENT' },

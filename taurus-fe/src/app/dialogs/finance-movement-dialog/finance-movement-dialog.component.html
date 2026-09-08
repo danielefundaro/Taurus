@@ -15,10 +15,10 @@
             <p-select inputId="movement-account" [(ngModel)]="movement.accountId" [options]="activeAccounts" optionLabel="name" optionValue="id" placeholder="Seleziona" />
         </app-form-field>
         <app-form-field label="Data contabile" forId="movement-date" required hint="Determina l'esercizio di competenza.">
-            <p-datepicker inputId="movement-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" />
+            <p-datepicker inputId="movement-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" appendTo="body" />
         </app-form-field>
         <app-form-field label="Data valuta" forId="movement-value-date">
-            <p-datepicker inputId="movement-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" />
+            <p-datepicker inputId="movement-value-date" [(ngModel)]="valueDate" dateFormat="dd/mm/yy" [showClear]="true" appendTo="body" />
         </app-form-field>
         <app-form-field label="Importo" forId="movement-amount" required [error]="shell.validationAttempted ? amountError : undefined">
             <p-inputnumber inputId="movement-amount" [(ngModel)]="movement.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
