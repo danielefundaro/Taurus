@@ -24,6 +24,8 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE | [3](#tenant-feature-flags-evidenze) | [9](#tenant-feature-flags-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-onboarding-import` | [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md) | feature | approved | implemented | BE, FE | [2](#tenant-onboarding-import-evidenze) | [9](#tenant-onboarding-import-evidenze) | non rilasciata | 2026-09-07 |
 | `test-runbook` | [Runbook di test e qualificazione Taurus](runbook-test.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-08 |
+| `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-08 |
+| `track-pdf-processing` | [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-pdf-processing-evidenze) | [4](#track-pdf-processing-evidenze) | non rilasciata | 2026-09-08 |
 | `web-push-reminders` | [Promemoria eventi tramite Web Push](web-push-reminders-spec.md) | feature | approved | implemented | BE, FE | [3](#web-push-reminders-evidenze) | [4](#web-push-reminders-evidenze) | non rilasciata | 2026-09-06 |
 
 ## Evidenze
@@ -174,6 +176,22 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: nessuna
 - Test: nessuna
 - Note: Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati.
+
+<a id="track-parts-workspace-evidenze"></a>
+### Workspace per la gestione delle parti di una traccia
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Direzione UX approvata: workspace master-detail con gestione inline di strumenti e pagine, operazioni equivalenti al drag and drop, stato della bozza separato dai job PDF e requisiti responsive e accessibili. L'implementazione richiede identità stabile delle parti e controllo ottimistico della traccia.
+
+<a id="track-pdf-processing-evidenze"></a>
+### Elaborazione asincrona dei PDF delle tracce
+
+- Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TracksResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TracksResource.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImpl.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImpl.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/Receiver.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/Receiver.java), [`taurus-fe/src/app/pages/tracks/detail/detail.component.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.ts), [`taurus-fe/src/app/service/tracks.service.ts`](../taurus-fe/src/app/service/tracks.service.ts)
+- Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260824000001_add_relational_catalog.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260824000001_add_relational_catalog.xml), [`taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml)
+- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java), [`taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts)
+- Note: Il caricamento restituisce un job persistente con HTTP 202; il worker aggiorna TO_PROCESS, IN_PROGRESS, DONE ed ERROR. Il dettaglio traccia legge i job una sola volta in ngOnInit, ricostruisce lo stato dopo refresh e consente il retry degli errori senza polling.
 
 <a id="web-push-reminders-evidenze"></a>
 ### Promemoria eventi tramite Web Push
