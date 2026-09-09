@@ -44,4 +44,6 @@
     <include file="config/liquibase/changelog/20260906010000_calendar_feed_idempotency.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260906020000_onboarding_recovery.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260907000000_calendar_feed_audit.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260909000000_track_page_image_editing.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260909010000_track_page_multi_crop.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

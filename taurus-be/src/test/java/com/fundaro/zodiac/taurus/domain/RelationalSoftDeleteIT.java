@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
+import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
@@ -10,8 +11,8 @@ import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
-import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -190,6 +191,53 @@ class RelationalSoftDeleteIT {
                 assertThat(track.getScores()).hasSize(1);
             }
         );
+    }
+
+    @Test
+    void orderedMediaCanBeRebuiltWithAdditionalPagesWithoutTransientDuplicates() {
+        Long[] ids = transactionExecutor.execute(
+            tenantCode,
+            () -> {
+                Media source = persistMedia("source");
+                Media following = persistMedia("following");
+                Media firstCrop = persistMedia("crop-1");
+                Media secondCrop = persistMedia("crop-2");
+                Tracks track = audited(new Tracks(), "Track with crops");
+                track.getType().add("ORIGINAL");
+                SheetsMusic score = new SheetsMusic();
+                score.getMedia().add(source);
+                score.getMedia().add(following);
+                track.getScores().add(score);
+                entityManager.persist(track);
+                entityManager.flush();
+                return new Long[] { score.getId(), source.getId(), following.getId(), firstCrop.getId(), secondCrop.getId() };
+            }
+        );
+
+        transactionExecutor.execute(
+            tenantCode,
+            () -> {
+                SheetsMusic score = entityManager.find(SheetsMusic.class, ids[0]);
+                List<Media> replacement = List.of(
+                    entityManager.getReference(Media.class, ids[3]),
+                    entityManager.getReference(Media.class, ids[4]),
+                    entityManager.getReference(Media.class, ids[2])
+                );
+                score.getMedia().clear();
+                entityManager.flush();
+                score.getMedia().addAll(replacement);
+                entityManager.flush();
+            }
+        );
+
+        String schema = quote(schemaNameResolver.resolve(tenantCode));
+        List<Long> activeMedia = jdbcTemplate.queryForList(
+            "SELECT media_asset_id FROM " + schema + ".sheet_music_media WHERE sheet_music_id = ? AND deleted = FALSE ORDER BY display_order",
+            Long.class,
+            ids[0]
+        );
+        assertThat(activeMedia).containsExactly(ids[3], ids[4], ids[2]);
+        assertCounts(schema, "sheet_music_media", "sheet_music_id", ids[0], 3L, 2L);
     }
 
     @Test
@@ -374,6 +422,20 @@ class RelationalSoftDeleteIT {
         entity.setEditBy("test");
         entity.setEditDate(now);
         return entity;
+    }
+
+    private Media persistMedia(String name) {
+        String sha256 = UUID.randomUUID().toString().replace("-", "").repeat(2);
+        Media media = audited(new Media(), name);
+        media.setStorageKey("scores/" + UUID.randomUUID() + "/" + sha256 + ".png");
+        media.setOriginalFilename(name + ".png");
+        media.setMimeType("image/png");
+        media.setFileExtension("png");
+        media.setFileSize(1);
+        media.setSha256(sha256);
+        media.setStatus(MediaAssetStatus.READY);
+        entityManager.persist(media);
+        return media;
     }
 
     private void assertCounts(String schema, String table, String ownerColumn, Long ownerId, long active, long deleted) {

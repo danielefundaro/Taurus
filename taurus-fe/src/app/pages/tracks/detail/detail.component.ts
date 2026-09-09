@@ -9,9 +9,10 @@ import { TypeHandlerComponent } from '../../../components/type-handler/type-hand
 import { ScoreWorkspaceComponent } from './score-workspace/score-workspace.component';
 import { RoleEnums, StateEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
+import { ImageEditorDialogComponent } from '../../../dialogs/image-editor-dialog/image-editor-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { Instruments, InstrumentsCriteria, SheetsMusic, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
+import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackPageEditResult, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
 import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, ToastService, TracksService } from '../../../service';
 
@@ -160,6 +161,45 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected onScoresDirtyChange(dirty: boolean): void {
         this.scoresDirty = dirty;
         this.syncFormDirty();
+    }
+
+    protected openImageEditor(event: { scoreId: number; media: ChildrenEntities; pageNumber: number; scoreTitle: string }): void {
+        if (this.isDirty || this.track.id === undefined || this.track.version === undefined) return;
+        const ref = this.dialogService.open(ImageEditorDialogComponent, {
+            header: 'Modifica immagine',
+            width: '95vw',
+            height: '95vh',
+            closable: false,
+            focusOnShow: false,
+            data: {
+                trackId: this.track.id,
+                trackVersion: this.track.version,
+                scoreId: event.scoreId,
+                media: event.media,
+                pageNumber: event.pageNumber,
+                scoreTitle: event.scoreTitle
+            },
+            contentStyle: { overflow: 'hidden', padding: '0', height: 'calc(95vh - 54px)' }
+        });
+        ref.onClose.pipe(first()).subscribe((result: TrackPageEditResult | undefined) => {
+            if (!result) return;
+            this.applyImageEditResult(result);
+        });
+    }
+
+    private applyImageEditResult(result: TrackPageEditResult): void {
+        const scores = (this.track.scores ?? []).map((score) => {
+            if (score.id !== result.scoreId) return score;
+            const media = [...(score.media ?? [])];
+            const replacedIndex = media.findIndex((item) => item.index === result.replacedMediaId);
+            if (replacedIndex >= 0) media.splice(replacedIndex, 1, ...result.media);
+            return { ...score, media };
+        });
+        this.track = { ...this.track, version: result.trackVersion, scores };
+        this.toastService.success(
+            result.media.length > 1 ? 'Immagini create' : 'Immagine aggiornata',
+            result.media.length > 1 ? `La pagina è stata sostituita con ${result.media.length} nuove immagini.` : 'La nuova versione della pagina è già stata salvata.'
+        );
     }
 
     protected preview(): void {

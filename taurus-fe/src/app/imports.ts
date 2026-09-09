@@ -28,6 +28,7 @@ import { ScrollTopModule } from 'primeng/scrolltop';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
+import { SliderModule } from 'primeng/slider';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
@@ -98,6 +99,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ConfirmDialogModule,
         MessageModule,
         SkeletonModule,
+        SliderModule,
         PageHeaderComponent,
         ListToolbarComponent,
         ListRowComponent,
@@ -158,6 +160,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         ConfirmDialogModule,
         MessageModule,
         SkeletonModule,
+        SliderModule,
         PageHeaderComponent,
         ListToolbarComponent,
         ListRowComponent,

@@ -160,6 +160,15 @@
                             >
                                 <p-select [options]="moveTargets" optionLabel="label" optionValue="value" [(ngModel)]="moveTargetIndex" placeholder="Sposta in" ariaLabel="Parte di destinazione" appendTo="body" />
                                 <p-button label="Deseleziona" severity="secondary" text (onClick)="clearPageSelection()" />
+                                <p-button
+                                    label="Modifica immagine"
+                                    icon="pi pi-image"
+                                    severity="secondary"
+                                    outlined
+                                    [disabled]="!selectedMedia || trackDirty || selectedScore.id === undefined"
+                                    [pTooltip]="trackDirty ? 'Salva prima le modifiche alla traccia' : 'Modifica la pagina selezionata'"
+                                    (onClick)="selectedMedia && selectedScore && editImage(selectedScore, selectedMedia, selectedPageIndex)"
+                                />
                                 <p-button label="Sposta" icon="pi pi-arrow-right" [disabled]="moveTargetIndex === null" (onClick)="moveSelectedPages()" />
                                 <p-button label="Nuova parte" icon="pi pi-plus" severity="secondary" outlined (onClick)="createScoreFromPages()" />
                                 <p-button label="Dividi qui" icon="pi pi-arrows-h" severity="secondary" text [disabled]="selectedPageIndex < 0" (onClick)="confirmSplitAfter()" />
@@ -231,6 +240,17 @@
                                             />
                                         }
                                         <span>{{ media.name || 'Pagina ' + (pageIndex + 1) }}</span>
+                                        @if (!readOnly) {
+                                            <p-button
+                                                icon="pi pi-image"
+                                                [ariaLabel]="'Modifica immagine pagina ' + (pageIndex + 1)"
+                                                [pTooltip]="trackDirty ? 'Salva prima le modifiche alla traccia' : 'Modifica immagine'"
+                                                text
+                                                size="small"
+                                                [disabled]="trackDirty || score.id === undefined || saving"
+                                                (onClick)="$event.stopPropagation(); editImage(score, media, pageIndex)"
+                                            />
+                                        }
                                         <p-button icon="pi pi-search-plus" [ariaLabel]="'Apri anteprima pagina ' + (pageIndex + 1)" pTooltip="Apri anteprima" text size="small" (onClick)="$event.stopPropagation(); thumbnail.openPreview()" />
                                         @if (!readOnly) {
                                             <p-button

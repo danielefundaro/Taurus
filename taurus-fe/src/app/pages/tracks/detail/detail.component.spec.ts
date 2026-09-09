@@ -48,4 +48,29 @@ describe('Track DetailComponent', () => {
         component['onScoresDirtyChange'](false);
         expect(component.isDirtyForm).toBeTrue();
     });
+
+    it('replaces one source page with every generated crop image', () => {
+        const toastService = jasmine.createSpyObj('ToastService', ['success']);
+        const component = new DetailComponent(null!, null!, null!, null!, toastService, null!, null!, null!, null!);
+        component['track'] = {
+            id: 4,
+            version: 2,
+            scores: [{ id: 5, media: [{ index: 6 }, { index: 7 }], instruments: [] }]
+        } as Tracks;
+
+        component['applyImageEditResult']({
+            trackId: 4,
+            trackVersion: 3,
+            scoreId: 5,
+            replacedMediaId: 6,
+            media: [
+                { index: 8, name: 'page-edited-1.png', order: 1 },
+                { index: 9, name: 'page-edited-2.png', order: 2 }
+            ]
+        });
+
+        expect(component['track'].scores![0].media!.map((media) => media.index)).toEqual([8, 9, 7]);
+        expect(component['track'].version).toBe(3);
+        expect(toastService.success).toHaveBeenCalledWith('Immagini create', 'La pagina è stata sostituita con 2 nuove immagini.');
+    });
 });

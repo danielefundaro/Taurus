@@ -1,0 +1,250 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.image-editor {
+    display: flex;
+    min-height: 0;
+    height: 100%;
+    flex-direction: column;
+}
+
+.editor-header,
+.editor-footer,
+.tool-heading,
+.button-row,
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.editor-header,
+.editor-footer {
+    padding: 1rem 1.25rem;
+    border-color: var(--p-content-border-color);
+}
+
+.editor-header {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.editor-header h3,
+.tool-section h4 {
+    margin: 0;
+}
+
+.eyebrow {
+    color: var(--p-primary-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.editor-layout {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) minmax(28rem, 32vw);
+}
+
+.canvas-panel {
+    display: grid;
+    min-width: 0;
+    overflow: auto;
+    place-items: center;
+    padding: 1.25rem;
+    background: var(--p-content-hover-background);
+}
+
+canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 68vh;
+    background: white;
+    box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 18%);
+}
+
+canvas.crop-active {
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.tools-panel {
+    min-width: 0;
+    overflow: auto;
+    padding: 1rem;
+    border-left: 1px solid var(--p-content-border-color);
+}
+
+.tool-section {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.tool-heading {
+    justify-content: space-between;
+}
+
+.button-row > * {
+    flex: 1;
+}
+
+:host ::ng-deep .rotate-right-button .p-button-icon {
+    transform: scaleX(-1);
+}
+
+.crop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.crop-grid > * {
+    min-width: 0;
+}
+
+:host ::ng-deep .tools-panel .p-inputnumber,
+:host ::ng-deep .tools-panel .p-inputnumber-input {
+    width: 100%;
+    min-width: 0;
+}
+
+.crop-actions {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.crop-zone-list {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.crop-zone-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 0.5rem;
+}
+
+.crop-zone-row.active {
+    border-color: var(--p-primary-color);
+    background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+}
+
+.crop-zone-select {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.crop-zone-select span {
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.check-row {
+    min-height: 2.75rem;
+}
+
+.slider-with-value {
+    position: relative;
+    padding-top: 1.9rem;
+}
+
+.slider-value {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: clamp(1.35rem, var(--slider-position), calc(100% - 1.35rem));
+    min-width: 2rem;
+    padding: 0.2rem 0.45rem;
+    transform: translateX(-50%);
+    border-radius: var(--p-border-radius-sm, 0.375rem);
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    pointer-events: none;
+}
+
+.slider-value::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border: 0.3rem solid transparent;
+    border-top-color: var(--p-primary-color);
+    content: '';
+}
+
+.slider-with-value p-slider {
+    display: block;
+}
+
+.editor-footer {
+    border-top: 1px solid var(--p-content-border-color);
+}
+
+.footer-spacer {
+    flex: 1;
+}
+
+.hidden,
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .editor-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .editor-layout {
+        display: flex;
+        overflow: auto;
+        flex-direction: column;
+    }
+
+    .canvas-panel {
+        min-height: 45vh;
+        overflow: visible;
+    }
+
+    .tools-panel {
+        overflow: visible;
+        border-top: 1px solid var(--p-content-border-color);
+        border-left: 0;
+    }
+
+    .editor-footer {
+        flex-wrap: wrap;
+    }
+}
