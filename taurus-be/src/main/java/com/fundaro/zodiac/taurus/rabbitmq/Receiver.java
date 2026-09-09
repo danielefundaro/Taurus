@@ -13,6 +13,7 @@ import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
+import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
@@ -40,13 +41,15 @@ public class Receiver {
     private final TenantStorageService tenantStorageService;
     private final MediaService mediaService;
     private final ObjectMapper objectMapper;
+    private final ImageTransformationService imageTransformationService;
 
     public Receiver(
         QueueUploadFilesService queueUploadFilesService,
         TracksService tracksService,
         PdfProcessingService pdfProcessingService,
         TenantStorageService tenantStorageService,
-        MediaService mediaService
+        MediaService mediaService,
+        ImageTransformationService imageTransformationService
     ) {
         this.tracksService = tracksService;
         this.pdfProcessingService = pdfProcessingService;
@@ -54,6 +57,7 @@ public class Receiver {
         this.queueUploadFilesService = queueUploadFilesService;
         this.tenantStorageService = tenantStorageService;
         this.mediaService = mediaService;
+        this.imageTransformationService = imageTransformationService;
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -95,7 +99,7 @@ public class Receiver {
             Path temporaryDirectory = tenantStorageService.createTemporaryDirectory(tenantCode, "pdf-processing");
             try {
                 log.info("Converting uploaded media asset {} in tenant {}", upload.getSourceMediaAssetId(), tenantCode);
-                List<String> filesPath = Converter.pdfToImage(source.bytes(), source.fileName(), temporaryDirectory.toString(), annotations);
+                List<String> filesPath = Converter.pdfToImage(source.bytes(), source.fileName(), temporaryDirectory.toString(), annotations, imageTransformationService);
                 if (filesPath.stream().noneMatch(Objects::nonNull)) {
                     throw new IllegalStateException("Uploaded PDF did not produce any page");
                 }

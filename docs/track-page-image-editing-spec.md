@@ -14,11 +14,11 @@ Implementazione completata e verificata il **9 settembre 2026**.
 | Editing post-caricamento | Le immagini già associate alle parti possono essere analizzate, modificate e salvate senza ripetere il caricamento del PDF. |
 | Accesso | L'editor è raggiungibile dalle pagine della sezione «Parti» e dalla selezione singola nel workspace. |
 | Anteprima pagina | Il comando «Apri anteprima» usa il trigger nativo di `p-image`, risultando compatibile con componenti `OnPush`. |
-| Orientamento | Rotazione a sinistra e destra con icone visibili; l'icona destra è specchiata per rappresentare correttamente il verso. |
+| Orientamento | Rotazione a sinistra e destra con icone visibili; l'icona destra è specchiata. Il raddrizzamento è uno slider da 0° a 360° con passo 0,1° e valore visibile; lo sfondo mantiene il formato della pagina, il contenuto conserva la propria scala e le porzioni esterne vengono tagliate. |
 | Miglioramento | Scala di grigi, contrasto automatico, luminosità, contrasto e soglia bianco e nero; gli slider mostrano il valore numerico sopra il cursore. |
 | Multi-crop | Una pagina può contenere fino a otto zone ordinate e produrre da una a otto nuove immagini. |
 | Preset A4/A5 | Sono disponibili le divisioni «Sinistra / destra» e «Alto / basso» per creare due metà ordinate. |
-| Crop manuale | Le zone possono essere disegnate sul canvas, selezionate dall'immagine o dall'elenco, eliminate e corrette tramite campi percentuali. |
+| Crop manuale | Le zone possono essere disegnate sul canvas con anteprima live del rettangolo, selezionate dall'immagine o dall'elenco, eliminate e corrette tramite campi percentuali. |
 | Ridimensionamento visuale | La zona attiva mostra otto maniglie: quattro angolari e quattro laterali. I bordi possono essere trascinati con cursori direzionali, aggiornamento in tempo reale, limiti dell'immagine e lato minimo del 2%. |
 | Layout editor | La spalla strumenti destra usa almeno `28rem`, può arrivare al 32% della viewport e contiene campi fluidi senza scroll orizzontale. |
 | Persistenza | Ogni risultato è un nuovo PNG `media_asset`; la pagina sorgente è sostituita dai risultati nello stesso punto e nel loro ordine. |
@@ -64,7 +64,7 @@ Una stessa immagine può essere referenziata da più parti, per esempio dopo una
 La prima versione comprende strumenti adatti a scansioni di spartiti e applicati in un ordine fisso, indipendente dall'ordine dei clic:
 
 1. rotazione a passi di 90 gradi;
-2. raddrizzamento fine entro l'intervallo da -5 a +5 gradi;
+2. raddrizzamento tramite slider nell'intervallo da 0 a 360 gradi, con passo di 0,1 gradi;
 3. una o più zone di ritaglio rettangolari, manuali, suggerite dall'analisi o create con i preset metà sinistra/destra e alta/bassa;
 4. conversione in scala di grigi;
 5. regolazione manuale di luminosità e contrasto;
@@ -86,6 +86,8 @@ L'analisi non usa modelli generativi e non interpreta note, pentagrammi, testi o
 
 I suggerimenti non modificano automaticamente la pagina. L'utente li applica singolarmente o con «Applica suggerimenti» e può sempre confrontare prima e dopo.
 
+L'analizzatore continua a esprimere l'inclinazione stimata come correzione breve con segno. Il frontend la normalizza nell'intervallo dello slider: per esempio `-0,8°` diventa l'angolo equivalente `359,2°`. `360°` è equivalente a `0°` e non costituisce da solo una modifica da salvare.
+
 ### Coordinate e ordine delle trasformazioni
 
 Ogni zona di crop usa coordinate normalizzate nell'intervallo `[0, 1]`, riferite all'immagine dopo la rotazione a 90 gradi e il raddrizzamento fine. Il backend accetta al massimo otto zone, ne conserva l'ordine e rifiuta rettangoli fuori limite o inferiori al 2 per cento per lato. In assenza di zone le altre trasformazioni producono una sola immagine completa.
@@ -99,6 +101,10 @@ decode -> orientamento -> raddrizzamento -> N crop
 ```
 
 L'ordine è parte del contratto e deve essere condiviso da preview frontend e renderer backend. Una versione numerica della ricetta (`recipeVersion`) consente di evolvere l'algoritmo senza reinterpretare richieste precedenti.
+
+Per angoli non ortogonali il renderer conserva le dimensioni e il rapporto della pagina determinati dall'orientamento a 90°. Anche il contenuto conserva la propria scala: le porzioni che, dopo la rotazione, oltrepassano lo sfondo bianco fisso vengono ritagliate. Preview e PNG autorevole applicano lo stesso criterio.
+
+Il raddrizzamento non applica quindi alcun comportamento _fit-to-canvas_: non riduce l'immagine per renderla interamente visibile e non amplia il canvas per contenere il rettangolo ruotato. Il centro dell'immagine coincide con il centro del canvas; la rotazione avviene attorno a tale punto e l'area rimasta scoperta viene riempita di bianco. Questo mantiene leggibile il contenuto alla scala di partenza e rende esplicita, già nell'anteprima, l'eventuale perdita ai bordi prima del salvataggio.
 
 ## Esperienza utente
 
@@ -128,6 +134,7 @@ Su viewport inferiori a 768 pixel il layout diventa verticale e il pannello stru
 #### Interazione con le zone di ritaglio
 
 - «Disegna zona» abilita il puntatore a croce e crea una zona trascinando sull'anteprima modificata.
+- Durante il trascinamento viene mostrato il rettangolo in costruzione con riempimento semitrasparente, bordo arancione tratteggiato e numero della futura zona; il calcolo funziona in tutte le direzioni di trascinamento.
 - I preset sostituiscono le zone correnti con due metà ordinate, verticali oppure orizzontali.
 - La zona attiva è evidenziata in verde; le altre zone sono evidenziate in blu e tutte mostrano il numero d'ordine.
 - Un clic dentro una zona la rende attiva. La stessa selezione è disponibile nell'elenco laterale.
@@ -217,7 +224,7 @@ Body indicativo:
   "expectedTrackVersion": 7,
   "recipeVersion": 1,
   "rotationQuarterTurns": 1,
-  "deskewDegrees": -0.8,
+  "deskewDegrees": 359.2,
   "crops": [
     { "x": 0.0, "y": 0.0, "width": 0.5, "height": 1.0 },
     { "x": 0.5, "y": 0.0, "width": 0.5, "height": 1.0 }
@@ -380,6 +387,7 @@ I log correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, 
 - visibilità dell'azione per ruolo e disabilitazione con bozza della traccia;
 - apertura da card e selezione singola;
 - applicazione/reset strumenti, confronto e riepilogo ricetta;
+- slider di raddrizzamento 0°–360° con passo 0,1°, normalizzazione dei suggerimenti negativi, canvas e scala del contenuto fissi, senza adattamento automatico dell'immagine;
 - parità della preview rispetto a fixture del backend entro tolleranza visuale;
 - chiusura con conferma, retry che conserva la ricetta e gestione `409`;
 - aggiornamento immutabile della pagina sorgente con tutti i risultati, della versione traccia e delle miniature;
@@ -414,18 +422,19 @@ In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini 
 
 1. Un ruolo autorizzato può aprire l'editor da una pagina persistita nella scheda Parti.
 2. L'editor offre rotazione, raddrizzamento, crop e miglioramenti tonali con preview e reset.
-3. La zona attiva mostra otto maniglie trascinabili e può essere regolata anche tramite campi percentuali.
-4. L'analisi propone correzioni tecniche senza applicarle automaticamente né interpretare contenuto musicale.
-5. «Salva immagine» crea un asset per ogni zona e sostituisce soltanto l'occorrenza selezionata con i risultati ordinati.
-6. Una pagina condivisa da due parti cambia soltanto nella parte esplicitamente modificata.
-7. Miniatura, anteprima e stampa usano il nuovo asset subito dopo il salvataggio.
-8. Il salvataggio è atomico, idempotente e protetto da versione; errori e conflitti non perdono la ricetta locale.
-9. La sostituzione multipla non viola gli indici unici della relazione ordinata `sheet_music_media`.
-10. Le bozze strutturali della traccia devono essere salvate prima dell'editing immediato dell'immagine.
-11. Utenti e utenti esterni non vedono azioni di modifica e non possono invocare le API.
-12. Tenant, path e contenuti restano isolati; input sovradimensionati o non validi sono rifiutati in modo controllato.
-13. Tutti gli strumenti sono utilizzabili da tastiera e su viewport mobile.
-14. Test automatici coprono trasformazioni, concorrenza, idempotenza, compensazione storage, ruoli e tenant isolation.
+3. Durante il raddrizzamento fine il canvas conserva le dimensioni iniziali, l'immagine non viene ridimensionata per rientrare nel canvas e il contenuto eccedente viene tagliato allo stesso modo in anteprima e nel PNG salvato.
+4. La zona attiva mostra otto maniglie trascinabili e può essere regolata anche tramite campi percentuali.
+5. L'analisi propone correzioni tecniche senza applicarle automaticamente né interpretare contenuto musicale.
+6. «Salva immagine» crea un asset per ogni zona e sostituisce soltanto l'occorrenza selezionata con i risultati ordinati.
+7. Una pagina condivisa da due parti cambia soltanto nella parte esplicitamente modificata.
+8. Miniatura, anteprima e stampa usano il nuovo asset subito dopo il salvataggio.
+9. Il salvataggio è atomico, idempotente e protetto da versione; errori e conflitti non perdono la ricetta locale.
+10. La sostituzione multipla non viola gli indici unici della relazione ordinata `sheet_music_media`.
+11. Le bozze strutturali della traccia devono essere salvate prima dell'editing immediato dell'immagine.
+12. Utenti e utenti esterni non vedono azioni di modifica e non possono invocare le API.
+13. Tenant, path e contenuti restano isolati; input sovradimensionati o non validi sono rifiutati in modo controllato.
+14. Tutti gli strumenti sono utilizzabili da tastiera e su viewport mobile.
+15. Test automatici coprono trasformazioni, concorrenza, idempotenza, compensazione storage, ruoli e tenant isolation.
 
 ## Evidenze di verifica del thread
 
@@ -436,7 +445,8 @@ In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini 
 | Provisioning tenant e applicazione delle migration con PostgreSQL 17 | superato |
 | Regressione PostgreSQL per sostituzione di una pagina con più risultati ordinati | superata |
 | Test frontend mirati di editor, dettaglio, miniature, workspace e servizio HTTP | 17 superati dopo il multi-crop |
-| Test specifici dell'editor dopo l'introduzione delle maniglie | 4 superati |
+| Test specifici dell'editor dopo maniglie, anteprima live e slider angolare | 6 superati |
+| Test del renderer backend, inclusi sfondo fisso, ritaglio agli angoli ed equivalenza 360°/0° | 7 superati |
 | Build Angular di produzione | superata |
 | Formattazione Prettier, Checkstyle, parsing XML e `git diff --check` | superati |
 

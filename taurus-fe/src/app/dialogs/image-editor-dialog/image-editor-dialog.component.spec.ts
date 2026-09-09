@@ -13,7 +13,16 @@ describe('ImageEditorDialogComponent', () => {
         expect(component['sliderPosition'](0, -100, 100)).toBe(50);
         expect(component['sliderPosition'](100, -100, 100)).toBe(100);
         expect(component['sliderPosition'](300, 0, 255)).toBe(100);
+        expect(component['sliderPosition'](180, 0, 360)).toBe(50);
         expect(component['sliderPosition'](null, 0, 255)).toBe(0);
+    });
+
+    it('normalizes negative deskew suggestions to the zero-to-360 range', () => {
+        const component = createComponent();
+
+        expect(component['normalizeAngle'](-0.8)).toBeCloseTo(359.2);
+        expect(component['normalizeAngle'](360)).toBe(0);
+        expect(component['isZeroAngle'](360)).toBeTrue();
     });
 
     it('creates two ordered crop zones with the split presets', () => {
@@ -63,5 +72,16 @@ describe('ImageEditorDialogComponent', () => {
         expect(bounded.y).toBe(0.2);
         expect(bounded.width).toBeCloseTo(0.9);
         expect(bounded.height).toBeCloseTo(0.5);
+    });
+
+    it('builds the live crop rectangle in every drag direction', () => {
+        const component = createComponent();
+
+        const draft = component['cropBetween']({ x: 0.8, y: 0.7 }, { x: 0.2, y: 0.1 });
+
+        expect(draft.x).toBe(0.2);
+        expect(draft.y).toBe(0.1);
+        expect(draft.width).toBeCloseTo(0.6);
+        expect(draft.height).toBeCloseTo(0.6);
     });
 });
