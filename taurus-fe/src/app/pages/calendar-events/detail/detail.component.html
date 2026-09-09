@@ -24,7 +24,13 @@
     ></app-page-header>
 
     @if (eventPreparationEnabled()) {
-        <app-detail-section id="preparation" title="Preparazione operativa" description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento." [dirty]="isDirtyPreparation">
+        <app-detail-section
+            id="preparation"
+            title="Preparazione operativa"
+            description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
+            [dirty]="isDirtyPreparation"
+            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]"
+        >
             @if (preparation) {
                 <div class="flex flex-col gap-5">
                     <div class="flex flex-wrap items-center justify-between gap-4 rounded border border-surface-200 dark:border-surface-700 p-4" aria-live="polite">
@@ -155,27 +161,38 @@
                 id="preparation-program"
                 title="Programma"
                 [count]="programDraft.length"
-                description="Scaletta musicale dell’occorrenza. Ogni salvataggio è atomico e indipendente dai dati evento."
+                description="Collega un album per usare le sue tracce, nel relativo ordine, come scaletta dell’occorrenza."
                 [dirty]="isDirtyProgram"
                 *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
             >
                 <div class="flex flex-col gap-4">
                     @if (canManageProgram) {
-                        <div class="flex flex-col sm:flex-row gap-3 items-end">
-                            <app-form-field class="flex-1" label="Brano da aggiungere" forId="preparationTrack"
-                                ><p-autocomplete
-                                    inputId="preparationTrack"
-                                    class="w-full"
-                                    inputStyleClass="w-full"
-                                    [(ngModel)]="selectedTrack"
-                                    [suggestions]="availableTracks"
-                                    (completeMethod)="searchPreparationTracks($event)"
-                                    optionLabel="name"
-                                    [forceSelection]="true"
-                                    [dropdown]="true"
-                                    placeholder="Cerca nel catalogo"
-                            /></app-form-field>
-                            <p-button label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedTrack" (onClick)="addProgramEntry()" />
+                        <div class="flex flex-col gap-[0.4rem]">
+                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                                <app-form-field class="flex-1" label="Album da collegare" forId="preparationAlbum"
+                                    ><p-autocomplete
+                                        inputId="preparationAlbum"
+                                        class="w-full"
+                                        inputStyleClass="w-full"
+                                        [(ngModel)]="selectedAlbum"
+                                        [suggestions]="availableAlbums"
+                                        (completeMethod)="searchPreparationAlbums($event)"
+                                        optionLabel="name"
+                                        [forceSelection]="true"
+                                        [dropdown]="true"
+                                        placeholder="Cerca un album"
+                                    >
+                                        <ng-template let-album #item>
+                                            <div class="flex w-full items-center justify-between gap-3">
+                                                <span>{{ album.name }}</span>
+                                                <small class="text-surface-500">{{ album.tracks?.length ?? 0 }} {{ album.tracks?.length === 1 ? 'traccia' : 'tracce' }}</small>
+                                            </div>
+                                        </ng-template>
+                                    </p-autocomplete></app-form-field
+                                >
+                                <p-button label="Collega album" icon="pi pi-link" severity="secondary" [disabled]="!selectedAlbum" (onClick)="connectAlbum()" />
+                            </div>
+                            <small class="text-muted-color">La scaletta attuale verrà sostituita dalle tracce dell’album.</small>
                         </div>
                     }
                     @if (programDraft.length) {
@@ -183,8 +200,10 @@
                             @for (row of programDraft; track $index; let i = $index) {
                                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center rounded border border-surface-200 dark:border-surface-700 p-3">
                                     <div class="md:col-span-3">
-                                        <strong>{{ i + 1 }}. {{ row.trackName }}</strong
-                                        ><small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
+                                        <strong>{{ i + 1 }}. {{ row.trackName }}</strong>
+                                        @if (row.trackState) {
+                                            <small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
+                                        }
                                     </div>
                                     <div class="md:col-span-2">
                                         <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" [disabled]="!canManageProgram" (ngModelChange)="markProgramDirty()" />
@@ -201,7 +220,7 @@
                             }
                         </div>
                     } @else {
-                        <app-empty-state compact icon="pi pi-list" title="Programma vuoto" message="Aggiungi almeno un brano per soddisfare la verifica." />
+                        <app-empty-state compact icon="pi pi-list" title="Programma vuoto" message="Collega un album con almeno una traccia per soddisfare la verifica." />
                     }
                     @if (canManageProgram) {
                         <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>

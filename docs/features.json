@@ -544,6 +544,7 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/SheetsMusicDTO.java",
           "taurus-fe/src/app/pages/tracks/detail/detail.component.ts",
+          "taurus-fe/src/app/pages/tracks/detail/media-thumbnail/media-thumbnail.component.ts",
           "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts"
         ],
         "migrations": [],
@@ -554,9 +555,9 @@
           "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.operations.spec.ts"
         ]
       },
-      "notes": "Disponibile l'incremento master-detail con editing inline, organizzazione delle pagine, undo, responsive, identità persistente delle parti e controllo ottimistico compatibile con i payload legacy. Restano da completare i gate E2E, prestazionali e di tenant isolation previsti dalla specifica.",
+      "notes": "Disponibile l'incremento master-detail con editing inline, organizzazione delle pagine, undo, responsive, identità persistente delle parti e controllo ottimistico compatibile con i payload legacy. La scheda File PDF è riservata a super amministratori, amministratori e archivisti. Restano da completare i gate E2E, prestazionali e di tenant isolation previsti dalla specifica.",
       "release": null,
-      "lastVerifiedOn": "2026-09-08"
+      "lastVerifiedOn": "2026-09-09"
     },
     {
       "id": "track-pdf-processing",

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.apache.commons.io.FilenameUtils;
@@ -207,7 +208,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         return dto.getScores().stream()
             .sorted(Comparator.comparing(score -> score.getOrder() == null ? Long.MAX_VALUE : score.getOrder()))
             .map(score -> resolveScore(score, existingById))
-            .toList();
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private SheetsMusic resolveScore(SheetsMusicDTO dto, Map<Long, SheetsMusic> existingById) {
@@ -222,12 +223,14 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         }
         score.setDescription(dto.getDescription());
         score.setNeedsReview(Boolean.TRUE.equals(dto.getNeedsReview()));
-        score.setMedia(dto.getMedia() == null ? List.of() : dto.getMedia().stream()
+        score.setMedia(dto.getMedia() == null ? new ArrayList<>() : dto.getMedia().stream()
             .sorted(Comparator.comparing(this::orderOf))
-            .map(ref -> mediaRepository.getReferenceById(ref.getIndex())).toList());
-        score.setInstruments(dto.getInstruments() == null ? List.of() : dto.getInstruments().stream()
+            .map(ref -> mediaRepository.getReferenceById(ref.getIndex()))
+            .collect(Collectors.toCollection(ArrayList::new)));
+        score.setInstruments(dto.getInstruments() == null ? new ArrayList<>() : dto.getInstruments().stream()
             .sorted(Comparator.comparing(this::orderOf))
-            .map(ref -> instrumentsRepository.getReferenceById(ref.getIndex())).toList());
+            .map(ref -> instrumentsRepository.getReferenceById(ref.getIndex()))
+            .collect(Collectors.toCollection(ArrayList::new)));
         return score;
     }
 
