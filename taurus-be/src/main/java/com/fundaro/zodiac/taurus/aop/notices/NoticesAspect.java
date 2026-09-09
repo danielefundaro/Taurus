@@ -337,8 +337,7 @@ public class NoticesAspect {
         return result;
     }
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.setAvailability(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl.setAvailability(..))")
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.setAvailability(..))")
     private Object onSetAvailability(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         Boolean available = getBoolean(joinPoint);
@@ -366,8 +365,7 @@ public class NoticesAspect {
         return result;
     }
 
-    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.cancelAvailability(..)) || " +
-        "execution(public * com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl.cancelAvailability(..))")
+    @Around("execution(public * com.fundaro.zodiac.taurus.service.impl.CalendarEventsServiceImpl.cancelAvailability(..))")
     private Object onCancelAvailability(ProceedingJoinPoint joinPoint) throws Throwable {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         Object result = joinPoint.proceed();

@@ -11,12 +11,14 @@ import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
+import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
@@ -184,6 +186,52 @@ class TracksServiceImplTest {
         assertThat(entity.getScores()).hasSize(2);
         assertThat(entity.getScores().get(0)).isSameAs(existing);
         assertThat(entity.getScores().get(1).getId()).isNull();
+    }
+
+    @Test
+    void keepsResolvedScoreCollectionsMutableForHibernateMerge() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        MediaRepository mediaRepository = mock(MediaRepository.class);
+        InstrumentsRepository instrumentsRepository = mock(InstrumentsRepository.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            mock(QueueUploadFilesService.class),
+            mediaRepository,
+            instrumentsRepository,
+            mock(Sender.class)
+        );
+        Tracks entity = new Tracks();
+        entity.setId(8L);
+        SheetsMusic existing = new SheetsMusic();
+        existing.setId(21L);
+        entity.getScores().add(existing);
+        TracksDTO request = new TracksDTO();
+        SheetsMusicDTO score = new SheetsMusicDTO();
+        score.setId(21L);
+        ChildrenEntitiesDTO media = new ChildrenEntitiesDTO();
+        media.setIndex(58L);
+        score.setMedia(Set.of(media));
+        score.setInstruments(Set.of());
+        request.setScores(Set.of(score));
+
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(entity));
+        when(mediaRepository.getReferenceById(58L)).thenReturn(mock(Media.class));
+        when(repository.save(entity)).thenAnswer(invocation -> {
+            Tracks saved = invocation.getArgument(0);
+            saved.getScores().clear();
+            existing.getMedia().clear();
+            existing.getInstruments().clear();
+            return saved;
+        });
+        when(mapper.toDto(entity)).thenReturn(new TracksDTO());
+
+        service.update(8L, request, authentication());
+
+        assertThat(entity.getScores()).isEmpty();
+        assertThat(existing.getMedia()).isEmpty();
+        assertThat(existing.getInstruments()).isEmpty();
     }
 
     @Test

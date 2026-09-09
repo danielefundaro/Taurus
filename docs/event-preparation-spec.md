@@ -7,7 +7,7 @@ La funzionalità estende il dettaglio calendario esistente e coordina catalogo m
 ID catalogo: `event-preparation`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Implementazione completata il 6 settembre 2026. La verifica comprende viste REST minimizzate per ruolo, selettori frontend paginati, conferme economiche isolate sotto `/api/finance/**`, notifiche outbox idempotenti e integrazione con la dashboard operativa senza duplicare le disponibilità mancanti.
+Implementazione completata il 6 settembre 2026. La verifica comprende viste REST minimizzate per ruolo, selettori frontend paginati, conferme economiche isolate sotto `/api/finance/**`, notifiche outbox idempotenti e integrazione con la dashboard operativa senza duplicare le disponibilità mancanti. Il contratto di disponibilità personale e le relative autorizzazioni sono stati riallineati all'implementazione il 9 settembre 2026.
 
 ## Obiettivo
 
@@ -436,7 +436,7 @@ Regole:
 
 | Operazione | Super Admin | Admin | Tesoriere | Archivista | Utente | Utente esterno |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Vedere indicatore completo | sì | sì | solo economia | programma e catalogo | vista personale | solo evento `PUBLIC` |
+| Vedere il riepilogo “Preparazione operativa” | sì | sì | solo economia | programma e catalogo | no | no |
 | Configurare requisiti | sì | sì | no | no | no | no |
 | Gestire programma | sì | sì | no | sì | no | no |
 | Vedere tutti gli spartiti | sì | sì | no | sì | no | no |
@@ -448,6 +448,8 @@ Regole:
 | Gestire e confermare presenze | sì | sì | no | no | no | no |
 
 La sessione corrente continua a usare un solo ruolo effettivo. I dati restituiti dipendono dal ruolo nel token; la pagina non carica sezioni non autorizzate per poi nasconderle con CSS.
+
+Il riepilogo **Preparazione operativa**, con percentuale di completamento, verifiche e criticità aggregate, non viene mostrato nelle sessioni `ROLE_USER` e `ROLE_USER_EXTERNAL`: questi ruoli non possono modificare configurazione, programma o conferme operative e la sezione avrebbe valore soltanto passivo. Restano separate e visibili, secondo lo stato e la visibilità dell'evento, le aree su cui il partecipante può consultare informazioni o intervenire direttamente: programma pubblicato in sola lettura, spartiti autorizzati, disponibilità personale e promemoria.
 
 ## API REST
 
@@ -483,6 +485,26 @@ GET /api/external/calendar-events/{eventId}/preparation
 ```
 
 Le risposte applicano rispettivamente visibilità `COMPLETE/PUBLIC` e `PUBLIC`, filtrano spartiti per gli strumenti dell'utente e contengono soltanto la propria disponibilità. Non espongono punteggi economici, altri utenti o assegnazioni inventario.
+
+### Disponibilità personale
+
+La risposta dell'utente per una singola occorrenza è un valore a tre stati:
+
+- `AVAILABLE`: disponibile;
+- `UNAVAILABLE`: non disponibile;
+- assenza della risposta: nessuna disponibilità ancora espressa oppure risposta annullata.
+
+Impostare nuovamente la disponibilità aggiorna la risposta esistente e la relativa data; non crea una seconda risposta per la stessa coppia evento/utente. L'annullamento rimuove la risposta corrente e riporta l'utente allo stato “nessuna risposta”. Entrambe sono operazioni immediate, indipendenti dagli altri salvataggi della pagina.
+
+| Ambito e ruolo effettivo | Impostare disponibile/non disponibile | Annullare la risposta | Visibilità evento |
+| --- | --- | --- | --- |
+| `ROLE_SUPER_ADMIN`, `ROLE_ADMIN`, `ROLE_ARCHIVIST` | `PATCH /api/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/calendar-events/{id}/availability/cancel` | vista amministrativa consentita al ruolo |
+| `ROLE_USER` | `PATCH /api/user/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/user/calendar-events/{id}/availability/cancel` | eventi `COMPLETE` e `PUBLIC` |
+| `ROLE_USER_EXTERNAL` | `PATCH /api/external/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/external/calendar-events/{id}/availability/cancel` | solo eventi `PUBLIC` |
+
+Il verbo dell'annullamento è `PATCH`, non `DELETE`: si tratta di una transizione del valore a tre stati e non della cancellazione logica dell'evento. I matcher Spring Security dichiarano esplicitamente sia l'endpoint di impostazione sia quello `/cancel` prima delle regole `denyAll` delle viste personali. Un ruolo valido per una vista non ottiene automaticamente accesso alle altre viste; ruolo insufficiente produce `403`, evento non visibile o appartenente a un altro tenant produce `404`.
+
+Le stesse operazioni applicate alle occorrenze future di una serie sono definite in [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md#disponibilità-bulk). Gli effetti della risposta sui promemoria personali sono definiti in [Promemoria eventi tramite Web Push](web-push-reminders-spec.md#disponibilità-e-promemoria-personale).
 
 ### Vista economica
 
@@ -714,7 +736,7 @@ Usa la pagina come workspace musicale: programma, stato tracce, spartiti e coper
 
 ### Utente e utente esterno
 
-Vedono informazioni evento consentite, programma pubblicato, propri spartiti, disponibilità personale e promemoria. Non vedono la percentuale amministrativa completa, perché rivelerebbe indirettamente problemi economici o materiali; ricevono soltanto messaggi pertinenti come “Il programma non è ancora disponibile”.
+Vedono informazioni evento consentite, programma pubblicato in sola lettura, propri spartiti, disponibilità personale e promemoria. L'intera sezione **Preparazione operativa** è esclusa per `ROLE_USER` e `ROLE_USER_EXTERNAL`, compresi percentuale, stato aggregato e avvisi di preparazione, perché non offre azioni pertinenti a questi ruoli e potrebbe rivelare indirettamente problemi economici o materiali. Restano visibili soltanto messaggi contestuali alle sezioni personali, come “Il programma non è ancora disponibile”.
 
 ### Tesoriere
 
@@ -740,13 +762,16 @@ Le notifiche sono prodotte tramite l'outbox generalizzata e non dal frontend.
 | Evento | Destinatari | Regola |
 | --- | --- | --- |
 | programma pubblicato o modificato | utenti disponibili autorizzati | una notifica per salvataggio, solo evento visibile e futuro |
+| disponibilità confermata | admin e super admin | una notifica dopo l'aggiornamento riuscito |
+| indisponibilità comunicata | admin e super admin | una notifica dopo l'aggiornamento riuscito |
+| risposta di disponibilità annullata | admin e super admin | una notifica dopo l'annullamento riuscito |
 | materiale collegato a un'assegnazione | assegnatario e admin | include oggetto, quantità ed evento |
 | conferma materiale invalidata | admin e super admin | soltanto se evento entro 7 giorni |
 | soglia partecipanti non raggiunta | admin e super admin | una volta alla scadenza disponibilità |
 | presenze da confermare | admin e super admin | una volta dopo la fine, se richieste |
 | chiusura economica aperta | admin, super admin e tesoriere | una volta dopo la fine, se richiesta |
 
-Per evitare spam, il salvataggio atomico del programma genera un solo evento anche se contiene molti riordini. I promemoria a scadenza usano chiavi evento deterministiche composte da tipo, evento e istante di scadenza; l'outbox impedisce duplicazioni senza rendere persistito lo stato di prontezza autorevole.
+Per evitare spam, il salvataggio atomico del programma genera un solo evento anche se contiene molti riordini. Anche ogni comando di disponibilità genera una sola notifica: il punto di pubblicazione intercetta esclusivamente il servizio core transazionale, non le facciate per utenti interni o esterni che lo delegano. In questo modo l'evento outbox viene registrato nella stessa transazione della modifica e non viene pubblicato una seconda volta fuori transazione. I promemoria a scadenza usano chiavi evento deterministiche composte da tipo, evento e istante di scadenza; l'outbox impedisce duplicazioni senza rendere persistito lo stato di prontezza autorevole.
 
 I messaggi utente non contengono importi, risposte altrui o materiale assegnato ad altre persone.
 
@@ -873,6 +898,11 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 - risposte mancanti e indisponibilità;
 - copertura strumentale soltanto informativa;
 - nessun nominativo nei DTO archivista, utente o esterno.
+- aggiornamento della risposta esistente senza duplicati;
+- annullamento verso “nessuna risposta” per evento singolo e serie;
+- autorizzazione degli endpoint `PATCH .../availability/cancel` per vista amministrativa, interna ed esterna;
+- rifiuto con `403` quando il ruolo tenta di usare la vista di un altro pubblico;
+- una sola notifica outbox per conferma, indisponibilità o annullamento, dentro la transazione del servizio core.
 
 ### Materiali
 
@@ -1035,6 +1065,7 @@ Il rollback non modifica eventi, tracce, spartiti, assegnazioni, presenze o movi
 28. La rotta `/calendar/:id` e i collegamenti esistenti restano validi.
 29. La pagina è utilizzabile a 320 px, da tastiera e con screen reader.
 30. Feature flag e rollback preservano tutti i dati applicativi e di preparazione.
+31. Disponibilità, indisponibilità e annullamento sono transizioni autorizzate e transazionali; ogni comando riuscito genera una sola notifica amministrativa.
 
 ## Decisioni rinviate
 

@@ -64,11 +64,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     ngOnInit() {
         const requestedTab = this.routeService.snapshot?.queryParamMap?.get('tab');
-        if (requestedTab && ['details', 'parts', 'pdf'].includes(requestedTab)) this.activeTab = requestedTab;
+        const availableTabs = this.canManagePdf ? ['details', 'parts', 'pdf'] : ['details', 'parts'];
+        if (requestedTab && availableTabs.includes(requestedTab)) this.activeTab = requestedTab;
         this.routeService.params.pipe(first()).subscribe((params) => {
             const trackId = params['id'];
             this.loadElement(trackId);
-            this.loadUploadJobs(trackId);
+            if (this.canManagePdf) this.loadUploadJobs(trackId);
         });
 
         let page = 0;
@@ -93,6 +94,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected get isUser(): boolean {
         return this.keycloakService.isUser || this.keycloakService.isUserExternal;
+    }
+
+    protected get canManagePdf(): boolean {
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
     }
 
     protected confirmDelete(): void {

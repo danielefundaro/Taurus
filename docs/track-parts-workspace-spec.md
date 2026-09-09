@@ -7,9 +7,9 @@ Workspace a due pannelli per organizzare strumenti e pagine degli spartiti
 | Voce | Valore |
 | --- | --- |
 | Prodotto | Taurus frontend |
-| Stato | Direzione approvata per progettazione |
-| Versione | 1.0 |
-| Data | 8 settembre 2026 |
+| Stato | Direzione approvata, implementazione in corso |
+| Versione | 1.1 |
+| Data | 9 settembre 2026 |
 | ID catalogo | `track-parts-workspace` |
 
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
@@ -71,7 +71,7 @@ Il mockup seguente rappresenta la direzione approvata. Non fissa ancora dimensio
 
 ### Navigazione interna
 
-Il dettaglio della traccia usa tre schede: Dettagli, Parti e File PDF. Le schede non diventano nuove route nel primo rilascio; lo stato attivo può essere rappresentato nel query parameter per consentire refresh e collegamenti diretti. La scheda Parti è selezionata automaticamente dopo il completamento di un’azione di organizzazione avviata dall’utente.
+Il dettaglio della traccia usa le schede Dettagli e Parti per tutti i ruoli autorizzati alla consultazione. File PDF è visibile esclusivamente a super amministratori, amministratori e archivisti, che possono contribuire all’arricchimento della traccia. Le schede non diventano nuove route nel primo rilascio; lo stato attivo può essere rappresentato nel query parameter per consentire refresh e collegamenti diretti. Un ruolo non autorizzato che apre un collegamento con `tab=pdf` resta su Dettagli e non avvia il caricamento dei job PDF. La scheda Parti è selezionata automaticamente dopo il completamento di un’azione di organizzazione avviata dall’utente.
 
 ### Pannello delle parti
 
@@ -84,13 +84,22 @@ Il dettaglio della traccia usa tre schede: Dettagli, Parti e File PDF. Le schede
 | Riordino | Trascinamento tramite maniglia; durante la ricerca il riordino è disabilitato per evitare risultati ambigui. |
 | Menu | Espone duplica, dividi per pagina ed elimina. Le azioni distruttive richiedono conferma. |
 
+La ricerca occupa sempre tutta la larghezza utile del pannello. Il wrapper e l’input non possono adottare una larghezza intrinseca né cambiare dimensione dopo focus, digitazione o azzeramento del filtro.
+
 ### Pannello della parte selezionata
 
 - Il titolo deriva dalla descrizione della parte; se assente, usa il primo strumento o Parte senza nome.
-- Gli strumenti sono modificabili con selezione multipla filtrabile e visualizzazione a chip.
-- Le miniature mantengono il rapporto della pagina, riportano ordine e stato di selezione e aprono l’anteprima ingrandita con Invio o doppio clic.
+- Gli strumenti sono modificabili con selezione multipla filtrabile e visualizzazione a chip. Il controllo di ricerca e assegnazione è fluido e occupa sempre tutta la larghezza della propria colonna, prima e dopo l’interazione.
+- Le miniature mantengono il rapporto della pagina, riportano ordine e stato di selezione e aprono l’anteprima ingrandita tramite pulsante esplicito, Invio o doppio clic.
 - Gli spazi di inserimento compaiono durante il trascinamento e comunicano la posizione finale prima del rilascio.
 - La zona Aggiungi accetta pagine provenienti da un nuovo PDF o da media già associati alla traccia, se il contratto backend lo consente.
+
+### Allineamento al sistema visuale
+
+- Schede e pannello attivo costituiscono una singola zona visuale, con bordi allineati e senza fasce laterali o inferiori prodotte da overflow o padding esterni.
+- Card, campi e pannelli usano raggi, bordi e colori semantici del tema; nessun colore di superficie viene fissato per il solo tema chiaro.
+- La separazione verticale tra zone segue il contenitore strutturale con `gap: 2rem`, come definito nel [Taurus Layout Standard](taurus-layout-standard.md); le card non introducono margini esterni propri.
+- I controlli destinati a occupare una colonna sono fluidi dal primo rendering e mantengono la stessa larghezza dopo focus, ricerca, selezione o aggiornamento del modello.
 
 ### Dimensioni e densità
 
@@ -101,7 +110,7 @@ Il workspace privilegia la leggibilità delle pagine senza sacrificare la scansi
 | Rapporto pannelli | 34 per cento e 66 per cento | 40 per cento e 60 per cento |
 | Larghezza minima elenco | 280 px | 260 px |
 | Miniatura | 220 a 280 px di larghezza | 180 a 220 px |
-| Area scroll | Scroll indipendente per ciascun pannello | Scroll principale condiviso se l’altezza è ridotta |
+| Area scroll | Scroll principale condiviso; elenco parti sticky con scroll interno solo se supera la viewport | Scroll principale condiviso |
 | Barra contestuale | Fissata al fondo del pannello destro | Fissata al fondo della viewport |
 
 ## 4 Modello di interazione
@@ -109,9 +118,18 @@ Il workspace privilegia la leggibilità delle pagine senza sacrificare la scansi
 ### Selezionare e modificare una parte
 
 1. L’utente seleziona una riga nel pannello sinistro.
-2. Il pannello destro conserva lo scroll dell’ultima parte e mostra strumenti e pagine.
+2. Il pannello destro mostra strumenti e pagine della parte e imposta la prima pagina come riferimento del navigatore.
 3. Una modifica agli strumenti aggiorna immediatamente la bozza locale e attiva Salva.
 4. Il passaggio a un’altra parte non chiude un dialog e non perde la modifica.
+
+### Navigare e consultare le pagine
+
+- Sopra la griglia, quando sono presenti almeno due pagine, compaiono i comandi Pagina precedente e Pagina successiva con l’indicazione Pagina x di n.
+- L’attivazione di un comando aggiorna la pagina corrente, porta la card nella porzione visibile e le assegna il focus.
+- Il media della pagina si apre dal pulsante Apri anteprima, con doppio clic sulla card o con Invio quando la card ha il focus.
+- La pagina corrente e le pagine selezionate hanno stati distinti: navigare non seleziona e selezionare non apre automaticamente l’anteprima.
+- Le frecce presenti nel piede della card sono esclusivamente comandi di riordino. Etichetta accessibile e tooltip usano il verbo Riordina per non confonderle con il navigatore.
+- La griglia non usa paginazione client: tutte le pagine restano raggiungibili tramite lo scroll principale e i comandi di navigazione.
 
 ### Riordinare le pagine
 
@@ -227,7 +245,7 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 
 | Tasto | Risultato |
 | --- | --- |
-| Freccia su e giù | Sposta il focus tra le parti o tra le pagine nel contesto attivo. |
+| Frecce direzionali | Spostano il focus tra le parti o tra le pagine nel contesto attivo. Nella griglia, sinistra e su vanno alla pagina precedente; destra e giù alla successiva. |
 | Invio | Apre la parte o l’anteprima della pagina focalizzata. |
 | Spazio | Seleziona o deseleziona la pagina. |
 | Ctrl più frecce | Riordina l’elemento focalizzato quando la modalità riordino è attiva. |
@@ -239,6 +257,7 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 - Ogni pannello possiede titolo programmatico e landmark coerente.
 - La parte attiva espone aria current o aria selected; il conteggio pagine fa parte del nome accessibile.
 - Le miniature hanno testo alternativo composto da parte, numero pagina e nome media quando disponibile.
+- Il pulsante di anteprima espone il numero della pagina nel nome accessibile; il navigatore annuncia Pagina x di n.
 - Gli aggiornamenti di ordine e destinazione sono annunciati con regione aria live educata.
 - Maniglie e pulsanti a sola icona hanno etichette esplicite e area attiva minima di 44 per 44 px.
 - Focus, selezione, errore e destinazione di drop superano il contrasto minimo e non usano il solo colore.
@@ -268,6 +287,7 @@ Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagi
 | draftScores | SheetsMusic array | Copia ordinata e modificabile |
 | undoStack | WorkspaceOperation array | Cronologia lineare della sessione |
 | filterQuery | string | Disabilita riordino parti se non vuota |
+| activePageIndex | number | Pagina corrente del navigatore; viene limitata all’intervallo disponibile |
 | saveState | clean dirty saving error | Fonte unica per feedback e comandi |
 
 ### Contratto dati
@@ -277,6 +297,7 @@ Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagi
 - Normalizzare sempre order delle parti, dei media e degli strumenti prima dell’invio.
 - Valutare in una seconda iterazione endpoint specifici per spostamento e riordino se dimensione payload, audit o concorrenza lo richiedono.
 - Introdurre version della traccia e risposta 409 per impedire sovrascritture silenziose.
+- Mantenere mutabili le collezioni JPA assegnate a `Tracks.scores`, `SheetsMusic.media` e `SheetsMusic.instruments`. Non usare `List.of` o `Stream.toList` quando la raccolta diventa stato dell’entità, perché Hibernate deve poterla aggiornare durante `merge` e `flush`.
 
 ### Prestazioni
 
@@ -300,9 +321,9 @@ Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagi
 | Livello | Copertura minima |
 | --- | --- |
 | Unità | Riduttore delle operazioni, rinumerazione, unione strumenti, split, undo, selezione e filtro. |
-| Componenti | Focus, annunci aria live, menu, stati vuoti, errore miniature, dirty state e permessi. |
+| Componenti | Focus, navigazione tra pagine, apertura anteprima da pulsante e tastiera, annunci aria live, menu, stati vuoti, errore miniature, larghezza fluida dei controlli, dirty state e permessi. |
 | Integrazione frontend | Caricamento traccia, salvataggio, errore e retry, job PDF già esistenti e refresh. |
-| Backend | Normalizzazione ordini, controllo versione, tenant isolation e payload non valido. |
+| Backend | Normalizzazione ordini, controllo versione, tenant isolation, payload non valido e mutabilità delle collezioni persistenti durante merge e flush. |
 | End to end | Flussi completi con mouse, tastiera e viewport mobile; almeno un PDF con parti da revisionare. |
 | Prestazioni | 200 parti e 1 000 pagine; interazione fluida, richieste miniature controllate e memoria stabile. |
 
@@ -326,6 +347,11 @@ Senza registrare contenuti musicali o nomi dei file, misurare apertura della sch
 12. Tutte le funzioni sono disponibili da tastiera e non dipendono dal solo colore o dal trascinamento.
 13. I ruoli di sola lettura vedono la stessa struttura senza controlli di modifica e possono aprire le anteprime.
 14. I test automatizzati coprono operazioni, permessi, dirty state, errori, concorrenza e tenant isolation.
+15. Tutte le pagine restano raggiungibili senza un’area del pannello destro troncata; il navigatore porta la card richiesta in vista e aggiorna Pagina x di n.
+16. L’anteprima di ogni media si apre tramite pulsante, doppio clic e Invio; i comandi di navigazione e riordino restano semanticamente distinti.
+17. I campi Cerca per parte o strumento e Cerca e assegna strumenti occupano tutta la larghezza disponibile fin dal primo rendering e non cambiano larghezza dopo l’interazione.
+18. Il workspace mantiene bordi, separazioni e superfici coerenti in tema chiaro e scuro, senza disallineamenti tra intestazione delle schede e corpo.
+19. File PDF è assente per utenti e utenti esterni; un collegamento diretto alla scheda non mostra contenuti vuoti e non carica i job PDF.
 
 ### Fuori ambito
 
