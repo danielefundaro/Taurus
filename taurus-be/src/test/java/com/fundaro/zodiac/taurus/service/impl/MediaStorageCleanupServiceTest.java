@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -32,6 +33,9 @@ class MediaStorageCleanupServiceTest {
     @Mock
     MediaRepository mediaRepository;
 
+    @Mock
+    TrackPageEditReceiptRepository trackPageEditReceiptRepository;
+
     private TenantStorageService tenantStorageService;
     private MediaStorageCleanupService service;
     private Path tenantRoot;
@@ -41,7 +45,7 @@ class MediaStorageCleanupServiceTest {
         ApplicationProperties properties = new ApplicationProperties();
         properties.setBasePath(basePath.toString());
         tenantStorageService = new TenantStorageService(properties);
-        service = new MediaStorageCleanupService(mediaRepository, tenantStorageService, properties);
+        service = new MediaStorageCleanupService(mediaRepository, tenantStorageService, trackPageEditReceiptRepository, properties);
         tenantRoot = basePath.resolve(TENANT);
     }
 

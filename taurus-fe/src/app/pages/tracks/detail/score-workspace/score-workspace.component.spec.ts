@@ -78,4 +78,19 @@ describe('ScoreWorkspaceComponent', () => {
 
         expect(component['activePageIndex']).toBe(2);
     });
+
+    it('requests image editing only for a persisted page on a clean track', () => {
+        const component = new ScoreWorkspaceComponent(null!);
+        const initial: SheetsMusic[] = [{ id: 1, order: 1, description: 'Clarinetto', media: [{ index: 10 }], instruments: [] }];
+        const events: number[] = [];
+        component.imageEdit.subscribe((event) => events.push(event.media.index));
+        component.scores = initial;
+        component.ngOnChanges({ scores: new SimpleChange(undefined, initial, true) });
+
+        component['editImage'](component['draftScores'][0], component['draftScores'][0].media![0], 0);
+        component.trackDirty = true;
+        component['editImage'](component['draftScores'][0], component['draftScores'][0].media![0], 0);
+
+        expect(events).toEqual([10]);
+    });
 });

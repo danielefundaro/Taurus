@@ -301,6 +301,7 @@ application:
     cleanup-cron: "0 30 3 * * *"
     temporary-file-hours: 24
     orphan-file-hours: 168
+    track-page-edit-receipt-days: 7
   retention:
     # Cleanup runs every day at 03:00; override with application.retention.cleanup-cron.
     cleanup-enabled: true
