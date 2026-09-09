@@ -24,8 +24,10 @@ export class ScoreWorkspaceComponent implements OnChanges {
     @Input() instruments: Instruments[] = [];
     @Input() readOnly = false;
     @Input() saving = false;
+    @Input() trackDirty = false;
     @Output() scoresChange = new EventEmitter<SheetsMusic[]>();
     @Output() dirtyChange = new EventEmitter<boolean>();
+    @Output() imageEdit = new EventEmitter<{ scoreId: number; media: ChildrenEntities; pageNumber: number; scoreTitle: string }>();
     @ViewChildren('pageCard') private pageCards?: QueryList<ElementRef<HTMLElement>>;
 
     protected draftScores: SheetsMusic[] = [];
@@ -82,6 +84,11 @@ export class ScoreWorkspaceComponent implements OnChanges {
     protected get selectedPageIndex(): number {
         if (this.selectedMediaIds.size !== 1 || !this.selectedScore) return -1;
         return this.selectedScore.media?.findIndex((media) => this.selectedMediaIds.has(media.index)) ?? -1;
+    }
+
+    protected get selectedMedia(): ChildrenEntities | undefined {
+        const index = this.selectedPageIndex;
+        return index < 0 ? undefined : this.selectedScore?.media?.[index];
     }
 
     protected get moveTargets(): { label: string; value: number }[] {
@@ -364,6 +371,11 @@ export class ScoreWorkspaceComponent implements OnChanges {
 
     protected setActivePage(pageIndex: number): void {
         this.activePageIndex = pageIndex;
+    }
+
+    protected editImage(score: SheetsMusic, media: ChildrenEntities, pageIndex: number): void {
+        if (this.readOnly || this.trackDirty || this.saving || score.id === undefined) return;
+        this.imageEdit.emit({ scoreId: score.id, media, pageNumber: pageIndex + 1, scoreTitle: this.scoreTitle(score) });
     }
 
     protected navigateToPage(pageIndex: number): void {

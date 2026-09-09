@@ -63,7 +63,7 @@ export class MediaThumbnailComponent implements AfterViewInit, OnChanges, OnDest
 
     openPreview(): void {
         if (this.imageUrl && !this.failed) {
-            this.previewImage?.onImageClick();
+            this.openLoadedPreview();
             return;
         }
 
@@ -90,7 +90,7 @@ export class MediaThumbnailComponent implements AfterViewInit, OnChanges, OnDest
                 this.changeDetector.detectChanges();
                 if (this.previewAfterLoad) {
                     this.previewAfterLoad = false;
-                    this.previewImage?.onImageClick();
+                    this.openLoadedPreview();
                 }
             },
             error: () => {
@@ -116,5 +116,9 @@ export class MediaThumbnailComponent implements AfterViewInit, OnChanges, OnDest
     private releaseUrl(): void {
         if (this.imageUrl) URL.revokeObjectURL(this.imageUrl);
         this.imageUrl = undefined;
+    }
+
+    private openLoadedPreview(): void {
+        this.previewImage?.previewButton?.nativeElement.click();
     }
 }

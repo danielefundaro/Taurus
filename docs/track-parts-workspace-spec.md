@@ -358,7 +358,7 @@ Senza registrare contenuti musicali o nomi dei file, misurare apertura della sch
 - Riconoscimento automatico aggiuntivo di strumenti o struttura musicale.
 - Collaborazione in tempo reale tra più archivisti.
 - Polling, WebSocket o Server Sent Events per i job PDF.
-- Annotazione o modifica grafica della pagina nel workspace Parti.
+- Annotazione o modifica grafica della pagina nel workspace Parti; l'estensione dedicata è definita in [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md).
 - Sostituzione del visualizzatore e del flusso di stampa esistenti.
 
 ### Decisioni da confermare prima dell’implementazione

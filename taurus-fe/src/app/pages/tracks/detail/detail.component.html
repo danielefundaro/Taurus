@@ -58,7 +58,16 @@
 
                 <p-tabpanel value="parts">
                     <app-detail-section title="Parti" [count]="track.scores?.length ?? 0" description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
-                        <app-score-workspace [scores]="track.scores ?? []" [instruments]="instruments" [readOnly]="isUser" [saving]="saving" (scoresChange)="onScoresChange($event)" (dirtyChange)="onScoresDirtyChange($event)" />
+                        <app-score-workspace
+                            [scores]="track.scores ?? []"
+                            [instruments]="instruments"
+                            [readOnly]="isUser"
+                            [saving]="saving"
+                            [trackDirty]="isDirty"
+                            (scoresChange)="onScoresChange($event)"
+                            (dirtyChange)="onScoresDirtyChange($event)"
+                            (imageEdit)="openImageEditor($event)"
+                        />
                     </app-detail-section>
                 </p-tabpanel>
 

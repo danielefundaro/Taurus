@@ -1,0 +1,147 @@
+<div class="image-editor">
+    <header class="editor-header">
+        <div>
+            <span class="eyebrow">{{ data.scoreTitle }}</span>
+            <h3>Pagina {{ data.pageNumber }}</h3>
+        </div>
+        <p-selectbutton
+            [options]="[
+                { label: 'Originale', value: 'original' },
+                { label: 'Modificata', value: 'edited' }
+            ]"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="view"
+            (ngModelChange)="changed()"
+            ariaLabel="Confronta immagine originale e modificata"
+        />
+    </header>
+
+    @if (saveError) {
+        <p-message severity="error">{{ saveError }}</p-message>
+    }
+
+    <div class="editor-layout">
+        <section class="canvas-panel" aria-label="Anteprima immagine">
+            @if (loading) {
+                <p-skeleton width="min(70vw, 48rem)" height="65vh" />
+            }
+            @if (failed) {
+                <app-empty-state compact icon="pi pi-image" title="Immagine non disponibile" message="Non è stato possibile caricare o analizzare questa pagina." />
+            }
+            <canvas
+                #previewCanvas
+                [class.hidden]="loading || failed"
+                [class.crop-active]="cropDrawing && view === 'edited'"
+                [attr.aria-label]="'Anteprima pagina ' + data.pageNumber"
+                (pointerdown)="startCrop($event)"
+                (pointermove)="moveCrop($event)"
+                (pointerup)="finishCrop($event)"
+                (pointercancel)="cancelCropDrawing()"
+                (pointerleave)="leaveCrop($event)"
+            ></canvas>
+        </section>
+
+        <aside class="tools-panel" aria-label="Strumenti immagine">
+            <section class="tool-section">
+                <div class="tool-heading">
+                    <h4>Analisi</h4>
+                    <p-tag [value]="analyzing ? 'In corso' : 'Completata'" [severity]="analyzing ? 'info' : 'success'" />
+                </div>
+                @if (analysis) {
+                    <small>{{ analysis.width }} × {{ analysis.height }} px · Contrasto {{ analysis.contrastScore * 100 | number: '1.0-0' }}%</small>
+                    @if (analysis.suggestions.length) {
+                        <p-button label="Applica suggerimenti" icon="pi pi-sparkles" severity="secondary" outlined fluid (onClick)="applySuggestions()" />
+                    } @else {
+                        <p-message severity="success">Nessuna correzione automatica necessaria.</p-message>
+                    }
+                } @else if (!analyzing) {
+                    <p-message severity="warn">Analisi non disponibile. Gli strumenti manuali restano utilizzabili.</p-message>
+                }
+            </section>
+
+            <section class="tool-section">
+                <h4>Orientamento</h4>
+                <div class="button-row">
+                    <p-button label="Sinistra" icon="pi pi-undo" severity="secondary" outlined (onClick)="rotate(-1)" />
+                    <p-button label="Destra" icon="pi pi-replay" styleClass="rotate-right-button" severity="secondary" outlined (onClick)="rotate(1)" />
+                </div>
+                <app-form-field label="Raddrizzamento" forId="deskew">
+                    <p-inputnumber inputId="deskew" [(ngModel)]="recipe.deskewDegrees" [min]="-5" [max]="5" [minFractionDigits]="1" [maxFractionDigits]="1" suffix="°" (ngModelChange)="changed()" />
+                </app-form-field>
+            </section>
+
+            <section class="tool-section">
+                <div class="tool-heading">
+                    <h4>Zone di ritaglio</h4>
+                    <p-tag [value]="recipe.crops.length + '/8'" severity="secondary" />
+                </div>
+                <small>Ogni zona genera una nuova immagine. L’ordine delle zone determina l’ordine delle pagine risultanti.</small>
+                <div class="crop-actions">
+                    <p-button label="Disegna zona" icon="pi pi-expand" severity="secondary" [outlined]="!cropDrawing" [disabled]="recipe.crops.length >= 8" (onClick)="startAddingCrop()" />
+                    <p-button label="Sinistra / destra" icon="pi pi-arrows-h" severity="secondary" outlined (onClick)="splitCrop('vertical')" />
+                    <p-button label="Alto / basso" icon="pi pi-arrows-v" severity="secondary" outlined (onClick)="splitCrop('horizontal')" />
+                </div>
+                @if (cropDrawing) {
+                    <p-message severity="info">Trascina sull’anteprima per delimitare la nuova zona.</p-message>
+                }
+                @if (recipe.crops.length) {
+                    <div class="crop-zone-list" aria-label="Zone di ritaglio">
+                        @for (zone of recipe.crops; track $index) {
+                            <div class="crop-zone-row" [class.active]="$index === activeCropIndex">
+                                <button type="button" class="crop-zone-select" (click)="selectCrop($index)">
+                                    <strong>Zona {{ $index + 1 }}</strong>
+                                    <span>{{ zone.width * 100 | number: '1.0-1' }} × {{ zone.height * 100 | number: '1.0-1' }}%</span>
+                                </button>
+                                <p-button icon="pi pi-trash" [ariaLabel]="'Rimuovi zona ' + ($index + 1)" severity="danger" text size="small" (onClick)="removeCrop($index)" />
+                            </div>
+                        }
+                    </div>
+                }
+                @if (activeCrop) {
+                    <div class="crop-grid">
+                        <app-form-field label="Sinistra %" forId="crop-x"><p-inputnumber inputId="crop-x" [ngModel]="activeCrop.x * 100" [min]="0" [max]="98" (ngModelChange)="updateCrop('x', $event / 100)" /></app-form-field>
+                        <app-form-field label="Alto %" forId="crop-y"><p-inputnumber inputId="crop-y" [ngModel]="activeCrop.y * 100" [min]="0" [max]="98" (ngModelChange)="updateCrop('y', $event / 100)" /></app-form-field>
+                        <app-form-field label="Larghezza %" forId="crop-width"><p-inputnumber inputId="crop-width" [ngModel]="activeCrop.width * 100" [min]="2" [max]="100" (ngModelChange)="updateCrop('width', $event / 100)" /></app-form-field>
+                        <app-form-field label="Altezza %" forId="crop-height"><p-inputnumber inputId="crop-height" [ngModel]="activeCrop.height * 100" [min]="2" [max]="100" (ngModelChange)="updateCrop('height', $event / 100)" /></app-form-field>
+                    </div>
+                }
+            </section>
+
+            <section class="tool-section">
+                <h4>Miglioramento</h4>
+                <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.grayscale" (ngModelChange)="changed()" /> Scala di grigi</label>
+                <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.autoContrast" (ngModelChange)="changed()" /> Contrasto automatico</label>
+                <app-form-field label="Luminosità" forId="brightness">
+                    <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.brightness, -100, 100) + '%'">
+                        <span class="slider-value" aria-hidden="true">{{ recipe.brightness }}</span>
+                        <p-slider id="brightness" [(ngModel)]="recipe.brightness" [min]="-100" [max]="100" (ngModelChange)="changed()" />
+                    </div>
+                </app-form-field>
+                <app-form-field label="Contrasto" forId="contrast">
+                    <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.contrast, -100, 100) + '%'">
+                        <span class="slider-value" aria-hidden="true">{{ recipe.contrast }}</span>
+                        <p-slider id="contrast" [(ngModel)]="recipe.contrast" [min]="-100" [max]="100" (ngModelChange)="changed()" />
+                    </div>
+                </app-form-field>
+                <label class="check-row"><p-checkbox binary [ngModel]="thresholdEnabled" (ngModelChange)="toggleThreshold($event)" /> Bianco e nero</label>
+                @if (thresholdEnabled) {
+                    <app-form-field label="Soglia" forId="threshold">
+                        <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.threshold, 0, 255) + '%'">
+                            <span class="slider-value" aria-hidden="true">{{ recipe.threshold }}</span>
+                            <p-slider id="threshold" [(ngModel)]="recipe.threshold" [min]="0" [max]="255" (ngModelChange)="changed()" />
+                        </div>
+                    </app-form-field>
+                }
+            </section>
+        </aside>
+    </div>
+
+    <footer class="editor-footer">
+        <p-button label="Ripristina tutto" icon="pi pi-refresh" severity="secondary" text [disabled]="!dirty || saving" (onClick)="reset()" />
+        <span class="footer-spacer"></span>
+        <p-button label="Annulla" severity="secondary" outlined [disabled]="saving" (onClick)="cancel()" />
+        <p-button label="Salva immagine" icon="pi pi-check" [loading]="saving" [disabled]="!dirty || loading || failed" (onClick)="save()" />
+    </footer>
+    <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+</div>

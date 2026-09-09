@@ -240,6 +240,7 @@ public class ApplicationProperties {
         private String cleanupCron = "0 30 3 * * *";
         private int temporaryFileHours = 24;
         private int orphanFileHours = 168;
+        private int trackPageEditReceiptDays = 7;
 
         public boolean isCleanupEnabled() { return cleanupEnabled; }
         public void setCleanupEnabled(boolean cleanupEnabled) { this.cleanupEnabled = cleanupEnabled; }
@@ -252,6 +253,9 @@ public class ApplicationProperties {
 
         public int getOrphanFileHours() { return orphanFileHours; }
         public void setOrphanFileHours(int orphanFileHours) { this.orphanFileHours = orphanFileHours; }
+
+        public int getTrackPageEditReceiptDays() { return trackPageEditReceiptDays; }
+        public void setTrackPageEditReceiptDays(int trackPageEditReceiptDays) { this.trackPageEditReceiptDays = trackPageEditReceiptDays; }
     }
 
     public static class RetentionProperties {

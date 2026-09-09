@@ -2,8 +2,10 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,22 +34,27 @@ public class MediaStorageCleanupService {
 
     private final MediaRepository mediaRepository;
     private final TenantStorageService tenantStorageService;
+    private final TrackPageEditReceiptRepository trackPageEditReceiptRepository;
     private final ApplicationProperties.MediaProperties properties;
 
     public MediaStorageCleanupService(
         MediaRepository mediaRepository,
         TenantStorageService tenantStorageService,
+        TrackPageEditReceiptRepository trackPageEditReceiptRepository,
         ApplicationProperties applicationProperties
     ) {
         this.mediaRepository = mediaRepository;
         this.tenantStorageService = tenantStorageService;
+        this.trackPageEditReceiptRepository = trackPageEditReceiptRepository;
         this.properties = applicationProperties.getMedia();
     }
 
     /** Esegue la pulizia sul tenant corrente. Restituisce il numero di elementi rimossi. */
-    @Transactional(readOnly = true)
+    @Transactional
     public int cleanupCurrentTenant(String tenantCode) {
-        int removed = 0;
+        int removed = trackPageEditReceiptRepository.deleteByCreatedAtBefore(
+            ZonedDateTime.now().minusDays(properties.getTrackPageEditReceiptDays())
+        );
         try {
             removed += tenantStorageService.deleteStaleTemporaryFiles(tenantCode, Duration.ofHours(properties.getTemporaryFileHours()));
         } catch (RuntimeException exception) {

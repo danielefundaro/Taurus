@@ -20,10 +20,12 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `operational-runbook` | [Runbook operativo dell'applicativo Taurus](runbook-operativo.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-07 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE | [1](#postgres-tenant-schemas-evidenze) | [1](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-09-04 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [1](#recurring-calendar-events-evidenze) | [1](#recurring-calendar-events-evidenze) | non rilasciata | 2026-09-04 |
+| `support-requests` | [Segnalazioni e richieste di supporto](support-requests-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-09 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [4](#taurus-layout-standard-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE | [3](#tenant-feature-flags-evidenze) | [9](#tenant-feature-flags-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-onboarding-import` | [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md) | feature | approved | implemented | BE, FE | [2](#tenant-onboarding-import-evidenze) | [9](#tenant-onboarding-import-evidenze) | non rilasciata | 2026-09-07 |
 | `test-runbook` | [Runbook di test e qualificazione Taurus](runbook-test.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-08 |
+| `track-page-image-editing` | [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-page-image-editing-evidenze) | [8](#track-page-image-editing-evidenze) | non rilasciata | 2026-09-09 |
 | `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | in-progress | BE, FE | 0 | [4](#track-parts-workspace-evidenze) | non rilasciata | 2026-09-09 |
 | `track-pdf-processing` | [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-pdf-processing-evidenze) | [4](#track-pdf-processing-evidenze) | non rilasciata | 2026-09-08 |
 | `web-push-reminders` | [Promemoria eventi tramite Web Push](web-push-reminders-spec.md) | feature | approved | implemented | BE, FE | [3](#web-push-reminders-evidenze) | [4](#web-push-reminders-evidenze) | non rilasciata | 2026-09-06 |
@@ -145,6 +147,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java)
 - Note: La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze.
 
+<a id="support-requests-evidenze"></a>
+### Segnalazioni e richieste di supporto
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Specifica iniziale concordata per un canale privato tra utenti autenticati e amministratori del tenant; l'implementazione non è ancora pianificata.
+
 <a id="taurus-layout-standard-evidenze"></a>
 ### Taurus Layout Standard
 
@@ -176,6 +186,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: nessuna
 - Test: nessuna
 - Note: Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati.
+
+<a id="track-page-image-editing-evidenze"></a>
+### Modifica e analisi delle immagini delle parti
+
+- Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationService.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationService.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageService.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageService.java), [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TrackPageImageResource.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TrackPageImageResource.java), [`taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.ts`](../taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.ts), [`taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts`](../taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts), [`taurus-fe/src/app/service/tracks.service.ts`](../taurus-fe/src/app/service/tracks.service.ts)
+- Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260909000000_track_page_image_editing.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260909000000_track_page_image_editing.xml), [`taurus-be/src/main/resources/config/liquibase/changelog/20260909010000_track_page_multi_crop.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260909010000_track_page_multi_crop.xml)
+- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/domain/RelationalSoftDeleteIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/domain/RelationalSoftDeleteIT.java), [`taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.spec.ts`](../taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.spec.ts), [`taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts), [`taurus-fe/src/app/pages/tracks/detail/media-thumbnail/media-thumbnail.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/media-thumbnail/media-thumbnail.component.spec.ts), [`taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts), [`taurus-fe/src/app/service/tracks.service.spec.ts`](../taurus-fe/src/app/service/tracks.service.spec.ts)
+- Note: Editing copy-on-write disponibile sulle pagine persistite delle parti, con analisi tecnica, preview locale, controlli tonali con valori visibili, fino a otto zone ordinate, preset di divisione A4/A5 e ridimensionamento tramite otto maniglie. Ogni zona produce un PNG distinto. Il salvataggio usa controllo ottimistico, ricevute idempotenti e ricostruzione in due fasi delle relazioni ordinate per evitare collisioni sugli indici unici. Sono inoltre corretti apertura dell'anteprima, icone di rotazione e layout della spalla strumenti.
 
 <a id="track-parts-workspace-evidenze"></a>
 ### Workspace per la gestione delle parti di una traccia
