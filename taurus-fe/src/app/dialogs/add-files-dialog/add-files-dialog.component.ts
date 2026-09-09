@@ -46,7 +46,7 @@ export class AddFilesDialogComponent {
             height: '90vh',
             focusTrap: false,
             focusOnShow: false,
-            data: { file: this.selectedFile },
+            data: { file: this.selectedFile, annotations: this.annotations },
             contentStyle: {
                 overflow: 'hidden',
                 padding: '0',
@@ -69,7 +69,7 @@ export class AddFilesDialogComponent {
         this.uploading = true;
         const formData = new FormData();
         formData.append('file', file);
-        if (this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0)) {
+        if (this.hasAnnotations) {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
@@ -89,6 +89,6 @@ export class AddFilesDialogComponent {
     }
 
     protected get hasAnnotations(): boolean {
-        return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0));
+        return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0 || this.annotations.pageTransforms.length > 0));
     }
 }

@@ -67,7 +67,11 @@
                     <p-button label="Destra" icon="pi pi-replay" styleClass="rotate-right-button" severity="secondary" outlined (onClick)="rotate(1)" />
                 </div>
                 <app-form-field label="Raddrizzamento" forId="deskew">
-                    <p-inputnumber inputId="deskew" [(ngModel)]="recipe.deskewDegrees" [min]="-5" [max]="5" [minFractionDigits]="1" [maxFractionDigits]="1" suffix="°" (ngModelChange)="changed()" />
+                    <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.deskewDegrees, 0, 360) + '%'">
+                        <span class="slider-value" aria-hidden="true">{{ recipe.deskewDegrees | number: '1.1-1' }}°</span>
+                        <p-slider id="deskew" [(ngModel)]="recipe.deskewDegrees" [min]="0" [max]="360" [step]="0.1" (ngModelChange)="changed()" />
+                    </div>
+                    <div class="slider-range" aria-hidden="true"><span>0°</span><span>360°</span></div>
                 </app-form-field>
             </section>
 

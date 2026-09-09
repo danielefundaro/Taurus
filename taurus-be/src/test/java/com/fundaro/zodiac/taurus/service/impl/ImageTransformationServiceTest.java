@@ -91,6 +91,45 @@ class ImageTransformationServiceTest {
             .hasMessageContaining("does not contain changes");
     }
 
+    @Test
+    void appliesManualAdjustmentsToAlreadyRenderedPdfPages() {
+        BufferedImage source = new BufferedImage(20, 10, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = source.createGraphics();
+        graphics.setColor(Color.RED);
+        graphics.fillRect(0, 0, 20, 10);
+        graphics.dispose();
+        TrackPageImageDTOs.EditRequest recipe = new TrackPageImageDTOs.EditRequest(0L, 1, 1, 0, List.of(), true, 10, 5, false, null);
+
+        BufferedImage result = service.transformRendered(source, recipe).get(0);
+
+        assertThat(result.getWidth()).isEqualTo(10);
+        assertThat(result.getHeight()).isEqualTo(20);
+        assertThat(result.getColorModel().getNumColorComponents()).isEqualTo(1);
+    }
+
+    @Test
+    void keepsTheCanvasFixedAndClipsAnglesAcrossTheFullCircle() throws Exception {
+        BufferedImage source = new BufferedImage(100, 200, BufferedImage.TYPE_INT_RGB);
+        TrackPageImageDTOs.EditRequest recipe = new TrackPageImageDTOs.EditRequest(1L, 1, 0, 45, List.of(), false, 0, 0, false, null);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(service.transform(png(source), recipe).get(0)));
+
+        assertThat(result.getWidth()).isEqualTo(100);
+        assertThat(result.getHeight()).isEqualTo(200);
+        assertThat(new Color(result.getRGB(0, 0))).isEqualTo(Color.WHITE);
+        assertThat(new Color(result.getRGB(5, 100))).isEqualTo(Color.BLACK);
+        assertThat(new Color(result.getRGB(50, 100))).isEqualTo(Color.BLACK);
+    }
+
+    @Test
+    void treatsThreeHundredAndSixtyDegreesAsTheZeroAngle() throws Exception {
+        TrackPageImageDTOs.EditRequest recipe = new TrackPageImageDTOs.EditRequest(1L, 1, 0, 360, List.of(), false, 0, 0, false, null);
+
+        assertThatThrownBy(() -> service.transform(png(new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB)), recipe))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("does not contain changes");
+    }
+
     private static byte[] png(BufferedImage image) throws Exception {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             ImageIO.write(image, "png", output);

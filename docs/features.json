@@ -591,7 +591,7 @@
       "taurus-fe/src/app/service/tracks.service.spec.ts"
         ]
       },
-    "notes": "Editing copy-on-write disponibile sulle pagine persistite delle parti, con analisi tecnica, preview locale, controlli tonali con valori visibili, fino a otto zone ordinate, preset di divisione A4/A5 e ridimensionamento tramite otto maniglie. Ogni zona produce un PNG distinto. Il salvataggio usa controllo ottimistico, ricevute idempotenti e ricostruzione in due fasi delle relazioni ordinate per evitare collisioni sugli indici unici. Sono inoltre corretti apertura dell'anteprima, icone di rotazione e layout della spalla strumenti.",
+    "notes": "Editing copy-on-write disponibile sulle pagine persistite delle parti, con analisi tecnica, preview locale e raddrizzamento 0°-360° a passi di 0,1°. Durante il raddrizzamento canvas e scala del contenuto restano fissi: l'immagine non viene adattata al canvas e le porzioni esterne vengono tagliate allo stesso modo in anteprima e nel PNG salvato. Sono inoltre disponibili controlli tonali con valori visibili, fino a otto zone ordinate, anteprima live del rettangolo durante il disegno, preset di divisione A4/A5 e ridimensionamento tramite otto maniglie. Ogni zona produce un PNG distinto. Il salvataggio usa controllo ottimistico, ricevute idempotenti e ricostruzione in due fasi delle relazioni ordinate per evitare collisioni sugli indici unici. Sono inoltre corretti apertura dell'anteprima, icone di rotazione e layout della spalla strumenti.",
       "release": null,
       "lastVerifiedOn": "2026-09-09"
     },
@@ -623,6 +623,43 @@
         ]
       },
       "notes": "Disponibile l'incremento master-detail con editing inline, organizzazione delle pagine, undo, responsive, identità persistente delle parti e controllo ottimistico compatibile con i payload legacy. La scheda File PDF è riservata a super amministratori, amministratori e archivisti. Restano da completare i gate E2E, prestazionali e di tenant isolation previsti dalla specifica.",
+      "release": null,
+      "lastVerifiedOn": "2026-09-09"
+    },
+    {
+      "id": "track-pdf-manual-editing",
+      "title": "Editor manuale delle pagine PDF",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/track-pdf-manual-editing-spec.md",
+      "relatedDocs": [
+        "docs/track-pdf-processing-spec.md",
+        "docs/track-page-image-editing-spec.md"
+      ],
+      "modules": [
+        "taurus-be",
+        "taurus-fe"
+      ],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/Converter.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/pdf/PdfAnnotations.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/pdf/PdfPageTransform.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/Receiver.java",
+          "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.ts",
+          "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.html"
+        ],
+        "migrations": [],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/utils/ConverterTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java",
+          "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.spec.ts"
+        ]
+      },
+      "notes": "Il manipolatore PDF offre regolazioni manuali per pagina e riutilizza la pipeline dell'editor immagini. Il raddrizzamento usa uno slider 0°-360° con passo di 0,1° e valore visibile. Le zone di ritaglio, fino a otto, condividono colori e handle circolari con l'editor immagini, vengono salvate al rilascio senza conferma e mantengono il trascinamento oltre i bordi tramite pointer capture; restano disponibili modifica percentuale, ordinamento, eliminazione e divisioni rapide. Applica a tutte copia l'intera ricetta senza modificare le esclusioni; quando tutte le pagine sono escluse la conferma resta disabilitata. Le annotazioni precedenti vengono ripristinate e i crop legacy restano compatibili.",
       "release": null,
       "lastVerifiedOn": "2026-09-09"
     },

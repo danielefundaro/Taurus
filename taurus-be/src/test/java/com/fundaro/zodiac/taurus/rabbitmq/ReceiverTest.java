@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
+import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.utils.Converter;
@@ -32,7 +33,8 @@ class ReceiverTest {
             tracksService,
             mock(PdfProcessingService.class),
             mock(TenantStorageService.class),
-            mock(MediaService.class)
+            mock(MediaService.class),
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         when(queueUploadFilesService.findOne(3L, token)).thenAnswer(invocation -> {
@@ -54,7 +56,8 @@ class ReceiverTest {
             tracksService,
             mock(PdfProcessingService.class),
             mock(TenantStorageService.class),
-            mock(MediaService.class)
+            mock(MediaService.class),
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         QueueUploadFilesDTO upload = new QueueUploadFilesDTO();
@@ -79,7 +82,8 @@ class ReceiverTest {
             tracksService,
             mock(PdfProcessingService.class),
             mock(TenantStorageService.class),
-            mock(MediaService.class)
+            mock(MediaService.class),
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         QueueUploadFilesDTO upload = new QueueUploadFilesDTO();
