@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -160,6 +162,25 @@ class NoticesAspectTest {
             "/calendar",
             Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN))
         );
+    }
+
+    @Test
+    void lowPermissionAvailabilityWrapperDoesNotPublishTheNotificationTwice() {
+        CalendarEventsDTO event = new CalendarEventsDTO();
+        event.setId(23L);
+        event.setName("Prova generale");
+        CalendarEventsService delegate = mock(CalendarEventsService.class);
+        when(delegate.setAvailability(23L, true, authentication)).thenReturn(event);
+        var target = new com.fundaro.zodiac.taurus.service.user.impl.CalendarEventsServiceImpl(delegate);
+        AspectJProxyFactory proxyFactory = new AspectJProxyFactory(target);
+        proxyFactory.addAspect(aspect);
+        com.fundaro.zodiac.taurus.service.user.CalendarEventsService proxy = proxyFactory.getProxy();
+
+        CalendarEventsDTO result = proxy.setAvailability(23L, true, authentication);
+
+        assertThat(result).isSameAs(event);
+        verify(delegate).setAvailability(23L, true, authentication);
+        verifyNoInteractions(publisher);
     }
 
     @Test

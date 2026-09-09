@@ -21,7 +21,9 @@
                 <p-tab value="parts"
                     >Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab
                 >
-                <p-tab value="pdf">File PDF</p-tab>
+                @if (canManagePdf) {
+                    <p-tab value="pdf">File PDF</p-tab>
+                }
             </p-tablist>
             <p-tabpanels>
                 <p-tabpanel value="details">
@@ -60,62 +62,61 @@
                     </app-detail-section>
                 </p-tabpanel>
 
-                <p-tabpanel value="pdf">
-                    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" title="File PDF" description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
-                        <p-fileupload
-                            #fu
-                            name="file"
-                            chooseLabel="Seleziona file"
-                            uploadLabel="Carica"
-                            cancelLabel="Annulla"
-                            mode="advanced"
-                            accept="application/pdf"
-                            [customUpload]="true"
-                            [disabled]="uploading"
-                            (uploadHandler)="handleUpload($event)"
-                            (onSelect)="onFileSelect($event)"
-                            (onClear)="onFileClear()"
-                            (onRemove)="onFileClear()"
-                        >
-                            <ng-template #empty><div>Trascina il file qui per caricarlo.</div></ng-template>
-                        </p-fileupload>
-                        @if (selectedFile) {
-                            <div class="flex items-center gap-3 mt-3">
-                                <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" outlined (onClick)="openManipulator()" />
-                                @if (hasAnnotations) {
-                                    <span class="flex items-center gap-1 text-sm text-primary font-medium"><i class="pi pi-check-circle"></i> Annotazioni applicate</span>
-                                }
-                            </div>
-                        }
-                        @if (visibleUploadJobs.length) {
-                            <div class="flex flex-col gap-2 mt-4" aria-live="polite">
-                                @for (job of visibleUploadJobs; track job.id) {
-                                    <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface px-4 py-3" role="status">
-                                        <div class="flex items-center gap-3 min-w-0">
-                                            @if (isPendingUpload(job)) {
-                                                <i class="pi pi-spin pi-spinner text-primary" aria-hidden="true"></i>
-                                            } @else if (job.status === 'DONE') {
-                                                <i class="pi pi-check-circle text-green-500" aria-hidden="true"></i>
-                                            } @else {
-                                                <i class="pi pi-exclamation-triangle text-red-500" aria-hidden="true"></i>
-                                            }
-                                            <div class="min-w-0">
-                                                <strong class="block truncate">{{ job.name }}</strong
-                                                ><span class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
+                @if (canManagePdf) {
+                    <p-tabpanel value="pdf">
+                        <app-detail-section title="File PDF" description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
+                            <p-fileupload
+                                #fu
+                                name="file"
+                                chooseLabel="Seleziona file"
+                                uploadLabel="Carica"
+                                cancelLabel="Annulla"
+                                mode="advanced"
+                                accept="application/pdf"
+                                [customUpload]="true"
+                                [disabled]="uploading"
+                                (uploadHandler)="handleUpload($event)"
+                                (onSelect)="onFileSelect($event)"
+                                (onClear)="onFileClear()"
+                                (onRemove)="onFileClear()"
+                            >
+                                <ng-template #empty><div>Trascina il file qui per caricarlo.</div></ng-template>
+                            </p-fileupload>
+                            @if (selectedFile) {
+                                <div class="flex items-center gap-3 mt-3">
+                                    <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" outlined (onClick)="openManipulator()" />
+                                    @if (hasAnnotations) {
+                                        <span class="flex items-center gap-1 text-sm text-primary font-medium"><i class="pi pi-check-circle"></i> Annotazioni applicate</span>
+                                    }
+                                </div>
+                            }
+                            @if (visibleUploadJobs.length) {
+                                <div class="flex flex-col gap-2 mt-4" aria-live="polite">
+                                    @for (job of visibleUploadJobs; track job.id) {
+                                        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface px-4 py-3" role="status">
+                                            <div class="flex items-center gap-3 min-w-0">
+                                                @if (isPendingUpload(job)) {
+                                                    <i class="pi pi-spin pi-spinner text-primary" aria-hidden="true"></i>
+                                                } @else if (job.status === 'DONE') {
+                                                    <i class="pi pi-check-circle text-green-500" aria-hidden="true"></i>
+                                                } @else {
+                                                    <i class="pi pi-exclamation-triangle text-red-500" aria-hidden="true"></i>
+                                                }
+                                                <div class="min-w-0">
+                                                    <strong class="block truncate">{{ job.name }}</strong
+                                                    ><span class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
+                                                </div>
                                             </div>
+                                            @if (job.status === 'ERROR') {
+                                                <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" outlined size="small" (onClick)="retryUpload(job)" />
+                                            }
                                         </div>
-                                        @if (job.status === 'ERROR') {
-                                            <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" outlined size="small" (onClick)="retryUpload(job)" />
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </app-detail-section>
-                    @if (isUser) {
-                        <app-empty-state compact icon="pi pi-file-pdf" title="File PDF" message="La gestione dei file è disponibile agli archivisti." />
-                    }
-                </p-tabpanel>
+                                    }
+                                </div>
+                            }
+                        </app-detail-section>
+                    </p-tabpanel>
+                }
             </p-tabpanels>
         </p-tabs>
 

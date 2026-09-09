@@ -8,6 +8,8 @@ import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import {
+    Albums,
+    AlbumsCriteria,
     CalendarEventSeries,
     CalendarEventSeriesPreview,
     CalendarEventSeriesRequest,
@@ -24,13 +26,12 @@ import {
     PreparationProfile,
     EventPresentUser,
     RecurrenceWeekDay,
-    Tracks,
-    TracksCriteria,
     Users
 } from '../../../module';
 import { StringFilter } from '../../../module/criteria/filter';
 import { DateConverterPipe } from '../../../pipe';
-import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, TracksService, UsersService } from '../../../service';
+import { AlbumsService, CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, UsersService } from '../../../service';
+import { programFromAlbum } from './event-program';
 
 interface UserPresenceRow {
     id: number;
@@ -104,10 +105,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected savingMaterials = false;
     protected programDraft: EventPreparationProgramEntry[] = [];
     protected materialsDraft: EventPreparationMaterial[] = [];
-    protected availableTracks: Tracks[] = [];
+    protected availableAlbums: Albums[] = [];
     protected availableItems: InventoryItem[] = [];
     protected availableAssignments: InventoryAssignment[] = [];
-    protected selectedTrack?: Tracks;
+    protected selectedAlbum?: Albums;
     protected selectedItem?: InventoryItem;
     protected selectedAssignmentId?: number;
     protected selectedMaterialQuantity = 1;
@@ -157,7 +158,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
         private readonly eventPreparationService: EventPreparationService,
-        private readonly tracksService: TracksService,
+        private readonly albumsService: AlbumsService,
         private readonly inventoryService: InventoryService,
         private readonly dateConverterPipe: DateConverterPipe,
         tenantFeatureService: TenantFeatureService
@@ -279,16 +280,19 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return status === 'READY' ? 'success' : status === 'BLOCKED' || status === 'UNKNOWN' ? 'danger' : status === 'ATTENTION' ? 'warn' : 'secondary';
     }
 
-    protected addProgramEntry(): void {
-        const track = this.selectedTrack;
-        if (!track?.id) return;
-        this.programDraft.push({ id: 0, trackId: track.id, trackName: track.name ?? '', trackState: track.state ?? 'DRAFT', order: this.programDraft.length });
-        this.selectedTrack = undefined;
+    protected connectAlbum(): void {
+        const album = this.selectedAlbum;
+        if (!album?.tracks?.length) {
+            this.toastService.warn('Album vuoto', 'Aggiungi almeno una traccia all’album prima di collegarlo all’evento.');
+            return;
+        }
+        this.programDraft = programFromAlbum(album, this.programDraft);
+        this.selectedAlbum = undefined;
         this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
     }
 
-    protected searchPreparationTracks(event: AutoCompleteCompleteEvent): void {
-        const criteria = new TracksCriteria();
+    protected searchPreparationAlbums(event: AutoCompleteCompleteEvent): void {
+        const criteria = new AlbumsCriteria();
         criteria.page = 0;
         criteria.size = 25;
         criteria.sort = ['name,asc'];
@@ -297,10 +301,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             criteria.name = new StringFilter();
             criteria.name.contains = query;
         }
-        this.tracksService
+        this.albumsService
             .getAll(criteria)
             .pipe(first())
-            .subscribe((page) => (this.availableTracks = page.content));
+            .subscribe((page) => (this.availableAlbums = page.content));
     }
     protected markProgramDirty(): void {
         this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
