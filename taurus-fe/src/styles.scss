@@ -35,7 +35,7 @@
 
 /* Transparent Overlay */
 .progress-spinner:before {
-    content: "";
+    content: '';
     display: block;
     position: fixed;
     top: 0;
@@ -72,6 +72,56 @@
 
 :host-context(.app-dark) .danger-zone-label {
     color: rgb(252, 165, 165);
+}
+
+/* Tooltip numerico condiviso dagli editor manuali di immagini e PDF. */
+.slider-with-value {
+    position: relative;
+    padding-top: 1.9rem;
+}
+
+.slider-value {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: clamp(1.35rem, var(--slider-position), calc(100% - 1.35rem));
+    min-width: 2rem;
+    padding: 0.2rem 0.45rem;
+    transform: translateX(-50%);
+    border-radius: var(--p-border-radius-sm, 0.375rem);
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    pointer-events: none;
+}
+
+.slider-value::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border: 0.3rem solid transparent;
+    border-top-color: var(--p-primary-color);
+    content: '';
+}
+
+.slider-with-value p-slider {
+    display: block;
+}
+
+.slider-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.35rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Immagine dentro p-galleria a schermo intero: condivisa da preview e

@@ -24,7 +24,7 @@ public final class TrackPageImageDTOs {
         @NotNull Long expectedTrackVersion,
         @Min(1) @Max(1) int recipeVersion,
         @Min(-3) @Max(3) int rotationQuarterTurns,
-        @DecimalMin("-5.0") @DecimalMax("5.0") double deskewDegrees,
+        @DecimalMin("0.0") @DecimalMax("360.0") double deskewDegrees,
         @NotNull @Size(max = 8) List<@Valid Crop> crops,
         boolean grayscale,
         @Min(-100) @Max(100) int brightness,

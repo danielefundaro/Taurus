@@ -250,7 +250,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             height: '90vh',
             focusTrap: false,
             focusOnShow: false,
-            data: { file: this.selectedFile },
+            data: { file: this.selectedFile, annotations: this.annotations },
             contentStyle: {
                 overflow: 'hidden',
                 padding: '0',
@@ -273,7 +273,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.uploading = true;
         const formData = new FormData();
         formData.append('file', file);
-        if (this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0)) {
+        if (this.hasAnnotations) {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
@@ -318,7 +318,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected get hasAnnotations(): boolean {
-        return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0));
+        return !!(this.annotations && (this.annotations.excludedPages.length > 0 || this.annotations.cropRegions.length > 0 || this.annotations.pageTransforms.length > 0));
     }
 
     private loadElement(id: number | string) {

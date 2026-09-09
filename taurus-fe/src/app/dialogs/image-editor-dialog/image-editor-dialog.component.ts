@@ -43,6 +43,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
 
     private bitmap?: ImageBitmap;
     private cropStart?: { x: number; y: number };
+    private cropDraft?: ImageCrop;
     private cropResize?: { cropIndex: number; handle: CropHandle };
     private cropRenderFrame?: number;
 
@@ -69,7 +70,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
     protected get dirty(): boolean {
         return (
             this.recipe.rotationQuarterTurns !== 0 ||
-            Math.abs(this.recipe.deskewDegrees) >= 0.001 ||
+            !this.isZeroAngle(this.recipe.deskewDegrees) ||
             this.recipe.crops.length > 0 ||
             this.recipe.grayscale ||
             this.recipe.brightness !== 0 ||
@@ -96,6 +97,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
 
     protected startAddingCrop(): void {
         if (this.recipe.crops.length >= 8) return;
+        this.cropDraft = undefined;
         this.cropDrawing = true;
         this.view = 'edited';
         this.announce('Trascina sull’immagine per disegnare una zona di ritaglio');
@@ -147,6 +149,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         const canvas = event.currentTarget as HTMLCanvasElement;
         if (this.cropDrawing) {
             this.cropStart = point;
+            this.cropDraft = { x: point.x, y: point.y, width: 0, height: 0 };
             canvas.setPointerCapture(event.pointerId);
             event.preventDefault();
             return;
@@ -173,6 +176,12 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         const canvas = event.currentTarget as HTMLCanvasElement;
         const point = this.normalizedPointer(event);
         if (!point || this.view !== 'edited') return;
+        if (this.cropDrawing && this.cropStart) {
+            this.cropDraft = this.cropBetween(this.cropStart, point);
+            this.scheduleCropRender();
+            event.preventDefault();
+            return;
+        }
         if (this.cropResize) {
             const crop = this.recipe.crops[this.cropResize.cropIndex];
             if (!crop) return;
@@ -195,24 +204,24 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         const end = this.normalizedPointer(event);
         const start = this.cropStart;
         this.cropStart = undefined;
-        if (!end || Math.abs(end.x - start.x) < 0.02 || Math.abs(end.y - start.y) < 0.02) return;
-        this.recipe.crops = [
-            ...this.recipe.crops,
-            {
-                x: Math.min(start.x, end.x),
-                y: Math.min(start.y, end.y),
-                width: Math.abs(end.x - start.x),
-                height: Math.abs(end.y - start.y)
-            }
-        ];
+        const crop = end ? this.cropBetween(start, end) : undefined;
+        this.cropDraft = undefined;
+        if (!crop || crop.width < 0.02 || crop.height < 0.02) {
+            this.render();
+            return;
+        }
+        this.recipe.crops = [...this.recipe.crops, crop];
         this.activeCropIndex = this.recipe.crops.length - 1;
         this.cropDrawing = false;
         this.changed('Zona di ritaglio aggiunta');
     }
 
     protected cancelCropDrawing(): void {
+        const hadDraft = this.cropDraft !== undefined;
         this.cropStart = undefined;
+        this.cropDraft = undefined;
         this.cropResize = undefined;
+        if (hadDraft) this.render();
     }
 
     protected leaveCrop(event: PointerEvent): void {
@@ -225,7 +234,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
             this.recipe.crops = [{ ...this.analysis.contentBounds }];
             this.activeCropIndex = 0;
         }
-        if (this.analysis.suggestions.includes('DESKEW')) this.recipe.deskewDegrees = this.analysis.estimatedSkewDegrees;
+        if (this.analysis.suggestions.includes('DESKEW')) this.recipe.deskewDegrees = this.normalizeAngle(this.analysis.estimatedSkewDegrees);
         if (this.analysis.suggestions.includes('AUTO_CONTRAST')) this.recipe.autoContrast = true;
         this.changed('Suggerimenti applicati');
     }
@@ -319,16 +328,17 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         const turns = ((this.recipe.rotationQuarterTurns % 4) + 4) % 4;
         const rotatedWidth = turns % 2 ? this.bitmap.height : this.bitmap.width;
         const rotatedHeight = turns % 2 ? this.bitmap.width : this.bitmap.height;
-        const scale = Math.min(1, 1400 / Math.max(rotatedWidth, rotatedHeight));
+        const fineRadians = (this.normalizeAngle(this.recipe.deskewDegrees) * Math.PI) / 180;
+        const previewScale = Math.min(1, 1400 / Math.max(rotatedWidth, rotatedHeight));
         const oriented = document.createElement('canvas');
-        oriented.width = Math.max(1, Math.round(rotatedWidth * scale));
-        oriented.height = Math.max(1, Math.round(rotatedHeight * scale));
+        oriented.width = Math.max(1, Math.round(rotatedWidth * previewScale));
+        oriented.height = Math.max(1, Math.round(rotatedHeight * previewScale));
         const orientedContext = oriented.getContext('2d', { willReadFrequently: true })!;
         orientedContext.fillStyle = '#fff';
         orientedContext.fillRect(0, 0, oriented.width, oriented.height);
         orientedContext.translate(oriented.width / 2, oriented.height / 2);
-        orientedContext.rotate((turns * Math.PI) / 2 + (this.recipe.deskewDegrees * Math.PI) / 180);
-        orientedContext.drawImage(this.bitmap, (-this.bitmap.width * scale) / 2, (-this.bitmap.height * scale) / 2, this.bitmap.width * scale, this.bitmap.height * scale);
+        orientedContext.rotate((turns * Math.PI) / 2 + fineRadians);
+        orientedContext.drawImage(this.bitmap, (-this.bitmap.width * previewScale) / 2, (-this.bitmap.height * previewScale) / 2, this.bitmap.width * previewScale, this.bitmap.height * previewScale);
 
         canvas.width = oriented.width;
         canvas.height = oriented.height;
@@ -336,6 +346,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         context.drawImage(oriented, 0, 0);
         this.applyTone(context, canvas.width, canvas.height);
         this.drawCropOverlays(context, canvas.width, canvas.height);
+        this.drawCropDraft(context, canvas.width, canvas.height);
     }
 
     private drawOriginal(canvas: HTMLCanvasElement): void {
@@ -445,6 +456,27 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         }
     }
 
+    private drawCropDraft(context: CanvasRenderingContext2D, width: number, height: number): void {
+        if (!this.cropDraft) return;
+        const x = this.cropDraft.x * width;
+        const y = this.cropDraft.y * height;
+        const cropWidth = this.cropDraft.width * width;
+        const cropHeight = this.cropDraft.height * height;
+        context.save();
+        context.fillStyle = 'rgb(245 158 11 / 16%)';
+        context.strokeStyle = '#f59e0b';
+        context.lineWidth = Math.max(2, Math.min(width, height) / 300);
+        context.setLineDash([context.lineWidth * 4, context.lineWidth * 3]);
+        context.fillRect(x, y, cropWidth, cropHeight);
+        context.strokeRect(x, y, cropWidth, cropHeight);
+        context.setLineDash([]);
+        context.fillStyle = context.strokeStyle;
+        context.font = `700 ${Math.max(14, Math.min(width, height) / 28)}px sans-serif`;
+        context.textBaseline = 'top';
+        context.fillText(String(this.recipe.crops.length + 1), x + 6, y + 4);
+        context.restore();
+    }
+
     private cropHandleAt(point: { x: number; y: number }, canvas: HTMLCanvasElement): CropHandle | undefined {
         if (!this.activeCrop) return undefined;
         const rect = canvas.getBoundingClientRect();
@@ -484,6 +516,15 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         return { x: left, y: top, width: right - left, height: bottom - top };
     }
 
+    private cropBetween(start: { x: number; y: number }, end: { x: number; y: number }): ImageCrop {
+        return {
+            x: Math.min(start.x, end.x),
+            y: Math.min(start.y, end.y),
+            width: Math.abs(end.x - start.x),
+            height: Math.abs(end.y - start.y)
+        };
+    }
+
     private cropAt(point: { x: number; y: number }): number {
         for (let index = this.recipe.crops.length - 1; index >= 0; index--) {
             const crop = this.recipe.crops[index];
@@ -498,6 +539,14 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         if (handle === 'e' || handle === 'w') return 'ew-resize';
         if (handle === 'nw' || handle === 'se') return 'nwse-resize';
         return 'nesw-resize';
+    }
+
+    private isZeroAngle(degrees: number): boolean {
+        return this.normalizeAngle(degrees) < 0.001;
+    }
+
+    private normalizeAngle(degrees: number): number {
+        return ((degrees % 360) + 360) % 360;
     }
 
     private scheduleCropRender(): void {

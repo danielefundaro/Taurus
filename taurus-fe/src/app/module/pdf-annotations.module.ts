@@ -1,12 +1,25 @@
-export interface PdfCropRegion {
+import { ImageCrop } from './track-page-image.module';
+
+export interface PdfCropRegion extends ImageCrop {
     page: number;
-    x: number;      // normalized [0–1], left edge from page left
-    y: number;      // normalized [0–1], top edge from page top
-    width: number;  // normalized [0–1]
-    height: number; // normalized [0–1]
+}
+
+export interface PdfPageTransform {
+    page: number;
+    recipeVersion: 1;
+    rotationQuarterTurns: number;
+    deskewDegrees: number;
+    crops: ImageCrop[];
+    grayscale: boolean;
+    brightness: number;
+    contrast: number;
+    autoContrast: boolean;
+    threshold: number | null;
 }
 
 export interface PdfAnnotations {
-    excludedPages: number[];      // 1-based page numbers to skip entirely
-    cropRegions: PdfCropRegion[]; // per-page crop regions to apply
+    excludedPages: number[];
+    /** Legacy crop-only representation, accepted for queued uploads created by older clients. */
+    cropRegions: PdfCropRegion[];
+    pageTransforms: PdfPageTransform[];
 }
