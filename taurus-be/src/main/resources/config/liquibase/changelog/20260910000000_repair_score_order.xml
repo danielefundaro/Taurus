@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20260910000000-1" author="taurus">
+    <comment>Repair score positions left in the temporary negative range by track updates.</comment>
+    <sql splitStatements="false"><![CDATA[
+      DROP INDEX IF EXISTS uq_sheet_music_active_order;
+
+      WITH corrupted_tracks AS (
+        SELECT track_id, COUNT(*)::integer AS active_count
+        FROM sheet_music
+        WHERE deleted = FALSE
+        GROUP BY track_id
+        HAVING BOOL_OR(display_order < 0)
+      ),
+      anchored_positions AS (
+        SELECT score.track_id, score.display_order
+        FROM sheet_music score
+        JOIN corrupted_tracks track ON track.track_id = score.track_id
+        WHERE score.deleted = FALSE
+          AND score.display_order BETWEEN 0 AND track.active_count - 1
+      ),
+      negative_scores AS (
+        SELECT
+          score.id,
+          score.track_id,
+          ROW_NUMBER() OVER (
+            PARTITION BY score.track_id
+            ORDER BY score.display_order DESC, score.id
+          ) AS position_rank
+        FROM sheet_music score
+        JOIN corrupted_tracks track ON track.track_id = score.track_id
+        WHERE score.deleted = FALSE AND score.display_order < 0
+      ),
+      available_positions AS (
+        SELECT
+          track.track_id,
+          positions.display_order,
+          ROW_NUMBER() OVER (
+            PARTITION BY track.track_id
+            ORDER BY positions.display_order
+          ) AS position_rank
+        FROM corrupted_tracks track
+        CROSS JOIN LATERAL generate_series(0, track.active_count - 1) AS positions(display_order)
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM anchored_positions anchor
+          WHERE anchor.track_id = track.track_id
+            AND anchor.display_order = positions.display_order
+        )
+      )
+      UPDATE sheet_music score
+      SET display_order = position.display_order
+      FROM negative_scores negative
+      JOIN available_positions position
+        ON position.track_id = negative.track_id
+       AND position.position_rank = negative.position_rank
+      WHERE score.id = negative.id;
+
+      WITH invalid_tracks AS (
+        SELECT track_id
+        FROM sheet_music
+        WHERE deleted = FALSE
+        GROUP BY track_id
+        HAVING MIN(display_order) < 0
+          OR MAX(display_order) <> COUNT(*) - 1
+          OR COUNT(DISTINCT display_order) <> COUNT(*)
+      ),
+      normalized_scores AS (
+        SELECT
+          score.id,
+          ROW_NUMBER() OVER (
+            PARTITION BY score.track_id
+            ORDER BY score.display_order, score.id
+          )::integer - 1 AS display_order
+        FROM sheet_music score
+        JOIN invalid_tracks track ON track.track_id = score.track_id
+        WHERE score.deleted = FALSE
+      )
+      UPDATE sheet_music score
+      SET display_order = normalized.display_order
+      FROM normalized_scores normalized
+      WHERE score.id = normalized.id;
+
+      CREATE UNIQUE INDEX uq_sheet_music_active_order
+        ON sheet_music (track_id, display_order)
+        WHERE deleted = FALSE;
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>
