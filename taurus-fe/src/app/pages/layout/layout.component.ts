@@ -1,20 +1,27 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, Renderer2, ViewChild } from '@angular/core';
+import { ButtonModule } from 'primeng/button';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { FooterComponent } from '../../components/footer/footer.component';
+import { InlineAlertComponent } from '../../components/inline-alert/inline-alert.component';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../components/topbar/topbar.component';
-import { LayoutService, NotificationCenterService, TenantFeatureService } from '../../service';
+import { LayoutService, NotificationCenterService, PushNotificationService, TenantFeatureService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [CommonModule, TopbarComponent, SidebarComponent, RouterModule, FooterComponent],
+    imports: [CommonModule, ButtonModule, InlineAlertComponent, TopbarComponent, SidebarComponent, RouterModule, FooterComponent],
     templateUrl: './layout.component.html',
     styleUrl: './layout.component.scss'
 })
 export class LayoutComponent {
+    /** Invito non invasivo ad attivare i promemoria push: mai un prompt automatico del browser. */
+    protected pushPromptVisible: boolean;
+
+    private static readonly PUSH_PROMPT_DISMISSED = 'pushPromptDismissed';
+
     overlayMenuOpenSubscription: Subscription;
 
     menuOutsideClickListener: any;
@@ -26,10 +33,13 @@ export class LayoutComponent {
     constructor(
         public layoutService: LayoutService,
         private readonly notificationCenter: NotificationCenterService,
+        private readonly pushNotificationService: PushNotificationService,
         private readonly tenantFeatureService: TenantFeatureService,
+        private readonly toastService: ToastService,
         public renderer: Renderer2,
         public router: Router
     ) {
+        this.pushPromptVisible = this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
         this.notificationCenter.start();
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
         effect(() => {
@@ -98,6 +108,19 @@ export class LayoutComponent {
             'layout-overlay-active': this.layoutService.layoutState().overlayMenuActive,
             'layout-mobile-active': this.layoutService.layoutState().staticMenuMobileActive
         };
+    }
+
+    protected enablePush(): void {
+        this.pushNotificationService.requestPermissionAndSubscribe().then((enabled) => {
+            this.pushPromptVisible = false;
+            if (enabled) this.toastService.success('Notifiche attive', 'Riceverai un promemoria prima degli eventi a cui hai dato disponibilità.');
+            else this.toastService.info('Notifiche non attivate', 'Puoi attivarle in qualsiasi momento dal tuo profilo.');
+        });
+    }
+
+    protected dismissPushPrompt(): void {
+        this.pushPromptVisible = false;
+        sessionStorage.setItem(LayoutComponent.PUSH_PROMPT_DISMISSED, 'true');
     }
 
     ngOnDestroy() {
