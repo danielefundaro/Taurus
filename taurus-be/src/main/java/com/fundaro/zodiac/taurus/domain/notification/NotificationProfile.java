@@ -22,8 +22,11 @@ import java.util.List;
 @Table(name = "notification_profile")
 public class NotificationProfile extends TenantAuditedEntity {
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @Column(name = "user_keycloak_id", nullable = false, length = 255)
+    private String keycloakSubject;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private Users user;
 
     @Column(name = "time_zone", nullable = false, length = 64)
@@ -66,6 +69,8 @@ public class NotificationProfile extends TenantAuditedEntity {
         });
     }
 
+    public String getKeycloakSubject() { return keycloakSubject; }
+    public void setKeycloakSubject(String keycloakSubject) { this.keycloakSubject = keycloakSubject; }
     public Users getUser() { return user; }
     public void setUser(Users user) { this.user = user; }
     public String getTimeZone() { return timeZone; }

@@ -18,6 +18,7 @@ import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
+import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationCategoryPreferenceDTO;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationPreferencesDTO;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationQuietHoursDTO;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -58,7 +60,7 @@ class NotificationPreferencesServiceTest {
 
     @Test
     void returnsCompleteSafeDefaultsWithoutPersisting() {
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.empty());
         when(tenantTimeZoneService.currentZoneId()).thenReturn(ZoneId.of("Europe/Rome"));
 
         NotificationPreferencesDTO result = service.get(authentication());
@@ -124,12 +126,35 @@ class NotificationPreferencesServiceTest {
     @Test
     void acceptsZeroAsAValidReminderThatDisablesTheLevel() {
         activeUser();
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.empty());
         when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var result = service.save(request(builder -> builder.reminderMinutes = 0), authentication());
 
         assertThat(result.defaultCalendarReminderMinutes()).isZero();
+    }
+
+    @Test
+    void savesSuperAdminPreferencesWithoutATenantUser() {
+        when(usersRepository.findByKeycloakIdAndDeletedFalse("super-admin-1")).thenReturn(Optional.empty());
+        when(repository.findByKeycloakSubjectAndDeletedFalse("super-admin-1")).thenReturn(Optional.empty());
+        when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.save(request(builder -> {}), authentication("super-admin-1", AuthoritiesConstants.SUPER_ADMIN));
+
+        verify(repository).saveAndFlush(org.mockito.ArgumentMatchers.argThat(profile ->
+            "super-admin-1".equals(profile.getKeycloakSubject()) && profile.getUser() == null
+        ));
+    }
+
+    @Test
+    void rejectsNonSuperAdminPreferencesWithoutATenantUser() {
+        when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.save(request(builder -> {}), authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .extracting(error -> ((RequestAlertException) error).getErrorKey())
+            .isEqualTo("user.notFound");
     }
 
     @Test
@@ -189,7 +214,7 @@ class NotificationPreferencesServiceTest {
     @Test
     void allowsADigestTimeOutsideQuietHours() {
         activeUser();
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.empty());
         when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var result = service.save(
@@ -209,7 +234,7 @@ class NotificationPreferencesServiceTest {
     @Test
     void refusesAFirstWriteThatCarriesAVersion() {
         activeUser();
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.save(request(builder -> builder.version = 3L), authentication()))
             .isInstanceOf(RequestAlertException.class)
@@ -221,7 +246,7 @@ class NotificationPreferencesServiceTest {
     void refusesAStaleVersionOnAnExistingProfile() {
         activeUser();
         NotificationProfile profile = persistedProfile();
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
 
         assertThatThrownBy(() -> service.save(request(builder -> builder.version = 1L), authentication()))
             .isInstanceOf(RequestAlertException.class)
@@ -233,7 +258,7 @@ class NotificationPreferencesServiceTest {
     void reschedulesInheritedRemindersOnlyWhenTheReminderSettingsChange() {
         activeUser();
         NotificationProfile profile = persistedProfile();
-        when(repository.findByUserKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
         when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(calendarEventsRepository.findFutureAvailableForUser(any(), any(), any())).thenReturn(List.of());
 
@@ -275,6 +300,7 @@ class NotificationPreferencesServiceTest {
         Users user = new Users();
         user.setKeycloakId("user-1");
         NotificationProfile profile = new NotificationProfile();
+        profile.setKeycloakSubject("user-1");
         profile.setUser(user);
         profile.setTimeZone("Europe/Rome");
         profile.setEventRemindersEnabled(true);
@@ -316,5 +342,10 @@ class NotificationPreferencesServiceTest {
             builder.preview,
             builder.categories
         );
+    }
+
+    private static JwtAuthenticationToken authentication(String subject, String authority) {
+        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject(subject).claim("tenant", "tenant-a").build();
+        return new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority(authority)));
     }
 }

@@ -47,4 +47,5 @@
     <include file="config/liquibase/changelog/20260909000000_track_page_image_editing.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260909010000_track_page_multi_crop.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260910000000_repair_score_order.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260910000001_allow_super_admin_notification_preferences.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>
