@@ -227,7 +227,7 @@ public class DataErasureService {
         deleted += pushReminderRepository.deleteAllByUserId(userId);
         deleted += userLegalAcceptanceRepository.deleteAllByUserId(userId);
         if (notificationPushDeliveryRepository != null) deleted += notificationPushDeliveryRepository.deleteAllByUserId(userId);
-        if (notificationProfileRepository != null) deleted += notificationProfileRepository.deleteAllByUserKeycloakId(userId);
+        if (notificationProfileRepository != null) deleted += notificationProfileRepository.deleteAllByKeycloakSubject(userId);
         log.info("Physically deleted {} relational records for user {}", deleted, userId);
     }
 

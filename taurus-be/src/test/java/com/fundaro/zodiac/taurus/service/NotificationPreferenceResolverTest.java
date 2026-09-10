@@ -35,7 +35,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void fallsBackToSafeDefaultsWhenNoProfileExists() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any())).thenReturn(List.of());
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any())).thenReturn(List.of());
 
         var decisions = resolver.resolve(NotificationSource.CALENDAR, NotificationPreferencePolicy.CONFIGURABLE, Set.of("user-1"));
 
@@ -51,7 +51,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void appliesTheSavedCategoryPreferenceForAConfigurableEvent() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any()))
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any()))
             .thenReturn(List.of(profile(NotificationSource.CALENDAR, false, NotificationPushMode.DAILY_DIGEST)));
 
         var decision = resolver
@@ -65,7 +65,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void keepsARequiredEventInAppWithoutTouchingItsPushMode() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any()))
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any()))
             .thenReturn(List.of(profile(NotificationSource.IDENTITY, false, NotificationPushMode.OFF)));
 
         var decision = resolver
@@ -80,7 +80,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void doesNotFlagAnOverrideWhenTheCategoryIsAlreadyEnabled() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any()))
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any()))
             .thenReturn(List.of(profile(NotificationSource.IDENTITY, true, NotificationPushMode.IMMEDIATE)));
 
         var decision = resolver
@@ -93,7 +93,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void usesSafeDefaultsForASourceTheProfileHasNoRowFor() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any()))
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any()))
             .thenReturn(List.of(profile(NotificationSource.CALENDAR, false, NotificationPushMode.IMMEDIATE)));
 
         var decision = resolver
@@ -106,7 +106,7 @@ class NotificationPreferenceResolverTest {
 
     @Test
     void returnsOneDecisionPerRecipientWithASingleBulkQuery() {
-        when(repository.findAllByUserKeycloakIdInAndDeletedFalse(any()))
+        when(repository.findAllByKeycloakSubjectInAndDeletedFalse(any()))
             .thenReturn(List.of(profile(NotificationSource.CALENDAR, false, NotificationPushMode.IMMEDIATE)));
 
         var decisions = resolver.resolve(
@@ -118,13 +118,14 @@ class NotificationPreferenceResolverTest {
         assertThat(decisions).hasSize(3);
         assertThat(decisions.get("user-1").inAppEnabled()).isFalse();
         assertThat(decisions.get("user-2").inAppEnabled()).isTrue();
-        org.mockito.Mockito.verify(repository, org.mockito.Mockito.times(1)).findAllByUserKeycloakIdInAndDeletedFalse(any());
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.times(1)).findAllByKeycloakSubjectInAndDeletedFalse(any());
     }
 
     private static NotificationProfile profile(NotificationSource source, boolean inApp, NotificationPushMode pushMode) {
         Users user = new Users();
         user.setKeycloakId("user-1");
         NotificationProfile profile = new NotificationProfile();
+        profile.setKeycloakSubject("user-1");
         profile.setUser(user);
         profile.setTimeZone("Europe/Rome");
         profile.setEventRemindersEnabled(true);

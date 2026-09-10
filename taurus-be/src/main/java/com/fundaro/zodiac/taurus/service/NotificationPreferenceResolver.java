@@ -52,8 +52,8 @@ public class NotificationPreferenceResolver {
         ZoneId defaultZone = currentTenantZoneOrDefault();
         userIds.forEach(userId -> decisions.put(userId, defaults(userId, defaultZone)));
         if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.NOTIFICATION_PREFERENCES)) return decisions;
-        for (NotificationProfile profile : repository.findAllByUserKeycloakIdInAndDeletedFalse(userIds)) {
-            String userId = profile.getUser().getKeycloakId();
+        for (NotificationProfile profile : repository.findAllByKeycloakSubjectInAndDeletedFalse(userIds)) {
+            String userId = profile.getKeycloakSubject();
             NotificationCategoryPreference category = profile.getCategories().stream()
                 .filter(value -> value.getSource() == source)
                 .findFirst()

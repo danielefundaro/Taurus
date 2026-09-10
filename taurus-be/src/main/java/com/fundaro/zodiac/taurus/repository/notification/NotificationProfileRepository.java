@@ -10,10 +10,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface NotificationProfileRepository extends JpaRepository<NotificationProfile, Long> {
 
     @EntityGraph(attributePaths = {"categories", "user"})
-    Optional<NotificationProfile> findByUserKeycloakIdAndDeletedFalse(String keycloakId);
+    Optional<NotificationProfile> findByKeycloakSubjectAndDeletedFalse(String keycloakId);
 
     @EntityGraph(attributePaths = {"categories", "user"})
-    List<NotificationProfile> findAllByUserKeycloakIdInAndDeletedFalse(Collection<String> keycloakIds);
+    List<NotificationProfile> findAllByKeycloakSubjectInAndDeletedFalse(Collection<String> keycloakIds);
 
-    long deleteAllByUserKeycloakId(String keycloakId);
+    long deleteAllByKeycloakSubject(String keycloakId);
 }
