@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
+import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationCategoryPreferenceDTO;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationPreferencesDTO;
@@ -75,7 +76,7 @@ public class NotificationPreferencesService {
     public NotificationPreferencesDTO get(AbstractAuthenticationToken authentication) {
         requireEnabled();
         String subject = subject(authentication);
-        return repository.findByUserKeycloakIdAndDeletedFalse(subject)
+        return repository.findByKeycloakSubjectAndDeletedFalse(subject)
             .map(this::toDto)
             .orElseGet(() -> defaults(tenantTimeZoneService.currentZoneId()));
     }
@@ -84,11 +85,14 @@ public class NotificationPreferencesService {
         requireEnabled();
         String subject = subject(authentication);
         validate(request);
-        Users user = usersRepository.findByKeycloakIdAndDeletedFalse(subject)
-            .filter(value -> Boolean.TRUE.equals(value.getActive()))
-            .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Authenticated user is not active", "user.notFound"));
+        Users user = usersRepository.findByKeycloakIdAndDeletedFalse(subject).orElse(null);
+        boolean superAdmin = authentication.getAuthorities().stream()
+            .anyMatch(authority -> AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()));
+        if ((user == null || !Boolean.TRUE.equals(user.getActive())) && !superAdmin) {
+            throw error(HttpStatus.NOT_FOUND, "Authenticated user is not active", "user.notFound");
+        }
 
-        NotificationProfile profile = repository.findByUserKeycloakIdAndDeletedFalse(subject).orElse(null);
+        NotificationProfile profile = repository.findByKeycloakSubjectAndDeletedFalse(subject).orElse(null);
         boolean reminderScheduleChanged = profile == null ||
             profile.isEventRemindersEnabled() != request.eventRemindersEnabled() ||
             profile.getDefaultCalendarReminderMinutes() != request.defaultCalendarReminderMinutes();
@@ -96,6 +100,7 @@ public class NotificationPreferencesService {
             if (request.version() != null) throw versionConflict();
             profile = new NotificationProfile();
             profile.initializeAudit(subject);
+            profile.setKeycloakSubject(subject);
             profile.setUser(user);
         } else {
             if (request.version() == null || request.version() != profile.getEntityVersion()) throw versionConflict();

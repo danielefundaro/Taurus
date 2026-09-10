@@ -120,7 +120,7 @@ public class EventReminderProducer {
         if (personalMinutes != null) return new ResolvedReminder(personalMinutes, ReminderOrigin.PERSONAL);
         if (eventMinutes != null) return new ResolvedReminder(eventMinutes, ReminderOrigin.EVENT);
         if (notificationProfileRepository != null) {
-            var profile = notificationProfileRepository.findByUserKeycloakIdAndDeletedFalse(userId).orElse(null);
+            var profile = notificationProfileRepository.findByKeycloakSubjectAndDeletedFalse(userId).orElse(null);
             if (profile != null) {
                 if (!profile.isEventRemindersEnabled()) return new ResolvedReminder(0, ReminderOrigin.PROFILE);
                 return new ResolvedReminder(profile.getDefaultCalendarReminderMinutes(), ReminderOrigin.PROFILE);

@@ -13,6 +13,7 @@ import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationDeliveryOrigin;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDeliveryType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
@@ -30,6 +31,7 @@ import com.fundaro.zodiac.taurus.repository.notification.NotificationDeliveryAdm
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
+import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.NotificationDeliveryAdminService;
 import com.fundaro.zodiac.taurus.service.NotificationPreferencesService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
@@ -61,6 +63,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 
 /**
@@ -116,6 +119,7 @@ class NotificationPreferencesIT {
     void prepare() {
         when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
         when(tenantFeatureService.isEnabled(TenantFeature.INVENTORY)).thenReturn(true);
+        when(tenantFeatureService.isEnabled(TenantFeature.NOTIFICATION_PREFERENCES)).thenReturn(true);
         for (String tenant : List.of(tenantOne, tenantTwo)) {
             transactionExecutor.execute(tenant, () -> {
                 if (usersRepository.findByKeycloakIdAndDeletedFalse(SUBJECT).isEmpty()) createUser();
@@ -152,7 +156,7 @@ class NotificationPreferencesIT {
 
             assertThat(defaults.version()).isNull();
             assertThat(defaults.categories()).hasSize(NotificationSource.values().length);
-            assertThat(profileRepository.findByUserKeycloakIdAndDeletedFalse(SUBJECT)).isEmpty();
+            assertThat(profileRepository.findByKeycloakSubjectAndDeletedFalse(SUBJECT)).isEmpty();
         });
     }
 
@@ -162,13 +166,31 @@ class NotificationPreferencesIT {
             NotificationPreferencesDTO saved = preferencesService.save(preferences(null, NotificationPushMode.IMMEDIATE, true), authentication());
 
             assertThat(saved.version()).isNotNull();
-            assertThat(profileRepository.findByUserKeycloakIdAndDeletedFalse(SUBJECT)).isPresent();
+            assertThat(profileRepository.findByKeycloakSubjectAndDeletedFalse(SUBJECT)).isPresent();
         });
         assertThatThrownBy(() -> transactionExecutor.execute(tenantOne, () ->
             preferencesService.save(preferences(99L, NotificationPushMode.IMMEDIATE, true), authentication())
         )).isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
             .isEqualTo("preferences.versionConflict");
+    }
+
+    @Test
+    void materialisesASuperAdminProfileWithoutATenantUser() {
+        String superAdminSubject = "preferences-super-admin";
+        transactionExecutor.execute(tenantOne, () -> {
+            assertThat(usersRepository.findByKeycloakIdAndDeletedFalse(superAdminSubject)).isEmpty();
+
+            NotificationPreferencesDTO saved = preferencesService.save(
+                preferences(null, NotificationPushMode.IMMEDIATE, true),
+                authentication(superAdminSubject, AuthoritiesConstants.SUPER_ADMIN)
+            );
+
+            assertThat(saved.version()).isNotNull();
+            NotificationProfile profile = profileRepository.findByKeycloakSubjectAndDeletedFalse(superAdminSubject).orElseThrow();
+            assertThat(profile.getKeycloakSubject()).isEqualTo(superAdminSubject);
+            assertThat(profile.getUser()).isNull();
+        });
     }
 
     @Test
@@ -513,5 +535,10 @@ class NotificationPreferencesIT {
     private static JwtAuthenticationToken authentication() {
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject(SUBJECT).build();
         return new JwtAuthenticationToken(jwt);
+    }
+
+    private static JwtAuthenticationToken authentication(String subject, String authority) {
+        Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject(subject).build();
+        return new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority(authority)));
     }
 }
