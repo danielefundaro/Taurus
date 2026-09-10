@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -61,6 +62,9 @@ class RelationalSoftDeleteIT {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private TracksRepository tracksRepository;
 
     @BeforeEach
     void provisionTenant() {
@@ -238,6 +242,44 @@ class RelationalSoftDeleteIT {
         );
         assertThat(activeMedia).containsExactly(ids[3], ids[4], ids[2]);
         assertCounts(schema, "sheet_music_media", "sheet_music_id", ids[0], 3L, 2L);
+    }
+
+    @Test
+    void scoreOrderCanBeChangedWithoutTransientDuplicates() {
+        Long[] ids = transactionExecutor.execute(
+            tenantCode,
+            () -> {
+                Tracks track = audited(new Tracks(), "Reordered track");
+                SheetsMusic first = new SheetsMusic();
+                SheetsMusic second = new SheetsMusic();
+                SheetsMusic third = new SheetsMusic();
+                track.getScores().addAll(List.of(first, second, third));
+                entityManager.persist(track);
+                entityManager.flush();
+                return new Long[] { track.getId(), first.getId(), second.getId(), third.getId() };
+            }
+        );
+
+        transactionExecutor.execute(
+            tenantCode,
+            () -> {
+                Tracks track = entityManager.find(Tracks.class, ids[0]);
+                assertThat(track.getScores()).hasSize(3);
+                tracksRepository.moveActiveScoreOrdersToTemporaryRange(track.getId());
+                SheetsMusic third = track.getScores().get(2);
+                track.getScores().clear();
+                track.getScores().add(third);
+                entityManager.flush();
+            }
+        );
+
+        String schema = quote(schemaNameResolver.resolve(tenantCode));
+        List<Long> activeScores = jdbcTemplate.queryForList(
+            "SELECT id FROM " + schema + ".sheet_music WHERE track_id = ? AND deleted = FALSE ORDER BY display_order",
+            Long.class,
+            ids[0]
+        );
+        assertThat(activeScores).containsExactly(ids[3]);
     }
 
     @Test

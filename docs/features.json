@@ -399,6 +399,33 @@
       "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze."
     },
     {
+      "id": "score-preview-printing",
+      "title": "Anteprima e stampa degli spartiti",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "in-progress",
+      "spec": "docs/score-preview-printing-spec.md",
+      "relatedDocs": [
+        "docs/track-parts-workspace-spec.md",
+        "docs/taurus-layout-standard.md",
+        "docs/media-asset-spec.md"
+      ],
+      "modules": ["taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-fe/src/app/pages/preview/preview.component.ts",
+          "taurus-fe/src/app/pages/preview/preview.component.html",
+          "taurus-fe/src/app/pages/preview/preview.component.scss",
+          "taurus-fe/src/app/service/printer.service.ts"
+        ],
+        "migrations": [],
+        "tests": []
+      },
+      "notes": "Il flusso esistente copre selezione per strumento, navigazione, zoom, presentazione e stampa browser. La correzione della spalla filtri è presente; restano da allineare accessibilità, gestione degli errori e sincronizzazione della presentazione e da aggiungere test automatici dedicati.",
+      "release": null,
+      "lastVerifiedOn": "2026-09-10"
+    },
+    {
       "id": "support-requests",
       "title": "Segnalazioni e richieste di supporto",
       "kind": "feature",

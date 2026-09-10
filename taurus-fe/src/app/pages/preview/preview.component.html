@@ -1,47 +1,41 @@
 <section class="preview-page not-print">
     <header class="preview-header">
         <div class="preview-title-group">
-            <button type="button" class="icon-button back-button" aria-label="Torna indietro" pTooltip="Torna indietro"
-                tooltipPosition="bottom" (click)="goBack()">
+            <button type="button" class="icon-button back-button" aria-label="Torna indietro" pTooltip="Torna indietro" tooltipPosition="bottom" (click)="goBack()">
                 <i class="pi pi-arrow-left"></i>
             </button>
             <div>
                 <span class="preview-eyebrow">{{ previewSource }}</span>
                 <h1>Anteprima spartiti</h1>
-                <p>{{ previewTitle }} · {{ mediaStreams.length }} {{ mediaStreams.length === 1 ? 'pagina' : 'pagine' }}
-                </p>
+                <p>{{ previewTitle }} · {{ mediaStreams.length }} {{ mediaStreams.length === 1 ? 'pagina' : 'pagine' }}</p>
             </div>
         </div>
 
         <div class="preview-actions">
-            <button type="button" class="secondary-action filter-action" (click)="toggleFilters()">
+            <button type="button" class="secondary-action filter-action" aria-controls="preview-filters" (click)="openFilters()">
                 <i class="pi pi-filter"></i>
                 <span>Filtri</span>
             </button>
-            <p-button label="Presentazione" icon="pi pi-desktop" severity="secondary" (onClick)="openGalleria()"
-                [disabled]="!mediaStreams.length" />
-            <p-button [label]="'Stampa ' + mediaStreams.length + (mediaStreams.length === 1 ? ' pagina' : ' pagine')"
-                icon="pi pi-print" severity="primary" (onClick)="print()" [disabled]="!mediaStreams.length" />
+            <p-button label="Presentazione" icon="pi pi-desktop" severity="secondary" (onClick)="openGalleria()" [disabled]="!mediaStreams.length" />
+            <p-button [label]="'Stampa ' + mediaStreams.length + (mediaStreams.length === 1 ? ' pagina' : ' pagine')" icon="pi pi-print" severity="primary" (onClick)="print()" [disabled]="!mediaStreams.length" />
         </div>
     </header>
 
-    <div class="preview-workspace" [class.filters-open]="filtersOpen">
-        <aside class="preview-sidebar">
+    <div class="preview-workspace" [class.filters-open]="filtersOpen === true" [class.filters-closed]="filtersOpen === false">
+        <aside id="preview-filters" class="preview-sidebar">
             <div class="sidebar-header">
                 <div>
                     <span class="section-label">Parti da includere</span>
                     <strong>{{ selectedInstrumentCount }} di {{ instrumentCount }}</strong>
                 </div>
-                <button type="button" class="icon-button close-filters" aria-label="Chiudi filtri"
-                    (click)="toggleFilters()">
+                <button type="button" class="icon-button close-filters" aria-label="Chiudi filtri" (click)="closeFilters()">
                     <i class="pi pi-times"></i>
                 </button>
             </div>
 
             <label class="instrument-row select-all-row" for="selectAll">
                 <span class="instrument-check">
-                    <p-checkBox inputId="selectAll" [binary]="true" [(ngModel)]="selectAll"
-                        (onChange)="selectAllChange($event)" />
+                    <p-checkBox inputId="selectAll" [binary]="true" [(ngModel)]="selectAll" (onChange)="selectAllChange($event)" />
                 </span>
                 <span class="instrument-name">Seleziona tutto</span>
             </label>
@@ -50,8 +44,7 @@
                 @for (instrument of instruments | keyvalue; track instrument.key) {
                     <label class="instrument-row" [for]="instrument.key">
                         <span class="instrument-check">
-                            <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key"
-                                [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()" />
+                            <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key" [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()" />
                         </span>
                         <span class="instrument-name">{{ instrument.value }}</span>
                         <span class="instrument-pages">{{ instrumentPageCount(instrument.key) }} pag.</span>
@@ -61,45 +54,40 @@
 
             <div class="selection-hint">
                 <i class="pi pi-info-circle"></i>
-                <span><strong>Anteprima aggiornata automaticamente.</strong> In stampa saranno incluse solo le parti
-                    selezionate.</span>
+                <span><strong>Anteprima aggiornata automaticamente.</strong> In stampa saranno incluse solo le parti selezionate.</span>
             </div>
         </aside>
 
-        <button type="button" class="filters-mask" aria-label="Chiudi filtri" (click)="toggleFilters()"></button>
+        <button type="button" class="filters-mask" aria-label="Chiudi filtri" (click)="closeFilters()"></button>
 
         <main class="preview-content">
             <div class="preview-toolbar">
                 <div class="zoom-controls">
-                    <button type="button" class="tool-button fit-button" [class.active]="zoom === 100"
-                        (click)="fitPage()" pTooltip="Adatta alla pagina" tooltipPosition="bottom">
+                    <button type="button" class="tool-button fit-button" [class.active]="zoom === 100" (click)="fitPage()" pTooltip="Adatta alla pagina" tooltipPosition="bottom">
                         <i class="pi pi-expand"></i>
                         <span>Adatta</span>
                     </button>
                     <span class="toolbar-divider"></span>
-                    <button type="button" class="tool-button" aria-label="Riduci zoom" (click)="zoomOut()"
-                        [disabled]="zoom <= 60">
+                    <button type="button" class="tool-button" aria-label="Riduci zoom" (click)="zoomOut()" [disabled]="zoom <= 60">
                         <i class="pi pi-search-minus"></i>
                     </button>
                     <span class="zoom-value">{{ zoom }}%</span>
-                    <button type="button" class="tool-button" aria-label="Aumenta zoom" (click)="zoomIn()"
-                        [disabled]="zoom >= 140">
+                    <button type="button" class="tool-button" aria-label="Aumenta zoom" (click)="zoomIn()" [disabled]="zoom >= 140">
                         <i class="pi pi-search-plus"></i>
                     </button>
                 </div>
 
                 @if (mediaStreams.length) {
                     <div class="page-navigation">
-                        <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()"
-                            [disabled]="currentPage <= 1">
+                        <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()" [disabled]="currentPage <= 1">
                             <i class="pi pi-chevron-left"></i>
                         </button>
                         <span>Pagina</span>
-                        <input type="number" class="page-input" min="1" [max]="mediaStreams.length" [value]="currentPage"
-                            aria-label="Numero pagina" (change)="pageChange($event)">
-                        <span>di <strong>{{ mediaStreams.length }}</strong></span>
-                        <button type="button" class="tool-button" aria-label="Pagina successiva" (click)="nextPage()"
-                            [disabled]="currentPage >= mediaStreams.length">
+                        <input type="number" class="page-input" min="1" [max]="mediaStreams.length" [value]="currentPage" aria-label="Numero pagina" (change)="pageChange($event)" />
+                        <span
+                            >di <strong>{{ mediaStreams.length }}</strong></span
+                        >
+                        <button type="button" class="tool-button" aria-label="Pagina successiva" (click)="nextPage()" [disabled]="currentPage >= mediaStreams.length">
                             <i class="pi pi-chevron-right"></i>
                         </button>
                     </div>
@@ -109,16 +97,14 @@
             <div class="document-canvas" [class.empty-canvas]="!mediaStreams.length">
                 @if (currentMediaStream) {
                     <div class="paper-frame">
-                        <img class="preview-image" [style.transform]="'scale(' + (zoom / 100) + ')'"
-                            [src]="currentMediaStream | secure | async"
-                            [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length">
+                        <img class="preview-image" [style.transform]="'scale(' + zoom / 100 + ')'" [src]="currentMediaStream | secure | async" [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length" />
                     </div>
                 } @else {
                     <div class="empty-selection">
                         <span class="empty-icon"><i class="pi pi-file"></i></span>
                         <h2>Nessuna parte selezionata</h2>
                         <p>Seleziona almeno uno strumento per visualizzare e stampare gli spartiti.</p>
-                        <button type="button" class="secondary-action" (click)="toggleFilters()">
+                        <button type="button" class="secondary-action empty-open-filters" aria-controls="preview-filters" (click)="openFilters()">
                             <i class="pi pi-filter"></i>
                             <span>Apri filtri</span>
                         </button>
@@ -129,8 +115,7 @@
     </div>
 </section>
 
-<p-galleria [value]="mediaStreams" [(visible)]="displayGalleria" [responsiveOptions]="responsiveOptions"
-    [fullScreen]="true" [circular]="true" [showItemNavigators]="true" [showIndicators]="true" [showThumbnails]="false">
+<p-galleria [value]="mediaStreams" [(visible)]="displayGalleria" [responsiveOptions]="responsiveOptions" [fullScreen]="true" [circular]="true" [showItemNavigators]="true" [showIndicators]="true" [showThumbnails]="false">
     <ng-template #item let-url>
         <img class="image-galleria" [src]="url | secure | async" alt="Pagina dello spartito" />
     </ng-template>
@@ -138,6 +123,6 @@
 
 <div class="print-pages print">
     @for (mediaStream of mediaStreams; track mediaStream) {
-        <img [src]="mediaStream | secure | async" alt="">
+        <img [src]="mediaStream | secure | async" alt="" />
     }
 </div>
