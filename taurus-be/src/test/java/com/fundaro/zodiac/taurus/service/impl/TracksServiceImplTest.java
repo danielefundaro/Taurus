@@ -183,6 +183,7 @@ class TracksServiceImplTest {
         when(mapper.toDto(entity)).thenReturn(new TracksDTO());
         service.update(8L, request, authentication());
 
+        verify(repository).moveActiveScoreOrdersToTemporaryRange(8L);
         assertThat(entity.getScores()).hasSize(2);
         assertThat(entity.getScores().get(0)).isSameAs(existing);
         assertThat(entity.getScores().get(1).getId()).isNull();

@@ -79,6 +79,12 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         if (dto.getVersion() != null && !dto.getVersion().equals(entity.getEntityVersion())) {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Track was modified by another request", getEntityName(), "version.conflict");
         }
+        if (!entity.getScores().isEmpty()) {
+            // @OrderColumn updates retained rows before Hibernate deletes removed rows. Move the
+            // current positions out of the final range first so the partial unique index cannot
+            // observe a transient duplicate while the collection is being rebuilt.
+            getRepository().moveActiveScoreOrdersToTemporaryRange(id);
+        }
         getMapper().partialUpdate(entity, dto);
         List<SheetsMusic> resolvedScores = resolveScores(dto, entity.getScores());
         entity.getScores().clear();

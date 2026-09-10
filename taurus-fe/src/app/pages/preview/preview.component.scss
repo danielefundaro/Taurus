@@ -92,25 +92,36 @@
     color: var(--text-color);
     font-weight: 600;
 }
-.filter-action,
-.close-filters {
-    display: none;
-}
 .preview-workspace {
     position: relative;
     display: grid;
     grid-template-columns: 17rem minmax(0, 1fr);
     min-height: calc(100vh - 16rem);
+    transition: grid-template-columns 0.2s;
+}
+.preview-workspace.filters-closed {
+    grid-template-columns: 0 minmax(0, 1fr);
 }
 .preview-sidebar {
     position: relative;
     z-index: 3;
     display: flex;
+    width: 17rem;
     min-width: 0;
     flex-direction: column;
     padding: 1.2rem 1rem 1rem;
     border-right: 1px solid var(--surface-border);
     background: var(--surface-card);
+    transition:
+        transform 0.2s,
+        visibility 0s;
+}
+.filters-closed .preview-sidebar {
+    visibility: hidden;
+    transform: translateX(-105%);
+    transition:
+        transform 0.2s,
+        visibility 0s 0.2s;
 }
 .sidebar-header {
     justify-content: space-between;
@@ -284,6 +295,12 @@
     background: color-mix(in srgb, var(--primary-color) 10%, var(--surface-card));
     color: var(--primary-color);
 }
+.empty-open-filters {
+    display: none;
+}
+.filters-closed .empty-open-filters {
+    display: inline-flex;
+}
 .filters-mask,
 .print-pages {
     display: none;
@@ -297,11 +314,18 @@
         inset: 0 auto 0 0;
         width: min(20rem, calc(100vw - 3rem));
         box-shadow: 1rem 0 2.5rem #0f172a2e;
+        visibility: hidden;
         transform: translateX(-105%);
-        transition: transform 0.2s;
+        transition:
+            transform 0.2s,
+            visibility 0s 0.2s;
     }
     .filters-open .preview-sidebar {
+        visibility: visible;
         transform: none;
+        transition:
+            transform 0.2s,
+            visibility 0s;
     }
     .filters-mask {
         position: absolute;
@@ -311,10 +335,14 @@
         border: 0;
         background: #0f172a57;
     }
-    .filters-open .filters-mask,
-    .filter-action,
-    .close-filters {
+    .filters-open .filters-mask {
         display: inline-flex;
+    }
+    .empty-open-filters {
+        display: inline-flex;
+    }
+    .filters-open .empty-open-filters {
+        display: none;
     }
 }
 @media (max-width: 640px) {
