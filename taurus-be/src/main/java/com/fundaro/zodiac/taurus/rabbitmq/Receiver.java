@@ -19,7 +19,6 @@ import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import org.apache.logging.log4j.util.Strings;
@@ -90,9 +89,6 @@ public class Receiver {
         try {
             TracksDTO track = tracksService.findOne(upload.getTrackId(), token)
                 .orElseThrow(() -> new IllegalStateException("Track " + upload.getTrackId() + " not found"));
-            if (track.getScores() == null) {
-                track.setScores(new HashSet<>());
-            }
 
             PdfAnnotations annotations = parseAnnotations(upload.getDescription());
             MediaService.MediaContent source = mediaService.getContent(upload.getSourceMediaAssetId(), token);
@@ -105,8 +101,7 @@ public class Receiver {
                 }
 
                 List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
-                track.getScores().addAll(sheets);
-                tracksService.update(track.getId(), track, token);
+                tracksService.appendScores(track.getId(), sheets, token);
                 queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token);
                 log.info("Updated track with {} sheet music parts", sheets.size());
             } finally {

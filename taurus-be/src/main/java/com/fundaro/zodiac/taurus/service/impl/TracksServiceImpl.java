@@ -91,12 +91,35 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         entity.getScores().addAll(resolvedScores);
         saveEntity(entity, token, false);
         getRepository().flush();
+        restoreScoreOrders(entity);
         return getMapper().toDto(entity);
     }
 
     @Override
     public TracksDTO partialUpdate(Long id, TracksDTO dto, AbstractAuthenticationToken token) {
         return update(id, dto, token);
+    }
+
+    @Override
+    public TracksDTO appendScores(Long id, List<SheetsMusicDTO> scores, AbstractAuthenticationToken token) {
+        Tracks entity = getRepository().findByIdForUpdate(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        if (scores == null || scores.isEmpty()) {
+            return getMapper().toDto(entity);
+        }
+
+        for (SheetsMusicDTO score : scores) {
+            if (score.getId() != null) {
+                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Generated score cannot already have an ID", getEntityName(), "score.id.exists");
+            }
+            normalizeOrder(score.getMedia());
+            normalizeOrder(score.getInstruments());
+            entity.getScores().add(resolveScore(score, new HashMap<>()));
+        }
+
+        saveEntity(entity, token, false);
+        getRepository().flush();
+        return getMapper().toDto(entity);
     }
 
     @Override
@@ -242,6 +265,15 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
     private Long orderOf(ChildrenEntitiesDTO ref) {
         return ref.getOrder() == null ? Long.MAX_VALUE : ref.getOrder();
+    }
+
+    private void restoreScoreOrders(Tracks track) {
+        for (int index = 0; index < track.getScores().size(); index++) {
+            SheetsMusic score = track.getScores().get(index);
+            if (score.getId() == null || getRepository().restoreActiveScoreOrder(track.getId(), score.getId(), index) != 1) {
+                throw new IllegalStateException("Unable to persist score order for track " + track.getId());
+            }
+        }
     }
 
     private void finalizeOrders(TracksDTO dto) {

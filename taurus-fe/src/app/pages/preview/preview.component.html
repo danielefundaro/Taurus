@@ -17,7 +17,7 @@
                 <span>Filtri</span>
             </button>
             <p-button label="Presentazione" icon="pi pi-desktop" severity="secondary" (onClick)="openGalleria()" [disabled]="!mediaStreams.length" />
-            <p-button [label]="'Stampa ' + mediaStreams.length + (mediaStreams.length === 1 ? ' pagina' : ' pagine')" icon="pi pi-print" severity="primary" (onClick)="print()" [disabled]="!mediaStreams.length" />
+            <p-button [label]="'Stampa ' + printSheetCount + (printSheetCount === 1 ? ' foglio' : ' fogli')" icon="pi pi-print" severity="primary" (onClick)="print()" [disabled]="!mediaStreams.length" />
         </div>
     </header>
 
@@ -77,6 +77,17 @@
                     </button>
                 </div>
 
+                <div class="print-options" aria-label="Impostazioni di stampa">
+                    <label class="print-option">
+                        <span>Pagine per foglio</span>
+                        <select [(ngModel)]="printPagesPerSheet" aria-label="Pagine dello spartito per foglio">
+                            <option [ngValue]="1">1</option>
+                            <option [ngValue]="2">2 · automatico</option>
+                        </select>
+                    </label>
+                    <span class="print-sheet-count">{{ printSheetCount }} {{ printSheetCount === 1 ? 'foglio' : 'fogli' }}</span>
+                </div>
+
                 @if (mediaStreams.length) {
                     <div class="page-navigation">
                         <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()" [disabled]="currentPage <= 1">
@@ -96,9 +107,33 @@
 
             <div class="document-canvas" [class.empty-canvas]="!mediaStreams.length">
                 @if (currentMediaStream) {
-                    <div class="paper-frame">
-                        <img class="preview-image" [style.transform]="'scale(' + zoom / 100 + ')'" [src]="currentMediaStream | secure | async" [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length" />
-                    </div>
+                    @if (printPagesPerSheet === 1) {
+                        <div class="paper-frame">
+                            <img
+                                class="preview-image"
+                                [style.transform]="'scale(' + zoom / 100 + ')'"
+                                [src]="currentMediaStream | secure | async"
+                                [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length"
+                                (load)="printImageLoaded(currentMediaStream, $event)"
+                            />
+                        </div>
+                    } @else {
+                        <div
+                            class="paper-frame print-sheet-preview"
+                            [class.print-sheet-preview--portrait]="printOrientation === 'portrait'"
+                            [class.print-sheet-preview--landscape]="printOrientation === 'landscape'"
+                            [style.transform]="'scale(' + zoom / 100 + ')'"
+                        >
+                            @for (mediaStream of currentPrintSheet; track $index; let slotIndex = $index) {
+                                <div class="print-sheet-preview__slot" [class.active]="currentPrintSheetStartPage + slotIndex === currentPage">
+                                    @if (mediaStream) {
+                                        <span>Pagina {{ currentPrintSheetStartPage + slotIndex }}</span>
+                                        <img [src]="mediaStream | secure | async" [alt]="'Pagina ' + (currentPrintSheetStartPage + slotIndex) + ' di ' + mediaStreams.length" (load)="printImageLoaded(mediaStream, $event)" />
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
                 } @else {
                     <div class="empty-selection">
                         <span class="empty-icon"><i class="pi pi-file"></i></span>
@@ -122,7 +157,15 @@
 </p-galleria>
 
 <div class="print-pages print">
-    @for (mediaStream of mediaStreams; track mediaStream) {
-        <img [src]="mediaStream | secure | async" alt="" />
+    @for (sheet of printSheets; track $index) {
+        <section class="print-sheet" [class.print-sheet--two-up]="printPagesPerSheet === 2">
+            @for (mediaStream of sheet; track $index) {
+                <div class="print-sheet__slot">
+                    @if (mediaStream) {
+                        <img [src]="mediaStream | secure | async" alt="" (load)="printImageLoaded(mediaStream, $event)" />
+                    }
+                </div>
+            }
+        </section>
     }
 </div>

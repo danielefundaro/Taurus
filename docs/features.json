@@ -402,7 +402,7 @@
       "id": "score-preview-printing",
       "title": "Anteprima e stampa degli spartiti",
       "kind": "feature",
-      "designStatus": "draft",
+      "designStatus": "approved",
       "deliveryStatus": "in-progress",
       "spec": "docs/score-preview-printing-spec.md",
       "relatedDocs": [
@@ -419,9 +419,11 @@
           "taurus-fe/src/app/service/printer.service.ts"
         ],
         "migrations": [],
-        "tests": []
+        "tests": [
+          "taurus-fe/src/app/pages/preview/preview.component.spec.ts"
+        ]
       },
-      "notes": "Il flusso esistente copre selezione per strumento, navigazione, zoom, presentazione e stampa browser. La correzione della spalla filtri è presente; restano da allineare accessibilità, gestione degli errori e sincronizzazione della presentazione e da aggiungere test automatici dedicati.",
+      "notes": "Nel thread del 10 settembre 2026 sono stati ripristinati i comandi di apertura/chiusura filtri, rimossa la shell dal flusso di stampa per eliminare i fogli bianchi e introdotta la composizione 1-up/2-up con conteggio dei fogli, anteprima composta e secondo slot vuoto sull'ultimo foglio dispari. La scelta A4/A3 è stata eliminata: formato, orientamento, margini e scala restano nel dialogo di sistema, mentre il foglio frontend si adatta alla relativa area. Sei test unitari coprono le regressioni principali. Restano da allineare gestione completa del focus e degli errori e sincronizzazione della presentazione.",
       "release": null,
       "lastVerifiedOn": "2026-09-10"
     },

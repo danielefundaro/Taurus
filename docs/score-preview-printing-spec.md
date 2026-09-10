@@ -5,6 +5,23 @@
 ID catalogo: `score-preview-printing`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
+### Stato implementato al 10 settembre 2026
+
+Questo documento consolida gli interventi realizzati sulla route `/preview` durante il thread:
+
+- il comando «Filtri» nell'intestazione, il comando «Apri filtri» nello stato vuoto e la X della spalla sono nuovamente visibili nelle condizioni previste e modificano esplicitamente lo stato aperto/chiuso;
+- la superficie applicativa nascosta viene rimossa dal flusso di stampa, invece di conservarne lo spazio, e shell, contenitore principale e canvas non introducono più fogli bianchi prima delle pagine dello spartito;
+- la barra strumenti consente di scegliere esclusivamente una o due pagine per foglio e aggiorna anteprima, conteggio dei fogli e testo del pulsante «Stampa»;
+- la modalità 2-up raggruppa pagine consecutive senza modificarne l'ordine e mostra nel canvas il foglio composto;
+- con un numero dispari di pagine, l'ultimo foglio conserva due slot: l'ultima pagina occupa il primo e il secondo resta vuoto;
+- il foglio stampabile si adatta all'area fornita dal browser; formato carta, orientamento, margini, scala, stampante e destinazione restano nel dialogo di sistema;
+- la scelta applicativa A4/A3 e i tentativi di propagarla tramite regole `@page` sono stati rimossi, perché non producono un comportamento uniforme nel dialogo di stampa dei browser supportati;
+- lo zoom dell'anteprima non influenza le dimensioni stampate e le immagini usano adattamento proporzionale senza deformazione.
+
+La regressione è coperta da sei test unitari dedicati a raggruppamento 1-up/2-up, pagina dispari, orientamento dell'anteprima, apertura/chiusura filtri e delega a `window.print`. Sono stati inoltre verificati la build Angular di produzione, il catalogo funzionalità e i relativi test di governance.
+
+Restano fuori dall'intervento completato la gestione integrale di focus ed `Escape`, gli stati di errore dei singoli media e la sincronizzazione bidirezionale della presentazione; queste voci rimangono requisiti della specifica e motivano lo stato di delivery `in-progress` nel catalogo.
+
 ## 1. Contesto e obiettivo
 
 Taurus consente di raccogliere in una sola anteprima le pagine degli spartiti appartenenti a una traccia oppure alle tracce di un album. Prima della stampa l'utente può limitare il documento agli strumenti necessari, controllare le singole pagine e aprire una presentazione a schermo intero.
@@ -24,6 +41,7 @@ La specifica completa il [Workspace per la gestione delle parti di una traccia](
 
 - **Parte**: raggruppamento logico di pagine associato a zero o più strumenti.
 - **Pagina**: singolo media visualizzabile e stampabile.
+- **Foglio**: unità inviata al dialogo di stampa; può contenere uno o due slot di pagina.
 - **Spalla filtri**: pannello laterale «Parti da includere».
 - **Anteprima**: pagina applicativa usata per filtrare, consultare e avviare la stampa.
 - **Presentazione**: visualizzazione delle pagine a schermo intero.
@@ -38,7 +56,7 @@ La specifica completa il [Workspace per la gestione delle parti di una traccia](
 - Selezione e deselezione globale delle parti.
 - Navigazione tra pagine, adattamento e zoom visuale.
 - Presentazione a schermo intero.
-- Stampa delle sole pagine incluse dal filtro.
+- Stampa delle sole pagine incluse dal filtro, con una o due pagine per foglio.
 - Comportamento responsive della spalla filtri.
 - Stati senza contenuto, caricamento ed errore dei media.
 - Accessibilità tramite tastiera e tecnologie assistive.
@@ -101,9 +119,15 @@ L'intestazione contiene:
 - nome della sorgente e numero di pagine incluse;
 - pulsante «Filtri»;
 - azione secondaria «Presentazione»;
-- azione primaria «Stampa n pagine».
+- azione primaria «Stampa n fogli».
 
 Il conteggio e l'etichetta singolare/plurale si aggiornano immediatamente dopo ogni variazione dei filtri. «Presentazione» e «Stampa» sono disabilitati quando non è inclusa alcuna pagina.
+
+### Impostazioni di stampa
+
+La barra strumenti espone soltanto l'impaginazione a una o due pagine. Formato carta e orientamento vengono scelti nel dialogo di stampa del browser o del sistema. Il conteggio dei fogli e l'etichetta del pulsante «Stampa» riflettono la composizione scelta, mentre il conteggio vicino al titolo continua a indicare le pagine dello spartito.
+
+La modalità a due pagine accorpa automaticamente pagine consecutive e mostra nel canvas l'anteprima del foglio risultante. La pagina corrente è evidenziata senza introdurre elementi decorativi nella stampa.
 
 ### Spalla filtri
 
@@ -179,19 +203,33 @@ Lo zoom modifica soltanto il canvas e non la dimensione stampata. Il valore corr
 
 ## 8. Stampa
 
-«Stampa n pagine» invoca il dialogo di stampa del browser. Il documento stampato contiene esclusivamente le pagine risultanti dal filtro, nello stesso ordine dell'anteprima.
+«Stampa n fogli» invoca il dialogo di stampa del browser. Il documento stampato contiene esclusivamente le pagine risultanti dal filtro, nello stesso ordine dell'anteprima.
+
+Nell'anteprima l'utente sceglie:
+
+- una pagina per foglio, valore predefinito compatibile con il comportamento precedente;
+- due pagine per foglio, con accorpamento automatico delle pagine consecutive.
+
+Nell'anteprima 2-up Taurus usa il rapporto medio delle immagini per mostrare una composizione coerente per l'intero lavoro: pagine prevalentemente verticali sono rappresentate affiancate, mentre pagine prevalentemente orizzontali sono rappresentate sovrapposte. Questa rappresentazione non imposta l'orientamento del dispositivo. Nel documento stampabile la disposizione segue l'orientamento scelto nel dialogo: due righe in verticale e due colonne in orizzontale.
+
+Una pagina finale senza compagna mantiene la stessa griglia dei fogli precedenti, occupa il primo slot e lascia vuoto il secondo. Con orientamento verticale la pagina resta quindi nella metà superiore e quella inferiore resta bianca; con orientamento orizzontale occupa la metà sinistra e quella destra resta bianca.
+
+L'accorpamento preserva l'intera immagine e non ritaglia automaticamente margini bianchi interni. Formato carta e orientamento effettivi dipendono dalle scelte effettuate nel dialogo di stampa. Un futuro ritaglio basato sull'area di contenuto richiede un'opzione distinta e un'anteprima esplicita.
 
 Regole di composizione:
 
-- una pagina dello spartito per ogni pagina di stampa;
-- larghezza pari all'area stampabile e altezza proporzionale;
-- interruzione pagina dopo ogni immagine tranne l'ultima;
+- uno o due slot per foglio secondo la scelta dell'utente; in modalità 2-up il secondo slot dell'ultimo foglio dispari resta esplicitamente vuoto;
+- larghezza e altezza proporzionali, senza deformazione;
+- interruzione pagina dopo ogni foglio tranne l'ultimo;
 - esclusione di intestazione, navigazione, filtri, maschere e componenti applicativi;
+- rimozione dal layout, tramite `display: none`, della superficie interattiva non stampabile;
+- azzeramento di altezza minima, margini e spaziature della shell durante la stampa;
+- foglio stampabile dimensionato sull'area della viewport di stampa, senza misure A4/A3 applicative;
 - nessuna dipendenza dallo zoom del canvas;
 - sfondo neutro e nessuna ombra decorativa;
 - nessuna pagina vuota iniziale o finale introdotta dal layout.
 
-Taurus non forza formato carta, margini, orientamento o scala del driver. Tali valori restano sotto il controllo del browser e del sistema operativo.
+Taurus non imposta il formato carta né l'orientamento del dispositivo. Il foglio composto occupa l'area di pagina fornita dal browser; in modalità 2-up le pagine vengono sovrapposte quando nel dialogo è selezionato l'orientamento verticale e affiancate quando è selezionato quello orizzontale. Il dialogo del browser resta autorevole anche per margini fisici e scala finale. Poiché l'accorpamento è già eseguito da Taurus, nel dialogo del browser «Pagine per foglio» deve restare impostato a 1 per evitare un secondo accorpamento.
 
 ## 9. Responsive
 
@@ -228,7 +266,7 @@ Il ridimensionamento non deve troncare il canvas, rendere irraggiungibili i coma
 | `MediaService` e `SecurePipe` | Costruiscono e risolvono gli stream autenticati senza esporre credenziali. |
 | PrimeNG Checkbox | Selezione binaria globale e per strumento. |
 | PrimeNG Galleria | Presentazione a schermo intero. |
-| CSS di stampa | Separa la superficie interattiva dalle pagine stampabili. |
+| CSS di stampa | Rimuove la shell dal flusso, adatta i fogli all'area fornita dal browser e separa la superficie interattiva dalle pagine stampabili. |
 
 Il componente usa `ChangeDetectionStrategy.OnPush`. Lo stato di apertura della spalla deve avere una fonte coerente anche al primo rendering responsive; la soluzione può usare un breakpoint osservabile oppure uno stato iniziale neutro, purché DOM, attributi ARIA e resa visuale non divergano.
 
@@ -258,12 +296,12 @@ La funzionalità riusa gli stream media esistenti e le letture delle tracce nece
 
 | Livello | Copertura minima |
 | --- | --- |
-| Unità | Aggregazione traccia/album, ordine, deduplicazione delle parti multi-strumento, «Senza strumento», selezione globale, limiti pagina e zoom, pulizia dello stato. |
-| Componente | Apertura e chiusura da tutti i comandi, classi responsive, maschera, stato vuoto, attributi ARIA, focus, `Escape`, azioni disabilitate e sincronizzazione della presentazione. |
+| Unità | Aggregazione traccia/album, ordine, deduplicazione delle parti multi-strumento, «Senza strumento», selezione globale, raggruppamento 1-up/2-up, ultimo slot vuoto, orientamento dell'anteprima, limiti pagina e zoom, pulizia dello stato. |
+| Componente | Apertura e chiusura da tutti i comandi, classi responsive, maschera, stato vuoto, anteprima del foglio, conteggio fogli, attributi ARIA, focus, `Escape`, azioni disabilitate e sincronizzazione della presentazione. |
 | Integrazione frontend | Stream autenticati, errore di una traccia album, errore media e ritorno sicuro dopo refresh diretto. |
 | End to end | Ingressi da traccia e album, filtro, stampa intercettata, presentazione, tastiera, viewport desktop/tablet/mobile e ruoli consentiti. |
 | Visuale | Tema chiaro/scuro, pagina verticale/orizzontale, nomi lunghi, 1 e molte pagine, spalla aperta/chiusa e anteprima senza selezioni. |
-| Stampa | Ordine, numero di fogli, assenza di UI, nessun foglio vuoto e indipendenza dallo zoom. |
+| Stampa | Ordine, numero di fogli, assenza di UI, nessun foglio aggiuntivo, ultimo slot dispari vuoto, adattamento alla carta scelta nel browser e indipendenza dallo zoom. |
 
 La verifica minima del modulo esegue:
 
@@ -286,14 +324,18 @@ npm run build
 10. Quando il filtro produce zero pagine, lo stato vuoto spiega la causa e presentazione/stampa sono disabilitate.
 11. Navigatore e campo numerico non possono portare fuori dall'intervallo valido.
 12. Lo zoom resta tra 60 e 140 per cento, «Adatta» torna a 100 e la stampa non ne è influenzata.
-13. La presentazione contiene le sole pagine incluse, parte dalla pagina corrente e mantiene la sincronizzazione alla chiusura.
-14. La stampa contiene una pagina per media, nell'ordine corrente, senza UI né fogli vuoti aggiuntivi.
-15. Un media in caricamento o errore mantiene stabile il layout e offre un esito comprensibile.
-16. Un errore durante la preparazione di un album non apre silenziosamente un documento parziale.
-17. Un refresh o accesso diretto senza stato torna in sicurezza e non genera errori non gestiti.
-18. Tutti i ruoli ammessi vedono soltanto media già autorizzati e gli stream rispettano l'isolamento tenant.
-19. Il flusso completo è utilizzabile con tastiera e i pulsanti a sola icona hanno area attiva minima di 44 × 44 px.
-20. Test di componente, integrazione e viewport coprono le regressioni della spalla filtri.
+13. La scelta una/due pagine aggiorna anteprima, composizione, conteggio e testo del pulsante senza cambiare l'ordine.
+14. In modalità 2-up l'anteprima propone una composizione coerente con il rapporto delle immagini; in stampa la griglia segue l'orientamento scelto nel browser.
+15. Formato carta e orientamento sono scelti esclusivamente nel dialogo del browser; il foglio composto si adatta alla relativa area di stampa senza imporre un formato applicativo.
+16. Con un totale dispari in modalità 2-up, l'ultima pagina resta integra nel primo slot e il secondo slot resta vuoto sul medesimo foglio.
+17. La presentazione contiene le sole pagine incluse, parte dalla pagina corrente e mantiene la sincronizzazione alla chiusura.
+18. La stampa contiene tutti i media una sola volta, senza UI né fogli vuoti aggiuntivi.
+19. Un media in caricamento o errore mantiene stabile il layout e offre un esito comprensibile.
+20. Un errore durante la preparazione di un album non apre silenziosamente un documento parziale.
+21. Un refresh o accesso diretto senza stato torna in sicurezza e non genera errori non gestiti.
+22. Tutti i ruoli ammessi vedono soltanto media già autorizzati e gli stream rispettano l'isolamento tenant.
+23. Il flusso completo è utilizzabile con tastiera e i pulsanti a sola icona hanno area attiva minima di 44 × 44 px.
+24. Test di componente, integrazione e viewport coprono le regressioni della spalla filtri e dell'impaginazione.
 
 ## 15. Adozione e decisioni da confermare
 
@@ -314,5 +356,4 @@ npm run build
 | Persistenza filtri | Limitata alla singola visita; nessun salvataggio utente. |
 | Presentazione | Apertura sulla pagina corrente e sincronizzazione bidirezionale. |
 | Refresh diretto | Ritorno sicuro alla pagina precedente o al catalogo, senza ricostruzione implicita. |
-| Stampa | Affidata al browser; nessuna generazione PDF server-side in questa funzionalità. |
-
+| Stampa | Fogli 1-up/2-up composti dal frontend e affidati al browser; formato e orientamento scelti soltanto nel dialogo di sistema; nessuna generazione PDF server-side. |

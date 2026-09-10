@@ -266,10 +266,21 @@ class RelationalSoftDeleteIT {
                 Tracks track = entityManager.find(Tracks.class, ids[0]);
                 assertThat(track.getScores()).hasSize(3);
                 tracksRepository.moveActiveScoreOrdersToTemporaryRange(track.getId());
+                SheetsMusic first = track.getScores().get(0);
+                SheetsMusic second = track.getScores().get(1);
                 SheetsMusic third = track.getScores().get(2);
                 track.getScores().clear();
-                track.getScores().add(third);
+                track.getScores().addAll(List.of(third, second, first));
                 entityManager.flush();
+
+                for (int index = 0; index < track.getScores().size(); index++) {
+                    assertThat(tracksRepository.restoreActiveScoreOrder(track.getId(), track.getScores().get(index).getId(), index))
+                        .isEqualTo(1);
+                }
+                entityManager.clear();
+                assertThat(entityManager.find(Tracks.class, ids[0]).getScores())
+                    .extracting(SheetsMusic::getId)
+                    .containsExactly(ids[3], ids[2], ids[1]);
             }
         );
 
@@ -279,7 +290,7 @@ class RelationalSoftDeleteIT {
             Long.class,
             ids[0]
         );
-        assertThat(activeScores).containsExactly(ids[3]);
+        assertThat(activeScores).containsExactly(ids[3], ids[2], ids[1]);
     }
 
     @Test

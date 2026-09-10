@@ -3,8 +3,11 @@ package com.fundaro.zodiac.taurus.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -179,14 +182,58 @@ class TracksServiceImplTest {
         request.setScores(new java.util.LinkedHashSet<>(java.util.List.of(existingDto, newDto)));
 
         when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(entity));
-        when(repository.save(entity)).thenReturn(entity);
+        when(repository.save(entity)).thenAnswer(invocation -> {
+            entity.getScores().get(1).setId(22L);
+            return entity;
+        });
+        when(repository.restoreActiveScoreOrder(anyLong(), anyLong(), anyInt())).thenReturn(1);
         when(mapper.toDto(entity)).thenReturn(new TracksDTO());
         service.update(8L, request, authentication());
 
         verify(repository).moveActiveScoreOrdersToTemporaryRange(8L);
+        verify(repository).restoreActiveScoreOrder(8L, 21L, 0);
+        verify(repository).restoreActiveScoreOrder(8L, 22L, 1);
         assertThat(entity.getScores()).hasSize(2);
         assertThat(entity.getScores().get(0)).isSameAs(existing);
-        assertThat(entity.getScores().get(1).getId()).isNull();
+        assertThat(entity.getScores().get(1).getId()).isEqualTo(22L);
+    }
+
+    @Test
+    void appendsGeneratedScoresToTheLatestLockedTrack() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            mock(QueueUploadFilesService.class),
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            mock(Sender.class)
+        );
+        Tracks entity = new Tracks();
+        entity.setId(8L);
+        entity.setEntityVersion(7L);
+        SheetsMusic existing = new SheetsMusic();
+        existing.setId(21L);
+        entity.getScores().add(existing);
+        SheetsMusicDTO generated = new SheetsMusicDTO();
+        generated.setMedia(Set.of());
+        generated.setInstruments(Set.of());
+
+        when(repository.findByIdForUpdate(8L)).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenAnswer(invocation -> {
+            entity.getScores().get(1).setId(22L);
+            return entity;
+        });
+        when(mapper.toDto(entity)).thenReturn(new TracksDTO());
+
+        service.appendScores(8L, java.util.List.of(generated), authentication());
+
+        verify(repository).findByIdForUpdate(8L);
+        verify(repository, never()).moveActiveScoreOrdersToTemporaryRange(anyLong());
+        assertThat(entity.getScores()).hasSize(2);
+        assertThat(entity.getScores().get(0)).isSameAs(existing);
+        assertThat(entity.getScores().get(1).getId()).isEqualTo(22L);
     }
 
     @Test
@@ -218,6 +265,7 @@ class TracksServiceImplTest {
         request.setScores(Set.of(score));
 
         when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(entity));
+        when(repository.restoreActiveScoreOrder(anyLong(), anyLong(), anyInt())).thenReturn(1);
         when(mediaRepository.getReferenceById(58L)).thenReturn(mock(Media.class));
         when(repository.save(entity)).thenAnswer(invocation -> {
             Tracks saved = invocation.getArgument(0);

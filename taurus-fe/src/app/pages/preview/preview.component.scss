@@ -22,6 +22,11 @@
     display: flex;
     align-items: center;
 }
+.print-options,
+.print-option {
+    display: flex;
+    align-items: center;
+}
 .preview-header {
     justify-content: space-between;
     gap: 1.5rem;
@@ -199,6 +204,7 @@
 }
 .preview-toolbar {
     z-index: 2;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 1rem;
     min-height: 3.5rem;
@@ -209,6 +215,28 @@
 .zoom-controls,
 .page-navigation {
     gap: 0.35rem;
+}
+.print-options {
+    gap: 0.75rem;
+}
+.print-option {
+    gap: 0.4rem;
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.print-option select {
+    height: 2rem;
+    padding: 0 1.75rem 0 0.55rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.45rem;
+    background: var(--surface-card);
+    color: var(--text-color);
+    cursor: pointer;
+}
+.print-sheet-count {
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
 }
 .page-navigation {
     color: var(--text-color-secondary);
@@ -269,6 +297,52 @@
     background: #fff;
     box-shadow: 0 1.2rem 3rem #0f172a33;
     transition: transform 0.18s;
+}
+.print-sheet-preview {
+    display: grid;
+    min-height: 0;
+    gap: 1rem;
+    padding: 1rem;
+    transform-origin: top center;
+    background: #fff;
+    box-shadow: 0 1.2rem 3rem #0f172a33;
+    transition: transform 0.18s;
+}
+.print-sheet-preview--portrait {
+    aspect-ratio: 210 / 297;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.print-sheet-preview--landscape {
+    aspect-ratio: 297 / 210;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.print-sheet-preview__slot {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    place-items: center;
+    border: 2px solid transparent;
+}
+.print-sheet-preview__slot.active {
+    border-color: var(--primary-color);
+}
+.print-sheet-preview__slot span {
+    position: absolute;
+    z-index: 1;
+    top: 0.35rem;
+    left: 0.35rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.35rem;
+    background: #0f172acc;
+    color: #fff;
+    font-size: 0.7rem;
+}
+.print-sheet-preview__slot img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 .empty-canvas {
     display: grid;
@@ -344,6 +418,11 @@
     .filters-open .empty-open-filters {
         display: none;
     }
+    .print-options {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
 }
 @media (max-width: 640px) {
     .preview-header {
@@ -356,6 +435,10 @@
     .preview-eyebrow,
     .preview-actions .filter-action span,
     .fit-button span {
+        display: none;
+    }
+    .print-option span,
+    .print-sheet-count {
         display: none;
     }
     .preview-actions ::ng-deep .p-button-label {
@@ -389,21 +472,5 @@
     }
     .paper-frame {
         min-height: 28rem;
-    }
-}
-@media print {
-    .print-pages {
-        display: block;
-        position: static;
-    }
-    .print-pages img {
-        display: block;
-        width: 100%;
-        break-after: page;
-        page-break-after: always;
-    }
-    .print-pages img:last-child {
-        break-after: auto;
-        page-break-after: auto;
     }
 }
