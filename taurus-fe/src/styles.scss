@@ -6,17 +6,80 @@
 
 @media print {
     .print {
-        position: absolute;
-        top: 0;
-        left: 0;
+        position: static;
     }
 
     .not-print {
-        visibility: hidden;
+        display: none !important;
+    }
+
+    .layout-wrapper,
+    .layout-main-container,
+    .layout-main {
+        display: block;
+        width: auto;
+        min-height: 0;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     .card {
         background-color: transparent;
+    }
+}
+
+@media print {
+    app-preview p-galleria {
+        display: none !important;
+    }
+
+    app-preview .print-pages {
+        display: block !important;
+        position: static !important;
+    }
+
+    app-preview .print-sheet {
+        display: grid;
+        box-sizing: border-box;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+        padding: 5mm;
+        break-after: page;
+        page-break-after: always;
+        break-inside: avoid;
+    }
+
+    app-preview .print-sheet:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    app-preview .print-sheet__slot {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        place-items: center;
+        break-inside: avoid;
+    }
+
+    app-preview .print-sheet__slot img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+}
+
+@media print and (orientation: portrait) {
+    app-preview .print-sheet--two-up {
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media print and (orientation: landscape) {
+    app-preview .print-sheet--two-up {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 

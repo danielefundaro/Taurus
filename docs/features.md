@@ -20,7 +20,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `operational-runbook` | [Runbook operativo dell'applicativo Taurus](runbook-operativo.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-09-07 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE | [1](#postgres-tenant-schemas-evidenze) | [1](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-09-04 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [1](#recurring-calendar-events-evidenze) | [1](#recurring-calendar-events-evidenze) | non rilasciata | 2026-09-04 |
-| `score-preview-printing` | [Anteprima e stampa degli spartiti](score-preview-printing-spec.md) | feature | draft | in-progress | FE | 0 | 0 | non rilasciata | 2026-09-10 |
+| `score-preview-printing` | [Anteprima e stampa degli spartiti](score-preview-printing-spec.md) | feature | approved | in-progress | FE | 0 | [1](#score-preview-printing-evidenze) | non rilasciata | 2026-09-10 |
 | `support-requests` | [Segnalazioni e richieste di supporto](support-requests-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-09 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [4](#taurus-layout-standard-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE | [3](#tenant-feature-flags-evidenze) | [9](#tenant-feature-flags-evidenze) | non rilasciata | 2026-09-07 |
@@ -154,8 +154,8 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 
 - Implementazione: [`taurus-fe/src/app/pages/preview/preview.component.ts`](../taurus-fe/src/app/pages/preview/preview.component.ts), [`taurus-fe/src/app/pages/preview/preview.component.html`](../taurus-fe/src/app/pages/preview/preview.component.html), [`taurus-fe/src/app/pages/preview/preview.component.scss`](../taurus-fe/src/app/pages/preview/preview.component.scss), [`taurus-fe/src/app/service/printer.service.ts`](../taurus-fe/src/app/service/printer.service.ts)
 - Migrazioni: nessuna
-- Test: nessuna
-- Note: Il flusso esistente copre selezione per strumento, navigazione, zoom, presentazione e stampa browser. La correzione della spalla filtri è presente; restano da allineare accessibilità, gestione degli errori e sincronizzazione della presentazione e da aggiungere test automatici dedicati.
+- Test: [`taurus-fe/src/app/pages/preview/preview.component.spec.ts`](../taurus-fe/src/app/pages/preview/preview.component.spec.ts)
+- Note: Nel thread del 10 settembre 2026 sono stati ripristinati i comandi di apertura/chiusura filtri, rimossa la shell dal flusso di stampa per eliminare i fogli bianchi e introdotta la composizione 1-up/2-up con conteggio dei fogli, anteprima composta e secondo slot vuoto sull'ultimo foglio dispari. La scelta A4/A3 è stata eliminata: formato, orientamento, margini e scala restano nel dialogo di sistema, mentre il foglio frontend si adatta alla relativa area. Sei test unitari coprono le regressioni principali. Restano da allineare gestione completa del focus e degli errori e sincronizzazione della presentazione.
 
 <a id="support-requests-evidenze"></a>
 ### Segnalazioni e richieste di supporto

@@ -5,6 +5,15 @@ import { CheckboxChangeEvent } from 'primeng/checkbox';
 import { ImportsModule } from '../../imports';
 import { MediaService, PrinterService } from '../../service';
 
+type PrintSheetOrientation = 'portrait' | 'landscape';
+
+interface PrintPageDimensions {
+    width: number;
+    height: number;
+}
+
+type PrintSheet = Array<string | null>;
+
 @Component({
     selector: 'app-preview',
     imports: [ImportsModule],
@@ -23,8 +32,10 @@ export class PreviewComponent implements OnInit, OnDestroy {
     protected filtersOpen: boolean | null = null;
     protected currentPage: number = 1;
     protected zoom: number = 100;
+    protected printPagesPerSheet: 1 | 2 = 1;
     protected previewTitle: string;
     protected previewSource: string;
+    private readonly printPageDimensions = new Map<string, PrintPageDimensions>();
     protected readonly responsiveOptions = [
         { breakpoint: '1024px', numVisible: 5 },
         { breakpoint: '960px', numVisible: 4 },
@@ -129,8 +140,51 @@ export class PreviewComponent implements OnInit, OnDestroy {
         this.zoom = 100;
     }
 
+    protected printImageLoaded(mediaStream: string, event: Event): void {
+        const image = event.target as HTMLImageElement;
+        if (!image.naturalWidth || !image.naturalHeight) return;
+
+        this.printPageDimensions.set(mediaStream, {
+            width: image.naturalWidth,
+            height: image.naturalHeight
+        });
+    }
+
+    protected get printOrientation(): PrintSheetOrientation {
+        const dimensions = this.mediaStreams.map((mediaStream) => this.printPageDimensions.get(mediaStream)).filter((value): value is PrintPageDimensions => value !== undefined);
+
+        if (dimensions.length === 0) return 'portrait';
+
+        const averageAspectRatio = dimensions.reduce((total, page) => total + page.width / page.height, 0) / dimensions.length;
+        if (this.printPagesPerSheet === 2) return averageAspectRatio > 1 ? 'portrait' : 'landscape';
+
+        return averageAspectRatio > 1 ? 'landscape' : 'portrait';
+    }
+
     protected get currentMediaStream(): string | undefined {
         return this.mediaStreams[this.currentPage - 1];
+    }
+
+    protected get printSheets(): PrintSheet[] {
+        const sheets: PrintSheet[] = [];
+        for (let index = 0; index < this.mediaStreams.length; index += this.printPagesPerSheet) {
+            const sheet: PrintSheet = this.mediaStreams.slice(index, index + this.printPagesPerSheet);
+            if (this.printPagesPerSheet === 2 && sheet.length === 1) sheet.push(null);
+            sheets.push(sheet);
+        }
+        return sheets;
+    }
+
+    protected get printSheetCount(): number {
+        return Math.ceil(this.mediaStreams.length / this.printPagesPerSheet);
+    }
+
+    protected get currentPrintSheet(): PrintSheet {
+        return this.printSheets[Math.floor((this.currentPage - 1) / this.printPagesPerSheet)] ?? [];
+    }
+
+    protected get currentPrintSheetStartPage(): number {
+        return Math.floor((this.currentPage - 1) / this.printPagesPerSheet) * this.printPagesPerSheet + 1;
     }
 
     protected get selectedInstrumentCount(): number {
