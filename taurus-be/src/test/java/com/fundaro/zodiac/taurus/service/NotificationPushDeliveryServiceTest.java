@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
@@ -26,6 +27,8 @@ import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision;
 import com.fundaro.zodiac.taurus.service.notification.PushDeliveryResult;
+import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
+import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import jakarta.persistence.EntityManager;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -45,6 +48,7 @@ class NotificationPushDeliveryServiceTest {
     private final NotificationPushDeliveryRepository repository = mock(NotificationPushDeliveryRepository.class);
     private final PushSubscriptionRepository subscriptionRepository = mock(PushSubscriptionRepository.class);
     private final UsersRepository usersRepository = mock(UsersRepository.class);
+    private final KeycloakService keycloakService = mock(KeycloakService.class);
     private final NotificationPreferenceResolver preferenceResolver = mock(NotificationPreferenceResolver.class);
     private final PushService pushService = mock(PushService.class);
     private NotificationPushDeliveryService service;
@@ -58,6 +62,7 @@ class NotificationPushDeliveryServiceTest {
             subscriptionRepository,
             mock(EntityManager.class),
             usersRepository,
+            keycloakService,
             preferenceResolver,
             pushService,
             new ApplicationProperties()
@@ -309,6 +314,26 @@ class NotificationPushDeliveryServiceTest {
 
         assertThat(delivery.getStatus()).isEqualTo(NotificationStatus.SKIPPED);
         assertThat(delivery.getSkipReason()).isEqualTo("USER_INACTIVE");
+    }
+
+    @Test
+    void sendsToAnEnabledGlobalSuperAdminWithoutATenantUserRecord() {
+        NotificationPushDelivery delivery = pendingImmediate();
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
+        when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
+        User superAdmin = new User();
+        superAdmin.setId("user-1");
+        superAdmin.setEnabled(true);
+        when(keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN)).thenReturn(List.of(superAdmin));
+        when(preferenceResolver.resolve(any(), eq(NotificationPreferencePolicy.CONFIGURABLE), any()))
+            .thenReturn(Map.of("user-1", preference(NotificationPushMode.IMMEDIATE, NotificationPushPreview.PRIVATE)));
+        when(pushService.sendToUserNow(anyString(), anyString(), anyString(), anyString(), any()))
+            .thenReturn(new PushDeliveryResult(1, 0, 0, 0, 1));
+
+        service.process(1L);
+
+        verify(pushService).sendToUserNow(eq("user-1"), eq("tenant-a"), eq("Taurus"), eq("Hai un nuovo aggiornamento"), eq("/inventory"));
+        assertThat(delivery.getStatus()).isEqualTo(NotificationStatus.DELIVERED);
     }
 
     private void primeProcessing(NotificationPushDelivery delivery, NotificationPushMode mode, NotificationPushPreview preview) {
