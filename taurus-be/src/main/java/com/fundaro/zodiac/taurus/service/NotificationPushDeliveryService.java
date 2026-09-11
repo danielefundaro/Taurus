@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.domain.Notices;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDeliveryType;
@@ -26,6 +27,7 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolic
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.service.notification.PushDeliveryResult;
+import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,6 +42,7 @@ public class NotificationPushDeliveryService {
     private final PushSubscriptionRepository subscriptionRepository;
     private final EntityManager entityManager;
     private final UsersRepository usersRepository;
+    private final KeycloakService keycloakService;
     private final NotificationPreferenceResolver preferenceResolver;
     private final PushService pushService;
     private final ApplicationProperties.NotificationPushDeliveryProperties properties;
@@ -50,6 +53,7 @@ public class NotificationPushDeliveryService {
         PushSubscriptionRepository subscriptionRepository,
         EntityManager entityManager,
         UsersRepository usersRepository,
+        KeycloakService keycloakService,
         NotificationPreferenceResolver preferenceResolver,
         PushService pushService,
         ApplicationProperties applicationProperties
@@ -58,6 +62,7 @@ public class NotificationPushDeliveryService {
         this.subscriptionRepository = subscriptionRepository;
         this.entityManager = entityManager;
         this.usersRepository = usersRepository;
+        this.keycloakService = keycloakService;
         this.preferenceResolver = preferenceResolver;
         this.pushService = pushService;
         this.properties = applicationProperties.getNotificationPushDelivery();
@@ -229,7 +234,20 @@ public class NotificationPushDeliveryService {
     }
 
     private boolean eligibleUser(String userId) {
-        return usersRepository.findByKeycloakIdAndDeletedFalse(userId).map(user -> Boolean.TRUE.equals(user.getActive())).orElse(false);
+        if (usersRepository.findByKeycloakIdAndDeletedFalse(userId).map(user -> Boolean.TRUE.equals(user.getActive())).orElse(false)) {
+            return true;
+        }
+        // I super-admin sono destinatari cross-tenant e possono non avere una riga
+        // app_user nello schema del tenant. Verifichiamo comunque ruolo e stato
+        // direttamente in Keycloak, senza accettare sottoscrizioni orfane generiche.
+        try {
+            return keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN).stream()
+                .anyMatch(user -> userId.equals(user.getId()) && Boolean.TRUE.equals(user.getEnabled()));
+        } catch (RuntimeException exception) {
+            org.slf4j.LoggerFactory.getLogger(NotificationPushDeliveryService.class)
+                .warn("Unable to validate global push recipient against Keycloak userId={}", userId);
+            return false;
+        }
     }
 
     private static boolean noticeNoLongerEligible(NotificationPushDelivery delivery) {
