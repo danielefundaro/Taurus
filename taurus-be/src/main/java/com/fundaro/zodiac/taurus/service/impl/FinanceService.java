@@ -380,8 +380,7 @@ public class FinanceService {
     public MediaService.MediaContent getAttachment(long attachmentId, AbstractAuthenticationToken token) {
         tenant(token);
         FinancialMovementAttachment attachment = requiredAttachment(attachmentId);
-        MediaService.MediaContent content = mediaService.getContent(attachment.getMediaAsset().getId(), token);
-        return content;
+        return mediaService.getContent(attachment.getMediaAsset().getId(), token);
     }
 
     public void deleteAttachment(long attachmentId, AbstractAuthenticationToken token) {
@@ -404,7 +403,11 @@ public class FinanceService {
     @Transactional(readOnly = true)
     public Page<EventSummaryDTO> findEvents(Pageable pageable, AbstractAuthenticationToken token) {
         tenant(token);
-        return eventRepository.findAll(pageable).map(this::eventSummary);
+        return eventRepository.findAll((root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(builder.isFalse(root.get("deleted")));
+            return builder.and(predicates.toArray(Predicate[]::new));
+        }, pageable).map(this::eventSummary);
     }
 
     public EventSummaryDTO updateEventBudget(long eventId, EventBudgetRequest request, AbstractAuthenticationToken token) {
@@ -460,8 +463,7 @@ public class FinanceService {
         recalculateFollowingYears(year, actor);
         source.setLastRecalculatedAt(ZonedDateTime.now());
         source.touchAudit(actor);
-        YearDTO result = toYearDto(yearRepository.save(source));
-        return result;
+        return toYearDto(yearRepository.save(source));
     }
 
     @Transactional(readOnly = true)

@@ -137,6 +137,9 @@ export class HttpInterceptorService implements HttpInterceptor {
                             case 'inventory.return.materialreassigned':
                                 detail = 'La riconsegna non può essere eliminata perché il materiale è già stato riassegnato';
                                 break;
+                            case 'snooze.invalid':
+                                detail = 'Il promemoria deve essere posticipato tra i 5 minuti e i 30 giorni';
+                                break;
                             // Inizio errori su keycloak
                             case 'get.users':
                             case 'users.list':
