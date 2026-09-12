@@ -446,8 +446,10 @@ class RelationalSoftDeleteIT {
 
         Long itemId = insertReturningId(
             "INSERT INTO " + schema + ".inventory_item " +
-            "(inventory_number, name, total_quantity, condition_status, insert_by, edit_by) " +
-            "VALUES ('CASCADE-1', 'Cascade item', 1, 'GOOD', 'test', 'test') RETURNING id"
+            "(inventory_number, name, total_quantity, condition_status, insert_by, edit_by, " +
+            "qr_public_id, qr_version, qr_issued_at, qr_issued_by) " +
+            "VALUES ('CASCADE-1', 'Cascade item', 1, 'GOOD', 'test', 'test', " +
+            "gen_random_uuid(), 1, CURRENT_TIMESTAMP, 'test') RETURNING id"
         );
         Long photoMediaId = insertReturningId(
             "INSERT INTO " + schema + ".media_asset " +

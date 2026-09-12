@@ -1,5 +1,5 @@
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApplicationConfig, isDevMode, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -53,6 +53,10 @@ export const appConfig: ApplicationConfig = {
         ConfirmationService,
         LoadingService,
         { provide: LOCALE_ID, useValue: 'it' },
-        provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode(), registrationStrategy: 'registerWhenStable:30000' }),
+        // Registrato anche in sviluppo: la configurazione `development` di angular.json costruisce
+        // il worker, e lasciarlo servito ma non registrato significa che una registrazione fatta una
+        // volta sola sopravvive per sempre senza che nulla la aggiorni. Meglio che il locale si
+        // comporti come la produzione, con AppUpdateService a far avanzare le versioni.
+        provideServiceWorker('ngsw-worker.js', { enabled: true, registrationStrategy: 'registerWhenStable:30000' }),
     ],
 }
