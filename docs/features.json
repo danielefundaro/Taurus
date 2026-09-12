@@ -479,8 +479,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-07",
-      "notes": "Audit FE completato il 2026-09-07. Allineati protezione delle modifiche non salvate e validazione nei dialoghi, ripristino dello stato delle liste, skeleton di caricamento, messaggi e toast, accessibilità dei pulsanti a sola icona, taglie dei dialoghi e adozione del dialog-shell. Test Angular e build di produzione verificati."
+      "lastVerifiedOn": "2026-09-12",
+      "notes": "Audit FE completato il 2026-09-07. Allineati protezione delle modifiche non salvate e validazione nei dialoghi, ripristino dello stato delle liste, skeleton di caricamento, messaggi e toast, accessibilità dei pulsanti a sola icona, taglie dei dialoghi e adozione del dialog-shell. Il 2026-09-12 l'ingresso title dei cinque componenti condivisi è diventato heading, e titleId di detail-section è diventato headingId: il nome collideva con l'attributo HTML omonimo e faceva comparire il tooltip nativo del browser sui titoli. Test Angular e build di produzione verificati."
     },
     {
       "id": "tenant-feature-flags",
@@ -579,7 +579,7 @@
         "migrations": [],
         "tests": []
       },
-      "notes": "Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati.",
+      "notes": "Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati. Dal 2026-09-12 annota il limite di connessioni del container PostgreSQL dei test e le convenzioni degli integration test a tenant.",
       "release": null,
       "lastVerifiedOn": "2026-09-12"
     },
@@ -744,6 +744,7 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/PushReminderScheduler.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/PushServiceImpl.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesService.java",
+          "taurus-fe/src/app/service/app-update.service.ts",
           "taurus-fe/src/app/service/push-notification.service.ts"
         ],
         "migrations": [
@@ -759,8 +760,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-06",
-      "notes": "Completati sottoscrizione Web Push, preferenze globali e personali, pianificazione persistente PostgreSQL per tenant, quiet hours, retry e gestione degli esiti. Il target dei reminder apre la rotta applicativa /calendar/{id} ed è coperto da un test dedicato; la specifica è allineata all'architettura Spring MVC/JPA e alla pipeline notifiche corrente."
+      "lastVerifiedOn": "2026-09-12",
+      "notes": "Completati sottoscrizione Web Push, preferenze globali e personali, pianificazione persistente PostgreSQL per tenant, quiet hours, retry e gestione degli esiti. Il target dei reminder apre la rotta applicativa /calendar/{id} ed è coperto da un test dedicato; la specifica è allineata all'architettura Spring MVC/JPA e alla pipeline notifiche corrente. Dal 2026-09-12 il service worker è registrato in ogni ambiente e non solo in produzione, e AppUpdateService porta le schede aperte sulla versione scaricata: prima nessuno lo faceva e l'applicazione poteva restare indefinitamente su un bundle vecchio."
     }
   ]
 }
