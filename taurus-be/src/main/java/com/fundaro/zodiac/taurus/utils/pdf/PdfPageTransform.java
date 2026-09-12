@@ -1,6 +1,5 @@
 package com.fundaro.zodiac.taurus.utils.pdf;
 
-import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
 import java.util.List;
 
 public class PdfPageTransform {
@@ -9,7 +8,7 @@ public class PdfPageTransform {
     private int recipeVersion = 1;
     private int rotationQuarterTurns;
     private double deskewDegrees;
-    private List<TrackPageImageDTOs.Crop> crops = List.of();
+    private List<PageEditRecipe.Crop> crops = List.of();
     private boolean grayscale;
     private int brightness;
     private int contrast;
@@ -24,8 +23,8 @@ public class PdfPageTransform {
     public void setRotationQuarterTurns(int rotationQuarterTurns) { this.rotationQuarterTurns = rotationQuarterTurns; }
     public double getDeskewDegrees() { return deskewDegrees; }
     public void setDeskewDegrees(double deskewDegrees) { this.deskewDegrees = deskewDegrees; }
-    public List<TrackPageImageDTOs.Crop> getCrops() { return crops; }
-    public void setCrops(List<TrackPageImageDTOs.Crop> crops) { this.crops = crops == null ? List.of() : crops; }
+    public List<PageEditRecipe.Crop> getCrops() { return crops; }
+    public void setCrops(List<PageEditRecipe.Crop> crops) { this.crops = crops == null ? List.of() : crops; }
     public boolean isGrayscale() { return grayscale; }
     public void setGrayscale(boolean grayscale) { this.grayscale = grayscale; }
     public int getBrightness() { return brightness; }
@@ -37,9 +36,8 @@ public class PdfPageTransform {
     public Integer getThreshold() { return threshold; }
     public void setThreshold(Integer threshold) { this.threshold = threshold; }
 
-    public TrackPageImageDTOs.EditRequest toEditRequest() {
-        return new TrackPageImageDTOs.EditRequest(
-            0L,
+    public PageEditRecipe toRecipe() {
+        return new PageEditRecipe(
             recipeVersion,
             rotationQuarterTurns,
             deskewDegrees,

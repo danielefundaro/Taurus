@@ -146,6 +146,8 @@ Se non esistono crop, l'intera pagina continua nella pipeline. Se una pagina è 
 
 Il riuso comprende validazione, rotazione, raddrizzamento, crop e regolazioni tonali. Il dialogo PDF mantiene separatamente la gestione multipagina, l'esclusione e l'applicazione massiva.
 
+La conversione PDF vive in `utils`, mentre la pipeline appartiene al livello di servizio: la dipendenza è quindi invertita. `utils` dichiara il modello neutro `PageEditRecipe` e l'interfaccia `PageImageTransformer`; `ImageTransformationService` implementa quell'interfaccia e il chiamante gliela passa. Così il pacchetto di utilità non conosce i DTO applicativi né istanzia componenti di servizio, e la regola a strati verificata da `TechnicalStructureTest` resta soddisfatta. I vincoli di bean validation restano sui DTO HTTP; il modello neutro porta solo i valori e viene validato dal servizio, come prescritto nella sezione seguente.
+
 ## Validazione e sicurezza
 
 Il backend valida anche le ricette provenienti dalle annotazioni del PDF, che non attraversano la validazione HTTP dell'endpoint dell'editor immagini:
@@ -171,10 +173,12 @@ Annotazioni legacy senza `pageTransforms` continuano a essere elaborate usando e
 
 ### Backend
 
+- `PageEditRecipe`: modello neutro della ricetta, senza dipendenze dal livello di servizio;
+- `PageImageTransformer`: interfaccia che `utils` usa per delegare la trasformazione;
 - `PdfPageTransform`: deserializzazione e conversione nella ricetta condivisa;
 - `PdfAnnotations`: supporto di `pageTransforms`;
-- `ImageTransformationService`: trasformazione condivisa di immagini già renderizzate;
-- `Converter`: rendering RGB, applicazione della ricetta e unione verticale dei crop;
+- `ImageTransformationService`: trasformazione condivisa di immagini già renderizzate; implementa `PageImageTransformer` e converte i DTO HTTP nel modello neutro;
+- `Converter`: rendering RGB, applicazione della ricetta e unione verticale dei crop; riceve il trasformatore dal chiamante invece di costruirlo;
 - `Receiver`: iniezione e utilizzo del motore condiviso.
 
 ## Strategia di test
