@@ -131,6 +131,34 @@ export class FinanceComponent implements OnInit {
         });
     }
 
+    protected restoreAccount(account: FinancialAccount): void {
+        if (!account.id) return;
+        this.financeService
+            .restoreAccount(account.id)
+            .pipe(first())
+            .subscribe(() => {
+                this.toastService.success('Conto riattivato', `“${account.name}” accetta di nuovo movimenti.`);
+                this.loadReferenceData();
+            });
+    }
+
+    protected deleteAccount(account: FinancialAccount): void {
+        if (!account.id) return;
+        this.confirmService.confirmDestructive({
+            title: 'Elimina conto',
+            consequence: `“${account.name}” verrà eliminato definitivamente; non avendo movimenti attivi non resta alcuno storico consultabile.`,
+            actionLabel: 'Elimina',
+            accept: () =>
+                this.financeService
+                    .deleteAccount(account.id!)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success('Conto eliminato', 'Il conto non è più disponibile.');
+                        this.loadReferenceData();
+                    })
+        });
+    }
+
     protected openCategory(category?: FinancialCategory): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceCategoryDialogComponent, {
             inputValues: { category: category ? { ...category } : undefined },

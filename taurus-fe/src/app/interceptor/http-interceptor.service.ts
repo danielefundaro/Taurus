@@ -137,6 +137,22 @@ export class HttpInterceptorService implements HttpInterceptor {
                             case 'inventory.return.materialreassigned':
                                 detail = 'La riconsegna non può essere eliminata perché il materiale è già stato riassegnato';
                                 break;
+                            case 'finance.account.hasmovements':
+                                title = 'Conto non eliminabile';
+                                detail = 'Il conto ha movimenti attivi: può essere soltanto archiviato';
+                                break;
+                            case 'finance.account.notarchived':
+                                title = 'Conto non eliminabile';
+                                detail = 'Il conto deve essere archiviato prima di essere eliminato';
+                                break;
+                            case 'finance.account.alreadyactive':
+                                title = 'Conto già attivo';
+                                detail = 'Il conto non risulta archiviato';
+                                break;
+                            case 'finance.account.nameexists':
+                                title = 'Nome già in uso';
+                                detail = 'Esiste già un conto attivo con questo nome';
+                                break;
                             case 'snooze.invalid':
                                 detail = 'Il promemoria deve essere posticipato tra i 5 minuti e i 30 giorni';
                                 break;

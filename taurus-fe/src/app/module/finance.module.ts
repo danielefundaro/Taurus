@@ -17,6 +17,8 @@ export interface FinancialAccount {
     initialBalance?: number;
     initialBalanceDate?: string;
     balance?: number;
+    /** Scritture collegate ancora vive, escluse quelle eliminate: a zero il conto è eliminabile. */
+    movementCount?: number;
     version?: number;
 }
 

@@ -1,4 +1,6 @@
 <section class="preview-page not-print">
+    <div class="sr-only" aria-live="polite">{{ includedPagesAnnouncement }}</div>
+
     <header class="preview-header">
         <div class="preview-title-group">
             <button type="button" class="icon-button back-button" aria-label="Torna indietro" pTooltip="Torna indietro" tooltipPosition="bottom" (click)="goBack()">
@@ -12,7 +14,7 @@
         </div>
 
         <div class="preview-actions">
-            <button type="button" class="secondary-action filter-action" aria-controls="preview-filters" (click)="openFilters()">
+            <button #filtersToggle type="button" class="secondary-action filter-action" aria-controls="preview-filters" [attr.aria-expanded]="filtersOpen" (click)="openFilters()">
                 <i class="pi pi-filter"></i>
                 <span>Filtri</span>
             </button>
@@ -21,8 +23,8 @@
         </div>
     </header>
 
-    <div class="preview-workspace" [class.filters-open]="filtersOpen === true" [class.filters-closed]="filtersOpen === false">
-        <aside id="preview-filters" class="preview-sidebar">
+    <div class="preview-workspace" [class.filters-open]="filtersOpen" [class.filters-closed]="!filtersOpen">
+        <aside #filtersPanel id="preview-filters" class="preview-sidebar" aria-label="Parti da includere">
             <div class="sidebar-header">
                 <div>
                     <span class="section-label">Parti da includere</span>
@@ -106,16 +108,21 @@
             </div>
 
             <div class="document-canvas" [class.empty-canvas]="!mediaStreams.length">
-                @if (currentMediaStream) {
+                @if (currentMediaStream; as pageStream) {
                     @if (printPagesPerSheet === 1) {
                         <div class="paper-frame">
-                            <img
-                                class="preview-image"
-                                [style.transform]="'scale(' + zoom / 100 + ')'"
-                                [src]="currentMediaStream | secure | async"
-                                [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length"
-                                (load)="printImageLoaded(currentMediaStream, $event)"
-                            />
+                            @if (mediaStatus(pageStream) === 'ready') {
+                                <img
+                                    class="preview-image"
+                                    [style.transform]="'scale(' + zoom / 100 + ')'"
+                                    [src]="mediaSource(pageStream)"
+                                    [alt]="'Pagina ' + currentPage + ' di ' + mediaStreams.length"
+                                    (load)="printImageLoaded(pageStream, $event)"
+                                    (error)="mediaPageFailed(pageStream)"
+                                />
+                            } @else {
+                                <app-media-placeholder [status]="mediaStatus(pageStream) === 'error' ? 'error' : 'loading'" [page]="currentPage" (retry)="retryMediaPage(pageStream)" />
+                            }
                         </div>
                     } @else {
                         <div
@@ -128,7 +135,16 @@
                                 <div class="print-sheet-preview__slot" [class.active]="currentPrintSheetStartPage + slotIndex === currentPage">
                                     @if (mediaStream) {
                                         <span>Pagina {{ currentPrintSheetStartPage + slotIndex }}</span>
-                                        <img [src]="mediaStream | secure | async" [alt]="'Pagina ' + (currentPrintSheetStartPage + slotIndex) + ' di ' + mediaStreams.length" (load)="printImageLoaded(mediaStream, $event)" />
+                                        @if (mediaStatus(mediaStream) === 'ready') {
+                                            <img
+                                                [src]="mediaSource(mediaStream)"
+                                                [alt]="'Pagina ' + (currentPrintSheetStartPage + slotIndex) + ' di ' + mediaStreams.length"
+                                                (load)="printImageLoaded(mediaStream, $event)"
+                                                (error)="mediaPageFailed(mediaStream)"
+                                            />
+                                        } @else {
+                                            <app-media-placeholder [status]="mediaStatus(mediaStream) === 'error' ? 'error' : 'loading'" [page]="currentPrintSheetStartPage + slotIndex" (retry)="retryMediaPage(mediaStream)" />
+                                        }
                                     }
                                 </div>
                             }
@@ -139,7 +155,7 @@
                         <span class="empty-icon"><i class="pi pi-file"></i></span>
                         <h2>Nessuna parte selezionata</h2>
                         <p>Seleziona almeno uno strumento per visualizzare e stampare gli spartiti.</p>
-                        <button type="button" class="secondary-action empty-open-filters" aria-controls="preview-filters" (click)="openFilters()">
+                        <button type="button" class="secondary-action empty-open-filters" aria-controls="preview-filters" [attr.aria-expanded]="filtersOpen" (click)="openFilters()">
                             <i class="pi pi-filter"></i>
                             <span>Apri filtri</span>
                         </button>
@@ -150,19 +166,40 @@
     </div>
 </section>
 
-<p-galleria [value]="mediaStreams" [(visible)]="displayGalleria" [responsiveOptions]="responsiveOptions" [fullScreen]="true" [circular]="true" [showItemNavigators]="true" [showIndicators]="true" [showThumbnails]="false">
+<p-galleria
+    [value]="mediaStreams"
+    [visible]="displayGalleria"
+    (visibleChange)="presentationVisibleChange($event)"
+    [activeIndex]="presentationIndex"
+    (activeIndexChange)="presentationIndexChange($event)"
+    [responsiveOptions]="responsiveOptions"
+    [fullScreen]="true"
+    [circular]="true"
+    [showItemNavigators]="true"
+    [showIndicators]="true"
+    [showThumbnails]="false"
+>
     <ng-template #item let-url>
-        <img class="image-galleria" [src]="url | secure | async" alt="Pagina dello spartito" />
+        @if (mediaStatus(url) === 'ready') {
+            <img class="image-galleria" [src]="mediaSource(url)" [alt]="'Pagina ' + (presentationIndex + 1) + ' di ' + mediaStreams.length" />
+        } @else {
+            <app-media-placeholder [status]="mediaStatus(url) === 'error' ? 'error' : 'loading'" [page]="presentationIndex + 1" (retry)="retryMediaPage(url)" />
+        }
     </ng-template>
 </p-galleria>
 
 <div class="print-pages print">
-    @for (sheet of printSheets; track $index) {
+    @for (sheet of printSheets; track $index; let sheetIndex = $index) {
         <section class="print-sheet" [class.print-sheet--two-up]="printPagesPerSheet === 2">
-            @for (mediaStream of sheet; track $index) {
+            @for (mediaStream of sheet; track $index; let slotIndex = $index) {
                 <div class="print-sheet__slot">
-                    @if (mediaStream) {
-                        <img [src]="mediaStream | secure | async" alt="" (load)="printImageLoaded(mediaStream, $event)" />
+                    @if (mediaStream && mediaStatus(mediaStream) === 'ready') {
+                        <img
+                            [src]="mediaSource(mediaStream)"
+                            [alt]="'Pagina ' + (sheetIndex * printPagesPerSheet + slotIndex + 1) + ' di ' + mediaStreams.length"
+                            (load)="printImageLoaded(mediaStream, $event)"
+                            (error)="mediaPageFailed(mediaStream)"
+                        />
                     }
                 </div>
             }

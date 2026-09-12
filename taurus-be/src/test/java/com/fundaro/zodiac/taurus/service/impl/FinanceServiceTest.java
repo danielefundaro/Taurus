@@ -30,6 +30,7 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.MovementNotice;
+import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.NamedNotice;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -347,6 +348,73 @@ class FinanceServiceTest {
         when(yearRepository.findByYearAndDeletedFalse(1999)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.yearSummary(1999, authentication())).isInstanceOf(RequestAlertException.class);
+    }
+
+    @Test
+    void reactivatesAnArchivedAccount() {
+        FinancialAccount archived = account(10L, "Cassa", "EUR");
+        archived.setActive(false);
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(archived));
+        when(accountRepository.existsByNameIgnoreCaseAndIdNotAndDeletedFalseAndActiveTrue("Cassa", 10L)).thenReturn(false);
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(any(LocalDate.class), any(LocalDate.class))).thenReturn(List.of());
+        when(financeNoticeDataService.findAccount(10L)).thenReturn(new NamedNotice(10L, "Cassa", false));
+
+        var result = service.restoreAccount(10L, authentication());
+
+        assertThat(result.active()).isTrue();
+        verify(accountRepository).save(archived);
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
+        assertThat(notification.getValue().title()).isEqualTo("Economia: conto riattivato");
+    }
+
+    @Test
+    void refusesToReactivateAnAccountWhoseNameIsAlreadyInUse() {
+        FinancialAccount archived = account(10L, "Cassa", "EUR");
+        archived.setActive(false);
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(archived));
+        when(accountRepository.existsByNameIgnoreCaseAndIdNotAndDeletedFalseAndActiveTrue("Cassa", 10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.restoreAccount(10L, authentication())).isInstanceOf(RequestAlertException.class);
+        assertThat(archived.isActive()).isFalse();
+    }
+
+    @Test
+    void deletesAnAccountWhoseMovementsAreAllLogicallyDeleted() {
+        FinancialAccount empty = account(10L, "Cassa", "EUR");
+        empty.setActive(false);
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(empty));
+        // le scritture eliminate logicamente non contano: restano solo per tracciabilità
+        when(movementRepository.countByAccount_IdAndDeletedFalse(10L)).thenReturn(0L);
+        when(financeNoticeDataService.findAccount(10L)).thenReturn(new NamedNotice(10L, "Cassa", false));
+
+        service.deleteAccount(10L, authentication());
+
+        assertThat(empty.isDeleted()).isTrue();
+        verify(accountRepository).save(empty);
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notificationPublisher).enqueue(notification.capture());
+        assertThat(notification.getValue().title()).isEqualTo("Economia: conto rimosso");
+    }
+
+    @Test
+    void refusesToDeleteAnAccountWithLiveMovements() {
+        FinancialAccount used = account(10L, "Cassa", "EUR");
+        used.setActive(false);
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(used));
+        when(movementRepository.countByAccount_IdAndDeletedFalse(10L)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.deleteAccount(10L, authentication())).isInstanceOf(RequestAlertException.class);
+        assertThat(used.isDeleted()).isFalse();
+    }
+
+    @Test
+    void refusesToDeleteAnAccountThatIsStillActive() {
+        FinancialAccount active = account(10L, "Cassa", "EUR");
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(active));
+
+        assertThatThrownBy(() -> service.deleteAccount(10L, authentication())).isInstanceOf(RequestAlertException.class);
+        assertThat(active.isDeleted()).isFalse();
     }
 
     private static FinancialAccount account(Long id, String name, String currency) {
