@@ -230,6 +230,10 @@ Test mirati tenant:
 
 Verificare che Docker sia realmente disponibile: `TenantSchemaProvisioningServiceIT` usa un'assumption e può risultare saltato se Docker non è raggiungibile. Un test P0 saltato rende il run incompleto.
 
+Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
+
+Gli integration test delle risorse le cui tabelle vivono solo negli schemi tenant — `NoticesResourceIT`, `PreferencesResourceIT`, `LastResearchResourceIT` — estendono `TenantAwareResourceIT`, che provisiona lo schema, registra un tenant attivo in `public.tenant` e apre il `TenantContext` sul thread di test. L'autenticazione passa da `@WithMockTenantUser`: `@WithMockUser` non basta, perché tenant e utente vengono letti dai claim di un `JwtAuthenticationToken` e qualsiasi altra autenticazione viene ignorata o rifiutata.
+
 Report JaCoCo attesi sotto `taurus-be/target/site/jacoco` e `taurus-be/target/site/jacoco-it`.
 
 ### 8.3 Frontend
