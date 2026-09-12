@@ -1,20 +1,23 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { first, switchMap } from 'rxjs';
 import { LoadingSpinnerComponent } from './app/components/loading-spinner/loading-spinner.component';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
-import { LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService } from './app/service';
+import { AppUpdateService, LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService } from './app/service';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterModule, ConfirmDialogModule, ToastModule, LoadingSpinnerComponent],
+    imports: [RouterModule, ButtonModule, ConfirmDialogModule, ToastModule, LoadingSpinnerComponent],
     templateUrl: './app.component.html',
     providers: [PreferencesService]
 })
 export class AppComponent implements OnInit {
+
+    readonly updateToastKey = AppUpdateService.TOAST_KEY;
 
     constructor(
         private readonly localStorageService: LocalStorageService,
@@ -22,10 +25,12 @@ export class AppComponent implements OnInit {
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService,
         private readonly pushNotificationService: PushNotificationService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly appUpdateService: AppUpdateService
     ) {}
 
     ngOnInit(): void {
+        this.appUpdateService.init();
         this.pushNotificationService.init();
 
         setInterval(() => {
@@ -92,6 +97,10 @@ export class AppComponent implements OnInit {
                     }
                 }
             });
+    }
+
+    applyUpdate(): void {
+        this.appUpdateService.activate();
     }
 
     @HostListener('window:unload', ['$event'])

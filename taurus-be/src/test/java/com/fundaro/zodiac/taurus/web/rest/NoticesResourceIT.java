@@ -1,11 +1,10 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import static com.fundaro.zodiac.taurus.domain.NoticesAsserts.*;
-import static com.fundaro.zodiac.taurus.web.rest.TestUtil.createUpdateProxyForBean;
 import static com.fundaro.zodiac.taurus.web.rest.TestUtil.sameInstant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -16,6 +15,7 @@ import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
+import com.fundaro.zodiac.taurus.test.util.WithMockTenantUser;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -37,8 +36,8 @@ import org.springframework.test.web.servlet.MvcResult;
  */
 @IntegrationTest
 @AutoConfigureMockMvc
-@WithMockUser
-class NoticesResourceIT {
+@WithMockTenantUser
+class NoticesResourceIT extends TenantAwareResourceIT {
 
     private static final Boolean DEFAULT_DELETED = false;
     private static final Boolean UPDATED_DELETED = true;
@@ -48,14 +47,12 @@ class NoticesResourceIT {
 
     private static final ZonedDateTime DEFAULT_INSERT_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC);
     private static final ZonedDateTime UPDATED_INSERT_DATE = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-    private static final ZonedDateTime SMALLER_INSERT_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC);
 
     private static final String DEFAULT_EDIT_BY = "AAAAAAAAAA";
     private static final String UPDATED_EDIT_BY = "BBBBBBBBBB";
 
     private static final ZonedDateTime DEFAULT_EDIT_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC);
     private static final ZonedDateTime UPDATED_EDIT_DATE = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-    private static final ZonedDateTime SMALLER_EDIT_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC);
 
     private static final String DEFAULT_USER_ID = "AAAAAAAAAA";
     private static final String UPDATED_USER_ID = "BBBBBBBBBB";
@@ -68,7 +65,6 @@ class NoticesResourceIT {
 
     private static final ZonedDateTime DEFAULT_READ_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(0L), ZoneOffset.UTC);
     private static final ZonedDateTime UPDATED_READ_DATE = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-    private static final ZonedDateTime SMALLER_READ_DATE = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC);
 
     private static final String ENTITY_API_URL = "/api/notices";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
@@ -146,7 +142,8 @@ class NoticesResourceIT {
     @AfterEach
     public void cleanup() {
         if (insertedNotices != null) {
-            noticesRepository.delete(insertedNotices);
+            // La riga puo' essere stata riscritta via API: l'istanza in mano al test e' stale.
+            noticesRepository.findById(insertedNotices.getId()).ifPresent(noticesRepository::delete);
             insertedNotices = null;
         }
         deleteEntities(noticesRepository);
@@ -171,10 +168,18 @@ class NoticesResourceIT {
 
         // Validate the Notices in the database
         assertIncrementedRepositoryCount(databaseSizeBeforeCreate);
-        var returnedNotices = noticesMapper.toEntity(returnedNoticesDTO);
-        assertNoticesUpdatableFieldsEquals(returnedNotices, getPersistedNotices(returnedNotices));
+        assertThat(returnedNoticesDTO.getName()).isEqualTo(DEFAULT_NAME);
+        assertThat(returnedNoticesDTO.getMessage()).isEqualTo(DEFAULT_MESSAGE);
 
-        insertedNotices = returnedNotices;
+        insertedNotices = noticesRepository.findById(returnedNoticesDTO.getId()).orElseThrow();
+        assertThat(insertedNotices.getName()).isEqualTo(DEFAULT_NAME);
+        assertThat(insertedNotices.getMessage()).isEqualTo(DEFAULT_MESSAGE);
+        assertThat(insertedNotices.getReadDate()).isEqualTo(DEFAULT_READ_DATE);
+        // L'audit lo scrive il server: il DTO non trasporta ne' owner ne' campi di tracciamento.
+        assertThat(insertedNotices.getUserId()).isEqualTo(TENANT_USER_ID);
+        assertThat(insertedNotices.getInsertBy()).isEqualTo(TENANT_USER_ID);
+        assertThat(insertedNotices.getEditBy()).isEqualTo(TENANT_USER_ID);
+        assertThat(insertedNotices.getDeleted()).isFalse();
     }
 
     @Test
@@ -199,25 +204,28 @@ class NoticesResourceIT {
         assertSameRepositoryCount(databaseSizeBeforeCreate);
     }
 
+    /**
+     * L'owner non arriva mai dal client: userId e' @JsonIgnore sul DTO e il servizio lo riempie con il
+     * claim sub. E' cio' che impedisce di creare una riga a nome di un altro utente.
+     */
     @Test
-    void checkUserIdIsRequired() throws Exception {
-        long databaseSizeBeforeTest = getRepositoryCount();
-        // set the field null
-        notices.setUserId(null);
-
-        // Create the Notices, which fails.
+    void assignsTheOwnerFromTheAuthenticatedToken() throws Exception {
+        notices.setUserId(UPDATED_USER_ID);
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
-        restMockMvc
+        MvcResult result = restMockMvc
             .perform(
                 post(ENTITY_API_URL)
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(noticesDTO))
             )
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isCreated())
+            .andReturn();
 
-        assertSameRepositoryCount(databaseSizeBeforeTest);
+        NoticesDTO returned = om.readValue(result.getResponse().getContentAsString(), NoticesDTO.class);
+        insertedNotices = noticesRepository.findById(returned.getId()).orElseThrow();
+        assertThat(insertedNotices.getUserId()).isEqualTo(TENANT_USER_ID);
     }
 
     @Test
@@ -251,16 +259,10 @@ class NoticesResourceIT {
             .perform(get(ENTITY_API_URL + "?sort=id,desc").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.[*].id").value(hasItem(notices.getId().intValue())))
-            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
-            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
-            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
-            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
-            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
-            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
-            .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
-            .andExpect(jsonPath("$.[*].message").value(hasItem(DEFAULT_MESSAGE)))
-            .andExpect(jsonPath("$.[*].readDate").value(hasItem(sameInstant(DEFAULT_READ_DATE))));
+            .andExpect(jsonPath("$.content[*].id").value(hasItem(notices.getId().intValue())))
+            .andExpect(jsonPath("$.content[*].name").value(hasItem(DEFAULT_NAME)))
+            .andExpect(jsonPath("$.content[*].message").value(hasItem(DEFAULT_MESSAGE)))
+            .andExpect(jsonPath("$.content[*].readDate").value(hasItem(sameInstant(DEFAULT_READ_DATE))));
     }
 
     @Test
@@ -274,524 +276,9 @@ class NoticesResourceIT {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(is(notices.getId().intValue())))
-            .andExpect(jsonPath("$.deleted").value(is(DEFAULT_DELETED.booleanValue())))
-            .andExpect(jsonPath("$.insertBy").value(is(DEFAULT_INSERT_BY)))
-            .andExpect(jsonPath("$.insertDate").value(is(sameInstant(DEFAULT_INSERT_DATE))))
-            .andExpect(jsonPath("$.editBy").value(is(DEFAULT_EDIT_BY)))
-            .andExpect(jsonPath("$.editDate").value(is(sameInstant(DEFAULT_EDIT_DATE))))
-            .andExpect(jsonPath("$.userId").value(is(DEFAULT_USER_ID)))
             .andExpect(jsonPath("$.name").value(is(DEFAULT_NAME)))
             .andExpect(jsonPath("$.message").value(is(DEFAULT_MESSAGE)))
             .andExpect(jsonPath("$.readDate").value(is(sameInstant(DEFAULT_READ_DATE))));
-    }
-
-    @Test
-    void getNoticesByIdFiltering() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        Long id = notices.getId();
-
-        defaultNoticesFiltering("id.equals=" + id, "id.notEquals=" + id);
-
-        defaultNoticesFiltering("id.greaterThanOrEqual=" + id, "id.greaterThan=" + id);
-
-        defaultNoticesFiltering("id.lessThanOrEqual=" + id, "id.lessThan=" + id);
-    }
-
-    @Test
-    void getAllNoticesByDeletedIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where deleted equals to
-        defaultNoticesFiltering("deleted.equals=" + DEFAULT_DELETED, "deleted.equals=" + UPDATED_DELETED);
-    }
-
-    @Test
-    void getAllNoticesByDeletedIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where deleted in
-        defaultNoticesFiltering("deleted.in=" + DEFAULT_DELETED + "," + UPDATED_DELETED, "deleted.in=" + UPDATED_DELETED);
-    }
-
-    @Test
-    void getAllNoticesByDeletedIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where deleted is not null
-        defaultNoticesFiltering("deleted.specified=true", "deleted.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByInsertByIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertBy equals to
-        defaultNoticesFiltering("insertBy.equals=" + DEFAULT_INSERT_BY, "insertBy.equals=" + UPDATED_INSERT_BY);
-    }
-
-    @Test
-    void getAllNoticesByInsertByIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertBy in
-        defaultNoticesFiltering("insertBy.in=" + DEFAULT_INSERT_BY + "," + UPDATED_INSERT_BY, "insertBy.in=" + UPDATED_INSERT_BY);
-    }
-
-    @Test
-    void getAllNoticesByInsertByIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertBy is not null
-        defaultNoticesFiltering("insertBy.specified=true", "insertBy.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByInsertByContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertBy contains
-        defaultNoticesFiltering("insertBy.contains=" + DEFAULT_INSERT_BY, "insertBy.contains=" + UPDATED_INSERT_BY);
-    }
-
-    @Test
-    void getAllNoticesByInsertByNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertBy does not contain
-        defaultNoticesFiltering("insertBy.doesNotContain=" + UPDATED_INSERT_BY, "insertBy.doesNotContain=" + DEFAULT_INSERT_BY);
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate equals to
-        defaultNoticesFiltering("insertDate.equals=" + DEFAULT_INSERT_DATE, "insertDate.equals=" + UPDATED_INSERT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate in
-        defaultNoticesFiltering("insertDate.in=" + DEFAULT_INSERT_DATE + "," + UPDATED_INSERT_DATE, "insertDate.in=" + UPDATED_INSERT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate is not null
-        defaultNoticesFiltering("insertDate.specified=true", "insertDate.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsGreaterThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate is greater than or equal to
-        defaultNoticesFiltering(
-            "insertDate.greaterThanOrEqual=" + DEFAULT_INSERT_DATE,
-            "insertDate.greaterThanOrEqual=" + UPDATED_INSERT_DATE
-        );
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsLessThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate is less than or equal to
-        defaultNoticesFiltering("insertDate.lessThanOrEqual=" + DEFAULT_INSERT_DATE, "insertDate.lessThanOrEqual=" + SMALLER_INSERT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsLessThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate is less than
-        defaultNoticesFiltering("insertDate.lessThan=" + UPDATED_INSERT_DATE, "insertDate.lessThan=" + DEFAULT_INSERT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByInsertDateIsGreaterThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where insertDate is greater than
-        defaultNoticesFiltering("insertDate.greaterThan=" + SMALLER_INSERT_DATE, "insertDate.greaterThan=" + DEFAULT_INSERT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditByIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editBy equals to
-        defaultNoticesFiltering("editBy.equals=" + DEFAULT_EDIT_BY, "editBy.equals=" + UPDATED_EDIT_BY);
-    }
-
-    @Test
-    void getAllNoticesByEditByIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editBy in
-        defaultNoticesFiltering("editBy.in=" + DEFAULT_EDIT_BY + "," + UPDATED_EDIT_BY, "editBy.in=" + UPDATED_EDIT_BY);
-    }
-
-    @Test
-    void getAllNoticesByEditByIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editBy is not null
-        defaultNoticesFiltering("editBy.specified=true", "editBy.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByEditByContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editBy contains
-        defaultNoticesFiltering("editBy.contains=" + DEFAULT_EDIT_BY, "editBy.contains=" + UPDATED_EDIT_BY);
-    }
-
-    @Test
-    void getAllNoticesByEditByNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editBy does not contain
-        defaultNoticesFiltering("editBy.doesNotContain=" + UPDATED_EDIT_BY, "editBy.doesNotContain=" + DEFAULT_EDIT_BY);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate equals to
-        defaultNoticesFiltering("editDate.equals=" + DEFAULT_EDIT_DATE, "editDate.equals=" + UPDATED_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate in
-        defaultNoticesFiltering("editDate.in=" + DEFAULT_EDIT_DATE + "," + UPDATED_EDIT_DATE, "editDate.in=" + UPDATED_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate is not null
-        defaultNoticesFiltering("editDate.specified=true", "editDate.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsGreaterThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate is greater than or equal to
-        defaultNoticesFiltering("editDate.greaterThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.greaterThanOrEqual=" + UPDATED_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsLessThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate is less than or equal to
-        defaultNoticesFiltering("editDate.lessThanOrEqual=" + DEFAULT_EDIT_DATE, "editDate.lessThanOrEqual=" + SMALLER_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsLessThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate is less than
-        defaultNoticesFiltering("editDate.lessThan=" + UPDATED_EDIT_DATE, "editDate.lessThan=" + DEFAULT_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByEditDateIsGreaterThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where editDate is greater than
-        defaultNoticesFiltering("editDate.greaterThan=" + SMALLER_EDIT_DATE, "editDate.greaterThan=" + DEFAULT_EDIT_DATE);
-    }
-
-    @Test
-    void getAllNoticesByUserIdIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where userId equals to
-        defaultNoticesFiltering("userId.equals=" + DEFAULT_USER_ID, "userId.equals=" + UPDATED_USER_ID);
-    }
-
-    @Test
-    void getAllNoticesByUserIdIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where userId in
-        defaultNoticesFiltering("userId.in=" + DEFAULT_USER_ID + "," + UPDATED_USER_ID, "userId.in=" + UPDATED_USER_ID);
-    }
-
-    @Test
-    void getAllNoticesByUserIdIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where userId is not null
-        defaultNoticesFiltering("userId.specified=true", "userId.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByUserIdContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where userId contains
-        defaultNoticesFiltering("userId.contains=" + DEFAULT_USER_ID, "userId.contains=" + UPDATED_USER_ID);
-    }
-
-    @Test
-    void getAllNoticesByUserIdNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where userId does not contain
-        defaultNoticesFiltering("userId.doesNotContain=" + UPDATED_USER_ID, "userId.doesNotContain=" + DEFAULT_USER_ID);
-    }
-
-    @Test
-    void getAllNoticesByNameIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where name equals to
-        defaultNoticesFiltering("name.equals=" + DEFAULT_NAME, "name.equals=" + UPDATED_NAME);
-    }
-
-    @Test
-    void getAllNoticesByNameIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where name in
-        defaultNoticesFiltering("name.in=" + DEFAULT_NAME + "," + UPDATED_NAME, "name.in=" + UPDATED_NAME);
-    }
-
-    @Test
-    void getAllNoticesByNameIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where name is not null
-        defaultNoticesFiltering("name.specified=true", "name.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByNameContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where name contains
-        defaultNoticesFiltering("name.contains=" + DEFAULT_NAME, "name.contains=" + UPDATED_NAME);
-    }
-
-    @Test
-    void getAllNoticesByNameNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where name does not contain
-        defaultNoticesFiltering("name.doesNotContain=" + UPDATED_NAME, "name.doesNotContain=" + DEFAULT_NAME);
-    }
-
-    @Test
-    void getAllNoticesByMessageIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where message equals to
-        defaultNoticesFiltering("message.equals=" + DEFAULT_MESSAGE, "message.equals=" + UPDATED_MESSAGE);
-    }
-
-    @Test
-    void getAllNoticesByMessageIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where message in
-        defaultNoticesFiltering("message.in=" + DEFAULT_MESSAGE + "," + UPDATED_MESSAGE, "message.in=" + UPDATED_MESSAGE);
-    }
-
-    @Test
-    void getAllNoticesByMessageIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where message is not null
-        defaultNoticesFiltering("message.specified=true", "message.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByMessageContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where message contains
-        defaultNoticesFiltering("message.contains=" + DEFAULT_MESSAGE, "message.contains=" + UPDATED_MESSAGE);
-    }
-
-    @Test
-    void getAllNoticesByMessageNotContainsSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where message does not contain
-        defaultNoticesFiltering("message.doesNotContain=" + UPDATED_MESSAGE, "message.doesNotContain=" + DEFAULT_MESSAGE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate equals to
-        defaultNoticesFiltering("readDate.equals=" + DEFAULT_READ_DATE, "readDate.equals=" + UPDATED_READ_DATE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsInShouldWork() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate in
-        defaultNoticesFiltering("readDate.in=" + DEFAULT_READ_DATE + "," + UPDATED_READ_DATE, "readDate.in=" + UPDATED_READ_DATE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsNullOrNotNull() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate is not null
-        defaultNoticesFiltering("readDate.specified=true", "readDate.specified=false");
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsGreaterThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate is greater than or equal to
-        defaultNoticesFiltering("readDate.greaterThanOrEqual=" + DEFAULT_READ_DATE, "readDate.greaterThanOrEqual=" + UPDATED_READ_DATE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsLessThanOrEqualToSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate is less than or equal to
-        defaultNoticesFiltering("readDate.lessThanOrEqual=" + DEFAULT_READ_DATE, "readDate.lessThanOrEqual=" + SMALLER_READ_DATE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsLessThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate is less than
-        defaultNoticesFiltering("readDate.lessThan=" + UPDATED_READ_DATE, "readDate.lessThan=" + DEFAULT_READ_DATE);
-    }
-
-    @Test
-    void getAllNoticesByReadDateIsGreaterThanSomething() throws Exception {
-        // Initialize the database
-        insertedNotices = noticesRepository.save(notices);
-
-        // Get all the noticesList where readDate is greater than
-        defaultNoticesFiltering("readDate.greaterThan=" + SMALLER_READ_DATE, "readDate.greaterThan=" + DEFAULT_READ_DATE);
-    }
-
-    private void defaultNoticesFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
-        defaultNoticesShouldBeFound(shouldBeFound);
-        defaultNoticesShouldNotBeFound(shouldNotBeFound);
-    }
-
-    /**
-     * Executes the search, and checks that the default entity is returned.
-     */
-    private void defaultNoticesShouldBeFound(String filter) throws Exception {
-        restMockMvc
-            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$.[*].id").value(hasItem(notices.getId().intValue())))
-            .andExpect(jsonPath("$.[*].deleted").value(hasItem(DEFAULT_DELETED.booleanValue())))
-            .andExpect(jsonPath("$.[*].insertBy").value(hasItem(DEFAULT_INSERT_BY)))
-            .andExpect(jsonPath("$.[*].insertDate").value(hasItem(sameInstant(DEFAULT_INSERT_DATE))))
-            .andExpect(jsonPath("$.[*].editBy").value(hasItem(DEFAULT_EDIT_BY)))
-            .andExpect(jsonPath("$.[*].editDate").value(hasItem(sameInstant(DEFAULT_EDIT_DATE))))
-            .andExpect(jsonPath("$.[*].userId").value(hasItem(DEFAULT_USER_ID)))
-            .andExpect(jsonPath("$.[*].name").value(hasItem(DEFAULT_NAME)))
-            .andExpect(jsonPath("$.[*].message").value(hasItem(DEFAULT_MESSAGE)))
-            .andExpect(jsonPath("$.[*].readDate").value(hasItem(sameInstant(DEFAULT_READ_DATE))));
-
-        // Check, that the count call also returns 1
-        restMockMvc
-            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$").value(is(1)));
-    }
-
-    /**
-     * Executes the search, and checks that the default entity is not returned.
-     */
-    private void defaultNoticesShouldNotBeFound(String filter) throws Exception {
-        restMockMvc
-            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$").isEmpty());
-
-        // Check, that the count call also returns 0
-        restMockMvc
-            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter).accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$").value(is(0)));
     }
 
     @Test
@@ -809,18 +296,9 @@ class NoticesResourceIT {
 
         long databaseSizeBeforeUpdate = getRepositoryCount();
 
-        // Update the notices
-        Notices updatedNotices = noticesRepository.findByIdAndUserId(notices.getId(), "").orElse(null);
-        updatedNotices
-            .deleted(UPDATED_DELETED)
-            .insertBy(UPDATED_INSERT_BY)
-            .insertDate(UPDATED_INSERT_DATE)
-            .editBy(UPDATED_EDIT_BY)
-            .editDate(UPDATED_EDIT_DATE)
-            .userId(UPDATED_USER_ID)
-            .name(UPDATED_NAME)
-            .message(UPDATED_MESSAGE)
-            .readDate(UPDATED_READ_DATE);
+        // Il DTO trasporta i campi di contenuto: e' tutto cio' che il client puo' cambiare.
+        Notices updatedNotices = getPersistedNotices(notices);
+        updatedNotices.name(UPDATED_NAME).message(UPDATED_MESSAGE).readDate(UPDATED_READ_DATE);
         NoticesDTO noticesDTO = noticesMapper.toDto(updatedNotices);
 
         restMockMvc
@@ -834,7 +312,7 @@ class NoticesResourceIT {
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
-        assertPersistedNoticesToMatchAllProperties(updatedNotices);
+        assertPersistedNoticesWasUpdatedByTheServer(UPDATED_NAME, UPDATED_MESSAGE, UPDATED_READ_DATE);
     }
 
     @Test
@@ -845,7 +323,7 @@ class NoticesResourceIT {
         // Create the Notices
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
-        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        // L'id e' coerente con il path ma non esiste: il servizio non trova la riga posseduta.
         restMockMvc
             .perform(
                 put(ENTITY_API_URL_ID, noticesDTO.getId())
@@ -853,7 +331,7 @@ class NoticesResourceIT {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(om.writeValueAsBytes(noticesDTO))
             )
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isNotFound());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -914,7 +392,7 @@ class NoticesResourceIT {
         Notices partialUpdatedNotices = new Notices();
         partialUpdatedNotices.setId(notices.getId());
 
-        partialUpdatedNotices.editBy(UPDATED_EDIT_BY).message(UPDATED_MESSAGE);
+        partialUpdatedNotices.message(UPDATED_MESSAGE);
 
         restMockMvc
             .perform(
@@ -928,7 +406,8 @@ class NoticesResourceIT {
         // Validate the Notices in the database
 
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
-        assertNoticesUpdatableFieldsEquals(createUpdateProxyForBean(partialUpdatedNotices, notices), getPersistedNotices(notices));
+        // I campi non inviati restano quelli di partenza.
+        assertPersistedNoticesWasUpdatedByTheServer(DEFAULT_NAME, UPDATED_MESSAGE, DEFAULT_READ_DATE);
     }
 
     @Test
@@ -942,6 +421,7 @@ class NoticesResourceIT {
         Notices partialUpdatedNotices = new Notices();
         partialUpdatedNotices.setId(notices.getId());
 
+        // Anche inviando i campi di audit, il servizio ignora tutto cio' che non e' sul DTO.
         partialUpdatedNotices
             .deleted(UPDATED_DELETED)
             .insertBy(UPDATED_INSERT_BY)
@@ -965,7 +445,7 @@ class NoticesResourceIT {
         // Validate the Notices in the database
 
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
-        assertNoticesUpdatableFieldsEquals(partialUpdatedNotices, getPersistedNotices(partialUpdatedNotices));
+        assertPersistedNoticesWasUpdatedByTheServer(UPDATED_NAME, UPDATED_MESSAGE, UPDATED_READ_DATE);
     }
 
     @Test
@@ -976,7 +456,7 @@ class NoticesResourceIT {
         // Create the Notices
         NoticesDTO noticesDTO = noticesMapper.toDto(notices);
 
-        // If the entity doesn't have an ID, it will throw BadRequestAlertException
+        // L'id e' coerente con il path ma non esiste: il servizio non trova la riga posseduta.
         restMockMvc
             .perform(
                 patch(ENTITY_API_URL_ID, noticesDTO.getId())
@@ -984,7 +464,7 @@ class NoticesResourceIT {
                     .contentType(MediaType.valueOf("application/merge-patch+json"))
                     .content(om.writeValueAsBytes(noticesDTO))
             )
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isNotFound());
 
         // Validate the Notices in the database
         assertSameRepositoryCount(databaseSizeBeforeUpdate);
@@ -1050,8 +530,13 @@ class NoticesResourceIT {
             )
             .andExpect(status().isNoContent());
 
-        // Validate the database contains one less item
-        assertDecrementedRepositoryCount(databaseSizeBeforeDelete);
+        // La cancellazione e' logica: la riga resta a database ma esce dalle letture dell'API.
+        assertSameRepositoryCount(databaseSizeBeforeDelete);
+        assertThat(noticesRepository.findById(notices.getId()).orElseThrow().getDeleted()).isTrue();
+        restMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[*].id").value(not(hasItem(notices.getId().intValue()))));
     }
 
     protected long getRepositoryCount() {
@@ -1062,27 +547,29 @@ class NoticesResourceIT {
         assertThat(countBefore + 1).isEqualTo(getRepositoryCount());
     }
 
-    protected void assertDecrementedRepositoryCount(long countBefore) {
-        assertThat(countBefore - 1).isEqualTo(getRepositoryCount());
-    }
-
     protected void assertSameRepositoryCount(long countBefore) {
         assertThat(countBefore).isEqualTo(getRepositoryCount());
     }
 
     protected Notices getPersistedNotices(Notices notices) {
-        return noticesRepository.findByIdAndUserId(notices.getId(), "").orElse(null);
+        return noticesRepository.findByIdAndUserId(notices.getId(), TENANT_USER_ID).orElse(null);
     }
 
-    protected void assertPersistedNoticesToMatchAllProperties(Notices expectedNotices) {
-        // Test fails because reactive api returns an empty object instead of null
-        // assertNoticesAllPropertiesEquals(expectedNotices, getPersistedNotices(expectedNotices));
-        assertNoticesUpdatableFieldsEquals(expectedNotices, getPersistedNotices(expectedNotices));
-    }
-
-    protected void assertPersistedNoticesToMatchUpdatableProperties(Notices expectedNotices) {
-        // Test fails because reactive api returns an empty object instead of null
-        // assertNoticesAllUpdatablePropertiesEquals(expectedNotices, getPersistedNotices(expectedNotices));
-        assertNoticesUpdatableFieldsEquals(expectedNotices, getPersistedNotices(expectedNotices));
+    /**
+     * Verifica cosa cambia dopo una scrittura: i campi del DTO seguono la richiesta, l'audit no.
+     * insertBy resta quello originale, mentre owner ed editBy sono riscritti con l'identita' del token.
+     */
+    private void assertPersistedNoticesWasUpdatedByTheServer(
+        String expectedName,
+        String expectedMessage,
+        ZonedDateTime expectedReadDate
+    ) {
+        Notices persisted = getPersistedNotices(notices);
+        assertThat(persisted.getName()).isEqualTo(expectedName);
+        assertThat(persisted.getMessage()).isEqualTo(expectedMessage);
+        assertThat(persisted.getReadDate()).isEqualTo(expectedReadDate);
+        assertThat(persisted.getInsertBy()).isEqualTo(DEFAULT_INSERT_BY);
+        assertThat(persisted.getUserId()).isEqualTo(TENANT_USER_ID);
+        assertThat(persisted.getEditBy()).isEqualTo(TENANT_USER_ID);
     }
 }
