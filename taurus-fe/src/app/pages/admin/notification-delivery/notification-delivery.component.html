@@ -1,13 +1,13 @@
 <p-confirmdialog />
 
-<app-page-header title="Consegne notifiche" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento tecnico' : ' eventi tecnici')">
+<app-page-header heading="Consegne notifiche" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento tecnico' : ' eventi tecnici')">
     <div pageActions>
         <p-button label="Aggiorna" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading" [disabled]="bulkRetrying || pendingRowKey !== undefined" (onClick)="load()" />
     </div>
 </app-page-header>
 
 @if (loadError) {
-    <app-inline-alert class="block mb-4" severity="error" title="Consegne non disponibili" detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
+    <app-inline-alert class="block mb-4" severity="error" heading="Consegne non disponibili" detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
 }
 
 <app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions" (sortChange)="onSortChange($event)">
@@ -237,7 +237,7 @@
         <ng-template #emptymessage>
             <tr>
                 <td [attr.colspan]="status === 'FAILED' ? 11 : 10">
-                    <app-empty-state compact icon="pi pi-check-circle" [title]="emptyTitle()" [message]="emptyMessage()" actionLabel="Aggiorna" (action)="load()" />
+                    <app-empty-state compact icon="pi pi-check-circle" [heading]="emptyTitle()" [message]="emptyMessage()" actionLabel="Aggiorna" (action)="load()" />
                 </td>
             </tr>
         </ng-template>

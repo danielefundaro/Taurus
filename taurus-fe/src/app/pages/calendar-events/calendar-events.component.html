@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')"
+<app-page-header heading="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')"
     ><div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"><p-button label="Nuovo evento" icon="pi pi-plus" (onClick)="addNew()" /></div
 ></app-page-header>
 
@@ -7,7 +7,7 @@
     <app-inline-alert
         class="block mb-4"
         severity="info"
-        title="Filtro attività applicato"
+        heading="Filtro attività applicato"
         [detail]="attention === 'my-missing-availability' ? 'Sono mostrati gli eventi futuri a cui devi ancora rispondere.' : 'Sono mostrati gli eventi futuri con almeno una risposta attesa mancante.'"
     />
 }
@@ -115,7 +115,7 @@
             <ng-template #empty>
                 <app-empty-state
                     icon="pi pi-calendar-times"
-                    [title]="searchTerm ? 'Nessun risultato' : 'Nessun evento'"
+                    [heading]="searchTerm ? 'Nessun risultato' : 'Nessun evento'"
                     [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo evento per iniziare.'"
                     [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo evento'"
                     (action)="searchTerm ? onSearchChange('') : addNew()"

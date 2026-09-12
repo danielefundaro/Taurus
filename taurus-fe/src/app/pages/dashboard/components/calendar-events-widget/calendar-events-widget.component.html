@@ -1,4 +1,4 @@
-<app-detail-section title="Prossimi eventi" description="I prossimi appuntamenti in calendario" actionLabel="Calendario" actionLink="/calendar">
+<app-detail-section heading="Prossimi eventi" description="I prossimi appuntamenti in calendario" actionLabel="Calendario" actionLink="/calendar">
     @if (visibleEvents.length > 0) {
         @for (event of visibleEvents; track event.id) {
             <app-list-row compact>
@@ -18,7 +18,7 @@
             </app-list-row>
         }
     } @else {
-        <app-empty-state icon="pi pi-calendar-times" title="Nessun evento in programma" message="I prossimi appuntamenti compariranno qui." compact />
+        <app-empty-state icon="pi pi-calendar-times" heading="Nessun evento in programma" message="I prossimi appuntamenti compariranno qui." compact />
     }
 
     <footer class="widget-footer">

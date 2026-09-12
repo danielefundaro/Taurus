@@ -1,6 +1,6 @@
 <app-dialog-shell
     #shell
-    title="Segnala un guasto"
+    heading="Segnala un guasto"
     subtitle="Descrivi il problema riscontrato. L’invio non modifica automaticamente lo stato del bene."
     confirmLabel="Invia segnalazione"
     [saving]="saving"
@@ -19,7 +19,7 @@
             <textarea pTextarea id="issueDescription" rows="5" maxlength="2000" [(ngModel)]="description"></textarea>
         </app-form-field>
         @if (severity === 'UNSAFE') {
-            <app-inline-alert severity="warn" title="Blocco prudenziale" detail="Una segnalazione non sicura blocca nuove assegnazioni finché un amministratore non la chiude." />
+            <app-inline-alert severity="warn" heading="Blocco prudenziale" detail="Una segnalazione non sicura blocca nuove assegnazioni finché un amministratore non la chiude." />
         }
     </div>
 </app-dialog-shell>

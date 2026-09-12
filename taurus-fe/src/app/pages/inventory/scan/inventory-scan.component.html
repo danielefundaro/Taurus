@@ -37,9 +37,9 @@
                 </div>
             </div>
             @if (result?.unsafe) {
-                <app-inline-alert severity="warn" title="Nuove assegnazioni bloccate" detail="È presente almeno una segnalazione di sicurezza aperta." />
+                <app-inline-alert severity="warn" heading="Nuove assegnazioni bloccate" detail="È presente almeno una segnalazione di sicurezza aperta." />
             } @else if (result?.openIssueCount) {
-                <app-inline-alert severity="info" title="Segnalazioni aperte" [detail]="result?.openIssueCount + ' segnalazioni richiedono attenzione.'" />
+                <app-inline-alert severity="info" heading="Segnalazioni aperte" [detail]="result?.openIssueCount + ' segnalazioni richiedono attenzione.'" />
             }
             <div class="scan-actions">
                 <p-button label="Apri scheda completa" icon="pi pi-external-link" [routerLink]="['/inventory/items', result?.itemId]" />

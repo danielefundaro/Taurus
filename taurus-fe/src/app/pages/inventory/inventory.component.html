@@ -1,6 +1,6 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header [title]="personalView ? 'Il mio inventario' : 'Inventario'" [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
+    <app-page-header [heading]="personalView ? 'Il mio inventario' : 'Inventario'" [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
         ><div pageActions class="flex flex-wrap gap-2">
             @if (!personalView) {
                 <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
@@ -14,7 +14,7 @@
         <app-inline-alert
             class="block mb-4"
             severity="info"
-            title="Filtro attività applicato"
+            heading="Filtro attività applicato"
             [detail]="
                 attention === 'pending-decisions'
                     ? 'Sono mostrate le assegnazioni senza presa visione.'
@@ -31,7 +31,7 @@
 
     @if (isAdmin && !personalView && erasureRequests.length > 0) {
         <div class="card flex flex-col gap-4">
-            <app-inline-alert severity="warn" title="Cancellazioni GDPR in attesa di riconsegna" detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
+            <app-inline-alert severity="warn" heading="Cancellazioni GDPR in attesa di riconsegna" detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
             <p-table [value]="erasureRequests">
                 <ng-template #header>
                     <tr>
@@ -262,7 +262,7 @@
             <ng-template #empty>
                 <app-empty-state
                     icon="pi pi-box"
-                    [title]="searchTerm ? 'Nessun risultato' : personalView ? 'Nessuna consegna' : 'Nessun oggetto'"
+                    [heading]="searchTerm ? 'Nessun risultato' : personalView ? 'Nessuna consegna' : 'Nessun oggetto'"
                     [message]="emptyMessage"
                     [actionLabel]="searchTerm ? 'Azzera ricerca' : personalView ? undefined : 'Nuovo oggetto'"
                     (action)="searchTerm ? onSearchChange('') : addNew()"

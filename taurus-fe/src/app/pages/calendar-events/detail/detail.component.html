@@ -3,7 +3,7 @@
     <app-detail-loading-skeleton />
 }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Evento" [title]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
+    <app-page-header kicker="Evento" [heading]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
         ><div pageMetadata class="flex flex-wrap items-center gap-2">
             <span>{{ event.startDate ? (event.startDate | date: 'dd/MM/yyyy HH:mm') : 'Data non indicata' }}</span>
             @if (event.location) {
@@ -26,7 +26,7 @@
     @if (eventPreparationEnabled()) {
         <app-detail-section
             id="preparation"
-            title="Preparazione operativa"
+            heading="Preparazione operativa"
             description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
             [dirty]="isDirtyPreparation"
             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]"
@@ -52,7 +52,7 @@
                     @if (preparation.evaluation.issues.length) {
                         <div class="grid gap-2">
                             @for (issue of preparation.evaluation.issues; track issue.code + issue.area) {
-                                <app-inline-alert [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" [title]="issue.severity === 'BLOCKER' ? 'Preparazione bloccata' : 'Preparazione da verificare'" [detail]="issue.message" />
+                                <app-inline-alert [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" [heading]="issue.severity === 'BLOCKER' ? 'Preparazione bloccata' : 'Preparazione da verificare'" [detail]="issue.message" />
                             }
                         </div>
                     }
@@ -159,7 +159,7 @@
         @if (preparation?.configuration?.programRequired) {
             <app-detail-section
                 id="preparation-program"
-                title="Programma"
+                heading="Programma"
                 [count]="programDraft.length"
                 description="Collega un album per usare le sue tracce, nel relativo ordine, come scaletta dell’occorrenza."
                 [dirty]="isDirtyProgram"
@@ -220,7 +220,7 @@
                             }
                         </div>
                     } @else {
-                        <app-empty-state compact icon="pi pi-list" title="Programma vuoto" message="Collega un album con almeno una traccia per soddisfare la verifica." />
+                        <app-empty-state compact icon="pi pi-list" heading="Programma vuoto" message="Collega un album con almeno una traccia per soddisfare la verifica." />
                     }
                     @if (canManageProgram) {
                         <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
@@ -232,7 +232,7 @@
         @if (preparation?.configuration?.materialsRequired) {
             <app-detail-section
                 id="preparation-materials"
-                title="Materiali"
+                heading="Materiali"
                 [count]="materialsDraft.length"
                 description="Oggetti e assegnazioni necessari per questa singola occorrenza."
                 [dirty]="isDirtyMaterials"
@@ -294,7 +294,7 @@
                             }
                         </div>
                     } @else {
-                        <app-empty-state compact icon="pi pi-box" title="Nessun materiale" message="Aggiungi almeno un oggetto e collegalo a un’assegnazione." />
+                        <app-empty-state compact icon="pi pi-box" heading="Nessun materiale" message="Aggiungi almeno un oggetto e collegalo a un’assegnazione." />
                     }
                     <div class="flex justify-end"><p-button label="Salva materiali" icon="pi pi-check" [loading]="savingMaterials" [disabled]="!isDirtyMaterials" (onClick)="saveMaterials()" /></div>
                 </div>
@@ -304,7 +304,7 @@
 
     <app-detail-section
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
-        title="Dati evento"
+        heading="Dati evento"
         description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
         [dirty]="isDirtyForm"
     >
@@ -415,7 +415,7 @@
     </app-detail-section>
 
     @if (financeEnabled()) {
-        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
+        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
                 <div class="md:col-span-7">
                     <app-form-field label="Descrizione costo" forId="costDesc">
@@ -452,7 +452,7 @@
                 <ng-template #emptymessage>
                     <tr>
                         <td colspan="3">
-                            <app-empty-state compact icon="pi pi-wallet" title="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
+                            <app-empty-state compact icon="pi pi-wallet" heading="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
                         </td>
                     </tr>
                 </ng-template>
@@ -470,7 +470,7 @@
     }
 
     @if (financeEnabled() && economicSummary) {
-        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]" title="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
+        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]" heading="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
             <div sectionActions>
                 <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']" [queryParams]="{ action: 'new', eventId: event.id }" />
             </div>
@@ -491,7 +491,7 @@
         </app-detail-section>
     }
 
-    <app-detail-section title="La tua disponibilità" description="La risposta si registra subito: è un’operazione autonoma.">
+    <app-detail-section heading="La tua disponibilità" description="La risposta si registra subito: è un’operazione autonoma.">
         <div class="flex flex-col gap-3">
             @if (event.seriesId) {
                 <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -540,7 +540,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section title="Utenti disponibili" [count]="event.availableUsers?.length">
+    <app-detail-section heading="Utenti disponibili" [count]="event.availableUsers?.length">
         <p-table [value]="event.availableUsers ?? []" [rowHover]="true">
             <ng-template #header>
                 <tr>
@@ -564,14 +564,14 @@
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="3">
-                        <app-empty-state compact icon="pi pi-check-circle" title="Nessuna disponibilità" message="Nessun utente ha ancora dato la propria disponibilità." />
+                        <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna disponibilità" message="Nessun utente ha ancora dato la propria disponibilità." />
                     </td>
                 </tr>
             </ng-template>
         </p-table>
     </app-detail-section>
 
-    <app-detail-section title="Utenti non disponibili" [count]="event.unavailableUsers?.length">
+    <app-detail-section heading="Utenti non disponibili" [count]="event.unavailableUsers?.length">
         <p-table [value]="event.unavailableUsers ?? []" [rowHover]="true">
             <ng-template #header>
                 <tr>
@@ -595,14 +595,14 @@
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="3">
-                        <app-empty-state compact icon="pi pi-times-circle" title="Nessuna indisponibilità" message="Nessun utente si è dichiarato non disponibile." />
+                        <app-empty-state compact icon="pi pi-times-circle" heading="Nessuna indisponibilità" message="Nessun utente si è dichiarato non disponibile." />
                     </td>
                 </tr>
             </ng-template>
         </p-table>
     </app-detail-section>
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" title="Gestisci presenze" [count]="event.presentUsers?.length" description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Gestisci presenze" [count]="event.presentUsers?.length" description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
         <div sectionActions>
             <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [loading]="isSavingPresence" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
         </div>
@@ -650,7 +650,7 @@
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="5">
-                        <app-empty-state compact icon="pi pi-users" title="Nessun utente" message="Non ci sono utenti da elencare." />
+                        <app-empty-state compact icon="pi pi-users" heading="Nessun utente" message="Non ci sono utenti da elencare." />
                     </td>
                 </tr>
             </ng-template>
@@ -658,7 +658,7 @@
     </app-detail-section>
 
     @if (!isAdmin) {
-        <app-detail-section title="Utenti presenti" [count]="event.presentUsers?.length">
+        <app-detail-section heading="Utenti presenti" [count]="event.presentUsers?.length">
             <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
                 <ng-template #header>
                     <tr>
@@ -679,7 +679,7 @@
                 <ng-template #emptymessage>
                     <tr>
                         <td colspan="4">
-                            <app-empty-state compact icon="pi pi-users" title="Nessuna presenza" message="Non è stata registrata alcuna presenza." />
+                            <app-empty-state compact icon="pi pi-users" heading="Nessuna presenza" message="Non è stata registrata alcuna presenza." />
                         </td>
                     </tr>
                 </ng-template>

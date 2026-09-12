@@ -1,4 +1,4 @@
-<app-detail-section title="Notifiche" [count]="unreadCount || undefined" description="Aggiornamenti che richiedono attenzione">
+<app-detail-section heading="Notifiche" [count]="unreadCount || undefined" description="Aggiornamenti che richiedono attenzione">
     <div sectionActions class="header-actions">
         <div class="flex" role="group" aria-label="Vista notifiche">
             <button type="button" class="mark-all" [class.font-bold]="view === 'ACTIVE'" (click)="viewChange.emit('ACTIVE')">Attive</button>
@@ -55,7 +55,7 @@
     } @else {
         <app-empty-state
             icon="pi pi-bell"
-            [title]="view === 'ACTIVE' ? 'Nessuna notifica' : 'Nessuna notifica posticipata'"
+            [heading]="view === 'ACTIVE' ? 'Nessuna notifica' : 'Nessuna notifica posticipata'"
             [message]="view === 'ACTIVE' ? 'Non ci sono aggiornamenti che richiedono attenzione.' : 'Non hai notifiche che devono tornare più tardi.'"
             compact
         />

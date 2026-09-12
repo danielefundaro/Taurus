@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Tracce" [subtitle]="totalRecords + (totalRecords === 1 ? ' traccia' : ' tracce')">
+<app-page-header heading="Tracce" [subtitle]="totalRecords + (totalRecords === 1 ? ' traccia' : ' tracce')">
     <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
         <p-button label="Nuova traccia" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" /><p-button label="Carica spartito" icon="pi pi-upload" (onClick)="addNewFile()" />
     </div>
@@ -147,7 +147,7 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-file"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessuna traccia'"
+                [heading]="searchTerm ? 'Nessun risultato' : 'Nessuna traccia'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Carica il primo spartito per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Carica spartito'"
                 (action)="searchTerm ? onSearchChange('') : addNewFile()"
