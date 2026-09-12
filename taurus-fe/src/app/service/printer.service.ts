@@ -1,7 +1,7 @@
 import { inject, Injectable } from "@angular/core";
 import { Router } from "@angular/router";
 import { forkJoin, Subscription } from "rxjs";
-import { TracksService } from ".";
+import { ToastService, TracksService } from ".";
 import { Albums, ChildrenEntities, SheetsMusic, Tracks } from "../module";
 
 @Injectable({
@@ -12,6 +12,7 @@ export class PrinterService {
     private _previewTitle: string = 'Spartiti selezionati';
     private _previewSource: 'Album' | 'Traccia' = 'Traccia';
     private readonly tracksService = inject(TracksService);
+    private readonly toastService = inject(ToastService);
     private readonly router = inject(Router);
     private $subscription?: Subscription;
 
@@ -32,6 +33,7 @@ export class PrinterService {
     }
 
     public preview(element: Albums | Tracks, selectedTracks?: ChildrenEntities[]): void {
+        this._scores = [];
         this._previewTitle = element.name?.trim() || 'Spartiti selezionati';
 
         if (typeof element === "object" && "scores" in element) {
@@ -48,9 +50,16 @@ export class PrinterService {
                 childrenEntities = element.tracks;
             }
 
-            this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe(tracks => {
-                this._scores.push(...tracks.flatMap(track => track.scores!))
-                this.router.navigate(["preview"]);
+            this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe({
+                next: tracks => {
+                    this._scores.push(...tracks.flatMap(track => track.scores!))
+                    this.router.navigate(["preview"]);
+                },
+                // Un errore su una traccia non deve aprire un'anteprima parziale: la pagina sorgente conserva la selezione.
+                error: () => {
+                    this._scores = [];
+                    this.toastService.error('Anteprima non disponibile', 'Non è stato possibile caricare tutte le tracce selezionate. Riprova dalla pagina corrente.');
+                }
             });
         }
     }

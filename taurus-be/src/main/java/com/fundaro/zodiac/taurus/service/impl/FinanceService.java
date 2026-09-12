@@ -175,6 +175,39 @@ public class FinanceService {
         accountRepository.save(account);
     }
 
+    public AccountDTO restoreAccount(long id, AbstractAuthenticationToken token) {
+        tenant(token);
+        FinancialAccount account = requiredAccount(id, false);
+        if (account.isActive()) {
+            throw error(HttpStatus.CONFLICT, "Il conto è già attivo", "finance.account.alreadyActive");
+        }
+        if (accountRepository.existsByNameIgnoreCaseAndIdNotAndDeletedFalseAndActiveTrue(account.getName(), id)) {
+            throw error(HttpStatus.CONFLICT, "Esiste già un conto attivo con questo nome", "finance.account.nameExists");
+        }
+        account.setActive(true);
+        account.touchAudit(actor(token));
+        accountRepository.save(account);
+        return toAccountDto(account, balance(id, LocalDate.now()));
+    }
+
+    public void deleteAccount(long id, AbstractAuthenticationToken token) {
+        tenant(token);
+        FinancialAccount account = requiredAccount(id, false);
+        if (account.isActive()) {
+            throw error(HttpStatus.CONFLICT, "Il conto deve essere archiviato prima di essere eliminato", "finance.account.notArchived");
+        }
+        if (movementCount(id) > 0) {
+            throw error(
+                HttpStatus.CONFLICT,
+                "Il conto ha movimenti attivi: può essere soltanto archiviato",
+                "finance.account.hasMovements"
+            );
+        }
+        account.setDeleted(true);
+        account.touchAudit(actor(token));
+        accountRepository.save(account);
+    }
+
     @Transactional(readOnly = true)
     public List<CategoryDTO> findCategories(boolean includeArchived, AbstractAuthenticationToken token) {
         tenant(token);
@@ -977,8 +1010,14 @@ public class FinanceService {
     private AccountDTO toAccountDto(FinancialAccount account, BigDecimal balance) {
         return new AccountDTO(
             account.getId(), account.getName(), account.getDescription(), account.getAccountType(), account.getCurrency(), account.getIban(),
-            account.getBankName(), account.isActive(), account.getDisplayOrder(), balance, account.getEntityVersion()
+            account.getBankName(), account.isActive(), account.getDisplayOrder(), balance, movementCount(account.getId()),
+            account.getEntityVersion()
         );
+    }
+
+    /** Conta le scritture ancora vive collegate al conto: le eliminate logicamente non ne impediscono l'eliminazione. */
+    private long movementCount(Long accountId) {
+        return accountId == null ? 0 : movementRepository.countByAccount_IdAndDeletedFalse(accountId);
     }
 
     private CategoryDTO toCategoryDto(FinancialCategory category) {

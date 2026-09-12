@@ -1,18 +1,30 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
+import { Subscription } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { MediaService, PrinterService } from '../../service';
 
 type PrintSheetOrientation = 'portrait' | 'landscape';
+
+type MediaPageStatus = 'loading' | 'ready' | 'error';
 
 interface PrintPageDimensions {
     width: number;
     height: number;
 }
 
+interface MediaPage {
+    status: MediaPageStatus;
+    source: SafeUrl | null;
+}
+
 type PrintSheet = Array<string | null>;
+
+// Oltre 960 px la spalla parte aperta; fino a 960 px parte chiusa e si comporta come overlay.
+const DESKTOP_VIEWPORT = '(min-width: 961px)';
 
 @Component({
     selector: 'app-preview',
@@ -28,25 +40,36 @@ export class PreviewComponent implements OnInit, OnDestroy {
     protected selectedInstruments: { [key: string]: boolean };
     protected selectAll: boolean;
     protected displayGalleria: boolean = false;
-    // Let CSS choose the initial responsive state: open on desktop, closed on smaller screens.
-    protected filtersOpen: boolean | null = null;
+    protected presentationIndex: number = 0;
+    // Risolto una sola volta all'ingresso: una scelta esplicita resta poi valida per tutta la visita.
+    protected filtersOpen: boolean = true;
     protected currentPage: number = 1;
     protected zoom: number = 100;
     protected printPagesPerSheet: 1 | 2 = 1;
     protected previewTitle: string;
     protected previewSource: string;
-    private readonly printPageDimensions = new Map<string, PrintPageDimensions>();
     protected readonly responsiveOptions = [
         { breakpoint: '1024px', numVisible: 5 },
         { breakpoint: '960px', numVisible: 4 },
         { breakpoint: '768px', numVisible: 3 }
     ];
 
+    @ViewChild('filtersToggle') private filtersToggle?: ElementRef<HTMLElement>;
+    @ViewChild('filtersPanel') private filtersPanel?: ElementRef<HTMLElement>;
+
+    private readonly printPageDimensions = new Map<string, PrintPageDimensions>();
+    private readonly mediaPages = new Map<string, MediaPage>();
+    private readonly mediaIndices = new Map<string, number>();
+    private readonly objectUrls: string[] = [];
+    private readonly subscriptions = new Subscription();
+
     constructor(
         private readonly printerService: PrinterService,
         private readonly mediaService: MediaService,
         private readonly router: Router,
-        private readonly location: Location
+        private readonly location: Location,
+        private readonly sanitizer: DomSanitizer,
+        private readonly changeDetector: ChangeDetectorRef
     ) {
         this.mediaStreams = [];
         this.instruments = {};
@@ -57,12 +80,15 @@ export class PreviewComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this.filtersOpen = this.isDesktopViewport();
         this.previewTitle = this.printerService.previewTitle;
         this.previewSource = this.printerService.previewSource;
 
         this.printerService.scores.forEach((score) => {
             score.media?.forEach((media) => {
-                this.mediaStreams.push(this.mediaService.stream(media.index));
+                const mediaStream = this.mediaService.stream(media.index);
+                this.mediaIndices.set(mediaStream, media.index);
+                this.mediaStreams.push(mediaStream);
             });
 
             if (!score.instruments?.length) {
@@ -78,11 +104,28 @@ export class PreviewComponent implements OnInit, OnDestroy {
 
         if (this.mediaStreams.length === 0) {
             this.router.navigate(['/']);
+            return;
         }
+
+        this.loadMediaPages();
     }
 
     ngOnDestroy(): void {
+        this.subscriptions.unsubscribe();
+        this.objectUrls.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+        this.objectUrls.length = 0;
+        this.mediaPages.clear();
         this.printerService.clear();
+    }
+
+    @HostListener('document:keydown.escape')
+    protected onEscapeKey(): void {
+        if (this.displayGalleria) {
+            this.closePresentation();
+            return;
+        }
+
+        if (this.filtersOpen) this.closeFilters();
     }
 
     protected selectAllChange(event: CheckboxChangeEvent): void {
@@ -100,7 +143,21 @@ export class PreviewComponent implements OnInit, OnDestroy {
     }
 
     protected openGalleria(): void {
+        this.presentationIndex = Math.max(0, this.currentPage - 1);
         this.displayGalleria = true;
+    }
+
+    protected presentationIndexChange(index: number): void {
+        this.presentationIndex = index;
+    }
+
+    protected presentationVisibleChange(visible: boolean): void {
+        if (visible) {
+            this.displayGalleria = true;
+            return;
+        }
+
+        this.closePresentation();
     }
 
     protected goBack(): void {
@@ -109,10 +166,12 @@ export class PreviewComponent implements OnInit, OnDestroy {
 
     protected openFilters(): void {
         this.filtersOpen = true;
+        this.moveFocusTo(() => this.firstFilterControl());
     }
 
     protected closeFilters(): void {
         this.filtersOpen = false;
+        this.moveFocusTo(() => this.filtersToggle?.nativeElement ?? null);
     }
 
     protected previousPage(): void {
@@ -138,6 +197,23 @@ export class PreviewComponent implements OnInit, OnDestroy {
 
     protected fitPage(): void {
         this.zoom = 100;
+    }
+
+    protected mediaStatus(mediaStream: string): MediaPageStatus {
+        return this.mediaPages.get(mediaStream)?.status ?? 'loading';
+    }
+
+    protected mediaSource(mediaStream: string): SafeUrl | null {
+        return this.mediaPages.get(mediaStream)?.source ?? null;
+    }
+
+    protected retryMediaPage(mediaStream: string): void {
+        this.loadMediaPage(mediaStream);
+    }
+
+    protected mediaPageFailed(mediaStream: string): void {
+        this.mediaPages.set(mediaStream, { status: 'error', source: null });
+        this.changeDetector.markForCheck();
     }
 
     protected printImageLoaded(mediaStream: string, event: Event): void {
@@ -195,10 +271,67 @@ export class PreviewComponent implements OnInit, OnDestroy {
         return Object.keys(this.instruments).length;
     }
 
+    protected get includedPagesAnnouncement(): string {
+        const pages = this.mediaStreams.length;
+
+        return `${pages} ${pages === 1 ? 'pagina inclusa' : 'pagine incluse'} nell'anteprima.`;
+    }
+
     protected instrumentPageCount(instrumentIndex: string): number {
         return this.printerService.scores
             .filter((score) => (instrumentIndex === 'null' ? !score.instruments?.length : score.instruments?.some((instrument) => instrument.index.toString() === instrumentIndex)))
             .reduce((total, score) => total + (score.media?.length || 0), 0);
+    }
+
+    private closePresentation(): void {
+        this.displayGalleria = false;
+
+        if (this.mediaStreams.length) {
+            this.currentPage = Math.min(this.mediaStreams.length, Math.max(1, this.presentationIndex + 1));
+        }
+    }
+
+    private isDesktopViewport(): boolean {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+
+        return window.matchMedia(DESKTOP_VIEWPORT).matches;
+    }
+
+    private moveFocusTo(resolve: () => HTMLElement | null): void {
+        setTimeout(() => resolve()?.focus());
+    }
+
+    private firstFilterControl(): HTMLElement | null {
+        const panel = this.filtersPanel?.nativeElement;
+        if (!panel) return null;
+
+        return panel.querySelector<HTMLElement>('.select-all-row input') ?? panel.querySelector<HTMLElement>('button, input');
+    }
+
+    private loadMediaPages(): void {
+        this.mediaStreams.filter((mediaStream) => !this.mediaPages.has(mediaStream)).forEach((mediaStream) => this.loadMediaPage(mediaStream));
+    }
+
+    private loadMediaPage(mediaStream: string): void {
+        const mediaIndex = this.mediaIndices.get(mediaStream);
+        if (mediaIndex === undefined) return;
+
+        this.mediaPages.set(mediaStream, { status: 'loading', source: null });
+
+        this.subscriptions.add(
+            this.mediaService.streamImage(mediaIndex).subscribe({
+                next: (blob) => {
+                    const objectUrl = URL.createObjectURL(blob);
+                    this.objectUrls.push(objectUrl);
+                    this.mediaPages.set(mediaStream, { status: 'ready', source: this.sanitizer.bypassSecurityTrustUrl(objectUrl) });
+                    this.changeDetector.markForCheck();
+                },
+                error: () => {
+                    this.mediaPages.set(mediaStream, { status: 'error', source: null });
+                    this.changeDetector.markForCheck();
+                }
+            })
+        );
     }
 
     private getInstrumentIndices(value: boolean): { [key: string]: boolean } {
@@ -225,5 +358,6 @@ export class PreviewComponent implements OnInit, OnDestroy {
     private refreshMediaStreams(): void {
         this.mediaStreams = this.filterMedia();
         this.currentPage = Math.min(Math.max(this.currentPage, 1), Math.max(this.mediaStreams.length, 1));
+        this.loadMediaPages();
     }
 }

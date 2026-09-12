@@ -35,6 +35,7 @@ const OPERATION_LABELS: Readonly<Record<string, string>> = {
     ACCOUNT_ARCHIVED: 'Conto archiviato',
     ACCOUNT_CREATED: 'Conto creato',
     ACCOUNT_REACTIVATED: 'Conto riattivato',
+    ACCOUNT_REMOVED: 'Conto rimosso',
     ACCOUNT_UPDATED: 'Conto aggiornato',
     ASSIGNMENT_REVISION_CREATED: 'Revisione assegnazione creata',
     ATTACHMENT_ADDED: 'Allegato aggiunto',

@@ -276,6 +276,7 @@ In un secondo terminale verificare `http://localhost:8088/health` e le pagine pr
 | Media/PDF/OCR | Tipi file, path traversal, limiti, rollback DB/file, cleanup e malware/content handling |
 | RabbitMQ | Pubblicazione, consumo, redelivery, poison message, outage e recupero |
 | Frontend condiviso/layout | Tutti i ruoli, responsive, tastiera, temi, build e smoke browser |
+| Anteprima e stampa spartiti | Casi `PRV-*`, con stampa reale su almeno due browser e un documento per orientamento |
 | Keycloak provider/theme | Build JAR, avvio Keycloak reale, login, selezione tenant/ruolo e rendering temi |
 | Configurazione/manifest | Deploy staging, probe, secret, rete, restart, rollback e smoke |
 | Sito informativo | Link, metadata, sitemap, 404, cache, CSP, responsive e health |
@@ -445,6 +446,9 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `FIN-006 P1`: rendiconto e totali riconciliabili con i movimenti.
 - `FIN-007 P0`: cancellazione/soft delete non altera il saldo in modo incoerente.
 - `FIN-008 P0`: feature disabilitata nasconde UI e nega API senza cancellare dati.
+- `FIN-009 P1`: conto archiviato riattivabile; riattivazione negata se un altro conto attivo ha lo stesso nome.
+- `FIN-010 P0`: eliminazione conto negata su conto attivo o con movimenti attivi, consentita su conto archiviato i cui movimenti sono tutti eliminati.
+- `FIN-011 P1`: conto eliminato assente da elenchi, filtri e rendiconti, con i movimenti eliminati ancora integri a database.
 
 ### 14.8 Notifiche, preferenze e Web Push
 
@@ -500,6 +504,24 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `FLAG-005 P0`: UI, route, API, scheduler e notifiche reagiscono coerentemente.
 - `FLAG-006 P0`: disabilitare/riabilitare conserva i dati.
 - `FLAG-007 P1`: update concorrente dei flag non perde modifiche.
+
+### 14.12 Anteprima e stampa spartiti
+
+Unità e componente sono automatizzati in `taurus-fe/src/app/pages/preview/preview.component.spec.ts`. I casi seguenti restano manuali perché dipendono da più superfici, dal dialogo di stampa del browser o dal rendering reale.
+
+- `PRV-001 P1`: ingresso da traccia, da album completo e da selezione di tracce conserva titolo, contesto e ordine delle parti.
+- `PRV-002 P0`: ogni ruolo ammesso vede solo media già autorizzati; lo stream applica di nuovo autenticazione e isolamento tenant.
+- `PRV-003 P1`: filtro per strumento e «Senza strumento» aggiornano anteprima, presentazione e stampa senza duplicare parti multi-strumento.
+- `PRV-004 P1`: oltre 960 px la spalla parte aperta, fino a 960 px parte chiusa con maschera; «Filtri», X, maschera, «Apri filtri» ed `Escape` producono l'esito dichiarato e il focus torna dove previsto.
+- `PRV-005 P1`: stampa reale da Chrome ed Edge con un documento verticale e uno orizzontale; ordine corretto, nessuna UI, nessun foglio vuoto iniziale o finale.
+- `PRV-006 P1`: in 2-up con totale dispari l'ultima pagina occupa il primo slot e il secondo resta vuoto sullo stesso foglio.
+- `PRV-007 P1`: formato carta e orientamento restano scelte del dialogo di sistema; con «Pagine per foglio» del browser a 1 non avviene un secondo accorpamento.
+- `PRV-008 P1`: lo zoom resta tra 60 e 140 per cento, «Adatta» torna a 100 e la stampa non ne è influenzata.
+- `PRV-009 P1`: una pagina non disponibile mostra il segnaposto con «Riprova» senza salto di layout; le altre pagine restano consultabili e stampabili.
+- `PRV-010 P1`: un errore nel caricamento delle tracce di un album non apre un'anteprima parziale e conserva la selezione sulla pagina sorgente.
+- `PRV-011 P1`: refresh o collegamento diretto a `/preview` senza stato riporta a una destinazione sicura senza errori non gestiti.
+- `PRV-012 P1`: la presentazione parte dalla pagina corrente, `Escape` chiude prima la presentazione e alla chiusura l'anteprima resta sull'ultima pagina mostrata.
+- `PRV-013 P1`: tema chiaro/scuro, viewport fino a 320 px, nomi lunghi e comandi a sola icona con area attiva di almeno 44 × 44 px.
 
 ## 15. Frontend, UX e accessibilità
 
