@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
+import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -44,20 +47,52 @@ class NotificationOutboxPublisherIT {
     @Autowired TenantTransactionExecutor transactionExecutor;
     @Autowired NotificationOutboxPublisher publisher;
     @Autowired NotificationOutboxRepository repository;
+    @Autowired TenantsRepository tenantsRepository;
 
     private final String tenantOne = "notification-it-a-" + UUID.randomUUID();
     private final String tenantTwo = "notification-it-b-" + UUID.randomUUID();
 
     @BeforeEach
     void provisionTenants() {
+        registerTenant(tenantOne);
+        registerTenant(tenantTwo);
         provisioningService.provision(tenantOne);
         provisioningService.provision(tenantTwo);
     }
 
     @AfterEach
     void dropTenants() {
-        provisioningService.dropSchema(tenantOne);
-        provisioningService.dropSchema(tenantTwo);
+        try {
+            provisioningService.dropSchema(tenantOne);
+            provisioningService.dropSchema(tenantTwo);
+        } finally {
+            unregisterTenant(tenantOne);
+            unregisterTenant(tenantTwo);
+        }
+    }
+
+    /**
+     * Il publisher interroga {@link com.fundaro.zodiac.taurus.service.TenantFeatureService}, che pretende
+     * un tenant registrato e attivo: provisionare il solo schema non basta.
+     */
+    private void registerTenant(String code) {
+        Date now = new Date();
+        Tenants tenant = new Tenants();
+        tenant.setName(code);
+        tenant.setCode(code);
+        tenant.setActive(true);
+        tenant.setInventoryEnabled(true);
+        tenant.setDeleted(false);
+        tenant.setInsertBy("test");
+        tenant.setInsertDate(now);
+        tenant.setEditBy("test");
+        tenant.setEditDate(now);
+        tenant.setEntityVersion(0L);
+        tenantsRepository.save(tenant);
+    }
+
+    private void unregisterTenant(String code) {
+        tenantsRepository.findByCodeAndDeletedFalse(code).ifPresent(tenantsRepository::delete);
     }
 
     @Test

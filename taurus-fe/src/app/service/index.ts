@@ -1,3 +1,4 @@
+export * from './app-update.service';
 export * from './albums.service';
 export * from './calendar-event-series.service';
 export * from './calendar-events.service';

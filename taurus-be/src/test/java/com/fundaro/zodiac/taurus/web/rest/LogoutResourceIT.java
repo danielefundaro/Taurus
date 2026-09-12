@@ -18,7 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -29,7 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class LogoutResourceIT {
 
     @Autowired
-    private ReactiveClientRegistrationRepository registrations;
+    private ClientRegistrationRepository registrations;
 
     @Autowired
     private ClientRegistration clientRegistration;
@@ -49,10 +49,11 @@ class LogoutResourceIT {
     @Test
     void getLogoutInformation() throws Exception {
         final String ORIGIN_URL = "http://localhost:8080";
-        String logoutUrl =
-            this.registrations.findByRegistrationId("oidc")
-                .map(oidc -> oidc.getProviderDetails().getConfigurationMetadata().get("end_session_endpoint").toString())
-                .block();
+        String logoutUrl = this.registrations.findByRegistrationId("oidc")
+            .getProviderDetails()
+            .getConfigurationMetadata()
+            .get("end_session_endpoint")
+            .toString();
         logoutUrl = logoutUrl + "?id_token_hint=" + com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.ID_TOKEN + "&post_logout_redirect_uri=" + ORIGIN_URL;
 
         restMockMvc
