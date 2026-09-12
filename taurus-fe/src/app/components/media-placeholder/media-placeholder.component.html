@@ -1,0 +1,13 @@
+<div class="media-placeholder" [class.media-placeholder--error]="status === 'error'">
+    @if (status === 'error') {
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <strong>Pagina {{ page }} non disponibile</strong>
+        <p>Non è stato possibile caricare questa pagina. Le altre pagine restano utilizzabili.</p>
+        <button type="button" class="media-placeholder__retry" (click)="retry.emit()">
+            <i class="pi pi-refresh"></i>
+            <span>Riprova</span>
+        </button>
+    } @else {
+        <span class="sr-only">Caricamento della pagina {{ page }} in corso.</span>
+    }
+</div>

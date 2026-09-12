@@ -18,10 +18,7 @@
 .selection-hint,
 .preview-toolbar,
 .zoom-controls,
-.page-navigation {
-    display: flex;
-    align-items: center;
-}
+.page-navigation,
 .print-options,
 .print-option {
     display: flex;
@@ -76,8 +73,8 @@
     cursor: pointer;
 }
 .icon-button {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
     flex: none;
     border-radius: 0.65rem;
 }
@@ -88,7 +85,7 @@
     color: var(--text-color);
 }
 .secondary-action {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     gap: 0.5rem;
     padding: 0 0.85rem;
     border-color: var(--surface-border);
@@ -174,10 +171,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.instrument-pages {
-    color: var(--text-color-secondary);
-    font-size: 0.75rem;
-}
+
 .selection-hint {
     align-items: flex-start;
     gap: 0.65rem;
@@ -234,17 +228,15 @@
     color: var(--text-color);
     cursor: pointer;
 }
-.print-sheet-count {
+.instrument-pages,
+.print-sheet-count,
+.page-navigation {
     color: var(--text-color-secondary);
     font-size: 0.75rem;
 }
-.page-navigation {
-    color: var(--text-color-secondary);
-    font-size: 0.8rem;
-}
 .tool-button {
-    min-width: 2.15rem;
-    height: 2.15rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
     gap: 0.45rem;
     padding: 0 0.55rem;
     border-radius: 0.5rem;
@@ -280,7 +272,6 @@
     min-width: 0;
     overflow: auto;
     padding: 2rem 2.25rem 3rem;
-    background: var(--surface-ground);
 }
 .paper-frame {
     display: grid;
@@ -289,24 +280,23 @@
     margin: auto;
     place-items: start center;
 }
-.preview-image {
-    display: block;
-    max-width: 100%;
-    height: auto;
+.preview-image,
+.print-sheet-preview {
     transform-origin: top center;
     background: #fff;
     box-shadow: 0 1.2rem 3rem #0f172a33;
     transition: transform 0.18s;
+}
+.preview-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
 }
 .print-sheet-preview {
     display: grid;
     min-height: 0;
     gap: 1rem;
     padding: 1rem;
-    transform-origin: top center;
-    background: #fff;
-    box-shadow: 0 1.2rem 3rem #0f172a33;
-    transition: transform 0.18s;
 }
 .print-sheet-preview--portrait {
     aspect-ratio: 210 / 297;
@@ -344,6 +334,12 @@
     max-height: 100%;
     object-fit: contain;
 }
+.paper-frame > app-media-placeholder {
+    aspect-ratio: 210 / 297;
+}
+.print-sheet-preview__slot app-media-placeholder {
+    height: 100%;
+}
 .empty-canvas {
     display: grid;
     place-items: center;
@@ -380,7 +376,8 @@
     display: none;
 }
 @media (max-width: 960px) {
-    .preview-workspace {
+    .preview-workspace,
+    .preview-workspace.filters-closed {
         grid-template-columns: 1fr;
     }
     .preview-sidebar {
@@ -434,9 +431,7 @@
     .preview-title-group p,
     .preview-eyebrow,
     .preview-actions .filter-action span,
-    .fit-button span {
-        display: none;
-    }
+    .fit-button span,
     .print-option span,
     .print-sheet-count {
         display: none;
@@ -447,14 +442,11 @@
     .preview-actions {
         gap: 0.4rem;
     }
-    .preview-actions .secondary-action {
-        width: 2.5rem;
-        min-width: 2.5rem;
-        padding: 0;
-    }
+    .preview-actions .secondary-action,
     .preview-actions ::ng-deep .p-button {
-        width: 2.5rem;
-        min-width: 2.5rem;
+        width: 2.75rem;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
         padding: 0;
     }
     .preview-actions p-button:last-child ::ng-deep .p-button {
@@ -472,5 +464,12 @@
     }
     .paper-frame {
         min-height: 28rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .preview-page,
+    .preview-page * {
+        transition: none !important;
     }
 }

@@ -199,9 +199,14 @@
                                 <td>
                                     <div class="flex justify-end gap-1">
                                         <p-button icon="pi pi-list" [text]="true" pTooltip="Estratto conto" ariaLabel="Estratto conto" (onClick)="showStatement(account)" />
-                                        <p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica conto" ariaLabel="Modifica conto" (onClick)="openAccount(account)" />
                                         @if (account.active) {
+                                            <p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica conto" ariaLabel="Modifica conto" (onClick)="openAccount(account)" />
                                             <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia conto" ariaLabel="Archivia conto" (onClick)="archiveAccount(account)" />
+                                        } @else {
+                                            <p-button icon="pi pi-replay" severity="success" [text]="true" pTooltip="Riattiva conto" ariaLabel="Riattiva conto" (onClick)="restoreAccount(account)" />
+                                        }
+                                        @if (!account.active && !account.movementCount) {
+                                            <p-button icon="pi pi-trash" severity="danger" [text]="true" pTooltip="Elimina conto" ariaLabel="Elimina conto" (onClick)="deleteAccount(account)" />
                                         }
                                     </div>
                                 </td>

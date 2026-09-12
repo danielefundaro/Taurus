@@ -90,6 +90,17 @@ public class FinanceResource {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/accounts/{id}/restore")
+    public AccountDTO restoreAccount(@PathVariable long id, AbstractAuthenticationToken token) {
+        return financeService.restoreAccount(id, token);
+    }
+
+    @DeleteMapping("/accounts/{id}")
+    public ResponseEntity<Void> deleteAccount(@PathVariable long id, AbstractAuthenticationToken token) {
+        financeService.deleteAccount(id, token);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/accounts/{id}/balance")
     public BigDecimal balance(
         @PathVariable long id,

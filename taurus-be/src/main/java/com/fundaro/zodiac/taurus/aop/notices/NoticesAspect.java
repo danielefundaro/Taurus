@@ -616,6 +616,8 @@ public class NoticesAspect {
         "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.createAccount(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.updateAccount(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.archiveAccount(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.restoreAccount(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.deleteAccount(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.createCategory(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.updateCategory(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.archiveCategory(..)) || " +
@@ -637,7 +639,9 @@ public class NoticesAspect {
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         Long id = getLongArgument(joinPoint, 0);
         NamedNotice namedBefore = switch (method) {
-            case "updateAccount", "archiveAccount" -> id == null ? null : financeNoticeDataService.findAccount(id);
+            case "updateAccount", "archiveAccount", "restoreAccount", "deleteAccount" -> id == null
+                ? null
+                : financeNoticeDataService.findAccount(id);
             case "updateCategory", "archiveCategory" -> id == null ? null : financeNoticeDataService.findCategory(id);
             default -> null;
         };
@@ -666,6 +670,24 @@ public class NoticesAspect {
                 "ACCOUNT_ARCHIVED",
                 "Economia: conto archiviato",
                 "ha archiviato il conto ",
+                NotificationSeverity.WARNING,
+                "/finance?tab=accounts",
+                token
+            );
+            case "restoreAccount" -> notifyNamed(
+                namedBefore,
+                "ACCOUNT_REACTIVATED",
+                "Economia: conto riattivato",
+                "ha riattivato il conto ",
+                NotificationSeverity.INFO,
+                "/finance?tab=accounts",
+                token
+            );
+            case "deleteAccount" -> notifyNamed(
+                namedBefore,
+                "ACCOUNT_REMOVED",
+                "Economia: conto rimosso",
+                "ha rimosso il conto ",
                 NotificationSeverity.WARNING,
                 "/finance?tab=accounts",
                 token

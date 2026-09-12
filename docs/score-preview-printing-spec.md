@@ -5,9 +5,9 @@
 ID catalogo: `score-preview-printing`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-### Stato implementato al 10 settembre 2026
+### Stato implementato al 12 settembre 2026
 
-Questo documento consolida gli interventi realizzati sulla route `/preview` durante il thread:
+Questo documento consolida gli interventi realizzati sulla route `/preview`:
 
 - il comando «Filtri» nell'intestazione, il comando «Apri filtri» nello stato vuoto e la X della spalla sono nuovamente visibili nelle condizioni previste e modificano esplicitamente lo stato aperto/chiuso;
 - la superficie applicativa nascosta viene rimossa dal flusso di stampa, invece di conservarne lo spazio, e shell, contenitore principale e canvas non introducono più fogli bianchi prima delle pagine dello spartito;
@@ -18,9 +18,17 @@ Questo documento consolida gli interventi realizzati sulla route `/preview` dura
 - la scelta applicativa A4/A3 e i tentativi di propagarla tramite regole `@page` sono stati rimossi, perché non producono un comportamento uniforme nel dialogo di stampa dei browser supportati;
 - lo zoom dell'anteprima non influenza le dimensioni stampate e le immagini usano adattamento proporzionale senza deformazione.
 
-La regressione è coperta da sei test unitari dedicati a raggruppamento 1-up/2-up, pagina dispari, orientamento dell'anteprima, apertura/chiusura filtri e delega a `window.print`. Sono stati inoltre verificati la build Angular di produzione, il catalogo funzionalità e i relativi test di governance.
+Al 12 settembre 2026 sono stati completati anche i requisiti che restavano aperti:
 
-Restano fuori dall'intervento completato la gestione integrale di focus ed `Escape`, gli stati di errore dei singoli media e la sincronizzazione bidirezionale della presentazione; queste voci rimangono requisiti della specifica e motivano lo stato di delivery `in-progress` nel catalogo.
+- lo stato di apertura della spalla è risolto dal breakpoint dei 960 px e `aria-expanded` è esposto da «Filtri» e «Apri filtri» coerentemente con la spalla realmente visibile;
+- la chiusura riporta il focus su «Filtri», l'apertura lo sposta sul primo controllo della spalla e `Escape` chiude prima la presentazione e poi la spalla;
+- la spalla ha un nome programmatico e il numero di pagine incluse è annunciato da una regione `aria-live="polite"`;
+- ogni pagina ha uno stato esplicito di caricamento ed errore, con segnaposto a proporzione stabile e azione «Riprova» che non pregiudica le altre pagine;
+- la presentazione parte dalla pagina corrente e, alla chiusura, riporta l'anteprima sull'ultima pagina mostrata;
+- un errore nel caricamento delle tracce di un album non apre più un'anteprima parziale: lo stato viene liberato e la pagina sorgente mostra un errore recuperabile;
+- i comandi a sola icona rispettano l'area attiva minima di 44 × 44 px e le transizioni rispettano `prefers-reduced-motion`.
+
+La regressione è coperta da diciassette test: otto unitari su raggruppamento 1-up/2-up, pagina dispari, orientamento dell'anteprima, apertura/chiusura filtri, stato iniziale responsive e delega a `window.print`, e nove di componente su `aria-expanded`, spalla fuori dall'ordine di focus, passaggio del focus in apertura e chiusura, `Escape`, sincronizzazione della presentazione, regione `aria-live` e stati di errore con nuovo tentativo. Sono stati inoltre verificati la build Angular di produzione, il catalogo funzionalità e i relativi test di governance.
 
 ## 1. Contesto e obiettivo
 
@@ -261,14 +269,17 @@ Il ridimensionamento non deve troncare il canvas, rendere irraggiungibili i coma
 
 | Elemento | Responsabilità |
 | --- | --- |
-| `PrinterService` | Prepara titolo, sorgente e parti; risolve le tracce dell'album; naviga verso `/preview`; libera lo stato all'uscita. |
-| `PreviewComponent` | Deriva strumenti e media, governa filtri, pagina, zoom, presentazione e stampa. |
-| `MediaService` e `SecurePipe` | Costruiscono e risolvono gli stream autenticati senza esporre credenziali. |
+| `PrinterService` | Prepara titolo, sorgente e parti; risolve le tracce dell'album; naviga verso `/preview`; libera lo stato all'uscita; su errore non apre un'anteprima parziale. |
+| `PreviewComponent` | Deriva strumenti e media, governa filtri, focus, pagina, zoom, presentazione e stampa; tiene lo stato di caricamento ed errore di ogni pagina. |
+| `MediaService` | Costruisce gli stream autenticati e ne risolve il contenuto; il componente lo usa direttamente per distinguere caricamento, esito e nuovo tentativo di una singola pagina. |
+| `MediaPlaceholderComponent` | Segnaposto condiviso con proporzione stabile per pagina in caricamento e pagina non disponibile, con azione «Riprova». |
 | PrimeNG Checkbox | Selezione binaria globale e per strumento. |
 | PrimeNG Galleria | Presentazione a schermo intero. |
 | CSS di stampa | Rimuove la shell dal flusso, adatta i fogli all'area fornita dal browser e separa la superficie interattiva dalle pagine stampabili. |
 
-Il componente usa `ChangeDetectionStrategy.OnPush`. Lo stato di apertura della spalla deve avere una fonte coerente anche al primo rendering responsive; la soluzione può usare un breakpoint osservabile oppure uno stato iniziale neutro, purché DOM, attributi ARIA e resa visuale non divergano.
+Il componente usa `ChangeDetectionStrategy.OnPush`. Lo stato di apertura della spalla deve avere una fonte coerente anche al primo rendering responsive; la soluzione può usare un breakpoint osservabile oppure uno stato iniziale neutro, purché DOM, attributi ARIA e resa visuale non divergano. L'implementazione risolve il valore una sola volta all'ingresso interrogando il breakpoint dei 960 px, così che `aria-expanded` descriva sempre la spalla realmente visibile.
+
+`SecurePipe` resta il modo predefinito per gli stream autenticati nelle superfici senza stato di errore dedicato e continua a essere usato altrove nel client.
 
 ### API e dati
 
@@ -302,6 +313,8 @@ La funzionalità riusa gli stream media esistenti e le letture delle tracce nece
 | End to end | Ingressi da traccia e album, filtro, stampa intercettata, presentazione, tastiera, viewport desktop/tablet/mobile e ruoli consentiti. |
 | Visuale | Tema chiaro/scuro, pagina verticale/orizzontale, nomi lunghi, 1 e molte pagine, spalla aperta/chiusa e anteprima senza selezioni. |
 | Stampa | Ordine, numero di fogli, assenza di UI, nessun foglio aggiuntivo, ultimo slot dispari vuoto, adattamento alla carta scelta nel browser e indipendenza dallo zoom. |
+
+I livelli di unità e componente sono automatizzati in `preview.component.spec.ts` ed eseguiti dalla verifica di modulo. I livelli end to end, visuale e di stampa restano collaudi manuali: il modulo `taurus-fe` non ospita un runner end to end e la stampa reale dipende dal dialogo del browser.
 
 La verifica minima del modulo esegue:
 

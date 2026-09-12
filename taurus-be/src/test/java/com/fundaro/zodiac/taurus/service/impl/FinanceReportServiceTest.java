@@ -231,6 +231,7 @@ class FinanceReportServiceTest {
             true,
             0,
             new BigDecimal("50.00"),
+            3,
             1
         );
         return new AccountStatementDTO(

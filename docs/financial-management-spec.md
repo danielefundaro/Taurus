@@ -33,6 +33,7 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Preventivo eventi | Campi `fee` e costi già presenti negli eventi |
 | Consuntivo eventi | Movimenti finanziari effettivamente registrati |
 | Conti | Più casse e più conti correnti per tenant |
+| Ciclo di vita del conto | Archiviazione reversibile; eliminazione logica ammessa soltanto su un conto archiviato e privo di movimenti attivi |
 | Valuta iniziale | EUR, mantenendo un campo valuta ISO 4217 per evoluzioni future |
 | Associazione movimento-evento | Facoltativa in generale, automatica quando il movimento nasce dalla pagina dell'evento |
 | Stati movimento | Nessun ciclo di vita vincolante; ogni movimento resta modificabile |
@@ -66,6 +67,8 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Visualizzare dashboard economica | sì | sì | sì | no | no | no |
 | Consultare conti e saldi | sì | sì | sì | no | no | no |
 | Creare e modificare conti | sì | sì | sì | no | no | no |
+| Archiviare e riattivare conti | sì | sì | sì | no | no | no |
+| Eliminare un conto archiviato e senza movimenti attivi | sì | sì | sì | no | no | no |
 | Gestire categorie | sì | sì | sì | no | no | no |
 | Creare, modificare ed eliminare movimenti | sì | sì | sì | no | no | no |
 | Correggere movimenti di qualsiasi anno | sì | sì | sì | no | no | no |
@@ -204,11 +207,33 @@ Campi proposti:
 Regole:
 
 - nome univoco tra i conti attivi, senza distinzione tra maiuscole e minuscole;
-- un conto con movimenti non si elimina fisicamente: viene archiviato;
+- un conto a cui è collegato almeno un movimento attivo non si elimina: viene archiviato;
 - un conto archiviato rimane visibile nello storico ma non accetta nuovi movimenti ordinari;
+- un conto archiviato può essere riattivato: torna `active = true` e accetta di nuovo movimenti;
+- la riattivazione è rifiutata se nel frattempo un altro conto attivo ha assunto lo stesso nome;
+- un conto archiviato e senza movimenti attivi può essere eliminato, perché non esiste storico consultabile da preservare;
+- l'eliminazione passa sempre per l'archiviazione: un conto attivo non è eliminabile finché resta operativo;
 - il saldo non è memorizzato come campo modificabile;
 - il saldo iniziale è rappresentato da un movimento tecnico di apertura;
 - il saldo corrente è calcolato dalle scritture effettive dell'esercizio corrente, inclusa l'apertura.
+
+#### Archiviazione, riattivazione ed eliminazione
+
+Il ciclo di vita di un conto prevede tre transizioni distinte, che non vanno confuse tra loro.
+
+| Transizione | Effetto | Quando è ammessa |
+| --- | --- | --- |
+| Archiviazione | `active = false`; il conto resta consultabile, compare nei rendiconti storici e non accetta nuovi movimenti ordinari | sempre |
+| Riattivazione | `active = true`; il conto torna selezionabile per nuovi movimenti | se nessun altro conto attivo ha lo stesso nome |
+| Eliminazione | cancellazione logica (`deleted = true`); il conto scompare da elenchi, filtri e rendiconti | soltanto su un conto già archiviato e senza movimenti attivi |
+
+L'eliminazione conta i soli movimenti **attivi**: le scritture già eliminate logicamente non vincolano il conto, perché non contribuiscono a saldi e rendiconti e restano nel database soltanto per tracciabilità. Un conto svuotato eliminando i suoi movimenti torna quindi eliminabile, ed è eliminabile anche un conto creato indicando un saldo iniziale, dopo che il relativo movimento tecnico di apertura è stato eliminato. In pratica l'eliminazione è riservata ai conti creati per errore o mai entrati in uso. L'archiviazione preventiva è obbligatoria: rende l'eliminazione un secondo passo deliberato su un conto già fuori uso, invece di un'azione immediata su un conto operativo.
+
+I movimenti eliminati continuano a referenziare il conto eliminato: la riga di tracciabilità resta integra nel database, ma il conto a cui punta non è più consultabile dall'interfaccia.
+
+Ognuna delle tre transizioni è un'operazione economica esplicita e genera quindi la relativa notifica interna: `ACCOUNT_ARCHIVED`, `ACCOUNT_REACTIVATED` e `ACCOUNT_REMOVED`.
+
+Come per i movimenti, l'eliminazione è definitiva dal punto di vista applicativo: il conto non è ripristinabile dall'interfaccia e i dati restano nel database esclusivamente per tracciabilità. L'interfaccia deve quindi richiedere una conferma esplicita. Il nome di un conto eliminato torna disponibile per un nuovo conto.
 
 ### Categoria: `financial_category`
 
@@ -516,9 +541,13 @@ ROLE_TREASURER
 - `POST /api/finance/accounts`;
 - `GET /api/finance/accounts/{id}`;
 - `PUT /api/finance/accounts/{id}`;
-- `PATCH /api/finance/accounts/{id}/archive`, imposta `active = false`; il conto resta consultabile e viene riattivato salvandolo di nuovo con `PUT`;
+- `PATCH /api/finance/accounts/{id}/archive`, imposta `active = false`; il conto resta consultabile;
+- `PATCH /api/finance/accounts/{id}/restore`, imposta `active = true` e restituisce il conto riattivato; risponde `409` con codice `finance.account.alreadyActive` se il conto è già attivo e `finance.account.nameExists` se il nome è nel frattempo occupato da un altro conto attivo. Anche un `PUT` riattiva il conto salvato, ma il `PATCH` è la via esplicita usata dall'interfaccia;
+- `DELETE /api/finance/accounts/{id}`, cancellazione logica consentita soltanto su un conto archiviato e privo di movimenti attivi; risponde `409` con codice `finance.account.notArchived` se il conto è ancora attivo e `finance.account.hasMovements` se esistono movimenti attivi;
 - `GET /api/finance/accounts/{id}/balance?date=YYYY-MM-DD`;
 - `GET /api/finance/accounts/{id}/statement`.
+
+La rappresentazione del conto espone `movementCount`, il numero di movimenti attivi collegati, esclusi quelli eliminati logicamente. A zero il conto è eliminabile una volta archiviato: l'interfaccia combina questo valore con `active` per decidere se proporre l'azione di eliminazione.
 
 ### Categorie
 
@@ -646,6 +675,7 @@ Repository distinti per ogni aggregato, con query dedicate per:
 - ricerca movimenti con `Specification`;
 - ricalcolo dei saldi e dei riporti annuali;
 - verifica trasferimenti e aperture;
+- conteggio dei movimenti attivi collegati a un conto, per stabilire se il conto è eliminabile;
 - recupero allegati sempre attraverso il movimento proprietario.
 
 ### Service
@@ -732,7 +762,9 @@ Voce menu principale `Economia` con pagine:
    - elenco casse e conti correnti;
    - saldo attuale;
    - estratto movimenti;
-   - creazione, modifica e archiviazione.
+   - creazione, modifica e archiviazione, con modifica proposta soltanto sui conti attivi;
+   - riattivazione dei conti archiviati, con azione dedicata sulla riga del conto;
+   - eliminazione dei soli conti archiviati e senza movimenti attivi, con conferma esplicita.
 
 4. **Categorie**
    - elenco configurabile;
@@ -795,13 +827,16 @@ Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema p
 ### Esperienza utente nella gestione
 
 - pulsante `Salva` con normale modifica del movimento;
-- azioni `Modifica` ed `Elimina` sempre disponibili agli utenti autorizzati;
+- sul movimento, azioni `Modifica` ed `Elimina` sempre disponibili agli utenti autorizzati;
 - conferma esplicita prima dell'eliminazione, indicando che il movimento non potrà essere ripristinato;
 - conferma prima della cancellazione logica;
 - controllo facoltativo `Riconciliato` che può essere attivato o rimosso;
 - warning per saldo negativo;
 - indicazione quando una modifica storica comporta il ricalcolo delle aperture successive;
-- indicatori per allegati mancanti senza considerarli errori.
+- indicatori per allegati mancanti senza considerarli errori;
+- sulla riga del conto l'azione di archiviazione è sostituita da `Riattiva` quando il conto è archiviato;
+- su un conto archiviato l'azione `Modifica` non è proposta: i dati di un conto non operativo si aggiornano dopo averlo riattivato;
+- l'azione `Elimina` compare soltanto su un conto archiviato e senza movimenti attivi, con conferma esplicita che indica l'irreversibilità; su un conto attivo non è proposta, perché l'eliminazione richiede prima l'archiviazione.
 
 ## Rendiconti ed esportazioni
 
@@ -877,7 +912,7 @@ Ogni operazione economica esplicita genera una notifica interna destinata agli u
 
 Il destinatario non viene escluso quando coincide con l'autore dell'operazione. Un utente che possiede più ruoli riceve una sola notifica. Le notifiche economiche sono esclusivamente in-app: non generano e-mail o notifiche push.
 
-Sono notificate creazione, modifica, riattivazione e archiviazione di conti e categorie; registrazione, modifica, rimozione e riconciliazione dei movimenti; registrazione, modifica e rimozione dei trasferimenti; aggiunta, download e rimozione degli allegati; aggiornamento del preventivo evento; riporto e ricalcolo annuale; esportazione dei rendiconti.
+Sono notificate creazione, modifica, riattivazione e archiviazione di conti e categorie, oltre all'eliminazione dei conti, che le categorie non prevedono; registrazione, modifica, rimozione e riconciliazione dei movimenti; registrazione, modifica e rimozione dei trasferimenti; aggiunta, download e rimozione degli allegati; aggiornamento del preventivo evento; riporto e ricalcolo annuale; esportazione dei rendiconti.
 
 Le consultazioni passive, i calcoli automatici eseguiti come conseguenza di un'altra operazione e le richieste già elaborate tramite chiave idempotente non generano notifiche aggiuntive. Un trasferimento produce un solo evento informativo, non uno per ciascuna scrittura collegata.
 
@@ -907,7 +942,9 @@ Il conteggio delle notifiche non lette viene aggiornato all'apertura del layout,
 
 - tutti i movimenti possono essere modificati;
 - tutti i movimenti possono essere cancellati logicamente, senza possibilità di ripristino applicativo;
-- conti e categorie usati: archiviati, non cancellati;
+- conti e categorie con scritture attive collegate: archiviati, non cancellati;
+- un conto archiviato e senza movimenti attivi può essere cancellato logicamente, senza possibilità di ripristino applicativo;
+- l'archiviazione di un conto è reversibile: la riattivazione lo riporta tra i conti selezionabili;
 - tutti gli allegati possono essere aggiunti, sostituiti o rimossi logicamente;
 - ogni modifica conserva almeno ultimo autore, data e versione;
 - non sono richiesti storni, motivazioni di rettifica o procedure di riapertura;
@@ -1020,7 +1057,10 @@ Metriche utili:
 - validazione della direzione consentita dalla categoria;
 - validazione valuta e importi;
 - riconciliazione attivabile e rimovibile senza bloccare la modifica;
-- aggiornamento diretto senza generazione di storni.
+- aggiornamento diretto senza generazione di storni;
+- riattivazione di un conto archiviato e rifiuto della riattivazione in caso di nome già occupato;
+- eliminazione di un conto archiviato i cui movimenti sono tutti eliminati logicamente, rifiuto dell'eliminazione in presenza di movimenti attivi e rifiuto dell'eliminazione di un conto ancora attivo;
+- pubblicazione delle notifiche `ACCOUNT_REACTIVATED` e `ACCOUNT_REMOVED` a valle delle due operazioni.
 
 ### Integration test PostgreSQL
 

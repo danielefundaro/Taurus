@@ -44,6 +44,7 @@ public final class FinanceDtos {
         boolean active,
         int displayOrder,
         BigDecimal balance,
+        long movementCount,
         long version
     ) {}
 

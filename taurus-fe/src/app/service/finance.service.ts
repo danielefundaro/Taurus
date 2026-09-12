@@ -48,6 +48,14 @@ export class FinanceService {
         return this.http.patch<void>(`${this.baseUrl}/accounts/${id}/archive`, {});
     }
 
+    restoreAccount(id: number): Observable<FinancialAccount> {
+        return this.http.patch<FinancialAccount>(`${this.baseUrl}/accounts/${id}/restore`, {});
+    }
+
+    deleteAccount(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/accounts/${id}`);
+    }
+
     getCategories(includeArchived = false): Observable<FinancialCategory[]> {
         return this.http.get<FinancialCategory[]>(`${this.baseUrl}/categories`, { params: { includeArchived } });
     }
