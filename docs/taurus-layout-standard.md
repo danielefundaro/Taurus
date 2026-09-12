@@ -590,11 +590,11 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 | Percorso | Responsabilità |
 | --- | --- |
-| `components/page-header/` | Intestazione di pagina. Ingressi `title` e `subtitle`, proiezione di contenuto per le azioni. Sblocca da sola sei pagine su nove. |
+| `components/page-header/` | Intestazione di pagina. Ingressi `heading` e `subtitle`, proiezione di contenuto per le azioni. Sblocca da sola sei pagine su nove. |
 | `components/list-toolbar/` | Barra strumenti. Ricerca con debounce, ordinamento, proiezione per i filtri specifici, selettore di vista. Uscite `searchChange`, `sortChange`, `layoutChange`. |
 | `components/list-row/` | Guscio della riga lista con le cinque fasce fisse e proiezioni nominate per identità, metriche e azioni. Si estrae dall'unione di `.track-row` e `.event-row` della dashboard, che coprono già il caso con miniatura a immagine e quello con riquadro giorno/mese. |
 | `components/entity-card/` | Guscio della card griglia con media, corpo, fascia metriche e piede, e le stesse proiezioni nominate della riga. |
-| `components/empty-state/` | Stato vuoto. Ingressi `icon`, `title`, `message`, azione opzionale, con la variante «nessun risultato di ricerca». Parte da `.widget-empty` della dashboard, oggi definito tre volte e privo di titolo, causa e azione. |
+| `components/empty-state/` | Stato vuoto. Ingressi `icon`, `heading`, `message`, azione opzionale, con la variante «nessun risultato di ricerca». Parte da `.widget-empty` della dashboard, oggi definito tre volte e privo di titolo, causa e azione. |
 | `components/selection-bar/` | Selezione massiva. Racchiude la logica `isSelected`, `toggleSelectAll` e `deleteSelected` oggi duplicata identica in cinque componenti. |
 | `service/list-layout.service.ts` | Lettura e scrittura della preferenza `listLayout.<pagina>` secondo quanto descritto sopra. |
 | `pages/_shared/list-page.base.ts` | Classe base con `dataViewLazyLoadEvent`, `onLazyLoad`, `onSortChange`, `onGlobalFilter`, `totalRecords` e `loading`: oggi lo stesso codice compare, con piccole divergenze, in sette componenti. |
@@ -604,7 +604,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 | Percorso | Responsabilità |
 | --- | --- |
-| `components/dialog-shell/` | Guscio del dialogo: intestazione, corpo scorrevole, piede ancorato. Ingressi `title`, `subtitle`, `size`, `confirmLabel`, `saving`, `invalidCount`; uscite `confirm` e `cancel`, con l'intercettazione della chiusura sporca. |
+| `components/dialog-shell/` | Guscio del dialogo: intestazione, corpo scorrevole, piede ancorato. Ingressi `heading`, `subtitle`, `size`, `confirmLabel`, `saving`, `invalidCount`; uscite `confirm` e `cancel`, con l'intercettazione della chiusura sporca. |
 | `components/form-field/` | Campo di modulo: etichetta sopra, asterisco di obbligatorietà, messaggio di errore sotto, stato di errore sul controllo. Sostituisce l'uso di `p-floatlabel` dentro i dialoghi. |
 | `components/inline-alert/` | Banner. Involucro su `p-message` con gravità, titolo, dettaglio, azione opzionale e ruolo ARIA corretto. Sostituisce le sei implementazioni artigianali. |
 | `service/confirm.service.ts` | Conferme tipizzate: `confirmDestructive`, `confirmReversible`, `confirmDiscard`. Assorbe le quarantaquattro invocazioni e le loro otto proprietà ripetute, correggendo la severità inesistente e l'icona mancante. |
@@ -689,6 +689,18 @@ Tre dei sei sono widget della dashboard, e il loro peso è in buona parte la dup
 La compilazione di produzione si chiude oggi senza errori e con tre soli avvisi: quei due fogli di stile e il budget del bundle iniziale, che è una questione a sé e non riguarda questa specifica.
 
 L'avviso a 2 kB va lasciato dov'è: è la misura che rende visibile il progresso.
+
+### Il nome degli ingressi non può essere quello di un attributo HTML
+
+`page-header`, `detail-section`, `empty-state`, `inline-alert` e `dialog-shell` esponevano tutti un ingresso chiamato `title`. È il nome più naturale per un titolo, ed è anche il nome di un attributo HTML globale: la collisione non è un dettaglio estetico.
+
+Quando un componente riceve un attributo **statico** — `title="Tracce recenti"`, senza parentesi — Angular valorizza l'ingresso e lascia comunque l'attributo sull'elemento host nel DOM. Il browser ci trova un `title` vero e ci disegna sopra il proprio tooltip nativo. Sulla dashboard comparivano così tre riquadri che ripetevano, sotto il cursore, il titolo già stampato nell'intestazione appena sopra: «Tracce recenti», «Da fare», «Nessun evento in programma». Il difetto era diffuso su circa centotrentacinque punti dell'applicazione, uno per ogni uso in forma statica dei cinque componenti; la forma con binding, `[title]="..."`, non lo produceva, e questo spiega perché comparisse solo su alcune superfici.
+
+L'ingresso è stato rinominato in `heading` su tutti e cinque i componenti, insieme a `titleId` di `detail-section`, che è diventato `headingId`. Sono state allineate anche le due classi che portavano il vecchio nome, `detail-section__title` e `page-header__title-row`. L'alternativa era conservare il nome e cancellare l'attributo con un host binding `[attr.title]="null"`: una riga per componente invece di sessantotto file. È stata scartata perché avrebbe lasciato in piedi la collisione, chiedendo a ogni modifica futura di ricordarsi della contromisura.
+
+Due punti non erano raggiungibili con una ricerca testuale e li ha trovati il compilatore. In `dialog-shell.component.ts` il `title:` passato a `confirmDiscard` non era l'ingresso del componente ma una proprietà di `ConfirmRequest`, e non andava toccato. In `calendar-feeds.component.ts` il componente era dichiarato con un `template:` in linea anziché con un file `.html`, e sfuggiva quindi alla scansione dei template; nella stessa occasione template e stili sono stati portati in file esterni, come negli altri componenti.
+
+Ne discende una regola per i componenti condivisi: **nessun ingresso può chiamarsi come un attributo HTML globale**. Oltre a `title` valgono almeno `id`, `class`, `style`, `lang`, `dir`, `role`, `hidden` e `slot`. Quando il nome naturale è occupato, si usa il sinonimo del concetto — `heading` per il titolo — e non una variante decorata del nome riservato.
 
 ## Fuori scope
 

@@ -138,7 +138,11 @@ Con anteprima `PRIVATE`, titolo e testo non espongono il nome dell'evento. Le ch
 
 ## Frontend
 
-Angular registra `ngsw-worker.js` in produzione tramite `provideServiceWorker`. `PushNotificationService`:
+Angular registra `ngsw-worker.js` tramite `provideServiceWorker`, in ogni ambiente. La registrazione era in origine condizionata a `!isDevMode()`, ma la configurazione `development` di `angular.json` costruisce e serve comunque il worker: il risultato era un worker disponibile e mai registrato, mentre una registrazione creata una volta sola — da una build di produzione o da una prova delle push in locale — sopravviveva indefinitamente continuando a servire dalla cache un bundle vecchio. Registrarlo sempre allinea lo sviluppo alla produzione e rende provabili le push in locale.
+
+`AppUpdateService` fa avanzare le versioni, che altrimenti non avanzerebbero da sole: il service worker scarica la versione nuova ma tiene ogni scheda ancorata a quella con cui è partita. Il servizio ascolta `versionUpdates`, e su `VERSION_READY` in produzione propone un toast persistente con l'azione di ricarica — mai una ricarica non annunciata, che butterebbe via un modulo compilato a metà — mentre in sviluppo attiva subito, perché ogni ricompilazione è una versione nuova e un consenso ogni volta sarebbe solo rumore. Su `unrecoverable` ricarica senza chiedere: il worker non trova più i file della versione che sta servendo e la pagina è già rotta. Il controllo esplicito parte alla prima stabilità dell'applicazione e si ripete ogni sei ore.
+
+`PushNotificationService`:
 
 - non mostra richieste di consenso automatiche all'avvio;
 - chiede il permesso soltanto dopo un gesto esplicito dell'utente;
