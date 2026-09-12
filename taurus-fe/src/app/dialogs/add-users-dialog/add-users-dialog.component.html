@@ -1,6 +1,6 @@
 <app-dialog-shell
     #shell
-    title="Nuovo utente"
+    heading="Nuovo utente"
     subtitle="Crea l’utente e definisci ruoli e strumenti."
     confirmLabel="Aggiungi utente"
     [invalidCount]="(!user.name?.trim() ? 1 : 0) + (!user.email?.trim() ? 1 : 0) + (!user.roles?.length ? 1 : 0)"

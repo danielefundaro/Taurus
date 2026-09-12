@@ -1,5 +1,5 @@
-<app-dialog-shell #shell title="Ruota codice QR" subtitle="Questa operazione non può essere annullata automaticamente." confirmLabel="Ruota e invalida" [invalidCount]="(reason.trim() ? 0 : 1) + (confirmed ? 0 : 1)" (cancel)="cancel()" (confirm)="save()">
-    <app-inline-alert severity="warn" title="Le vecchie etichette smetteranno di funzionare" detail="Dopo la rotazione dovrai scaricare e applicare una nuova etichetta." />
+<app-dialog-shell #shell heading="Ruota codice QR" subtitle="Questa operazione non può essere annullata automaticamente." confirmLabel="Ruota e invalida" [invalidCount]="(reason.trim() ? 0 : 1) + (confirmed ? 0 : 1)" (cancel)="cancel()" (confirm)="save()">
+    <app-inline-alert severity="warn" heading="Le vecchie etichette smetteranno di funzionare" detail="Dopo la rotazione dovrai scaricare e applicare una nuova etichetta." />
     <app-form-field class="block mt-4" label="Motivazione" forId="rotationReason" required [error]="shell.validationAttempted && !reason.trim() ? 'Inserisci la motivazione.' : undefined">
         <textarea pTextarea id="rotationReason" rows="4" maxlength="500" [(ngModel)]="reason"></textarea>
     </app-form-field>

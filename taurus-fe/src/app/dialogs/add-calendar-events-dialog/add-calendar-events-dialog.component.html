@@ -1,6 +1,6 @@
 <app-dialog-shell
     #shell
-    title="Nuovo evento"
+    heading="Nuovo evento"
     subtitle="Definisci data, luogo e, se necessario, una ricorrenza."
     confirmLabel="Crea evento"
     [invalidCount]="(!event.name?.trim() ? 1 : 0) + (!event.startDate ? 1 : 0) + (recurrenceInvalid ? 1 : 0)"

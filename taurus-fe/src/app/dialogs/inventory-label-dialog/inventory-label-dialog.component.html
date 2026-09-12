@@ -1,5 +1,5 @@
 <app-dialog-shell
-    title="Genera etichette"
+    heading="Genera etichette"
     [subtitle]="totalLabels + (totalLabels === 1 ? ' etichetta pronta per la stampa' : ' etichette pronte per la stampa')"
     confirmLabel="Scarica PDF"
     [invalidCount]="invalidCount"
@@ -30,5 +30,5 @@
             </div>
         }
     </div>
-    <app-inline-alert class="block mt-4" severity="info" title="Stampa al 100%" detail="Disattiva «Adatta alla pagina» nel dialogo di stampa per mantenere le dimensioni fisiche previste." />
+    <app-inline-alert class="block mt-4" severity="info" heading="Stampa al 100%" detail="Disattiva «Adatta alla pagina» nel dialogo di stampa per mantenere le dimensioni fisiche previste." />
 </app-dialog-shell>

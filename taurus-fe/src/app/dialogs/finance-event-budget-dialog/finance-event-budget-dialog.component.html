@@ -1,4 +1,4 @@
-<app-dialog-shell #shell title="Preventivo evento" [subtitle]="event?.eventName" confirmLabel="Salva preventivo" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Preventivo evento" [subtitle]="event?.eventName" confirmLabel="Salva preventivo" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 gap-4">
         <app-form-field label="Compenso previsto" forId="budget-fee" hint="Entrata attesa dall'evento, al lordo dei costi.">
             <p-inputnumber inputId="budget-fee" [(ngModel)]="fee" mode="currency" currency="EUR" locale="it-IT" [min]="0" />

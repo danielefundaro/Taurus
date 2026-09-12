@@ -1,4 +1,4 @@
-<app-dialog-shell #shell title="Nuova traccia" subtitle="Registra i dati musicali della traccia." confirmLabel="Aggiungi traccia" [invalidCount]="track.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Nuova traccia" subtitle="Registra i dati musicali della traccia." confirmLabel="Aggiungi traccia" [invalidCount]="track.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !track.name?.trim() ? 'Inserisci il nome della traccia.' : undefined"><input pInputText id="name" type="text" [(ngModel)]="track.name" /></app-form-field>
         <app-form-field label="Compositore" forId="composer"><input pInputText id="composer" type="text" [(ngModel)]="track.composer" /></app-form-field>

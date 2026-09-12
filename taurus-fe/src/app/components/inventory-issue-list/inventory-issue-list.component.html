@@ -1,9 +1,9 @@
-<app-detail-section title="Segnalazioni guasto" [count]="issues.length" description="Le segnalazioni mantengono uno storico indipendente dalle note di conservazione.">
+<app-detail-section heading="Segnalazioni guasto" [count]="issues.length" description="Le segnalazioni mantengono uno storico indipendente dalle note di conservazione.">
     <div sectionActions><p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="create()" /></div>
     @if (loading) {
         <p-skeleton height="8rem" />
     } @else if (!issues.length) {
-        <app-empty-state compact icon="pi pi-check-circle" title="Nessun guasto segnalato" message="Non risultano segnalazioni per questo oggetto." />
+        <app-empty-state compact icon="pi pi-check-circle" heading="Nessun guasto segnalato" message="Non risultano segnalazioni per questo oggetto." />
     } @else {
         <div class="flex flex-col gap-4">
             @for (issue of issues; track issue.id) {
@@ -20,7 +20,7 @@
                     </div>
                     <p class="m-0">{{ issue.description }}</p>
                     @if (issue.resolutionNotes) {
-                        <app-inline-alert severity="info" title="Esito" [detail]="issue.resolutionNotes" />
+                        <app-inline-alert severity="info" heading="Esito" [detail]="issue.resolutionNotes" />
                     }
                     @if (issue.photos.length) {
                         <div class="flex flex-wrap gap-2">

@@ -1,8 +1,8 @@
-<section class="card detail-section" [attr.aria-labelledby]="titleId">
+<section class="card detail-section" [attr.aria-labelledby]="headingId">
     <header>
         <div>
-            <div class="detail-section__title">
-                <h2 [id]="titleId">{{ title }}</h2>
+            <div class="detail-section__heading">
+                <h2 [id]="headingId">{{ heading }}</h2>
                 @if (count !== undefined) {
                     <span>{{ count }}</span>
                 }

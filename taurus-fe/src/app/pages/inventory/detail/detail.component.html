@@ -11,7 +11,7 @@
             <p-skeleton height="8rem" />
         </div>
     } @else {
-        <app-page-header kicker="Oggetto inventario" [title]="isNew ? 'Nuovo oggetto' : item.name" [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory" [dirty]="isDirty"
+        <app-page-header kicker="Oggetto inventario" [heading]="isNew ? 'Nuovo oggetto' : item.name" [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory" [dirty]="isDirty"
             ><div pageActions><p-button label="Salva oggetto" icon="pi pi-check" [loading]="saving" [disabled]="!canSave" (onClick)="save()" /></div
         ></app-page-header>
 
@@ -32,7 +32,7 @@
             </div>
         }
 
-        <app-detail-section title="Dati oggetto" description="Identificazione, quantità e stato di conservazione. Si salva con «Salva oggetto» in alto." [dirty]="itemDirty">
+        <app-detail-section heading="Dati oggetto" description="Identificazione, quantità e stato di conservazione. Si salva con «Salva oggetto» in alto." [dirty]="itemDirty">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
                     <input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber" (ngModelChange)="markItemDirty()" />
@@ -62,23 +62,23 @@
         </app-detail-section>
 
         @if (isNew) {
-            <app-inline-alert severity="info" title="Completa prima il salvataggio" detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
+            <app-inline-alert severity="info" heading="Completa prima il salvataggio" detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
         } @else {
             @if (inventoryQrEnabled()) {
-                <app-detail-section title="Codice QR" description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
+                <app-detail-section heading="Codice QR" description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
                     <div sectionActions class="flex flex-wrap gap-2">
                         <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
                         <p-button label="Ruota codice" icon="pi pi-refresh" severity="danger" [outlined]="true" (onClick)="rotateQrCode()" />
                     </div>
                     <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                         <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + item.inventoryNumber" class="w-48 h-48 bg-white border border-surface rounded-lg" />
-                        <app-inline-alert severity="info" title="Etichetta privata" detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
+                        <app-inline-alert severity="info" heading="Etichetta privata" detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
                     </div>
                 </app-detail-section>
             }
 
             <app-detail-section
-                title="Fotografie"
+                heading="Fotografie"
                 [count]="item.photos?.length"
                 description="JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
                 [dirty]="photoOrderDirty"
@@ -118,11 +118,11 @@
                         }
                     </div>
                 } @else {
-                    <app-empty-state compact icon="pi pi-images" title="Nessuna fotografia" message="Aggiungi una fotografia per documentare l’oggetto." />
+                    <app-empty-state compact icon="pi pi-images" heading="Nessuna fotografia" message="Aggiungi una fotografia per documentare l’oggetto." />
                 }
             </app-detail-section>
 
-            <app-detail-section title="Assegna a un utente" description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
+            <app-detail-section heading="Assegna a un utente" description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div class="md:col-span-4">
                         <app-form-field label="Utente" forId="assignmentUser">
@@ -153,7 +153,7 @@
                 </div>
             </app-detail-section>
 
-            <app-detail-section title="Assegnazioni e riconsegne" [count]="item.assignments?.length" description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»." [dirty]="dirtyAssignments.size > 0">
+            <app-detail-section heading="Assegnazioni e riconsegne" [count]="item.assignments?.length" description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»." [dirty]="dirtyAssignments.size > 0">
                 <p-table
                     [value]="item.assignments || []"
                     [paginator]="true"
@@ -277,7 +277,7 @@
                     <ng-template #emptymessage>
                         <tr>
                             <td colspan="7">
-                                <app-empty-state compact icon="pi pi-user-plus" title="Nessuna assegnazione" message="Assegna l’oggetto a un utente dalla sezione qui sopra." />
+                                <app-empty-state compact icon="pi pi-user-plus" heading="Nessuna assegnazione" message="Assegna l’oggetto a un utente dalla sezione qui sopra." />
                             </td>
                         </tr>
                     </ng-template>

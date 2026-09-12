@@ -1,5 +1,5 @@
 @if (loading || assignments.length > 0) {
-    <app-detail-section title="Inventario consegnato" [count]="loading ? undefined : assignments.length" description="Materiale assegnato, prese visione e riconsegne.">
+    <app-detail-section heading="Inventario consegnato" [count]="loading ? undefined : assignments.length" description="Materiale assegnato, prese visione e riconsegne.">
         <div sectionActions class="flex flex-col items-end gap-2">
             <div class="flex flex-wrap justify-end gap-3 text-sm">
                 <label for="reportIncludeAssigned" class="flex items-center gap-2"><p-checkbox inputId="reportIncludeAssigned" [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>

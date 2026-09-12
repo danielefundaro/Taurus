@@ -1,5 +1,5 @@
 <p-fluid>
-    <app-page-header title="Configurazione iniziale" subtitle="Importa in modo controllato i dati iniziali">
+    <app-page-header heading="Configurazione iniziale" subtitle="Importa in modo controllato i dati iniziali">
         <div actions class="flex gap-2">
             <p-button label="Modello XLSX" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadXlsx()" />
             @if (job) {
@@ -55,7 +55,7 @@
                                 }
                             </div>
                             @if (context) {
-                                <app-inline-alert severity="info" title="Limiti dell’importazione" [detail]="context.limits.maxTotalRows + ' righe complessive, ' + context.limits.maxUserRows + ' utenti, ' + (context.limits.maxFileSizeBytes / 1048576 | number: '1.0-0') + ' MB.'" />
+                                <app-inline-alert severity="info" heading="Limiti dell’importazione" [detail]="context.limits.maxTotalRows + ' righe complessive, ' + context.limits.maxUserRows + ' utenti, ' + (context.limits.maxFileSizeBytes / 1048576 | number: '1.0-0') + ' MB.'" />
                             }
                             <div class="step-actions"><p-button label="Continua" icon="pi pi-arrow-right" iconPos="right" (onClick)="activeStep = 2" /></div>
                         </div>
@@ -99,7 +99,7 @@
                                 >
                             </p-fileupload>
                             @if (selectedFile) {
-                                <app-inline-alert severity="info" title="File selezionato" [detail]="selectedFile.name + ' · ' + (selectedFile.size / 1024 | number: '1.0-0') + ' KB'" />
+                                <app-inline-alert severity="info" heading="File selezionato" [detail]="selectedFile.name + ' · ' + (selectedFile.size / 1024 | number: '1.0-0') + ' KB'" />
                             }
                             <div class="step-actions between">
                                 <p-button label="Indietro" severity="secondary" [outlined]="true" (onClick)="activeStep = 1" /><p-button
@@ -190,7 +190,7 @@
                                 </p-table>
                                 <h3>Problemi e avvisi</h3>
                                 @if (problems.length === 0) {
-                                    <app-inline-alert severity="success" title="Nessun errore rilevato" detail="I dati controllati possono passare alla conferma." />
+                                    <app-inline-alert severity="success" heading="Nessun errore rilevato" detail="I dati controllati possono passare alla conferma." />
                                 } @else {
                                     <div class="grid gap-2">
                                         @for (problem of problems; track problem.id) {
@@ -253,10 +253,10 @@
                                     <div aria-live="polite">{{ stageLabel(job.stage) }}</div>
                                 }
                                 @if (job.status === 'COMPENSATION_REQUIRED') {
-                                    <app-inline-alert severity="error" title="Ripristino incompleto" detail="Una parte delle modifiche alle identità richiede un nuovo tentativo." actionLabel="Ritenta ripristino" (action)="retryCompensation()" />
+                                    <app-inline-alert severity="error" heading="Ripristino incompleto" detail="Una parte delle modifiche alle identità richiede un nuovo tentativo." actionLabel="Ritenta ripristino" (action)="retryCompensation()" />
                                 }
                                 @if (job.status === 'COMPLETED' && job.setupEmailFailures > 0) {
-                                    <app-inline-alert severity="warn" title="E-mail di configurazione non inviate" [detail]="job.setupEmailFailures + ' messaggi richiedono un nuovo tentativo.'" actionLabel="Ritenta e-mail" (action)="retryEmails()" />
+                                    <app-inline-alert severity="warn" heading="E-mail di configurazione non inviate" [detail]="job.setupEmailFailures + ' messaggi richiedono un nuovo tentativo.'" actionLabel="Ritenta e-mail" (action)="retryEmails()" />
                                 }
                                 @if (job.status === 'COMPLETED') {
                                     <div class="mt-6 flex justify-center gap-4"><a routerLink="/users">Utenti</a><a routerLink="/inventory">Inventario</a><a routerLink="/finance">Economia</a></div>

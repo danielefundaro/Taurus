@@ -1,8 +1,8 @@
-<app-page-header title="Documenti legali" [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')"
+<app-page-header heading="Documenti legali" [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')"
     ><div pageActions><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div
 ></app-page-header>
 
-<app-inline-alert severity="info" title="Versioni immutabili" detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." />
+<app-inline-alert severity="info" heading="Versioni immutabili" detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." />
 
 <app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false" (searchChange)="onSearchChange($event)" />
 
@@ -67,7 +67,7 @@
                 <td colspan="7">
                     <app-empty-state
                         icon="pi pi-file"
-                        [title]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
+                        [heading]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
                         [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Pubblica il primo documento legale per iniziare.'"
                         [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo documento'"
                         (action)="searchTerm ? onSearchChange('') : addDocument()"

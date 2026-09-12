@@ -4,7 +4,7 @@ import { ConfirmService } from '../../service/confirm.service';
 
 @Component({ selector: 'app-dialog-shell', standalone: true, imports: [ButtonModule], templateUrl: './dialog-shell.component.html', styleUrl: './dialog-shell.component.scss' })
 export class DialogShellComponent {
-    @Input() title = '';
+    @Input() heading = '';
     @Input() subtitle?: string;
     @Input() confirmLabel = 'Salva';
     @Input() cancelLabel = 'Annulla';

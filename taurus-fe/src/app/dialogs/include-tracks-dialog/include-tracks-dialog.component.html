@@ -1,4 +1,4 @@
-<app-dialog-shell title="Includi tracce" subtitle="Seleziona le tracce da aggiungere all’album." confirmLabel="Includi tracce" [invalidCount]="selectedTracks.length ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell heading="Includi tracce" subtitle="Seleziona le tracce da aggiungere all’album." confirmLabel="Includi tracce" [invalidCount]="selectedTracks.length ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <p-table
         [value]="tracks"
         [paginator]="true"
@@ -53,7 +53,7 @@
         <ng-template #emptymessage>
             <tr>
                 <td colspan="4">
-                    <app-empty-state compact icon="pi pi-file" title="Nessuna traccia" message="Prova a modificare i filtri di ricerca." />
+                    <app-empty-state compact icon="pi pi-file" heading="Nessuna traccia" message="Prova a modificare i filtri di ricerca." />
                 </td>
             </tr>
         </ng-template>
