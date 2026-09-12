@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Strumenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' strumento' : ' strumenti')">
+<app-page-header heading="Strumenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' strumento' : ' strumenti')">
     <div pageActions><p-button label="Nuovo strumento" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
@@ -77,7 +77,7 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-wrench"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessuno strumento'"
+                [heading]="searchTerm ? 'Nessun risultato' : 'Nessuno strumento'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Aggiungi il primo strumento per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo strumento'"
                 (action)="searchTerm ? onSearchChange('') : addNew()"

@@ -1,8 +1,8 @@
 <div class="flex flex-col gap-5">
-    <app-inline-alert severity="info" title="Nome del feed obbligatorio" detail="Inseriscilo, scegli le informazioni da includere e crea il feed per visualizzare il link." />
+    <app-inline-alert severity="info" heading="Nome del feed obbligatorio" detail="Inseriscilo, scegli le informazioni da includere e crea il feed per visualizzare il link." />
     <app-inline-alert
         severity="warn"
-        title="Il link viene mostrato una sola volta"
+        heading="Il link viene mostrato una sola volta"
         detail="Copialo e conservalo in modo sicuro: chiunque lo possieda può leggere gli eventi inclusi. Se lo perdi, dovrai generarne uno nuovo e il precedente smetterà di funzionare."
     />
 
@@ -74,7 +74,7 @@
             ></ng-template>
         </p-table>
     } @else {
-        <app-empty-state icon="pi pi-calendar" title="Nessun feed calendario" message="Crea un link per iniziare una sottoscrizione esterna." />
+        <app-empty-state icon="pi pi-calendar" heading="Nessun feed calendario" message="Crea un link per iniziare una sottoscrizione esterna." />
     }
 
     <div class="instructions text-sm text-muted-color">

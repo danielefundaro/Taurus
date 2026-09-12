@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Utenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')"
+<app-page-header heading="Utenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')"
     ><div pageActions><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div
 ></app-page-header>
 
@@ -111,7 +111,7 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-users"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessun utente'"
+                [heading]="searchTerm ? 'Nessun risultato' : 'Nessun utente'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Aggiungi il primo utente per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo utente'"
                 (action)="searchTerm ? onSearchChange('') : addNew()"

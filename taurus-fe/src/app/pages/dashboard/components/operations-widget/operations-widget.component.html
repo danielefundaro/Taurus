@@ -1,4 +1,4 @@
-<app-detail-section title="Da fare" titleId="operations-widget-title" [count]="dashboard?.summary?.groupCount">
+<app-detail-section heading="Da fare" headingId="operations-widget-title" [count]="dashboard?.summary?.groupCount">
     <div sectionActions>
         <p-button label="Aggiorna" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" [loading]="refreshing" [disabled]="refreshing || initialLoading" (onClick)="refreshRequested.emit()" />
     </div>
@@ -19,13 +19,13 @@
                 }
             </div>
         } @else if (error && !dashboard) {
-            <app-inline-alert severity="error" title="Attività non disponibili" detail="Non è stato possibile caricare la sezione Da fare." actionLabel="Riprova" (action)="refreshRequested.emit()" />
+            <app-inline-alert severity="error" heading="Attività non disponibili" detail="Non è stato possibile caricare la sezione Da fare." actionLabel="Riprova" (action)="refreshRequested.emit()" />
         } @else {
             @if (dashboard?.status === 'PARTIAL') {
-                <app-inline-alert class="operations-alert" severity="warn" title="Alcune attività non sono disponibili" detail="Riprova tra poco." />
+                <app-inline-alert class="operations-alert" severity="warn" heading="Alcune attività non sono disponibili" detail="Riprova tra poco." />
             }
             @if (refreshWarning) {
-                <app-inline-alert class="operations-alert" severity="warn" title="Aggiornamento non riuscito" detail="Sono ancora visibili i dati dell’ultimo caricamento riuscito." />
+                <app-inline-alert class="operations-alert" severity="warn" heading="Aggiornamento non riuscito" detail="Sono ancora visibili i dati dell’ultimo caricamento riuscito." />
             }
             @if (dashboard?.items?.length) {
                 <ul class="operations-list" aria-label="Attività che richiedono attenzione">
@@ -55,7 +55,7 @@
                     }
                 </ul>
             } @else if (dashboard) {
-                <app-empty-state compact icon="pi pi-check-circle" title="Tutto sotto controllo" message="Non ci sono attività che richiedono la tua attenzione." />
+                <app-empty-state compact icon="pi pi-check-circle" heading="Tutto sotto controllo" message="Non ci sono attività che richiedono la tua attenzione." />
             }
         }
     </div>

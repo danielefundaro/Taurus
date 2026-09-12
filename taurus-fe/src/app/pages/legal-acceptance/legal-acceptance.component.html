@@ -7,7 +7,7 @@
         @if (loading) {
             <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei documenti…</span></div>
         } @else if (errorMessage) {
-            <app-inline-alert severity="error" title="Caricamento non riuscito" [detail]="errorMessage" actionLabel="Riprova" (action)="retry()" />
+            <app-inline-alert severity="error" heading="Caricamento non riuscito" [detail]="errorMessage" actionLabel="Riprova" (action)="retry()" />
         } @else {
             <div class="documents">
                 @for (document of pendingDocuments; track document.id) {

@@ -1,11 +1,11 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Strumento" [title]="instrument.name || 'Nuovo strumento'" backLink="/instruments" [dirty]="isDirty"
+    <app-page-header kicker="Strumento" [heading]="instrument.name || 'Nuovo strumento'" backLink="/instruments" [dirty]="isDirty"
         ><div pageActions><p-button label="Salva strumento" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
     ></app-page-header>
 
-    <app-detail-section title="Dati strumento" description="Nome e descrizione. Si salva con «Salva strumento» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati strumento" description="Nome e descrizione. Si salva con «Salva strumento» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required [error]="instrument.name?.trim() ? undefined : 'Inserisci il nome dello strumento.'">
                 <input pInputText id="name" type="text" [(ngModel)]="instrument!.name" (ngModelChange)="isDirty = true" />

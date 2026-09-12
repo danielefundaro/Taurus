@@ -1,13 +1,13 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Utente" [title]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users" [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined"
+    <app-page-header kicker="Utente" [heading]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users" [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined"
         ><div pageMetadata>{{ user.email }}</div>
         <div pageActions class="flex gap-2">
             <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined (onClick)="sendSetupEmail()" /><p-button label="Salva utente" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
     ></app-page-header>
 
-    <app-detail-section title="Dati utente" description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati utente" description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required [error]="user.name?.trim() ? undefined : 'Inserisci il nome.'">
                 <input pInputText id="name" type="text" [(ngModel)]="user!.name" (ngModelChange)="isDirty = true" />
@@ -66,7 +66,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section title="Eventi a cui ha partecipato" description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
+    <app-detail-section heading="Eventi a cui ha partecipato" description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
         <app-calendar-events-table [userId]="user.id" />
     </app-detail-section>
 

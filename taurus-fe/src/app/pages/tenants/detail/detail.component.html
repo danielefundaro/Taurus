@@ -1,7 +1,7 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Tenant" [title]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
+    <app-page-header kicker="Tenant" [heading]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
         ><div pageMetadata>{{ tenant.code }}</div>
         <div pageActions class="flex gap-2">
             @if (canConfigureData) {
@@ -10,7 +10,7 @@
             <p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
     ></app-page-header>
 
-    <app-detail-section title="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'">
                 <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
@@ -66,7 +66,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section title="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
+    <app-detail-section heading="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             @for (item of tenantFeatures; track item.key) {
                 <div class="flex items-start gap-3">

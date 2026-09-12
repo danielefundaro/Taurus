@@ -7,7 +7,7 @@ export type AlertSeverity = 'success' | 'info' | 'warn' | 'error';
 @Component({ selector: 'app-inline-alert', standalone: true, imports: [MessageModule, ButtonModule, RouterModule], templateUrl: './inline-alert.component.html', styleUrl: './inline-alert.component.scss' })
 export class InlineAlertComponent {
     @Input() severity: AlertSeverity = 'info';
-    @Input() title = '';
+    @Input() heading = '';
     @Input() detail = '';
     @Input() actionLabel?: string;
     @Input() actionLink?: string | any[];

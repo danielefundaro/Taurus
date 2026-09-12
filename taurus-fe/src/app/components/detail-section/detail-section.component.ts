@@ -10,8 +10,8 @@ import { TagModule } from 'primeng/tag';
     styleUrl: './detail-section.component.scss'
 })
 export class DetailSectionComponent {
-    @Input({ required: true }) title = '';
-    @Input() titleId?: string;
+    @Input({ required: true }) heading = '';
+    @Input() headingId?: string;
     @Input() description?: string;
     @Input() count?: number;
     @Input({ transform: booleanAttribute }) dirty = false;

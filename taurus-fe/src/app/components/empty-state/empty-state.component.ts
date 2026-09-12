@@ -4,7 +4,7 @@ import { ButtonModule } from 'primeng/button';
 @Component({ selector: 'app-empty-state', standalone: true, imports: [ButtonModule], templateUrl: './empty-state.component.html', styleUrl: './empty-state.component.scss' })
 export class EmptyStateComponent {
     @Input() icon = 'pi pi-inbox';
-    @Input() title = 'Nessun elemento';
+    @Input() heading = 'Nessun elemento';
     @Input() message = '';
     @Input() actionLabel?: string;
     @Input({ transform: booleanAttribute }) compact = false;

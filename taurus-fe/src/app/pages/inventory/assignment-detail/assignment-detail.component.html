@@ -10,7 +10,7 @@
         </div>
     }
     @if (assignment; as value) {
-        <app-page-header kicker="Assegnazione inventario" [title]="value.itemName" [subtitle]="value.inventoryNumber" [backLink]="['/inventory']"
+        <app-page-header kicker="Assegnazione inventario" [heading]="value.itemName" [subtitle]="value.inventoryNumber" [backLink]="['/inventory']"
             ><span pageMetadata><p-tag [value]="assignmentStatusLabel(value.status)" severity="info" /></span>
             <div pageActions>
                 @if (inventoryQrEnabled() && value.outstandingQuantity > 0) {
@@ -33,7 +33,7 @@
             </div>
         </div>
 
-        <app-detail-section title="Dati della consegna" description="Sola lettura: i dati sono quelli registrati dall’amministratore.">
+        <app-detail-section heading="Dati della consegna" description="Sola lettura: i dati sono quelli registrati dall’amministratore.">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
                 <div>
                     <span class="detail-label">Stato di conservazione</span><strong>{{ conditionLabel(value.conditionStatus) }}</strong>
@@ -73,7 +73,7 @@
             </div>
         </app-detail-section>
 
-        <app-detail-section title="Fotografie dell’oggetto" [count]="value.photos.length">
+        <app-detail-section heading="Fotografie dell’oggetto" [count]="value.photos.length">
             @if (value.photos.length) {
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     @for (photo of value.photos; track photo.id) {
@@ -84,11 +84,11 @@
                     }
                 </div>
             } @else {
-                <app-empty-state compact icon="pi pi-images" title="Nessuna fotografia" message="Non ci sono fotografie associate a questa consegna." />
+                <app-empty-state compact icon="pi pi-images" heading="Nessuna fotografia" message="Non ci sono fotografie associate a questa consegna." />
             }
         </app-detail-section>
 
-        <app-detail-section title="Presa visione" description="La conferma è un’operazione autonoma e definitiva.">
+        <app-detail-section heading="Presa visione" description="La conferma è un’operazione autonoma e definitiva.">
             @if (value.decision) {
                 <div class="flex items-center gap-3">
                     <p-tag [value]="decisionLabel(value.decision.decision)" [severity]="value.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
@@ -112,7 +112,7 @@
             }
         </app-detail-section>
 
-        <app-detail-section title="Riconsegna" [count]="value.returns.length" description="Ogni riconsegna si avvia e si documenta per conto proprio.">
+        <app-detail-section heading="Riconsegna" [count]="value.returns.length" description="Ogni riconsegna si avvia e si documenta per conto proprio.">
             @if (returnableQuantity > 0) {
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
                     <div class="md:col-span-3">
@@ -128,7 +128,7 @@
                     <div class="md:col-span-3 flex items-end"><p-button label="Avvia riconsegna" icon="pi pi-replay" class="w-full" styleClass="w-full" (onClick)="requestReturn()" /></div>
                 </div>
             } @else if (value.outstandingQuantity > 0) {
-                <app-inline-alert severity="info" title="Riconsegna già avviata" detail="Tutto il materiale residuo è già incluso in una richiesta di riconsegna aperta." />
+                <app-inline-alert severity="info" heading="Riconsegna già avviata" detail="Tutto il materiale residuo è già incluso in una richiesta di riconsegna aperta." />
             }
 
             @if (value.returns.length) {
@@ -162,11 +162,11 @@
                     }
                 </div>
             } @else {
-                <app-empty-state compact icon="pi pi-replay" title="Nessuna riconsegna" message="Non è stata avviata alcuna procedura di riconsegna." />
+                <app-empty-state compact icon="pi pi-replay" heading="Nessuna riconsegna" message="Non è stata avviata alcuna procedura di riconsegna." />
             }
         </app-detail-section>
 
-        <app-detail-section title="Proforma inventario" description="Genera il documento con il contenuto che scegli qui sotto.">
+        <app-detail-section heading="Proforma inventario" description="Genera il documento con il contenuto che scegli qui sotto.">
             <div sectionActions>
                 <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
             </div>

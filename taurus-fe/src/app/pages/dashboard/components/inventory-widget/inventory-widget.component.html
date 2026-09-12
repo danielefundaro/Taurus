@@ -1,5 +1,5 @@
 <app-detail-section
-    [title]="isAdmin ? 'Inventario' : 'Il mio inventario'"
+    [heading]="isAdmin ? 'Inventario' : 'Il mio inventario'"
     [description]="isAdmin ? 'Situazione del materiale' : 'Il materiale attualmente affidato a te'"
     [actionLabel]="isAdmin ? 'Apri inventario' : 'I miei oggetti'"
     actionLink="/inventory"
@@ -65,7 +65,7 @@
                 </app-list-row>
             }
         } @else {
-            <app-empty-state compact icon="pi pi-check-circle" title="Nessuna attività in attesa" message="Non c’è nulla da gestire in questo momento." />
+            <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna attività in attesa" message="Non c’è nulla da gestire in questo momento." />
         }
 
         <div class="inventory-footer">
@@ -82,14 +82,14 @@
             @if ((userSummary?.pendingDecisions ?? 0) > 0) {
                 <app-inline-alert
                     severity="warn"
-                    [title]="(userSummary?.pendingDecisions ?? 0) + ((userSummary?.pendingDecisions ?? 0) === 1 ? ' presa visione richiesta' : ' prese visione richieste')"
+                    [heading]="(userSummary?.pendingDecisions ?? 0) + ((userSummary?.pendingDecisions ?? 0) === 1 ? ' presa visione richiesta' : ' prese visione richieste')"
                     detail="Apri l’inventario per confermare le consegne."
                     actionLabel="Apri"
                     actionLink="/inventory"
                     [queryParams]="{ view: 'mine' }"
                 />
             } @else {
-                <app-inline-alert severity="success" title="Tutto confermato" detail="Nessuna presa visione in attesa." />
+                <app-inline-alert severity="success" heading="Tutto confermato" detail="Nessuna presa visione in attesa." />
             }
         </div>
 
@@ -106,7 +106,7 @@
                 </app-list-row>
             }
         } @else {
-            <app-empty-state compact icon="pi pi-box" title="Nessun materiale" message="Non hai materiale attualmente in possesso." />
+            <app-empty-state compact icon="pi pi-box" heading="Nessun materiale" message="Non hai materiale attualmente in possesso." />
         }
 
         <div class="inventory-footer">

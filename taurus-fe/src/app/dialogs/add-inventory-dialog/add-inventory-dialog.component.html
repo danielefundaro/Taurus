@@ -1,4 +1,4 @@
-<app-dialog-shell #shell title="Nuovo oggetto" subtitle="Registra un bene fisico nell’inventario." confirmLabel="Aggiungi oggetto" [invalidCount]="(!item.inventoryNumber.trim() ? 1 : 0) + (!item.name.trim() ? 1 : 0)" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Nuovo oggetto" subtitle="Registra un bene fisico nell’inventario." confirmLabel="Aggiungi oggetto" [invalidCount]="(!item.inventoryNumber.trim() ? 1 : 0) + (!item.name.trim() ? 1 : 0)" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="shell.validationAttempted && !item.inventoryNumber.trim() ? 'Inserisci il numero inventariale.' : undefined"
             ><input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber"

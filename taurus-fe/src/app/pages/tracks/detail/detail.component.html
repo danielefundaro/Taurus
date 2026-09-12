@@ -3,7 +3,7 @@
     <app-detail-loading-skeleton />
 }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Traccia" [title]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
+    <app-page-header kicker="Traccia" [heading]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
         <div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
         <div pageActions class="flex gap-2">
             <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()" [disabled]="!track.scores?.length" />
@@ -12,7 +12,7 @@
     </app-page-header>
 
     @if (saveError) {
-        <app-inline-alert severity="error" title="Modifiche non salvate" detail="La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio." actionLabel="Riprova" (action)="save()" />
+        <app-inline-alert severity="error" heading="Modifiche non salvate" detail="La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio." actionLabel="Riprova" (action)="save()" />
     }
     <div class="detail-page__zones">
         <p-tabs class="track-tabs" [value]="activeTab" [scrollable]="true" (valueChange)="onTabChange($event)">
@@ -27,7 +27,7 @@
             </p-tablist>
             <p-tabpanels>
                 <p-tabpanel value="details">
-                    <app-detail-section title="Dati traccia" description="Autori, tipo e stato di pubblicazione. Si salva con «Salva traccia» in alto." [dirty]="isDirty">
+                    <app-detail-section heading="Dati traccia" description="Autori, tipo e stato di pubblicazione. Si salva con «Salva traccia» in alto." [dirty]="isDirty">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <app-form-field label="Nome" forId="name" required [error]="track.name?.trim() ? undefined : 'Inserisci il nome della traccia.'"
                                 ><input pInputText id="name" type="text" [(ngModel)]="track.name" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()"
@@ -57,7 +57,7 @@
                 </p-tabpanel>
 
                 <p-tabpanel value="parts">
-                    <app-detail-section title="Parti" [count]="track.scores?.length ?? 0" description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
+                    <app-detail-section heading="Parti" [count]="track.scores?.length ?? 0" description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
                         <app-score-workspace
                             [scores]="track.scores ?? []"
                             [instruments]="instruments"
@@ -73,7 +73,7 @@
 
                 @if (canManagePdf) {
                     <p-tabpanel value="pdf">
-                        <app-detail-section title="File PDF" description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
+                        <app-detail-section heading="File PDF" description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
                             <p-fileupload
                                 #fu
                                 name="file"

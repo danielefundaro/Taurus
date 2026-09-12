@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')"
+<app-page-header heading="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')"
     ><div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div
 ></app-page-header>
 
@@ -113,7 +113,7 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-building"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessun tenant'"
+                [heading]="searchTerm ? 'Nessun risultato' : 'Nessun tenant'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo tenant per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo tenant'"
                 (action)="searchTerm ? onSearchChange('') : addNew()"

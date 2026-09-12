@@ -12,7 +12,7 @@ import { TagModule } from 'primeng/tag';
     styleUrl: './page-header.component.scss'
 })
 export class PageHeaderComponent {
-    @Input({ required: true }) title = '';
+    @Input({ required: true }) heading = '';
     @Input() subtitle?: string;
     @Input() kicker?: string;
     @Input() backLink?: string | any[];

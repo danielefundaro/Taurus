@@ -4,7 +4,7 @@
     }
 
     @if (!draftScores.length) {
-        <app-empty-state icon="pi pi-file-pdf" title="Nessuna parte" message="Carica un PDF dalla scheda File PDF oppure crea una parte vuota." [actionLabel]="readOnly ? undefined : 'Nuova parte'" (action)="addScore()" />
+        <app-empty-state icon="pi pi-file-pdf" heading="Nessuna parte" message="Carica un PDF dalla scheda File PDF oppure crea una parte vuota." [actionLabel]="readOnly ? undefined : 'Nuova parte'" (action)="addScore()" />
     } @else {
         <div class="workspace-grid" [class.mobile-detail-visible]="mobileDetail">
             <aside class="parts-panel" aria-labelledby="parts-list-title">
@@ -25,7 +25,7 @@
                     <p class="reorder-hint"><i class="pi pi-info-circle" aria-hidden="true"></i> Il riordino è disabilitato durante la ricerca.</p>
                 }
                 @if (!filteredScores.length) {
-                    <app-empty-state compact icon="pi pi-search" title="Nessun risultato" message="Nessuna parte corrisponde alla ricerca." actionLabel="Azzera ricerca" (action)="clearSearch()" />
+                    <app-empty-state compact icon="pi pi-search" heading="Nessun risultato" message="Nessuna parte corrisponde alla ricerca." actionLabel="Azzera ricerca" (action)="clearSearch()" />
                 } @else {
                     <div class="parts-list" role="listbox" aria-label="Parti della traccia">
                         @for (item of filteredScores; track scoreKey(item.score)) {
@@ -194,7 +194,7 @@
                     }
 
                     @if (!score.media?.length) {
-                        <app-empty-state compact icon="pi pi-images" title="Nessuna pagina" message="Sposta qui pagine da un’altra parte oppure carica un PDF." />
+                        <app-empty-state compact icon="pi pi-images" heading="Nessuna pagina" message="Sposta qui pagine da un’altra parte oppure carica un PDF." />
                     } @else {
                         <div class="pages-grid" role="listbox" aria-label="Pagine della parte" aria-multiselectable="true">
                             @for (media of score.media; track media.index; let pageIndex = $index) {

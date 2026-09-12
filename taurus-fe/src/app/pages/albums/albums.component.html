@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header title="Album" [subtitle]="totalRecords + (totalRecords === 1 ? ' album' : ' album')">
+<app-page-header heading="Album" [subtitle]="totalRecords + (totalRecords === 1 ? ' album' : ' album')">
     <div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"><p-button label="Nuovo album" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
@@ -131,7 +131,7 @@
         <ng-template #empty>
             <app-empty-state
                 icon="pi pi-book"
-                [title]="searchTerm ? 'Nessun risultato' : 'Nessun album'"
+                [heading]="searchTerm ? 'Nessun risultato' : 'Nessun album'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo album per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo album'"
                 (action)="searchTerm ? onSearchChange('') : addNew()"

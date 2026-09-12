@@ -1,7 +1,7 @@
 <p-confirmdialog />
 
 <p-fluid>
-    <app-page-header kicker="Profilo" [title]="(firstName || '') + ' ' + (lastName || '')" [subtitle]="'@' + username" [dirty]="isDirty"
+    <app-page-header kicker="Profilo" [heading]="(firstName || '') + ' ' + (lastName || '')" [subtitle]="'@' + username" [dirty]="isDirty"
         ><div pageActions><p-button label="Salva profilo" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="saveProfile()" /></div
     ></app-page-header>
 
@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <app-detail-section title="Informazioni personali" description="Nome, cognome ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Informazioni personali" description="Nome, cognome ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="firstName">
                 <input pInputText id="firstName" [(ngModel)]="firstName" (ngModelChange)="isDirty = true" placeholder="Nome" />
@@ -32,18 +32,18 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section title="Eventi a cui hai partecipato" description="Sola lettura: le presenze si registrano dalla pagina dell’evento.">
+    <app-detail-section heading="Eventi a cui hai partecipato" description="Sola lettura: le presenze si registrano dalla pagina dell’evento.">
         <app-calendar-events-table />
     </app-detail-section>
 
     @if (calendarFeedVisible) {
-        <app-detail-section title="Calendario esterno" description="Pubblica gli eventi che puoi consultare come calendario esterno in sola lettura.">
+        <app-detail-section heading="Calendario esterno" description="Pubblica gli eventi che puoi consultare come calendario esterno in sola lettura.">
             <app-calendar-feed-panel />
         </app-detail-section>
     }
 
     @if (notificationPreferencesEnabled()) {
-        <app-detail-section title="Notifiche" description="Scegli quali aggiornamenti ricevere, su quali canali e in quali orari." [dirty]="notificationPreferencesDirty">
+        <app-detail-section heading="Notifiche" description="Scegli quali aggiornamenti ricevere, su quali canali e in quali orari." [dirty]="notificationPreferencesDirty">
             <div sectionActions>
                 <p-button label="Salva preferenze" icon="pi pi-check" size="small" [loading]="savingNotifications" [disabled]="!notificationPreferencesDirty || notificationPreferencesInvalid" (onClick)="saveNotificationPreferences()" />
             </div>
@@ -208,14 +208,14 @@
         </app-detail-section>
     }
 
-    <app-detail-section title="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
+    <app-detail-section heading="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />
             <p-button label="Configura autenticatore OTP" icon="pi pi-shield" severity="secondary" (onClick)="configureOTP()" />
         </div>
     </app-detail-section>
 
-    <app-detail-section title="Sessione" description="Termina la sessione corrente e disconnettiti.">
+    <app-detail-section heading="Sessione" description="Termina la sessione corrente e disconnettiti.">
         <div sectionActions>
             <p-button label="Logout" icon="pi pi-sign-out" severity="warn" [outlined]="true" (onClick)="logout()" />
         </div>
