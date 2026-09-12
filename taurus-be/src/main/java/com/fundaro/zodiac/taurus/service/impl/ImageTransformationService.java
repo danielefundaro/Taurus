@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
+import com.fundaro.zodiac.taurus.utils.pdf.PageEditRecipe;
+import com.fundaro.zodiac.taurus.utils.pdf.PageImageTransformer;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -17,7 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ImageTransformationService {
+public class ImageTransformationService implements PageImageTransformer {
 
     static final long MAX_PIXELS = 40_000_000L;
     static final int MAX_SIDE = 20_000;
@@ -87,26 +89,51 @@ public class ImageTransformationService {
         return new TrackPageImageDTOs.Analysis(mediaId, width, height, bounds, borderRatio, skew, brightness, contrast, suggestions, warnings);
     }
 
-    public List<byte[]> transform(byte[] content, TrackPageImageDTOs.EditRequest recipe) {
+    public List<byte[]> transform(byte[] content, TrackPageImageDTOs.EditRequest request) {
+        PageEditRecipe recipe = toRecipe(request);
         validateRecipe(recipe);
         if (isEmpty(recipe)) throw badRequest("Image recipe does not contain changes", "image.recipe.empty");
         return transformRendered(decode(content), recipe).stream().map(this::encode).toList();
     }
 
     /** Applies the same transformation pipeline to an image rendered from a PDF page. */
-    public List<BufferedImage> transformRendered(BufferedImage source, TrackPageImageDTOs.EditRequest recipe) {
+    public List<BufferedImage> transformRendered(BufferedImage source, TrackPageImageDTOs.EditRequest request) {
+        return transformRendered(source, toRecipe(request));
+    }
+
+    @Override
+    public List<BufferedImage> transformRendered(BufferedImage source, PageEditRecipe recipe) {
         validateRecipe(recipe);
         BufferedImage image = source;
         int turns = Math.floorMod(recipe.rotationQuarterTurns(), 4);
         for (int i = 0; i < turns; i++) image = rotateClockwise(image);
         if (!isZeroAngle(recipe.deskewDegrees())) image = rotateFine(image, recipe.deskewDegrees());
 
-        List<TrackPageImageDTOs.Crop> crops = recipe.crops().isEmpty()
-            ? List.of(new TrackPageImageDTOs.Crop(0, 0, 1, 1))
+        List<PageEditRecipe.Crop> crops = recipe.crops().isEmpty()
+            ? List.of(new PageEditRecipe.Crop(0, 0, 1, 1))
             : recipe.crops();
         List<BufferedImage> results = new ArrayList<>(crops.size());
-        for (TrackPageImageDTOs.Crop crop : crops) results.add(adjust(crop(image, crop), recipe));
+        for (PageEditRecipe.Crop crop : crops) results.add(adjust(crop(image, crop), recipe));
         return results;
+    }
+
+    /** I DTO esposti via HTTP portano i vincoli di bean validation; la pipeline lavora sul modello neutro. */
+    private static PageEditRecipe toRecipe(TrackPageImageDTOs.EditRequest request) {
+        if (request == null) return null;
+        List<PageEditRecipe.Crop> crops = request.crops() == null
+            ? null
+            : request.crops().stream().map(crop -> new PageEditRecipe.Crop(crop.x(), crop.y(), crop.width(), crop.height())).toList();
+        return new PageEditRecipe(
+            request.recipeVersion(),
+            request.rotationQuarterTurns(),
+            request.deskewDegrees(),
+            crops,
+            request.grayscale(),
+            request.brightness(),
+            request.contrast(),
+            request.autoContrast(),
+            request.threshold()
+        );
     }
 
     private byte[] encode(BufferedImage image) {
@@ -135,7 +162,7 @@ public class ImageTransformationService {
         }
     }
 
-    private BufferedImage adjust(BufferedImage source, TrackPageImageDTOs.EditRequest recipe) {
+    private BufferedImage adjust(BufferedImage source, PageEditRecipe recipe) {
         boolean monochrome = recipe.grayscale() || recipe.threshold() != null;
         BufferedImage image = new BufferedImage(
             source.getWidth(),
@@ -206,7 +233,7 @@ public class ImageTransformationService {
         return target;
     }
 
-    private static BufferedImage crop(BufferedImage source, TrackPageImageDTOs.Crop crop) {
+    private static BufferedImage crop(BufferedImage source, PageEditRecipe.Crop crop) {
         int x = clamp((int) Math.round(crop.x() * source.getWidth()), 0, source.getWidth() - 1);
         int y = clamp((int) Math.round(crop.y() * source.getHeight()), 0, source.getHeight() - 1);
         int width = clamp((int) Math.round(crop.width() * source.getWidth()), 1, source.getWidth() - x);
@@ -220,16 +247,16 @@ public class ImageTransformationService {
         return target;
     }
 
-    private static void validateCrops(List<TrackPageImageDTOs.Crop> crops) {
+    private static void validateCrops(List<PageEditRecipe.Crop> crops) {
         if (crops == null || crops.size() > 8) throw badRequest("Invalid crop regions", "image.crops.invalid");
-        for (TrackPageImageDTOs.Crop crop : crops) {
+        for (PageEditRecipe.Crop crop : crops) {
             if (crop == null || crop.x() < 0 || crop.y() < 0 || crop.width() < 0.02 || crop.height() < 0.02 || crop.x() + crop.width() > 1.000001 || crop.y() + crop.height() > 1.000001) {
                 throw badRequest("Invalid crop region", "image.crop.invalid");
             }
         }
     }
 
-    private static void validateRecipe(TrackPageImageDTOs.EditRequest recipe) {
+    private static void validateRecipe(PageEditRecipe recipe) {
         if (recipe == null || recipe.recipeVersion() != 1) throw badRequest("Unsupported image recipe version", "image.recipeVersion");
         // Persisted PDF annotations may still use the legacy -5..0 range; HTTP image edits are constrained to 0..360 by bean validation.
         boolean invalidDeskew = !Double.isFinite(recipe.deskewDegrees()) || recipe.deskewDegrees() < -5 || recipe.deskewDegrees() > 360;
@@ -239,7 +266,7 @@ public class ImageTransformationService {
         validateCrops(recipe.crops());
     }
 
-    private static boolean isEmpty(TrackPageImageDTOs.EditRequest recipe) {
+    private static boolean isEmpty(PageEditRecipe recipe) {
         boolean fullCrop = recipe.crops().isEmpty() ||
             (recipe.crops().size() == 1 && recipe.crops().get(0).x() == 0 && recipe.crops().get(0).y() == 0 && recipe.crops().get(0).width() == 1 && recipe.crops().get(0).height() == 1);
         return recipe.rotationQuarterTurns() == 0 && isZeroAngle(recipe.deskewDegrees()) && fullCrop && !recipe.grayscale() &&

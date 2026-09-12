@@ -1,9 +1,9 @@
 package com.fundaro.zodiac.taurus.utils;
 
+import com.fundaro.zodiac.taurus.utils.pdf.PageImageTransformer;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfCropRegion;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageTransform;
-import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -52,20 +52,17 @@ public final class Converter {
             .collect(Collectors.joining("_"));
     }
 
-    public static List<String> pdfToImage(byte[] content, String filename, String destinationPath) throws IOException {
-        return pdfToImage(content, filename, destinationPath, null, new ImageTransformationService());
-    }
-
-    public static List<String> pdfToImage(byte[] content, String filename, String destinationPath, PdfAnnotations annotations) throws IOException {
-        return pdfToImage(content, filename, destinationPath, annotations, new ImageTransformationService());
-    }
-
+    /**
+     * Converte ogni pagina del PDF in un PNG. Le pagine con una ricetta di trasformazione vengono
+     * affidate al {@code transformer} fornito dal chiamante: la pipeline di trasformazione
+     * appartiene al livello di servizio e non viene costruita qui.
+     */
     public static List<String> pdfToImage(
         byte[] content,
         String filename,
         String destinationPath,
         PdfAnnotations annotations,
-        ImageTransformationService transformationService
+        PageImageTransformer transformer
     ) throws IOException {
         int dpi = 300;
         List<String> files = new ArrayList<>();
@@ -101,7 +98,7 @@ public final class Converter {
                 }
                 PdfPageTransform transform = transformMap.get(pageNumber);
                 if (transform != null) {
-                    image = combineVertically(transformationService.transformRendered(image, transform.toEditRequest()));
+                    image = combineVertically(transformer.transformRendered(image, transform.toRecipe()));
                 } else {
                     List<PdfCropRegion> crops = cropMap.get(pageNumber);
                     if (crops != null && !crops.isEmpty()) image = applyCrops(image, crops);
