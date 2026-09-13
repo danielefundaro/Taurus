@@ -6,5 +6,7 @@ public enum InventoryIssueStatus {
     RESOLVED,
     DISMISSED;
 
-    public boolean isTerminal() { return this == RESOLVED || this == DISMISSED; }
+    public boolean isTerminal() {
+        return this == RESOLVED || this == DISMISSED;
+    }
 }

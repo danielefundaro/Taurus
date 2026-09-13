@@ -1,18 +1,24 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Tenant" [heading]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty" [state]="tenant.active === false ? 'Disabilitata' : undefined"
-        ><div pageMetadata>{{ tenant.code }}</div>
+    <app-page-header kicker="Tenant" [heading]="tenant.name || 'Nuovo tenant'" backLink="/tenants" [dirty]="isDirty"
+        [state]="tenant.active === false ? 'Disabilitata' : undefined">
+        <div pageMetadata>{{ tenant.code }}</div>
         <div pageActions class="flex gap-2">
             @if (canConfigureData) {
-                <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" />
+            <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true"
+                routerLink="/onboarding" />
             }
-            <p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" /></div
-    ></app-page-header>
+            <p-button label="Salva tenant" icon="pi pi-check" [loading]="saving"
+                [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" />
+        </div>
+    </app-page-header>
 
-    <app-detail-section heading="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati tenant"
+        description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'">
+            <app-form-field label="Nome" forId="name" required
+                [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'">
                 <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Codice" forId="code">
@@ -22,10 +28,12 @@
                 <input pInputText id="email" type="text" [(ngModel)]="tenant!.email" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Numero massimo utenti" forId="maxUsers" hint="-1 per nessun limite">
-                <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers" (ngModelChange)="isDirty = true" />
+                <input pInputText id="maxUsers" type="number" [min]="-1" [step]="1" [(ngModel)]="tenant!.maxUsers"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Data scadenza" forId="expireDate">
-                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd" [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="expireDate" dateFormat="yy-mm-dd"
+                    [(ngModel)]="tenant!.expireDate" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Indirizzo" forId="address">
                 <input pInputText id="address" [(ngModel)]="tenant.address" (ngModelChange)="isDirty = true" />
@@ -39,11 +47,15 @@
             <app-form-field label="Provincia" forId="province">
                 <input pInputText id="province" [(ngModel)]="tenant.province" (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Paese (codice ISO)" forId="country" [error]="countryInvalid ? 'Inserisci un codice Paese di due lettere, ad esempio IT.' : undefined">
-                <input pInputText id="country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="IT" [(ngModel)]="tenant.country" (ngModelChange)="onCountryChange($event)" />
+            <app-form-field label="Paese (codice ISO)" forId="country"
+                [error]="countryInvalid ? 'Inserisci un codice Paese di due lettere, ad esempio IT.' : undefined">
+                <input pInputText id="country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="IT"
+                    [(ngModel)]="tenant.country" (ngModelChange)="onCountryChange($event)" />
             </app-form-field>
-            <app-form-field label="Fuso orario IANA" forId="timeZone" [error]="timeZoneInvalid ? 'Inserisci un fuso valido, ad esempio Europe/Rome.' : undefined">
-                <input pInputText id="timeZone" [(ngModel)]="tenant.timeZone" placeholder="Europe/Rome" (ngModelChange)="isDirty = true" />
+            <app-form-field label="Fuso orario IANA" forId="timeZone"
+                [error]="timeZoneInvalid ? 'Inserisci un fuso valido, ad esempio Europe/Rome.' : undefined">
+                <input pInputText id="timeZone" [(ngModel)]="tenant.timeZone" placeholder="Europe/Rome"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Codice fiscale" forId="taxCode">
                 <input pInputText id="taxCode" [(ngModel)]="tenant.taxCode" (ngModelChange)="isDirty = true" />
@@ -52,44 +64,51 @@
                 <input pInputText id="vatNumber" [(ngModel)]="tenant.vatNumber" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Dominio" forId="domain">
-                <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain" (ngModelChange)="isDirty = true" />
+                <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="URL logo" forId="logoUrl" [error]="logoUrlInvalid ? 'Inserisci un URL completo che inizi con http:// o https://.' : undefined">
-                <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+" placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl" (ngModelChange)="isDirty = true" />
+            <app-form-field label="URL logo" forId="logoUrl"
+                [error]="logoUrlInvalid ? 'Inserisci un URL completo che inizi con http:// o https://.' : undefined">
+                <input pInputText id="logoUrl" name="logoUrl" type="url" maxlength="2048" pattern="https?://.+"
+                    placeholder="https://example.com/logo.png" [(ngModel)]="tenant.logoUrl"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Stato tenant" forId="active">
-                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato" (ngModelChange)="isDirty = true" />
+                <p-togglebutton id="active" [(ngModel)]="tenant.active" onLabel="Abilitato" offLabel="Disabilitato"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description" (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="tenant!.description"
+                    (ngModelChange)="isDirty = true"></textarea>
             </app-form-field>
         </div>
     </app-detail-section>
 
-    <app-detail-section heading="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
+    <app-detail-section heading="Funzionalità disponibili"
+        description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato."
+        [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             @for (item of tenantFeatures; track item.key) {
-                <div class="flex items-start gap-3">
-                    <p-checkbox [inputId]="item.key" [binary]="true" [(ngModel)]="tenant[item.key]" (ngModelChange)="isDirty = true" />
-                    <div>
-                        <label [for]="item.key" class="font-medium cursor-pointer">{{ item.label }}</label>
-                        <p class="text-surface-500 text-sm mt-1 mb-0">{{ item.description }} I dati saranno conservati.</p>
-                        @if (featureStatus(item); as status) {
-                            <small [class.text-green-600]="status === 'Disponibile'" [class.text-warn-600]="status !== 'Disponibile'">{{ status }}</small>
-                        }
-                    </div>
+            <div class="flex items-start gap-3">
+                <p-checkbox [inputId]="item.key" [binary]="true" [(ngModel)]="tenant[item.key]"
+                    (ngModelChange)="isDirty = true" />
+                <div>
+                    <label [for]="item.key" class="font-medium cursor-pointer">{{ item.label }}</label>
+                    <p class="text-surface-500 text-sm mt-1 mb-0">{{ item.description }} I dati saranno conservati.</p>
+                    @if (featureStatus(item); as status) {
+                    <small [class.text-green-600]="status === 'Disponibile'"
+                        [class.text-warn-600]="status !== 'Disponibile'">{{ status }}</small>
+                    }
                 </div>
+            </div>
             }
         </div>
     </app-detail-section>
 
-    <app-danger-zone
-        [operations]="[
+    <app-danger-zone [operations]="[
             { id: 'archive', title: 'Archivia tenant', consequence: 'Il tenant verrà archiviato conservando dati, indici, file e autorizzazioni.', label: 'Archivia tenant', icon: 'pi pi-archive' },
             { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'Il tenant e tutti i dati associati verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
-        ]"
-        (execute)="$event === 'archive' ? confirmDelete() : confirmGdprDeletion()"
-    />
+        ]" (execute)="$event === 'archive' ? confirmDelete() : confirmGdprDeletion()" />
 
     <p-scrolltop />
 </p-fluid>

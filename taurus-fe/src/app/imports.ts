@@ -180,4 +180,4 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
     ],
     providers: [SecurePipe, DateConverterPipe, EnumConverterPipe, HasRolesDirective, InitialsPipe]
 })
-export class ImportsModule {}
+export class ImportsModule { }

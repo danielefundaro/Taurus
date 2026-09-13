@@ -8,12 +8,14 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceFrequency;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceWeekDay;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceEndDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class RecurringEventGeneratorTest {

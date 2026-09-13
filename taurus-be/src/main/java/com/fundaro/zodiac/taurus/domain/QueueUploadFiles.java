@@ -44,11 +44,19 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
         return user == null ? null : user.getId();
     }
 
-    public Users getUser() { return user; }
-    public void setUser(Users user) { this.user = user; }
+    public Users getUser() {
+        return user;
+    }
+
+    public void setUser(Users user) {
+        this.user = user;
+    }
 
     public void setUserId(Long userId) {
-        if (userId == null) { this.user = null; return; }
+        if (userId == null) {
+            this.user = null;
+            return;
+        }
         Users reference = new Users();
         reference.setId(userId);
         this.user = reference;
@@ -68,7 +76,10 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
     }
 
     public void setSourceMediaAssetId(Long mediaAssetId) {
-        if (mediaAssetId == null) { this.sourceMediaAsset = null; return; }
+        if (mediaAssetId == null) {
+            this.sourceMediaAsset = null;
+            return;
+        }
         Media reference = new Media();
         reference.setId(mediaAssetId);
         this.sourceMediaAsset = reference;
@@ -79,11 +90,19 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
         return track == null ? null : track.getId();
     }
 
-    public Tracks getTrack() { return track; }
-    public void setTrack(Tracks track) { this.track = track; }
+    public Tracks getTrack() {
+        return track;
+    }
+
+    public void setTrack(Tracks track) {
+        this.track = track;
+    }
 
     public void setTrackId(Long trackId) {
-        if (trackId == null) { this.track = null; return; }
+        if (trackId == null) {
+            this.track = null;
+            return;
+        }
         Tracks reference = new Tracks();
         reference.setId(trackId);
         this.track = reference;

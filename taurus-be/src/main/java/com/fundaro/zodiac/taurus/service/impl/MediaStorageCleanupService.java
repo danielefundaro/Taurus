@@ -3,12 +3,14 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,14 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Pulizia dello storage di un tenant.
- *
+ * <p>
  * Filesystem e database non condividono la stessa transazione: una scrittura
  * riuscita seguita da un errore non recuperabile può lasciare un file senza
  * riga corrispondente, e una directory di lavoro può sopravvivere a un
  * processo interrotto. Questo servizio rimuove entrambi i residui, sempre
  * confinato alla directory del tenant e solo oltre un periodo di grazia, così
  * un caricamento in corso non viene mai scambiato per un file orfano.
- *
+ * <p>
  * Le righe ancora presenti in {@code media_asset} non vengono mai toccate: la
  * cancellazione logica di un media resta responsabilità del dominio.
  */
@@ -49,7 +51,9 @@ public class MediaStorageCleanupService {
         this.properties = applicationProperties.getMedia();
     }
 
-    /** Esegue la pulizia sul tenant corrente. Restituisce il numero di elementi rimossi. */
+    /**
+     * Esegue la pulizia sul tenant corrente. Restituisce il numero di elementi rimossi.
+     */
     @Transactional
     public int cleanupCurrentTenant(String tenantCode) {
         int removed = trackPageEditReceiptRepository.deleteByCreatedAtBefore(

@@ -1,17 +1,18 @@
 @if (!readOnly) {
-    <p-inputgroup>
-        <input pInputText [id]="inputId" type="text" [placeholder]="placeholder" (keypress)="inputChange($event)" (blur)="blur()" [(ngModel)]="current" />
-        <p-inputgroup-addon class="cursor-pointer">
-            <i class="pi pi-chevron-right"></i>
-        </p-inputgroup-addon>
-    </p-inputgroup>
+<p-inputgroup>
+    <input pInputText [id]="inputId" type="text" [placeholder]="placeholder" (keypress)="inputChange($event)"
+        (blur)="blur()" [(ngModel)]="current" />
+    <p-inputgroup-addon class="cursor-pointer">
+        <i class="pi pi-chevron-right"></i>
+    </p-inputgroup-addon>
+</p-inputgroup>
 }
 @if (types?.length) {
-    <div class="flex flex-row flex-wrap gap-2 mt-2">
-        @for (type of types; track type) {
-            <p-chip [label]="type" [removable]="!readOnly" (onRemove)="removeType(type)" />
-        }
-    </div>
+<div class="flex flex-row flex-wrap gap-2 mt-2">
+    @for (type of types; track type) {
+    <p-chip [label]="type" [removable]="!readOnly" (onRemove)="removeType(type)" />
+    }
+</div>
 } @else if (readOnly) {
-    <span class="text-sm text-muted-color">Nessun tipo</span>
+<span class="text-sm text-muted-color">Nessun tipo</span>
 }

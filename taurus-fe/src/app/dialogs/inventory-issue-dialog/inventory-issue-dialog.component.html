@@ -1,25 +1,25 @@
-<app-dialog-shell
-    #shell
-    heading="Segnala un guasto"
+<app-dialog-shell #shell heading="Segnala un guasto"
     subtitle="Descrivi il problema riscontrato. L’invio non modifica automaticamente lo stato del bene."
-    confirmLabel="Invia segnalazione"
-    [saving]="saving"
-    [invalidCount]="invalidCount"
-    (cancel)="cancel()"
-    (confirm)="save()"
->
+    confirmLabel="Invia segnalazione" [saving]="saving" [invalidCount]="invalidCount" (cancel)="cancel()"
+    (confirm)="save()">
     <div class="grid grid-cols-1 gap-4">
-        <app-form-field label="Quantità interessata" forId="issueQuantity" required [error]="shell.validationAttempted && (quantity < 1 || quantity > maxQuantity) ? 'Indica una quantità valida.' : undefined">
-            <p-inputnumber inputId="issueQuantity" [(ngModel)]="quantity" [min]="1" [max]="maxQuantity" [showButtons]="true" class="w-full" />
+        <app-form-field label="Quantità interessata" forId="issueQuantity" required
+            [error]="shell.validationAttempted && (quantity < 1 || quantity > maxQuantity) ? 'Indica una quantità valida.' : undefined">
+            <p-inputnumber inputId="issueQuantity" [(ngModel)]="quantity" [min]="1" [max]="maxQuantity"
+                [showButtons]="true" class="w-full" />
         </app-form-field>
         <app-form-field label="Severità" forId="issueSeverity">
-            <p-select inputId="issueSeverity" [options]="severities" optionLabel="label" optionValue="value" [(ngModel)]="severity" class="w-full" />
+            <p-select inputId="issueSeverity" [options]="severities" optionLabel="label" optionValue="value"
+                [(ngModel)]="severity" class="w-full" />
         </app-form-field>
-        <app-form-field label="Descrizione" forId="issueDescription" required [error]="shell.validationAttempted && !description.trim() ? 'Descrivi il problema riscontrato.' : undefined" hint="Massimo 2000 caratteri.">
+        <app-form-field label="Descrizione" forId="issueDescription" required
+            [error]="shell.validationAttempted && !description.trim() ? 'Descrivi il problema riscontrato.' : undefined"
+            hint="Massimo 2000 caratteri.">
             <textarea pTextarea id="issueDescription" rows="5" maxlength="2000" [(ngModel)]="description"></textarea>
         </app-form-field>
         @if (severity === 'UNSAFE') {
-            <app-inline-alert severity="warn" heading="Blocco prudenziale" detail="Una segnalazione non sicura blocca nuove assegnazioni finché un amministratore non la chiude." />
+        <app-inline-alert severity="warn" heading="Blocco prudenziale"
+            detail="Una segnalazione non sicura blocca nuove assegnazioni finché un amministratore non la chiude." />
         }
     </div>
 </app-dialog-shell>

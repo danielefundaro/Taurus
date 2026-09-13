@@ -7,4 +7,5 @@ public record InventoryAdminSummaryDTO(
     long availableQuantity,
     long pendingDecisions,
     long pendingReturns
-) {}
+) {
+}

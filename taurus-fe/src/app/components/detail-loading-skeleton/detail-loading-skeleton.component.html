@@ -1,17 +1,18 @@
 <div class="grid gap-4" role="status" aria-label="Caricamento dettaglio">
     <div class="flex items-center justify-between gap-4">
-        <div class="flex-1"><p-skeleton width="12rem" height="2rem" /><p-skeleton width="18rem" class="mt-2 block" /></div>
+        <div class="flex-1"><p-skeleton width="12rem" height="2rem" /><p-skeleton width="18rem" class="mt-2 block" />
+        </div>
         <p-skeleton width="8rem" height="2.5rem" />
     </div>
     @for (section of [0, 1, 2]; track section) {
-        <section class="card grid gap-4">
-            <p-skeleton width="10rem" height="1.5rem" />
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <p-skeleton height="2.75rem" />
-                <p-skeleton height="2.75rem" />
-                <p-skeleton height="2.75rem" />
-            </div>
-        </section>
+    <section class="card grid gap-4">
+        <p-skeleton width="10rem" height="1.5rem" />
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <p-skeleton height="2.75rem" />
+            <p-skeleton height="2.75rem" />
+            <p-skeleton height="2.75rem" />
+        </div>
+    </section>
     }
     <span class="sr-only">Caricamento dei dati in corso.</span>
 </div>

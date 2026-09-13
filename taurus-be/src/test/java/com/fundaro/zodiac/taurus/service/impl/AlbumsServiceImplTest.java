@@ -1,10 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.Albums;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.repository.AlbumsRepository;
@@ -12,13 +7,17 @@ import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 class AlbumsServiceImplTest {
 

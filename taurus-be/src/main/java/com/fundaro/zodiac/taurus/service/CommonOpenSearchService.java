@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+
 import java.util.Optional;
 
 public interface CommonOpenSearchService<E extends CommonFieldsOpenSearch, D extends CommonFieldsOpenSearchDTO, C extends CommonOpenSearchCriteria> {

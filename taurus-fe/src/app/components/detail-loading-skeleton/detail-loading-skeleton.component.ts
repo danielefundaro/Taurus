@@ -7,4 +7,4 @@ import { SkeletonModule } from 'primeng/skeleton';
     imports: [SkeletonModule],
     templateUrl: './detail-loading-skeleton.component.html'
 })
-export class DetailLoadingSkeletonComponent {}
+export class DetailLoadingSkeletonComponent { }

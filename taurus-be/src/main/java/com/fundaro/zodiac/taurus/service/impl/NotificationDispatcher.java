@@ -17,10 +17,12 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetr
 import com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutChannel;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutResult;
+
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,7 +105,8 @@ public class NotificationDispatcher {
     public void dispatch(long id) {
         NotificationOutbox event = repository.findByIdForUpdate(id).orElse(null);
         ZonedDateTime now = ZonedDateTime.now();
-        if (event == null || event.getStatus() != NotificationStatus.PENDING || event.getNextAttemptAt().isAfter(now)) return;
+        if (event == null || event.getStatus() != NotificationStatus.PENDING || event.getNextAttemptAt().isAfter(now))
+            return;
         if (!eventEnabled(event)) {
             event.setStatus(NotificationStatus.SUPPRESSED);
             event.setLastError(null);

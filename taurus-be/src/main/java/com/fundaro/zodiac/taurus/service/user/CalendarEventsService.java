@@ -37,7 +37,9 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      */
     CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token);
 
-    /** The personal reminder of the current user, {@code null} when not customised. */
+    /**
+     * The personal reminder of the current user, {@code null} when not customised.
+     */
     Integer findReminderMinutes(Long eventId, AbstractAuthenticationToken token);
 
     BulkAvailabilityResultDTO setSeriesAvailability(Long seriesId, Boolean available, AbstractAuthenticationToken token);

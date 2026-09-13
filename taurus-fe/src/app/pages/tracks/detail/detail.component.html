@@ -1,139 +1,142 @@
 <p-confirmdialog />
 @if (loading) {
-    <app-detail-loading-skeleton />
+<app-detail-loading-skeleton />
 }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Traccia" [heading]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
+    <app-page-header kicker="Traccia" [heading]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty"
+        [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
         <div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
         <div pageActions class="flex gap-2">
-            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()" [disabled]="!track.scores?.length" />
-            <p-button label="Salva traccia" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm" (onClick)="save()" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
+                [disabled]="!track.scores?.length" />
+            <p-button label="Salva traccia" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm"
+                (onClick)="save()" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
         </div>
     </app-page-header>
 
     @if (saveError) {
-        <app-inline-alert severity="error" heading="Modifiche non salvate" detail="La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio." actionLabel="Riprova" (action)="save()" />
+    <app-inline-alert severity="error" heading="Modifiche non salvate"
+        detail="La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio."
+        actionLabel="Riprova" (action)="save()" />
     }
     <div class="detail-page__zones">
         <p-tabs class="track-tabs" [value]="activeTab" [scrollable]="true" (valueChange)="onTabChange($event)">
             <p-tablist>
                 <p-tab value="details">Dettagli</p-tab>
-                <p-tab value="parts"
-                    >Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab
-                >
+                <p-tab value="parts">Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab>
                 @if (canManagePdf) {
-                    <p-tab value="pdf">File PDF</p-tab>
+                <p-tab value="pdf">File PDF</p-tab>
                 }
             </p-tablist>
             <p-tabpanels>
                 <p-tabpanel value="details">
-                    <app-detail-section heading="Dati traccia" description="Autori, tipo e stato di pubblicazione. Si salva con «Salva traccia» in alto." [dirty]="isDirty">
+                    <app-detail-section heading="Dati traccia"
+                        description="Autori, tipo e stato di pubblicazione. Si salva con «Salva traccia» in alto."
+                        [dirty]="isDirty">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <app-form-field label="Nome" forId="name" required [error]="track.name?.trim() ? undefined : 'Inserisci il nome della traccia.'"
-                                ><input pInputText id="name" type="text" [(ngModel)]="track.name" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()"
-                            /></app-form-field>
-                            <app-form-field label="Sottotitolo" forId="subName"><input pInputText id="subName" type="text" [(ngModel)]="track.subName" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()" /></app-form-field>
-                            <app-form-field label="Compositore" forId="composer"><input pInputText id="composer" type="text" [(ngModel)]="track.composer" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()" /></app-form-field>
-                            <app-form-field label="Arrangiatore" forId="arranger"><input pInputText id="arranger" type="text" [(ngModel)]="track.arranger" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()" /></app-form-field>
-                            <app-form-field label="Tempo" forId="tempo"><input pInputText id="tempo" type="text" [(ngModel)]="track.tempo" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()" /></app-form-field>
-                            <app-form-field label="Tonalità" forId="tone"><input pInputText id="tone" type="text" [(ngModel)]="track.tone" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()" /></app-form-field>
-                            <app-form-field label="Stato" forId="states" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
-                                ><p-autocomplete
-                                    inputId="states"
-                                    [(ngModel)]="track.state"
-                                    [suggestions]="autoFilteredStatesLabels"
-                                    dropdown
-                                    (completeMethod)="filterStates($event)"
-                                    (ngModelChange)="markDetailsDirty()"
-                                    optionValue="code"
-                                    optionLabel="name"
-                            /></app-form-field>
-                            <app-form-field class="md:col-span-2" label="Tipo" forId="type"><app-type-handler [types]="track.type" (typesChange)="onTypeChange($event)" [readOnly]="isUser" /></app-form-field>
+                            <app-form-field label="Nome" forId="name" required
+                                [error]="track.name?.trim() ? undefined : 'Inserisci il nome della traccia.'"><input
+                                    pInputText id="name" type="text" [(ngModel)]="track.name" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Sottotitolo" forId="subName"><input pInputText id="subName"
+                                    type="text" [(ngModel)]="track.subName" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Compositore" forId="composer"><input pInputText id="composer"
+                                    type="text" [(ngModel)]="track.composer" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Arrangiatore" forId="arranger"><input pInputText id="arranger"
+                                    type="text" [(ngModel)]="track.arranger" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Tempo" forId="tempo"><input pInputText id="tempo" type="text"
+                                    [(ngModel)]="track.tempo" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Tonalità" forId="tone"><input pInputText id="tone" type="text"
+                                    [(ngModel)]="track.tone" [readOnly]="isUser"
+                                    (ngModelChange)="markDetailsDirty()" /></app-form-field>
+                            <app-form-field label="Stato" forId="states"
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"><p-autocomplete
+                                    inputId="states" [(ngModel)]="track.state" [suggestions]="autoFilteredStatesLabels"
+                                    dropdown (completeMethod)="filterStates($event)"
+                                    (ngModelChange)="markDetailsDirty()" optionValue="code"
+                                    optionLabel="name" /></app-form-field>
+                            <app-form-field class="md:col-span-2" label="Tipo" forId="type"><app-type-handler
+                                    [types]="track.type" (typesChange)="onTypeChange($event)"
+                                    [readOnly]="isUser" /></app-form-field>
                             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                                <textarea pTextarea id="description" rows="4" [(ngModel)]="track.description" [readOnly]="isUser" (ngModelChange)="markDetailsDirty()"></textarea>
+                                <textarea pTextarea id="description" rows="4" [(ngModel)]="track.description"
+                                    [readOnly]="isUser" (ngModelChange)="markDetailsDirty()"></textarea>
                             </app-form-field>
                         </div>
                     </app-detail-section>
                 </p-tabpanel>
 
                 <p-tabpanel value="parts">
-                    <app-detail-section heading="Parti" [count]="track.scores?.length ?? 0" description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
-                        <app-score-workspace
-                            [scores]="track.scores ?? []"
-                            [instruments]="instruments"
-                            [readOnly]="isUser"
-                            [saving]="saving"
-                            [trackDirty]="isDirty"
-                            (scoresChange)="onScoresChange($event)"
-                            (dirtyChange)="onScoresDirtyChange($event)"
-                            (imageEdit)="openImageEditor($event)"
-                        />
+                    <app-detail-section heading="Parti" [count]="track.scores?.length ?? 0"
+                        description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
+                        <app-score-workspace [scores]="track.scores ?? []" [instruments]="instruments"
+                            [readOnly]="isUser" [saving]="saving" [trackDirty]="isDirty"
+                            (scoresChange)="onScoresChange($event)" (dirtyChange)="onScoresDirtyChange($event)"
+                            (imageEdit)="openImageEditor($event)" />
                     </app-detail-section>
                 </p-tabpanel>
 
                 @if (canManagePdf) {
-                    <p-tabpanel value="pdf">
-                        <app-detail-section heading="File PDF" description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
-                            <p-fileupload
-                                #fu
-                                name="file"
-                                chooseLabel="Seleziona file"
-                                uploadLabel="Carica"
-                                cancelLabel="Annulla"
-                                mode="advanced"
-                                accept="application/pdf"
-                                [customUpload]="true"
-                                [disabled]="uploading"
-                                (uploadHandler)="handleUpload($event)"
-                                (onSelect)="onFileSelect($event)"
-                                (onClear)="onFileClear()"
-                                (onRemove)="onFileClear()"
-                            >
-                                <ng-template #empty><div>Trascina il file qui per caricarlo.</div></ng-template>
-                            </p-fileupload>
-                            @if (selectedFile) {
-                                <div class="flex items-center gap-3 mt-3">
-                                    <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" outlined (onClick)="openManipulator()" />
-                                    @if (hasAnnotations) {
-                                        <span class="flex items-center gap-1 text-sm text-primary font-medium"><i class="pi pi-check-circle"></i> Annotazioni applicate</span>
-                                    }
-                                </div>
+                <p-tabpanel value="pdf">
+                    <app-detail-section heading="File PDF"
+                        description="Il caricamento crea un job autonomo: il suo stato è separato dalla bozza delle parti.">
+                        <p-fileupload #fu name="file" chooseLabel="Seleziona file" uploadLabel="Carica"
+                            cancelLabel="Annulla" mode="advanced" accept="application/pdf" [customUpload]="true"
+                            [disabled]="uploading" (uploadHandler)="handleUpload($event)"
+                            (onSelect)="onFileSelect($event)" (onClear)="onFileClear()" (onRemove)="onFileClear()">
+                            <ng-template #empty>
+                                <div>Trascina il file qui per caricarlo.</div>
+                            </ng-template>
+                        </p-fileupload>
+                        @if (selectedFile) {
+                        <div class="flex items-center gap-3 mt-3">
+                            <p-button label="Analizza PDF" icon="pi pi-sliders-h" severity="secondary" outlined
+                                (onClick)="openManipulator()" />
+                            @if (hasAnnotations) {
+                            <span class="flex items-center gap-1 text-sm text-primary font-medium"><i
+                                    class="pi pi-check-circle"></i> Annotazioni applicate</span>
                             }
-                            @if (visibleUploadJobs.length) {
-                                <div class="flex flex-col gap-2 mt-4" aria-live="polite">
-                                    @for (job of visibleUploadJobs; track job.id) {
-                                        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface px-4 py-3" role="status">
-                                            <div class="flex items-center gap-3 min-w-0">
-                                                @if (isPendingUpload(job)) {
-                                                    <i class="pi pi-spin pi-spinner text-primary" aria-hidden="true"></i>
-                                                } @else if (job.status === 'DONE') {
-                                                    <i class="pi pi-check-circle text-green-500" aria-hidden="true"></i>
-                                                } @else {
-                                                    <i class="pi pi-exclamation-triangle text-red-500" aria-hidden="true"></i>
-                                                }
-                                                <div class="min-w-0">
-                                                    <strong class="block truncate">{{ job.name }}</strong
-                                                    ><span class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
-                                                </div>
-                                            </div>
-                                            @if (job.status === 'ERROR') {
-                                                <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" outlined size="small" (onClick)="retryUpload(job)" />
-                                            }
-                                        </div>
+                        </div>
+                        }
+                        @if (visibleUploadJobs.length) {
+                        <div class="flex flex-col gap-2 mt-4" aria-live="polite">
+                            @for (job of visibleUploadJobs; track job.id) {
+                            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface px-4 py-3"
+                                role="status">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    @if (isPendingUpload(job)) {
+                                    <i class="pi pi-spin pi-spinner text-primary" aria-hidden="true"></i>
+                                    } @else if (job.status === 'DONE') {
+                                    <i class="pi pi-check-circle text-green-500" aria-hidden="true"></i>
+                                    } @else {
+                                    <i class="pi pi-exclamation-triangle text-red-500" aria-hidden="true"></i>
                                     }
+                                    <div class="min-w-0">
+                                        <strong class="block truncate">{{ job.name }}</strong><span
+                                            class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
+                                    </div>
                                 </div>
+                                @if (job.status === 'ERROR') {
+                                <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" outlined
+                                    size="small" (onClick)="retryUpload(job)" />
+                                }
+                            </div>
                             }
-                        </app-detail-section>
-                    </p-tabpanel>
+                        </div>
+                        }
+                    </app-detail-section>
+                </p-tabpanel>
                 }
             </p-tabpanels>
         </p-tabs>
 
-        <app-danger-zone
-            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+        <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
             [operations]="[{ id: 'delete', title: 'Elimina traccia', consequence: 'La traccia non sarà più visibile e i file associati non saranno più accessibili.', label: 'Elimina traccia' }]"
-            (execute)="confirmDelete()"
-        />
+            (execute)="confirmDelete()" />
     </div>
     <p-scrolltop />
 </p-fluid>

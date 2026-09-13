@@ -1,12 +1,16 @@
 package com.fundaro.zodiac.taurus.service.calendarfeed;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.HashSet;
+
 import org.junit.jupiter.api.Test;
 
 class CalendarFeedTokenServiceTest {
     private final CalendarFeedTokenService service = new CalendarFeedTokenService();
-    @Test void createsOpaqueUrlSafeTokensAndDigests() {
+
+    @Test
+    void createsOpaqueUrlSafeTokensAndDigests() {
         var values = new HashSet<String>();
         for (int i = 0; i < 100; i++) {
             var token = service.generate();

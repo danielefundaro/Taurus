@@ -2,8 +2,10 @@ package com.fundaro.zodiac.taurus.service.notification;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
+
 import org.springframework.stereotype.Component;
 
 @Component

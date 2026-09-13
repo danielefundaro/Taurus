@@ -1,8 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
@@ -14,9 +11,6 @@ import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +20,13 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.IllegalTransactionStateException;
+
+import java.util.Date;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @IntegrationTest
 @TestPropertySource(
@@ -40,14 +41,22 @@ import org.springframework.transaction.IllegalTransactionStateException;
 )
 class NotificationOutboxPublisherIT {
 
-    @MockBean ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean JwtDecoder jwtDecoder;
-    @MockBean NotificationScheduler notificationScheduler;
-    @Autowired TenantSchemaProvisioningService provisioningService;
-    @Autowired TenantTransactionExecutor transactionExecutor;
-    @Autowired NotificationOutboxPublisher publisher;
-    @Autowired NotificationOutboxRepository repository;
-    @Autowired TenantsRepository tenantsRepository;
+    @MockBean
+    ClientRegistrationRepository clientRegistrationRepository;
+    @MockBean
+    JwtDecoder jwtDecoder;
+    @MockBean
+    NotificationScheduler notificationScheduler;
+    @Autowired
+    TenantSchemaProvisioningService provisioningService;
+    @Autowired
+    TenantTransactionExecutor transactionExecutor;
+    @Autowired
+    NotificationOutboxPublisher publisher;
+    @Autowired
+    NotificationOutboxRepository repository;
+    @Autowired
+    TenantsRepository tenantsRepository;
 
     private final String tenantOne = "notification-it-a-" + UUID.randomUUID();
     private final String tenantTwo = "notification-it-b-" + UUID.randomUUID();
@@ -115,8 +124,12 @@ class NotificationOutboxPublisherIT {
         transactionExecutor.execute(tenantOne, () -> publisher.enqueue(command));
         transactionExecutor.execute(tenantTwo, () -> publisher.enqueue(command));
 
-        assertThat(transactionExecutor.execute(tenantOne, () -> { return repository.count(); })).isEqualTo(1);
-        assertThat(transactionExecutor.execute(tenantTwo, () -> { return repository.count(); })).isEqualTo(1);
+        assertThat(transactionExecutor.execute(tenantOne, () -> {
+            return repository.count();
+        })).isEqualTo(1);
+        assertThat(transactionExecutor.execute(tenantTwo, () -> {
+            return repository.count();
+        })).isEqualTo(1);
         assertThat(
             transactionExecutor.execute(
                 tenantOne,

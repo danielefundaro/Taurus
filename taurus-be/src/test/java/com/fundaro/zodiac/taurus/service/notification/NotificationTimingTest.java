@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
+
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+
 import org.junit.jupiter.api.Test;
 
 class NotificationTimingTest {

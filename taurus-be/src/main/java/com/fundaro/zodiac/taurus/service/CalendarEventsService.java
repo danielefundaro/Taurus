@@ -2,10 +2,10 @@ package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
-import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 import java.util.List;
@@ -41,7 +41,9 @@ public interface CalendarEventsService extends CommonOpenSearchService<CalendarE
      */
     CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token);
 
-    /** The personal reminder of the current user, {@code null} when not customised. */
+    /**
+     * The personal reminder of the current user, {@code null} when not customised.
+     */
     Integer findReminderMinutes(Long eventId, AbstractAuthenticationToken token);
 
     /**

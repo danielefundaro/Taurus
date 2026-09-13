@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
+
 import java.time.ZonedDateTime;
+
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -56,14 +58,43 @@ public abstract class AuditFields {
         editDate = ZonedDateTime.now();
     }
 
-    public boolean isDeleted() { return deleted; }
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
-    public String getInsertBy() { return insertBy; }
-    public void setInsertBy(String insertBy) { this.insertBy = insertBy; }
-    public ZonedDateTime getInsertDate() { return insertDate; }
-    public void setInsertDate(ZonedDateTime insertDate) { this.insertDate = insertDate; }
-    public String getEditBy() { return editBy; }
-    public void setEditBy(String editBy) { this.editBy = editBy; }
-    public ZonedDateTime getEditDate() { return editDate; }
-    public void setEditDate(ZonedDateTime editDate) { this.editDate = editDate; }
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public String getInsertBy() {
+        return insertBy;
+    }
+
+    public void setInsertBy(String insertBy) {
+        this.insertBy = insertBy;
+    }
+
+    public ZonedDateTime getInsertDate() {
+        return insertDate;
+    }
+
+    public void setInsertDate(ZonedDateTime insertDate) {
+        this.insertDate = insertDate;
+    }
+
+    public String getEditBy() {
+        return editBy;
+    }
+
+    public void setEditBy(String editBy) {
+        this.editBy = editBy;
+    }
+
+    public ZonedDateTime getEditDate() {
+        return editDate;
+    }
+
+    public void setEditDate(ZonedDateTime editDate) {
+        this.editDate = editDate;
+    }
 }

@@ -1,16 +1,15 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanResponse;
-import com.fundaro.zodiac.taurus.service.TenantFeatureService;
-import com.fundaro.zodiac.taurus.service.impl.InventoryScanService;
-import com.fundaro.zodiac.taurus.service.impl.InventoryScanRateLimiter;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryScanRateLimiter;
+import com.fundaro.zodiac.taurus.service.impl.InventoryScanService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

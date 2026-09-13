@@ -4,7 +4,6 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 

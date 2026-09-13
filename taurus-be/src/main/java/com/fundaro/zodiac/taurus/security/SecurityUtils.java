@@ -1,10 +1,6 @@
 package com.fundaro.zodiac.taurus.security;
 
 import com.fundaro.zodiac.taurus.config.Constants;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,6 +14,9 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import reactor.core.publisher.Mono;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * Utility class for Spring Security.
  */
@@ -25,7 +24,8 @@ public final class SecurityUtils {
 
     public static final String CLAIMS_NAMESPACE = "https://www.jhipster.tech/";
 
-    private SecurityUtils() {}
+    private SecurityUtils() {
+    }
 
     /**
      * Get the login of the current user.

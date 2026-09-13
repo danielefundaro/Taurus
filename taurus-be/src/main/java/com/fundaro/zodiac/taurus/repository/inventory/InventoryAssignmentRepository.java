@@ -4,11 +4,13 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.repository.projection.InventoryExpirationProjection;
 import jakarta.persistence.LockModeType;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,15 +21,21 @@ import org.springframework.data.repository.query.Param;
 
 public interface InventoryAssignmentRepository extends JpaRepository<InventoryAssignment, Long> {
     List<InventoryAssignment> findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(Long itemId);
+
     List<InventoryAssignment> findAllByUserIndexAndDeletedFalseOrderByAssignedAtDesc(Long userIndex);
+
     List<InventoryAssignment> findAllByUserKeycloakIdAndDeletedFalseOrderByAssignedAtDesc(String userId);
+
     Page<InventoryAssignment> findAllByUserKeycloakIdAndDeletedFalseAndStatusIn(
         String userKeycloakId,
         Collection<InventoryAssignmentStatus> statuses,
         Pageable pageable
     );
+
     Optional<InventoryAssignment> findByIdAndUserKeycloakIdAndDeletedFalse(Long id, String userKeycloakId);
+
     Optional<InventoryAssignment> findByIdAndDeletedFalse(Long id);
+
     boolean existsByItem_IdAndUserKeycloakIdAndDeletedFalse(Long itemId, String userKeycloakId);
 
     @Query("select a from InventoryAssignment a join fetch a.item where a.id = :id and a.deleted = false")

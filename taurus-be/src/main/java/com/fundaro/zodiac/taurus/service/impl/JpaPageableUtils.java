@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import java.util.Locale;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -9,7 +10,8 @@ final class JpaPageableUtils {
 
     private static final String OPENSEARCH_KEYWORD_SUFFIX = ".keyword";
 
-    private JpaPageableUtils() {}
+    private JpaPageableUtils() {
+    }
 
     static Pageable normalize(Pageable pageable) {
         if (pageable == null || pageable.isUnpaged() || pageable.getSort().isUnsorted()) {

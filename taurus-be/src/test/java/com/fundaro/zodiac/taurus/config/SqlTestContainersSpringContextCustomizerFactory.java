@@ -1,6 +1,5 @@
 package com.fundaro.zodiac.taurus.config;
 
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -12,9 +11,11 @@ import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
 
+import java.util.List;
+
 public class SqlTestContainersSpringContextCustomizerFactory implements ContextCustomizerFactory {
 
-    private Logger log = LoggerFactory.getLogger(SqlTestContainersSpringContextCustomizerFactory.class);
+    private final Logger log = LoggerFactory.getLogger(SqlTestContainersSpringContextCustomizerFactory.class);
 
     private static SqlTestContainer prodTestContainer;
 
@@ -44,11 +45,11 @@ public class SqlTestContainersSpringContextCustomizerFactory implements ContextC
                         }
                     }
                     testValues = testValues.and(
-                        "spring.r2dbc.url=" + prodTestContainer.getTestContainer().getJdbcUrl().replace("jdbc", "r2dbc") + ""
+                        "spring.r2dbc.url=" + prodTestContainer.getTestContainer().getJdbcUrl().replace("jdbc", "r2dbc")
                     );
                     testValues = testValues.and("spring.r2dbc.username=" + prodTestContainer.getTestContainer().getUsername());
                     testValues = testValues.and("spring.r2dbc.password=" + prodTestContainer.getTestContainer().getPassword());
-                    testValues = testValues.and("spring.liquibase.url=" + prodTestContainer.getTestContainer().getJdbcUrl() + "");
+                    testValues = testValues.and("spring.liquibase.url=" + prodTestContainer.getTestContainer().getJdbcUrl());
                     testValues = testValues.and("spring.liquibase.user=" + prodTestContainer.getTestContainer().getUsername());
                     testValues = testValues.and("spring.liquibase.password=" + prodTestContainer.getTestContainer().getPassword());
                     testValues = testValues.and("spring.datasource.url=" + prodTestContainer.getTestContainer().getJdbcUrl());

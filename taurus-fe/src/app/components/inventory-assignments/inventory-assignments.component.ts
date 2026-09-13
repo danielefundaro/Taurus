@@ -41,7 +41,7 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     constructor(
         private readonly inventoryService: InventoryService,
         private readonly toastService: ToastService
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.load();

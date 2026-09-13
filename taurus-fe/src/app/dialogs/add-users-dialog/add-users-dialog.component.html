@@ -1,40 +1,32 @@
-<app-dialog-shell
-    #shell
-    heading="Nuovo utente"
-    subtitle="Crea l’utente e definisci ruoli e strumenti."
+<app-dialog-shell #shell heading="Nuovo utente" subtitle="Crea l’utente e definisci ruoli e strumenti."
     confirmLabel="Aggiungi utente"
     [invalidCount]="(!user.name?.trim() ? 1 : 0) + (!user.email?.trim() ? 1 : 0) + (!user.roles?.length ? 1 : 0)"
-    (cancel)="cancel()"
-    (confirm)="save()"
->
+    (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !user.name?.trim() ? 'Inserisci il nome.' : undefined"><input pInputText id="name" [(ngModel)]="user.name" /></app-form-field>
-        <app-form-field label="Cognome" forId="lastName"><input pInputText id="lastName" [(ngModel)]="user.lastName" /></app-form-field>
-        <app-form-field label="Email" forId="email" required [error]="shell.validationAttempted && !user.email?.trim() ? 'Inserisci l’indirizzo email.' : undefined"><input pInputText id="email" type="email" [(ngModel)]="user.email" /></app-form-field>
-        <app-form-field label="Data di nascita" forId="birthDate"><p-datepicker inputId="birthDate" dateFormat="dd-mm-yy" [showIcon]="true" appendTo="body" [(ngModel)]="user.birthDate" /></app-form-field>
-        <app-form-field label="Ruoli" forId="roles" required [error]="shell.validationAttempted && !user.roles?.length ? 'Seleziona almeno un ruolo.' : undefined">
-            <p-multiselect
-                inputId="roles"
-                [(ngModel)]="user.roles"
-                [options]="roleOptions"
-                optionLabel="name"
-                optionValue="code"
-                display="chip"
-                selectedItemsLabel="{0} ruoli selezionati"
-                [filter]="true"
-                filterBy="name"
-                filterPlaceholder="Cerca un ruolo"
-                emptyFilterMessage="Nessun ruolo trovato"
-                placeholder="Seleziona uno o più ruoli"
-                ariaLabel="Ruoli dell’utente"
-            />
+        <app-form-field label="Nome" forId="name" required
+            [error]="shell.validationAttempted && !user.name?.trim() ? 'Inserisci il nome.' : undefined"><input
+                pInputText id="name" [(ngModel)]="user.name" /></app-form-field>
+        <app-form-field label="Cognome" forId="lastName"><input pInputText id="lastName"
+                [(ngModel)]="user.lastName" /></app-form-field>
+        <app-form-field label="Email" forId="email" required
+            [error]="shell.validationAttempted && !user.email?.trim() ? 'Inserisci l’indirizzo email.' : undefined"><input
+                pInputText id="email" type="email" [(ngModel)]="user.email" /></app-form-field>
+        <app-form-field label="Data di nascita" forId="birthDate"><p-datepicker inputId="birthDate"
+                dateFormat="dd-mm-yy" [showIcon]="true" appendTo="body" [(ngModel)]="user.birthDate" /></app-form-field>
+        <app-form-field label="Ruoli" forId="roles" required
+            [error]="shell.validationAttempted && !user.roles?.length ? 'Seleziona almeno un ruolo.' : undefined">
+            <p-multiselect inputId="roles" [(ngModel)]="user.roles" [options]="roleOptions" optionLabel="name"
+                optionValue="code" display="chip" selectedItemsLabel="{0} ruoli selezionati" [filter]="true"
+                filterBy="name" filterPlaceholder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
+                placeholder="Seleziona uno o più ruoli" ariaLabel="Ruoli dell’utente" />
         </app-form-field>
-        <app-form-field label="Stato"
-            ><label class="flex items-center gap-2"><p-checkbox [binary]="true" [(ngModel)]="user.active" /> Utente attivo</label></app-form-field
-        >
-        <app-form-field class="md:col-span-2" label="Strumenti"
-            ><p-autocomplete [(ngModel)]="user.instruments" [suggestions]="autoFilteredInstruments" optionLabel="name" dropdown multiple display="chip" (completeMethod)="filterInstruments($event)" (ngModelChange)="onReorderInstruments()"
-        /></app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea id="description" rows="5" class="w-full" [(ngModel)]="user.description"></textarea></app-form-field>
+        <app-form-field label="Stato"><label class="flex items-center gap-2"><p-checkbox [binary]="true"
+                    [(ngModel)]="user.active" /> Utente attivo</label></app-form-field>
+        <app-form-field class="md:col-span-2" label="Strumenti"><p-autocomplete [(ngModel)]="user.instruments"
+                [suggestions]="autoFilteredInstruments" optionLabel="name" dropdown multiple display="chip"
+                (completeMethod)="filterInstruments($event)"
+                (ngModelChange)="onReorderInstruments()" /></app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea
+                id="description" rows="5" class="w-full" [(ngModel)]="user.description"></textarea></app-form-field>
     </div>
 </app-dialog-shell>

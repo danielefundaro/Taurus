@@ -7,6 +7,7 @@ import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,7 +33,9 @@ public class CalendarFeedIdempotencyCodec {
         return sha256(canonicalRequest.getBytes(StandardCharsets.UTF_8));
     }
 
-    public long lockKey(byte[] requestDigest) { return ByteBuffer.wrap(requestDigest).getLong(); }
+    public long lockKey(byte[] requestDigest) {
+        return ByteBuffer.wrap(requestDigest).getLong();
+    }
 
     private static byte[] crypt(int mode, byte[] value, UUID key, byte[] aad, byte[] nonce) {
         try {
@@ -53,9 +56,13 @@ public class CalendarFeedIdempotencyCodec {
     }
 
     private static byte[] sha256(byte[] value) {
-        try { return MessageDigest.getInstance("SHA-256").digest(value); }
-        catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(value);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
-    public record EncryptedToken(byte[] ciphertext, byte[] nonce) {}
+    public record EncryptedToken(byte[] ciphertext, byte[] nonce) {
+    }
 }

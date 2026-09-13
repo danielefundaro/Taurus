@@ -4,21 +4,26 @@
     padding: 1rem;
     background: color-mix(in srgb, var(--p-orange-100) 35%, transparent);
 }
+
 .secret-box p {
     margin-block: 0.35rem 0;
 }
+
 .feed-form p-select,
 .feed-form p-inputnumber {
     width: 100%;
 }
+
 .feed-list-heading {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
+
 .feed-list-heading small {
     color: var(--p-text-muted-color);
 }
+
 .instructions p {
     margin-block: 0.4rem;
 }

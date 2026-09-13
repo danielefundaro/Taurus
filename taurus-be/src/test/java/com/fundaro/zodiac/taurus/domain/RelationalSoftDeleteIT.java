@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.domain;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
@@ -9,11 +7,6 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import jakarta.persistence.EntityManager;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +16,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
+
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
 @TestPropertySource(
@@ -121,7 +122,7 @@ class RelationalSoftDeleteIT {
                 album.getTracks().add(track);
                 entityManager.persist(album);
                 entityManager.flush();
-                return new Long[] { album.getId(), track.getId(), score.getId(), media.getId(), instrument.getId() };
+                return new Long[]{album.getId(), track.getId(), score.getId(), media.getId(), instrument.getId()};
             }
         );
 
@@ -214,7 +215,7 @@ class RelationalSoftDeleteIT {
                 track.getScores().add(score);
                 entityManager.persist(track);
                 entityManager.flush();
-                return new Long[] { score.getId(), source.getId(), following.getId(), firstCrop.getId(), secondCrop.getId() };
+                return new Long[]{score.getId(), source.getId(), following.getId(), firstCrop.getId(), secondCrop.getId()};
             }
         );
 
@@ -256,7 +257,7 @@ class RelationalSoftDeleteIT {
                 track.getScores().addAll(List.of(first, second, third));
                 entityManager.persist(track);
                 entityManager.flush();
-                return new Long[] { track.getId(), first.getId(), second.getId(), third.getId() };
+                return new Long[]{track.getId(), first.getId(), second.getId(), third.getId()};
             }
         );
 
@@ -302,9 +303,9 @@ class RelationalSoftDeleteIT {
         String schema = quote(schemaNameResolver.resolve(tenantCode));
         Long mediaId = insertReturningId(
             "INSERT INTO " + schema + ".media_asset " +
-            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
-            "VALUES ('Cascade media', 'scores/cascade/" + "b".repeat(64) + ".pdf', 'cascade-media.pdf', " +
-            "'application/pdf', 'pdf', 1, '" + "b".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
+                "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+                "VALUES ('Cascade media', 'scores/cascade/" + "b".repeat(64) + ".pdf', 'cascade-media.pdf', " +
+                "'application/pdf', 'pdf', 1, '" + "b".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
         );
         Long instrumentId = insertReturningId(
             "INSERT INTO " + schema + ".instrument (name, insert_by, edit_by) VALUES ('Cascade instrument', 'test', 'test') RETURNING id"
@@ -337,17 +338,17 @@ class RelationalSoftDeleteIT {
         );
         Long eventId = insertReturningId(
             "INSERT INTO " + schema + ".calendar_event (name, start_date, end_date, insert_by, edit_by) " +
-            "VALUES ('Cascade event', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'test', 'test') RETURNING id"
+                "VALUES ('Cascade event', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', 'test', 'test') RETURNING id"
         );
         Long costId = insertReturningId(
             "INSERT INTO " + schema + ".calendar_event_cost (event_id, description, amount, display_order) " +
-            "VALUES (?, 'Cost', 10, 0) RETURNING id",
+                "VALUES (?, 'Cost', 10, 0) RETURNING id",
             eventId
         );
 
         Long reminderId = insertReturningId(
             "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, sent) " +
-            "VALUES (?, 'Cascade event', ?, ?, FALSE) RETURNING id",
+                "VALUES (?, 'Cascade event', ?, ?, FALSE) RETURNING id",
             eventId,
             identityKey,
             Timestamp.from(Instant.now().plusSeconds(3600))
@@ -409,7 +410,7 @@ class RelationalSoftDeleteIT {
         );
         Long availabilityId = insertReturningId(
             "INSERT INTO " + schema + ".calendar_event_availability (event_id, user_id, availability, response_date) " +
-            "VALUES (?, ?, 'AVAILABLE', CURRENT_TIMESTAMP) RETURNING id",
+                "VALUES (?, ?, 'AVAILABLE', CURRENT_TIMESTAMP) RETURNING id",
             userEventId,
             userId
         );
@@ -420,9 +421,9 @@ class RelationalSoftDeleteIT {
         );
         Long uploadMediaId = insertReturningId(
             "INSERT INTO " + schema + ".media_asset " +
-            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
-            "VALUES ('Upload', 'uploads/cascade/" + "c".repeat(64) + ".pdf', 'upload.pdf', 'application/pdf', 'pdf', 1, '" +
-            "c".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
+                "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+                "VALUES ('Upload', 'uploads/cascade/" + "c".repeat(64) + ".pdf', 'upload.pdf', 'application/pdf', 'pdf', 1, '" +
+                "c".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
         );
         Long uploadId = insertReturningId(
             "INSERT INTO " + schema + ".upload_job (user_id, name, source_media_asset_id, status) VALUES (?, 'Upload', ?, 'TO_PROCESS') RETURNING id",
@@ -431,7 +432,7 @@ class RelationalSoftDeleteIT {
         );
         Long userReminderId = insertReturningId(
             "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, sent) " +
-            "VALUES (?, 'User event', ?, ?, FALSE) RETURNING id",
+                "VALUES (?, 'User event', ?, ?, FALSE) RETURNING id",
             userEventId,
             identityKey,
             Timestamp.from(Instant.now().plusSeconds(3600))
@@ -446,21 +447,21 @@ class RelationalSoftDeleteIT {
 
         Long itemId = insertReturningId(
             "INSERT INTO " + schema + ".inventory_item " +
-            "(inventory_number, name, total_quantity, condition_status, insert_by, edit_by, " +
-            "qr_public_id, qr_version, qr_issued_at, qr_issued_by) " +
-            "VALUES ('CASCADE-1', 'Cascade item', 1, 'GOOD', 'test', 'test', " +
-            "gen_random_uuid(), 1, CURRENT_TIMESTAMP, 'test') RETURNING id"
+                "(inventory_number, name, total_quantity, condition_status, insert_by, edit_by, " +
+                "qr_public_id, qr_version, qr_issued_at, qr_issued_by) " +
+                "VALUES ('CASCADE-1', 'Cascade item', 1, 'GOOD', 'test', 'test', " +
+                "gen_random_uuid(), 1, CURRENT_TIMESTAMP, 'test') RETURNING id"
         );
         Long photoMediaId = insertReturningId(
             "INSERT INTO " + schema + ".media_asset " +
-            "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
-            "VALUES ('photo.jpg', 'inventory/cascade/" + "d".repeat(64) + ".jpg', 'photo.jpg', 'image/jpeg', 'jpg', 1, '" +
-            "d".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
+                "(name, storage_key, original_filename, mime_type, file_extension, file_size, sha256, status, insert_by, edit_by) " +
+                "VALUES ('photo.jpg', 'inventory/cascade/" + "d".repeat(64) + ".jpg', 'photo.jpg', 'image/jpeg', 'jpg', 1, '" +
+                "d".repeat(64) + "', 'READY', 'test', 'test') RETURNING id"
         );
         Long photoId = insertReturningId(
             "INSERT INTO " + schema + ".inventory_item_photo " +
-            "(item_id, media_asset_id, display_order, insert_by, edit_by, preview) " +
-            "VALUES (?, ?, 0, 'test', 'test', TRUE) RETURNING id",
+                "(item_id, media_asset_id, display_order, insert_by, edit_by, preview) " +
+                "VALUES (?, ?, 0, 'test', 'test', TRUE) RETURNING id",
             itemId,
             photoMediaId
         );
@@ -506,10 +507,10 @@ class RelationalSoftDeleteIT {
     private void softDelete(String schema, String table, Long id, String actor) {
         int updated = jdbcTemplate.update(
             "UPDATE " +
-            schema +
-            "." +
-            quote(table) +
-            " SET deleted = TRUE, edit_by = ?, edit_date = CURRENT_TIMESTAMP WHERE id = ? AND deleted = FALSE",
+                schema +
+                "." +
+                quote(table) +
+                " SET deleted = TRUE, edit_by = ?, edit_date = CURRENT_TIMESTAMP WHERE id = ? AND deleted = FALSE",
             actor,
             id
         );

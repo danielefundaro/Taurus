@@ -92,16 +92,45 @@ public class CalendarEventsDTO extends StateFieldOpenSearchDTO {
         this.presentUsers = presentUsers;
     }
 
-    public Integer getReminderMinutes() { return reminderMinutes; }
-    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
-    public Long getSeriesId() { return seriesId; }
-    public void setSeriesId(Long seriesId) { this.seriesId = seriesId; }
-    public Date getOriginalStartDate() { return originalStartDate; }
-    public void setOriginalStartDate(Date originalStartDate) { this.originalStartDate = originalStartDate; }
-    public Integer getSeriesSequence() { return seriesSequence; }
-    public void setSeriesSequence(Integer seriesSequence) { this.seriesSequence = seriesSequence; }
-    public Boolean getSeriesException() { return seriesException; }
-    public void setSeriesException(Boolean seriesException) { this.seriesException = seriesException; }
+    public Integer getReminderMinutes() {
+        return reminderMinutes;
+    }
+
+    public void setReminderMinutes(Integer reminderMinutes) {
+        this.reminderMinutes = reminderMinutes;
+    }
+
+    public Long getSeriesId() {
+        return seriesId;
+    }
+
+    public void setSeriesId(Long seriesId) {
+        this.seriesId = seriesId;
+    }
+
+    public Date getOriginalStartDate() {
+        return originalStartDate;
+    }
+
+    public void setOriginalStartDate(Date originalStartDate) {
+        this.originalStartDate = originalStartDate;
+    }
+
+    public Integer getSeriesSequence() {
+        return seriesSequence;
+    }
+
+    public void setSeriesSequence(Integer seriesSequence) {
+        this.seriesSequence = seriesSequence;
+    }
+
+    public Boolean getSeriesException() {
+        return seriesException;
+    }
+
+    public void setSeriesException(Boolean seriesException) {
+        this.seriesException = seriesException;
+    }
 
     @Override
     public boolean equals(Object o) {

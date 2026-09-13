@@ -25,10 +25,24 @@ public class PushSubscriptionCriteria extends CommonCriteria {
         return new PushSubscriptionCriteria(this);
     }
 
-    public StringFilter getEndpoint() { return endpoint; }
-    public Optional<StringFilter> optionalEndpoint() { return Optional.ofNullable(endpoint); }
-    public StringFilter endpoint() { if (endpoint == null) { setEndpoint(new StringFilter()); } return endpoint; }
-    public void setEndpoint(StringFilter endpoint) { this.endpoint = endpoint; }
+    public StringFilter getEndpoint() {
+        return endpoint;
+    }
+
+    public Optional<StringFilter> optionalEndpoint() {
+        return Optional.ofNullable(endpoint);
+    }
+
+    public StringFilter endpoint() {
+        if (endpoint == null) {
+            setEndpoint(new StringFilter());
+        }
+        return endpoint;
+    }
+
+    public void setEndpoint(StringFilter endpoint) {
+        this.endpoint = endpoint;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -39,5 +53,7 @@ public class PushSubscriptionCriteria extends CommonCriteria {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(super.hashCode(), endpoint); }
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), endpoint);
+    }
 }

@@ -18,12 +18,14 @@ import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -60,7 +62,9 @@ public class CalendarEventsServiceImpl
     }
 
     @Autowired
-    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) { this.calendarFeedLifecycle = value; }
+    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) {
+        this.calendarFeedLifecycle = value;
+    }
 
     @Override
     public CalendarEventsDTO save(CalendarEventsDTO dto, AbstractAuthenticationToken token) {

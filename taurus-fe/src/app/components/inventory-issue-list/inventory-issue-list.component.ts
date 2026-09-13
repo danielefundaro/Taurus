@@ -35,7 +35,7 @@ export class InventoryIssueListComponent implements OnChanges {
         private readonly inventoryService: InventoryService,
         private readonly dialogService: DialogService,
         private readonly toastService: ToastService
-    ) {}
+    ) { }
 
     ngOnChanges(): void {
         if (this.itemId) this.load();

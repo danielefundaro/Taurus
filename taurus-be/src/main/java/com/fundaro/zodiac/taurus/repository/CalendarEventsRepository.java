@@ -4,11 +4,12 @@ import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.repository.projection.CalendarAttentionProjection;
 import com.fundaro.zodiac.taurus.repository.projection.CalendarResponseProjection;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface CalendarEventsRepository extends CatalogRepository<CalendarEvents> {
     List<CalendarEvents> findAllBySeries_IdOrderByOriginalStartDateAsc(Long seriesId);

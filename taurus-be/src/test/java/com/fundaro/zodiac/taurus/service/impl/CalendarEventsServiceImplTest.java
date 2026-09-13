@@ -1,13 +1,6 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import com.fundaro.zodiac.taurus.domain.CalendarEventAvailability;
-import com.fundaro.zodiac.taurus.domain.CalendarEventPresence;
-import com.fundaro.zodiac.taurus.domain.CalendarEvents;
-import com.fundaro.zodiac.taurus.domain.EventCost;
-import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.*;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
@@ -15,6 +8,11 @@ import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.EventPresentUserDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,10 +20,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CalendarEventsServiceImplTest {
 
@@ -211,7 +208,8 @@ class CalendarEventsServiceImplTest {
     }
 
     private static CalendarEventsServiceImpl service(CalendarEvents event, Users user, EventReminderProducer reminderProducer) {
-        return service(event, user, reminderProducer, () -> {});
+        return service(event, user, reminderProducer, () -> {
+        });
     }
 
     private static CalendarEventsServiceImpl service(
@@ -289,7 +287,7 @@ class CalendarEventsServiceImplTest {
 
     @SuppressWarnings("unchecked")
     private static <T> T proxy(Class<T> type, Invocation invocation) {
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] { type }, (instance, method, args) -> invocation.call(method.getName(), args));
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, (instance, method, args) -> invocation.call(method.getName(), args));
     }
 
     @FunctionalInterface

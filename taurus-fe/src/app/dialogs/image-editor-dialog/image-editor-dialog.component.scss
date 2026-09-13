@@ -90,7 +90,7 @@ canvas.crop-active {
     justify-content: space-between;
 }
 
-.button-row > * {
+.button-row>* {
     flex: 1;
 }
 
@@ -104,7 +104,7 @@ canvas.crop-active {
     gap: 0.75rem;
 }
 
-.crop-grid > * {
+.crop-grid>* {
     min-width: 0;
 }
 

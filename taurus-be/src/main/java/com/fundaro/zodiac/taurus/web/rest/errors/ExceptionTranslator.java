@@ -1,13 +1,5 @@
 package com.fundaro.zodiac.taurus.web.rest.errors;
 
-import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
-
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataAccessException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +26,11 @@ import tech.jhipster.config.JHipsterConstants;
 import tech.jhipster.web.rest.errors.ProblemDetailWithCause;
 import tech.jhipster.web.rest.errors.ProblemDetailWithCause.ProblemDetailWithCauseBuilder;
 import tech.jhipster.web.util.HeaderUtil;
+
+import java.net.URI;
+import java.util.*;
+
+import static org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation;
 
 /**
  * Controller advice to translate the server side exceptions to client-friendly json structures.
@@ -79,7 +72,7 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
         HttpStatusCode statusCode,
         WebRequest request
     ) {
-        body = body == null ? wrapAndCustomizeProblem((Throwable) ex, request) : body;
+        body = body == null ? wrapAndCustomizeProblem(ex, request) : body;
         logException(ex, ((ProblemDetailWithCause) body).getStatus());
         return new ResponseEntity<>(body, updateContentType(headers), HttpStatusCode.valueOf(((ProblemDetailWithCause) body).getStatus()));
     }
@@ -106,7 +99,8 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     protected ProblemDetailWithCause customizeProblem(ProblemDetailWithCause problem, Throwable err, WebRequest request) {
         if (problem.getStatus() <= 0) problem.setStatus(toStatus(err));
 
-        if (problem.getType() == null || problem.getType().equals(URI.create("about:blank"))) problem.setType(getMappedType(err));
+        if (problem.getType() == null || problem.getType().equals(URI.create("about:blank")))
+            problem.setType(getMappedType(err));
 
         // higher precedence to Custom/ResponseStatus types
         String title = extractTitle(err, problem.getStatus());
@@ -126,11 +120,12 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
             getMappedMessageKey(err) != null ? getMappedMessageKey(err) : "error.http." + problem.getStatus()
         );
 
-        if (problemProperties == null || !problemProperties.containsKey(PATH_KEY)) problem.setProperty(PATH_KEY, getPathValue(request));
+        if (problemProperties == null || !problemProperties.containsKey(PATH_KEY))
+            problem.setProperty(PATH_KEY, getPathValue(request));
 
         if (
             (err instanceof MethodArgumentNotValidException fieldException) &&
-            (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
+                (problemProperties == null || !problemProperties.containsKey(FIELD_ERRORS_KEY))
         ) problem.setProperty(FIELD_ERRORS_KEY, getFieldErrors(fieldException));
 
         problem.setCause(buildCause(err.getCause(), request).orElse(null));
@@ -226,12 +221,12 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     private HttpHeaders buildHeaders(Throwable err) {
         return err instanceof RequestAlertException requestAlertException
             ? HeaderUtil.createFailureAlert(
-                applicationName,
-                true,
-                requestAlertException.getEntityName(),
-                requestAlertException.getErrorKey(),
-                requestAlertException.getMessage()
-            )
+            applicationName,
+            true,
+            requestAlertException.getEntityName(),
+            requestAlertException.getErrorKey(),
+            requestAlertException.getMessage()
+        )
             : null;
     }
 

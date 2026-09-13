@@ -1,11 +1,11 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
+import com.fundaro.zodiac.taurus.domain.notification.NoticeView;
 import org.springdoc.core.annotations.ParameterObject;
+import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
 import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.ZonedDateTimeFilter;
-import tech.jhipster.service.filter.BooleanFilter;
-import com.fundaro.zodiac.taurus.domain.notification.NoticeView;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -133,14 +133,37 @@ public class NoticesCriteria extends CommonCriteria {
         this.readDate = readDate;
     }
 
-    public StringFilter getSource() { return source; }
-    public Optional<StringFilter> optionalSource() { return Optional.ofNullable(source); }
-    public void setSource(StringFilter source) { this.source = source; }
-    public BooleanFilter getUnread() { return unread; }
-    public Optional<BooleanFilter> optionalUnread() { return Optional.ofNullable(unread); }
-    public void setUnread(BooleanFilter unread) { this.unread = unread; }
-    public NoticeView getView() { return view; }
-    public void setView(NoticeView view) { this.view = view == null ? NoticeView.ACTIVE : view; }
+    public StringFilter getSource() {
+        return source;
+    }
+
+    public Optional<StringFilter> optionalSource() {
+        return Optional.ofNullable(source);
+    }
+
+    public void setSource(StringFilter source) {
+        this.source = source;
+    }
+
+    public BooleanFilter getUnread() {
+        return unread;
+    }
+
+    public Optional<BooleanFilter> optionalUnread() {
+        return Optional.ofNullable(unread);
+    }
+
+    public void setUnread(BooleanFilter unread) {
+        this.unread = unread;
+    }
+
+    public NoticeView getView() {
+        return view;
+    }
+
+    public void setView(NoticeView view) {
+        this.view = view == null ? NoticeView.ACTIVE : view;
+    }
 
     @Override
     public boolean equals(Object o) {

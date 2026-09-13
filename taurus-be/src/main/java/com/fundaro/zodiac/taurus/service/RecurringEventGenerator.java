@@ -5,19 +5,15 @@ import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceFrequency;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceWeekDay;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceEndDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import org.springframework.stereotype.Component;
+
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import org.springframework.stereotype.Component;
 
 @Component
 public class RecurringEventGenerator {
@@ -134,7 +130,8 @@ public class RecurringEventGenerator {
             if (rule.getEnd().getCount() == null || rule.getEnd().getCount() < 1 || rule.getEnd().getCount() > maximum) {
                 throw new IllegalArgumentException("Occurrence count must be between 1 and " + maximum);
             }
-            if (rule.getEnd().getUntil() != null) throw new IllegalArgumentException("COUNT cannot include an until date");
+            if (rule.getEnd().getUntil() != null)
+                throw new IllegalArgumentException("COUNT cannot include an until date");
         } else {
             if (rule.getEnd().getUntil() == null || rule.getEnd().getUntil().isBefore(first.toLocalDate())) {
                 throw new IllegalArgumentException("Invalid recurrence end date");

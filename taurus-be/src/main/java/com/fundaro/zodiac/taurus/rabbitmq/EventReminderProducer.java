@@ -2,18 +2,18 @@ package com.fundaro.zodiac.taurus.rabbitmq;
 
 import com.fundaro.zodiac.taurus.domain.PushReminder;
 import com.fundaro.zodiac.taurus.domain.criteria.PreferencesCriteria;
-import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
-import com.fundaro.zodiac.taurus.service.PreferencesService;
-import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.domain.notification.ReminderOrigin;
+import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
+import com.fundaro.zodiac.taurus.service.PreferencesService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -133,7 +133,11 @@ public class EventReminderProducer {
             int legacy = preferencesService.findByCriteria(criteria, PageRequest.of(0, 1), token)
                 .getContent().stream().findFirst()
                 .map(p -> {
-                    try { return Integer.parseInt(p.getValue()); } catch (NumberFormatException e) { return DEFAULT_REMINDER_MINUTES; }
+                    try {
+                        return Integer.parseInt(p.getValue());
+                    } catch (NumberFormatException e) {
+                        return DEFAULT_REMINDER_MINUTES;
+                    }
                 })
                 .orElse(DEFAULT_REMINDER_MINUTES);
             return new ResolvedReminder(legacy, ReminderOrigin.APPLICATION);
@@ -143,5 +147,6 @@ public class EventReminderProducer {
         }
     }
 
-    private record ResolvedReminder(int minutes, ReminderOrigin origin) {}
+    private record ResolvedReminder(int minutes, ReminderOrigin origin) {
+    }
 }

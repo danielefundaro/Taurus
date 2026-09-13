@@ -15,8 +15,10 @@ import com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.*;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 

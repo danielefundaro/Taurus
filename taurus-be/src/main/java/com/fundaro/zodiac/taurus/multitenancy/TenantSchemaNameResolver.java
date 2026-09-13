@@ -1,11 +1,12 @@
 package com.fundaro.zodiac.taurus.multitenancy;
 
+import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.regex.Pattern;
-import org.springframework.stereotype.Component;
 
 /**
  * Generates deterministic PostgreSQL identifiers without embedding user input.

@@ -13,10 +13,12 @@ import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
+
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.Duration;
+
 import jakarta.persistence.criteria.Predicate;
 import com.fundaro.zodiac.taurus.domain.notification.NoticeView;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;

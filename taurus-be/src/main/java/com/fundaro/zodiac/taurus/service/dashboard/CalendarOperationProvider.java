@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
+
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -103,9 +105,12 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         List<DashboardEntry> followUp = entries.stream()
             .filter(entry -> entry.closureStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.ClosureStatus.TO_CLOSE)
             .toList();
-        if (!blocked.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_BLOCKED, DashboardSeverity.DANGER, blocked, "Eventi con preparazione bloccata", "Completa la preparazione", "/calendar?attention=event-preparation"));
-        if (!attention.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_ATTENTION, DashboardSeverity.WARNING, attention, "Eventi da verificare", "Verifica la preparazione", "/calendar?attention=event-preparation"));
-        if (!followUp.isEmpty()) result.add(preparationItem(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, DashboardSeverity.WARNING, followUp, "Eventi da chiudere", "Completa le attività successive", "/calendar?attention=event-follow-up"));
+        if (!blocked.isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_BLOCKED, DashboardSeverity.DANGER, blocked, "Eventi con preparazione bloccata", "Completa la preparazione", "/calendar?attention=event-preparation"));
+        if (!attention.isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_ATTENTION, DashboardSeverity.WARNING, attention, "Eventi da verificare", "Verifica la preparazione", "/calendar?attention=event-preparation"));
+        if (!followUp.isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, DashboardSeverity.WARNING, followUp, "Eventi da chiudere", "Completa le attività successive", "/calendar?attention=event-follow-up"));
         return result;
     }
 
@@ -181,8 +186,10 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         List<CalendarResponseProjection> summaries = new ArrayList<>();
         Date from = Date.from(context.generatedAt().toInstant());
         Date to = Date.from(limit.toInstant());
-        if (!internal.isEmpty()) summaries.addAll(eventsRepository.summarizeResponses(StateEnum.COMPLETE, internal, from, to));
-        if (!publicAudience.isEmpty()) summaries.addAll(eventsRepository.summarizeResponses(StateEnum.PUBLIC, publicAudience, from, to));
+        if (!internal.isEmpty())
+            summaries.addAll(eventsRepository.summarizeResponses(StateEnum.COMPLETE, internal, from, to));
+        if (!publicAudience.isEmpty())
+            summaries.addAll(eventsRepository.summarizeResponses(StateEnum.PUBLIC, publicAudience, from, to));
 
         long eventCount = 0;
         long missingResponses = 0;

@@ -1,86 +1,76 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Utente" [heading]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users" [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined"
-        ><div pageMetadata>{{ user.email }}</div>
+    <app-page-header kicker="Utente" [heading]="(user.name || '') + ' ' + (user.lastName || '')" backLink="/users"
+        [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined">
+        <div pageMetadata>{{ user.email }}</div>
         <div pageActions class="flex gap-2">
-            <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined (onClick)="sendSetupEmail()" /><p-button label="Salva utente" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
-    ></app-page-header>
+            <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined
+                (onClick)="sendSetupEmail()" /><p-button label="Salva utente" icon="pi pi-check" [loading]="saving"
+                [disabled]="!isDirty" (onClick)="save()" />
+        </div>
+    </app-page-header>
 
-    <app-detail-section heading="Dati utente" description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati utente"
+        description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <app-form-field label="Nome" forId="name" required [error]="user.name?.trim() ? undefined : 'Inserisci il nome.'">
+            <app-form-field label="Nome" forId="name" required
+                [error]="user.name?.trim() ? undefined : 'Inserisci il nome.'">
                 <input pInputText id="name" type="text" [(ngModel)]="user!.name" (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Cognome" forId="lastName" required [error]="user.lastName?.trim() ? undefined : 'Inserisci il cognome.'">
-                <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName" (ngModelChange)="isDirty = true" />
+            <app-form-field label="Cognome" forId="lastName" required
+                [error]="user.lastName?.trim() ? undefined : 'Inserisci il cognome.'">
+                <input pInputText id="lastName" type="text" [(ngModel)]="user!.lastName"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Email" forId="email" required [error]="user.email?.trim() ? undefined : 'Inserisci l’indirizzo email.'">
+            <app-form-field label="Email" forId="email" required
+                [error]="user.email?.trim() ? undefined : 'Inserisci l’indirizzo email.'">
                 <input pInputText id="email" type="text" [(ngModel)]="user!.email" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Data di nascita" forId="birthDate">
-                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy" class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" inputId="birthDate" dateFormat="dd-mm-yy"
+                    class="w-full" [(ngModel)]="user!.birthDate" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Ruoli" forId="roles">
-                <p-multiselect
-                    inputId="roles"
-                    [(ngModel)]="user!.roles"
-                    [options]="roleOptions"
-                    optionLabel="name"
-                    optionValue="code"
-                    display="chip"
-                    selectedItemsLabel="{0} ruoli selezionati"
-                    [filter]="true"
-                    filterBy="name"
-                    filterPlaceholder="Cerca un ruolo"
-                    emptyFilterMessage="Nessun ruolo trovato"
-                    placeholder="Seleziona uno o più ruoli"
-                    ariaLabel="Ruoli dell’utente"
-                    (ngModelChange)="isDirty = true"
-                />
+                <p-multiselect inputId="roles" [(ngModel)]="user!.roles" [options]="roleOptions" optionLabel="name"
+                    optionValue="code" display="chip" selectedItemsLabel="{0} ruoli selezionati" [filter]="true"
+                    filterBy="name" filterPlaceholder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
+                    placeholder="Seleziona uno o più ruoli" ariaLabel="Ruoli dell’utente"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Stato account" forId="active">
                 <div class="flex flex-row items-center gap-2">
-                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active" (ngModelChange)="isDirty = true"></p-checkbox>
+                    <p-checkbox id="active" [binary]="true" [(ngModel)]="user!.active"
+                        (ngModelChange)="isDirty = true"></p-checkbox>
                     <label for="active">Attivo</label>
                 </div>
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Strumenti" forId="instruments">
-                <p-autocomplete
-                    inputId="instruments"
-                    [(ngModel)]="user!.instruments"
-                    [suggestions]="autoFilteredInstruments"
-                    [virtualScroll]="true"
-                    [virtualScrollItemSize]="34"
-                    optionLabel="name"
-                    dropdown
-                    multiple
-                    display="chip"
-                    (completeMethod)="filterInstruments($event)"
-                    (ngModelChange)="onReorderInstruments()"
-                />
+                <p-autocomplete inputId="instruments" [(ngModel)]="user!.instruments"
+                    [suggestions]="autoFilteredInstruments" [virtualScroll]="true" [virtualScrollItemSize]="34"
+                    optionLabel="name" dropdown multiple display="chip" (completeMethod)="filterInstruments($event)"
+                    (ngModelChange)="onReorderInstruments()" />
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description" (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="user!.description"
+                    (ngModelChange)="isDirty = true"></textarea>
             </app-form-field>
         </div>
     </app-detail-section>
 
-    <app-detail-section heading="Eventi a cui ha partecipato" description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
+    <app-detail-section heading="Eventi a cui ha partecipato"
+        description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
         <app-calendar-events-table [userId]="user.id" />
     </app-detail-section>
 
     @if (user.id && tenantFeatureService.inventoryEnabled()) {
-        <app-inventory-assignments [userIndex]="user.id" />
+    <app-inventory-assignments [userIndex]="user.id" />
     }
 
-    <app-danger-zone
-        [operations]="[
+    <app-danger-zone [operations]="[
             { id: 'deactivate', title: 'Disattiva utente', consequence: 'L’utente verrà rimosso conservandone i dati.', label: 'Disattiva utente', icon: 'pi pi-user-minus' },
             { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'I dati personali dell’utente verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
-        ]"
-        (execute)="$event === 'deactivate' ? confirmDelete() : confirmGdprDeletion()"
-    />
+        ]" (execute)="$event === 'deactivate' ? confirmDelete() : confirmGdprDeletion()" />
 
     <p-scrolltop />
 </p-fluid>

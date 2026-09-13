@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.service.mapper;
 
-import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.getPreferencesSample1;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PreferencesMapperTest {
 

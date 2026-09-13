@@ -1,51 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <property name="now" value="current_timestamp" dbms="postgresql"/>
-    <property name="uuidType" value="uuid" dbms="postgresql"/>
-    <property name="datetimeType" value="datetime" dbms="postgresql"/>
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <property name="now" value="current_timestamp" dbms="postgresql"/>
+  <property name="uuidType" value="uuid" dbms="postgresql"/>
+  <property name="datetimeType" value="datetime" dbms="postgresql"/>
 
-    <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260820000001_add_tenant_user_legal_acceptance.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260820000002_remove_tenant_columns.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260824000001_add_relational_catalog.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260824000002_finalize_relational_inventory.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260826000000_allow_super_admin_upload.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260826000002_unlimited_tenant_descriptions.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260827000000_inventory_photo_preview.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260829000001_add_tenant_audit_fields.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260829000002_enable_relational_soft_delete.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260830000000_cascade_soft_delete.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260831000000_media_asset.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260831000001_inventory_item_expiration_date.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260831000003_recurring_calendar_events.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260901000000_move_inventory_expiration_to_assignment.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260901000001_inventory_expiration_notices.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260901000002_add_finance.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260901000003_finance_notifications.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260903000000_availability_reminder_minutes.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260903000001_generalize_notification_outbox.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260905000000_notification_preferences.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260905010000_notification_delivery_console.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260905020001_external_calendar_feed.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260905030000_tenant_onboarding_import.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260905040000_event_preparation.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260906000000_inventory_qr_code.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260906010000_calendar_feed_idempotency.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260906020000_onboarding_recovery.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260907000000_calendar_feed_audit.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260909000000_track_page_image_editing.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260909010000_track_page_multi_crop.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910000000_repair_score_order.xml" relativeToChangelogFile="false"/>
-    <include file="config/liquibase/changelog/20260910000001_allow_super_admin_notification_preferences.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20241222160402_added_entity_LastResearch.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20241222160406_added_entity_Notices.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20241222160408_added_entity_Preferences.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260708000001_add_entity_PushSubscription.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260710000001_add_entity_PushReminder.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260820000001_add_tenant_user_legal_acceptance.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260811030000_add_retention_indexes.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260818090000_add_inventory.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260820000002_remove_tenant_columns.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260821000000_allow_inventory_number_reuse.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260824000001_add_relational_catalog.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260824000002_finalize_relational_inventory.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260826000000_allow_super_admin_upload.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260826000002_unlimited_tenant_descriptions.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260827000000_inventory_photo_preview.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260829000001_add_tenant_audit_fields.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260829000002_enable_relational_soft_delete.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260830000000_cascade_soft_delete.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260831000000_media_asset.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260831000001_inventory_item_expiration_date.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260831000003_recurring_calendar_events.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260901000000_move_inventory_expiration_to_assignment.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260901000001_inventory_expiration_notices.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260901000002_add_finance.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260901000003_finance_notifications.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260903000000_availability_reminder_minutes.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260903000001_generalize_notification_outbox.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260905000000_notification_preferences.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260905010000_notification_delivery_console.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260905020001_external_calendar_feed.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260905030000_tenant_onboarding_import.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260905040000_event_preparation.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260906000000_inventory_qr_code.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260906010000_calendar_feed_idempotency.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260906020000_onboarding_recovery.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260907000000_calendar_feed_audit.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260909000000_track_page_image_editing.xml"
+           relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260909010000_track_page_multi_crop.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260910000000_repair_score_order.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260910000001_allow_super_admin_notification_preferences.xml"
+           relativeToChangelogFile="false"/>
 </databaseChangeLog>

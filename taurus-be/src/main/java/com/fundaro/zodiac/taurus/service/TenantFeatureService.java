@@ -1,19 +1,20 @@
 package com.fundaro.zodiac.taurus.service;
 
-import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
-import com.fundaro.zodiac.taurus.service.dto.TenantFeaturesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantFeatureCapabilityDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantFeaturesDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -93,7 +94,8 @@ public class TenantFeatureService {
             case INVENTORY -> Boolean.TRUE.equals(tenant.getInventoryEnabled());
             case ONBOARDING_IMPORT -> Boolean.TRUE.equals(tenant.getOnboardingImportEnabled());
             case EXTERNAL_CALENDAR_FEED -> Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled());
-            case INVENTORY_QR -> Boolean.TRUE.equals(tenant.getInventoryQrEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
+            case INVENTORY_QR ->
+                Boolean.TRUE.equals(tenant.getInventoryQrEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
             case NOTIFICATION_PREFERENCES -> Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled());
             case WEB_PUSH_REMINDERS -> Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())
                 && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES);

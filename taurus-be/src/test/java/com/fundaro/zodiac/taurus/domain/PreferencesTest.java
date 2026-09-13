@@ -1,10 +1,11 @@
 package com.fundaro.zodiac.taurus.domain;
 
-import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.web.rest.TestUtil;
 import org.junit.jupiter.api.Test;
+
+import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.getPreferencesSample1;
+import static com.fundaro.zodiac.taurus.domain.PreferencesTestSamples.getPreferencesSample2;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PreferencesTest {
 

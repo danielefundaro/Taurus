@@ -5,8 +5,10 @@ import jakarta.persistence.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
+
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.domain.notification.ReminderOrigin;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -65,39 +67,123 @@ public class PushReminder extends AuditFields implements Serializable {
     @Column(name = "last_error", length = 1000)
     private String lastError;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getEventId() { return eventId; }
-    public void setEventId(Long eventId) { this.eventId = eventId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getEventName() { return eventName; }
-    public void setEventName(String eventName) { this.eventName = eventName; }
+    public Long getEventId() {
+        return eventId;
+    }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public void setEventId(Long eventId) {
+        this.eventId = eventId;
+    }
 
-    public Instant getSendAt() { return sendAt; }
-    public void setSendAt(Instant sendAt) { this.sendAt = sendAt; }
+    public String getEventName() {
+        return eventName;
+    }
 
-    public boolean isSent() { return sent; }
-    public void setSent(boolean sent) { this.sent = sent; }
-    public Instant getEventStartAt() { return eventStartAt; }
-    public void setEventStartAt(Instant value) { eventStartAt = value; }
-    public NotificationStatus getStatus() { return status; }
-    public void setStatus(NotificationStatus value) { status = value; }
-    public ReminderOrigin getReminderOrigin() { return reminderOrigin; }
-    public void setReminderOrigin(ReminderOrigin value) { reminderOrigin = value; }
-    public int getScheduleRevision() { return scheduleRevision; }
-    public void setScheduleRevision(int value) { scheduleRevision = value; }
-    public int getAttempts() { return attempts; }
-    public void setAttempts(int value) { attempts = value; }
-    public ZonedDateTime getNextAttemptAt() { return nextAttemptAt; }
-    public void setNextAttemptAt(ZonedDateTime value) { nextAttemptAt = value; }
-    public ZonedDateTime getDeliveredAt() { return deliveredAt; }
-    public void setDeliveredAt(ZonedDateTime value) { deliveredAt = value; }
-    public String getSkipReason() { return skipReason; }
-    public void setSkipReason(String value) { skipReason = value; }
-    public String getLastError() { return lastError; }
-    public void setLastError(String value) { lastError = value; }
+    public void setEventName(String eventName) {
+        this.eventName = eventName;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public Instant getSendAt() {
+        return sendAt;
+    }
+
+    public void setSendAt(Instant sendAt) {
+        this.sendAt = sendAt;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
+    }
+
+    public Instant getEventStartAt() {
+        return eventStartAt;
+    }
+
+    public void setEventStartAt(Instant value) {
+        eventStartAt = value;
+    }
+
+    public NotificationStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(NotificationStatus value) {
+        status = value;
+    }
+
+    public ReminderOrigin getReminderOrigin() {
+        return reminderOrigin;
+    }
+
+    public void setReminderOrigin(ReminderOrigin value) {
+        reminderOrigin = value;
+    }
+
+    public int getScheduleRevision() {
+        return scheduleRevision;
+    }
+
+    public void setScheduleRevision(int value) {
+        scheduleRevision = value;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(int value) {
+        attempts = value;
+    }
+
+    public ZonedDateTime getNextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    public void setNextAttemptAt(ZonedDateTime value) {
+        nextAttemptAt = value;
+    }
+
+    public ZonedDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(ZonedDateTime value) {
+        deliveredAt = value;
+    }
+
+    public String getSkipReason() {
+        return skipReason;
+    }
+
+    public void setSkipReason(String value) {
+        skipReason = value;
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
+
+    public void setLastError(String value) {
+        lastError = value;
+    }
 }

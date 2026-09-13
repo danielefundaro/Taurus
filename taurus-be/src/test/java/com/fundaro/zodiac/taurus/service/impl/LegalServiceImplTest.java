@@ -1,11 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.LegalDocument;
 import com.fundaro.zodiac.taurus.domain.UserLegalAcceptance;
 import com.fundaro.zodiac.taurus.domain.enumeration.LegalDocumentAction;
@@ -13,11 +7,6 @@ import com.fundaro.zodiac.taurus.domain.enumeration.LegalDocumentType;
 import com.fundaro.zodiac.taurus.repository.LegalDocumentRepository;
 import com.fundaro.zodiac.taurus.repository.UserLegalAcceptanceRepository;
 import com.fundaro.zodiac.taurus.service.dto.LegalAcceptanceRequestDTO;
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +14,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class LegalServiceImplTest {

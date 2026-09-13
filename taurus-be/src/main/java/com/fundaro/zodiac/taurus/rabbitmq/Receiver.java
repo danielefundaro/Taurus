@@ -3,24 +3,20 @@ package com.fundaro.zodiac.taurus.rabbitmq;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
+import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
-import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
-import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
-import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
+import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Objects;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +24,11 @@ import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 @RabbitListener(queues = RabbitMQConfig.queueNameListener)

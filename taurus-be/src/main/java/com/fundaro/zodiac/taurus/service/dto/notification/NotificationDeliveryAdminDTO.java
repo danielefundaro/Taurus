@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dto.notification;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationDeliveryOrigin;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+
 import java.time.ZonedDateTime;
 
 /**

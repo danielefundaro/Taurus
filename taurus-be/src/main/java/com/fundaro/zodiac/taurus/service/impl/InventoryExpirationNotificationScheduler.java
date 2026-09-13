@@ -8,11 +8,13 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryExpirationNoticeRepository;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

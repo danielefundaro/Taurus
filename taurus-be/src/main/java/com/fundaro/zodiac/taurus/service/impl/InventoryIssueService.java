@@ -27,6 +27,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryIssueDtos.Transi
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +39,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import javax.imageio.ImageIO;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -86,7 +88,8 @@ public class InventoryIssueService {
         qrCodeService.requireEnabled();
         tenant(token);
         InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(InventoryIssueService::notFound);
-        if (request.reportedQuantity() > item.getTotalQuantity()) throw badRequest("La quantità segnalata supera la quantità del bene", "inventory.issue.quantity");
+        if (request.reportedQuantity() > item.getTotalQuantity())
+            throw badRequest("La quantità segnalata supera la quantità del bene", "inventory.issue.quantity");
         return create(item, null, request, token);
     }
 
@@ -99,7 +102,8 @@ public class InventoryIssueService {
         InventoryItem item = itemRepository.findForUpdate(candidate.getItem().getId()).orElseThrow(InventoryIssueService::notFound);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId).orElseThrow(InventoryIssueService::notFound);
         if (!actor.equals(assignment.getUserKeycloakId())) throw notFound();
-        if (request.reportedQuantity() > assignment.getOutstandingQuantity()) throw badRequest("La quantità segnalata supera la quantità residua", "inventory.issue.quantity");
+        if (request.reportedQuantity() > assignment.getOutstandingQuantity())
+            throw badRequest("La quantità segnalata supera la quantità residua", "inventory.issue.quantity");
         return create(item, assignment, request, token);
     }
 
@@ -146,16 +150,19 @@ public class InventoryIssueService {
         String actor = actor(token);
         InventoryIssueReport issue = issueRepository.findForUpdate(issueId).orElseThrow(InventoryIssueService::notFound);
         InventoryItem item = itemRepository.findForUpdate(issue.getItem().getId()).orElseThrow(InventoryIssueService::notFound);
-        if (issue.getEntityVersion() != request.version()) throw conflict("La segnalazione è stata aggiornata da un altro utente", "inventory.issue.version");
+        if (issue.getEntityVersion() != request.version())
+            throw conflict("La segnalazione è stata aggiornata da un altro utente", "inventory.issue.version");
         InventoryIssueStatus current = issue.getStatus();
-        if (current.isTerminal() || !allowed(current, request.status())) throw badRequest("Transizione di stato non consentita", "inventory.issue.transition");
+        if (current.isTerminal() || !allowed(current, request.status()))
+            throw badRequest("Transizione di stato non consentita", "inventory.issue.transition");
         ZonedDateTime now = ZonedDateTime.now();
         if (request.status() == InventoryIssueStatus.ACKNOWLEDGED) {
             issue.setAcknowledgedAt(now);
             issue.setAcknowledgedBy(actor);
         } else {
             String notes = trimToNull(request.resolutionNotes());
-            if (notes == null) throw badRequest("Le note di risoluzione sono obbligatorie", "inventory.issue.resolutionNotes");
+            if (notes == null)
+                throw badRequest("Le note di risoluzione sono obbligatorie", "inventory.issue.resolutionNotes");
             issue.setResolutionNotes(notes);
             issue.setResolvedAt(now);
             issue.setResolvedBy(actor);
@@ -177,9 +184,11 @@ public class InventoryIssueService {
         InventoryIssueReport issue = ownerRequired
             ? issueRepository.findByIdAndAssignment_UserKeycloakIdAndDeletedFalse(issueId, actor).orElseThrow(InventoryIssueService::notFound)
             : issueRepository.findByIdAndDeletedFalse(issueId).orElseThrow(InventoryIssueService::notFound);
-        if (ownerRequired && issue.getStatus().isTerminal()) throw conflict("La segnalazione è già chiusa", "inventory.issue.closed");
+        if (ownerRequired && issue.getStatus().isTerminal())
+            throw conflict("La segnalazione è già chiusa", "inventory.issue.closed");
         validatePhoto(file);
-        if (photoRepository.countByIssue_IdAndDeletedFalse(issueId) >= MAX_PHOTOS) throw conflict("Numero massimo di fotografie raggiunto", "inventory.issue.photo.limit");
+        if (photoRepository.countByIssue_IdAndDeletedFalse(issueId) >= MAX_PHOTOS)
+            throw conflict("Numero massimo di fotografie raggiunto", "inventory.issue.photo.limit");
         String type = Objects.requireNonNull(file.getContentType()).toLowerCase(Locale.ROOT);
         byte[] normalized = normalizeImage(file.getBytes(), type);
         String extension = type.equals("image/png") ? ".png" : ".jpg";
@@ -233,7 +242,8 @@ public class InventoryIssueService {
 
     private void notifyTransition(InventoryIssueReport issue, InventoryIssueStatus previous, AbstractAuthenticationToken token) {
         Set<NotificationAudience> audiences = new LinkedHashSet<>(adminAudiences());
-        if (issue.getAssignment() != null) audiences.add(NotificationAudience.user(issue.getAssignment().getUserKeycloakId()));
+        if (issue.getAssignment() != null)
+            audiences.add(NotificationAudience.user(issue.getAssignment().getUserKeycloakId()));
         String actor = actor(token);
         notificationPublisher.enqueue(new NotificationCommand("inventory-issue:" + issue.getId() + ":" + issue.getStatus(), NotificationSource.INVENTORY,
             "INVENTORY_ISSUE", issue.getId().toString(), issue.getStatus().name(), "Segnalazione inventario aggiornata",
@@ -244,11 +254,13 @@ public class InventoryIssueService {
     private static Set<NotificationAudience> adminAudiences() {
         return Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN));
     }
+
     private static boolean allowed(InventoryIssueStatus from, InventoryIssueStatus to) {
         return from == InventoryIssueStatus.OPEN
             ? to == InventoryIssueStatus.ACKNOWLEDGED || to == InventoryIssueStatus.RESOLVED || to == InventoryIssueStatus.DISMISSED
             : from == InventoryIssueStatus.ACKNOWLEDGED && (to == InventoryIssueStatus.RESOLVED || to == InventoryIssueStatus.DISMISSED);
     }
+
     private static byte[] normalizeImage(byte[] bytes, String contentType) throws IOException {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
         if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0 || image.getWidth() > 6000 || image.getHeight() > 6000)
@@ -258,41 +270,66 @@ public class InventoryIssueService {
         if (format.equals("jpg") && image.getColorModel().hasAlpha()) {
             output = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
             java.awt.Graphics2D graphics = output.createGraphics();
-            graphics.setColor(java.awt.Color.WHITE); graphics.fillRect(0, 0, image.getWidth(), image.getHeight()); graphics.drawImage(image, 0, 0, null); graphics.dispose();
+            graphics.setColor(java.awt.Color.WHITE);
+            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+            graphics.drawImage(image, 0, 0, null);
+            graphics.dispose();
         }
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
-            if (!ImageIO.write(output, format, stream)) throw badRequest("Impossibile normalizzare l'immagine", "inventory.issue.photo.invalid");
-            if (stream.size() > MAX_PHOTO_SIZE) throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
+            if (!ImageIO.write(output, format, stream))
+                throw badRequest("Impossibile normalizzare l'immagine", "inventory.issue.photo.invalid");
+            if (stream.size() > MAX_PHOTO_SIZE)
+                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
             return stream.toByteArray();
         }
     }
+
     private static void validatePhoto(MultipartFile file) {
-        if (file == null || file.isEmpty() || file.getSize() > MAX_PHOTO_SIZE) throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
+        if (file == null || file.isEmpty() || file.getSize() > MAX_PHOTO_SIZE)
+            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
         String type = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
-        if (!type.equals("image/jpeg") && !type.equals("image/png")) throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Sono supportate solo immagini JPEG e PNG", ENTITY, "inventory.issue.photo.unsupported");
+        if (!type.equals("image/jpeg") && !type.equals("image/png"))
+            throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Sono supportate solo immagini JPEG e PNG", ENTITY, "inventory.issue.photo.unsupported");
     }
+
     private static String safeFileName(String original, String extension) {
         String name = original == null ? "fotografia" : original.replaceAll("[^A-Za-z0-9._-]", "_");
         if (name.length() > 180) name = name.substring(0, 180);
         return name.toLowerCase(Locale.ROOT).endsWith(extension) ? name : name + extension;
     }
+
     private static String displayName(AbstractAuthenticationToken token) {
         String first = Objects.requireNonNullElse(SecurityUtils.getFirstNameFromAuthentication(token), "");
         String last = Objects.requireNonNullElse(SecurityUtils.getLastNameFromAuthentication(token), "");
         String value = (first + " " + last).trim();
         return value.isBlank() ? actor(token) : value;
     }
+
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
-        if (value == null || value.isBlank()) throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
+        if (value == null || value.isBlank())
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
         return value;
     }
+
     private static void tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
         if (value == null || value.isBlank()) throw badRequest("Tenant non disponibile", "inventory.tenant.missing");
     }
-    private static String trimToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
-    private static RequestAlertException notFound() { return new RequestAlertException(HttpStatus.NOT_FOUND, "Segnalazione non disponibile", ENTITY, "inventory.issue.notFound"); }
-    private static RequestAlertException badRequest(String message, String key) { return new RequestAlertException(HttpStatus.BAD_REQUEST, message, ENTITY, key); }
-    private static RequestAlertException conflict(String message, String key) { return new RequestAlertException(HttpStatus.CONFLICT, message, ENTITY, key); }
+
+    private static String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static RequestAlertException notFound() {
+        return new RequestAlertException(HttpStatus.NOT_FOUND, "Segnalazione non disponibile", ENTITY, "inventory.issue.notFound");
+    }
+
+    private static RequestAlertException badRequest(String message, String key) {
+        return new RequestAlertException(HttpStatus.BAD_REQUEST, message, ENTITY, key);
+    }
+
+    private static RequestAlertException conflict(String message, String key) {
+        return new RequestAlertException(HttpStatus.CONFLICT, message, ENTITY, key);
+    }
 }

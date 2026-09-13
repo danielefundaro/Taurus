@@ -53,8 +53,7 @@
 
     <sql dbms="postgresql">
       CREATE UNIQUE INDEX uq_legal_document_active_type
-      ON legal_document (document_type)
-      WHERE active = TRUE;
+        ON legal_document (document_type) WHERE active = TRUE;
     </sql>
 
     <createTable tableName="user_legal_acceptance">

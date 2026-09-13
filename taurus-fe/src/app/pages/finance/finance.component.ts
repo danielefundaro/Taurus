@@ -87,7 +87,7 @@ export class FinanceComponent implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly dialogService: DialogService,
         private readonly route: ActivatedRoute
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         const params = this.route.snapshot.queryParamMap;

@@ -9,7 +9,9 @@ import com.fundaro.zodiac.taurus.domain.Instruments;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class InstrumentsDTO extends CommonFieldsOpenSearchDTO {
 
-    /** Quanti utenti hanno assegnato questo strumento. Valorizzato negli elenchi. */
+    /**
+     * Quanti utenti hanno assegnato questo strumento. Valorizzato negli elenchi.
+     */
     private Long usersCount;
 
     public Long getUsersCount() {

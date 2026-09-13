@@ -1,11 +1,5 @@
 package com.fundaro.zodiac.taurus.service.dashboard;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
@@ -15,17 +9,23 @@ import com.fundaro.zodiac.taurus.repository.projection.CalendarResponseProjectio
 import com.fundaro.zodiac.taurus.repository.projection.UserRoleProjection;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
-import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
-import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
 import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.ClosureStatus;
 import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus;
-import java.time.Instant;
+import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
+import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
+import org.junit.jupiter.api.Test;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CalendarOperationProviderTest {
 

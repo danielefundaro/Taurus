@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <changeSet id="20260906020000-1" author="codex">
-        <comment>Persist setup e-mail delivery state so onboarding retries remain selective after a restart.</comment>
-        <addColumn tableName="onboarding_identity_operation">
-            <column name="setup_email_status" type="varchar(32)" defaultValue="NOT_REQUESTED">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-        <sql>
-            ALTER TABLE onboarding_identity_operation
-            ADD CONSTRAINT ck_onboarding_setup_email_status
-            CHECK (setup_email_status IN ('NOT_REQUESTED','PENDING','SENT','FAILED'));
-        </sql>
-    </changeSet>
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20260906020000-1" author="codex">
+    <comment>Persist setup e-mail delivery state so onboarding retries remain selective after a restart.</comment>
+    <addColumn tableName="onboarding_identity_operation">
+      <column name="setup_email_status" type="varchar(32)" defaultValue="NOT_REQUESTED">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <sql>
+      ALTER TABLE onboarding_identity_operation
+        ADD CONSTRAINT ck_onboarding_setup_email_status
+          CHECK (setup_email_status IN ('NOT_REQUESTED', 'PENDING', 'SENT', 'FAILED'));
+    </sql>
+  </changeSet>
 </databaseChangeLog>

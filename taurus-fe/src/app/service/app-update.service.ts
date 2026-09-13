@@ -21,7 +21,7 @@ export class AppUpdateService {
         private readonly swUpdate: SwUpdate,
         private readonly appRef: ApplicationRef,
         private readonly messageService: MessageService
-    ) {}
+    ) { }
 
     init(): void {
         if (!this.swUpdate.isEnabled) return;

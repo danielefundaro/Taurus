@@ -9,4 +9,5 @@ public record OperationalDashboardDTO(
     OperationalSummaryDTO summary,
     List<OperationalItemDTO> items,
     List<DashboardDomain> unavailableDomains
-) {}
+) {
+}

@@ -13,7 +13,8 @@ public final class NotificationEventKey {
 
     public static final int MAX_LENGTH = 160;
 
-    private NotificationEventKey() {}
+    private NotificationEventKey() {
+    }
 
     public static String deterministic(Object... components) {
         String value = Arrays.stream(components)

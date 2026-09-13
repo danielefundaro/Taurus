@@ -87,7 +87,7 @@ public class PreferencesCriteria extends CommonCriteria {
         }
         final PreferencesCriteria that = (PreferencesCriteria) o;
         return (
-                Objects.equals(key, that.key) &&
+            Objects.equals(key, that.key) &&
                 Objects.equals(value, that.value)
         );
     }

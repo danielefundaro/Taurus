@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto.inventory;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -25,4 +26,5 @@ public record InventoryAssignmentSummaryDTO(
     ZonedDateTime revisionDate,
     InventoryDecisionDTO decision,
     InventoryPhotoDTO photo
-) {}
+) {
+}

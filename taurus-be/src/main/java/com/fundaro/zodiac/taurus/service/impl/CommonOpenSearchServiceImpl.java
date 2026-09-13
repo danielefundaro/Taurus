@@ -12,11 +12,13 @@ import com.fundaro.zodiac.taurus.service.mapper.EntityOpenSearchMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -40,7 +42,7 @@ public class CommonOpenSearchServiceImpl<
     C extends CommonOpenSearchCriteria,
     M extends EntityOpenSearchMapper<D, E>,
     R extends CatalogRepository<E>
-> implements CommonOpenSearchService<E, D, C> {
+    > implements CommonOpenSearchService<E, D, C> {
 
     private final Logger log;
     private final R repository;
@@ -54,10 +56,21 @@ public class CommonOpenSearchServiceImpl<
         this.entityName = entityClass.getSimpleName();
     }
 
-    protected R getRepository() { return repository; }
-    public M getMapper() { return mapper; }
-    public Logger getLogger() { return log; }
-    public String getEntityName() { return entityName; }
+    protected R getRepository() {
+        return repository;
+    }
+
+    public M getMapper() {
+        return mapper;
+    }
+
+    public Logger getLogger() {
+        return log;
+    }
+
+    public String getEntityName() {
+        return entityName;
+    }
 
     protected D saveEntity(E entity, AbstractAuthenticationToken token, boolean created) {
         prepareForSave(entity, token, created);
@@ -142,8 +155,10 @@ public class CommonOpenSearchServiceImpl<
         if (filter == null) return;
         if (filter.getEquals() != null) predicates.add(cb.equal(path, filter.getEquals()));
         if (filter.getNotEquals() != null) predicates.add(cb.notEqual(path, filter.getNotEquals()));
-        if (filter.getContains() != null) predicates.add(cb.like(cb.lower(path), "%" + filter.getContains().toLowerCase() + "%"));
-        if (filter.getDoesNotContain() != null) predicates.add(cb.notLike(cb.lower(path), "%" + filter.getDoesNotContain().toLowerCase() + "%"));
+        if (filter.getContains() != null)
+            predicates.add(cb.like(cb.lower(path), "%" + filter.getContains().toLowerCase() + "%"));
+        if (filter.getDoesNotContain() != null)
+            predicates.add(cb.notLike(cb.lower(path), "%" + filter.getDoesNotContain().toLowerCase() + "%"));
         if (filter.getIn() != null && !filter.getIn().isEmpty()) predicates.add(path.in(filter.getIn()));
     }
 
@@ -168,9 +183,11 @@ public class CommonOpenSearchServiceImpl<
         addFilter(predicates, cb, path, filter);
         if (filter == null) return;
         if (filter.getGreaterThan() != null) predicates.add(cb.greaterThan(path, filter.getGreaterThan()));
-        if (filter.getGreaterThanOrEqual() != null) predicates.add(cb.greaterThanOrEqualTo(path, filter.getGreaterThanOrEqual()));
+        if (filter.getGreaterThanOrEqual() != null)
+            predicates.add(cb.greaterThanOrEqualTo(path, filter.getGreaterThanOrEqual()));
         if (filter.getLessThan() != null) predicates.add(cb.lessThan(path, filter.getLessThan()));
-        if (filter.getLessThanOrEqual() != null) predicates.add(cb.lessThanOrEqualTo(path, filter.getLessThanOrEqual()));
+        if (filter.getLessThanOrEqual() != null)
+            predicates.add(cb.lessThanOrEqualTo(path, filter.getLessThanOrEqual()));
     }
 
     private void validateId(Long id, D dto) {

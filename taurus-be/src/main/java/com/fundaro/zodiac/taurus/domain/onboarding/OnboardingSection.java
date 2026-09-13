@@ -12,9 +12,20 @@ public enum OnboardingSection {
 
     private final String sheetName;
     private final List<String> headers;
-    OnboardingSection(String sheetName, List<String> headers) { this.sheetName = sheetName; this.headers = headers; }
-    public String getSheetName() { return sheetName; }
-    public List<String> getHeaders() { return headers; }
+
+    OnboardingSection(String sheetName, List<String> headers) {
+        this.sheetName = sheetName;
+        this.headers = headers;
+    }
+
+    public String getSheetName() {
+        return sheetName;
+    }
+
+    public List<String> getHeaders() {
+        return headers;
+    }
+
     public static OnboardingSection fromSheet(String name) {
         for (OnboardingSection value : values()) if (value.sheetName.equals(name)) return value;
         return null;

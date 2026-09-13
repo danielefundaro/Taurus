@@ -2,11 +2,7 @@ package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.PushReminder;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationDeliveryOrigin;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.notification.*;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationDeliveryAdminQueryRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationDeliveryAdminQueryRepository.NotificationDeliveryFilter;
@@ -19,11 +15,6 @@ import com.fundaro.zodiac.taurus.service.dto.notification.NotificationDeliveryRe
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationDeliveryRetryResult;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +23,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.ZonedDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Console tecnica delle consegne notifiche.
@@ -79,7 +76,8 @@ public class NotificationDeliveryAdminService {
         int size,
         String sort
     ) {
-        if (page < 0 || size < 1 || size > 100) throw badRequest("Invalid page or size", "notification.delivery.page.invalid");
+        if (page < 0 || size < 1 || size > 100)
+            throw badRequest("Invalid page or size", "notification.delivery.page.invalid");
         if (from != null && to != null && !from.isBefore(to)) {
             throw badRequest("The range start must precede its end", "notification.delivery.range.invalid");
         }
@@ -125,7 +123,8 @@ public class NotificationDeliveryAdminService {
             throw badRequest("Between 1 and 100 references are required", "notification.delivery.ids.invalid");
         }
         Set<NotificationDeliveryRef> unique = new HashSet<>(refs);
-        if (unique.size() != refs.size()) throw badRequest("Duplicate references are not allowed", "notification.delivery.ids.duplicate");
+        if (unique.size() != refs.size())
+            throw badRequest("Duplicate references are not allowed", "notification.delivery.ids.duplicate");
         String actor = actor(authentication);
         long retried = 0;
         // Ordine deterministico per origine e id: evita deadlock tra retry massivi concorrenti.

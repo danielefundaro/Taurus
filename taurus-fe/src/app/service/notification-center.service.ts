@@ -12,7 +12,7 @@ export class NotificationCenterService {
     constructor(
         private readonly noticesService: NoticesService,
         private readonly layoutService: LayoutService
-    ) {}
+    ) { }
 
     start(): void {
         if (this.subscription) return;

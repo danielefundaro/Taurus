@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import com.fundaro.zodiac.taurus.service.PushSubscriptionService;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.PushSubscriptionService;
 import com.fundaro.zodiac.taurus.service.dto.PushSubscriptionDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

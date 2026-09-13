@@ -8,18 +8,18 @@ import { EventPreparationConfiguration, EventPreparationMaterial, EventPreparati
 @Injectable({ providedIn: 'root' })
 export class EventPreparationService {
     private readonly baseUrl = `${environment.baseUrl}/calendar-events`;
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
     get(eventId: number, role: RoleEnums = RoleEnums.ADMIN): Observable<EventPreparationView> {
         const url =
             role === RoleEnums.ARCHIVIST
                 ? `${this.baseUrl}/${eventId}/preparation/catalogue`
                 : role === RoleEnums.USER
-                  ? `${environment.baseUrl}/user/calendar-events/${eventId}/preparation`
-                  : role === RoleEnums.USER_EXTERNAL
-                    ? `${environment.baseUrl}/external/calendar-events/${eventId}/preparation`
-                    : role === RoleEnums.TREASURER
-                      ? `${environment.baseUrl}/finance/events/${eventId}/preparation`
-                      : `${this.baseUrl}/${eventId}/preparation`;
+                    ? `${environment.baseUrl}/user/calendar-events/${eventId}/preparation`
+                    : role === RoleEnums.USER_EXTERNAL
+                        ? `${environment.baseUrl}/external/calendar-events/${eventId}/preparation`
+                        : role === RoleEnums.TREASURER
+                            ? `${environment.baseUrl}/finance/events/${eventId}/preparation`
+                            : `${this.baseUrl}/${eventId}/preparation`;
         return this.http.get<EventPreparationView>(url);
     }
     configure(eventId: number, configuration: EventPreparationConfiguration): Observable<EventPreparationView> {

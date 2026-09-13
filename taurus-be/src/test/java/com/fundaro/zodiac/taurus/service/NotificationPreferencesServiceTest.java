@@ -24,12 +24,14 @@ import com.fundaro.zodiac.taurus.service.dto.notification.NotificationPreference
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationQuietHoursDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -103,6 +105,7 @@ class NotificationPreferencesServiceTest {
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject("user-1").claim("tenant", "tenant-a").build();
         return new JwtAuthenticationToken(jwt);
     }
+
     @Test
     void rejectsAnInvalidTimeZone() {
         assertThatThrownBy(() -> service.save(request(builder -> builder.timeZone = "Mars/Olympus"), authentication()))
@@ -140,7 +143,8 @@ class NotificationPreferencesServiceTest {
         when(repository.findByKeycloakSubjectAndDeletedFalse("super-admin-1")).thenReturn(Optional.empty());
         when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.save(request(builder -> {}), authentication("super-admin-1", AuthoritiesConstants.SUPER_ADMIN));
+        service.save(request(builder -> {
+        }), authentication("super-admin-1", AuthoritiesConstants.SUPER_ADMIN));
 
         verify(repository).saveAndFlush(org.mockito.ArgumentMatchers.argThat(profile ->
             "super-admin-1".equals(profile.getKeycloakSubject()) && profile.getUser() == null
@@ -151,7 +155,8 @@ class NotificationPreferencesServiceTest {
     void rejectsNonSuperAdminPreferencesWithoutATenantUser() {
         when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.save(request(builder -> {}), authentication()))
+        assertThatThrownBy(() -> service.save(request(builder -> {
+        }), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
             .isEqualTo("user.notFound");
@@ -313,16 +318,18 @@ class NotificationPreferencesServiceTest {
         return profile;
     }
 
-    /** Richiesta valida di base, che ogni test modifica soltanto nel campo in esame. */
+    /**
+     * Richiesta valida di base, che ogni test modifica soltanto nel campo in esame.
+     */
     private static final class RequestBuilder {
         private Long version;
         private String timeZone = "Europe/Rome";
-        private boolean remindersEnabled = true;
+        private final boolean remindersEnabled = true;
         private int reminderMinutes = 30;
         private NotificationQuietHoursDTO quiet = new NotificationQuietHoursDTO(false, LocalTime.of(22, 0), LocalTime.of(7, 0));
         private ZonedDateTime pausedUntil;
         private LocalTime digest = LocalTime.of(8, 0);
-        private NotificationPushPreview preview = NotificationPushPreview.PRIVATE;
+        private final NotificationPushPreview preview = NotificationPushPreview.PRIVATE;
         private List<NotificationCategoryPreferenceDTO> categories = Arrays.stream(NotificationSource.values())
             .map(source -> new NotificationCategoryPreferenceDTO(source, true, NotificationPushMode.OFF))
             .toList();

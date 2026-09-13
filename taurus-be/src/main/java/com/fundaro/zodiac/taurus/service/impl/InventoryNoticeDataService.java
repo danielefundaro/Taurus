@@ -10,9 +10,11 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoReposito
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

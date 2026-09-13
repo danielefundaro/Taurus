@@ -1,25 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationAudienceType;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationOutboxAudience;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.domain.notification.*;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepository;
 import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
-import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
-import java.time.ZonedDateTime;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,14 +14,28 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.ZonedDateTime;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class NotificationDispatcherTest {
 
-    @Mock NotificationOutboxRepository repository;
-    @Mock NotificationRecipientResolver recipientResolver;
-    @Mock NoticesService noticesService;
-    @Mock NotificationMetrics metrics;
-    @Mock TenantFeatureService tenantFeatureService;
+    @Mock
+    NotificationOutboxRepository repository;
+    @Mock
+    NotificationRecipientResolver recipientResolver;
+    @Mock
+    NoticesService noticesService;
+    @Mock
+    NotificationMetrics metrics;
+    @Mock
+    TenantFeatureService tenantFeatureService;
     private NotificationDispatcher dispatcher;
 
     @BeforeEach

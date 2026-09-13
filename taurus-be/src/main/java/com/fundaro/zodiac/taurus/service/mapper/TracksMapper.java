@@ -59,7 +59,10 @@ public interface TracksMapper extends EntityOpenSearchMapper<TracksDTO, Tracks> 
         final long[] order = {0L};
         return media.stream().map(item -> {
             com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO ref = new com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO();
-            ref.setIndex(item.getId()); ref.setName(item.getName()); ref.setOrder(++order[0]); return ref;
+            ref.setIndex(item.getId());
+            ref.setName(item.getName());
+            ref.setOrder(++order[0]);
+            return ref;
         }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -68,7 +71,10 @@ public interface TracksMapper extends EntityOpenSearchMapper<TracksDTO, Tracks> 
         final long[] order = {0L};
         return instruments.stream().map(item -> {
             com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO ref = new com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO();
-            ref.setIndex(item.getId()); ref.setName(item.getName()); ref.setOrder(++order[0]); return ref;
+            ref.setIndex(item.getId());
+            ref.setName(item.getName());
+            ref.setOrder(++order[0]);
+            return ref;
         }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

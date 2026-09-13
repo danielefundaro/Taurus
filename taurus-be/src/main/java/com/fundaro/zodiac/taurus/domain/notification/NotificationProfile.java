@@ -13,6 +13,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -69,27 +70,95 @@ public class NotificationProfile extends TenantAuditedEntity {
         });
     }
 
-    public String getKeycloakSubject() { return keycloakSubject; }
-    public void setKeycloakSubject(String keycloakSubject) { this.keycloakSubject = keycloakSubject; }
-    public Users getUser() { return user; }
-    public void setUser(Users user) { this.user = user; }
-    public String getTimeZone() { return timeZone; }
-    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
-    public boolean isEventRemindersEnabled() { return eventRemindersEnabled; }
-    public void setEventRemindersEnabled(boolean eventRemindersEnabled) { this.eventRemindersEnabled = eventRemindersEnabled; }
-    public int getDefaultCalendarReminderMinutes() { return defaultCalendarReminderMinutes; }
-    public void setDefaultCalendarReminderMinutes(int value) { this.defaultCalendarReminderMinutes = value; }
-    public boolean isQuietHoursEnabled() { return quietHoursEnabled; }
-    public void setQuietHoursEnabled(boolean quietHoursEnabled) { this.quietHoursEnabled = quietHoursEnabled; }
-    public LocalTime getQuietStart() { return quietStart; }
-    public void setQuietStart(LocalTime quietStart) { this.quietStart = quietStart; }
-    public LocalTime getQuietEnd() { return quietEnd; }
-    public void setQuietEnd(LocalTime quietEnd) { this.quietEnd = quietEnd; }
-    public ZonedDateTime getPushPausedUntil() { return pushPausedUntil; }
-    public void setPushPausedUntil(ZonedDateTime pushPausedUntil) { this.pushPausedUntil = pushPausedUntil; }
-    public LocalTime getDigestLocalTime() { return digestLocalTime; }
-    public void setDigestLocalTime(LocalTime digestLocalTime) { this.digestLocalTime = digestLocalTime; }
-    public NotificationPushPreview getPushPreview() { return pushPreview; }
-    public void setPushPreview(NotificationPushPreview pushPreview) { this.pushPreview = pushPreview; }
-    public List<NotificationCategoryPreference> getCategories() { return categories; }
+    public String getKeycloakSubject() {
+        return keycloakSubject;
+    }
+
+    public void setKeycloakSubject(String keycloakSubject) {
+        this.keycloakSubject = keycloakSubject;
+    }
+
+    public Users getUser() {
+        return user;
+    }
+
+    public void setUser(Users user) {
+        this.user = user;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
+    }
+
+    public boolean isEventRemindersEnabled() {
+        return eventRemindersEnabled;
+    }
+
+    public void setEventRemindersEnabled(boolean eventRemindersEnabled) {
+        this.eventRemindersEnabled = eventRemindersEnabled;
+    }
+
+    public int getDefaultCalendarReminderMinutes() {
+        return defaultCalendarReminderMinutes;
+    }
+
+    public void setDefaultCalendarReminderMinutes(int value) {
+        this.defaultCalendarReminderMinutes = value;
+    }
+
+    public boolean isQuietHoursEnabled() {
+        return quietHoursEnabled;
+    }
+
+    public void setQuietHoursEnabled(boolean quietHoursEnabled) {
+        this.quietHoursEnabled = quietHoursEnabled;
+    }
+
+    public LocalTime getQuietStart() {
+        return quietStart;
+    }
+
+    public void setQuietStart(LocalTime quietStart) {
+        this.quietStart = quietStart;
+    }
+
+    public LocalTime getQuietEnd() {
+        return quietEnd;
+    }
+
+    public void setQuietEnd(LocalTime quietEnd) {
+        this.quietEnd = quietEnd;
+    }
+
+    public ZonedDateTime getPushPausedUntil() {
+        return pushPausedUntil;
+    }
+
+    public void setPushPausedUntil(ZonedDateTime pushPausedUntil) {
+        this.pushPausedUntil = pushPausedUntil;
+    }
+
+    public LocalTime getDigestLocalTime() {
+        return digestLocalTime;
+    }
+
+    public void setDigestLocalTime(LocalTime digestLocalTime) {
+        this.digestLocalTime = digestLocalTime;
+    }
+
+    public NotificationPushPreview getPushPreview() {
+        return pushPreview;
+    }
+
+    public void setPushPreview(NotificationPushPreview pushPreview) {
+        this.pushPreview = pushPreview;
+    }
+
+    public List<NotificationCategoryPreference> getCategories() {
+        return categories;
+    }
 }

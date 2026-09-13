@@ -1,42 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="20260910000001-1" author="codex">
-        <comment>Allow notification profiles for super admins without tenant membership</comment>
-        <addColumn tableName="notification_profile">
-            <column name="user_keycloak_id" type="varchar(255)"/>
-        </addColumn>
-        <sql>
-            UPDATE notification_profile profile
-            SET user_keycloak_id = app_user.keycloak_id
-            FROM app_user
-            WHERE app_user.id = profile.user_id;
-        </sql>
-        <addNotNullConstraint
-            tableName="notification_profile"
-            columnName="user_keycloak_id"
-            columnDataType="varchar(255)"/>
-        <dropIndex tableName="notification_profile" indexName="uq_notification_profile_active_user"/>
-        <sql>
-            CREATE UNIQUE INDEX uq_notification_profile_active_subject
-            ON notification_profile(user_keycloak_id)
-            WHERE deleted = FALSE;
-        </sql>
-        <dropNotNullConstraint
-            tableName="notification_profile"
-            columnName="user_id"
-            columnDataType="bigint"/>
+  <changeSet id="20260910000001-1" author="codex">
+    <comment>Allow notification profiles for super admins without tenant membership</comment>
+    <addColumn tableName="notification_profile">
+      <column name="user_keycloak_id" type="varchar(255)"/>
+    </addColumn>
+    <sql>
+      UPDATE notification_profile profile
+      SET user_keycloak_id = app_user.keycloak_id FROM app_user
+      WHERE app_user.id = profile.user_id;
+    </sql>
+    <addNotNullConstraint
+      tableName="notification_profile"
+      columnName="user_keycloak_id"
+      columnDataType="varchar(255)"/>
+    <dropIndex tableName="notification_profile" indexName="uq_notification_profile_active_user"/>
+    <sql>
+      CREATE UNIQUE INDEX uq_notification_profile_active_subject
+        ON notification_profile (user_keycloak_id) WHERE deleted = FALSE;
+    </sql>
+    <dropNotNullConstraint
+      tableName="notification_profile"
+      columnName="user_id"
+      columnDataType="bigint"/>
 
-        <rollback>
-            DELETE FROM notification_profile WHERE user_id IS NULL;
-            DROP INDEX uq_notification_profile_active_subject;
-            CREATE UNIQUE INDEX uq_notification_profile_active_user
-                ON notification_profile(user_id) WHERE deleted = FALSE;
-            ALTER TABLE notification_profile ALTER COLUMN user_id SET NOT NULL;
-            ALTER TABLE notification_profile DROP COLUMN user_keycloak_id;
-        </rollback>
-    </changeSet>
+    <rollback>
+      DELETE FROM notification_profile WHERE user_id IS NULL;
+      DROP INDEX uq_notification_profile_active_subject;
+      CREATE UNIQUE INDEX uq_notification_profile_active_user
+      ON notification_profile(user_id) WHERE deleted = FALSE;
+      ALTER TABLE notification_profile ALTER COLUMN user_id SET NOT NULL;
+      ALTER TABLE notification_profile DROP COLUMN user_keycloak_id;
+    </rollback>
+  </changeSet>
 </databaseChangeLog>

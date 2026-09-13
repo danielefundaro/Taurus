@@ -33,7 +33,7 @@
     color: var(--p-primary-contrast-color);
 }
 
-.list-thumbnail > img {
+.list-thumbnail>img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -44,7 +44,7 @@
     text-align: right;
 }
 
-.list-metric > small {
+.list-metric>small {
     display: block;
     color: var(--p-text-muted-color);
 }
@@ -116,7 +116,7 @@
     font-size: 0.68rem;
 }
 
-.widget-footer > div {
+.widget-footer>div {
     display: flex;
     gap: 0.3rem;
 }

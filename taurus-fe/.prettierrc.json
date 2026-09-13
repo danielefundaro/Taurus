@@ -8,19 +8,27 @@
     "bracketSameLine": false,
     "overrides": [
         {
-            "files": ["*.ts", "*.mts", "*.d.ts"],
+            "files": [
+                "*.ts",
+                "*.mts",
+                "*.d.ts"
+            ],
             "options": {
                 "parser": "typescript"
             }
         },
         {
-            "files": ["*.html"],
+            "files": [
+                "*.html"
+            ],
             "options": {
                 "parser": "html"
             }
         },
         {
-            "files": ["*.component.html"],
+            "files": [
+                "*.component.html"
+            ],
             "options": {
                 "parser": "angular"
             }

@@ -139,8 +139,13 @@ public class Users extends CommonFieldsOpenSearch {
         this.keycloakId = keycloakId;
     }
 
-    public UserIdentity getUserIdentity() { return userIdentity; }
-    public void setUserIdentity(UserIdentity userIdentity) { this.userIdentity = userIdentity; }
+    public UserIdentity getUserIdentity() {
+        return userIdentity;
+    }
+
+    public void setUserIdentity(UserIdentity userIdentity) {
+        this.userIdentity = userIdentity;
+    }
 
     @Override
     public boolean equals(Object o) {

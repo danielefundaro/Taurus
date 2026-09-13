@@ -1,14 +1,15 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Set;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class InventoryAuditSchemaTest {
 

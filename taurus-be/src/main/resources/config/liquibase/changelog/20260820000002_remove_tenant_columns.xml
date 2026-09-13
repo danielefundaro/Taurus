@@ -26,20 +26,34 @@
       DROP INDEX IF EXISTS idx_inventory_erasure_pending;
       DROP INDEX IF EXISTS idx_inventory_report_export_audit;
 
-      ALTER TABLE last_research DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE notices DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE preferences DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE push_subscriptions DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE push_reminders DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE user_legal_acceptance DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_item DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_item_photo DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_assignment DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_return DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_return_photo DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_search_outbox DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_erasure_request DROP COLUMN IF EXISTS tenant_code;
-      ALTER TABLE inventory_report_export DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE last_research
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE notices
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE preferences
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE push_subscriptions
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE push_reminders
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE user_legal_acceptance
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_item
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_item_photo
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_assignment
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_return
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_return_photo
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_search_outbox
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_erasure_request
+        DROP COLUMN IF EXISTS tenant_code;
+      ALTER TABLE inventory_report_export
+        DROP COLUMN IF EXISTS tenant_code;
 
       CREATE INDEX idx_notices_user ON notices (user_id);
       CREATE INDEX idx_last_research_user ON last_research (user_id);

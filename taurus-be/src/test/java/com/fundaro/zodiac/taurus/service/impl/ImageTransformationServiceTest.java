@@ -1,18 +1,18 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.awt.Color;
-import java.awt.Graphics2D;
+import org.junit.jupiter.api.Test;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
-import javax.imageio.ImageIO;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ImageTransformationServiceTest {
 

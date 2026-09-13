@@ -31,12 +31,35 @@ public class NotificationOutboxAudience {
     @Column(name = "audience_value", nullable = false, length = 255)
     private String value;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public NotificationOutbox getEvent() { return event; }
-    public void setEvent(NotificationOutbox event) { this.event = event; }
-    public NotificationAudienceType getType() { return type; }
-    public void setType(NotificationAudienceType type) { this.type = type; }
-    public String getValue() { return value; }
-    public void setValue(String value) { this.value = value; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public NotificationOutbox getEvent() {
+        return event;
+    }
+
+    public void setEvent(NotificationOutbox event) {
+        this.event = event;
+    }
+
+    public NotificationAudienceType getType() {
+        return type;
+    }
+
+    public void setType(NotificationAudienceType type) {
+        this.type = type;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

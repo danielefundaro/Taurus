@@ -16,6 +16,7 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.imageio.ImageIO;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -54,12 +56,14 @@ public class InventoryLabelService {
     @Transactional(readOnly = true)
     public BinaryContent png(long itemId, int size, AbstractAuthenticationToken token) {
         requireTenant(token);
-        if (size != 256 && size != 512) throw badRequest("La dimensione PNG deve essere 256 o 512 pixel", "inventory.qr.size.invalid");
+        if (size != 256 && size != 512)
+            throw badRequest("La dimensione PNG deve essere 256 o 512 pixel", "inventory.qr.size.invalid");
         InventoryItem item = itemRepository.findByIdAndDeletedFalse(itemId).orElseThrow(InventoryLabelService::notFound);
         try {
             BitMatrix matrix = matrix(qrCodeService.publicUrl(item), size, size);
             BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_BYTE_BINARY);
-            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) image.setRGB(x, y, matrix.get(x, y) ? 0xff000000 : 0xffffffff);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++) image.setRGB(x, y, matrix.get(x, y) ? 0xff000000 : 0xffffffff);
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             ImageIO.write(image, "PNG", output);
             return new BinaryContent("qr-inventario-" + item.getInventoryNumber() + ".png", "image/png", output.toByteArray());
@@ -80,7 +84,8 @@ public class InventoryLabelService {
         List<LabelData> labels = new ArrayList<>();
         for (LabelEntry entry : request.entries()) {
             InventoryItem item = items.get(entry.itemId());
-            for (int copy = 0; copy < entry.copies(); copy++) labels.add(new LabelData(item, qrCodeService.publicUrl(item)));
+            for (int copy = 0; copy < entry.copies(); copy++)
+                labels.add(new LabelData(item, qrCodeService.publicUrl(item)));
         }
         String tenantName = tenantsService.findByCode(tenantCode, token).map(TenantsDTO::getName).filter(value -> !value.isBlank()).orElse(tenantCode);
         try {
@@ -141,7 +146,8 @@ public class InventoryLabelService {
         float cursor = y + height - padding - 7;
         cursor = text(content, truncate(tenantName, 34), textX, cursor, 7, true);
         cursor = text(content, truncate(label.item().getInventoryNumber(), 28), textX, cursor - 2, 9, true);
-        for (String line : wrap(label.item().getName(), 25, 2)) cursor = text(content, line, textX, cursor - 2, 7, false);
+        for (String line : wrap(label.item().getName(), 25, 2))
+            cursor = text(content, line, textX, cursor - 2, 7, false);
         String suffix = label.item().getQrPublicId().toString().replace("-", "");
         suffix = suffix.substring(suffix.length() - 8).toUpperCase();
         cursor = text(content, "Rif. " + suffix, textX, cursor - 2, 6, false);
@@ -154,9 +160,11 @@ public class InventoryLabelService {
         content.fill();
         content.setNonStrokingColor(0f, 0f, 0f);
         float module = side / matrix.getWidth();
-        for (int row = 0; row < matrix.getHeight(); row++) for (int column = 0; column < matrix.getWidth(); column++) {
-            if (matrix.get(column, row)) content.addRect(x + column * module, y + side - (row + 1) * module, module + 0.02f, module + 0.02f);
-        }
+        for (int row = 0; row < matrix.getHeight(); row++)
+            for (int column = 0; column < matrix.getWidth(); column++) {
+                if (matrix.get(column, row))
+                    content.addRect(x + column * module, y + side - (row + 1) * module, module + 0.02f, module + 0.02f);
+            }
         content.fill();
     }
 
@@ -200,8 +208,15 @@ public class InventoryLabelService {
         document.save(output);
         return output.toByteArray();
     }
-    private static float mm(float value) { return value * POINTS_PER_MM; }
-    private static String truncate(String value, int max) { return value == null ? "" : value.length() <= max ? value : value.substring(0, max - 1) + "…"; }
+
+    private static float mm(float value) {
+        return value * POINTS_PER_MM;
+    }
+
+    private static String truncate(String value, int max) {
+        return value == null ? "" : value.length() <= max ? value : value.substring(0, max - 1) + "…";
+    }
+
     private static List<String> wrap(String value, int max, int lines) {
         String normalized = value == null ? "" : value.trim();
         List<String> result = new ArrayList<>();
@@ -218,13 +233,25 @@ public class InventoryLabelService {
         }
         return result;
     }
-    private static String ascii(String value) { return value.replace('’', '\'').replace('“', '"').replace('”', '"').replace('–', '-').replace('…', '.'); }
+
+    private static String ascii(String value) {
+        return value.replace('’', '\'').replace('“', '"').replace('”', '"').replace('–', '-').replace('…', '.');
+    }
+
     private static String requireTenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
         if (tenant == null || tenant.isBlank()) throw badRequest("Tenant non disponibile", "inventory.tenant.missing");
         return tenant;
     }
-    private static RequestAlertException notFound() { return new RequestAlertException(HttpStatus.NOT_FOUND, "Oggetto inventario non disponibile", "inventoryLabels", "inventory.notFound"); }
-    private static RequestAlertException badRequest(String message, String key) { return new RequestAlertException(HttpStatus.BAD_REQUEST, message, "inventoryLabels", key); }
-    private record LabelData(InventoryItem item, String url) {}
+
+    private static RequestAlertException notFound() {
+        return new RequestAlertException(HttpStatus.NOT_FOUND, "Oggetto inventario non disponibile", "inventoryLabels", "inventory.notFound");
+    }
+
+    private static RequestAlertException badRequest(String message, String key) {
+        return new RequestAlertException(HttpStatus.BAD_REQUEST, message, "inventoryLabels", key);
+    }
+
+    private record LabelData(InventoryItem item, String url) {
+    }
 }

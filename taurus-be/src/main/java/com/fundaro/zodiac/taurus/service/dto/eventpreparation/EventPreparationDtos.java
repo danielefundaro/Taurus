@@ -6,16 +6,21 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import java.time.ZonedDateTime;
 import java.util.List;
 
 public final class EventPreparationDtos {
-    private EventPreparationDtos() {}
+    private EventPreparationDtos() {
+    }
 
-    public enum Phase { PREPARATION, IN_PROGRESS, FOLLOW_UP, UNKNOWN }
-    public enum PreparationStatus { NOT_CONFIGURED, BLOCKED, ATTENTION, READY, UNKNOWN }
-    public enum ClosureStatus { TO_CLOSE, CLOSED_WITH_WARNINGS, CLOSED, NOT_REQUIRED, UNKNOWN }
-    public enum Severity { BLOCKER, WARNING }
+    public enum Phase {PREPARATION, IN_PROGRESS, FOLLOW_UP, UNKNOWN}
+
+    public enum PreparationStatus {NOT_CONFIGURED, BLOCKED, ATTENTION, READY, UNKNOWN}
+
+    public enum ClosureStatus {TO_CLOSE, CLOSED_WITH_WARNINGS, CLOSED, NOT_REQUIRED, UNKNOWN}
+
+    public enum Severity {BLOCKER, WARNING}
 
     public record Configuration(
         @NotNull PreparationProfile profile,
@@ -31,14 +36,32 @@ public final class EventPreparationDtos {
         boolean presenceClosureRequired,
         boolean financialClosureRequired,
         long version
-    ) {}
+    ) {
+    }
 
-    public record ProgramEntryRequest(@NotNull Long trackId, @Min(1) @Max(86400) Integer plannedDurationSeconds, @Size(max = 2000) String notes) {}
-    public record ProgramEntry(Long id, Long trackId, String trackName, String trackState, int order, Integer plannedDurationSeconds, String notes) {}
-    public record MaterialRequest(@NotNull Long itemId, Long assignmentId, @Min(1) int requiredQuantity, @Size(max = 2000) String notes) {}
-    public record Material(Long id, Long itemId, String itemName, Long assignmentId, String assignee, int requiredQuantity, String condition, boolean confirmed, String notes) {}
-    public record Availability(int expected, int available, int unavailable, int missing, Integer minimumRequired, ZonedDateTime deadline) {}
-    public record Issue(String code, String area, Severity severity, String message, String action) {}
+    public record ProgramEntryRequest(@NotNull Long trackId, @Min(1) @Max(86400) Integer plannedDurationSeconds,
+                                      @Size(max = 2000) String notes) {
+    }
+
+    public record ProgramEntry(Long id, Long trackId, String trackName, String trackState, int order,
+                               Integer plannedDurationSeconds, String notes) {
+    }
+
+    public record MaterialRequest(@NotNull Long itemId, Long assignmentId, @Min(1) int requiredQuantity,
+                                  @Size(max = 2000) String notes) {
+    }
+
+    public record Material(Long id, Long itemId, String itemName, Long assignmentId, String assignee,
+                           int requiredQuantity, String condition, boolean confirmed, String notes) {
+    }
+
+    public record Availability(int expected, int available, int unavailable, int missing, Integer minimumRequired,
+                               ZonedDateTime deadline) {
+    }
+
+    public record Issue(String code, String area, Severity severity, String message, String action) {
+    }
+
     public record Evaluation(
         ZonedDateTime evaluatedAt,
         Phase phase,
@@ -50,8 +73,16 @@ public final class EventPreparationDtos {
         int blockerCount,
         int warningCount,
         List<Issue> issues
-    ) {}
-    public record View(Configuration configuration, Evaluation evaluation, List<ProgramEntry> program, Availability availability, List<Material> materials) {}
-    public record ProgramRequest(@NotNull List<@Valid ProgramEntryRequest> entries) {}
-    public record MaterialsRequest(@NotNull List<@Valid MaterialRequest> materials) {}
+    ) {
+    }
+
+    public record View(Configuration configuration, Evaluation evaluation, List<ProgramEntry> program,
+                       Availability availability, List<Material> materials) {
+    }
+
+    public record ProgramRequest(@NotNull List<@Valid ProgramEntryRequest> entries) {
+    }
+
+    public record MaterialsRequest(@NotNull List<@Valid MaterialRequest> materials) {
+    }
 }

@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
 import com.fundaro.zodiac.taurus.utils.pdf.PageEditRecipe;
 import com.fundaro.zodiac.taurus.utils.pdf.PageImageTransformer;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -96,7 +98,9 @@ public class ImageTransformationService implements PageImageTransformer {
         return transformRendered(decode(content), recipe).stream().map(this::encode).toList();
     }
 
-    /** Applies the same transformation pipeline to an image rendered from a PDF page. */
+    /**
+     * Applies the same transformation pipeline to an image rendered from a PDF page.
+     */
     public List<BufferedImage> transformRendered(BufferedImage source, TrackPageImageDTOs.EditRequest request) {
         return transformRendered(source, toRecipe(request));
     }
@@ -117,7 +121,9 @@ public class ImageTransformationService implements PageImageTransformer {
         return results;
     }
 
-    /** I DTO esposti via HTTP portano i vincoli di bean validation; la pipeline lavora sul modello neutro. */
+    /**
+     * I DTO esposti via HTTP portano i vincoli di bean validation; la pipeline lavora sul modello neutro.
+     */
     private static PageEditRecipe toRecipe(TrackPageImageDTOs.EditRequest request) {
         if (request == null) return null;
         List<PageEditRecipe.Crop> crops = request.crops() == null
@@ -140,7 +146,8 @@ public class ImageTransformationService implements PageImageTransformer {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             if (!ImageIO.write(image, "png", output)) throw new IOException("PNG writer is not available");
             byte[] bytes = output.toByteArray();
-            if (bytes.length > MAX_BYTES) throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge");
+            if (bytes.length > MAX_BYTES)
+                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge");
             return bytes;
         } catch (IOException exception) {
             throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Unable to encode image", "trackPageImage", "image.encode");
@@ -149,10 +156,12 @@ public class ImageTransformationService implements PageImageTransformer {
 
     private BufferedImage decode(byte[] content) {
         if (content == null || content.length == 0) throw badRequest("Image is empty", "image.empty");
-        if (content.length > MAX_BYTES) throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge");
+        if (content.length > MAX_BYTES)
+            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge");
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
-            if (image == null) throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image format", "trackPageImage", "image.unsupported");
+            if (image == null)
+                throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image format", "trackPageImage", "image.unsupported");
             if (image.getWidth() > MAX_SIDE || image.getHeight() > MAX_SIDE || (long) image.getWidth() * image.getHeight() > MAX_PIXELS) {
                 throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge");
             }
@@ -172,11 +181,12 @@ public class ImageTransformationService implements PageImageTransformer {
         int min = 255;
         int max = 0;
         if (recipe.autoContrast()) {
-            for (int y = 0; y < source.getHeight(); y++) for (int x = 0; x < source.getWidth(); x++) {
-                int l = luminance(source.getRGB(x, y));
-                min = Math.min(min, l);
-                max = Math.max(max, l);
-            }
+            for (int y = 0; y < source.getHeight(); y++)
+                for (int x = 0; x < source.getWidth(); x++) {
+                    int l = luminance(source.getRGB(x, y));
+                    min = Math.min(min, l);
+                    max = Math.max(max, l);
+                }
         }
         double contrastFactor = 1d + recipe.contrast() / 100d;
         int brightnessOffset = (int) Math.round(recipe.brightness() * 2.55d);
@@ -257,7 +267,8 @@ public class ImageTransformationService implements PageImageTransformer {
     }
 
     private static void validateRecipe(PageEditRecipe recipe) {
-        if (recipe == null || recipe.recipeVersion() != 1) throw badRequest("Unsupported image recipe version", "image.recipeVersion");
+        if (recipe == null || recipe.recipeVersion() != 1)
+            throw badRequest("Unsupported image recipe version", "image.recipeVersion");
         // Persisted PDF annotations may still use the legacy -5..0 range; HTTP image edits are constrained to 0..360 by bean validation.
         boolean invalidDeskew = !Double.isFinite(recipe.deskewDegrees()) || recipe.deskewDegrees() < -5 || recipe.deskewDegrees() > 360;
         if (recipe.rotationQuarterTurns() < -3 || recipe.rotationQuarterTurns() > 3 || invalidDeskew || recipe.brightness() < -100 || recipe.brightness() > 100 || recipe.contrast() < -100 || recipe.contrast() > 100 || (recipe.threshold() != null && (recipe.threshold() < 0 || recipe.threshold() > 255))) {
@@ -290,11 +301,12 @@ public class ImageTransformationService implements PageImageTransformer {
             double angle = half / 2d;
             double tangent = Math.tan(Math.toRadians(angle));
             int[] rows = new int[image.getHeight() + margin * 2];
-            for (int y = 0; y < image.getHeight(); y += step) for (int x = 0; x < image.getWidth(); x += step) {
-                if (luminance(image.getRGB(x, y)) >= 180) continue;
-                int row = (int) Math.round(y + tangent * (x - image.getWidth() / 2d)) + margin;
-                if (row >= 0 && row < rows.length) rows[row]++;
-            }
+            for (int y = 0; y < image.getHeight(); y += step)
+                for (int x = 0; x < image.getWidth(); x += step) {
+                    if (luminance(image.getRGB(x, y)) >= 180) continue;
+                    int row = (int) Math.round(y + tangent * (x - image.getWidth() / 2d)) + margin;
+                    if (row >= 0 && row < rows.length) rows[row]++;
+                }
             double score = 0;
             for (int count : rows) score += (double) count * count;
             if (score > bestScore) {
@@ -312,7 +324,15 @@ public class ImageTransformationService implements PageImageTransformer {
         return (red * 299 + green * 587 + blue * 114) / 1000;
     }
 
-    private static int clamp(int value, int minimum, int maximum) { return Math.max(minimum, Math.min(maximum, value)); }
-    private static double round(double value) { return Math.round(value * 1000d) / 1000d; }
-    private static RequestAlertException badRequest(String message, String key) { return new RequestAlertException(HttpStatus.BAD_REQUEST, message, "trackPageImage", key); }
+    private static int clamp(int value, int minimum, int maximum) {
+        return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    private static double round(double value) {
+        return Math.round(value * 1000d) / 1000d;
+    }
+
+    private static RequestAlertException badRequest(String message, String key) {
+        return new RequestAlertException(HttpStatus.BAD_REQUEST, message, "trackPageImage", key);
+    }
 }

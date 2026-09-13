@@ -1,24 +1,10 @@
-<app-dialog-shell heading="Includi tracce" subtitle="Seleziona le tracce da aggiungere all’album." confirmLabel="Includi tracce" [invalidCount]="selectedTracks.length ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
-    <p-table
-        [value]="tracks"
-        [paginator]="true"
-        [lazy]="true"
-        [lazyLoadOnInit]="true"
-        [first]="tableLazyLoadEvent.first"
-        [rows]="tableLazyLoadEvent.rows!"
-        [paginator]="true"
-        [size]="'small'"
-        [totalRecords]="totalRecords"
-        dataKey="id"
-        [(selection)]="selectedTracks"
-        [rowHover]="true"
-        [paginatorPosition]="'bottom'"
-        stripedRows
-        [rowsPerPageOptions]="[12, 24, 48]"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        (onLazyLoad)="onLazyLoad($event)"
-    >
+<app-dialog-shell heading="Includi tracce" subtitle="Seleziona le tracce da aggiungere all’album."
+    confirmLabel="Includi tracce" [invalidCount]="selectedTracks.length ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+    <p-table [value]="tracks" [paginator]="true" [lazy]="true" [lazyLoadOnInit]="true"
+        [first]="tableLazyLoadEvent.first" [rows]="tableLazyLoadEvent.rows!" [paginator]="true" [size]="'small'"
+        [totalRecords]="totalRecords" dataKey="id" [(selection)]="selectedTracks" [rowHover]="true"
+        [paginatorPosition]="'bottom'" stripedRows [rowsPerPageOptions]="[12, 24, 48]" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #header>
             <tr>
                 <th scope="col"></th>
@@ -33,19 +19,22 @@
                 <th scope="col">
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter($event, 'name')" placeholder="Cerca per nome..." />
+                        <input pInputText type="text" (input)="onGlobalFilter($event, 'name')"
+                            placeholder="Cerca per nome..." />
                     </p-iconfield>
                 </th>
                 <th scope="col">
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter($event, 'type')" placeholder="Cerca per tipo..." />
+                        <input pInputText type="text" (input)="onGlobalFilter($event, 'type')"
+                            placeholder="Cerca per tipo..." />
                     </p-iconfield>
                 </th>
                 <th scope="col">
                     <p-iconfield>
                         <p-inputicon styleClass="pi pi-search" />
-                        <input pInputText type="text" (input)="onGlobalFilter($event, 'composer')" placeholder="Cerca per compositore..." />
+                        <input pInputText type="text" (input)="onGlobalFilter($event, 'composer')"
+                            placeholder="Cerca per compositore..." />
                     </p-iconfield>
                 </th>
             </tr>
@@ -53,7 +42,8 @@
         <ng-template #emptymessage>
             <tr>
                 <td colspan="4">
-                    <app-empty-state compact icon="pi pi-file" heading="Nessuna traccia" message="Prova a modificare i filtri di ricerca." />
+                    <app-empty-state compact icon="pi pi-file" heading="Nessuna traccia"
+                        message="Prova a modificare i filtri di ricerca." />
                 </td>
             </tr>
         </ng-template>
@@ -65,11 +55,11 @@
                 <td>{{ track.name }}</td>
                 <td>
                     @if (track.type?.length) {
-                        <div class="flex flex-wrap items-start gap-2">
-                            @for (type of track.type; track type) {
-                                <p-tag [value]="type" [rounded]="true" severity="secondary" />
-                            }
-                        </div>
+                    <div class="flex flex-wrap items-start gap-2">
+                        @for (type of track.type; track type) {
+                        <p-tag [value]="type" [rounded]="true" severity="secondary" />
+                        }
+                    </div>
                     }
                 </td>
                 <td>{{ track.composer }}</td>

@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -64,30 +65,107 @@ public class CalendarEventSeries extends StateFieldsOpenSearch {
     @OrderColumn(name = "display_order")
     private List<CalendarEventSeriesCost> costs = new ArrayList<>();
 
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-    public BigDecimal getFee() { return fee; }
-    public void setFee(BigDecimal fee) { this.fee = fee; }
-    public Integer getReminderMinutes() { return reminderMinutes; }
-    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
-    public String getTimeZone() { return timeZone; }
-    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
-    public LocalDateTime getFirstStartLocal() { return firstStartLocal; }
-    public void setFirstStartLocal(LocalDateTime firstStartLocal) { this.firstStartLocal = firstStartLocal; }
-    public Integer getDurationMinutes() { return durationMinutes; }
-    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
-    public RecurrenceFrequency getFrequency() { return frequency; }
-    public void setFrequency(RecurrenceFrequency frequency) { this.frequency = frequency; }
-    public Integer getIntervalValue() { return intervalValue; }
-    public void setIntervalValue(Integer intervalValue) { this.intervalValue = intervalValue; }
-    public String getWeekDays() { return weekDays; }
-    public void setWeekDays(String weekDays) { this.weekDays = weekDays; }
-    public RecurrenceEndType getEndType() { return endType; }
-    public void setEndType(RecurrenceEndType endType) { this.endType = endType; }
-    public Integer getOccurrenceCount() { return occurrenceCount; }
-    public void setOccurrenceCount(Integer occurrenceCount) { this.occurrenceCount = occurrenceCount; }
-    public LocalDate getUntilLocalDate() { return untilLocalDate; }
-    public void setUntilLocalDate(LocalDate untilLocalDate) { this.untilLocalDate = untilLocalDate; }
-    public List<CalendarEventSeriesCost> getCosts() { return costs; }
-    public void setCosts(List<CalendarEventSeriesCost> costs) { this.costs = costs; }
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public BigDecimal getFee() {
+        return fee;
+    }
+
+    public void setFee(BigDecimal fee) {
+        this.fee = fee;
+    }
+
+    public Integer getReminderMinutes() {
+        return reminderMinutes;
+    }
+
+    public void setReminderMinutes(Integer reminderMinutes) {
+        this.reminderMinutes = reminderMinutes;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
+    }
+
+    public LocalDateTime getFirstStartLocal() {
+        return firstStartLocal;
+    }
+
+    public void setFirstStartLocal(LocalDateTime firstStartLocal) {
+        this.firstStartLocal = firstStartLocal;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
+    }
+
+    public RecurrenceFrequency getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(RecurrenceFrequency frequency) {
+        this.frequency = frequency;
+    }
+
+    public Integer getIntervalValue() {
+        return intervalValue;
+    }
+
+    public void setIntervalValue(Integer intervalValue) {
+        this.intervalValue = intervalValue;
+    }
+
+    public String getWeekDays() {
+        return weekDays;
+    }
+
+    public void setWeekDays(String weekDays) {
+        this.weekDays = weekDays;
+    }
+
+    public RecurrenceEndType getEndType() {
+        return endType;
+    }
+
+    public void setEndType(RecurrenceEndType endType) {
+        this.endType = endType;
+    }
+
+    public Integer getOccurrenceCount() {
+        return occurrenceCount;
+    }
+
+    public void setOccurrenceCount(Integer occurrenceCount) {
+        this.occurrenceCount = occurrenceCount;
+    }
+
+    public LocalDate getUntilLocalDate() {
+        return untilLocalDate;
+    }
+
+    public void setUntilLocalDate(LocalDate untilLocalDate) {
+        this.untilLocalDate = untilLocalDate;
+    }
+
+    public List<CalendarEventSeriesCost> getCosts() {
+        return costs;
+    }
+
+    public void setCosts(List<CalendarEventSeriesCost> costs) {
+        this.costs = costs;
+    }
 }

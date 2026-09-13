@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto.inventory;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDate;
 
 public record InventoryAssignmentRequest(
@@ -10,4 +11,5 @@ public record InventoryAssignmentRequest(
     @Min(1) int quantity,
     String description,
     LocalDate expirationDate
-) {}
+) {
+}

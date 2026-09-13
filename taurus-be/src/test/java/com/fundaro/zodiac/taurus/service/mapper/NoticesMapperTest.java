@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.service.mapper;
 
-import static com.fundaro.zodiac.taurus.domain.NoticesTestSamples.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static com.fundaro.zodiac.taurus.domain.NoticesTestSamples.getNoticesSample1;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class NoticesMapperTest {
 

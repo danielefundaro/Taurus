@@ -14,10 +14,12 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
+
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

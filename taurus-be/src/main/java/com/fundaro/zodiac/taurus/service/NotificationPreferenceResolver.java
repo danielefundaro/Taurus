@@ -1,23 +1,20 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationCategoryPreference;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.domain.notification.*;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class NotificationPreferenceResolver {
@@ -51,7 +48,8 @@ public class NotificationPreferenceResolver {
         Map<String, NotificationPreferenceDecision> decisions = new LinkedHashMap<>();
         ZoneId defaultZone = currentTenantZoneOrDefault();
         userIds.forEach(userId -> decisions.put(userId, defaults(userId, defaultZone)));
-        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.NOTIFICATION_PREFERENCES)) return decisions;
+        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.NOTIFICATION_PREFERENCES))
+            return decisions;
         for (NotificationProfile profile : repository.findAllByKeycloakSubjectInAndDeletedFalse(userIds)) {
             String userId = profile.getKeycloakSubject();
             NotificationCategoryPreference category = profile.getCategories().stream()

@@ -8,7 +8,7 @@ import { CalendarEventSeries, CalendarEventSeriesPreview, CalendarEventSeriesReq
 export class CalendarEventSeriesService {
     private readonly url = `${environment.baseUrl}/calendar-event-series`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     preview(request: CalendarEventSeriesRequest): Observable<CalendarEventSeriesPreview> {
         return this.http.post<CalendarEventSeriesPreview>(`${this.url}/preview`, request);

@@ -8,4 +8,5 @@ import org.mapstruct.*;
  * Mapper for the entity {@link Preferences} and its DTO {@link PreferencesDTO}.
  */
 @Mapper(componentModel = "spring")
-public interface PreferencesMapper extends EntityMapper<PreferencesDTO, Preferences> {}
+public interface PreferencesMapper extends EntityMapper<PreferencesDTO, Preferences> {
+}

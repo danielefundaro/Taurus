@@ -1,14 +1,16 @@
 @if (count > 0) {
-    <div class="selection-bar" role="region" aria-label="Azioni sugli elementi selezionati">
-        <p-checkbox [binary]="true" [ngModel]="allSelected" (ngModelChange)="toggleAll.emit($event)" [inputId]="checkboxId" />
-        <label [for]="checkboxId">{{ count }} {{ count === 1 ? singularLabel : pluralLabel }}</label>
-        <span class="selection-bar__spacer"></span>
-        <div class="selection-bar__custom-actions"><ng-content /></div>
-        @if (showDefaultActions) {
-            <div class="selection-bar__default-actions">
-                <p-button label="Deseleziona" text severity="secondary" (onClick)="clear.emit()" />
-                <p-button [label]="actionLabel || deleteLabel" [icon]="actionIcon" [severity]="actionSeverity" [loading]="actionLoading" [disabled]="actionLoading" (onClick)="invokeAction()" />
-            </div>
-        }
+<div class="selection-bar" role="region" aria-label="Azioni sugli elementi selezionati">
+    <p-checkbox [binary]="true" [ngModel]="allSelected" (ngModelChange)="toggleAll.emit($event)"
+        [inputId]="checkboxId" />
+    <label [for]="checkboxId">{{ count }} {{ count === 1 ? singularLabel : pluralLabel }}</label>
+    <span class="selection-bar__spacer"></span>
+    <div class="selection-bar__custom-actions"><ng-content /></div>
+    @if (showDefaultActions) {
+    <div class="selection-bar__default-actions">
+        <p-button label="Deseleziona" text severity="secondary" (onClick)="clear.emit()" />
+        <p-button [label]="actionLabel || deleteLabel" [icon]="actionIcon" [severity]="actionSeverity"
+            [loading]="actionLoading" [disabled]="actionLoading" (onClick)="invokeAction()" />
     </div>
+    }
+</div>
 }

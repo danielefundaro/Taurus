@@ -6,7 +6,9 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;

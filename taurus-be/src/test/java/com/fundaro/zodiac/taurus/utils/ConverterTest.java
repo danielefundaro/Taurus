@@ -1,22 +1,23 @@
 package com.fundaro.zodiac.taurus.utils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageTransform;
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Path;
-import java.util.List;
-import javax.imageio.ImageIO;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ConverterTest {
 

@@ -18,6 +18,7 @@ import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.apache.commons.io.FilenameUtils;
@@ -213,7 +215,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private void sendAfterCommit(byte[] message) {
         if (
             !TransactionSynchronizationManager.isActualTransactionActive() ||
-            !TransactionSynchronizationManager.isSynchronizationActive()
+                !TransactionSynchronizationManager.isSynchronizationActive()
         ) {
             sender.send(message);
             return;
