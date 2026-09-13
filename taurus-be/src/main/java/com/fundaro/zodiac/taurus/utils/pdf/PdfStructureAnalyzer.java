@@ -20,7 +20,8 @@ public final class PdfStructureAnalyzer {
 
     private static final Logger log = LoggerFactory.getLogger(PdfStructureAnalyzer.class);
 
-    private PdfStructureAnalyzer() {}
+    private PdfStructureAnalyzer() {
+    }
 
     /**
      * Level 1: derive page groups from PDF bookmarks/outline.

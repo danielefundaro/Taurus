@@ -1,16 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.authenticationToken;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +11,16 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.authenticationToken;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Integration tests for the {@link LogoutResource} REST controller.

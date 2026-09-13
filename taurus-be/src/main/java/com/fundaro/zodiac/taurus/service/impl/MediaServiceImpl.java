@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +22,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.core.io.ByteArrayResource;
@@ -113,7 +115,8 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
         requireFeatureAccess(id);
         Media media = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> notFound("Media asset not found"));
-        if (tenant == null || tenant.isBlank()) throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Tenant is required", "mediaAsset", "tenant.missing");
+        if (tenant == null || tenant.isBlank())
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Tenant is required", "mediaAsset", "tenant.missing");
         hydrateLegacyMetadata(media, tenant);
         if (media.getStatus() != MediaAssetStatus.READY) {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Media asset is not available", getEntityName(), "media.notReady");
@@ -274,8 +277,8 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     private static boolean isPrivileged(AbstractAuthenticationToken token) {
         return token != null && token.getAuthorities().stream().anyMatch(authority ->
             AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()) ||
-            AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
-            AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
+                AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
+                AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
         );
     }
 

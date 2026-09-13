@@ -7,7 +7,7 @@ import { OnboardingContext, OnboardingFormat, OnboardingIssue, OnboardingJob, On
 @Injectable({ providedIn: 'root' })
 export class OnboardingService {
     private readonly baseUrl = `${environment.baseUrl}/onboarding`;
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
     context(): Observable<OnboardingContext> { return this.http.get<OnboardingContext>(`${this.baseUrl}/context`); }
     jobs(page = 0, size = 20): Observable<OnboardingPage<OnboardingJob>> { return this.http.get<OnboardingPage<OnboardingJob>>(`${this.baseUrl}/imports`, { params: { page, size, sort: 'insertDate,desc' } }); }
     job(id: number): Observable<OnboardingJob> { return this.http.get<OnboardingJob>(`${this.baseUrl}/imports/${id}`); }

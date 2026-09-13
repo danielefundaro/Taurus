@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
@@ -36,31 +37,111 @@ public class InventoryAssignment extends TenantAuditedEntity {
     @Column(name = "current_revision", nullable = false)
     private int currentRevision;
 
-    public InventoryItem getItem() { return item; }
-    public void setItem(InventoryItem item) { this.item = item; }
-    public Long getUserIndex() { return userIndex; }
-    public void setUserIndex(Long userIndex) { this.userIndex = userIndex; }
-    public String getUserKeycloakId() { return userKeycloakId; }
-    public void setUserKeycloakId(String userKeycloakId) { this.userKeycloakId = userKeycloakId; }
-    public String getUserName() { return userName; }
-    public void setUserName(String userName) { this.userName = userName; }
-    public String getUserLastName() { return userLastName; }
-    public void setUserLastName(String userLastName) { this.userLastName = userLastName; }
-    public int getDisplayOrder() { return displayOrder; }
-    public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
-    public int getAssignedQuantity() { return assignedQuantity; }
-    public void setAssignedQuantity(int assignedQuantity) { this.assignedQuantity = assignedQuantity; }
-    public int getReturnedQuantity() { return returnedQuantity; }
-    public void setReturnedQuantity(int returnedQuantity) { this.returnedQuantity = returnedQuantity; }
-    public ZonedDateTime getAssignedAt() { return assignedAt; }
-    public void setAssignedAt(ZonedDateTime assignedAt) { this.assignedAt = assignedAt; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public LocalDate getExpirationDate() { return expirationDate; }
-    public void setExpirationDate(LocalDate expirationDate) { this.expirationDate = expirationDate; }
-    public InventoryAssignmentStatus getStatus() { return status; }
-    public void setStatus(InventoryAssignmentStatus status) { this.status = status; }
-    public int getCurrentRevision() { return currentRevision; }
-    public void setCurrentRevision(int currentRevision) { this.currentRevision = currentRevision; }
-    public int getOutstandingQuantity() { return assignedQuantity - returnedQuantity; }
+    public InventoryItem getItem() {
+        return item;
+    }
+
+    public void setItem(InventoryItem item) {
+        this.item = item;
+    }
+
+    public Long getUserIndex() {
+        return userIndex;
+    }
+
+    public void setUserIndex(Long userIndex) {
+        this.userIndex = userIndex;
+    }
+
+    public String getUserKeycloakId() {
+        return userKeycloakId;
+    }
+
+    public void setUserKeycloakId(String userKeycloakId) {
+        this.userKeycloakId = userKeycloakId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserLastName() {
+        return userLastName;
+    }
+
+    public void setUserLastName(String userLastName) {
+        this.userLastName = userLastName;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
+    }
+
+    public int getAssignedQuantity() {
+        return assignedQuantity;
+    }
+
+    public void setAssignedQuantity(int assignedQuantity) {
+        this.assignedQuantity = assignedQuantity;
+    }
+
+    public int getReturnedQuantity() {
+        return returnedQuantity;
+    }
+
+    public void setReturnedQuantity(int returnedQuantity) {
+        this.returnedQuantity = returnedQuantity;
+    }
+
+    public ZonedDateTime getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(ZonedDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public LocalDate getExpirationDate() {
+        return expirationDate;
+    }
+
+    public void setExpirationDate(LocalDate expirationDate) {
+        this.expirationDate = expirationDate;
+    }
+
+    public InventoryAssignmentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(InventoryAssignmentStatus status) {
+        this.status = status;
+    }
+
+    public int getCurrentRevision() {
+        return currentRevision;
+    }
+
+    public void setCurrentRevision(int currentRevision) {
+        this.currentRevision = currentRevision;
+    }
+
+    public int getOutstandingQuantity() {
+        return assignedQuantity - returnedQuantity;
+    }
 }

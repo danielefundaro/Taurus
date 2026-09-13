@@ -1,11 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -29,20 +25,67 @@ public class InventoryQrRotation extends AuditedEntity {
     @Column(name = "rotated_by", nullable = false)
     private String rotatedBy;
 
-    public InventoryItem getItem() { return item; }
-    public void setItem(InventoryItem value) { item = value; }
-    public int getPreviousVersion() { return previousVersion; }
-    public void setPreviousVersion(int value) { previousVersion = value; }
-    public int getNewVersion() { return newVersion; }
-    public void setNewVersion(int value) { newVersion = value; }
-    public String getPreviousCodeDigest() { return previousCodeDigest; }
-    public void setPreviousCodeDigest(String value) { previousCodeDigest = value; }
-    public String getNewCodeDigest() { return newCodeDigest; }
-    public void setNewCodeDigest(String value) { newCodeDigest = value; }
-    public String getReason() { return reason; }
-    public void setReason(String value) { reason = value; }
-    public ZonedDateTime getRotatedAt() { return rotatedAt; }
-    public void setRotatedAt(ZonedDateTime value) { rotatedAt = value; }
-    public String getRotatedBy() { return rotatedBy; }
-    public void setRotatedBy(String value) { rotatedBy = value; }
+    public InventoryItem getItem() {
+        return item;
+    }
+
+    public void setItem(InventoryItem value) {
+        item = value;
+    }
+
+    public int getPreviousVersion() {
+        return previousVersion;
+    }
+
+    public void setPreviousVersion(int value) {
+        previousVersion = value;
+    }
+
+    public int getNewVersion() {
+        return newVersion;
+    }
+
+    public void setNewVersion(int value) {
+        newVersion = value;
+    }
+
+    public String getPreviousCodeDigest() {
+        return previousCodeDigest;
+    }
+
+    public void setPreviousCodeDigest(String value) {
+        previousCodeDigest = value;
+    }
+
+    public String getNewCodeDigest() {
+        return newCodeDigest;
+    }
+
+    public void setNewCodeDigest(String value) {
+        newCodeDigest = value;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String value) {
+        reason = value;
+    }
+
+    public ZonedDateTime getRotatedAt() {
+        return rotatedAt;
+    }
+
+    public void setRotatedAt(ZonedDateTime value) {
+        rotatedAt = value;
+    }
+
+    public String getRotatedBy() {
+        return rotatedBy;
+    }
+
+    public void setRotatedBy(String value) {
+        rotatedBy = value;
+    }
 }

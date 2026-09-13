@@ -5,8 +5,8 @@ import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.nio.charset.StandardCharsets;
 
 /**

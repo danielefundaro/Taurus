@@ -15,10 +15,12 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardResultStatus;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,9 +31,12 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 @ExtendWith(MockitoExtension.class)
 class OperationalDashboardServiceTest {
 
-    @Mock TenantTimeZoneService timeZoneService;
-    @Mock DashboardMetrics metrics;
-    @Mock TenantFeatureService tenantFeatureService;
+    @Mock
+    TenantTimeZoneService timeZoneService;
+    @Mock
+    DashboardMetrics metrics;
+    @Mock
+    TenantFeatureService tenantFeatureService;
 
     @Test
     void ordersItemsAndBuildsAConsistentSummary() {
@@ -71,9 +76,14 @@ class OperationalDashboardServiceTest {
         );
         DashboardOperationProvider failing = new DashboardOperationProvider() {
             @Override
-            public DashboardDomain domain() { return DashboardDomain.FINANCE; }
+            public DashboardDomain domain() {
+                return DashboardDomain.FINANCE;
+            }
+
             @Override
-            public List<OperationalItemDTO> getOperations(DashboardRequestContext context) { throw new IllegalStateException("database unavailable"); }
+            public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
+                throw new IllegalStateException("database unavailable");
+            }
         };
         when(timeZoneService.currentZoneId()).thenReturn(ZoneId.of("Europe/Rome"));
         OperationalDashboardService service = service(List.of(calendar, failing));
@@ -112,9 +122,14 @@ class OperationalDashboardServiceTest {
     private static DashboardOperationProvider provider(DashboardDomain domain, OperationalItemDTO item) {
         return new DashboardOperationProvider() {
             @Override
-            public DashboardDomain domain() { return domain; }
+            public DashboardDomain domain() {
+                return domain;
+            }
+
             @Override
-            public List<OperationalItemDTO> getOperations(DashboardRequestContext context) { return List.of(item); }
+            public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
+                return List.of(item);
+            }
         };
     }
 

@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LastResearchTestSamples {
 
     private static final Random random = new Random();
-    private static final AtomicLong longCount = new AtomicLong(random.nextInt() + (2 * Integer.MAX_VALUE));
+    private static final AtomicLong longCount = new AtomicLong(random.nextInt() + (2L * Integer.MAX_VALUE));
 
     public static LastResearch getLastResearchSample1() {
         return new LastResearch().id(1L).insertBy("insertBy1").editBy("editBy1").userId("userId1").value("value1").field("field1");

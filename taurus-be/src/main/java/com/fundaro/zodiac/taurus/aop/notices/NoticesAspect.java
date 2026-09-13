@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.aop.notices;
 
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
@@ -10,12 +10,9 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.*;
-import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
-import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
-import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import com.fundaro.zodiac.taurus.service.dto.*;
-import com.fundaro.zodiac.taurus.service.dto.inventory.*;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.*;
+import com.fundaro.zodiac.taurus.service.dto.inventory.*;
 import com.fundaro.zodiac.taurus.service.impl.*;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.AttachmentNotice;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.MovementNotice;
@@ -23,6 +20,9 @@ import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.NamedNoti
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.AssignmentNotice;
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.ItemNotice;
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.PhotoNotice;
+import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import org.apache.commons.io.FilenameUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -37,12 +37,7 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Aspect
 @Component
@@ -635,7 +630,7 @@ public class NoticesAspect {
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceService.recalculate(..))"
     )
     Object onFinanceOperation(ProceedingJoinPoint joinPoint) throws Throwable {
-        String method = ((MethodSignature) joinPoint.getSignature()).getName();
+        String method = joinPoint.getSignature().getName();
         AbstractAuthenticationToken token = getAbstractAuthenticationToken(joinPoint);
         Long id = getLongArgument(joinPoint, 0);
         NamedNotice namedBefore = switch (method) {
@@ -692,7 +687,8 @@ public class NoticesAspect {
                 "/finance?tab=accounts",
                 token
             );
-            case "createCategory" -> notifyCategory(result, "CATEGORY_CREATED", "Economia: categoria creata", "ha creato", token);
+            case "createCategory" ->
+                notifyCategory(result, "CATEGORY_CREATED", "Economia: categoria creata", "ha creato", token);
             case "updateCategory" -> notifyCategoryUpdated(result, namedBefore, token);
             case "archiveCategory" -> notifyNamed(
                 namedBefore,
@@ -713,7 +709,8 @@ public class NoticesAspect {
             }
             case "updateMovement" -> notifyMovementUpdated(result, token);
             case "deleteMovement" -> notifyMovementRemoved(movementsBefore, token);
-            case "reconcile" -> notifyReconciliation(result, getArgument(joinPoint, ReconciliationRequest.class), token);
+            case "reconcile" ->
+                notifyReconciliation(result, getArgument(joinPoint, ReconciliationRequest.class), token);
             case "createTransfer" -> {
                 if (result instanceof TransferDTO transfer) {
                     TransferRequest request = getArgument(joinPoint, TransferRequest.class);
@@ -724,8 +721,10 @@ public class NoticesAspect {
                 }
             }
             case "addAttachment" -> notifyAttachmentAdded(result, token);
-            case "getAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_DOWNLOADED", "Economia: allegato scaricato", "ha scaricato", NotificationSeverity.INFO, token);
-            case "deleteAttachment" -> notifyAttachment(attachmentBefore, "ATTACHMENT_REMOVED", "Economia: allegato rimosso", "ha rimosso", NotificationSeverity.WARNING, token);
+            case "getAttachment" ->
+                notifyAttachment(attachmentBefore, "ATTACHMENT_DOWNLOADED", "Economia: allegato scaricato", "ha scaricato", NotificationSeverity.INFO, token);
+            case "deleteAttachment" ->
+                notifyAttachment(attachmentBefore, "ATTACHMENT_REMOVED", "Economia: allegato rimosso", "ha rimosso", NotificationSeverity.WARNING, token);
             case "updateEventBudget" -> notifyEventBudget(result, token);
             case "rollover", "rolloverForActor" -> notifyRollover(joinPoint, result, yearBefore, token);
             case "recalculate" -> notifyRecalculation(result, token);
@@ -738,10 +737,10 @@ public class NoticesAspect {
 
     @Around(
         "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.cashbook(..)) || " +
-        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.accountStatement(..)) || " +
-        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.events(..)) || " +
-        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.categories(..)) || " +
-        "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.annual(..))"
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.accountStatement(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.events(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.categories(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.annual(..))"
     )
     Object onFinanceReportExport(ProceedingJoinPoint joinPoint) throws Throwable {
         Object result = joinPoint.proceed();
@@ -975,7 +974,8 @@ public class NoticesAspect {
         AccountingYearStatus before,
         AbstractAuthenticationToken token
     ) {
-        if (!(result instanceof YearDTO value) || before == AccountingYearStatus.ROLLED_OVER || value.status() != AccountingYearStatus.ROLLED_OVER) return;
+        if (!(result instanceof YearDTO value) || before == AccountingYearStatus.ROLLED_OVER || value.status() != AccountingYearStatus.ROLLED_OVER)
+            return;
         if (token != null) {
             publishFinance(null, "ACCOUNTING_YEAR", null, "YEAR_ROLLED_OVER", "Economia: riporto annuale completato",
                 financeActor(token) + " ha completato il riporto dell’esercizio " + value.year() + " e aggiornato i saldi iniziali al 01/01/" + (value.year() + 1) + ".",
@@ -1467,7 +1467,8 @@ public class NoticesAspect {
     ) {
         String owner = displayName(assignment.getUserName(), assignment.getUserLastName(), "un utente non identificato");
         return switch (type) {
-            case THIRTY_DAYS, SEVEN_DAYS -> "L'assegnazione dell'oggetto " + item + " a " + owner + " scadrà il " + date + ".";
+            case THIRTY_DAYS, SEVEN_DAYS ->
+                "L'assegnazione dell'oggetto " + item + " a " + owner + " scadrà il " + date + ".";
             case DUE_TODAY -> "L'assegnazione dell'oggetto " + item + " a " + owner + " scade oggi, " + date + ".";
             case OVERDUE -> "L'assegnazione dell'oggetto " + item + " a " + owner + " è scaduta il " + date + ".";
         };

@@ -1,56 +1,62 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.fundaro.zodiac.taurus.service.UsersService;
-import com.fundaro.zodiac.taurus.service.TenantsService;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryReportExportRepository;
-import com.fundaro.zodiac.taurus.repository.MediaRepository;
-import com.fundaro.zodiac.taurus.service.MediaService;
-import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.domain.Media;
-import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
-import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
+import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryReportExportRepository;
+import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.TenantsService;
+import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.time.ZonedDateTime;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import javax.imageio.ImageIO;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class InventoryReportServiceTest {
-    @Mock InventoryService inventoryService;
-    @Mock UsersService usersService;
-    @Mock TenantsService tenantsService;
-    @Mock InventoryReportExportRepository reportExportRepository;
-    @Mock TenantLogoLoader tenantLogoLoader;
-    @Mock MediaService mediaService;
-    @Mock MediaRepository mediaRepository;
+    @Mock
+    InventoryService inventoryService;
+    @Mock
+    UsersService usersService;
+    @Mock
+    TenantsService tenantsService;
+    @Mock
+    InventoryReportExportRepository reportExportRepository;
+    @Mock
+    TenantLogoLoader tenantLogoLoader;
+    @Mock
+    MediaService mediaService;
+    @Mock
+    MediaRepository mediaRepository;
     private InventoryReportService reportService;
 
     private final Media storedMedia = new Media();
@@ -114,11 +120,11 @@ class InventoryReportServiceTest {
         }
         verify(reportExportRepository).save(argThat(export ->
             export.getMediaAsset() == storedMedia &&
-            export.getInsertBy().equals("user-1") &&
-            export.getEditBy().equals("user-1") &&
-            export.getInsertDate() != null &&
-            export.getEditDate() != null &&
-            !export.isDeleted()
+                export.getInsertBy().equals("user-1") &&
+                export.getEditBy().equals("user-1") &&
+                export.getInsertDate() != null &&
+                export.getEditDate() != null &&
+                !export.isDeleted()
         ));
     }
 

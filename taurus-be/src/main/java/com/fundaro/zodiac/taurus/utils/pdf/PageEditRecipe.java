@@ -24,6 +24,9 @@ public record PageEditRecipe(
     boolean autoContrast,
     Integer threshold
 ) {
-    /** Ritaglio espresso in frazioni della larghezza e dell'altezza della pagina. */
-    public record Crop(double x, double y, double width, double height) {}
+    /**
+     * Ritaglio espresso in frazioni della larghezza e dell'altezza della pagina.
+     */
+    public record Crop(double x, double y, double width, double height) {
+    }
 }

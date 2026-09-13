@@ -8,6 +8,7 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.EnumMap;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -87,12 +89,13 @@ public class NotificationMetrics {
     }
 
     private String[] tags(NotificationOutbox event) {
-        return new String[] { "tenant", tenant(), "source", event.getSource().name(), "operation", event.getOperation() };
+        return new String[]{"tenant", tenant(), "source", event.getSource().name(), "operation", event.getOperation()};
     }
 
     private static String tenant() {
         return TenantContext.getTenantCode().orElse("unknown");
     }
 
-    private record MetricKey(String tenant, NotificationSource source) {}
+    private record MetricKey(String tenant, NotificationSource source) {
+    }
 }

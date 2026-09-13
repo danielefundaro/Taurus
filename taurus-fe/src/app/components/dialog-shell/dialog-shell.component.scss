@@ -1,11 +1,13 @@
 :host {
     display: block;
 }
+
 .dialog-shell {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     max-height: calc(100vh - 8rem);
 }
+
 header {
     display: flex;
     align-items: flex-start;
@@ -14,18 +16,22 @@ header {
     padding: 0 0 1rem;
     border-bottom: 1px solid var(--p-content-border-color);
 }
+
 h2,
 p {
     margin: 0;
 }
+
 header p {
     margin-top: 0.35rem;
     color: var(--p-text-muted-color);
 }
+
 .dialog-shell__body {
     overflow: auto;
     padding: 1.25rem 0.15rem;
 }
+
 footer {
     display: flex;
     align-items: center;
@@ -34,11 +40,13 @@ footer {
     padding-top: 1rem;
     border-top: 1px solid var(--p-content-border-color);
 }
-footer > span {
+
+footer>span {
     color: var(--p-red-500);
     font-size: 0.875rem;
 }
-footer > div {
+
+footer>div {
     display: flex;
     gap: 0.5rem;
     margin-left: auto;

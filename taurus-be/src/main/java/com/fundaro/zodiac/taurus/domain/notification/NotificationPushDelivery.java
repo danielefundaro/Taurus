@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
@@ -75,40 +76,147 @@ public class NotificationPushDelivery extends TenantAuditedEntity {
     @Column(name = "last_error", length = 1000)
     private String lastError;
 
-    public String getSourceEventKey() { return sourceEventKey; }
-    public void setSourceEventKey(String value) { sourceEventKey = value; }
-    public String getUserId() { return userId; }
-    public void setUserId(String value) { userId = value; }
-    public NotificationSource getSource() { return source; }
-    public void setSource(NotificationSource value) { source = value; }
-    public NotificationPushDeliveryType getDeliveryType() { return deliveryType; }
-    public void setDeliveryType(NotificationPushDeliveryType value) { deliveryType = value; }
-    public String getTitle() { return title; }
-    public void setTitle(String value) { title = value; }
-    public String getMessage() { return message; }
-    public void setMessage(String value) { message = value; }
-    public String getTargetPath() { return targetPath; }
-    public void setTargetPath(String value) { targetPath = value; }
-    public Notices getNotice() { return notice; }
-    public void setNotice(Notices value) { notice = value; }
-    public Integer getSnoozeRevision() { return snoozeRevision; }
-    public void setSnoozeRevision(Integer value) { snoozeRevision = value; }
-    public LocalDate getDigestLocalDate() { return digestLocalDate; }
-    public void setDigestLocalDate(LocalDate value) { digestLocalDate = value; }
-    public ZonedDateTime getScheduledAt() { return scheduledAt; }
-    public void setScheduledAt(ZonedDateTime value) { scheduledAt = value; }
-    public ZonedDateTime getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(ZonedDateTime value) { expiresAt = value; }
-    public NotificationStatus getStatus() { return status; }
-    public void setStatus(NotificationStatus value) { status = value; }
-    public int getAttempts() { return attempts; }
-    public void setAttempts(int value) { attempts = value; }
-    public ZonedDateTime getNextAttemptAt() { return nextAttemptAt; }
-    public void setNextAttemptAt(ZonedDateTime value) { nextAttemptAt = value; }
-    public ZonedDateTime getDeliveredAt() { return deliveredAt; }
-    public void setDeliveredAt(ZonedDateTime value) { deliveredAt = value; }
-    public String getSkipReason() { return skipReason; }
-    public void setSkipReason(String value) { skipReason = value; }
-    public String getLastError() { return lastError; }
-    public void setLastError(String value) { lastError = value; }
+    public String getSourceEventKey() {
+        return sourceEventKey;
+    }
+
+    public void setSourceEventKey(String value) {
+        sourceEventKey = value;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String value) {
+        userId = value;
+    }
+
+    public NotificationSource getSource() {
+        return source;
+    }
+
+    public void setSource(NotificationSource value) {
+        source = value;
+    }
+
+    public NotificationPushDeliveryType getDeliveryType() {
+        return deliveryType;
+    }
+
+    public void setDeliveryType(NotificationPushDeliveryType value) {
+        deliveryType = value;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String value) {
+        title = value;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String value) {
+        message = value;
+    }
+
+    public String getTargetPath() {
+        return targetPath;
+    }
+
+    public void setTargetPath(String value) {
+        targetPath = value;
+    }
+
+    public Notices getNotice() {
+        return notice;
+    }
+
+    public void setNotice(Notices value) {
+        notice = value;
+    }
+
+    public Integer getSnoozeRevision() {
+        return snoozeRevision;
+    }
+
+    public void setSnoozeRevision(Integer value) {
+        snoozeRevision = value;
+    }
+
+    public LocalDate getDigestLocalDate() {
+        return digestLocalDate;
+    }
+
+    public void setDigestLocalDate(LocalDate value) {
+        digestLocalDate = value;
+    }
+
+    public ZonedDateTime getScheduledAt() {
+        return scheduledAt;
+    }
+
+    public void setScheduledAt(ZonedDateTime value) {
+        scheduledAt = value;
+    }
+
+    public ZonedDateTime getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(ZonedDateTime value) {
+        expiresAt = value;
+    }
+
+    public NotificationStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(NotificationStatus value) {
+        status = value;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(int value) {
+        attempts = value;
+    }
+
+    public ZonedDateTime getNextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    public void setNextAttemptAt(ZonedDateTime value) {
+        nextAttemptAt = value;
+    }
+
+    public ZonedDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(ZonedDateTime value) {
+        deliveredAt = value;
+    }
+
+    public String getSkipReason() {
+        return skipReason;
+    }
+
+    public void setSkipReason(String value) {
+        skipReason = value;
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
+
+    public void setLastError(String value) {
+        lastError = value;
+    }
 }

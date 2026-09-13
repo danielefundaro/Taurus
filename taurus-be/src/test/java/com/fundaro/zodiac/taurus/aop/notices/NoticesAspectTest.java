@@ -1,12 +1,5 @@
 package com.fundaro.zodiac.taurus.aop.notices;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
@@ -18,12 +11,7 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationAudienceType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
-import com.fundaro.zodiac.taurus.service.AlbumsService;
-import com.fundaro.zodiac.taurus.service.CalendarEventsService;
-import com.fundaro.zodiac.taurus.service.InstrumentsService;
-import com.fundaro.zodiac.taurus.service.TenantsService;
-import com.fundaro.zodiac.taurus.service.TracksService;
-import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.service.*;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
@@ -31,21 +19,9 @@ import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemDTO;
-import com.fundaro.zodiac.taurus.service.impl.AlbumsServiceImpl;
-import com.fundaro.zodiac.taurus.service.impl.CrossTenantNotificationPublisher;
-import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService;
-import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService;
-import com.fundaro.zodiac.taurus.service.impl.NotificationOutboxPublisher;
+import com.fundaro.zodiac.taurus.service.impl.*;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,19 +35,37 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class NoticesAspectTest {
 
-    @Mock NotificationOutboxPublisher publisher;
-    @Mock CrossTenantNotificationPublisher crossTenantPublisher;
-    @Mock UsersService usersService;
-    @Mock TenantsService tenantsService;
-    @Mock InstrumentsService instrumentsService;
-    @Mock AlbumsService albumsService;
-    @Mock TracksService tracksService;
-    @Mock CalendarEventsService calendarEventsService;
-    @Mock InventoryNoticeDataService inventoryNoticeDataService;
-    @Mock FinanceNoticeDataService financeNoticeDataService;
+    @Mock
+    NotificationOutboxPublisher publisher;
+    @Mock
+    CrossTenantNotificationPublisher crossTenantPublisher;
+    @Mock
+    UsersService usersService;
+    @Mock
+    TenantsService tenantsService;
+    @Mock
+    InstrumentsService instrumentsService;
+    @Mock
+    AlbumsService albumsService;
+    @Mock
+    TracksService tracksService;
+    @Mock
+    CalendarEventsService calendarEventsService;
+    @Mock
+    InventoryNoticeDataService inventoryNoticeDataService;
+    @Mock
+    FinanceNoticeDataService financeNoticeDataService;
     private NoticesAspect aspect;
     private JwtAuthenticationToken authentication;
 

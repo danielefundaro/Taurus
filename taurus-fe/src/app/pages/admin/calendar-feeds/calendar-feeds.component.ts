@@ -9,4 +9,4 @@ import { ImportsModule } from '../../../imports';
     templateUrl: './calendar-feeds.component.html',
     styleUrl: './calendar-feeds.component.scss'
 })
-export class CalendarFeedsComponent {}
+export class CalendarFeedsComponent { }

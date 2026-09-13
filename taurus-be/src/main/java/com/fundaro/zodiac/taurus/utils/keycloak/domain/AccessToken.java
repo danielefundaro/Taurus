@@ -35,7 +35,7 @@ public class AccessToken implements Serializable {
     @JsonProperty("session_state")
     private String sessionState;
 
-    private Map<String, Object> otherClaims = new HashMap<>();
+    private final Map<String, Object> otherClaims = new HashMap<>();
 
     @JsonProperty("scope")
     private String scope;

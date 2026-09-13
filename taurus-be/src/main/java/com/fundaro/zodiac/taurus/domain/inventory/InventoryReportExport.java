@@ -1,12 +1,8 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
 import com.fundaro.zodiac.taurus.domain.Media;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -35,18 +31,59 @@ public class InventoryReportExport extends AuditedEntity {
     @JoinColumn(name = "media_asset_id")
     private Media mediaAsset;
 
-    public Long getRequestedUserIndex() { return requestedUserIndex; }
-    public void setRequestedUserIndex(Long requestedUserIndex) { this.requestedUserIndex = requestedUserIndex; }
-    public String getGeneratedBy() { return generatedBy; }
-    public void setGeneratedBy(String generatedBy) { this.generatedBy = generatedBy; }
-    public ZonedDateTime getGeneratedAt() { return generatedAt; }
-    public void setGeneratedAt(ZonedDateTime generatedAt) { this.generatedAt = generatedAt; }
-    public boolean isIncludeAssigned() { return includeAssigned; }
-    public void setIncludeAssigned(boolean includeAssigned) { this.includeAssigned = includeAssigned; }
-    public boolean isIncludeReturned() { return includeReturned; }
-    public void setIncludeReturned(boolean includeReturned) { this.includeReturned = includeReturned; }
-    public boolean isIncludePhotos() { return includePhotos; }
-    public void setIncludePhotos(boolean includePhotos) { this.includePhotos = includePhotos; }
-    public Media getMediaAsset() { return mediaAsset; }
-    public void setMediaAsset(Media mediaAsset) { this.mediaAsset = mediaAsset; }
+    public Long getRequestedUserIndex() {
+        return requestedUserIndex;
+    }
+
+    public void setRequestedUserIndex(Long requestedUserIndex) {
+        this.requestedUserIndex = requestedUserIndex;
+    }
+
+    public String getGeneratedBy() {
+        return generatedBy;
+    }
+
+    public void setGeneratedBy(String generatedBy) {
+        this.generatedBy = generatedBy;
+    }
+
+    public ZonedDateTime getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public void setGeneratedAt(ZonedDateTime generatedAt) {
+        this.generatedAt = generatedAt;
+    }
+
+    public boolean isIncludeAssigned() {
+        return includeAssigned;
+    }
+
+    public void setIncludeAssigned(boolean includeAssigned) {
+        this.includeAssigned = includeAssigned;
+    }
+
+    public boolean isIncludeReturned() {
+        return includeReturned;
+    }
+
+    public void setIncludeReturned(boolean includeReturned) {
+        this.includeReturned = includeReturned;
+    }
+
+    public boolean isIncludePhotos() {
+        return includePhotos;
+    }
+
+    public void setIncludePhotos(boolean includePhotos) {
+        this.includePhotos = includePhotos;
+    }
+
+    public Media getMediaAsset() {
+        return mediaAsset;
+    }
+
+    public void setMediaAsset(Media mediaAsset) {
+        this.mediaAsset = mediaAsset;
+    }
 }

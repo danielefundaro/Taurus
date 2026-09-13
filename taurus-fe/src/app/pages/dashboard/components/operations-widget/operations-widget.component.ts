@@ -37,7 +37,7 @@ export class OperationsWidgetComponent {
         NOTIFICATION_DELIVERY_FAILED: ['/admin/notification-delivery?status=FAILED']
     };
 
-    constructor(private readonly router: Router) {}
+    constructor(private readonly router: Router) { }
 
     protected severity(item: OperationalItem): 'danger' | 'warn' | 'info' {
         return item.severity === 'WARNING' ? 'warn' : (item.severity.toLowerCase() as 'danger' | 'info');

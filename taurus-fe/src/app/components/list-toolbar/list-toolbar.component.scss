@@ -2,6 +2,7 @@
     display: block;
     margin-bottom: 1rem;
 }
+
 .list-toolbar {
     display: flex;
     align-items: center;
@@ -12,20 +13,25 @@
     border-radius: var(--p-content-border-radius);
     background: var(--p-content-background);
 }
+
 .list-toolbar__search {
     flex: 1 1 18rem;
 }
+
 .list-toolbar__search input {
     width: 100%;
 }
+
 .list-toolbar__spacer {
     flex: 1 1 auto;
 }
+
 @media (max-width: 640px) {
-    .list-toolbar > * {
+    .list-toolbar>* {
         flex-basis: 100%;
         width: 100%;
     }
+
     .list-toolbar__spacer {
         display: none;
     }

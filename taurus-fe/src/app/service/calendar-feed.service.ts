@@ -6,7 +6,7 @@ import { CalendarFeed, CalendarFeedCreate, CalendarFeedSecret } from '../module'
 
 @Injectable({ providedIn: 'root' })
 export class CalendarFeedService {
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
     list(admin = false): Observable<CalendarFeed[]> {
         return this.http.get<CalendarFeed[]>(this.url(admin));
     }

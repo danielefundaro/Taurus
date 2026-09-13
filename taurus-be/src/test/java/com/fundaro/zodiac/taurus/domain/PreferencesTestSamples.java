@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PreferencesTestSamples {
 
     private static final Random random = new Random();
-    private static final AtomicLong longCount = new AtomicLong(random.nextInt() + (2 * Integer.MAX_VALUE));
+    private static final AtomicLong longCount = new AtomicLong(random.nextInt() + (2L * Integer.MAX_VALUE));
 
     public static Preferences getPreferencesSample1() {
         return new Preferences().id(1L).insertBy("insertBy1").editBy("editBy1").userId("userId1").key("key1").value("value1");

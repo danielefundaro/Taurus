@@ -27,6 +27,7 @@ import com.fundaro.zodiac.taurus.service.dto.RecurrenceEndDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -86,7 +88,9 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
     }
 
     @Autowired
-    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) { this.calendarFeedLifecycle = value; }
+    void setCalendarFeedLifecycle(CalendarFeedEventLifecycle value) {
+        this.calendarFeedLifecycle = value;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -144,7 +148,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         Instant now = Instant.now();
         List<CalendarEvents> allEvents = eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(id);
         Map<CalendarEvents, CalendarFeedEventLifecycle.Snapshot> feedSnapshots = new IdentityHashMap<>();
-        if (calendarFeedLifecycle != null) allEvents.forEach(event -> feedSnapshots.put(event, calendarFeedLifecycle.snapshot(event)));
+        if (calendarFeedLifecycle != null)
+            allEvents.forEach(event -> feedSnapshots.put(event, calendarFeedLifecycle.snapshot(event)));
         CalendarEvents sourceOccurrence = findSourceOccurrence(request.getSourceOccurrenceId(), allEvents);
         Integer sourceSequence = sourceOccurrence == null ? null : sourceOccurrence.getSeriesSequence();
         Map<Instant, CalendarEvents> byOriginalStart = new HashMap<>();
@@ -168,9 +173,9 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
                 : event.getSeriesSequence() <= definition.occurrences().size();
             if (
                 inPropagationScope &&
-                !event.getDeleted() &&
-                !Boolean.TRUE.equals(event.getSeriesException()) &&
-                !stillGenerated
+                    !event.getDeleted() &&
+                    !Boolean.TRUE.equals(event.getSeriesException()) &&
+                    !stillGenerated
             ) {
                 event.setDeleted(true);
                 event.setSeriesExcluded(false);
@@ -226,7 +231,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
         applySeriesDefinition(series, request, definition, actor, economicsWritable);
         seriesRepository.save(series);
-        if (calendarFeedLifecycle != null) changed.forEach(event -> calendarFeedLifecycle.apply(event, feedSnapshots.get(event)));
+        if (calendarFeedLifecycle != null)
+            changed.forEach(event -> calendarFeedLifecycle.apply(event, feedSnapshots.get(event)));
         eventRepository.saveAll(changed);
         eventRepository.flush();
 
@@ -305,7 +311,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         LocalDateTime firstLocal = start.atZone(zone).toLocalDateTime();
         try {
             List<ZonedDateTime> occurrences = generator.generate(firstLocal, zone, request.getRecurrence(), maximumOccurrences);
-            if (occurrences.isEmpty()) throw new IllegalArgumentException("The recurrence does not generate occurrences");
+            if (occurrences.isEmpty())
+                throw new IllegalArgumentException("The recurrence does not generate occurrences");
             return new SeriesDefinition(firstLocal, (int) duration, occurrences);
         } catch (IllegalArgumentException exception) {
             throw error(HttpStatus.BAD_REQUEST, exception.getMessage(), "recurrence.invalid");
@@ -509,5 +516,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         return new RequestAlertException(status, message, "CalendarEventSeries", key);
     }
 
-    private record SeriesDefinition(LocalDateTime firstStartLocal, int durationMinutes, List<ZonedDateTime> occurrences) {}
+    private record SeriesDefinition(LocalDateTime firstStartLocal, int durationMinutes,
+                                    List<ZonedDateTime> occurrences) {
+    }
 }

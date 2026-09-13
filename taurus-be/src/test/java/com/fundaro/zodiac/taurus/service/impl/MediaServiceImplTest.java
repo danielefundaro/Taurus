@@ -1,21 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
-import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,14 +16,28 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class MediaServiceImplTest {
 
-    @TempDir Path tempDirectory;
+    @TempDir
+    Path tempDirectory;
 
-    @Mock MediaRepository repository;
-    @Mock MediaMapper mapper;
-    @Mock TenantFeatureService tenantFeatureService;
+    @Mock
+    MediaRepository repository;
+    @Mock
+    MediaMapper mapper;
+    @Mock
+    TenantFeatureService tenantFeatureService;
 
     private MediaServiceImpl service;
     private final List<Media> savedMedia = new ArrayList<>();

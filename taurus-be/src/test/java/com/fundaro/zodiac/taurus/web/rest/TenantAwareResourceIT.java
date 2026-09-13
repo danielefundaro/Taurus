@@ -4,13 +4,10 @@ import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
-import java.util.Date;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Date;
 
 /**
  * Base per gli integration test delle risorse le cui tabelle vivono solo negli schemi tenant.
@@ -25,10 +22,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class TenantAwareResourceIT {
 
-    /** Deve combaciare con il claim {@code tenant} di {@code @WithMockTenantUser}. */
+    /**
+     * Deve combaciare con il claim {@code tenant} di {@code @WithMockTenantUser}.
+     */
     protected static final String TENANT_CODE = "resource-it-tenant";
 
-    /** Deve combaciare con il claim {@code sub}: i servizi filtrano le righe per proprietario. */
+    /**
+     * Deve combaciare con il claim {@code sub}: i servizi filtrano le righe per proprietario.
+     */
     protected static final String TENANT_USER_ID = "AAAAAAAAAA";
 
     @Autowired

@@ -4,27 +4,6 @@ import com.fundaro.zodiac.taurus.utils.pdf.PageImageTransformer;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfCropRegion;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageTransform;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -33,9 +12,19 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
 import org.springframework.lang.NonNull;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
 public final class Converter {
 
-    private Converter() {}
+    private Converter() {
+    }
 
     public static String camelCaseToKebabCase(@NonNull String value) {
         return value.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();

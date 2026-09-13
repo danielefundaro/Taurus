@@ -6,56 +6,44 @@
         <div class="sidebar-header">
             <span>Pagine</span>
             <div class="sidebar-header-actions">
-                <p-button
-                    [icon]="allExcluded ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                <p-button [icon]="allExcluded ? 'pi pi-eye' : 'pi pi-eye-slash'"
                     [ariaLabel]="allExcluded ? 'Includi tutte le pagine' : 'Escludi tutte le pagine'"
                     [pTooltip]="allExcluded ? 'Includi tutte le pagine' : 'Escludi tutte le pagine'"
-                    [severity]="allExcluded ? 'success' : 'secondary'"
-                    [text]="true"
-                    size="small"
-                    [disabled]="pages.length === 0"
-                    (onClick)="toggleExcludeAll($event)"
-                />
+                    [severity]="allExcluded ? 'success' : 'secondary'" [text]="true" size="small"
+                    [disabled]="pages.length === 0" (onClick)="toggleExcludeAll($event)" />
                 @if (cropCount > 0) {
-                    <p-button icon="pi pi-times" ariaLabel="Rimuovi tutti i ritagli" pTooltip="Rimuovi tutti i crop" severity="secondary" [text]="true" size="small" (onClick)="removeCropFromAll()" />
+                <p-button icon="pi pi-times" ariaLabel="Rimuovi tutti i ritagli" pTooltip="Rimuovi tutti i crop"
+                    severity="secondary" [text]="true" size="small" (onClick)="removeCropFromAll()" />
                 }
             </div>
         </div>
         <div class="page-list">
             @for (page of pages; track page) {
-                <div class="page-item" [class.active]="page === currentPage" [class.excluded]="isExcluded(page)" (click)="navigateTo(page)">
-                    <span class="page-num">{{ page }}</span>
-                    <div class="flex flex-row gap-1">
-                        <div class="page-actions">
-                            <p-button
-                                [icon]="isExcluded(page) ? 'pi pi-eye' : 'pi pi-eye-slash'"
-                                [ariaLabel]="isExcluded(page) ? 'Includi pagina ' + page : 'Escludi pagina ' + page"
-                                [pTooltip]="isExcluded(page) ? 'Includi pagina' : 'Escludi pagina'"
-                                [severity]="isExcluded(page) ? 'success' : 'danger'"
-                                [text]="true"
-                                size="small"
-                                (onClick)="toggleExclude(page, $event)"
-                            />
-                        </div>
-                        <p-button
-                            icon="pi pi-arrow-down-left-and-arrow-up-right-to-center"
-                            [ariaLabel]="hasTransform(page) ? 'Modifica regolazioni pagina' : 'Modifica pagina'"
-                            [pTooltip]="hasTransform(page) ? 'Regolazioni applicate' : 'Modifica pagina'"
-                            severity="primary"
-                            [outlined]="!hasTransform(page)"
-                            [badge]="cropCountForPage(page) > 0 ? cropCountForPage(page).toString() : undefined"
-                            badgeSeverity="success"
-                            size="small"
-                            [disabled]="!pdfReady || cropLoading"
-                            (onClick)="enterCropMode(page, $event)"
-                        />
+            <div class="page-item" [class.active]="page === currentPage" [class.excluded]="isExcluded(page)"
+                (click)="navigateTo(page)">
+                <span class="page-num">{{ page }}</span>
+                <div class="flex flex-row gap-1">
+                    <div class="page-actions">
+                        <p-button [icon]="isExcluded(page) ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                            [ariaLabel]="isExcluded(page) ? 'Includi pagina ' + page : 'Escludi pagina ' + page"
+                            [pTooltip]="isExcluded(page) ? 'Includi pagina' : 'Escludi pagina'"
+                            [severity]="isExcluded(page) ? 'success' : 'danger'" [text]="true" size="small"
+                            (onClick)="toggleExclude(page, $event)" />
                     </div>
+                    <p-button icon="pi pi-arrow-down-left-and-arrow-up-right-to-center"
+                        [ariaLabel]="hasTransform(page) ? 'Modifica regolazioni pagina' : 'Modifica pagina'"
+                        [pTooltip]="hasTransform(page) ? 'Regolazioni applicate' : 'Modifica pagina'" severity="primary"
+                        [outlined]="!hasTransform(page)"
+                        [badge]="cropCountForPage(page) > 0 ? cropCountForPage(page).toString() : undefined"
+                        badgeSeverity="success" size="small" [disabled]="!pdfReady || cropLoading"
+                        (onClick)="enterCropMode(page, $event)" />
                 </div>
+            </div>
             }
             @if (pages.length === 0) {
-                <div class="sidebar-loading">
-                    <i class="pi pi-spin pi-spinner"></i>
-                </div>
+            <div class="sidebar-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+            </div>
             }
         </div>
     </aside>
@@ -64,175 +52,184 @@
     <main class="pdf-main">
         <!-- PDF viewer (always mounted, hidden in crop mode) -->
         <div class="viewer-wrapper" [style.display]="cropMode ? 'none' : 'flex'">
-            <ngx-extended-pdf-viewer
-                [src]="pdfFile"
-                [page]="currentPage"
-                [showToolbar]="true"
-                [showSidebarButton]="false"
-                [showPresentationModeButton]="false"
-                [showOpenFileButton]="false"
-                [showPrintButton]="false"
-                [showDownloadButton]="false"
-                [showSecondaryToolbarButton]="false"
-                [showRotateButton]="false"
-                [showHandToolButton]="false"
-                [showScrollingButtons]="false"
-                [showSpreadButton]="false"
-                [showPropertiesButton]="false"
-                [showFindButton]="false"
-                height="100%"
-                (pagesLoaded)="onPagesLoaded($event)"
-            />
+            <ngx-extended-pdf-viewer [src]="pdfFile" [page]="currentPage" [showToolbar]="true"
+                [showSidebarButton]="false" [showPresentationModeButton]="false" [showOpenFileButton]="false"
+                [showPrintButton]="false" [showDownloadButton]="false" [showSecondaryToolbarButton]="false"
+                [showRotateButton]="false" [showHandToolButton]="false" [showScrollingButtons]="false"
+                [showSpreadButton]="false" [showPropertiesButton]="false" [showFindButton]="false" height="100%"
+                (pagesLoaded)="onPagesLoaded($event)" />
         </div>
 
         <!-- Crop tool -->
         @if (cropMode) {
-            <div class="crop-view">
-                <div class="crop-header">
-                    <span class="crop-title"> <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center mr-2"></i>Ritaglia pagina {{ cropPageNum }} </span>
-                    <span class="crop-hint">Seleziona “Disegna zona”, poi trascina sull’anteprima per delimitare l’area</span>
+        <div class="crop-view">
+            <div class="crop-header">
+                <span class="crop-title"> <i
+                        class="pi pi-arrow-down-left-and-arrow-up-right-to-center mr-2"></i>Ritaglia pagina {{
+                    cropPageNum }} </span>
+                <span class="crop-hint">Seleziona “Disegna zona”, poi trascina sull’anteprima per delimitare
+                    l’area</span>
+            </div>
+
+            <div class="crop-workspace">
+                <div class="crop-canvas-area">
+                    <div class="crop-container" #cropContainer [style.cursor]="cropCursor"
+                        (pointerdown)="onCropPointerDown($event)" (pointermove)="onCropPointerMove($event)"
+                        (pointerup)="onCropPointerUp($event)" (pointercancel)="onCropPointerCancel($event)">
+                        <canvas #previewCanvas class="crop-image"
+                            [attr.aria-label]="'Anteprima pagina ' + cropPageNum"></canvas>
+                        @for (crop of pageCrops; track $index; let i = $index) {
+                        @if (i !== editingCropIndex) {
+                        <div class="crop-existing" [ngStyle]="existingCropStyle(crop)">
+                            <span class="crop-existing-num">{{ i + 1 }}</span>
+                        </div>
+                        }
+                        }
+                        @if (cropRect && cropRect.width > 0) {
+                        <div class="crop-selection" [ngStyle]="cropSelectionStyle">
+                            <span class="crop-selection-num">{{ editingCropIndex === null ? pageCrops.length + 1 :
+                                editingCropIndex + 1 }}</span>
+                            <div class="crop-handle nw"></div>
+                            <div class="crop-handle ne"></div>
+                            <div class="crop-handle sw"></div>
+                            <div class="crop-handle se"></div>
+                            <div class="crop-handle n"></div>
+                            <div class="crop-handle s"></div>
+                            <div class="crop-handle e"></div>
+                            <div class="crop-handle w"></div>
+                        </div>
+                        }
+                    </div>
                 </div>
 
-                <div class="crop-workspace">
-                    <div class="crop-canvas-area">
-                        <div
-                            class="crop-container"
-                            #cropContainer
-                            [style.cursor]="cropCursor"
-                            (pointerdown)="onCropPointerDown($event)"
-                            (pointermove)="onCropPointerMove($event)"
-                            (pointerup)="onCropPointerUp($event)"
-                            (pointercancel)="onCropPointerCancel($event)"
-                        >
-                            <canvas #previewCanvas class="crop-image" [attr.aria-label]="'Anteprima pagina ' + cropPageNum"></canvas>
-                            @for (crop of pageCrops; track $index; let i = $index) {
-                                @if (i !== editingCropIndex) {
-                                    <div class="crop-existing" [ngStyle]="existingCropStyle(crop)">
-                                        <span class="crop-existing-num">{{ i + 1 }}</span>
-                                    </div>
-                                }
-                            }
-                            @if (cropRect && cropRect.width > 0) {
-                                <div class="crop-selection" [ngStyle]="cropSelectionStyle">
-                                    <span class="crop-selection-num">{{ editingCropIndex === null ? pageCrops.length + 1 : editingCropIndex + 1 }}</span>
-                                    <div class="crop-handle nw"></div>
-                                    <div class="crop-handle ne"></div>
-                                    <div class="crop-handle sw"></div>
-                                    <div class="crop-handle se"></div>
-                                    <div class="crop-handle n"></div>
-                                    <div class="crop-handle s"></div>
-                                    <div class="crop-handle e"></div>
-                                    <div class="crop-handle w"></div>
-                                </div>
+                <aside class="tools-panel" aria-label="Regolazioni pagina PDF">
+                    <section class="tool-section">
+                        <h4>Orientamento</h4>
+                        <div class="button-row">
+                            <p-button label="Sinistra" icon="pi pi-undo" severity="secondary" outlined
+                                (onClick)="rotate(-1)" />
+                            <p-button label="Destra" icon="pi pi-replay" styleClass="rotate-right-button"
+                                severity="secondary" outlined (onClick)="rotate(1)" />
+                        </div>
+                        <app-form-field label="Raddrizzamento" forId="pdf-deskew">
+                            <div class="slider-with-value"
+                                [style.--slider-position]="sliderPosition(recipe.deskewDegrees, 0, 360) + '%'">
+                                <span class="slider-value" aria-hidden="true">{{ recipe.deskewDegrees | number: '1.1-1'
+                                    }}°</span>
+                                <p-slider id="pdf-deskew" [(ngModel)]="recipe.deskewDegrees" [min]="0" [max]="360"
+                                    [step]="0.1" (ngModelChange)="settingsChanged()" />
+                            </div>
+                            <div class="slider-range" aria-hidden="true"><span>0°</span><span>360°</span></div>
+                        </app-form-field>
+                    </section>
+
+                    <section class="tool-section">
+                        <div class="tool-heading">
+                            <h4>Zone di ritaglio</h4>
+                            <p-tag [value]="pageCrops.length + '/8'" severity="secondary" />
+                        </div>
+                        <small>Le zone vengono mantenute nell’ordine mostrato e unite verticalmente nella pagina
+                            risultante.</small>
+                        <div class="crop-actions">
+                            <p-button label="Disegna zona" icon="pi pi-expand" severity="secondary"
+                                [outlined]="!cropDrawing" [disabled]="pageCrops.length >= 8"
+                                (onClick)="startAddingCrop()" />
+                            <p-button label="Sinistra / destra" icon="pi pi-arrows-h" severity="secondary" outlined
+                                (onClick)="splitCrop('vertical')" />
+                            <p-button label="Alto / basso" icon="pi pi-arrows-v" severity="secondary" outlined
+                                (onClick)="splitCrop('horizontal')" />
+                        </div>
+                        @if (cropDrawing) {
+                        <p-message severity="info">Trascina sull’anteprima per delimitare la nuova zona.</p-message>
+                        }
+
+                        @if (pageCrops.length) {
+                        <div class="crop-zone-list" aria-label="Zone di ritaglio">
+                            @for (zone of pageCrops; track $index) {
+                            <div class="crop-zone-row" [class.active]="$index === editingCropIndex">
+                                <button type="button" class="crop-zone-select" (click)="editPageCrop($index)">
+                                    <strong>Zona {{ $index + 1 }}</strong>
+                                    <span>{{ zone.width * 100 | number: '1.0-1' }} × {{ zone.height * 100 | number:
+                                        '1.0-1' }}%</span>
+                                </button>
+                                <p-button icon="pi pi-trash" [ariaLabel]="'Rimuovi zona ' + ($index + 1)"
+                                    severity="danger" text size="small" (onClick)="removePageCrop($index, $event)" />
+                            </div>
                             }
                         </div>
-                    </div>
+                        <p-button label="Rimuovi tutte" icon="pi pi-trash" severity="danger" text fluid
+                            (onClick)="removeCrop()" />
+                        }
 
-                    <aside class="tools-panel" aria-label="Regolazioni pagina PDF">
-                        <section class="tool-section">
-                            <h4>Orientamento</h4>
-                            <div class="button-row">
-                                <p-button label="Sinistra" icon="pi pi-undo" severity="secondary" outlined (onClick)="rotate(-1)" />
-                                <p-button label="Destra" icon="pi pi-replay" styleClass="rotate-right-button" severity="secondary" outlined (onClick)="rotate(1)" />
-                            </div>
-                            <app-form-field label="Raddrizzamento" forId="pdf-deskew">
-                                <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.deskewDegrees, 0, 360) + '%'">
-                                    <span class="slider-value" aria-hidden="true">{{ recipe.deskewDegrees | number: '1.1-1' }}°</span>
-                                    <p-slider id="pdf-deskew" [(ngModel)]="recipe.deskewDegrees" [min]="0" [max]="360" [step]="0.1" (ngModelChange)="settingsChanged()" />
-                                </div>
-                                <div class="slider-range" aria-hidden="true"><span>0°</span><span>360°</span></div>
+                        @if (cropRect) {
+                        <div class="crop-grid">
+                            <app-form-field label="Sinistra %" forId="pdf-crop-x">
+                                <p-inputnumber inputId="pdf-crop-x" [ngModel]="cropRect.x * 100" [min]="0" [max]="98"
+                                    (ngModelChange)="updateCrop('x', $event / 100)" />
                             </app-form-field>
-                        </section>
-
-                        <section class="tool-section">
-                            <div class="tool-heading">
-                                <h4>Zone di ritaglio</h4>
-                                <p-tag [value]="pageCrops.length + '/8'" severity="secondary" />
-                            </div>
-                            <small>Le zone vengono mantenute nell’ordine mostrato e unite verticalmente nella pagina risultante.</small>
-                            <div class="crop-actions">
-                                <p-button label="Disegna zona" icon="pi pi-expand" severity="secondary" [outlined]="!cropDrawing" [disabled]="pageCrops.length >= 8" (onClick)="startAddingCrop()" />
-                                <p-button label="Sinistra / destra" icon="pi pi-arrows-h" severity="secondary" outlined (onClick)="splitCrop('vertical')" />
-                                <p-button label="Alto / basso" icon="pi pi-arrows-v" severity="secondary" outlined (onClick)="splitCrop('horizontal')" />
-                            </div>
-                            @if (cropDrawing) {
-                                <p-message severity="info">Trascina sull’anteprima per delimitare la nuova zona.</p-message>
-                            }
-
-                            @if (pageCrops.length) {
-                                <div class="crop-zone-list" aria-label="Zone di ritaglio">
-                                    @for (zone of pageCrops; track $index) {
-                                        <div class="crop-zone-row" [class.active]="$index === editingCropIndex">
-                                            <button type="button" class="crop-zone-select" (click)="editPageCrop($index)">
-                                                <strong>Zona {{ $index + 1 }}</strong>
-                                                <span>{{ zone.width * 100 | number: '1.0-1' }} × {{ zone.height * 100 | number: '1.0-1' }}%</span>
-                                            </button>
-                                            <p-button icon="pi pi-trash" [ariaLabel]="'Rimuovi zona ' + ($index + 1)" severity="danger" text size="small" (onClick)="removePageCrop($index, $event)" />
-                                        </div>
-                                    }
-                                </div>
-                                <p-button label="Rimuovi tutte" icon="pi pi-trash" severity="danger" text fluid (onClick)="removeCrop()" />
-                            }
-
-                            @if (cropRect) {
-                                <div class="crop-grid">
-                                    <app-form-field label="Sinistra %" forId="pdf-crop-x">
-                                        <p-inputnumber inputId="pdf-crop-x" [ngModel]="cropRect.x * 100" [min]="0" [max]="98" (ngModelChange)="updateCrop('x', $event / 100)" />
-                                    </app-form-field>
-                                    <app-form-field label="Alto %" forId="pdf-crop-y">
-                                        <p-inputnumber inputId="pdf-crop-y" [ngModel]="cropRect.y * 100" [min]="0" [max]="98" (ngModelChange)="updateCrop('y', $event / 100)" />
-                                    </app-form-field>
-                                    <app-form-field label="Larghezza %" forId="pdf-crop-width">
-                                        <p-inputnumber inputId="pdf-crop-width" [ngModel]="cropRect.width * 100" [min]="2" [max]="100" (ngModelChange)="updateCrop('width', $event / 100)" />
-                                    </app-form-field>
-                                    <app-form-field label="Altezza %" forId="pdf-crop-height">
-                                        <p-inputnumber inputId="pdf-crop-height" [ngModel]="cropRect.height * 100" [min]="2" [max]="100" (ngModelChange)="updateCrop('height', $event / 100)" />
-                                    </app-form-field>
-                                </div>
-                            }
-                        </section>
-
-                        <section class="tool-section">
-                            <h4>Miglioramento</h4>
-                            <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.grayscale" (ngModelChange)="settingsChanged()" /> Scala di grigi</label>
-                            <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.autoContrast" (ngModelChange)="settingsChanged()" /> Contrasto automatico</label>
-                            <app-form-field label="Luminosità" forId="pdf-brightness">
-                                <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.brightness, -100, 100) + '%'">
-                                    <span class="slider-value" aria-hidden="true">{{ recipe.brightness }}</span>
-                                    <p-slider id="pdf-brightness" [(ngModel)]="recipe.brightness" [min]="-100" [max]="100" (ngModelChange)="settingsChanged()" />
-                                </div>
+                            <app-form-field label="Alto %" forId="pdf-crop-y">
+                                <p-inputnumber inputId="pdf-crop-y" [ngModel]="cropRect.y * 100" [min]="0" [max]="98"
+                                    (ngModelChange)="updateCrop('y', $event / 100)" />
                             </app-form-field>
-                            <app-form-field label="Contrasto" forId="pdf-contrast">
-                                <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.contrast, -100, 100) + '%'">
-                                    <span class="slider-value" aria-hidden="true">{{ recipe.contrast }}</span>
-                                    <p-slider id="pdf-contrast" [(ngModel)]="recipe.contrast" [min]="-100" [max]="100" (ngModelChange)="settingsChanged()" />
-                                </div>
+                            <app-form-field label="Larghezza %" forId="pdf-crop-width">
+                                <p-inputnumber inputId="pdf-crop-width" [ngModel]="cropRect.width * 100" [min]="2"
+                                    [max]="100" (ngModelChange)="updateCrop('width', $event / 100)" />
                             </app-form-field>
-                            <label class="check-row"><p-checkbox binary [ngModel]="thresholdEnabled" (ngModelChange)="toggleThreshold($event)" /> Bianco e nero</label>
-                            @if (thresholdEnabled) {
-                                <app-form-field label="Soglia" forId="pdf-threshold">
-                                    <div class="slider-with-value" [style.--slider-position]="sliderPosition(recipe.threshold, 0, 255) + '%'">
-                                        <span class="slider-value" aria-hidden="true">{{ recipe.threshold }}</span>
-                                        <p-slider id="pdf-threshold" [(ngModel)]="recipe.threshold" [min]="0" [max]="255" (ngModelChange)="settingsChanged()" />
-                                    </div>
-                                </app-form-field>
-                            }
-                        </section>
+                            <app-form-field label="Altezza %" forId="pdf-crop-height">
+                                <p-inputnumber inputId="pdf-crop-height" [ngModel]="cropRect.height * 100" [min]="2"
+                                    [max]="100" (ngModelChange)="updateCrop('height', $event / 100)" />
+                            </app-form-field>
+                        </div>
+                        }
+                    </section>
 
-                        <p-button label="Ripristina pagina" icon="pi pi-refresh" severity="secondary" text fluid (onClick)="resetCurrentPage()" />
-                    </aside>
-                </div>
+                    <section class="tool-section">
+                        <h4>Miglioramento</h4>
+                        <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.grayscale"
+                                (ngModelChange)="settingsChanged()" /> Scala di grigi</label>
+                        <label class="check-row"><p-checkbox binary [(ngModel)]="recipe.autoContrast"
+                                (ngModelChange)="settingsChanged()" /> Contrasto automatico</label>
+                        <app-form-field label="Luminosità" forId="pdf-brightness">
+                            <div class="slider-with-value"
+                                [style.--slider-position]="sliderPosition(recipe.brightness, -100, 100) + '%'">
+                                <span class="slider-value" aria-hidden="true">{{ recipe.brightness }}</span>
+                                <p-slider id="pdf-brightness" [(ngModel)]="recipe.brightness" [min]="-100" [max]="100"
+                                    (ngModelChange)="settingsChanged()" />
+                            </div>
+                        </app-form-field>
+                        <app-form-field label="Contrasto" forId="pdf-contrast">
+                            <div class="slider-with-value"
+                                [style.--slider-position]="sliderPosition(recipe.contrast, -100, 100) + '%'">
+                                <span class="slider-value" aria-hidden="true">{{ recipe.contrast }}</span>
+                                <p-slider id="pdf-contrast" [(ngModel)]="recipe.contrast" [min]="-100" [max]="100"
+                                    (ngModelChange)="settingsChanged()" />
+                            </div>
+                        </app-form-field>
+                        <label class="check-row"><p-checkbox binary [ngModel]="thresholdEnabled"
+                                (ngModelChange)="toggleThreshold($event)" /> Bianco e nero</label>
+                        @if (thresholdEnabled) {
+                        <app-form-field label="Soglia" forId="pdf-threshold">
+                            <div class="slider-with-value"
+                                [style.--slider-position]="sliderPosition(recipe.threshold, 0, 255) + '%'">
+                                <span class="slider-value" aria-hidden="true">{{ recipe.threshold }}</span>
+                                <p-slider id="pdf-threshold" [(ngModel)]="recipe.threshold" [min]="0" [max]="255"
+                                    (ngModelChange)="settingsChanged()" />
+                            </div>
+                        </app-form-field>
+                        }
+                    </section>
 
-                <div class="crop-footer">
-                    <span class="crop-footer-spacer"></span>
-                    <p-button label="Chiudi" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small" (onClick)="exitCropMode()" />
-                    <p-button
-                        label="Applica a tutte"
-                        icon="pi pi-copy"
-                        severity="secondary"
-                        [outlined]="true"
-                        size="small"
-                        [disabled]="
+                    <p-button label="Ripristina pagina" icon="pi pi-refresh" severity="secondary" text fluid
+                        (onClick)="resetCurrentPage()" />
+                </aside>
+            </div>
+
+            <div class="crop-footer">
+                <span class="crop-footer-spacer"></span>
+                <p-button label="Chiudi" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" size="small"
+                    (onClick)="exitCropMode()" />
+                <p-button label="Applica a tutte" icon="pi pi-copy" severity="secondary" [outlined]="true" size="small"
+                    [disabled]="
                             pageCrops.length === 0 &&
                             (!cropRect || cropRect.width < 0.02 || cropRect.height < 0.02) &&
                             recipe.rotationQuarterTurns === 0 &&
@@ -242,11 +239,9 @@
                             recipe.contrast === 0 &&
                             !recipe.autoContrast &&
                             recipe.threshold === null
-                        "
-                        (onClick)="applyCropToAll()"
-                    />
-                </div>
+                        " (onClick)="applyCropToAll()" />
             </div>
+        </div>
         }
     </main>
 </div>
@@ -255,23 +250,26 @@
 <div class="manipulator-footer">
     <div class="footer-summary">
         @if (excludedCount > 0) {
-            <span class="summary-chip excluded"> <i class="pi pi-eye-slash"></i>{{ excludedCount }} escluse </span>
+        <span class="summary-chip excluded"> <i class="pi pi-eye-slash"></i>{{ excludedCount }} escluse </span>
         }
         @if (cropCount > 0) {
-            <span class="summary-chip crop"> <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>{{ cropCount }} crop </span>
+        <span class="summary-chip crop"> <i class="pi pi-arrow-down-left-and-arrow-up-right-to-center"></i>{{ cropCount
+            }} crop </span>
         }
         @if (editedPageCount > 0) {
-            <span class="summary-chip crop"><i class="pi pi-sliders-h"></i>{{ editedPageCount }} pag. regolate</span>
+        <span class="summary-chip crop"><i class="pi pi-sliders-h"></i>{{ editedPageCount }} pag. regolate</span>
         }
         @if (excludedCount === 0 && editedPageCount === 0) {
-            <span class="summary-empty">Nessuna modifica</span>
+        <span class="summary-empty">Nessuna modifica</span>
         }
     </div>
     <div class="footer-actions">
         @if (allExcluded) {
-            <span class="all-excluded-warning">Includi almeno una pagina</span>
+        <span class="all-excluded-warning">Includi almeno una pagina</span>
         }
-        <p-button label="Annulla" icon="pi pi-times" severity="secondary" [outlined]="true" size="small" (onClick)="cancel()" />
-        <p-button label="Applica modifiche" icon="pi pi-check" size="small" [disabled]="allExcluded" (onClick)="confirm()" />
+        <p-button label="Annulla" icon="pi pi-times" severity="secondary" [outlined]="true" size="small"
+            (onClick)="cancel()" />
+        <p-button label="Applica modifiche" icon="pi pi-check" size="small" [disabled]="allExcluded"
+            (onClick)="confirm()" />
     </div>
 </div>

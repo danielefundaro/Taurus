@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.dashboard;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Set;
+
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 public record DashboardRequestContext(

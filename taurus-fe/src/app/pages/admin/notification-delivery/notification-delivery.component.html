@@ -1,143 +1,81 @@
 <p-confirmdialog />
 
-<app-page-header heading="Consegne notifiche" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento tecnico' : ' eventi tecnici')">
+<app-page-header heading="Consegne notifiche"
+    [subtitle]="totalRecords + (totalRecords === 1 ? ' evento tecnico' : ' eventi tecnici')">
     <div pageActions>
-        <p-button label="Aggiorna" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading" [disabled]="bulkRetrying || pendingRowKey !== undefined" (onClick)="load()" />
+        <p-button label="Aggiorna" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading"
+            [disabled]="bulkRetrying || pendingRowKey !== undefined" (onClick)="load()" />
     </div>
 </app-page-header>
 
 @if (loadError) {
-    <app-inline-alert class="block mb-4" severity="error" heading="Consegne non disponibili" detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
+<app-inline-alert class="block mb-4" severity="error" heading="Consegne non disponibili"
+    detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
 }
 
-<app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions" (sortChange)="onSortChange($event)">
+<app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions"
+    (sortChange)="onSortChange($event)">
     <div listFilters class="delivery-status-filter">
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-status">Stato</label>
-            <p-select
-                inputId="notification-delivery-status"
-                class="delivery-status-filter__control"
-                [fluid]="true"
-                [ngModel]="status"
-                (ngModelChange)="onStatusChange($event)"
-                [options]="statusOptions"
-                optionLabel="label"
-                optionValue="value"
-                ariaLabel="Filtra per stato della consegna"
-            />
+            <p-select inputId="notification-delivery-status" class="delivery-status-filter__control" [fluid]="true"
+                [ngModel]="status" (ngModelChange)="onStatusChange($event)" [options]="statusOptions"
+                optionLabel="label" optionValue="value" ariaLabel="Filtra per stato della consegna" />
         </div>
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-origin">Origine</label>
-            <p-select
-                inputId="notification-delivery-origin"
-                class="delivery-status-filter__control"
-                [fluid]="true"
-                [(ngModel)]="filters.origin"
-                (ngModelChange)="onFilterChange()"
-                [options]="originOptions"
-                optionLabel="label"
-                optionValue="value"
-                ariaLabel="Filtra per origine della consegna"
-            />
+            <p-select inputId="notification-delivery-origin" class="delivery-status-filter__control" [fluid]="true"
+                [(ngModel)]="filters.origin" (ngModelChange)="onFilterChange()" [options]="originOptions"
+                optionLabel="label" optionValue="value" ariaLabel="Filtra per origine della consegna" />
         </div>
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-source">Categoria</label>
-            <p-select
-                inputId="notification-delivery-source"
-                class="delivery-status-filter__control"
-                [fluid]="true"
-                [(ngModel)]="filters.source"
-                (ngModelChange)="onFilterChange()"
-                [options]="sourceOptions"
-                optionLabel="label"
-                optionValue="value"
-                ariaLabel="Filtra per categoria"
-            />
+            <p-select inputId="notification-delivery-source" class="delivery-status-filter__control" [fluid]="true"
+                [(ngModel)]="filters.source" (ngModelChange)="onFilterChange()" [options]="sourceOptions"
+                optionLabel="label" optionValue="value" ariaLabel="Filtra per categoria" />
         </div>
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-operation">Operazione</label>
-            <input id="notification-delivery-operation" pInputText class="delivery-status-filter__control" [(ngModel)]="filters.operation" (change)="onFilterChange()" placeholder="Codice operazione" aria-label="Filtra per codice operazione" />
+            <input id="notification-delivery-operation" pInputText class="delivery-status-filter__control"
+                [(ngModel)]="filters.operation" (change)="onFilterChange()" placeholder="Codice operazione"
+                aria-label="Filtra per codice operazione" />
         </div>
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-from">Dal</label>
-            <p-datepicker
-                inputId="notification-delivery-from"
-                class="delivery-status-filter__control"
-                [fluid]="true"
-                [(ngModel)]="fromDate"
-                (onSelect)="onFilterChange()"
-                (onClear)="onFilterChange()"
-                [showTime]="true"
-                [showClear]="true"
-                hourFormat="24"
-                dateFormat="dd/mm/yy"
-                appendTo="body"
-                ariaLabel="Filtra dalla data"
-            />
+            <p-datepicker inputId="notification-delivery-from" class="delivery-status-filter__control" [fluid]="true"
+                [(ngModel)]="fromDate" (onSelect)="onFilterChange()" (onClear)="onFilterChange()" [showTime]="true"
+                [showClear]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body"
+                ariaLabel="Filtra dalla data" />
         </div>
         <div class="delivery-status-filter__field">
             <label for="notification-delivery-to">Al</label>
-            <p-datepicker
-                inputId="notification-delivery-to"
-                class="delivery-status-filter__control"
-                [fluid]="true"
-                [(ngModel)]="toDate"
-                (onSelect)="onFilterChange()"
-                (onClear)="onFilterChange()"
-                [showTime]="true"
-                [showClear]="true"
-                hourFormat="24"
-                dateFormat="dd/mm/yy"
-                appendTo="body"
-                ariaLabel="Filtra fino alla data"
-            />
+            <p-datepicker inputId="notification-delivery-to" class="delivery-status-filter__control" [fluid]="true"
+                [(ngModel)]="toDate" (onSelect)="onFilterChange()" (onClear)="onFilterChange()" [showTime]="true"
+                [showClear]="true" hourFormat="24" dateFormat="dd/mm/yy" appendTo="body"
+                ariaLabel="Filtra fino alla data" />
         </div>
         @if (rangeInvalid) {
-            <small class="delivery-range-error" role="alert">L'inizio dell'intervallo deve precedere la fine.</small>
+        <small class="delivery-range-error" role="alert">L'inizio dell'intervallo deve precedere la fine.</small>
         }
     </div>
 </app-list-toolbar>
 
-<app-selection-bar
-    [count]="selected.length"
-    [allSelected]="allVisibleSelected"
-    actionLabel="Riprova selezionate"
-    actionIcon="pi pi-replay"
-    [actionSeverity]="null"
-    [actionLoading]="bulkRetrying"
-    (toggleAll)="toggleAllVisible($event)"
-    (clear)="selected = []"
-    (action)="retrySelected()"
-/>
+<app-selection-bar [count]="selected.length" [allSelected]="allVisibleSelected" actionLabel="Riprova selezionate"
+    actionIcon="pi pi-replay" [actionSeverity]="null" [actionLoading]="bulkRetrying"
+    (toggleAll)="toggleAllVisible($event)" (clear)="selected = []" (action)="retrySelected()" />
 
 <div class="card !p-0 overflow-hidden">
-    <p-table
-        [value]="loading ? skeletonRows : deliveries"
-        [(selection)]="selected"
-        dataKey="rowKey"
-        [lazy]="true"
-        [lazyLoadOnInit]="true"
-        [loading]="loading"
-        [showLoader]="false"
-        [paginator]="true"
-        paginatorPosition="bottom"
-        [first]="tableFirst"
-        [rows]="tableRows"
-        [rowsPerPageOptions]="[12, 24, 48]"
-        paginatorDropdownAppendTo="body"
-        [totalRecords]="totalRecords"
-        [sortField]="tableSortField"
-        [sortOrder]="tableSortOrder"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        [scrollable]="true"
-        [attr.aria-busy]="loading"
-        (onLazyLoad)="load($event)"
-    >
+    <p-table [value]="loading ? skeletonRows : deliveries" [(selection)]="selected" dataKey="rowKey" [lazy]="true"
+        [lazyLoadOnInit]="true" [loading]="loading" [showLoader]="false" [paginator]="true" paginatorPosition="bottom"
+        [first]="tableFirst" [rows]="tableRows" [rowsPerPageOptions]="[12, 24, 48]" paginatorDropdownAppendTo="body"
+        [totalRecords]="totalRecords" [sortField]="tableSortField" [sortOrder]="tableSortOrder"
+        [showCurrentPageReport]="true" currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+        [scrollable]="true" [attr.aria-busy]="loading" (onLazyLoad)="load($event)">
         <ng-template #header>
             <tr>
                 @if (status === 'FAILED') {
-                    <th scope="col" class="selection-column"><p-tableHeaderCheckbox ariaLabel="Seleziona tutte le consegne nella pagina" /></th>
+                <th scope="col" class="selection-column"><p-tableHeaderCheckbox
+                        ariaLabel="Seleziona tutte le consegne nella pagina" /></th>
                 }
                 <th scope="col" pSortableColumn="id">ID <p-sortIcon field="id" /></th>
                 <th scope="col">Origine</th>
@@ -154,90 +92,85 @@
 
         <ng-template #body let-delivery>
             @if (loading) {
-                <tr class="delivery-skeleton" aria-hidden="true">
-                    @if (status === 'FAILED') {
-                        <td><p-skeleton shape="square" size="1.1rem" /></td>
-                    }
-                    <td><p-skeleton width="3rem" /></td>
-                    <td><p-skeleton width="6rem" /></td>
-                    <td>
-                        <p-skeleton width="10rem" />
-                        <p-skeleton width="7rem" styleClass="mt-2" />
-                    </td>
-                    <td><p-skeleton width="5rem" height="1.5rem" /></td>
-                    <td><p-skeleton width="8rem" /></td>
-                    <td><p-skeleton width="2rem" /></td>
-                    <td><p-skeleton width="8rem" /></td>
-                    <td><p-skeleton width="6rem" /></td>
-                    <td><p-skeleton width="7rem" /></td>
-                    <td><p-skeleton width="5rem" height="2rem" /></td>
-                </tr>
+            <tr class="delivery-skeleton" aria-hidden="true">
+                @if (status === 'FAILED') {
+                <td><p-skeleton shape="square" size="1.1rem" /></td>
+                }
+                <td><p-skeleton width="3rem" /></td>
+                <td><p-skeleton width="6rem" /></td>
+                <td>
+                    <p-skeleton width="10rem" />
+                    <p-skeleton width="7rem" styleClass="mt-2" />
+                </td>
+                <td><p-skeleton width="5rem" height="1.5rem" /></td>
+                <td><p-skeleton width="8rem" /></td>
+                <td><p-skeleton width="2rem" /></td>
+                <td><p-skeleton width="8rem" /></td>
+                <td><p-skeleton width="6rem" /></td>
+                <td><p-skeleton width="7rem" /></td>
+                <td><p-skeleton width="5rem" height="2rem" /></td>
+            </tr>
             } @else {
-                <tr>
-                    @if (status === 'FAILED') {
-                        <td><p-tableCheckbox [value]="delivery" [attr.aria-label]="'Seleziona consegna ' + delivery.rowKey" /></td>
+            <tr>
+                @if (status === 'FAILED') {
+                <td><p-tableCheckbox [value]="delivery" [attr.aria-label]="'Seleziona consegna ' + delivery.rowKey" />
+                </td>
+                }
+                <td class="font-mono">{{ delivery.id }}</td>
+                <td>
+                    <p-tag [value]="originLabel(delivery.origin)" severity="secondary" />
+                    <small class="block text-muted-color">{{ delivery.deliveryType }}</small>
+                </td>
+                <td [attr.title]="delivery.source + (delivery.operation ? ' · ' + delivery.operation : '')">
+                    <strong>{{ notificationPresentation.sourceLabel(delivery.source) }}</strong>
+                    @if (delivery.operation) {
+                    <small class="block text-muted-color">{{ notificationPresentation.operationLabel(delivery.operation)
+                        }}</small>
                     }
-                    <td class="font-mono">{{ delivery.id }}</td>
-                    <td>
-                        <p-tag [value]="originLabel(delivery.origin)" severity="secondary" />
-                        <small class="block text-muted-color">{{ delivery.deliveryType }}</small>
-                    </td>
-                    <td [attr.title]="delivery.source + (delivery.operation ? ' · ' + delivery.operation : '')">
-                        <strong>{{ notificationPresentation.sourceLabel(delivery.source) }}</strong>
-                        @if (delivery.operation) {
-                            <small class="block text-muted-color">{{ notificationPresentation.operationLabel(delivery.operation) }}</small>
-                        }
-                    </td>
-                    <td>
-                        <p-tag [value]="notificationPresentation.statusLabel(delivery.status)" [severity]="delivery.status === 'FAILED' ? 'danger' : delivery.status === 'PENDING' ? 'warn' : delivery.status === 'SKIPPED' ? 'secondary' : 'success'" />
-                        @if (delivery.skipReason) {
-                            <small class="block text-muted-color">{{ delivery.skipReason }}</small>
-                        }
-                    </td>
-                    <td>{{ delivery.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
-                    <td>{{ delivery.attempts }}</td>
-                    <td>
-                        {{ delivery.updatedAt | date: 'dd/MM/yyyy HH:mm:ss' }}
-                        @if (delivery.nextAttemptAt) {
-                            <small class="block text-muted-color">Prossimo: {{ delivery.nextAttemptAt | date: 'dd/MM/yyyy HH:mm:ss' }}</small>
-                        }
-                    </td>
-                    <td>{{ delivery.errorClass || '—' }}</td>
-                    <td>
-                        <code>{{ delivery.eventKeyHash }}</code>
-                    </td>
-                    <td class="delivery-actions">
-                        @if (delivery.status === 'FAILED') {
-                            <p-button
-                                label="Riprova"
-                                icon="pi pi-replay"
-                                size="small"
-                                [loading]="pendingRowKey === delivery.rowKey"
-                                [disabled]="bulkRetrying || (pendingRowKey !== undefined && pendingRowKey !== delivery.rowKey)"
-                                (onClick)="retry(delivery)"
-                            />
-                        }
-                        @if (canClose(delivery)) {
-                            <p-select
-                                class="delivery-close"
-                                [options]="closeReasons"
-                                optionLabel="label"
-                                optionValue="value"
-                                placeholder="Chiudi…"
-                                [disabled]="bulkRetrying || pendingRowKey !== undefined"
-                                [attr.aria-label]="'Chiudi tecnicamente la consegna ' + delivery.rowKey"
-                                (onChange)="close(delivery, $event.value)"
-                            />
-                        }
-                    </td>
-                </tr>
+                </td>
+                <td>
+                    <p-tag [value]="notificationPresentation.statusLabel(delivery.status)"
+                        [severity]="delivery.status === 'FAILED' ? 'danger' : delivery.status === 'PENDING' ? 'warn' : delivery.status === 'SKIPPED' ? 'secondary' : 'success'" />
+                    @if (delivery.skipReason) {
+                    <small class="block text-muted-color">{{ delivery.skipReason }}</small>
+                    }
+                </td>
+                <td>{{ delivery.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                <td>{{ delivery.attempts }}</td>
+                <td>
+                    {{ delivery.updatedAt | date: 'dd/MM/yyyy HH:mm:ss' }}
+                    @if (delivery.nextAttemptAt) {
+                    <small class="block text-muted-color">Prossimo: {{ delivery.nextAttemptAt | date: 'dd/MM/yyyy
+                        HH:mm:ss' }}</small>
+                    }
+                </td>
+                <td>{{ delivery.errorClass || '—' }}</td>
+                <td>
+                    <code>{{ delivery.eventKeyHash }}</code>
+                </td>
+                <td class="delivery-actions">
+                    @if (delivery.status === 'FAILED') {
+                    <p-button label="Riprova" icon="pi pi-replay" size="small"
+                        [loading]="pendingRowKey === delivery.rowKey"
+                        [disabled]="bulkRetrying || (pendingRowKey !== undefined && pendingRowKey !== delivery.rowKey)"
+                        (onClick)="retry(delivery)" />
+                    }
+                    @if (canClose(delivery)) {
+                    <p-select class="delivery-close" [options]="closeReasons" optionLabel="label" optionValue="value"
+                        placeholder="Chiudi…" [disabled]="bulkRetrying || pendingRowKey !== undefined"
+                        [attr.aria-label]="'Chiudi tecnicamente la consegna ' + delivery.rowKey"
+                        (onChange)="close(delivery, $event.value)" />
+                    }
+                </td>
+            </tr>
             }
         </ng-template>
 
         <ng-template #emptymessage>
             <tr>
                 <td [attr.colspan]="status === 'FAILED' ? 11 : 10">
-                    <app-empty-state compact icon="pi pi-check-circle" [heading]="emptyTitle()" [message]="emptyMessage()" actionLabel="Aggiorna" (action)="load()" />
+                    <app-empty-state compact icon="pi pi-check-circle" [heading]="emptyTitle()"
+                        [message]="emptyMessage()" actionLabel="Aggiorna" (action)="load()" />
                 </td>
             </tr>
         </ng-template>

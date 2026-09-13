@@ -18,7 +18,7 @@ export class ListLayoutService {
     constructor(
         private readonly preferencesService: PreferencesService,
         private readonly localStorageService: LocalStorageService
-    ) {}
+    ) { }
 
     hydrate(preferences: Preferences[]): void {
         const next = { ...this.values() };

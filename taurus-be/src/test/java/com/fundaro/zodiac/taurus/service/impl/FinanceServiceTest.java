@@ -1,66 +1,64 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
-import com.fundaro.zodiac.taurus.domain.finance.AccountingYear;
-import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialAccount;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialAccountType;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialCategory;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialCategoryDirection;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialMovement;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
+import com.fundaro.zodiac.taurus.domain.finance.*;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
-import com.fundaro.zodiac.taurus.repository.finance.AccountingYearRepository;
-import com.fundaro.zodiac.taurus.repository.finance.FinancialAccountRepository;
-import com.fundaro.zodiac.taurus.repository.finance.FinancialCategoryRepository;
-import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentRepository;
-import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
+import com.fundaro.zodiac.taurus.repository.finance.*;
 import com.fundaro.zodiac.taurus.service.MediaService;
-import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
-
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.MovementNotice;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.NamedNotice;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.ArgumentCaptor;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class FinanceServiceTest {
 
-    @Mock AccountingYearRepository yearRepository;
-    @Mock FinancialAccountRepository accountRepository;
-    @Mock FinancialCategoryRepository categoryRepository;
-    @Mock FinancialMovementRepository movementRepository;
-    @Mock FinancialMovementAttachmentRepository attachmentRepository;
-    @Mock CalendarEventsRepository eventRepository;
-    @Mock MediaRepository mediaRepository;
-    @Mock MediaService mediaService;
-    @Mock FinanceNoticeDataService financeNoticeDataService;
-    @Mock NotificationOutboxPublisher notificationPublisher;
+    @Mock
+    AccountingYearRepository yearRepository;
+    @Mock
+    FinancialAccountRepository accountRepository;
+    @Mock
+    FinancialCategoryRepository categoryRepository;
+    @Mock
+    FinancialMovementRepository movementRepository;
+    @Mock
+    FinancialMovementAttachmentRepository attachmentRepository;
+    @Mock
+    CalendarEventsRepository eventRepository;
+    @Mock
+    MediaRepository mediaRepository;
+    @Mock
+    MediaService mediaService;
+    @Mock
+    FinanceNoticeDataService financeNoticeDataService;
+    @Mock
+    NotificationOutboxPublisher notificationPublisher;
 
     private FinanceService service;
 

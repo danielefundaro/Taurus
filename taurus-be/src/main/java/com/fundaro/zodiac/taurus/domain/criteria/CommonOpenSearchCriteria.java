@@ -1,8 +1,8 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
 import tech.jhipster.service.Criteria;
-import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.LongFilter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.io.Serializable;
 import java.util.Objects;

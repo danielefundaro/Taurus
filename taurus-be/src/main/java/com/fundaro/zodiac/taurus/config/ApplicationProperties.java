@@ -5,11 +5,11 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.util.unit.DataSize;
+import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
 import java.net.URI;
+import java.util.List;
 
 /**
  * Properties specific to Taurus.
@@ -103,36 +103,69 @@ public class ApplicationProperties {
         this.calendar = calendar;
     }
 
-    public CalendarFeedProperties getCalendarFeed() { return calendarFeed; }
-    public void setCalendarFeed(CalendarFeedProperties value) { calendarFeed = value; }
+    public CalendarFeedProperties getCalendarFeed() {
+        return calendarFeed;
+    }
 
-    public NotificationProperties getNotifications() { return notifications; }
+    public void setCalendarFeed(CalendarFeedProperties value) {
+        calendarFeed = value;
+    }
 
-    public void setNotifications(NotificationProperties notifications) { this.notifications = notifications; }
+    public NotificationProperties getNotifications() {
+        return notifications;
+    }
 
-    public NotificationPreferencesProperties getNotificationPreferences() { return notificationPreferences; }
+    public void setNotifications(NotificationProperties notifications) {
+        this.notifications = notifications;
+    }
 
-    public void setNotificationPreferences(NotificationPreferencesProperties value) { notificationPreferences = value; }
+    public NotificationPreferencesProperties getNotificationPreferences() {
+        return notificationPreferences;
+    }
 
-    public NotificationPushDeliveryProperties getNotificationPushDelivery() { return notificationPushDelivery; }
+    public void setNotificationPreferences(NotificationPreferencesProperties value) {
+        notificationPreferences = value;
+    }
 
-    public void setNotificationPushDelivery(NotificationPushDeliveryProperties value) { notificationPushDelivery = value; }
+    public NotificationPushDeliveryProperties getNotificationPushDelivery() {
+        return notificationPushDelivery;
+    }
 
-    public DashboardProperties getDashboard() { return dashboard; }
+    public void setNotificationPushDelivery(NotificationPushDeliveryProperties value) {
+        notificationPushDelivery = value;
+    }
 
-    public void setDashboard(DashboardProperties dashboard) { this.dashboard = dashboard; }
+    public DashboardProperties getDashboard() {
+        return dashboard;
+    }
 
-    public OnboardingProperties getOnboarding() { return onboarding; }
+    public void setDashboard(DashboardProperties dashboard) {
+        this.dashboard = dashboard;
+    }
 
-    public void setOnboarding(OnboardingProperties onboarding) { this.onboarding = onboarding; }
+    public OnboardingProperties getOnboarding() {
+        return onboarding;
+    }
 
-    public EventPreparationProperties getEventPreparation() { return eventPreparation; }
+    public void setOnboarding(OnboardingProperties onboarding) {
+        this.onboarding = onboarding;
+    }
 
-    public void setEventPreparation(EventPreparationProperties value) { eventPreparation = value; }
+    public EventPreparationProperties getEventPreparation() {
+        return eventPreparation;
+    }
 
-    public InventoryProperties getInventory() { return inventory; }
+    public void setEventPreparation(EventPreparationProperties value) {
+        eventPreparation = value;
+    }
 
-    public void setInventory(InventoryProperties value) { inventory = value; }
+    public InventoryProperties getInventory() {
+        return inventory;
+    }
+
+    public void setInventory(InventoryProperties value) {
+        inventory = value;
+    }
 
     private TesseractProperties tesseract = new TesseractProperties();
 
@@ -209,14 +242,29 @@ public class ApplicationProperties {
         private String dataPath = "C:\\Program Files\\Tesseract-OCR\\tessdata";
         private String language = "ita+eng";
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public boolean isEnabled() {
+            return enabled;
+        }
 
-        public String getDataPath() { return dataPath; }
-        public void setDataPath(String dataPath) { this.dataPath = dataPath; }
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
-        public String getLanguage() { return language; }
-        public void setLanguage(String language) { this.language = language; }
+        public String getDataPath() {
+            return dataPath;
+        }
+
+        public void setDataPath(String dataPath) {
+            this.dataPath = dataPath;
+        }
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public void setLanguage(String language) {
+            this.language = language;
+        }
     }
 
     public static class VapidProperties {
@@ -224,17 +272,34 @@ public class ApplicationProperties {
         private String privateKey = "CHANGE_ME";
         private String subject = "mailto:admin@taurus.it";
 
-        public String getPublicKey() { return publicKey; }
-        public void setPublicKey(String publicKey) { this.publicKey = publicKey; }
+        public String getPublicKey() {
+            return publicKey;
+        }
 
-        public String getPrivateKey() { return privateKey; }
-        public void setPrivateKey(String privateKey) { this.privateKey = privateKey; }
+        public void setPublicKey(String publicKey) {
+            this.publicKey = publicKey;
+        }
 
-        public String getSubject() { return subject; }
-        public void setSubject(String subject) { this.subject = subject; }
+        public String getPrivateKey() {
+            return privateKey;
+        }
+
+        public void setPrivateKey(String privateKey) {
+            this.privateKey = privateKey;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public void setSubject(String subject) {
+            this.subject = subject;
+        }
     }
 
-    /** Pulizia periodica dei residui nello storage dei tenant. */
+    /**
+     * Pulizia periodica dei residui nello storage dei tenant.
+     */
     public static class MediaProperties {
         private boolean cleanupEnabled = true;
         private String cleanupCron = "0 30 3 * * *";
@@ -242,20 +307,45 @@ public class ApplicationProperties {
         private int orphanFileHours = 168;
         private int trackPageEditReceiptDays = 7;
 
-        public boolean isCleanupEnabled() { return cleanupEnabled; }
-        public void setCleanupEnabled(boolean cleanupEnabled) { this.cleanupEnabled = cleanupEnabled; }
+        public boolean isCleanupEnabled() {
+            return cleanupEnabled;
+        }
 
-        public String getCleanupCron() { return cleanupCron; }
-        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
+        public void setCleanupEnabled(boolean cleanupEnabled) {
+            this.cleanupEnabled = cleanupEnabled;
+        }
 
-        public int getTemporaryFileHours() { return temporaryFileHours; }
-        public void setTemporaryFileHours(int temporaryFileHours) { this.temporaryFileHours = temporaryFileHours; }
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
 
-        public int getOrphanFileHours() { return orphanFileHours; }
-        public void setOrphanFileHours(int orphanFileHours) { this.orphanFileHours = orphanFileHours; }
+        public void setCleanupCron(String cleanupCron) {
+            this.cleanupCron = cleanupCron;
+        }
 
-        public int getTrackPageEditReceiptDays() { return trackPageEditReceiptDays; }
-        public void setTrackPageEditReceiptDays(int trackPageEditReceiptDays) { this.trackPageEditReceiptDays = trackPageEditReceiptDays; }
+        public int getTemporaryFileHours() {
+            return temporaryFileHours;
+        }
+
+        public void setTemporaryFileHours(int temporaryFileHours) {
+            this.temporaryFileHours = temporaryFileHours;
+        }
+
+        public int getOrphanFileHours() {
+            return orphanFileHours;
+        }
+
+        public void setOrphanFileHours(int orphanFileHours) {
+            this.orphanFileHours = orphanFileHours;
+        }
+
+        public int getTrackPageEditReceiptDays() {
+            return trackPageEditReceiptDays;
+        }
+
+        public void setTrackPageEditReceiptDays(int trackPageEditReceiptDays) {
+            this.trackPageEditReceiptDays = trackPageEditReceiptDays;
+        }
     }
 
     public static class RetentionProperties {
@@ -274,23 +364,53 @@ public class ApplicationProperties {
             "calendar-events"
         );
 
-        public boolean isCleanupEnabled() { return cleanupEnabled; }
-        public void setCleanupEnabled(boolean cleanupEnabled) { this.cleanupEnabled = cleanupEnabled; }
+        public boolean isCleanupEnabled() {
+            return cleanupEnabled;
+        }
 
-        public String getCleanupCron() { return cleanupCron; }
-        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
+        public void setCleanupEnabled(boolean cleanupEnabled) {
+            this.cleanupEnabled = cleanupEnabled;
+        }
 
-        public int getNoticesDays() { return noticesDays; }
-        public void setNoticesDays(int noticesDays) { this.noticesDays = noticesDays; }
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
 
-        public int getLastResearchDays() { return lastResearchDays; }
-        public void setLastResearchDays(int lastResearchDays) { this.lastResearchDays = lastResearchDays; }
+        public void setCleanupCron(String cleanupCron) {
+            this.cleanupCron = cleanupCron;
+        }
 
-        public int getSentPushRemindersDays() { return sentPushRemindersDays; }
-        public void setSentPushRemindersDays(int sentPushRemindersDays) { this.sentPushRemindersDays = sentPushRemindersDays; }
+        public int getNoticesDays() {
+            return noticesDays;
+        }
 
-        public List<String> getTenantIndices() { return tenantIndices; }
-        public void setTenantIndices(List<String> tenantIndices) { this.tenantIndices = tenantIndices; }
+        public void setNoticesDays(int noticesDays) {
+            this.noticesDays = noticesDays;
+        }
+
+        public int getLastResearchDays() {
+            return lastResearchDays;
+        }
+
+        public void setLastResearchDays(int lastResearchDays) {
+            this.lastResearchDays = lastResearchDays;
+        }
+
+        public int getSentPushRemindersDays() {
+            return sentPushRemindersDays;
+        }
+
+        public void setSentPushRemindersDays(int sentPushRemindersDays) {
+            this.sentPushRemindersDays = sentPushRemindersDays;
+        }
+
+        public List<String> getTenantIndices() {
+            return tenantIndices;
+        }
+
+        public void setTenantIndices(List<String> tenantIndices) {
+            this.tenantIndices = tenantIndices;
+        }
     }
 
     public static class CalendarProperties {
@@ -320,24 +440,103 @@ public class ApplicationProperties {
     public static class CalendarFeedProperties {
         private boolean enabled = true;
         private String publicBaseUrl = "http://localhost:8080";
-        @Min(0) @Max(365) private int defaultPastDays = 90;
-        @Min(1) @Max(36) private int defaultFutureMonths = 18;
-        @Min(1) private int maxComponents = 10000;
-        @Min(1) private int tombstoneRetentionDays = 90;
+        @Min(0)
+        @Max(365)
+        private int defaultPastDays = 90;
+        @Min(1)
+        @Max(36)
+        private int defaultFutureMonths = 18;
+        @Min(1)
+        private int maxComponents = 10000;
+        @Min(1)
+        private int tombstoneRetentionDays = 90;
         private String suggestedRefresh = "PT6H";
-        @Min(1) private int rateLimitPerTokenHour = 120;
-        @Min(1) private int rateLimitPerIpHour = 2000;
-        @Min(1) private int rateLimitGlobalHour = 100000;
-        public boolean isEnabled() { return enabled; } public void setEnabled(boolean v) { enabled = v; }
-        public String getPublicBaseUrl() { return publicBaseUrl; } public void setPublicBaseUrl(String v) { publicBaseUrl = v; }
-        public int getDefaultPastDays() { return defaultPastDays; } public void setDefaultPastDays(int v) { defaultPastDays = v; }
-        public int getDefaultFutureMonths() { return defaultFutureMonths; } public void setDefaultFutureMonths(int v) { defaultFutureMonths = v; }
-        public int getMaxComponents() { return maxComponents; } public void setMaxComponents(int v) { maxComponents = v; }
-        public int getTombstoneRetentionDays() { return tombstoneRetentionDays; } public void setTombstoneRetentionDays(int v) { tombstoneRetentionDays = v; }
-        public String getSuggestedRefresh() { return suggestedRefresh; } public void setSuggestedRefresh(String v) { suggestedRefresh = v; }
-        public int getRateLimitPerTokenHour() { return rateLimitPerTokenHour; } public void setRateLimitPerTokenHour(int v) { rateLimitPerTokenHour = v; }
-        public int getRateLimitPerIpHour() { return rateLimitPerIpHour; } public void setRateLimitPerIpHour(int v) { rateLimitPerIpHour = v; }
-        public int getRateLimitGlobalHour() { return rateLimitGlobalHour; } public void setRateLimitGlobalHour(int v) { rateLimitGlobalHour = v; }
+        @Min(1)
+        private int rateLimitPerTokenHour = 120;
+        @Min(1)
+        private int rateLimitPerIpHour = 2000;
+        @Min(1)
+        private int rateLimitGlobalHour = 100000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean v) {
+            enabled = v;
+        }
+
+        public String getPublicBaseUrl() {
+            return publicBaseUrl;
+        }
+
+        public void setPublicBaseUrl(String v) {
+            publicBaseUrl = v;
+        }
+
+        public int getDefaultPastDays() {
+            return defaultPastDays;
+        }
+
+        public void setDefaultPastDays(int v) {
+            defaultPastDays = v;
+        }
+
+        public int getDefaultFutureMonths() {
+            return defaultFutureMonths;
+        }
+
+        public void setDefaultFutureMonths(int v) {
+            defaultFutureMonths = v;
+        }
+
+        public int getMaxComponents() {
+            return maxComponents;
+        }
+
+        public void setMaxComponents(int v) {
+            maxComponents = v;
+        }
+
+        public int getTombstoneRetentionDays() {
+            return tombstoneRetentionDays;
+        }
+
+        public void setTombstoneRetentionDays(int v) {
+            tombstoneRetentionDays = v;
+        }
+
+        public String getSuggestedRefresh() {
+            return suggestedRefresh;
+        }
+
+        public void setSuggestedRefresh(String v) {
+            suggestedRefresh = v;
+        }
+
+        public int getRateLimitPerTokenHour() {
+            return rateLimitPerTokenHour;
+        }
+
+        public void setRateLimitPerTokenHour(int v) {
+            rateLimitPerTokenHour = v;
+        }
+
+        public int getRateLimitPerIpHour() {
+            return rateLimitPerIpHour;
+        }
+
+        public void setRateLimitPerIpHour(int v) {
+            rateLimitPerIpHour = v;
+        }
+
+        public int getRateLimitGlobalHour() {
+            return rateLimitGlobalHour;
+        }
+
+        public void setRateLimitGlobalHour(int v) {
+            rateLimitGlobalHour = v;
+        }
     }
 
     public static class NotificationProperties {
@@ -347,16 +546,45 @@ public class ApplicationProperties {
         private int outboxRetentionDays = 30;
         private RetryProperties retry = new RetryProperties();
 
-        public long getDispatchDelay() { return dispatchDelay; }
-        public void setDispatchDelay(long dispatchDelay) { this.dispatchDelay = dispatchDelay; }
-        public int getBatchSize() { return batchSize; }
-        public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
-        public String getCleanupCron() { return cleanupCron; }
-        public void setCleanupCron(String cleanupCron) { this.cleanupCron = cleanupCron; }
-        public int getOutboxRetentionDays() { return outboxRetentionDays; }
-        public void setOutboxRetentionDays(int outboxRetentionDays) { this.outboxRetentionDays = outboxRetentionDays; }
-        public RetryProperties getRetry() { return retry; }
-        public void setRetry(RetryProperties retry) { this.retry = retry; }
+        public long getDispatchDelay() {
+            return dispatchDelay;
+        }
+
+        public void setDispatchDelay(long dispatchDelay) {
+            this.dispatchDelay = dispatchDelay;
+        }
+
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        public void setBatchSize(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
+
+        public void setCleanupCron(String cleanupCron) {
+            this.cleanupCron = cleanupCron;
+        }
+
+        public int getOutboxRetentionDays() {
+            return outboxRetentionDays;
+        }
+
+        public void setOutboxRetentionDays(int outboxRetentionDays) {
+            this.outboxRetentionDays = outboxRetentionDays;
+        }
+
+        public RetryProperties getRetry() {
+            return retry;
+        }
+
+        public void setRetry(RetryProperties retry) {
+            this.retry = retry;
+        }
     }
 
     public static class RetryProperties {
@@ -364,12 +592,29 @@ public class ApplicationProperties {
         private int maxDelayMinutes = 60;
         private int maxAttempts;
 
-        public int getInitialDelayMinutes() { return initialDelayMinutes; }
-        public void setInitialDelayMinutes(int initialDelayMinutes) { this.initialDelayMinutes = initialDelayMinutes; }
-        public int getMaxDelayMinutes() { return maxDelayMinutes; }
-        public void setMaxDelayMinutes(int maxDelayMinutes) { this.maxDelayMinutes = maxDelayMinutes; }
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public int getInitialDelayMinutes() {
+            return initialDelayMinutes;
+        }
+
+        public void setInitialDelayMinutes(int initialDelayMinutes) {
+            this.initialDelayMinutes = initialDelayMinutes;
+        }
+
+        public int getMaxDelayMinutes() {
+            return maxDelayMinutes;
+        }
+
+        public void setMaxDelayMinutes(int maxDelayMinutes) {
+            this.maxDelayMinutes = maxDelayMinutes;
+        }
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
     }
 
     public static class NotificationPreferencesProperties {
@@ -381,20 +626,61 @@ public class ApplicationProperties {
         private int minSnoozeMinutes = 5;
         private int maxSnoozeDays = 30;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean value) { enabled = value; }
-        public int getDefaultCalendarReminderMinutes() { return defaultCalendarReminderMinutes; }
-        public void setDefaultCalendarReminderMinutes(int value) { defaultCalendarReminderMinutes = value; }
-        public String getDefaultTimeZone() { return defaultTimeZone; }
-        public void setDefaultTimeZone(String value) { defaultTimeZone = value; }
-        public String getDefaultDigestLocalTime() { return defaultDigestLocalTime; }
-        public void setDefaultDigestLocalTime(String value) { defaultDigestLocalTime = value; }
-        public int getMaxPauseDays() { return maxPauseDays; }
-        public void setMaxPauseDays(int value) { maxPauseDays = value; }
-        public int getMinSnoozeMinutes() { return minSnoozeMinutes; }
-        public void setMinSnoozeMinutes(int value) { minSnoozeMinutes = value; }
-        public int getMaxSnoozeDays() { return maxSnoozeDays; }
-        public void setMaxSnoozeDays(int value) { maxSnoozeDays = value; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
+
+        public int getDefaultCalendarReminderMinutes() {
+            return defaultCalendarReminderMinutes;
+        }
+
+        public void setDefaultCalendarReminderMinutes(int value) {
+            defaultCalendarReminderMinutes = value;
+        }
+
+        public String getDefaultTimeZone() {
+            return defaultTimeZone;
+        }
+
+        public void setDefaultTimeZone(String value) {
+            defaultTimeZone = value;
+        }
+
+        public String getDefaultDigestLocalTime() {
+            return defaultDigestLocalTime;
+        }
+
+        public void setDefaultDigestLocalTime(String value) {
+            defaultDigestLocalTime = value;
+        }
+
+        public int getMaxPauseDays() {
+            return maxPauseDays;
+        }
+
+        public void setMaxPauseDays(int value) {
+            maxPauseDays = value;
+        }
+
+        public int getMinSnoozeMinutes() {
+            return minSnoozeMinutes;
+        }
+
+        public void setMinSnoozeMinutes(int value) {
+            minSnoozeMinutes = value;
+        }
+
+        public int getMaxSnoozeDays() {
+            return maxSnoozeDays;
+        }
+
+        public void setMaxSnoozeDays(int value) {
+            maxSnoozeDays = value;
+        }
     }
 
     public static class NotificationPushDeliveryProperties {
@@ -408,82 +694,228 @@ public class ApplicationProperties {
         private int skippedRetentionDays = 30;
         private int failedRetentionDays = 90;
 
-        public int getBatchSize() { return batchSize; }
-        public void setBatchSize(int value) { batchSize = value; }
-        public long getPollDelay() { return pollDelay; }
-        public void setPollDelay(long value) { pollDelay = value; }
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int value) { maxAttempts = value; }
-        public int getRetryInitialMinutes() { return retryInitialMinutes; }
-        public void setRetryInitialMinutes(int value) { retryInitialMinutes = value; }
-        public int getRetryMaxMinutes() { return retryMaxMinutes; }
-        public void setRetryMaxMinutes(int value) { retryMaxMinutes = value; }
-        public int getDefaultExpirationHours() { return defaultExpirationHours; }
-        public void setDefaultExpirationHours(int value) { defaultExpirationHours = value; }
-        public int getDeliveredRetentionDays() { return deliveredRetentionDays; }
-        public void setDeliveredRetentionDays(int value) { deliveredRetentionDays = value; }
-        public int getSkippedRetentionDays() { return skippedRetentionDays; }
-        public void setSkippedRetentionDays(int value) { skippedRetentionDays = value; }
-        public int getFailedRetentionDays() { return failedRetentionDays; }
-        public void setFailedRetentionDays(int value) { failedRetentionDays = value; }
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        public void setBatchSize(int value) {
+            batchSize = value;
+        }
+
+        public long getPollDelay() {
+            return pollDelay;
+        }
+
+        public void setPollDelay(long value) {
+            pollDelay = value;
+        }
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int value) {
+            maxAttempts = value;
+        }
+
+        public int getRetryInitialMinutes() {
+            return retryInitialMinutes;
+        }
+
+        public void setRetryInitialMinutes(int value) {
+            retryInitialMinutes = value;
+        }
+
+        public int getRetryMaxMinutes() {
+            return retryMaxMinutes;
+        }
+
+        public void setRetryMaxMinutes(int value) {
+            retryMaxMinutes = value;
+        }
+
+        public int getDefaultExpirationHours() {
+            return defaultExpirationHours;
+        }
+
+        public void setDefaultExpirationHours(int value) {
+            defaultExpirationHours = value;
+        }
+
+        public int getDeliveredRetentionDays() {
+            return deliveredRetentionDays;
+        }
+
+        public void setDeliveredRetentionDays(int value) {
+            deliveredRetentionDays = value;
+        }
+
+        public int getSkippedRetentionDays() {
+            return skippedRetentionDays;
+        }
+
+        public void setSkippedRetentionDays(int value) {
+            skippedRetentionDays = value;
+        }
+
+        public int getFailedRetentionDays() {
+            return failedRetentionDays;
+        }
+
+        public void setFailedRetentionDays(int value) {
+            failedRetentionDays = value;
+        }
     }
 
     public static class OnboardingProperties {
         private boolean enabled = true;
         private boolean recoveryEnabled = true;
-        @Min(250) private long workerDelay = 2000;
+        @Min(250)
+        private long workerDelay = 2000;
         private DataSize maxFileSize = DataSize.ofMegabytes(10);
-        @Min(1) private int maxTotalRows = 5000;
-        @Min(1) private int maxUserRows = 2000;
-        @Min(1) @Max(256) private int maxColumns = 64;
-        @Min(1) private int maxCellLength = 10000;
-        @Min(1) private int maxIssues = 10000;
-        @Min(1) private int sourceRetentionDays = 30;
-        @Min(1) private int auditRetentionDays = 365;
-        @Min(1) private int workerBatchSize = 5;
+        @Min(1)
+        private int maxTotalRows = 5000;
+        @Min(1)
+        private int maxUserRows = 2000;
+        @Min(1)
+        @Max(256)
+        private int maxColumns = 64;
+        @Min(1)
+        private int maxCellLength = 10000;
+        @Min(1)
+        private int maxIssues = 10000;
+        @Min(1)
+        private int sourceRetentionDays = 30;
+        @Min(1)
+        private int auditRetentionDays = 365;
+        @Min(1)
+        private int workerBatchSize = 5;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean value) { enabled = value; }
-        public boolean isRecoveryEnabled() { return recoveryEnabled; }
-        public void setRecoveryEnabled(boolean value) { recoveryEnabled = value; }
-        public long getWorkerDelay() { return workerDelay; }
-        public void setWorkerDelay(long value) { workerDelay = value; }
-        public DataSize getMaxFileSize() { return maxFileSize; }
-        public void setMaxFileSize(DataSize value) { maxFileSize = value; }
-        public int getMaxTotalRows() { return maxTotalRows; }
-        public void setMaxTotalRows(int value) { maxTotalRows = value; }
-        public int getMaxUserRows() { return maxUserRows; }
-        public void setMaxUserRows(int value) { maxUserRows = value; }
-        public int getMaxColumns() { return maxColumns; }
-        public void setMaxColumns(int value) { maxColumns = value; }
-        public int getMaxCellLength() { return maxCellLength; }
-        public void setMaxCellLength(int value) { maxCellLength = value; }
-        public int getMaxIssues() { return maxIssues; }
-        public void setMaxIssues(int value) { maxIssues = value; }
-        public int getSourceRetentionDays() { return sourceRetentionDays; }
-        public void setSourceRetentionDays(int value) { sourceRetentionDays = value; }
-        public int getAuditRetentionDays() { return auditRetentionDays; }
-        public void setAuditRetentionDays(int value) { auditRetentionDays = value; }
-        public int getWorkerBatchSize() { return workerBatchSize; }
-        public void setWorkerBatchSize(int value) { workerBatchSize = value; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
+
+        public boolean isRecoveryEnabled() {
+            return recoveryEnabled;
+        }
+
+        public void setRecoveryEnabled(boolean value) {
+            recoveryEnabled = value;
+        }
+
+        public long getWorkerDelay() {
+            return workerDelay;
+        }
+
+        public void setWorkerDelay(long value) {
+            workerDelay = value;
+        }
+
+        public DataSize getMaxFileSize() {
+            return maxFileSize;
+        }
+
+        public void setMaxFileSize(DataSize value) {
+            maxFileSize = value;
+        }
+
+        public int getMaxTotalRows() {
+            return maxTotalRows;
+        }
+
+        public void setMaxTotalRows(int value) {
+            maxTotalRows = value;
+        }
+
+        public int getMaxUserRows() {
+            return maxUserRows;
+        }
+
+        public void setMaxUserRows(int value) {
+            maxUserRows = value;
+        }
+
+        public int getMaxColumns() {
+            return maxColumns;
+        }
+
+        public void setMaxColumns(int value) {
+            maxColumns = value;
+        }
+
+        public int getMaxCellLength() {
+            return maxCellLength;
+        }
+
+        public void setMaxCellLength(int value) {
+            maxCellLength = value;
+        }
+
+        public int getMaxIssues() {
+            return maxIssues;
+        }
+
+        public void setMaxIssues(int value) {
+            maxIssues = value;
+        }
+
+        public int getSourceRetentionDays() {
+            return sourceRetentionDays;
+        }
+
+        public void setSourceRetentionDays(int value) {
+            sourceRetentionDays = value;
+        }
+
+        public int getAuditRetentionDays() {
+            return auditRetentionDays;
+        }
+
+        public void setAuditRetentionDays(int value) {
+            auditRetentionDays = value;
+        }
+
+        public int getWorkerBatchSize() {
+            return workerBatchSize;
+        }
+
+        public void setWorkerBatchSize(int value) {
+            workerBatchSize = value;
+        }
 
         @AssertTrue(message = "max-user-rows must not exceed max-total-rows")
-        public boolean isUserRowsValid() { return maxUserRows <= maxTotalRows; }
+        public boolean isUserRowsValid() {
+            return maxUserRows <= maxTotalRows;
+        }
     }
 
     public static class EventPreparationProperties {
         private boolean enabled;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean value) { enabled = value; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
     }
 
     public static class InventoryProperties {
         @Valid
         private QrProperties qr = new QrProperties();
 
-        public QrProperties getQr() { return qr; }
-        public void setQr(QrProperties value) { qr = value; }
+        public QrProperties getQr() {
+            return qr;
+        }
+
+        public void setQr(QrProperties value) {
+            qr = value;
+        }
     }
 
     public static class QrProperties {
@@ -493,19 +925,37 @@ public class ApplicationProperties {
         @Max(1000)
         private int resolutionLimitPerMinute = 60;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean value) { enabled = value; }
-        public String getPublicBaseUrl() { return publicBaseUrl; }
-        public void setPublicBaseUrl(String value) { publicBaseUrl = value; }
-        public int getResolutionLimitPerMinute() { return resolutionLimitPerMinute; }
-        public void setResolutionLimitPerMinute(int value) { resolutionLimitPerMinute = value; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
+
+        public String getPublicBaseUrl() {
+            return publicBaseUrl;
+        }
+
+        public void setPublicBaseUrl(String value) {
+            publicBaseUrl = value;
+        }
+
+        public int getResolutionLimitPerMinute() {
+            return resolutionLimitPerMinute;
+        }
+
+        public void setResolutionLimitPerMinute(int value) {
+            resolutionLimitPerMinute = value;
+        }
 
         @AssertTrue(message = "inventory.qr.public-base-url must be an HTTPS URL without credentials, query or fragment; HTTP is allowed only for localhost")
         public boolean isPublicBaseUrlValid() {
             if (!enabled) return true;
             try {
                 URI uri = URI.create(publicBaseUrl == null ? "" : publicBaseUrl.trim());
-                if (!uri.isAbsolute() || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null) return false;
+                if (!uri.isAbsolute() || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null)
+                    return false;
                 if ("https".equalsIgnoreCase(uri.getScheme())) return true;
                 return "http".equalsIgnoreCase(uri.getScheme())
                     && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()) || "::1".equals(uri.getHost()));
@@ -534,16 +984,45 @@ public class ApplicationProperties {
         @Max(366)
         private int financeUnreconciledWarningDays = 30;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-        public int getCalendarLookAheadDays() { return calendarLookAheadDays; }
-        public void setCalendarLookAheadDays(int calendarLookAheadDays) { this.calendarLookAheadDays = calendarLookAheadDays; }
-        public int getInventoryExpirationLookAheadDays() { return inventoryExpirationLookAheadDays; }
-        public void setInventoryExpirationLookAheadDays(int inventoryExpirationLookAheadDays) { this.inventoryExpirationLookAheadDays = inventoryExpirationLookAheadDays; }
-        public int getInventoryWarningDays() { return inventoryWarningDays; }
-        public void setInventoryWarningDays(int inventoryWarningDays) { this.inventoryWarningDays = inventoryWarningDays; }
-        public int getFinanceUnreconciledWarningDays() { return financeUnreconciledWarningDays; }
-        public void setFinanceUnreconciledWarningDays(int financeUnreconciledWarningDays) { this.financeUnreconciledWarningDays = financeUnreconciledWarningDays; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getCalendarLookAheadDays() {
+            return calendarLookAheadDays;
+        }
+
+        public void setCalendarLookAheadDays(int calendarLookAheadDays) {
+            this.calendarLookAheadDays = calendarLookAheadDays;
+        }
+
+        public int getInventoryExpirationLookAheadDays() {
+            return inventoryExpirationLookAheadDays;
+        }
+
+        public void setInventoryExpirationLookAheadDays(int inventoryExpirationLookAheadDays) {
+            this.inventoryExpirationLookAheadDays = inventoryExpirationLookAheadDays;
+        }
+
+        public int getInventoryWarningDays() {
+            return inventoryWarningDays;
+        }
+
+        public void setInventoryWarningDays(int inventoryWarningDays) {
+            this.inventoryWarningDays = inventoryWarningDays;
+        }
+
+        public int getFinanceUnreconciledWarningDays() {
+            return financeUnreconciledWarningDays;
+        }
+
+        public void setFinanceUnreconciledWarningDays(int financeUnreconciledWarningDays) {
+            this.financeUnreconciledWarningDays = financeUnreconciledWarningDays;
+        }
 
         @AssertTrue(message = "inventory-warning-days must not exceed inventory-expiration-look-ahead-days")
         public boolean isInventoryWarningWindowValid() {

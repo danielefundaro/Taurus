@@ -5,7 +5,7 @@ import { Preferences } from "../module";
     providedIn: 'root'
 })
 export class LocalStorageService {
-    constructor() {}
+    constructor() { }
 
     public setItem(key: string, value: Preferences): void {
         localStorage.setItem(key, JSON.stringify(value));

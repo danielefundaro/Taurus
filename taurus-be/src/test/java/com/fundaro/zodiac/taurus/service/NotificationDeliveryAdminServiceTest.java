@@ -22,10 +22,12 @@ import com.fundaro.zodiac.taurus.repository.notification.NotificationOutboxRepos
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationDeliveryRef;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,10 +41,14 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 @MockitoSettings(strictness = Strictness.LENIENT)
 class NotificationDeliveryAdminServiceTest {
 
-    @Mock NotificationDeliveryAdminQueryRepository queryRepository;
-    @Mock NotificationOutboxRepository outboxRepository;
-    @Mock NotificationPushDeliveryRepository pushDeliveryRepository;
-    @Mock PushReminderRepository reminderRepository;
+    @Mock
+    NotificationDeliveryAdminQueryRepository queryRepository;
+    @Mock
+    NotificationOutboxRepository outboxRepository;
+    @Mock
+    NotificationPushDeliveryRepository pushDeliveryRepository;
+    @Mock
+    PushReminderRepository reminderRepository;
 
     private NotificationDeliveryAdminService service() {
         return new NotificationDeliveryAdminService(

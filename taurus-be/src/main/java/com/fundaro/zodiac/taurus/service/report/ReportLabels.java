@@ -11,7 +11,8 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 
 public final class ReportLabels {
 
-    private ReportLabels() {}
+    private ReportLabels() {
+    }
 
     public static String financialDirection(FinancialDirection value) {
         if (value == null) return "-";

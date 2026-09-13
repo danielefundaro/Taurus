@@ -1,40 +1,31 @@
 package com.fundaro.zodiac.taurus.service;
 
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Users;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationCategoryPreference;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
-import com.fundaro.zodiac.taurus.repository.UsersRepository;
-import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
+import com.fundaro.zodiac.taurus.domain.notification.*;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
-import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
-import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
+import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
+import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationCategoryPreferenceDTO;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationPreferencesDTO;
 import com.fundaro.zodiac.taurus.service.dto.notification.NotificationQuietHoursDTO;
+import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.DateTimeException;
-import java.time.Duration;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+
+import java.time.DateTimeException;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -164,7 +155,8 @@ public class NotificationPreferencesService {
     }
 
     private void validate(NotificationPreferencesDTO request) {
-        if (request == null) throw error(HttpStatus.BAD_REQUEST, "Notification preferences are required", "preferences.required");
+        if (request == null)
+            throw error(HttpStatus.BAD_REQUEST, "Notification preferences are required", "preferences.required");
         try {
             ZoneId.of(request.timeZone());
         } catch (DateTimeException | NullPointerException exception) {
@@ -249,7 +241,9 @@ public class NotificationPreferencesService {
         );
     }
 
-    /** Il profilo notifiche resta dietro feature flag finché il rollout non è completo. */
+    /**
+     * Il profilo notifiche resta dietro feature flag finché il rollout non è completo.
+     */
     private void requireEnabled() {
         if (!properties.isEnabled()) {
             throw error(HttpStatus.NOT_FOUND, "Notification preferences are not enabled", "preferences.disabled");
@@ -258,7 +252,8 @@ public class NotificationPreferencesService {
 
     private static String subject(AbstractAuthenticationToken authentication) {
         String subject = SecurityUtils.getUserIdFromAuthentication(authentication);
-        if (subject == null || subject.isBlank()) throw error(HttpStatus.UNAUTHORIZED, "Authentication subject is required", "subject.missing");
+        if (subject == null || subject.isBlank())
+            throw error(HttpStatus.UNAUTHORIZED, "Authentication subject is required", "subject.missing");
         return subject;
     }
 

@@ -1,9 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
@@ -12,18 +8,23 @@ import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.LabelEntry;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.LabelLayout;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.LabelRequest;
-import java.io.IOException;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class InventoryLabelServiceTest {
     private final InventoryItemRepository items = mock(InventoryItemRepository.class);

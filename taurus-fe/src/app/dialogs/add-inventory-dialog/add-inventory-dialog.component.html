@@ -1,14 +1,27 @@
-<app-dialog-shell #shell heading="Nuovo oggetto" subtitle="Registra un bene fisico nell’inventario." confirmLabel="Aggiungi oggetto" [invalidCount]="(!item.inventoryNumber.trim() ? 1 : 0) + (!item.name.trim() ? 1 : 0)" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Nuovo oggetto" subtitle="Registra un bene fisico nell’inventario."
+    confirmLabel="Aggiungi oggetto"
+    [invalidCount]="(!item.inventoryNumber.trim() ? 1 : 0) + (!item.name.trim() ? 1 : 0)" (cancel)="cancel()"
+    (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="shell.validationAttempted && !item.inventoryNumber.trim() ? 'Inserisci il numero inventariale.' : undefined"
-            ><input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber"
-        /></app-form-field>
-        <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !item.name.trim() ? 'Inserisci il nome dell’oggetto.' : undefined"><input pInputText id="name" [(ngModel)]="item.name" /></app-form-field>
-        <app-form-field label="Quantità totale" forId="totalQuantity"><p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" /></app-form-field>
-        <app-form-field label="Stato di conservazione" forId="condition"><p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="item.conditionStatus" /></app-form-field>
-        <app-form-field label="Valore unitario stimato" forId="estimatedUnitValue"><p-inputnumber inputId="estimatedUnitValue" [(ngModel)]="item.estimatedUnitValue" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" /></app-form-field>
-        <app-form-field label="Valuta ISO" forId="currency" hint="Codice a tre lettere, per esempio EUR."><input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency" /></app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"></textarea></app-form-field>
-        <app-form-field class="md:col-span-2" label="Note di conservazione" forId="conditionNotes"><textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"></textarea></app-form-field>
+        <app-form-field label="Numero inventariale" forId="inventoryNumber" required
+            [error]="shell.validationAttempted && !item.inventoryNumber.trim() ? 'Inserisci il numero inventariale.' : undefined"><input
+                pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber" /></app-form-field>
+        <app-form-field label="Nome" forId="name" required
+            [error]="shell.validationAttempted && !item.name.trim() ? 'Inserisci il nome dell’oggetto.' : undefined"><input
+                pInputText id="name" [(ngModel)]="item.name" /></app-form-field>
+        <app-form-field label="Quantità totale" forId="totalQuantity"><p-inputnumber inputId="totalQuantity"
+                [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" /></app-form-field>
+        <app-form-field label="Stato di conservazione" forId="condition"><p-select inputId="condition"
+                [options]="conditions" optionLabel="label" optionValue="value"
+                [(ngModel)]="item.conditionStatus" /></app-form-field>
+        <app-form-field label="Valore unitario stimato" forId="estimatedUnitValue"><p-inputnumber
+                inputId="estimatedUnitValue" [(ngModel)]="item.estimatedUnitValue" [min]="0" [minFractionDigits]="2"
+                [maxFractionDigits]="2" /></app-form-field>
+        <app-form-field label="Valuta ISO" forId="currency" hint="Codice a tre lettere, per esempio EUR."><input
+                pInputText id="currency" maxlength="3" [(ngModel)]="item.currency" /></app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea
+                id="description" rows="4" [(ngModel)]="item.description"></textarea></app-form-field>
+        <app-form-field class="md:col-span-2" label="Note di conservazione" forId="conditionNotes"><textarea pTextarea
+                id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"></textarea></app-form-field>
     </div>
 </app-dialog-shell>

@@ -44,6 +44,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -62,6 +63,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -147,12 +149,17 @@ public class InventoryService {
         String normalizedQuery = trimToNull(query);
         String search = normalizedQuery == null ? "" : normalizedQuery;
         Page<InventoryItem> page = switch (attention == null ? "" : attention) {
-            case "pending-decisions" -> itemRepository.findWithPendingDecisions(search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+            case "pending-decisions" ->
+                itemRepository.findWithPendingDecisions(search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
             case "pending-returns" -> itemRepository.findWithPendingReturns(search, pageable);
-            case "expiring" -> itemRepository.findWithExpiringAssignments(search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
-            case "issues-unsafe" -> itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.UNSAFE, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
-            case "issues-limiting" -> itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.LIMITING, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
-            default -> normalizedQuery == null ? itemRepository.findAllByDeletedFalse(pageable) : itemRepository.search(normalizedQuery, pageable);
+            case "expiring" ->
+                itemRepository.findWithExpiringAssignments(search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
+            case "issues-unsafe" ->
+                itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.UNSAFE, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
+            case "issues-limiting" ->
+                itemRepository.findWithOpenIssues(search, InventoryIssueSeverity.LIMITING, List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED), pageable);
+            default ->
+                normalizedQuery == null ? itemRepository.findAllByDeletedFalse(pageable) : itemRepository.search(normalizedQuery, pageable);
         };
         return page.map(item -> toItemDto(item, false));
     }
@@ -377,8 +384,10 @@ public class InventoryService {
         String search = Objects.requireNonNullElse(trimToNull(query), "");
         if (scope != InventoryAssignmentScope.POSSESSED) return findOwnAssignments(query, scope, pageable, token);
         Page<InventoryAssignment> assignments = switch (attention == null ? "" : attention) {
-            case "pending-decisions" -> assignmentRepository.findOwnWithPendingDecision(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
-            case "expiring" -> assignmentRepository.findOwnExpiring(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
+            case "pending-decisions" ->
+                assignmentRepository.findOwnWithPendingDecision(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, pageable);
+            case "expiring" ->
+                assignmentRepository.findOwnExpiring(userId, search, OUTSTANDING_ASSIGNMENT_STATUSES, maximumExpirationDate, pageable);
             default -> null;
         };
         return assignments == null ? findOwnAssignments(query, scope, pageable, token) : assignments.map(this::toAssignmentSummaryDto);
@@ -960,13 +969,15 @@ public class InventoryService {
 
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
-        if (value == null || value.isBlank()) throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "inventory.identity.missing");
+        if (value == null || value.isBlank())
+            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "inventory.identity.missing");
         return value;
     }
 
     private static String tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (value == null || value.isBlank()) throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventory.tenant.missing");
+        if (value == null || value.isBlank())
+            throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventory.tenant.missing");
         return value;
     }
 
@@ -983,5 +994,6 @@ public class InventoryService {
         return new RequestAlertException(status, message, ENTITY, key);
     }
 
-    public record PhotoContent(String fileName, String contentType, byte[] bytes) {}
+    public record PhotoContent(String fileName, String contentType, byte[] bytes) {
+    }
 }

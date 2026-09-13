@@ -12,4 +12,5 @@ import jakarta.validation.constraints.Size;
  */
 public record NotificationDeliveryCloseRequest(
     @NotBlank @Size(max = 32) @Pattern(regexp = "[A-Z][A-Z0-9_]*") String reason
-) {}
+) {
+}

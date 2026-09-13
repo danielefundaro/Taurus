@@ -1,14 +1,15 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TenantStorageServiceTest {
 
@@ -42,11 +43,11 @@ class TenantStorageServiceTest {
     void resolvesRelativeStorageKeysInsideTheSelectedTenantOnly() throws Exception {
         String key = "inventory/550e8400-e29b-41d4-a716-446655440000/digest.jpg";
 
-        service.writeAtomically("Tenant A", key, new byte[] { 1, 2, 3 });
+        service.writeAtomically("Tenant A", key, new byte[]{1, 2, 3});
 
         Path tenantAFile = tempDirectory.resolve("tenant_a").resolve(key.replace('/', java.io.File.separatorChar));
         Path tenantBFile = tempDirectory.resolve("tenant_b").resolve(key.replace('/', java.io.File.separatorChar));
-        assertThat(tenantAFile).hasBinaryContent(new byte[] { 1, 2, 3 });
+        assertThat(tenantAFile).hasBinaryContent(new byte[]{1, 2, 3});
         assertThat(tenantBFile).doesNotExist();
     }
 

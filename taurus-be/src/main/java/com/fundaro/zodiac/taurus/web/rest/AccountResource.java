@@ -2,10 +2,6 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
-import java.security.Principal;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -16,6 +12,11 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -62,9 +63,9 @@ public class AccountResource {
 
     private static class UserVM {
 
-        private String login;
-        private Set<String> authorities;
-        private Map<String, Object> details;
+        private final String login;
+        private final Set<String> authorities;
+        private final Map<String, Object> details;
 
         UserVM(String login, Set<String> authorities, Map<String, Object> details) {
             this.login = login;

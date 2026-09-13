@@ -4,14 +4,14 @@ import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.criteria.NoticesCriteria;
 import com.fundaro.zodiac.taurus.service.NoticesService;
 import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
+import com.fundaro.zodiac.taurus.service.dto.notification.SnoozeNoticeRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import tech.jhipster.web.util.HeaderUtil;
-import com.fundaro.zodiac.taurus.service.dto.notification.SnoozeNoticeRequest;
-import jakarta.validation.Valid;
 
 /**
  * REST controller for managing {@link com.fundaro.zodiac.taurus.domain.Notices}.

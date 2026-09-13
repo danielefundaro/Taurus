@@ -6,14 +6,17 @@
 :host(:last-child) {
     margin-bottom: 0;
 }
+
 .danger-zone {
     border: 1px solid color-mix(in srgb, var(--p-red-500), transparent 45%);
 }
+
 h2 {
     margin: 0 0 1rem;
     color: var(--p-red-500);
     font-size: 1.125rem;
 }
+
 .danger-zone__operation {
     display: flex;
     align-items: center;
@@ -22,6 +25,7 @@ h2 {
     padding: 1rem 0;
     border-top: 1px solid var(--p-content-border-color);
 }
+
 .danger-zone__operation p {
     margin: 0.25rem 0 0;
     color: var(--p-text-muted-color);

@@ -23,7 +23,7 @@ export class TopbarComponent implements OnInit {
         protected layoutService: LayoutService,
         private readonly keycloakService: KeycloakService,
         private readonly tenantFeatureService: TenantFeatureService
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });

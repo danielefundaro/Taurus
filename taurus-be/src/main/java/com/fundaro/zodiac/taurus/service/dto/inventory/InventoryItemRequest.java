@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 
 public record InventoryItemRequest(
@@ -18,4 +19,5 @@ public record InventoryItemRequest(
     @Pattern(regexp = "[A-Za-z]{3}") String currency,
     @NotNull InventoryCondition conditionStatus,
     @Size(max = 2000) String conditionNotes
-) {}
+) {
+}

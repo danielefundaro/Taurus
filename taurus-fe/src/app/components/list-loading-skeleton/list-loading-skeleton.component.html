@@ -1,28 +1,29 @@
 <div class="w-full p-4" role="status" aria-label="Caricamento elenco">
     @if (layout === 'grid') {
-        <div class="grid grid-cols-12 gap-4">
-            @for (item of placeholders; track item) {
-                <div class="col-span-12 rounded-lg border border-surface-200 p-4 sm:col-span-6 lg:col-span-4 xl:col-span-3 dark:border-surface-700">
-                    <p-skeleton height="7rem" />
-                    <p-skeleton width="65%" height="1.25rem" class="mt-4 block" />
-                    <p-skeleton width="90%" class="mt-2 block" />
-                    <p-skeleton width="45%" class="mt-4 block" />
-                </div>
-            }
+    <div class="grid grid-cols-12 gap-4">
+        @for (item of placeholders; track item) {
+        <div
+            class="col-span-12 rounded-lg border border-surface-200 p-4 sm:col-span-6 lg:col-span-4 xl:col-span-3 dark:border-surface-700">
+            <p-skeleton height="7rem" />
+            <p-skeleton width="65%" height="1.25rem" class="mt-4 block" />
+            <p-skeleton width="90%" class="mt-2 block" />
+            <p-skeleton width="45%" class="mt-4 block" />
         </div>
+        }
+    </div>
     } @else {
-        <div class="grid gap-3">
-            @for (item of placeholders; track item) {
-                <div class="flex items-center gap-4 border-b border-surface-200 p-3 dark:border-surface-700">
-                    <p-skeleton shape="circle" size="3.5rem" />
-                    <div class="flex-1">
-                        <p-skeleton width="35%" height="1.25rem" />
-                        <p-skeleton width="70%" class="mt-2 block" />
-                    </div>
-                    <p-skeleton width="5rem" height="2rem" />
-                </div>
-            }
+    <div class="grid gap-3">
+        @for (item of placeholders; track item) {
+        <div class="flex items-center gap-4 border-b border-surface-200 p-3 dark:border-surface-700">
+            <p-skeleton shape="circle" size="3.5rem" />
+            <div class="flex-1">
+                <p-skeleton width="35%" height="1.25rem" />
+                <p-skeleton width="70%" class="mt-2 block" />
+            </div>
+            <p-skeleton width="5rem" height="2rem" />
         </div>
+        }
+    </div>
     }
     <span class="sr-only">Caricamento dei risultati in corso.</span>
 </div>

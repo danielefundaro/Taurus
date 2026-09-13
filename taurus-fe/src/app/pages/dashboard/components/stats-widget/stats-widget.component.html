@@ -3,7 +3,7 @@
         <small>{{ label }}</small>
         <strong>{{ value }}</strong>
         @if (link) {
-            <span class="stat-card__action">{{ actionLabel }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+        <span class="stat-card__action">{{ actionLabel }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
         }
     </span>
     <span class="stat-card__icon" [ngClass]="'stat-card__icon--' + color">
@@ -12,11 +12,11 @@
 </ng-template>
 
 @if (link) {
-    <a class="card stat-card" [routerLink]="link" [attr.aria-label]="actionLabel">
-        <ng-container [ngTemplateOutlet]="cardContent" />
-    </a>
+<a class="card stat-card" [routerLink]="link" [attr.aria-label]="actionLabel">
+    <ng-container [ngTemplateOutlet]="cardContent" />
+</a>
 } @else {
-    <div class="card stat-card stat-card--static">
-        <ng-container [ngTemplateOutlet]="cardContent" />
-    </div>
+<div class="card stat-card stat-card--static">
+    <ng-container [ngTemplateOutlet]="cardContent" />
+</div>
 }

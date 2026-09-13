@@ -4,19 +4,20 @@
             <div class="detail-section__heading">
                 <h2 [id]="headingId">{{ heading }}</h2>
                 @if (count !== undefined) {
-                    <span>{{ count }}</span>
+                <span>{{ count }}</span>
                 }
                 @if (dirty) {
-                    <p-tag severity="warn" value="Da salvare" />
+                <p-tag severity="warn" value="Da salvare" />
                 }
             </div>
             @if (description) {
-                <p>{{ description }}</p>
+            <p>{{ description }}</p>
             }
         </div>
         <div class="detail-section__actions">
             @if (actionLabel && actionLink) {
-                <a class="detail-section__link" [routerLink]="actionLink" [queryParams]="actionQueryParams">{{ actionLabel }} <i class="pi pi-arrow-right" aria-hidden="true"></i></a>
+            <a class="detail-section__link" [routerLink]="actionLink" [queryParams]="actionQueryParams">{{ actionLabel
+                }} <i class="pi pi-arrow-right" aria-hidden="true"></i></a>
             }
             <ng-content select="[sectionActions]" />
         </div>

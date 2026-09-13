@@ -3,7 +3,9 @@ package com.fundaro.zodiac.taurus.service.calendarfeed;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+
 import java.time.*;
+
 import org.junit.jupiter.api.Test;
 
 class CalendarFeedRateLimiterTest {

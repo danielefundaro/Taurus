@@ -3,9 +3,11 @@ package com.fundaro.zodiac.taurus.service.calendarfeed;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +20,9 @@ public class CalendarFeedRateLimiter {
     private final Clock clock;
 
     @Autowired
-    public CalendarFeedRateLimiter(ApplicationProperties properties) { this(properties, Clock.systemUTC()); }
+    public CalendarFeedRateLimiter(ApplicationProperties properties) {
+        this(properties, Clock.systemUTC());
+    }
 
     CalendarFeedRateLimiter(ApplicationProperties properties, Clock clock) {
         tokenLimit = properties.getCalendarFeed().getRateLimitPerTokenHour();
@@ -45,6 +49,10 @@ public class CalendarFeedRateLimiter {
         return window.count <= limit;
     }
 
-    private static String safe(String value) { return value == null || value.isBlank() ? "unknown" : value; }
-    private record Window(long hour, int count) {}
+    private static String safe(String value) {
+        return value == null || value.isBlank() ? "unknown" : value;
+    }
+
+    private record Window(long hour, int count) {
+    }
 }

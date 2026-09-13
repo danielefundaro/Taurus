@@ -1,26 +1,11 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.IntegrationTest;
-import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.PushReminder;
 import com.fundaro.zodiac.taurus.domain.UserIdentity;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationDeliveryOrigin;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDeliveryType;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.notification.*;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
@@ -44,6 +29,16 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.test.context.TestPropertySource;
+
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -51,20 +46,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.TestPropertySource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 /**
  * Copre il percorso end-to-end delle preferenze: profilo per tenant, fan-out
@@ -86,25 +71,44 @@ class NotificationPreferencesIT {
 
     private static final String SUBJECT = "preferences-user-1";
 
-    @MockBean ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean JwtDecoder jwtDecoder;
-    @MockBean NotificationScheduler notificationScheduler;
-    @MockBean NotificationPushScheduler notificationPushScheduler;
-    @MockBean TenantFeatureService tenantFeatureService;
-    @Autowired TenantSchemaProvisioningService provisioningService;
-    @Autowired TenantTransactionExecutor transactionExecutor;
-    @Autowired NotificationOutboxPublisher publisher;
-    @Autowired NotificationDispatcher dispatcher;
-    @Autowired NotificationPreferencesService preferencesService;
-    @Autowired NotificationDeliveryAdminService adminService;
-    @Autowired NotificationDeliveryAdminQueryRepository adminQueryRepository;
-    @Autowired NotificationOutboxRepository outboxRepository;
-    @Autowired NotificationPushDeliveryRepository pushDeliveryRepository;
-    @Autowired NotificationProfileRepository profileRepository;
-    @Autowired PushReminderRepository reminderRepository;
-    @Autowired NoticesRepository noticesRepository;
-    @Autowired UsersRepository usersRepository;
-    @PersistenceContext EntityManager entityManager;
+    @MockBean
+    ClientRegistrationRepository clientRegistrationRepository;
+    @MockBean
+    JwtDecoder jwtDecoder;
+    @MockBean
+    NotificationScheduler notificationScheduler;
+    @MockBean
+    NotificationPushScheduler notificationPushScheduler;
+    @MockBean
+    TenantFeatureService tenantFeatureService;
+    @Autowired
+    TenantSchemaProvisioningService provisioningService;
+    @Autowired
+    TenantTransactionExecutor transactionExecutor;
+    @Autowired
+    NotificationOutboxPublisher publisher;
+    @Autowired
+    NotificationDispatcher dispatcher;
+    @Autowired
+    NotificationPreferencesService preferencesService;
+    @Autowired
+    NotificationDeliveryAdminService adminService;
+    @Autowired
+    NotificationDeliveryAdminQueryRepository adminQueryRepository;
+    @Autowired
+    NotificationOutboxRepository outboxRepository;
+    @Autowired
+    NotificationPushDeliveryRepository pushDeliveryRepository;
+    @Autowired
+    NotificationProfileRepository profileRepository;
+    @Autowired
+    PushReminderRepository reminderRepository;
+    @Autowired
+    NoticesRepository noticesRepository;
+    @Autowired
+    UsersRepository usersRepository;
+    @PersistenceContext
+    EntityManager entityManager;
 
     private final String tenantOne = "preferences-a-" + UUID.randomUUID();
     private final String tenantTwo = "preferences-b-" + UUID.randomUUID();
@@ -491,11 +495,13 @@ class NotificationPreferencesIT {
         return delivery;
     }
 
-    /** I promemoria hanno una FK verso l'evento: serve un'occorrenza reale nello schema del tenant. */
+    /**
+     * I promemoria hanno una FK verso l'evento: serve un'occorrenza reale nello schema del tenant.
+     */
     private Long createCalendarEvent() {
         entityManager.createNativeQuery(
             "INSERT INTO calendar_event (name, start_date, end_date, series_exception, series_excluded, deleted, insert_by, insert_date, edit_by, edit_date)"
-            + " VALUES ('Prova', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', FALSE, FALSE, FALSE, 'test', CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP)"
+                + " VALUES ('Prova', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 hour', FALSE, FALSE, FALSE, 'test', CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP)"
         ).executeUpdate();
         return ((Number) entityManager.createNativeQuery("SELECT MAX(id) FROM calendar_event").getSingleResult()).longValue();
     }

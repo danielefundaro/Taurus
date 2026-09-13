@@ -8,4 +8,5 @@ public record NotificationCategoryPreferenceDTO(
     @NotNull NotificationSource source,
     boolean inAppEnabled,
     @NotNull NotificationPushMode pushMode
-) {}
+) {
+}

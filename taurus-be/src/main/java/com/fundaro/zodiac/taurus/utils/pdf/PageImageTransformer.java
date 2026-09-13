@@ -15,7 +15,7 @@ import java.util.List;
 public interface PageImageTransformer {
     /**
      * @return una immagine per ogni ritaglio della ricetta, oppure una sola immagine quando la
-     *     ricetta non contiene ritagli.
+     * ricetta non contiene ritagli.
      */
     List<BufferedImage> transformRendered(BufferedImage source, PageEditRecipe recipe);
 }

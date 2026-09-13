@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
 export class PushSubscriptionService {
     private readonly baseUrl = `${environment.baseUrl}/push-subscriptions`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     subscribe(subscription: PushSubscription): Observable<void> {
         const json = subscription.toJSON();

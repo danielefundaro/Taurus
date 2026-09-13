@@ -23,7 +23,7 @@ export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
 export class FinanceService {
     private readonly baseUrl = `${environment.baseUrl}/finance`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getDashboard(from?: string, to?: string): Observable<FinancialDashboard> {
         let params = new HttpParams();

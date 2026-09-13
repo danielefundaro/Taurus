@@ -14,4 +14,5 @@ public record OperationalItemDTO(
     ZonedDateTime dueAt,
     String actionLabel,
     String targetPath
-) {}
+) {
+}

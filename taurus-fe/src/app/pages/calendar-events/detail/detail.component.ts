@@ -244,10 +244,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             area === 'budget'
                 ? this.eventPreparationService.confirmBudget(this.event.id, this.keycloakService.currentUserRole)
                 : area === 'presence'
-                  ? this.eventPreparationService.confirmPresence(this.event.id)
-                  : area === 'finance'
-                    ? this.eventPreparationService.confirmNoMovements(this.event.id, this.keycloakService.currentUserRole)
-                    : this.eventPreparationService.confirmMaterial(this.event.id, materialId!);
+                    ? this.eventPreparationService.confirmPresence(this.event.id)
+                    : area === 'finance'
+                        ? this.eventPreparationService.confirmNoMovements(this.event.id, this.keycloakService.currentUserRole)
+                        : this.eventPreparationService.confirmMaterial(this.event.id, materialId!);
         operation.pipe(first()).subscribe((view) => {
             this.preparation = view;
             this.toastService.success('Verifica confermata', 'Lo stato della preparazione è stato ricalcolato.');

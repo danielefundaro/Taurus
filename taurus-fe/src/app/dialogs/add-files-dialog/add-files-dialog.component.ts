@@ -26,7 +26,7 @@ export class AddFilesDialogComponent {
         private readonly dialogRef: DynamicDialogRef,
         private readonly dialogService: DialogService,
         private readonly tracksService: TracksService
-    ) {}
+    ) { }
 
     protected onFileSelect(event: any): void {
         this.selectedFile = event.currentFiles?.[0] ?? event.files?.[0] ?? null;

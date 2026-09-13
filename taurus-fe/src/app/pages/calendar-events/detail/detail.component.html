@@ -1,541 +1,571 @@
 <p-confirmdialog />
 @if (loading) {
-    <app-detail-loading-skeleton />
+<app-detail-loading-skeleton />
 }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Evento" [heading]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty"
-        ><div pageMetadata class="flex flex-wrap items-center gap-2">
+    <app-page-header kicker="Evento" [heading]="event.name || 'Nuovo evento'" backLink="/calendar" [dirty]="isDirty">
+        <div pageMetadata class="flex flex-wrap items-center gap-2">
             <span>{{ event.startDate ? (event.startDate | date: 'dd/MM/yyyy HH:mm') : 'Data non indicata' }}</span>
             @if (event.location) {
-                <span>· {{ event.location }}</span>
+            <span>· {{ event.location }}</span>
             }
             @if (event.seriesId) {
-                <p-tag icon="pi pi-sync" [value]="event.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'" severity="info" [rounded]="true" />
+            <p-tag icon="pi pi-sync" [value]="event.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"
+                severity="info" [rounded]="true" />
             }
         </div>
         <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
             @if (event.seriesId) {
-                <p-button label="Salva da questo evento in poi" icon="pi pi-sync" severity="secondary" outlined [loading]="saving" [disabled]="!isDirtyForm || seriesRuleInvalid" (onClick)="saveSeriesFuture()" />
+            <p-button label="Salva da questo evento in poi" icon="pi pi-sync" severity="secondary" outlined
+                [loading]="saving" [disabled]="!isDirtyForm || seriesRuleInvalid" (onClick)="saveSeriesFuture()" />
             }
             @if (event.seriesException) {
-                <p-button label="Ripristina dalla serie" icon="pi pi-replay" severity="secondary" outlined (onClick)="restoreOccurrence()" />
+            <p-button label="Ripristina dalla serie" icon="pi pi-replay" severity="secondary" outlined
+                (onClick)="restoreOccurrence()" />
             }
-            <p-button [label]="event.seriesId ? 'Salva solo questo evento' : 'Salva evento'" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm" (onClick)="save()" /></div
-    ></app-page-header>
+            <p-button [label]="event.seriesId ? 'Salva solo questo evento' : 'Salva evento'" icon="pi pi-check"
+                [loading]="saving" [disabled]="!isDirtyForm" (onClick)="save()" />
+        </div>
+    </app-page-header>
 
     @if (eventPreparationEnabled()) {
-        <app-detail-section
-            id="preparation"
-            heading="Preparazione operativa"
-            description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
-            [dirty]="isDirtyPreparation"
-            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]"
-        >
-            @if (preparation) {
-                <div class="flex flex-col gap-5">
-                    <div class="flex flex-wrap items-center justify-between gap-4 rounded border border-surface-200 dark:border-surface-700 p-4" aria-live="polite">
-                        <div>
-                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                <p-tag [value]="preparationStatusLabel()" [severity]="preparationSeverity()" [rounded]="true" />
-                                <p-tag [value]="preparation.evaluation.phase === 'FOLLOW_UP' ? 'Chiusura' : preparation.evaluation.phase === 'IN_PROGRESS' ? 'In corso' : 'Preparazione'" severity="secondary" [rounded]="true" />
-                            </div>
-                            <strong class="text-xl">{{ preparation.evaluation.completionPercent }}%</strong>
-                            <span class="text-surface-500 ml-2">{{ preparation.evaluation.passedChecks }} di {{ preparation.evaluation.applicableChecks }} verifiche completate</span>
-                        </div>
-                        @if (preparation.evaluation.closureStatus !== 'NOT_REQUIRED') {
-                            <div>
-                                <small class="text-surface-500 block">Chiusura successiva</small><strong>{{ closureStatusLabel(preparation.evaluation.closureStatus) }}</strong>
-                            </div>
+    <app-detail-section id="preparation" heading="Preparazione operativa"
+        description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
+        [dirty]="isDirtyPreparation"
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]">
+        @if (preparation) {
+        <div class="flex flex-col gap-5">
+            <div class="flex flex-wrap items-center justify-between gap-4 rounded border border-surface-200 dark:border-surface-700 p-4"
+                aria-live="polite">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <p-tag [value]="preparationStatusLabel()" [severity]="preparationSeverity()" [rounded]="true" />
+                        <p-tag
+                            [value]="preparation.evaluation.phase === 'FOLLOW_UP' ? 'Chiusura' : preparation.evaluation.phase === 'IN_PROGRESS' ? 'In corso' : 'Preparazione'"
+                            severity="secondary" [rounded]="true" />
+                    </div>
+                    <strong class="text-xl">{{ preparation.evaluation.completionPercent }}%</strong>
+                    <span class="text-surface-500 ml-2">{{ preparation.evaluation.passedChecks }} di {{
+                        preparation.evaluation.applicableChecks }} verifiche completate</span>
+                </div>
+                @if (preparation.evaluation.closureStatus !== 'NOT_REQUIRED') {
+                <div>
+                    <small class="text-surface-500 block">Chiusura successiva</small><strong>{{
+                        closureStatusLabel(preparation.evaluation.closureStatus) }}</strong>
+                </div>
+                }
+            </div>
+
+            @if (preparation.evaluation.issues.length) {
+            <div class="grid gap-2">
+                @for (issue of preparation.evaluation.issues; track issue.code + issue.area) {
+                <app-inline-alert [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'"
+                    [heading]="issue.severity === 'BLOCKER' ? 'Preparazione bloccata' : 'Preparazione da verificare'"
+                    [detail]="issue.message" />
+                }
+            </div>
+            }
+
+            @if (preparation.configuration) {
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                @if (preparation.configuration.availabilityRequired) {
+                <div>
+                    <small class="text-surface-500 block">Disponibili</small><strong>{{
+                        preparation.availability.available }} / {{ preparation.availability.minimumRequired
+                        }}</strong><span class="block text-surface-500">{{ preparation.availability.missing }} risposte
+                        mancanti</span>
+                </div>
+                }
+                @if (preparation.configuration.programRequired) {
+                <div>
+                    <small class="text-surface-500 block">Programma</small><strong>{{ preparation.program.length }}
+                        brani</strong>
+                </div>
+                }
+                @if (preparation.configuration.materialsRequired) {
+                <div>
+                    <small class="text-surface-500 block">Materiali</small><strong>{{ preparation.materials.length }}
+                        pianificati</strong>
+                </div>
+                }
+            </div>
+            }
+
+            <div *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+                class="border-t border-surface-200 dark:border-surface-700 pt-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+                    <app-form-field label="Natura dell’evento" forId="preparationProfile"
+                        hint="Il profilo propone i requisiti iniziali; puoi modificarli singolarmente.">
+                        <p-select inputId="preparationProfile" class="w-full" [options]="preparationProfiles"
+                            optionLabel="label" optionValue="value" [(ngModel)]="preparationConfiguration.profile"
+                            (ngModelChange)="applyPreparationProfile($event)" />
+                    </app-form-field>
+                    @if (preparationConfiguration.availabilityRequired) {
+                    <app-form-field label="Partecipanti minimi" forId="minimumAvailableParticipants" required
+                        [error]="preparationConfiguration.minimumAvailableParticipants ? undefined : 'Indica almeno un partecipante.'">
+                        <p-inputnumber inputId="minimumAvailableParticipants"
+                            [(ngModel)]="preparationConfiguration.minimumAvailableParticipants" [min]="1"
+                            [showButtons]="true" (ngModelChange)="markPreparationDirty()" />
+                    </app-form-field>
+                    <app-form-field label="Scadenza disponibilità" forId="availabilityDeadlineMinutes"
+                        hint="Minuti prima dell’inizio">
+                        <p-inputnumber inputId="availabilityDeadlineMinutes"
+                            [(ngModel)]="preparationConfiguration.availabilityDeadlineMinutes" [min]="0" [max]="43200"
+                            suffix=" min" (ngModelChange)="markPreparationDirty()" />
+                    </app-form-field>
+                    }
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepLocation"
+                            [(ngModel)]="preparationConfiguration.locationRequired" [binary]="true"
+                            (onChange)="markPreparationDirty()" /><span>Luogo richiesto</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepProgram"
+                            [(ngModel)]="preparationConfiguration.programRequired" [binary]="true"
+                            (onChange)="preparationConfiguration.scoresRequired = preparationConfiguration.programRequired && preparationConfiguration.scoresRequired; markPreparationDirty()" /><span>Programma
+                            musicale</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepScores"
+                            [(ngModel)]="preparationConfiguration.scoresRequired" [binary]="true"
+                            [disabled]="!preparationConfiguration.programRequired"
+                            (onChange)="markPreparationDirty()" /><span>Spartiti</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepAvailability"
+                            [(ngModel)]="preparationConfiguration.availabilityRequired" [binary]="true"
+                            (onChange)="markPreparationDirty()" /><span>Disponibilità</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepMaterials"
+                            [(ngModel)]="preparationConfiguration.materialsRequired" [binary]="true"
+                            [disabled]="!inventoryEnabled()"
+                            (onChange)="markPreparationDirty()" /><span>Materiali</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepBudget"
+                            [(ngModel)]="preparationConfiguration.budgetRequired" [binary]="true"
+                            [disabled]="!financeEnabled()"
+                            (onChange)="markPreparationDirty()" /><span>Preventivo</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepPresence"
+                            [(ngModel)]="preparationConfiguration.presenceClosureRequired" [binary]="true"
+                            (onChange)="markPreparationDirty()" /><span>Verifica presenze dopo l’evento</span></label>
+                    <label class="flex items-center gap-2"><p-checkbox inputId="prepFinance"
+                            [(ngModel)]="preparationConfiguration.financialClosureRequired" [binary]="true"
+                            [disabled]="!financeEnabled()" (onChange)="markPreparationDirty()" /><span>Chiusura
+                            economica</span></label>
+                </div>
+                <div class="flex flex-wrap justify-end gap-2 mt-5">
+                    @if (preparation.configuration?.budgetRequired) {
+                    <p-button label="Conferma preventivo" severity="secondary" outlined icon="pi pi-check"
+                        (onClick)="confirmPreparationArea('budget')" />
+                    }
+                    @if (preparation.evaluation.phase === 'FOLLOW_UP' &&
+                    preparation.configuration?.presenceClosureRequired) {
+                    <p-button label="Conferma presenze" severity="secondary" outlined icon="pi pi-users"
+                        (onClick)="confirmPreparationArea('presence')" />
+                    }
+                    @if (preparation.evaluation.phase === 'FOLLOW_UP' &&
+                    preparation.configuration?.financialClosureRequired) {
+                    <p-button label="Nessun movimento previsto" severity="secondary" outlined icon="pi pi-wallet"
+                        (onClick)="confirmPreparationArea('finance')" />
+                    }
+                    <p-button label="Salva preparazione" icon="pi pi-check" [loading]="savingPreparation"
+                        [disabled]="!isDirtyPreparation || (preparationConfiguration.availabilityRequired && !preparationConfiguration.minimumAvailableParticipants)"
+                        (onClick)="savePreparation()" />
+                </div>
+            </div>
+        </div>
+        }
+    </app-detail-section>
+
+    @if (preparation?.configuration?.programRequired) {
+    <app-detail-section id="preparation-program" heading="Programma" [count]="programDraft.length"
+        description="Collega un album per usare le sue tracce, nel relativo ordine, come scaletta dell’occorrenza."
+        [dirty]="isDirtyProgram"
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]">
+        <div class="flex flex-col gap-4">
+            @if (canManageProgram) {
+            <div class="flex flex-col gap-[0.4rem]">
+                <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                    <app-form-field class="flex-1" label="Album da collegare" forId="preparationAlbum"><p-autocomplete
+                            inputId="preparationAlbum" class="w-full" inputStyleClass="w-full"
+                            [(ngModel)]="selectedAlbum" [suggestions]="availableAlbums"
+                            (completeMethod)="searchPreparationAlbums($event)" optionLabel="name"
+                            [forceSelection]="true" [dropdown]="true" placeholder="Cerca un album">
+                            <ng-template let-album #item>
+                                <div class="flex w-full items-center justify-between gap-3">
+                                    <span>{{ album.name }}</span>
+                                    <small class="text-surface-500">{{ album.tracks?.length ?? 0 }} {{
+                                        album.tracks?.length === 1 ? 'traccia' : 'tracce' }}</small>
+                                </div>
+                            </ng-template>
+                        </p-autocomplete></app-form-field>
+                    <p-button label="Collega album" icon="pi pi-link" severity="secondary" [disabled]="!selectedAlbum"
+                        (onClick)="connectAlbum()" />
+                </div>
+                <small class="text-muted-color">La scaletta attuale verrà sostituita dalle tracce dell’album.</small>
+            </div>
+            }
+            @if (programDraft.length) {
+            <div class="flex flex-col gap-3">
+                @for (row of programDraft; track $index; let i = $index) {
+                <div
+                    class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center rounded border border-surface-200 dark:border-surface-700 p-3">
+                    <div class="md:col-span-3">
+                        <strong>{{ i + 1 }}. {{ row.trackName }}</strong>
+                        @if (row.trackState) {
+                        <small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
                         }
                     </div>
-
-                    @if (preparation.evaluation.issues.length) {
-                        <div class="grid gap-2">
-                            @for (issue of preparation.evaluation.issues; track issue.code + issue.area) {
-                                <app-inline-alert [severity]="issue.severity === 'BLOCKER' ? 'error' : 'warn'" [heading]="issue.severity === 'BLOCKER' ? 'Preparazione bloccata' : 'Preparazione da verificare'" [detail]="issue.message" />
-                            }
-                        </div>
-                    }
-
-                    @if (preparation.configuration) {
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            @if (preparation.configuration.availabilityRequired) {
-                                <div>
-                                    <small class="text-surface-500 block">Disponibili</small><strong>{{ preparation.availability.available }} / {{ preparation.availability.minimumRequired }}</strong
-                                    ><span class="block text-surface-500">{{ preparation.availability.missing }} risposte mancanti</span>
-                                </div>
-                            }
-                            @if (preparation.configuration.programRequired) {
-                                <div>
-                                    <small class="text-surface-500 block">Programma</small><strong>{{ preparation.program.length }} brani</strong>
-                                </div>
-                            }
-                            @if (preparation.configuration.materialsRequired) {
-                                <div>
-                                    <small class="text-surface-500 block">Materiali</small><strong>{{ preparation.materials.length }} pianificati</strong>
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    <div *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" class="border-t border-surface-200 dark:border-surface-700 pt-5">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-                            <app-form-field label="Natura dell’evento" forId="preparationProfile" hint="Il profilo propone i requisiti iniziali; puoi modificarli singolarmente.">
-                                <p-select
-                                    inputId="preparationProfile"
-                                    class="w-full"
-                                    [options]="preparationProfiles"
-                                    optionLabel="label"
-                                    optionValue="value"
-                                    [(ngModel)]="preparationConfiguration.profile"
-                                    (ngModelChange)="applyPreparationProfile($event)"
-                                />
-                            </app-form-field>
-                            @if (preparationConfiguration.availabilityRequired) {
-                                <app-form-field label="Partecipanti minimi" forId="minimumAvailableParticipants" required [error]="preparationConfiguration.minimumAvailableParticipants ? undefined : 'Indica almeno un partecipante.'">
-                                    <p-inputnumber inputId="minimumAvailableParticipants" [(ngModel)]="preparationConfiguration.minimumAvailableParticipants" [min]="1" [showButtons]="true" (ngModelChange)="markPreparationDirty()" />
-                                </app-form-field>
-                                <app-form-field label="Scadenza disponibilità" forId="availabilityDeadlineMinutes" hint="Minuti prima dell’inizio">
-                                    <p-inputnumber inputId="availabilityDeadlineMinutes" [(ngModel)]="preparationConfiguration.availabilityDeadlineMinutes" [min]="0" [max]="43200" suffix=" min" (ngModelChange)="markPreparationDirty()" />
-                                </app-form-field>
-                            }
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <label class="flex items-center gap-2"><p-checkbox inputId="prepLocation" [(ngModel)]="preparationConfiguration.locationRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Luogo richiesto</span></label>
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox
-                                    inputId="prepProgram"
-                                    [(ngModel)]="preparationConfiguration.programRequired"
-                                    [binary]="true"
-                                    (onChange)="preparationConfiguration.scoresRequired = preparationConfiguration.programRequired && preparationConfiguration.scoresRequired; markPreparationDirty()"
-                                /><span>Programma musicale</span></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepScores" [(ngModel)]="preparationConfiguration.scoresRequired" [binary]="true" [disabled]="!preparationConfiguration.programRequired" (onChange)="markPreparationDirty()" /><span
-                                    >Spartiti</span
-                                ></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepAvailability" [(ngModel)]="preparationConfiguration.availabilityRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Disponibilità</span></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepMaterials" [(ngModel)]="preparationConfiguration.materialsRequired" [binary]="true" [disabled]="!inventoryEnabled()" (onChange)="markPreparationDirty()" /><span>Materiali</span></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepBudget" [(ngModel)]="preparationConfiguration.budgetRequired" [binary]="true" [disabled]="!financeEnabled()" (onChange)="markPreparationDirty()" /><span>Preventivo</span></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepPresence" [(ngModel)]="preparationConfiguration.presenceClosureRequired" [binary]="true" (onChange)="markPreparationDirty()" /><span>Verifica presenze dopo l’evento</span></label
-                            >
-                            <label class="flex items-center gap-2"
-                                ><p-checkbox inputId="prepFinance" [(ngModel)]="preparationConfiguration.financialClosureRequired" [binary]="true" [disabled]="!financeEnabled()" (onChange)="markPreparationDirty()" /><span
-                                    >Chiusura economica</span
-                                ></label
-                            >
-                        </div>
-                        <div class="flex flex-wrap justify-end gap-2 mt-5">
-                            @if (preparation.configuration?.budgetRequired) {
-                                <p-button label="Conferma preventivo" severity="secondary" outlined icon="pi pi-check" (onClick)="confirmPreparationArea('budget')" />
-                            }
-                            @if (preparation.evaluation.phase === 'FOLLOW_UP' && preparation.configuration?.presenceClosureRequired) {
-                                <p-button label="Conferma presenze" severity="secondary" outlined icon="pi pi-users" (onClick)="confirmPreparationArea('presence')" />
-                            }
-                            @if (preparation.evaluation.phase === 'FOLLOW_UP' && preparation.configuration?.financialClosureRequired) {
-                                <p-button label="Nessun movimento previsto" severity="secondary" outlined icon="pi pi-wallet" (onClick)="confirmPreparationArea('finance')" />
-                            }
-                            <p-button
-                                label="Salva preparazione"
-                                icon="pi pi-check"
-                                [loading]="savingPreparation"
-                                [disabled]="!isDirtyPreparation || (preparationConfiguration.availabilityRequired && !preparationConfiguration.minimumAvailableParticipants)"
-                                (onClick)="savePreparation()"
-                            />
-                        </div>
+                    <div class="md:col-span-2">
+                        <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec"
+                            placeholder="Durata" [disabled]="!canManageProgram" (ngModelChange)="markProgramDirty()" />
                     </div>
+                    <div class="md:col-span-4"><input pInputText class="w-full" [(ngModel)]="row.notes"
+                            placeholder="Note per questa esecuzione" [readonly]="!canManageProgram"
+                            (ngModelChange)="markProgramDirty()" /></div>
+                    @if (canManageProgram) {
+                    <div class="md:col-span-3 flex justify-end gap-1">
+                        <p-button icon="pi pi-arrow-up" severity="secondary" text rounded ariaLabel="Sposta prima"
+                            [disabled]="i === 0" (onClick)="moveProgramEntry(i, -1)" />
+                        <p-button icon="pi pi-arrow-down" severity="secondary" text rounded ariaLabel="Sposta dopo"
+                            [disabled]="i === programDraft.length - 1" (onClick)="moveProgramEntry(i, 1)" />
+                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi dal programma"
+                            (onClick)="removeProgramEntry(i)" />
+                    </div>
+                    }
                 </div>
+                }
+            </div>
+            } @else {
+            <app-empty-state compact icon="pi pi-list" heading="Programma vuoto"
+                message="Collega un album con almeno una traccia per soddisfare la verifica." />
             }
-        </app-detail-section>
+            @if (canManageProgram) {
+            <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram"
+                    [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
+            }
+        </div>
+    </app-detail-section>
+    }
 
-        @if (preparation?.configuration?.programRequired) {
-            <app-detail-section
-                id="preparation-program"
-                heading="Programma"
-                [count]="programDraft.length"
-                description="Collega un album per usare le sue tracce, nel relativo ordine, come scaletta dell’occorrenza."
-                [dirty]="isDirtyProgram"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
-            >
-                <div class="flex flex-col gap-4">
-                    @if (canManageProgram) {
-                        <div class="flex flex-col gap-[0.4rem]">
-                            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
-                                <app-form-field class="flex-1" label="Album da collegare" forId="preparationAlbum"
-                                    ><p-autocomplete
-                                        inputId="preparationAlbum"
-                                        class="w-full"
-                                        inputStyleClass="w-full"
-                                        [(ngModel)]="selectedAlbum"
-                                        [suggestions]="availableAlbums"
-                                        (completeMethod)="searchPreparationAlbums($event)"
-                                        optionLabel="name"
-                                        [forceSelection]="true"
-                                        [dropdown]="true"
-                                        placeholder="Cerca un album"
-                                    >
-                                        <ng-template let-album #item>
-                                            <div class="flex w-full items-center justify-between gap-3">
-                                                <span>{{ album.name }}</span>
-                                                <small class="text-surface-500">{{ album.tracks?.length ?? 0 }} {{ album.tracks?.length === 1 ? 'traccia' : 'tracce' }}</small>
-                                            </div>
-                                        </ng-template>
-                                    </p-autocomplete></app-form-field
-                                >
-                                <p-button label="Collega album" icon="pi pi-link" severity="secondary" [disabled]="!selectedAlbum" (onClick)="connectAlbum()" />
-                            </div>
-                            <small class="text-muted-color">La scaletta attuale verrà sostituita dalle tracce dell’album.</small>
-                        </div>
-                    }
-                    @if (programDraft.length) {
-                        <div class="flex flex-col gap-3">
-                            @for (row of programDraft; track $index; let i = $index) {
-                                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center rounded border border-surface-200 dark:border-surface-700 p-3">
-                                    <div class="md:col-span-3">
-                                        <strong>{{ i + 1 }}. {{ row.trackName }}</strong>
-                                        @if (row.trackState) {
-                                            <small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
-                                        }
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" suffix=" sec" placeholder="Durata" [disabled]="!canManageProgram" (ngModelChange)="markProgramDirty()" />
-                                    </div>
-                                    <div class="md:col-span-4"><input pInputText class="w-full" [(ngModel)]="row.notes" placeholder="Note per questa esecuzione" [readonly]="!canManageProgram" (ngModelChange)="markProgramDirty()" /></div>
-                                    @if (canManageProgram) {
-                                        <div class="md:col-span-3 flex justify-end gap-1">
-                                            <p-button icon="pi pi-arrow-up" severity="secondary" text rounded ariaLabel="Sposta prima" [disabled]="i === 0" (onClick)="moveProgramEntry(i, -1)" />
-                                            <p-button icon="pi pi-arrow-down" severity="secondary" text rounded ariaLabel="Sposta dopo" [disabled]="i === programDraft.length - 1" (onClick)="moveProgramEntry(i, 1)" />
-                                            <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi dal programma" (onClick)="removeProgramEntry(i)" />
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    } @else {
-                        <app-empty-state compact icon="pi pi-list" heading="Programma vuoto" message="Collega un album con almeno una traccia per soddisfare la verifica." />
-                    }
-                    @if (canManageProgram) {
-                        <div class="flex justify-end"><p-button label="Salva programma" icon="pi pi-check" [loading]="savingProgram" [disabled]="!isDirtyProgram" (onClick)="saveProgram()" /></div>
-                    }
-                </div>
-            </app-detail-section>
-        }
-
-        @if (preparation?.configuration?.materialsRequired) {
-            <app-detail-section
-                id="preparation-materials"
-                heading="Materiali"
-                [count]="materialsDraft.length"
-                description="Oggetti e assegnazioni necessari per questa singola occorrenza."
-                [dirty]="isDirtyMaterials"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
-            >
-                <div class="flex flex-col gap-4">
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        <app-form-field class="md:col-span-4" label="Oggetto" forId="preparationItem"
-                            ><p-autocomplete
-                                inputId="preparationItem"
-                                class="w-full"
-                                inputStyleClass="w-full"
-                                [suggestions]="availableItems"
-                                (completeMethod)="searchPreparationItems($event)"
-                                optionLabel="name"
-                                [forceSelection]="true"
-                                [dropdown]="true"
-                                placeholder="Cerca nell’inventario"
-                                [(ngModel)]="selectedItem"
-                                (ngModelChange)="selectMaterialItem($event)"
-                        /></app-form-field>
-                        <app-form-field class="md:col-span-4" label="Assegnazione" forId="preparationAssignment"
-                            ><p-select
-                                inputId="preparationAssignment"
-                                class="w-full"
-                                [options]="availableAssignments"
-                                optionLabel="userName"
-                                optionValue="id"
-                                placeholder="Seleziona il responsabile"
-                                [showClear]="true"
-                                [(ngModel)]="selectedAssignmentId"
-                        /></app-form-field>
-                        <app-form-field class="md:col-span-2" label="Quantità" forId="preparationQuantity"><p-inputnumber inputId="preparationQuantity" [(ngModel)]="selectedMaterialQuantity" [min]="1" [showButtons]="true" /></app-form-field>
-                        <p-button class="md:col-span-2" label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedItem" (onClick)="addMaterial()" />
+    @if (preparation?.configuration?.materialsRequired) {
+    <app-detail-section id="preparation-materials" heading="Materiali" [count]="materialsDraft.length"
+        description="Oggetti e assegnazioni necessari per questa singola occorrenza." [dirty]="isDirtyMaterials"
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+        <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <app-form-field class="md:col-span-4" label="Oggetto" forId="preparationItem"><p-autocomplete
+                        inputId="preparationItem" class="w-full" inputStyleClass="w-full" [suggestions]="availableItems"
+                        (completeMethod)="searchPreparationItems($event)" optionLabel="name" [forceSelection]="true"
+                        [dropdown]="true" placeholder="Cerca nell’inventario" [(ngModel)]="selectedItem"
+                        (ngModelChange)="selectMaterialItem($event)" /></app-form-field>
+                <app-form-field class="md:col-span-4" label="Assegnazione" forId="preparationAssignment"><p-select
+                        inputId="preparationAssignment" class="w-full" [options]="availableAssignments"
+                        optionLabel="userName" optionValue="id" placeholder="Seleziona il responsabile"
+                        [showClear]="true" [(ngModel)]="selectedAssignmentId" /></app-form-field>
+                <app-form-field class="md:col-span-2" label="Quantità" forId="preparationQuantity"><p-inputnumber
+                        inputId="preparationQuantity" [(ngModel)]="selectedMaterialQuantity" [min]="1"
+                        [showButtons]="true" /></app-form-field>
+                <p-button class="md:col-span-2" label="Aggiungi" icon="pi pi-plus" severity="secondary"
+                    [disabled]="!selectedItem" (onClick)="addMaterial()" />
+            </div>
+            @if (materialsDraft.length) {
+            <div class="flex flex-col gap-2">
+                @for (row of materialsDraft; track $index; let i = $index) {
+                <div
+                    class="flex flex-wrap items-center justify-between gap-3 rounded border border-surface-200 dark:border-surface-700 p-3">
+                    <div>
+                        <strong>{{ row.itemName }}</strong><span class="ml-2">× {{ row.requiredQuantity }}</span><small
+                            class="block text-surface-500">{{ row.assignee || 'Nessuna assegnazione collegata' }} · {{
+                            materialConditionLabel(row.condition) }}</small>
                     </div>
-                    @if (materialsDraft.length) {
-                        <div class="flex flex-col gap-2">
-                            @for (row of materialsDraft; track $index; let i = $index) {
-                                <div class="flex flex-wrap items-center justify-between gap-3 rounded border border-surface-200 dark:border-surface-700 p-3">
-                                    <div>
-                                        <strong>{{ row.itemName }}</strong
-                                        ><span class="ml-2">× {{ row.requiredQuantity }}</span
-                                        ><small class="block text-surface-500">{{ row.assignee || 'Nessuna assegnazione collegata' }} · {{ materialConditionLabel(row.condition) }}</small>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        @if (row.id) {
-                                            <p-button
-                                                [label]="row.confirmed ? 'Confermato' : 'Conferma preparazione'"
-                                                [icon]="row.confirmed ? 'pi pi-check-circle' : 'pi pi-check'"
-                                                [severity]="row.confirmed ? 'success' : 'secondary'"
-                                                outlined
-                                                [disabled]="row.confirmed"
-                                                (onClick)="confirmPreparationArea('material', row.id)"
-                                            />
-                                        }
-                                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi materiale" (onClick)="removeMaterial(i)" />
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    } @else {
-                        <app-empty-state compact icon="pi pi-box" heading="Nessun materiale" message="Aggiungi almeno un oggetto e collegalo a un’assegnazione." />
-                    }
-                    <div class="flex justify-end"><p-button label="Salva materiali" icon="pi pi-check" [loading]="savingMaterials" [disabled]="!isDirtyMaterials" (onClick)="saveMaterials()" /></div>
+                    <div class="flex gap-2">
+                        @if (row.id) {
+                        <p-button [label]="row.confirmed ? 'Confermato' : 'Conferma preparazione'"
+                            [icon]="row.confirmed ? 'pi pi-check-circle' : 'pi pi-check'"
+                            [severity]="row.confirmed ? 'success' : 'secondary'" outlined [disabled]="row.confirmed"
+                            (onClick)="confirmPreparationArea('material', row.id)" />
+                        }
+                        <p-button icon="pi pi-trash" severity="danger" text rounded ariaLabel="Rimuovi materiale"
+                            (onClick)="removeMaterial(i)" />
+                    </div>
                 </div>
-            </app-detail-section>
-        }
+                }
+            </div>
+            } @else {
+            <app-empty-state compact icon="pi pi-box" heading="Nessun materiale"
+                message="Aggiungi almeno un oggetto e collegalo a un’assegnazione." />
+            }
+            <div class="flex justify-end"><p-button label="Salva materiali" icon="pi pi-check"
+                    [loading]="savingMaterials" [disabled]="!isDirtyMaterials" (onClick)="saveMaterials()" /></div>
+        </div>
+    </app-detail-section>
+    }
     }
 
     <app-detail-section
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
-        heading="Dati evento"
-        description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
-        [dirty]="isDirtyForm"
-    >
+        heading="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
+        [dirty]="isDirtyForm">
         @if (series) {
-            <div class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm mb-6">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-sync text-primary"></i>
-                    <span
-                        ><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi
-                        @if (series.exceptionCount) {
-                            <span>, {{ series.exceptionCount }} eccezioni</span>
-                        }
-                        .</span
-                    >
-                </div>
+        <div class="rounded bg-primary-50 dark:bg-primary-950 p-3 text-sm mb-6">
+            <div class="flex items-center gap-2">
+                <i class="pi pi-sync text-primary"></i>
+                <span><strong>Serie:</strong> {{ recurrenceLabel }}. {{ series.occurrenceCount }} eventi attivi
+                    @if (series.exceptionCount) {
+                    <span>, {{ series.exceptionCount }} eccezioni</span>
+                    }
+                    .</span>
+            </div>
 
-                <details class="mt-3">
-                    <summary class="cursor-pointer font-medium">Modifica pianificazione della serie</summary>
-                    <div class="flex flex-col gap-4 mt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <app-form-field label="Frequenza" forId="seriesFrequency">
-                                <p-select
-                                    inputId="seriesFrequency"
-                                    class="w-full"
-                                    [options]="frequencyOptions"
-                                    optionLabel="label"
-                                    optionValue="value"
-                                    [(ngModel)]="series.recurrence.frequency"
-                                    appendTo="body"
-                                    (ngModelChange)="onSeriesDefinitionChange()"
-                                />
-                            </app-form-field>
-                            <app-form-field label="Intervallo" forId="seriesInterval">
-                                <p-inputnumber inputId="seriesInterval" [(ngModel)]="series.recurrence.interval" [min]="1" [max]="366" [showButtons]="true" (ngModelChange)="onSeriesDefinitionChange()" />
-                            </app-form-field>
-                        </div>
+            <details class="mt-3">
+                <summary class="cursor-pointer font-medium">Modifica pianificazione della serie</summary>
+                <div class="flex flex-col gap-4 mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <app-form-field label="Frequenza" forId="seriesFrequency">
+                            <p-select inputId="seriesFrequency" class="w-full" [options]="frequencyOptions"
+                                optionLabel="label" optionValue="value" [(ngModel)]="series.recurrence.frequency"
+                                appendTo="body" (ngModelChange)="onSeriesDefinitionChange()" />
+                        </app-form-field>
+                        <app-form-field label="Intervallo" forId="seriesInterval">
+                            <p-inputnumber inputId="seriesInterval" [(ngModel)]="series.recurrence.interval" [min]="1"
+                                [max]="366" [showButtons]="true" (ngModelChange)="onSeriesDefinitionChange()" />
+                        </app-form-field>
+                    </div>
 
-                        @if (series.recurrence.frequency === 'WEEKLY') {
-                            <div>
-                                <span class="block text-surface-500 mb-2">Giorni della settimana</span>
-                                <div class="flex flex-wrap gap-3">
-                                    @for (day of weekDayOptions; track day.code) {
-                                        <label class="flex items-center gap-1 cursor-pointer">
-                                            <input type="checkbox" [checked]="isSeriesWeekDaySelected(day.code)" (change)="toggleSeriesWeekDay(day.code, $any($event.target).checked)" />
-                                            <span>{{ day.label }}</span>
-                                        </label>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        <div class="flex flex-col gap-3">
-                            <span class="text-surface-500">Termine della serie</span>
-                            <label class="flex items-center gap-2">
-                                <input type="radio" name="seriesEndType" value="COUNT" [(ngModel)]="series.recurrence.end.type" (ngModelChange)="onSeriesDefinitionChange()" />
-                                <span>Dopo</span>
-                                <p-inputnumber [(ngModel)]="series.recurrence.end.count" [min]="1" [max]="500" [disabled]="series.recurrence.end.type !== 'COUNT'" suffix=" eventi" (ngModelChange)="onSeriesDefinitionChange()" />
+                    @if (series.recurrence.frequency === 'WEEKLY') {
+                    <div>
+                        <span class="block text-surface-500 mb-2">Giorni della settimana</span>
+                        <div class="flex flex-wrap gap-3">
+                            @for (day of weekDayOptions; track day.code) {
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" [checked]="isSeriesWeekDaySelected(day.code)"
+                                    (change)="toggleSeriesWeekDay(day.code, $any($event.target).checked)" />
+                                <span>{{ day.label }}</span>
                             </label>
-                            <label class="flex items-center gap-2">
-                                <input type="radio" name="seriesEndType" value="UNTIL" [(ngModel)]="series.recurrence.end.type" (ngModelChange)="onSeriesDefinitionChange()" />
-                                <span>Alla data</span>
-                                <p-datepicker [(ngModel)]="seriesUntilDate" [disabled]="series.recurrence.end.type !== 'UNTIL'" dateFormat="dd-mm-yy" appendTo="body" (ngModelChange)="onSeriesDefinitionChange()" />
-                            </label>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <p-button label="Calcola anteprima" icon="pi pi-eye" severity="secondary" [outlined]="true" [loading]="isPreviewingSeries" [disabled]="seriesRuleInvalid" (onClick)="previewSeriesUpdate()" />
-                            @if (seriesPreview) {
-                                <span>{{ seriesPreview.occurrenceCount }} eventi · ultimo {{ seriesPreview.lastOccurrence | date: 'dd/MM/yyyy HH:mm' }} · {{ seriesPreview.timeZone }}</span>
                             }
                         </div>
-                        <small class="text-surface-500">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine dell’evento visualizzato. Le occorrenze precedenti non vengono modificate.</small>
                     </div>
-                </details>
-            </div>
+                    }
+
+                    <div class="flex flex-col gap-3">
+                        <span class="text-surface-500">Termine della serie</span>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="seriesEndType" value="COUNT"
+                                [(ngModel)]="series.recurrence.end.type" (ngModelChange)="onSeriesDefinitionChange()" />
+                            <span>Dopo</span>
+                            <p-inputnumber [(ngModel)]="series.recurrence.end.count" [min]="1" [max]="500"
+                                [disabled]="series.recurrence.end.type !== 'COUNT'" suffix=" eventi"
+                                (ngModelChange)="onSeriesDefinitionChange()" />
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="seriesEndType" value="UNTIL"
+                                [(ngModel)]="series.recurrence.end.type" (ngModelChange)="onSeriesDefinitionChange()" />
+                            <span>Alla data</span>
+                            <p-datepicker [(ngModel)]="seriesUntilDate"
+                                [disabled]="series.recurrence.end.type !== 'UNTIL'" dateFormat="dd-mm-yy"
+                                appendTo="body" (ngModelChange)="onSeriesDefinitionChange()" />
+                        </label>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <p-button label="Calcola anteprima" icon="pi pi-eye" severity="secondary" [outlined]="true"
+                            [loading]="isPreviewingSeries" [disabled]="seriesRuleInvalid"
+                            (onClick)="previewSeriesUpdate()" />
+                        @if (seriesPreview) {
+                        <span>{{ seriesPreview.occurrenceCount }} eventi · ultimo {{ seriesPreview.lastOccurrence |
+                            date: 'dd/MM/yyyy HH:mm' }} · {{ seriesPreview.timeZone }}</span>
+                        }
+                    </div>
+                    <small class="text-surface-500">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine
+                        dell’evento visualizzato. Le occorrenze precedenti non vengono modificate.</small>
+                </div>
+            </details>
+        </div>
         }
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <app-form-field label="Nome" forId="name" required [error]="event.name?.trim() ? undefined : 'Inserisci il nome dell’evento.'">
-                <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+            <app-form-field label="Nome" forId="name" required
+                [error]="event.name?.trim() ? undefined : 'Inserisci il nome dell’evento.'">
+                <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Stato" forId="state" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels" dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code" optionLabel="name" />
+                <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels"
+                    dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code"
+                    optionLabel="name" />
             </app-form-field>
             <app-form-field label="Luogo" forId="location">
-                <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin" (ngModelChange)="isDirty = true" />
+                <input pInputText id="location" type="text" [(ngModel)]="event.location" [readonly]="!isAdmin"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Data/ora inizio" forId="startDate" required [error]="event.startDate ? undefined : 'Indica quando inizia l’evento.'">
-                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="startDate" dateFormat="dd-mm-yy" [(ngModel)]="event.startDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
+            <app-form-field label="Data/ora inizio" forId="startDate" required
+                [error]="event.startDate ? undefined : 'Indica quando inizia l’evento.'">
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
+                    inputId="startDate" dateFormat="dd-mm-yy" [(ngModel)]="event.startDate" [disabled]="!isAdmin"
+                    (ngModelChange)="onEventScheduleChange()" />
             </app-form-field>
             <app-form-field label="Data/ora fine" forId="endDate">
-                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'" inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin" (ngModelChange)="onEventScheduleChange()" />
+                <p-datepicker [iconDisplay]="'input'" [showIcon]="true" [showTime]="true" [hourFormat]="'24'"
+                    inputId="endDate" dateFormat="dd-mm-yy" [(ngModel)]="event.endDate" [disabled]="!isAdmin"
+                    (ngModelChange)="onEventScheduleChange()" />
             </app-form-field>
             @if (financeEnabled()) {
-                <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT" [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
-                </app-form-field>
+            <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT"
+                    [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
+            </app-form-field>
             }
             @if (webPushRemindersEnabled()) {
-                <app-form-field label="Promemoria" forId="reminderMinutes" hint="Minuti prima dell’evento, 0 per nessun promemoria" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
-                    <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440" suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
-                </app-form-field>
+            <app-form-field label="Promemoria" forId="reminderMinutes"
+                hint="Minuti prima dell’evento, 0 per nessun promemoria"
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440"
+                    suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
+            </app-form-field>
             }
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description" [readonly]="!isAdmin" (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="3" [(ngModel)]="event.description" [readonly]="!isAdmin"
+                    (ngModelChange)="isDirty = true"></textarea>
             </app-form-field>
         </div>
     </app-detail-section>
 
     @if (financeEnabled()) {
-        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Costi" [count]="event.costs?.length" description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
-                <div class="md:col-span-7">
-                    <app-form-field label="Descrizione costo" forId="costDesc">
-                        <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
-                    </app-form-field>
-                </div>
-                <div class="md:col-span-3">
-                    <app-form-field label="Importo" forId="costAmount">
-                        <p-inputnumber inputId="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR" locale="it-IT" />
-                    </app-form-field>
-                </div>
-                <div class="md:col-span-2 flex items-end">
-                    <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" styleClass="w-full" (onClick)="addCost()" [disabled]="!newCostDescription" />
-                </div>
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Costi"
+        [count]="event.costs?.length"
+        description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
+            <div class="md:col-span-7">
+                <app-form-field label="Descrizione costo" forId="costDesc">
+                    <input pInputText id="costDesc" type="text" [(ngModel)]="newCostDescription" />
+                </app-form-field>
             </div>
+            <div class="md:col-span-3">
+                <app-form-field label="Importo" forId="costAmount">
+                    <p-inputnumber inputId="costAmount" [(ngModel)]="newCostAmount" mode="currency" currency="EUR"
+                        locale="it-IT" />
+                </app-form-field>
+            </div>
+            <div class="md:col-span-2 flex items-end">
+                <p-button icon="pi pi-plus" label="Aggiungi" severity="secondary" styleClass="w-full"
+                    (onClick)="addCost()" [disabled]="!newCostDescription" />
+            </div>
+        </div>
 
-            <p-table [value]="event.costs ?? []" [rowHover]="true">
-                <ng-template #header>
-                    <tr>
-                        <th scope="col">Descrizione</th>
-                        <th scope="col" class="text-right">Importo</th>
-                        <th scope="col" class="w-12"></th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-cost let-i="rowIndex">
-                    <tr>
-                        <td>{{ cost.description }}</td>
-                        <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
-                        <td>
-                            <p-button icon="pi pi-trash" ariaLabel="Rimuovi questa voce di costo" severity="danger" [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce" (onClick)="confirmRemoveCost(i)" />
-                        </td>
-                    </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                    <tr>
-                        <td colspan="3">
-                            <app-empty-state compact icon="pi pi-wallet" heading="Nessun costo" message="Aggiungi una voce di costo dal modulo qui sopra." />
-                        </td>
-                    </tr>
-                </ng-template>
-                @if ((event.costs?.length ?? 0) > 0) {
-                    <ng-template #footer>
-                        <tr class="font-semibold">
-                            <td>Totale</td>
-                            <td class="text-right">{{ totalCosts | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
-                            <td></td>
-                        </tr>
-                    </ng-template>
-                }
-            </p-table>
-        </app-detail-section>
+        <p-table [value]="event.costs ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col" class="text-right">Importo</th>
+                    <th scope="col" class="w-12"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-cost let-i="rowIndex">
+                <tr>
+                    <td>{{ cost.description }}</td>
+                    <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
+                    <td>
+                        <p-button icon="pi pi-trash" ariaLabel="Rimuovi questa voce di costo" severity="danger"
+                            [rounded]="true" [text]="true" pTooltip="Rimuovi questa voce"
+                            (onClick)="confirmRemoveCost(i)" />
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="3">
+                        <app-empty-state compact icon="pi pi-wallet" heading="Nessun costo"
+                            message="Aggiungi una voce di costo dal modulo qui sopra." />
+                    </td>
+                </tr>
+            </ng-template>
+            @if ((event.costs?.length ?? 0) > 0) {
+            <ng-template #footer>
+                <tr class="font-semibold">
+                    <td>Totale</td>
+                    <td class="text-right">{{ totalCosts | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</td>
+                    <td></td>
+                </tr>
+            </ng-template>
+            }
+        </p-table>
+    </app-detail-section>
     }
 
     @if (financeEnabled() && economicSummary) {
-        <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]" heading="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
-            <div sectionActions>
-                <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']" [queryParams]="{ action: 'new', eventId: event.id }" />
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]"
+        heading="Consuntivo economico" description="Movimenti effettivamente associati all’evento.">
+        <div sectionActions>
+            <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']"
+                [queryParams]="{ action: 'new', eventId: event.id }" />
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <small class="text-surface-500 block">Incassato</small><strong>{{ economicSummary.received | currency:
+                    'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                    <small class="text-surface-500 block">Incassato</small><strong>{{ economicSummary.received | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
-                </div>
-                <div>
-                    <small class="text-surface-500 block">Pagato</small><strong>{{ economicSummary.paid | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
-                </div>
-                <div>
-                    <small class="text-surface-500 block">Da incassare</small><strong>{{ economicSummary.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
-                </div>
-                <div>
-                    <small class="text-surface-500 block">Da pagare</small><strong>{{ economicSummary.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
-                </div>
+            <div>
+                <small class="text-surface-500 block">Pagato</small><strong>{{ economicSummary.paid | currency: 'EUR' :
+                    'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
-        </app-detail-section>
+            <div>
+                <small class="text-surface-500 block">Da incassare</small><strong>{{ economicSummary.remainingIncome |
+                    currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
+            </div>
+            <div>
+                <small class="text-surface-500 block">Da pagare</small><strong>{{ economicSummary.remainingExpense |
+                    currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
+            </div>
+        </div>
+    </app-detail-section>
     }
 
-    <app-detail-section heading="La tua disponibilità" description="La risposta si registra subito: è un’operazione autonoma.">
+    <app-detail-section heading="La tua disponibilità"
+        description="La risposta si registra subito: è un’operazione autonoma.">
         <div class="flex flex-col gap-3">
             @if (event.seriesId) {
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" [(ngModel)]="applyAvailabilityToFuture" />
-                    <span>Applica anche a tutte le occorrenze future della serie</span>
-                </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" [(ngModel)]="applyAvailabilityToFuture" />
+                <span>Applica anche a tutte le occorrenze future della serie</span>
+            </label>
             }
             <div class="flex flex-wrap gap-3">
-                <p-button label="Sono disponibile" icon="pi pi-check-circle" severity="success" [outlined]="currentUserAvailability !== true" (onClick)="setAvailability(true)" />
-                <p-button label="Non sono disponibile" icon="pi pi-times-circle" severity="danger" [outlined]="currentUserAvailability !== false" (onClick)="setAvailability(false)" />
+                <p-button label="Sono disponibile" icon="pi pi-check-circle" severity="success"
+                    [outlined]="currentUserAvailability !== true" (onClick)="setAvailability(true)" />
+                <p-button label="Non sono disponibile" icon="pi pi-times-circle" severity="danger"
+                    [outlined]="currentUserAvailability !== false" (onClick)="setAvailability(false)" />
                 @if (currentUserAvailability !== null) {
-                    <p-button label="Annulla risposta" icon="pi pi-undo" severity="secondary" [outlined]="true" (onClick)="cancelAvailability()" />
+                <p-button label="Annulla risposta" icon="pi pi-undo" severity="secondary" [outlined]="true"
+                    (onClick)="cancelAvailability()" />
                 }
             </div>
             @if (currentUserAvailability === true) {
-                @if (webPushRemindersEnabled()) {
-                    <div class="flex flex-wrap items-end gap-3 mt-1">
-                        <app-form-field label="Promemoria personale" forId="personalReminder" hint="Minuti di anticipo, solo per te. Zero disattiva il promemoria di questo evento.">
-                            <p-inputnumber inputId="personalReminder" [(ngModel)]="personalReminderMinutes" (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min" placeholder="Predefinito" />
-                        </app-form-field>
-                        <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder" [disabled]="!reminderDirty" (onClick)="saveReminder()" />
-                        @if (personalReminderMinutes !== undefined) {
-                            <p-button label="Usa il predefinito" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="clearPersonalReminder()" />
-                        }
-                    </div>
-                    <div class="flex items-center gap-2 text-sm text-surface-500">
-                        <i class="pi pi-bell text-primary"></i>
-                        @if (personalReminderMinutes === 0) {
-                            <span>Nessun promemoria per questo evento.</span>
-                        } @else if (personalReminderMinutes) {
-                            <span
-                                >Riceverai un promemoria <strong>{{ personalReminderMinutes }} minuti</strong> prima dell'evento.</span
-                            >
-                        } @else if (event.reminderMinutes === 0) {
-                            <span>L'evento non prevede promemoria.</span>
-                        } @else if (event.reminderMinutes) {
-                            <span
-                                >Riceverai il promemoria dell'evento, <strong>{{ event.reminderMinutes }} minuti</strong> prima.</span
-                            >
-                        } @else {
-                            <span>Riceverai un promemoria all'anticipo predefinito impostato nel tuo profilo.</span>
-                        }
-                    </div>
+            @if (webPushRemindersEnabled()) {
+            <div class="flex flex-wrap items-end gap-3 mt-1">
+                <app-form-field label="Promemoria personale" forId="personalReminder"
+                    hint="Minuti di anticipo, solo per te. Zero disattiva il promemoria di questo evento.">
+                    <p-inputnumber inputId="personalReminder" [(ngModel)]="personalReminderMinutes"
+                        (ngModelChange)="onReminderChange()" [min]="0" [max]="1440" [showButtons]="true" suffix=" min"
+                        placeholder="Predefinito" />
+                </app-form-field>
+                <p-button label="Salva promemoria" icon="pi pi-check" size="small" [loading]="savingReminder"
+                    [disabled]="!reminderDirty" (onClick)="saveReminder()" />
+                @if (personalReminderMinutes !== undefined) {
+                <p-button label="Usa il predefinito" icon="pi pi-undo" size="small" severity="secondary" [text]="true"
+                    (onClick)="clearPersonalReminder()" />
                 }
+            </div>
+            <div class="flex items-center gap-2 text-sm text-surface-500">
+                <i class="pi pi-bell text-primary"></i>
+                @if (personalReminderMinutes === 0) {
+                <span>Nessun promemoria per questo evento.</span>
+                } @else if (personalReminderMinutes) {
+                <span>Riceverai un promemoria <strong>{{ personalReminderMinutes }} minuti</strong> prima
+                    dell'evento.</span>
+                } @else if (event.reminderMinutes === 0) {
+                <span>L'evento non prevede promemoria.</span>
+                } @else if (event.reminderMinutes) {
+                <span>Riceverai il promemoria dell'evento, <strong>{{ event.reminderMinutes }} minuti</strong>
+                    prima.</span>
+                } @else {
+                <span>Riceverai un promemoria all'anticipo predefinito impostato nel tuo profilo.</span>
+                }
+            </div>
+            }
             }
         </div>
     </app-detail-section>
@@ -554,7 +584,7 @@
                     <td>
                         {{ user.name }}
                         @if (user.index === currentUserId) {
-                            <i class="pi pi-user ml-2 text-green-500"></i>
+                        <i class="pi pi-user ml-2 text-green-500"></i>
                         }
                     </td>
                     <td>{{ user.lastName }}</td>
@@ -564,7 +594,8 @@
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="3">
-                        <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna disponibilità" message="Nessun utente ha ancora dato la propria disponibilità." />
+                        <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna disponibilità"
+                            message="Nessun utente ha ancora dato la propria disponibilità." />
                     </td>
                 </tr>
             </ng-template>
@@ -585,7 +616,7 @@
                     <td>
                         {{ user.name }}
                         @if (user.index === currentUserId) {
-                            <i class="pi pi-user ml-2 text-red-500"></i>
+                        <i class="pi pi-user ml-2 text-red-500"></i>
                         }
                     </td>
                     <td>{{ user.lastName }}</td>
@@ -595,32 +626,30 @@
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="3">
-                        <app-empty-state compact icon="pi pi-times-circle" heading="Nessuna indisponibilità" message="Nessun utente si è dichiarato non disponibile." />
+                        <app-empty-state compact icon="pi pi-times-circle" heading="Nessuna indisponibilità"
+                            message="Nessun utente si è dichiarato non disponibile." />
                     </td>
                 </tr>
             </ng-template>
         </p-table>
     </app-detail-section>
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Gestisci presenze" [count]="event.presentUsers?.length" description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Gestisci presenze"
+        [count]="event.presentUsers?.length"
+        description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
         <div sectionActions>
-            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [loading]="isSavingPresence" [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
+            <p-button label="Salva presenze" icon="pi pi-save" severity="primary" [loading]="isSavingPresence"
+                [disabled]="!isDirtyPresence" (onClick)="savePresentUsers()" />
         </div>
-        <p-table
-            #presenceTable
-            [value]="presenceRows"
-            [rowHover]="true"
-            [paginator]="true"
-            [rows]="12"
-            [rowsPerPageOptions]="[12, 24, 48]"
-            [showCurrentPageReport]="true"
+        <p-table #presenceTable [value]="presenceRows" [rowHover]="true" [paginator]="true" [rows]="12"
+            [rowsPerPageOptions]="[12, 24, 48]" [showCurrentPageReport]="true"
             currentPageReportTemplate="Da {first} a {last} di {totalRecords} utenti"
-            [globalFilterFields]="['name', 'lastName']"
-        >
+            [globalFilterFields]="['name', 'lastName']">
             <ng-template #caption>
                 <p-iconfield>
                     <p-inputicon styleClass="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)" placeholder="Cerca utente..." />
+                    <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)"
+                        placeholder="Cerca utente..." />
                 </p-iconfield>
             </ng-template>
             <ng-template #header>
@@ -640,17 +669,21 @@
                     <td>{{ row.name }}</td>
                     <td>{{ row.lastName }}</td>
                     <td>
-                        <p-datepicker [(ngModel)]="row.arrivalTime" [timeOnly]="true" [disabled]="!row.present" appendTo="body" inputId="arrivalTime-{{ row.id }}" styleClass="w-full" (ngModelChange)="isDirtyPresence = true" />
+                        <p-datepicker [(ngModel)]="row.arrivalTime" [timeOnly]="true" [disabled]="!row.present"
+                            appendTo="body" inputId="arrivalTime-{{ row.id }}" styleClass="w-full"
+                            (ngModelChange)="isDirtyPresence = true" />
                     </td>
                     <td>
-                        <input pInputText [(ngModel)]="row.note" [disabled]="!row.present" class="w-full" (ngModelChange)="isDirtyPresence = true" />
+                        <input pInputText [(ngModel)]="row.note" [disabled]="!row.present" class="w-full"
+                            (ngModelChange)="isDirtyPresence = true" />
                     </td>
                 </tr>
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="5">
-                        <app-empty-state compact icon="pi pi-users" heading="Nessun utente" message="Non ci sono utenti da elencare." />
+                        <app-empty-state compact icon="pi pi-users" heading="Nessun utente"
+                            message="Non ci sono utenti da elencare." />
                     </td>
                 </tr>
             </ng-template>
@@ -658,36 +691,38 @@
     </app-detail-section>
 
     @if (!isAdmin) {
-        <app-detail-section heading="Utenti presenti" [count]="event.presentUsers?.length">
-            <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
-                <ng-template #header>
-                    <tr>
-                        <th scope="col">Nome</th>
-                        <th scope="col">Cognome</th>
-                        <th scope="col">Ora di arrivo</th>
-                        <th scope="col">Note</th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-user>
-                    <tr>
-                        <td>{{ user.name }}</td>
-                        <td>{{ user.lastName }}</td>
-                        <td>{{ user.arrivalTime | date: 'HH:mm' }}</td>
-                        <td>{{ user.note }}</td>
-                    </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                    <tr>
-                        <td colspan="4">
-                            <app-empty-state compact icon="pi pi-users" heading="Nessuna presenza" message="Non è stata registrata alcuna presenza." />
-                        </td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </app-detail-section>
+    <app-detail-section heading="Utenti presenti" [count]="event.presentUsers?.length">
+        <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Cognome</th>
+                    <th scope="col">Ora di arrivo</th>
+                    <th scope="col">Note</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-user>
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.lastName }}</td>
+                    <td>{{ user.arrivalTime | date: 'HH:mm' }}</td>
+                    <td>{{ user.note }}</td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="4">
+                        <app-empty-state compact icon="pi pi-users" heading="Nessuna presenza"
+                            message="Non è stata registrata alcuna presenza." />
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </app-detail-section>
     }
 
-    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [operations]="dangerZoneOperations" (execute)="$event === 'series' ? confirmDeleteSeries() : confirmDelete()" />
+    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [operations]="dangerZoneOperations"
+        (execute)="$event === 'series' ? confirmDeleteSeries() : confirmDelete()" />
 
     <p-scrolltop />
 </p-fluid>

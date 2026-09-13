@@ -2,37 +2,45 @@
     <section class="legal-card" aria-labelledby="legal-title">
         <div class="legal-icon" aria-hidden="true"><i class="pi pi-file-check"></i></div>
         <h1 id="legal-title">Documenti legali</h1>
-        <p class="intro">Prima di continuare, consulta i documenti aggiornati e conferma separatamente l'accettazione dei Termini e la presa visione dell'Informativa Privacy.</p>
+        <p class="intro">Prima di continuare, consulta i documenti aggiornati e conferma separatamente l'accettazione
+            dei Termini e la presa visione dell'Informativa Privacy.</p>
 
         @if (loading) {
-            <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei documenti…</span></div>
+        <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei
+                documenti…</span></div>
         } @else if (errorMessage) {
-            <app-inline-alert severity="error" heading="Caricamento non riuscito" [detail]="errorMessage" actionLabel="Riprova" (action)="retry()" />
+        <app-inline-alert severity="error" heading="Caricamento non riuscito" [detail]="errorMessage"
+            actionLabel="Riprova" (action)="retry()" />
         } @else {
-            <div class="documents">
-                @for (document of pendingDocuments; track document.id) {
-                    <article class="document-row">
-                        <div class="document-heading">
-                            <div>
-                                <h2>{{ document.title }}</h2>
-                                <span>Versione {{ document.version }}</span>
-                            </div>
-                            <a [href]="document.url" target="_blank" rel="noopener noreferrer"> Apri il documento <i class="pi pi-external-link" aria-hidden="true"></i> </a>
-                        </div>
-                        <div class="confirmation">
-                            <p-checkbox [(ngModel)]="confirmations[document.id]" [binary]="true" [inputId]="'legal-document-' + document.id" />
-                            <label [for]="'legal-document-' + document.id">{{ confirmationLabel(document) }}</label>
-                        </div>
-                    </article>
-                } @empty {
-                    <div class="state-message" role="status"><i class="pi pi-check-circle"></i><span>Non ci sono nuove conferme da fornire.</span></div>
-                }
-            </div>
+        <div class="documents">
+            @for (document of pendingDocuments; track document.id) {
+            <article class="document-row">
+                <div class="document-heading">
+                    <div>
+                        <h2>{{ document.title }}</h2>
+                        <span>Versione {{ document.version }}</span>
+                    </div>
+                    <a [href]="document.url" target="_blank" rel="noopener noreferrer"> Apri il documento <i
+                            class="pi pi-external-link" aria-hidden="true"></i> </a>
+                </div>
+                <div class="confirmation">
+                    <p-checkbox [(ngModel)]="confirmations[document.id]" [binary]="true"
+                        [inputId]="'legal-document-' + document.id" />
+                    <label [for]="'legal-document-' + document.id">{{ confirmationLabel(document) }}</label>
+                </div>
+            </article>
+            } @empty {
+            <div class="state-message" role="status"><i class="pi pi-check-circle"></i><span>Non ci sono nuove conferme
+                    da fornire.</span></div>
+            }
+        </div>
 
-            <p class="audit-note">La conferma registra la versione del documento, la data e il contesto organizzativo associato alla sessione autenticata.</p>
-            <div class="actions">
-                <p-button label="Conferma e continua" icon="pi pi-check" [loading]="submitting" [disabled]="!canSubmit" (onClick)="submit()" />
-            </div>
+        <p class="audit-note">La conferma registra la versione del documento, la data e il contesto organizzativo
+            associato alla sessione autenticata.</p>
+        <div class="actions">
+            <p-button label="Conferma e continua" icon="pi pi-check" [loading]="submitting" [disabled]="!canSubmit"
+                (onClick)="submit()" />
+        </div>
         }
     </section>
 </main>

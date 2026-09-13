@@ -32,7 +32,7 @@ export class CalendarFeedPanelComponent implements OnInit {
         private readonly service: CalendarFeedService,
         private readonly confirm: ConfirmService,
         private readonly toast: ToastService
-    ) {}
+    ) { }
     ngOnInit(): void {
         this.load();
     }

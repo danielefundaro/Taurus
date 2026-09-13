@@ -1,9 +1,15 @@
-<app-dialog-shell #shell heading="Nuova traccia" subtitle="Registra i dati musicali della traccia." confirmLabel="Aggiungi traccia" [invalidCount]="track.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Nuova traccia" subtitle="Registra i dati musicali della traccia."
+    confirmLabel="Aggiungi traccia" [invalidCount]="track.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !track.name?.trim() ? 'Inserisci il nome della traccia.' : undefined"><input pInputText id="name" type="text" [(ngModel)]="track.name" /></app-form-field>
-        <app-form-field label="Compositore" forId="composer"><input pInputText id="composer" type="text" [(ngModel)]="track.composer" /></app-form-field>
-        <app-form-field label="Arrangiatore" forId="arranger"><input pInputText id="arranger" type="text" [(ngModel)]="track.arranger" /></app-form-field>
+        <app-form-field label="Nome" forId="name" required
+            [error]="shell.validationAttempted && !track.name?.trim() ? 'Inserisci il nome della traccia.' : undefined"><input
+                pInputText id="name" type="text" [(ngModel)]="track.name" /></app-form-field>
+        <app-form-field label="Compositore" forId="composer"><input pInputText id="composer" type="text"
+                [(ngModel)]="track.composer" /></app-form-field>
+        <app-form-field label="Arrangiatore" forId="arranger"><input pInputText id="arranger" type="text"
+                [(ngModel)]="track.arranger" /></app-form-field>
         <app-form-field label="Tipo" forId="type"><app-type-handler [(types)]="track.type" /></app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea id="description" rows="6" class="w-full" [(ngModel)]="track.description"></textarea></app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea
+                id="description" rows="6" class="w-full" [(ngModel)]="track.description"></textarea></app-form-field>
     </div>
 </app-dialog-shell>

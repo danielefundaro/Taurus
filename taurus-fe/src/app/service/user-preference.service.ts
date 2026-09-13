@@ -18,7 +18,7 @@ export class UserPreferenceService {
     constructor(
         private readonly preferencesService: PreferencesService,
         private readonly localStorageService: LocalStorageService
-    ) {}
+    ) { }
 
     get(key: string): Observable<string | undefined> {
         return this.find(key).pipe(map((preference) => preference?.value));

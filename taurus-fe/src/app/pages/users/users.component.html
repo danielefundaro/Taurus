@@ -1,70 +1,61 @@
 <p-confirmdialog />
-<app-page-header heading="Utenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')"
-    ><div pageActions><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div
-></app-page-header>
+<app-page-header heading="Utenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')">
+    <div pageActions><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div>
+</app-page-header>
 
-<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)" (layoutChange)="onLayoutChange($event)" />
-<app-selection-bar
-    [count]="selectedUsers.length"
-    [allSelected]="isAllSelected(users)"
-    deleteLabel="Elimina utenti selezionati"
-    (toggleAll)="toggleSelectAll(users)"
-    (clear)="selectedUsers = []"
-    (delete)="deleteSelectedElements()"
-/>
+<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
+    (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
+    (layoutChange)="onLayoutChange($event)" />
+<app-selection-bar [count]="selectedUsers.length" [allSelected]="isAllSelected(users)"
+    deleteLabel="Elimina utenti selezionati" (toggleAll)="toggleSelectAll(users)" (clear)="selectedUsers = []"
+    (delete)="deleteSelectedElements()" />
 
 <div class="card !p-0 overflow-hidden">
-    <p-dataview
-        [value]="users"
-        [layout]="layout"
-        [lazy]="true"
-        [lazyLoadOnInit]="true"
-        [loading]="loading"
-        [first]="dataViewLazyLoadEvent.first"
-        [rows]="dataViewLazyLoadEvent.rows"
-        [paginator]="true"
-        paginatorPosition="bottom"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        [totalRecords]="totalRecords"
-        [sortField]="dataViewLazyLoadEvent.sortField"
-        [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-        [rowsPerPageOptions]="[12, 24, 48]"
-        paginatorDropdownAppendTo="body"
-        (onLazyLoad)="onLazyLoad($event)"
-    >
+    <p-dataview [value]="users" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
+        [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
+        paginatorPosition="bottom" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" [totalRecords]="totalRecords"
+        [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+        [rowsPerPageOptions]="[12, 24, 48]" paginatorDropdownAppendTo="body" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
         <ng-template #list let-items>
             <div class="flex flex-col">
                 @for (item of items; track item.id) {
-                    <app-list-row>
-                        <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
-                        <a rowMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName }}</a>
-                        <div rowIdentity>
-                            <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name }} {{ item.lastName }}</a>
-                            <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ item.description || 'Nessuna descrizione' }}</span>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                @if (item.active === false) {
-                                    <p-tag severity="warn" value="Non attivo" [rounded]="true" />
-                                }
-                                @for (instrument of visibleInstruments(item); track instrument.index) {
-                                    <p-tag [value]="instrument.name" severity="secondary" [rounded]="true" />
-                                }
-                                @if (hiddenInstruments(item)) {
-                                    <span class="text-xs text-muted-color">+{{ hiddenInstruments(item) }}</span>
-                                }
-                            </div>
+                <app-list-row>
+                    <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)"
+                        (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                    <a rowMedia class="list-thumbnail" [routerLink]="item.id"
+                        [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
+                        }}</a>
+                    <div rowIdentity>
+                        <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name }}
+                            {{ item.lastName }}</a>
+                        <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{
+                            item.description || 'Nessuna descrizione' }}</span>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            @if (item.active === false) {
+                            <p-tag severity="warn" value="Non attivo" [rounded]="true" />
+                            }
+                            @for (instrument of visibleInstruments(item); track instrument.index) {
+                            <p-tag [value]="instrument.name" severity="secondary" [rounded]="true" />
+                            }
+                            @if (hiddenInstruments(item)) {
+                            <span class="text-xs text-muted-color">+{{ hiddenInstruments(item) }}</span>
+                            }
                         </div>
-                        <div rowMetrics class="list-metric">
-                            <strong class="block">{{ item.email || '—' }}</strong>
-                            <small>email</small>
-                        </div>
-                        <div rowActions>
-                            <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id" />
-                            <p-button icon="pi pi-envelope" text severity="secondary" ariaLabel="Invita utente" pTooltip="Invita utente" (onClick)="sendSetupEmail(item)" />
-                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina utente" pTooltip="Elimina" (onClick)="deleteElement(item)" />
-                        </div>
-                    </app-list-row>
+                    </div>
+                    <div rowMetrics class="list-metric">
+                        <strong class="block">{{ item.email || '—' }}</strong>
+                        <small>email</small>
+                    </div>
+                    <div rowActions>
+                        <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id" />
+                        <p-button icon="pi pi-envelope" text severity="secondary" ariaLabel="Invita utente"
+                            pTooltip="Invita utente" (onClick)="sendSetupEmail(item)" />
+                        <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina utente"
+                            pTooltip="Elimina" (onClick)="deleteElement(item)" />
+                    </div>
+                </app-list-row>
                 }
             </div>
         </ng-template>
@@ -72,50 +63,55 @@
         <ng-template #grid let-items>
             <div class="grid grid-cols-12 gap-4 p-4">
                 @for (item of items; track item.id) {
-                    <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
-                        <app-entity-card [selected]="isSelected(item)">
-                            <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
-                            <a cardMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName }}</a>
-                            <div cardBody>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    @if (item.active === false) {
-                                        <p-tag severity="warn" value="Non attivo" [rounded]="true" />
-                                    }
-                                    @for (instrument of visibleInstruments(item); track instrument.index) {
-                                        <p-tag [value]="instrument.name" severity="secondary" [rounded]="true" />
-                                    }
-                                    @if (hiddenInstruments(item)) {
-                                        <span class="text-xs text-muted-color">+{{ hiddenInstruments(item) }}</span>
-                                    }
-                                </div>
-                                <a class="text-base font-semibold block mt-2" [routerLink]="item.id">{{ item.name }} {{ item.lastName }}</a>
-                                <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ item.description || 'Nessuna descrizione' }}</p>
+                <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+                    <app-entity-card [selected]="isSelected(item)">
+                        <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)"
+                            (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                        <a cardMedia class="list-thumbnail" [routerLink]="item.id"
+                            [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
+                            }}</a>
+                        <div cardBody>
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if (item.active === false) {
+                                <p-tag severity="warn" value="Non attivo" [rounded]="true" />
+                                }
+                                @for (instrument of visibleInstruments(item); track instrument.index) {
+                                <p-tag [value]="instrument.name" severity="secondary" [rounded]="true" />
+                                }
+                                @if (hiddenInstruments(item)) {
+                                <span class="text-xs text-muted-color">+{{ hiddenInstruments(item) }}</span>
+                                }
                             </div>
-                            <div cardMetrics>
-                                <div>
-                                    <strong>{{ item.instruments?.length || 0 }}</strong
-                                    ><small class="block text-muted-color">{{ item.instruments?.length === 1 ? 'strumento' : 'strumenti' }}</small>
-                                </div>
+                            <a class="text-base font-semibold block mt-2" [routerLink]="item.id">{{ item.name }} {{
+                                item.lastName }}</a>
+                            <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ item.description || 'Nessuna
+                                descrizione' }}</p>
+                        </div>
+                        <div cardMetrics>
+                            <div>
+                                <strong>{{ item.instruments?.length || 0 }}</strong><small
+                                    class="block text-muted-color">{{ item.instruments?.length === 1 ? 'strumento' :
+                                    'strumenti' }}</small>
                             </div>
-                            <div cardActions class="contents">
-                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" styleClass="flex-1" />
-                                <p-button icon="pi pi-envelope" text severity="secondary" ariaLabel="Invita utente" (onClick)="sendSetupEmail(item)" />
-                                <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina utente" (onClick)="deleteElement(item)" />
-                            </div>
-                        </app-entity-card>
-                    </div>
+                        </div>
+                        <div cardActions class="contents">
+                            <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" styleClass="flex-1" />
+                            <p-button icon="pi pi-envelope" text severity="secondary" ariaLabel="Invita utente"
+                                (onClick)="sendSetupEmail(item)" />
+                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina utente"
+                                (onClick)="deleteElement(item)" />
+                        </div>
+                    </app-entity-card>
+                </div>
                 }
             </div>
         </ng-template>
 
         <ng-template #empty>
-            <app-empty-state
-                icon="pi pi-users"
-                [heading]="searchTerm ? 'Nessun risultato' : 'Nessun utente'"
+            <app-empty-state icon="pi pi-users" [heading]="searchTerm ? 'Nessun risultato' : 'Nessun utente'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Aggiungi il primo utente per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo utente'"
-                (action)="searchTerm ? onSearchChange('') : addNew()"
-            />
+                (action)="searchTerm ? onSearchChange('') : addNew()" />
         </ng-template>
     </p-dataview>
 </div>

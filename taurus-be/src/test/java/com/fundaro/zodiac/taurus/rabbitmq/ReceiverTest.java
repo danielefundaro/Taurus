@@ -16,8 +16,10 @@ import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.utils.Converter;
+
 import java.time.Instant;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;

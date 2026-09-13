@@ -180,7 +180,9 @@ public class TenantStorageService {
         return keys;
     }
 
-    /** Rimuove le directory rimaste vuote sotto la radice del tenant. */
+    /**
+     * Rimuove le directory rimaste vuote sotto la radice del tenant.
+     */
     public void pruneEmptyDirectories(String tenantCode) {
         Path tenantRoot = getTenantRoot(tenantCode);
         if (!Files.exists(tenantRoot)) return;

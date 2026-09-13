@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.notification;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
+
 import java.util.Set;
 
 public record NotificationCommand(

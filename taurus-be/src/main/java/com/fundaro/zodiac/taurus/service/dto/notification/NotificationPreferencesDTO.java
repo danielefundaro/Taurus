@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -20,4 +21,5 @@ public record NotificationPreferencesDTO(
     @NotNull LocalTime digestLocalTime,
     @NotNull NotificationPushPreview pushPreview,
     @Valid @NotNull List<NotificationCategoryPreferenceDTO> categories
-) {}
+) {
+}

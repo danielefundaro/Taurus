@@ -11,7 +11,9 @@ import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 class TenantFeatureServiceTest {

@@ -24,7 +24,7 @@ export class LegalAcceptanceComponent implements OnInit {
         private readonly route: ActivatedRoute,
         private readonly router: Router,
         private readonly toastService: ToastService
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.loadStatus(true);

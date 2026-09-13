@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.time.ZonedDateTime;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;

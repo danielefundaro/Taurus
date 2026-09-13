@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
 import jakarta.persistence.*;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -21,16 +22,51 @@ public class InventoryAssignmentDecision extends AuditedEntity {
     @Column(name = "authenticated_hash", nullable = false, length = 64)
     private String authenticatedHash;
 
-    public InventoryAssignmentRevision getRevision() { return revision; }
-    public void setRevision(InventoryAssignmentRevision revision) { this.revision = revision; }
-    public InventoryDecisionType getDecision() { return decision; }
-    public void setDecision(InventoryDecisionType decision) { this.decision = decision; }
-    public String getRejectionReason() { return rejectionReason; }
-    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
-    public ZonedDateTime getDecidedAt() { return decidedAt; }
-    public void setDecidedAt(ZonedDateTime decidedAt) { this.decidedAt = decidedAt; }
-    public String getDecidedBy() { return decidedBy; }
-    public void setDecidedBy(String decidedBy) { this.decidedBy = decidedBy; }
-    public String getAuthenticatedHash() { return authenticatedHash; }
-    public void setAuthenticatedHash(String authenticatedHash) { this.authenticatedHash = authenticatedHash; }
+    public InventoryAssignmentRevision getRevision() {
+        return revision;
+    }
+
+    public void setRevision(InventoryAssignmentRevision revision) {
+        this.revision = revision;
+    }
+
+    public InventoryDecisionType getDecision() {
+        return decision;
+    }
+
+    public void setDecision(InventoryDecisionType decision) {
+        this.decision = decision;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
+    public ZonedDateTime getDecidedAt() {
+        return decidedAt;
+    }
+
+    public void setDecidedAt(ZonedDateTime decidedAt) {
+        this.decidedAt = decidedAt;
+    }
+
+    public String getDecidedBy() {
+        return decidedBy;
+    }
+
+    public void setDecidedBy(String decidedBy) {
+        this.decidedBy = decidedBy;
+    }
+
+    public String getAuthenticatedHash() {
+        return authenticatedHash;
+    }
+
+    public void setAuthenticatedHash(String authenticatedHash) {
+        this.authenticatedHash = authenticatedHash;
+    }
 }

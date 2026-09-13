@@ -1,21 +1,20 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header [heading]="personalView ? 'Il mio inventario' : 'Inventario'" [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')"
-        ><div pageActions class="flex flex-wrap gap-2">
+    <app-page-header [heading]="personalView ? 'Il mio inventario' : 'Inventario'"
+        [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')">
+        <div pageActions class="flex flex-wrap gap-2">
             @if (!personalView) {
-                <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
-                @if (inventoryQrEnabled()) {
-                    <p-button label="Genera etichette" icon="pi pi-print" severity="secondary" [disabled]="!selectedItems.length" (onClick)="generateLabels()" />
-                }
-            }</div
-    ></app-page-header>
+            <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+            @if (inventoryQrEnabled()) {
+            <p-button label="Genera etichette" icon="pi pi-print" severity="secondary"
+                [disabled]="!selectedItems.length" (onClick)="generateLabels()" />
+            }
+            }
+        </div>
+    </app-page-header>
 
     @if (attention) {
-        <app-inline-alert
-            class="block mb-4"
-            severity="info"
-            heading="Filtro attività applicato"
-            [detail]="
+    <app-inline-alert class="block mb-4" severity="info" heading="Filtro attività applicato" [detail]="
                 attention === 'pending-decisions'
                     ? 'Sono mostrate le assegnazioni senza presa visione.'
                     : attention === 'pending-returns'
@@ -25,155 +24,160 @@
                         : attention === 'issues-limiting'
                           ? 'Sono mostrati gli oggetti con guasti limitanti aperti.'
                           : 'Sono mostrate le assegnazioni scadute o prossime alla scadenza.'
-            "
-        />
+            " />
     }
 
     @if (isAdmin && !personalView && erasureRequests.length > 0) {
-        <div class="card flex flex-col gap-4">
-            <app-inline-alert severity="warn" heading="Cancellazioni GDPR in attesa di riconsegna" detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
-            <p-table [value]="erasureRequests">
-                <ng-template #header>
-                    <tr>
-                        <th scope="col">Utente</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Richiesta</th>
-                        <th scope="col"></th>
-                    </tr>
-                </ng-template>
-                <ng-template #body let-request>
-                    <tr>
-                        <td>{{ request.displayName }}</td>
-                        <td>{{ request.email }}</td>
-                        <td>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-                        <td><p-button label="Completa cancellazione" severity="danger" size="small" (onClick)="completeErasure(request)" /></td>
-                    </tr>
-                </ng-template>
-            </p-table>
-        </div>
+    <div class="card flex flex-col gap-4">
+        <app-inline-alert severity="warn" heading="Cancellazioni GDPR in attesa di riconsegna"
+            detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
+        <p-table [value]="erasureRequests">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Utente</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Richiesta</th>
+                    <th scope="col"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-request>
+                <tr>
+                    <td>{{ request.displayName }}</td>
+                    <td>{{ request.email }}</td>
+                    <td>{{ request.requestedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td><p-button label="Completa cancellazione" severity="danger" size="small"
+                            (onClick)="completeErasure(request)" /></td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
     }
 
     @if (isAdmin || personalView) {
-        <div class="card flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-            @if (isAdmin) {
-                <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label" optionValue="value" [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
-            }
-            @if (personalView) {
-                <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value" [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
-                <div class="flex flex-wrap items-center gap-3 text-sm">
-                    <label class="flex items-center gap-2" for="assigned"><p-checkbox inputId="assigned" [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
-                    <label class="flex items-center gap-2" for="returned"><p-checkbox inputId="returned" [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
-                    <label class="flex items-center gap-2" for="photos"><p-checkbox inputId="photos" [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
-                    <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
-                </div>
-            }
+    <div class="card flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        @if (isAdmin) {
+        <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label" optionValue="value"
+            [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
+        }
+        @if (personalView) {
+        <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value"
+            [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+            <label class="flex items-center gap-2" for="assigned"><p-checkbox inputId="assigned"
+                    [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
+            <label class="flex items-center gap-2" for="returned"><p-checkbox inputId="returned"
+                    [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
+            <label class="flex items-center gap-2" for="photos"><p-checkbox inputId="photos"
+                    [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
+            <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true"
+                [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
         </div>
+        }
+    </div>
     }
 
-    <app-list-toolbar
-        [search]="searchTerm"
-        searchPlaceholder="Nome o numero inventariale"
-        [sortOptions]="sortOptions"
-        [layout]="layout"
-        (searchChange)="onSearchChange($event)"
-        (sortChange)="onSortValue($event)"
-        (layoutChange)="onLayoutChange($event)"
-    />
+    <app-list-toolbar [search]="searchTerm" searchPlaceholder="Nome o numero inventariale" [sortOptions]="sortOptions"
+        [layout]="layout" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
+        (layoutChange)="onLayoutChange($event)" />
 
     @if (canSelect) {
-        <app-selection-bar [count]="selectedItems.length" [allSelected]="isAllSelected(items)" deleteLabel="Elimina selezionati" (toggleAll)="toggleSelectAll(items)" (clear)="clearSelection()" (delete)="deleteSelectedItems()" />
+    <app-selection-bar [count]="selectedItems.length" [allSelected]="isAllSelected(items)"
+        deleteLabel="Elimina selezionati" (toggleAll)="toggleSelectAll(items)" (clear)="clearSelection()"
+        (delete)="deleteSelectedItems()" />
     }
 
     <div class="card !p-0 overflow-hidden">
-        <p-dataview
-            [value]="values"
-            [layout]="layout"
-            [lazy]="true"
-            [lazyLoadOnInit]="true"
-            [loading]="loading"
-            [first]="dataViewLazyLoadEvent.first"
-            [rows]="dataViewLazyLoadEvent.rows"
-            [paginator]="true"
-            paginatorPosition="bottom"
-            [totalRecords]="totalRecords"
-            [sortField]="dataViewLazyLoadEvent.sortField"
-            [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-            [rowsPerPageOptions]="[12, 24, 48]"
-            paginatorDropdownAppendTo="body"
-            currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-            [showCurrentPageReport]="true"
-            (onLazyLoad)="onLazyLoad($event)"
-        >
+        <p-dataview [value]="values" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
+            [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
+            paginatorPosition="bottom" [totalRecords]="totalRecords" [sortField]="dataViewLazyLoadEvent.sortField"
+            [sortOrder]="dataViewLazyLoadEvent.sortOrder" [rowsPerPageOptions]="[12, 24, 48]"
+            paginatorDropdownAppendTo="body" currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+            [showCurrentPageReport]="true" (onLazyLoad)="onLazyLoad($event)">
             <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
             <ng-template #list let-listValues>
                 <div class="flex flex-col">
                     @for (entry of listValues; track entry.id) {
-                        @if (personalView) {
-                            <app-list-row>
-                                <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]" [attr.aria-label]="entry.itemName">
-                                    @if (assignmentPhotoUrl(entry); as url) {
-                                        <img [src]="url | secure | async" [alt]="entry.itemName" />
-                                    } @else {
-                                        <i class="pi pi-box text-2xl"></i>
-                                    }
-                                </a>
-                                <div rowIdentity>
-                                    <a class="text-base font-semibold cursor-pointer block" [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
-                                    <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ entry.itemDescription || 'Nessuna descrizione' }}</span>
-                                    <div class="flex flex-wrap items-center gap-2 mt-2">
-                                        <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
-                                        <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
-                                        <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
-                                        @if (entry.decision) {
-                                            <p-tag [value]="decisionLabel(entry.decision.decision)" [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" [rounded]="true" />
-                                        } @else {
-                                            <p-tag value="Presa visione in attesa" severity="warn" [rounded]="true" />
-                                        }
-                                    </div>
-                                </div>
-                                <div rowMetrics class="list-metric">
-                                    <strong>{{ entry.outstandingQuantity }}</strong
-                                    ><small>in possesso</small> <span class="block">{{ entry.returnedQuantity }}</span
-                                    ><small>riconsegnati</small>
-                                </div>
-                                <div rowActions>
-                                    <p-button label="Dettaglio" icon="pi pi-eye" [routerLink]="['/inventory/assignments', entry.id]" />
-                                </div>
-                            </app-list-row>
-                        } @else {
-                            <app-list-row>
-                                @if (canSelect) {
-                                    <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(entry)" (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
+                    @if (personalView) {
+                    <app-list-row>
+                        <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
+                            [attr.aria-label]="entry.itemName">
+                            @if (assignmentPhotoUrl(entry); as url) {
+                            <img [src]="url | secure | async" [alt]="entry.itemName" />
+                            } @else {
+                            <i class="pi pi-box text-2xl"></i>
+                            }
+                        </a>
+                        <div rowIdentity>
+                            <a class="text-base font-semibold cursor-pointer block"
+                                [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                            <span
+                                class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{
+                                entry.itemDescription || 'Nessuna descrizione' }}</span>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info"
+                                    [rounded]="true" />
+                                <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
+                                @if (entry.decision) {
+                                <p-tag [value]="decisionLabel(entry.decision.decision)"
+                                    [severity]="entry.decision.decision === 'ACCEPTED' ? 'success' : 'danger'"
+                                    [rounded]="true" />
+                                } @else {
+                                <p-tag value="Presa visione in attesa" severity="warn" [rounded]="true" />
                                 }
-                                <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
-                                    @if (itemPhotoUrl(entry); as url) {
-                                        <img [src]="url | secure | async" [alt]="entry.name" />
-                                    } @else {
-                                        <i class="pi pi-box text-2xl"></i>
-                                    }
-                                </a>
-                                <div rowIdentity>
-                                    <a class="text-base font-semibold cursor-pointer block" [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
-                                    <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ entry.description || 'Nessuna descrizione' }}</span>
-                                    <div class="flex flex-wrap items-center gap-2 mt-2">
-                                        <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
-                                        <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
-                                        @if (entry.estimatedUnitValue != null) {
-                                            <p-tag [value]="(entry.estimatedUnitValue | number: '1.2-2') + ' ' + entry.currency" severity="secondary" [rounded]="true" />
-                                        }
-                                    </div>
-                                </div>
-                                <div rowMetrics class="list-metric">
-                                    <strong>{{ entry.availableQuantity }}</strong
-                                    ><small>disponibili</small> <span class="block">{{ entry.assignedQuantity }}</span
-                                    ><small>assegnati</small>
-                                </div>
-                                <div rowActions>
-                                    <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="['/inventory/items', entry.id]" />
-                                    <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto" pTooltip="Elimina" (onClick)="deleteItem(entry)" />
-                                </div>
-                            </app-list-row>
+                            </div>
+                        </div>
+                        <div rowMetrics class="list-metric">
+                            <strong>{{ entry.outstandingQuantity }}</strong><small>in possesso</small> <span
+                                class="block">{{ entry.returnedQuantity }}</span><small>riconsegnati</small>
+                        </div>
+                        <div rowActions>
+                            <p-button label="Dettaglio" icon="pi pi-eye"
+                                [routerLink]="['/inventory/assignments', entry.id]" />
+                        </div>
+                    </app-list-row>
+                    } @else {
+                    <app-list-row>
+                        @if (canSelect) {
+                        <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(entry)"
+                            (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
                         }
+                        <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]"
+                            [attr.aria-label]="entry.name">
+                            @if (itemPhotoUrl(entry); as url) {
+                            <img [src]="url | secure | async" [alt]="entry.name" />
+                            } @else {
+                            <i class="pi pi-box text-2xl"></i>
+                            }
+                        </a>
+                        <div rowIdentity>
+                            <a class="text-base font-semibold cursor-pointer block"
+                                [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                            <span
+                                class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{
+                                entry.description || 'Nessuna descrizione' }}</span>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info"
+                                    [rounded]="true" />
+                                @if (entry.estimatedUnitValue != null) {
+                                <p-tag [value]="(entry.estimatedUnitValue | number: '1.2-2') + ' ' + entry.currency"
+                                    severity="secondary" [rounded]="true" />
+                                }
+                            </div>
+                        </div>
+                        <div rowMetrics class="list-metric">
+                            <strong>{{ entry.availableQuantity }}</strong><small>disponibili</small> <span
+                                class="block">{{ entry.assignedQuantity }}</span><small>assegnati</small>
+                        </div>
+                        <div rowActions>
+                            <p-button label="Modifica" icon="pi pi-pencil"
+                                [routerLink]="['/inventory/items', entry.id]" />
+                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto"
+                                pTooltip="Elimina" (onClick)="deleteItem(entry)" />
+                        </div>
+                    </app-list-row>
+                    }
                     }
                 </div>
             </ng-template>
@@ -181,92 +185,103 @@
             <ng-template #grid let-gridValues>
                 <div class="grid grid-cols-12 gap-4 p-4">
                     @for (entry of gridValues; track entry.id) {
-                        <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
-                            @if (personalView) {
-                                <app-entity-card>
-                                    <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]" [attr.aria-label]="entry.itemName">
-                                        @if (assignmentPhotoUrl(entry); as url) {
-                                            <img [src]="url | secure | async" [alt]="entry.itemName" />
-                                        } @else {
-                                            <i class="pi pi-box text-3xl"></i>
-                                        }
-                                    </a>
-                                    <div cardBody>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
-                                            <p-tag [value]="assignmentStatusLabel(entry.status)" severity="info" [rounded]="true" />
-                                            <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
-                                        </div>
-                                        <a class="text-base font-semibold block mt-2" [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
-                                        <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.itemDescription || 'Nessuna descrizione' }}</p>
-                                    </div>
-                                    <div cardMetrics>
-                                        <div>
-                                            <strong>{{ entry.outstandingQuantity }}</strong
-                                            ><small class="block text-muted-color">in possesso</small>
-                                        </div>
-                                        <div>
-                                            <strong>{{ entry.returnedQuantity }}</strong
-                                            ><small class="block text-muted-color">riconsegnati</small>
-                                        </div>
-                                    </div>
-                                    <div cardActions class="contents">
-                                        <p-button label="Dettaglio" icon="pi pi-eye" [routerLink]="['/inventory/assignments', entry.id]" styleClass="flex-1" />
-                                    </div>
-                                </app-entity-card>
-                            } @else {
-                                <app-entity-card [selected]="canSelect && isSelected(entry)">
-                                    @if (canSelect) {
-                                        <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(entry)" (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
-                                    }
-                                    <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]" [attr.aria-label]="entry.name">
-                                        @if (itemPhotoUrl(entry); as url) {
-                                            <img [src]="url | secure | async" [alt]="entry.name" />
-                                        } @else {
-                                            <i class="pi pi-box text-3xl"></i>
-                                        }
-                                    </a>
-                                    <div cardBody>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
-                                            <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info" [rounded]="true" />
-                                        </div>
-                                        <a class="text-base font-semibold block mt-2" [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
-                                        <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.description || 'Nessuna descrizione' }}</p>
-                                    </div>
-                                    <div cardMetrics>
-                                        <div>
-                                            <strong>{{ entry.availableQuantity }}</strong
-                                            ><small class="block text-muted-color">disponibili</small>
-                                        </div>
-                                        <div>
-                                            <strong>{{ entry.assignedQuantity }}</strong
-                                            ><small class="block text-muted-color">assegnati</small>
-                                        </div>
-                                        <div>
-                                            <strong>{{ entry.totalQuantity }}</strong
-                                            ><small class="block text-muted-color">totali</small>
-                                        </div>
-                                    </div>
-                                    <div cardActions class="contents">
-                                        <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="['/inventory/items', entry.id]" styleClass="flex-1" />
-                                        <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto" (onClick)="deleteItem(entry)" />
-                                    </div>
-                                </app-entity-card>
+                    <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+                        @if (personalView) {
+                        <app-entity-card>
+                            <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
+                                [attr.aria-label]="entry.itemName">
+                                @if (assignmentPhotoUrl(entry); as url) {
+                                <img [src]="url | secure | async" [alt]="entry.itemName" />
+                                } @else {
+                                <i class="pi pi-box text-3xl"></i>
+                                }
+                            </a>
+                            <div cardBody>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                    <p-tag [value]="assignmentStatusLabel(entry.status)" severity="info"
+                                        [rounded]="true" />
+                                    <app-inventory-expiration-badge [expirationDate]="entry.expirationDate" />
+                                </div>
+                                <a class="text-base font-semibold block mt-2"
+                                    [routerLink]="['/inventory/assignments', entry.id]">{{ entry.itemName }}</a>
+                                <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.itemDescription ||
+                                    'Nessuna descrizione' }}</p>
+                            </div>
+                            <div cardMetrics>
+                                <div>
+                                    <strong>{{ entry.outstandingQuantity }}</strong><small
+                                        class="block text-muted-color">in possesso</small>
+                                </div>
+                                <div>
+                                    <strong>{{ entry.returnedQuantity }}</strong><small
+                                        class="block text-muted-color">riconsegnati</small>
+                                </div>
+                            </div>
+                            <div cardActions class="contents">
+                                <p-button label="Dettaglio" icon="pi pi-eye"
+                                    [routerLink]="['/inventory/assignments', entry.id]" styleClass="flex-1" />
+                            </div>
+                        </app-entity-card>
+                        } @else {
+                        <app-entity-card [selected]="canSelect && isSelected(entry)">
+                            @if (canSelect) {
+                            <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(entry)"
+                                (ngModelChange)="toggleSelection(entry)"
+                                [attr.aria-label]="'Seleziona ' + entry.name" />
                             }
-                        </div>
+                            <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]"
+                                [attr.aria-label]="entry.name">
+                                @if (itemPhotoUrl(entry); as url) {
+                                <img [src]="url | secure | async" [alt]="entry.name" />
+                                } @else {
+                                <i class="pi pi-box text-3xl"></i>
+                                }
+                            </a>
+                            <div cardBody>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p-tag [value]="entry.inventoryNumber" severity="secondary" [rounded]="true" />
+                                    <p-tag [value]="conditionLabel(entry.conditionStatus)" severity="info"
+                                        [rounded]="true" />
+                                </div>
+                                <a class="text-base font-semibold block mt-2"
+                                    [routerLink]="['/inventory/items', entry.id]">{{ entry.name }}</a>
+                                <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ entry.description ||
+                                    'Nessuna descrizione' }}</p>
+                            </div>
+                            <div cardMetrics>
+                                <div>
+                                    <strong>{{ entry.availableQuantity }}</strong><small
+                                        class="block text-muted-color">disponibili</small>
+                                </div>
+                                <div>
+                                    <strong>{{ entry.assignedQuantity }}</strong><small
+                                        class="block text-muted-color">assegnati</small>
+                                </div>
+                                <div>
+                                    <strong>{{ entry.totalQuantity }}</strong><small
+                                        class="block text-muted-color">totali</small>
+                                </div>
+                            </div>
+                            <div cardActions class="contents">
+                                <p-button label="Modifica" icon="pi pi-pencil"
+                                    [routerLink]="['/inventory/items', entry.id]" styleClass="flex-1" />
+                                <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina oggetto"
+                                    (onClick)="deleteItem(entry)" />
+                            </div>
+                        </app-entity-card>
+                        }
+                    </div>
                     }
                 </div>
             </ng-template>
 
             <ng-template #empty>
-                <app-empty-state
-                    icon="pi pi-box"
+                <app-empty-state icon="pi pi-box"
                     [heading]="searchTerm ? 'Nessun risultato' : personalView ? 'Nessuna consegna' : 'Nessun oggetto'"
                     [message]="emptyMessage"
                     [actionLabel]="searchTerm ? 'Azzera ricerca' : personalView ? undefined : 'Nuovo oggetto'"
-                    (action)="searchTerm ? onSearchChange('') : addNew()"
-                />
+                    (action)="searchTerm ? onSearchChange('') : addNew()" />
             </ng-template>
         </p-dataview>
     </div>

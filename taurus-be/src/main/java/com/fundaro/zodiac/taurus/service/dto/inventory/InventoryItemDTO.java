@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto.inventory;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -19,4 +20,5 @@ public record InventoryItemDTO(
     long version,
     List<InventoryPhotoDTO> photos,
     List<InventoryAssignmentDTO> assignments
-) {}
+) {
+}

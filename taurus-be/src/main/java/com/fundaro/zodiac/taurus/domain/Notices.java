@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.ZonedDateTime;
+
 import jakarta.persistence.Version;
 
 /**
@@ -41,7 +42,9 @@ public class Notices extends CommonFields {
     @Column(name = "source_event_key", length = 160)
     private String sourceEventKey;
 
-    /** Copia della politica dell'outbox: una riga REQUIRED non offre l'opt-out di categoria. */
+    /**
+     * Copia della politica dell'outbox: una riga REQUIRED non offre l'opt-out di categoria.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "preference_policy", nullable = false, length = 20)
     private NotificationPreferencePolicy preferencePolicy = NotificationPreferencePolicy.CONFIGURABLE;
@@ -140,30 +143,65 @@ public class Notices extends CommonFields {
         this.readDate = readDate;
     }
 
-    public String getSource() { return source; }
+    public String getSource() {
+        return source;
+    }
 
-    public void setSource(String source) { this.source = source; }
+    public void setSource(String source) {
+        this.source = source;
+    }
 
-    public String getSeverity() { return severity; }
+    public String getSeverity() {
+        return severity;
+    }
 
-    public void setSeverity(String severity) { this.severity = severity; }
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
 
-    public String getTargetPath() { return targetPath; }
+    public String getTargetPath() {
+        return targetPath;
+    }
 
-    public void setTargetPath(String targetPath) { this.targetPath = targetPath; }
+    public void setTargetPath(String targetPath) {
+        this.targetPath = targetPath;
+    }
 
-    public String getSourceEventKey() { return sourceEventKey; }
+    public String getSourceEventKey() {
+        return sourceEventKey;
+    }
 
-    public void setSourceEventKey(String sourceEventKey) { this.sourceEventKey = sourceEventKey; }
+    public void setSourceEventKey(String sourceEventKey) {
+        this.sourceEventKey = sourceEventKey;
+    }
 
-    public NotificationPreferencePolicy getPreferencePolicy() { return preferencePolicy; }
-    public void setPreferencePolicy(NotificationPreferencePolicy value) { preferencePolicy = value; }
+    public NotificationPreferencePolicy getPreferencePolicy() {
+        return preferencePolicy;
+    }
 
-    public ZonedDateTime getSnoozedUntil() { return snoozedUntil; }
-    public void setSnoozedUntil(ZonedDateTime snoozedUntil) { this.snoozedUntil = snoozedUntil; }
-    public int getSnoozeRevision() { return snoozeRevision; }
-    public void setSnoozeRevision(int snoozeRevision) { this.snoozeRevision = snoozeRevision; }
-    public long getEntityVersion() { return entityVersion; }
+    public void setPreferencePolicy(NotificationPreferencePolicy value) {
+        preferencePolicy = value;
+    }
+
+    public ZonedDateTime getSnoozedUntil() {
+        return snoozedUntil;
+    }
+
+    public void setSnoozedUntil(ZonedDateTime snoozedUntil) {
+        this.snoozedUntil = snoozedUntil;
+    }
+
+    public int getSnoozeRevision() {
+        return snoozeRevision;
+    }
+
+    public void setSnoozeRevision(int snoozeRevision) {
+        this.snoozeRevision = snoozeRevision;
+    }
+
+    public long getEntityVersion() {
+        return entityVersion;
+    }
 
     @Override
     public boolean equals(Object o) {

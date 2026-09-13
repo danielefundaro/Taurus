@@ -12,4 +12,5 @@ public record TenantFeaturesDTO(
     boolean notificationPreferencesEnabled,
     boolean webPushRemindersEnabled,
     boolean eventPreparationEnabled
-) {}
+) {
+}

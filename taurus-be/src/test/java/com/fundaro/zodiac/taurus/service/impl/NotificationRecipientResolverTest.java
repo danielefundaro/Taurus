@@ -1,26 +1,29 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationAudienceType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutboxAudience;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class NotificationRecipientResolverTest {
 
-    @Mock UsersRepository usersRepository;
-    @Mock KeycloakService keycloakService;
+    @Mock
+    UsersRepository usersRepository;
+    @Mock
+    KeycloakService keycloakService;
 
     @Test
     void combinesRolesDirectUsersAndGlobalSuperAdminsWithoutDuplicates() {

@@ -43,7 +43,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
     /**
      * {@code GET /{id}/calendar-events} : Get all the calendar events the user was present at
      *
-     * @param id the id of the user
+     * @param id       the id of the user
      * @param pageable the pagination information.
      * @param request  a {@link HttpServletRequest} request.
      * @param criteria the criteria which the requested entities should match.
@@ -104,7 +104,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      */
     @DeleteMapping("/{id}/gdpr")
     public ResponseEntity<Void> deleteEntityForGdpr(@PathVariable("id") Long id,
-                                                     AbstractAuthenticationToken abstractAuthenticationToken) {
+                                                    AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().info("REST request to permanently erase user {} from the current tenant under GDPR", id);
         getService().deleteForGdpr(id, abstractAuthenticationToken);
         return ResponseEntity.noContent().build();

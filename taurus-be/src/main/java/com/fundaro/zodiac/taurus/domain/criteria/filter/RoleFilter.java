@@ -1,7 +1,6 @@
 package com.fundaro.zodiac.taurus.domain.criteria.filter;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
-import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import tech.jhipster.service.filter.Filter;
 
 public class RoleFilter extends Filter<RoleEnum> {

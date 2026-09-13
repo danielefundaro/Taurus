@@ -16,7 +16,7 @@
 logging:
   level:
     ROOT: DEBUG
-#    tech.jhipster: DEBUG
+    #    tech.jhipster: DEBUG
     org.hibernate: INFO
     org.hibernate.SQL: INFO
     org.hibernate.orm.jdbc.bind: INFO
@@ -80,7 +80,7 @@ jhipster:
     allowed-methods: "*"
     allowed-headers: "*"
     exposed-headers: 'Authorization,Link,X-Total-Count,X-${jhipster.clientApp.name}-alert,X-${jhipster.clientApp.name}-error,X-${jhipster.clientApp.name}-params'
-#    allow-credentials: true
+    #    allow-credentials: true
     max-age: 1800
   logging:
     use-json-format: false # By default, logs are not in Json format

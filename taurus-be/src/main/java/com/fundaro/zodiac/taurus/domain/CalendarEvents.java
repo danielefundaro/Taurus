@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.time.Instant;
 import java.util.UUID;
+
 import jakarta.persistence.PrePersist;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -159,29 +160,93 @@ public class CalendarEvents extends StateFieldsOpenSearch {
         this.presentUsers = presentUsers;
     }
 
-    public List<CalendarEventAvailability> getAvailabilities() { return availabilities; }
-    public void setAvailabilities(List<CalendarEventAvailability> availabilities) { this.availabilities = availabilities; }
-    public List<CalendarEventPresence> getPresences() { return presences; }
-    public void setPresences(List<CalendarEventPresence> presences) { this.presences = presences; }
+    public List<CalendarEventAvailability> getAvailabilities() {
+        return availabilities;
+    }
 
-    public Integer getReminderMinutes() { return reminderMinutes; }
-    public void setReminderMinutes(Integer reminderMinutes) { this.reminderMinutes = reminderMinutes; }
-    public CalendarEventSeries getSeries() { return series; }
-    public void setSeries(CalendarEventSeries series) { this.series = series; }
-    public Date getOriginalStartDate() { return originalStartDate; }
-    public void setOriginalStartDate(Date originalStartDate) { this.originalStartDate = originalStartDate; }
-    public Integer getSeriesSequence() { return seriesSequence; }
-    public void setSeriesSequence(Integer seriesSequence) { this.seriesSequence = seriesSequence; }
-    public Boolean getSeriesException() { return seriesException; }
-    public void setSeriesException(Boolean seriesException) { this.seriesException = seriesException; }
-    public Boolean getSeriesExcluded() { return seriesExcluded; }
-    public void setSeriesExcluded(Boolean seriesExcluded) { this.seriesExcluded = seriesExcluded; }
-    public UUID getCalendarUid() { return calendarUid; }
-    public void setCalendarUid(UUID calendarUid) { this.calendarUid = calendarUid; }
-    public Integer getCalendarSequence() { return calendarSequence; }
-    public void setCalendarSequence(Integer calendarSequence) { this.calendarSequence = calendarSequence; }
-    public Instant getCalendarFeedModifiedAt() { return calendarFeedModifiedAt; }
-    public void setCalendarFeedModifiedAt(Instant calendarFeedModifiedAt) { this.calendarFeedModifiedAt = calendarFeedModifiedAt; }
+    public void setAvailabilities(List<CalendarEventAvailability> availabilities) {
+        this.availabilities = availabilities;
+    }
+
+    public List<CalendarEventPresence> getPresences() {
+        return presences;
+    }
+
+    public void setPresences(List<CalendarEventPresence> presences) {
+        this.presences = presences;
+    }
+
+    public Integer getReminderMinutes() {
+        return reminderMinutes;
+    }
+
+    public void setReminderMinutes(Integer reminderMinutes) {
+        this.reminderMinutes = reminderMinutes;
+    }
+
+    public CalendarEventSeries getSeries() {
+        return series;
+    }
+
+    public void setSeries(CalendarEventSeries series) {
+        this.series = series;
+    }
+
+    public Date getOriginalStartDate() {
+        return originalStartDate;
+    }
+
+    public void setOriginalStartDate(Date originalStartDate) {
+        this.originalStartDate = originalStartDate;
+    }
+
+    public Integer getSeriesSequence() {
+        return seriesSequence;
+    }
+
+    public void setSeriesSequence(Integer seriesSequence) {
+        this.seriesSequence = seriesSequence;
+    }
+
+    public Boolean getSeriesException() {
+        return seriesException;
+    }
+
+    public void setSeriesException(Boolean seriesException) {
+        this.seriesException = seriesException;
+    }
+
+    public Boolean getSeriesExcluded() {
+        return seriesExcluded;
+    }
+
+    public void setSeriesExcluded(Boolean seriesExcluded) {
+        this.seriesExcluded = seriesExcluded;
+    }
+
+    public UUID getCalendarUid() {
+        return calendarUid;
+    }
+
+    public void setCalendarUid(UUID calendarUid) {
+        this.calendarUid = calendarUid;
+    }
+
+    public Integer getCalendarSequence() {
+        return calendarSequence;
+    }
+
+    public void setCalendarSequence(Integer calendarSequence) {
+        this.calendarSequence = calendarSequence;
+    }
+
+    public Instant getCalendarFeedModifiedAt() {
+        return calendarFeedModifiedAt;
+    }
+
+    public void setCalendarFeedModifiedAt(Instant calendarFeedModifiedAt) {
+        this.calendarFeedModifiedAt = calendarFeedModifiedAt;
+    }
 
     @PrePersist
     void initializeCalendarIdentity() {

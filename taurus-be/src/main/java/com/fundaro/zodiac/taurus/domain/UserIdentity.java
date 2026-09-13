@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import java.io.Serializable;
 import java.time.Instant;
 
@@ -26,12 +27,35 @@ public class UserIdentity extends AuditFields implements Serializable {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getKeycloakId() { return keycloakId; }
-    public void setKeycloakId(String keycloakId) { this.keycloakId = keycloakId; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getKeycloakId() {
+        return keycloakId;
+    }
+
+    public void setKeycloakId(String keycloakId) {
+        this.keycloakId = keycloakId;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }

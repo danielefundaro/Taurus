@@ -14,6 +14,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
 import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
@@ -101,7 +103,7 @@ public class FinanceReportService {
         List<Object[]> rows = new ArrayList<>();
         for (FinancialMovement movement : movements) {
             rows.add(
-                new Object[] {
+                new Object[]{
                     movement.getBookingDate(),
                     movement.getAccount().getName(),
                     ReportLabels.financialDirection(movement.getDirection()),
@@ -132,11 +134,11 @@ public class FinanceReportService {
         AccountStatementDTO statement = financeService.accountStatement(accountId, from, to, token);
 
         List<Object[]> rows = new ArrayList<>();
-        rows.add(new Object[] { statement.from(), "Saldo iniziale", null, null, null, null, statement.openingBalance() });
+        rows.add(new Object[]{statement.from(), "Saldo iniziale", null, null, null, null, statement.openingBalance()});
         for (StatementLineDTO line : statement.lines()) {
             MovementDTO movement = line.movement();
             rows.add(
-                new Object[] {
+                new Object[]{
                     movement.bookingDate(),
                     movement.description(),
                     movement.categoryName(),
@@ -147,7 +149,7 @@ public class FinanceReportService {
                 }
             );
         }
-        rows.add(new Object[] { statement.to(), "Saldo finale", null, null, statement.income(), statement.expense(), statement.closingBalance() });
+        rows.add(new Object[]{statement.to(), "Saldo finale", null, null, statement.income(), statement.expense(), statement.closingBalance()});
 
         Section section = new Section("Estratto conto", List.of("Data", "Descrizione", "Categoria", "Evento", "Entrate", "Uscite", "Saldo"), rows);
         Meta meta = meta(
@@ -187,22 +189,22 @@ public class FinanceReportService {
         List<Object[]> accountRows = new ArrayList<>();
         for (AccountYearBalanceDTO account : summary.accounts()) {
             accountRows.add(
-                new Object[] { account.accountName(), account.openingBalance(), account.income(), account.expense(), account.closingBalance() }
+                new Object[]{account.accountName(), account.openingBalance(), account.income(), account.expense(), account.closingBalance()}
             );
         }
         Section accounts = new Section("Conti", List.of("Conto", "Saldo iniziale", "Entrate", "Uscite", "Saldo finale"), accountRows);
 
         List<Object[]> totalRows = new ArrayList<>();
-        totalRows.add(new Object[] { "Saldo iniziale complessivo", summary.openingTotal() });
-        totalRows.add(new Object[] { "Entrate ordinarie", summary.ordinaryIncome() });
-        totalRows.add(new Object[] { "Uscite ordinarie", summary.ordinaryExpense() });
-        totalRows.add(new Object[] { "Risultato ordinario", summary.ordinaryResult() });
-        totalRows.add(new Object[] { "Trasferimenti tra conti", summary.transferTotal() });
-        totalRows.add(new Object[] { "Saldo finale complessivo", summary.closingTotal() });
-        totalRows.add(new Object[] { "Movimenti non riconciliati", BigDecimal.valueOf(summary.unreconciledCount()) });
-        totalRows.add(new Object[] { "Importo non riconciliato", summary.unreconciledAmount() });
+        totalRows.add(new Object[]{"Saldo iniziale complessivo", summary.openingTotal()});
+        totalRows.add(new Object[]{"Entrate ordinarie", summary.ordinaryIncome()});
+        totalRows.add(new Object[]{"Uscite ordinarie", summary.ordinaryExpense()});
+        totalRows.add(new Object[]{"Risultato ordinario", summary.ordinaryResult()});
+        totalRows.add(new Object[]{"Trasferimenti tra conti", summary.transferTotal()});
+        totalRows.add(new Object[]{"Saldo finale complessivo", summary.closingTotal()});
+        totalRows.add(new Object[]{"Movimenti non riconciliati", BigDecimal.valueOf(summary.unreconciledCount())});
+        totalRows.add(new Object[]{"Importo non riconciliato", summary.unreconciledAmount()});
         totalRows.add(
-            new Object[] {
+            new Object[]{
                 "Ultimo ricalcolo dei riporti",
                 summary.lastRecalculatedAt() == null ? "mai" : summary.lastRecalculatedAt().format(ITALIAN_TIMESTAMP)
             }
@@ -242,7 +244,7 @@ public class FinanceReportService {
         List<Object[]> rows = new ArrayList<>();
         for (EventEconomicLineDTO line : lines) {
             rows.add(
-                new Object[] {
+                new Object[]{
                     line.eventName(),
                     line.eventDate(),
                     line.expectedFee(),
@@ -268,7 +270,7 @@ public class FinanceReportService {
         List<Object[]> rows = new ArrayList<>();
         for (CategoryTotalDTO total : totals) {
             rows.add(
-                new Object[] {
+                new Object[]{
                     total.categoryName(),
                     total.direction() == null ? "" : ReportLabels.financialCategoryDirection(total.direction()),
                     total.income(),
@@ -301,7 +303,8 @@ public class FinanceReportService {
                 xlsx(meta, sections)
             );
             case "pdf" -> new ReportContent(baseName + ".pdf", "application/pdf", pdf(meta, sections, token));
-            default -> throw error(HttpStatus.BAD_REQUEST, "Formato di esportazione non supportato", "finance.report.unsupportedFormat");
+            default ->
+                throw error(HttpStatus.BAD_REQUEST, "Formato di esportazione non supportato", "finance.report.unsupportedFormat");
         };
     }
 
@@ -318,7 +321,8 @@ public class FinanceReportService {
             content.append(String.join(";", section.headers().stream().map(FinanceReportService::csvValue).toList())).append('\n');
             for (Object[] row : section.rows()) {
                 List<String> cells = new ArrayList<>();
-                for (Object cell : row) cells.add(cell instanceof BigDecimal amount ? decimal(amount) : csvValue(text(cell)));
+                for (Object cell : row)
+                    cells.add(cell instanceof BigDecimal amount ? decimal(amount) : csvValue(text(cell)));
                 content.append(String.join(";", cells)).append('\n');
             }
         }
@@ -451,7 +455,8 @@ public class FinanceReportService {
 
     private static String requiredTenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (tenant == null || tenant.isBlank()) throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "finance.tenant.missing");
+        if (tenant == null || tenant.isBlank())
+            throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "finance.tenant.missing");
         return tenant;
     }
 
@@ -468,7 +473,8 @@ public class FinanceReportService {
         return new RequestAlertException(status, message, "finance", key);
     }
 
-    private record Section(String title, List<String> headers, List<Object[]> rows) {}
+    private record Section(String title, List<String> headers, List<Object[]> rows) {
+    }
 
     private record Meta(
         String title,
@@ -489,5 +495,6 @@ public class FinanceReportService {
         }
     }
 
-    public record ReportContent(String fileName, String mimeType, byte[] bytes) {}
+    public record ReportContent(String fileName, String mimeType, byte[] bytes) {
+    }
 }

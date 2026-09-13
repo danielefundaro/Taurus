@@ -1,32 +1,35 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header heading="Economia" subtitle="Gestisci casse, conti correnti, movimenti e risultati economici degli eventi.">
+    <app-page-header heading="Economia"
+        subtitle="Gestisci casse, conti correnti, movimenti e risultati economici degli eventi.">
         <div pageActions class="flex flex-wrap gap-2">
-            <p-button label="Trasferimento" icon="pi pi-arrow-right-arrow-left" severity="secondary" (onClick)="openTransfer()" />
+            <p-button label="Trasferimento" icon="pi pi-arrow-right-arrow-left" severity="secondary"
+                (onClick)="openTransfer()" />
             <p-button label="Nuovo movimento" icon="pi pi-plus" (onClick)="openMovement()" />
         </div>
     </app-page-header>
 
     @if (dashboard) {
-        <div class="summary-grid">
-            <div class="summary-card">
-                <span>Disponibilità complessiva</span>
-                <strong>{{ dashboard.totalBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-            </div>
-            <div class="summary-card income">
-                <span>Entrate dell’anno</span>
-                <strong>{{ dashboard.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-            </div>
-            <div class="summary-card expense">
-                <span>Uscite dell’anno</span>
-                <strong>{{ dashboard.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-            </div>
-            <div class="summary-card">
-                <span>Risultato dell’anno</span>
-                <strong [class.negative]="dashboard.result < 0">{{ dashboard.result | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                <small>{{ dashboard.unreconciledCount }} movimenti da verificare</small>
-            </div>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <span>Disponibilità complessiva</span>
+            <strong>{{ dashboard.totalBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
         </div>
+        <div class="summary-card income">
+            <span>Entrate dell’anno</span>
+            <strong>{{ dashboard.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+        </div>
+        <div class="summary-card expense">
+            <span>Uscite dell’anno</span>
+            <strong>{{ dashboard.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Risultato dell’anno</span>
+            <strong [class.negative]="dashboard.result < 0">{{ dashboard.result | currency: 'EUR' : 'symbol' : '1.2-2' :
+                'it-IT' }}</strong>
+            <small>{{ dashboard.unreconciledCount }} movimenti da verificare</small>
+        </div>
+    </div>
     }
 
     <div class="card">
@@ -43,59 +46,65 @@
                     <div class="filter-grid">
                         <div>
                             <label for="filter-from">Dal</label>
-                            <p-datepicker inputId="filter-from" [(ngModel)]="movementFilters.from" dateFormat="dd/mm/yy" [showClear]="true" />
+                            <p-datepicker inputId="filter-from" [(ngModel)]="movementFilters.from" dateFormat="dd/mm/yy"
+                                [showClear]="true" />
                         </div>
                         <div>
                             <label for="filter-to">Al</label>
-                            <p-datepicker inputId="filter-to" [(ngModel)]="movementFilters.to" dateFormat="dd/mm/yy" [showClear]="true" />
+                            <p-datepicker inputId="filter-to" [(ngModel)]="movementFilters.to" dateFormat="dd/mm/yy"
+                                [showClear]="true" />
                         </div>
                         <div>
                             <label for="filter-account">Conto</label>
-                            <p-select inputId="filter-account" [(ngModel)]="movementFilters.accountId" [options]="accounts" optionLabel="name" optionValue="id" placeholder="Tutti" [showClear]="true" />
+                            <p-select inputId="filter-account" [(ngModel)]="movementFilters.accountId"
+                                [options]="accounts" optionLabel="name" optionValue="id" placeholder="Tutti"
+                                [showClear]="true" />
                         </div>
                         <div>
                             <label for="filter-direction">Direzione</label>
-                            <p-select inputId="filter-direction" [(ngModel)]="movementFilters.direction" [options]="directions" optionLabel="label" optionValue="value" placeholder="Tutte" [showClear]="true" />
+                            <p-select inputId="filter-direction" [(ngModel)]="movementFilters.direction"
+                                [options]="directions" optionLabel="label" optionValue="value" placeholder="Tutte"
+                                [showClear]="true" />
                         </div>
                         <div>
                             <label for="filter-category">Categoria</label>
-                            <p-select inputId="filter-category" [(ngModel)]="movementFilters.categoryId" [options]="categories" optionLabel="name" optionValue="id" placeholder="Tutte" [showClear]="true" />
+                            <p-select inputId="filter-category" [(ngModel)]="movementFilters.categoryId"
+                                [options]="categories" optionLabel="name" optionValue="id" placeholder="Tutte"
+                                [showClear]="true" />
                         </div>
                         <div>
                             <label for="filter-reconciled">Verifica</label>
-                            <p-select inputId="filter-reconciled" [(ngModel)]="movementFilters.reconciled" [options]="reconciliationOptions" optionLabel="label" optionValue="value" />
+                            <p-select inputId="filter-reconciled" [(ngModel)]="movementFilters.reconciled"
+                                [options]="reconciliationOptions" optionLabel="label" optionValue="value" />
                         </div>
                         <div class="filter-search">
                             <label for="filter-query">Ricerca</label>
-                            <input id="filter-query" pInputText [(ngModel)]="movementFilters.query" placeholder="Descrizione, controparte o riferimento" (keyup.enter)="applyFilters()" />
+                            <input id="filter-query" pInputText [(ngModel)]="movementFilters.query"
+                                placeholder="Descrizione, controparte o riferimento" (keyup.enter)="applyFilters()" />
                         </div>
                         <div class="filter-actions">
                             <p-button label="Applica" icon="pi pi-filter" (onClick)="applyFilters()" />
-                            <p-button label="Azzera" icon="pi pi-filter-slash" severity="secondary" [outlined]="true" (onClick)="resetFilters()" />
+                            <p-button label="Azzera" icon="pi pi-filter-slash" severity="secondary" [outlined]="true"
+                                (onClick)="resetFilters()" />
                         </div>
                         <div class="filter-exports">
                             <span>Esporta registro</span>
                             <div class="flex gap-1">
-                                <p-button label="CSV" severity="secondary" [outlined]="true" size="small" (onClick)="exportCashbook('csv')" />
-                                <p-button label="XLSX" severity="secondary" [outlined]="true" size="small" (onClick)="exportCashbook('xlsx')" />
-                                <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportCashbook('pdf')" />
+                                <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                    (onClick)="exportCashbook('csv')" />
+                                <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                    (onClick)="exportCashbook('xlsx')" />
+                                <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                    (onClick)="exportCashbook('pdf')" />
                             </div>
                         </div>
                     </div>
 
-                    <p-table
-                        [value]="movements"
-                        [lazy]="true"
-                        [loading]="loading"
-                        [paginator]="true"
-                        [rows]="12"
-                        [totalRecords]="totalMovements"
-                        [rowsPerPageOptions]="[12, 24, 48]"
+                    <p-table [value]="movements" [lazy]="true" [loading]="loading" [paginator]="true" [rows]="12"
+                        [totalRecords]="totalMovements" [rowsPerPageOptions]="[12, 24, 48]"
                         [showCurrentPageReport]="true"
-                        currentPageReportTemplate="Da {first} a {last} di {totalRecords} movimenti"
-                        dataKey="id"
-                        (onLazyLoad)="onMovementLazyLoad($event)"
-                    >
+                        currentPageReportTemplate="Da {first} a {last} di {totalRecords} movimenti" dataKey="id"
+                        (onLazyLoad)="onMovementLazyLoad($event)">
                         <ng-template #header>
                             <tr>
                                 <th pSortableColumn="bookingDate">Data <p-sortIcon field="bookingDate" /></th>
@@ -114,52 +123,56 @@
                                 <td>
                                     <strong>{{ movement.description }}</strong>
                                     @if (movement.counterparty) {
-                                        <small class="block text-surface-500">{{ movement.counterparty }}</small>
+                                    <small class="block text-surface-500">{{ movement.counterparty }}</small>
                                     }
                                     @if (movement.nature !== 'ORDINARY') {
-                                        <p-tag [value]="movement.nature === 'TRANSFER' ? 'Trasferimento' : 'Apertura'" severity="secondary" />
+                                    <p-tag [value]="movement.nature === 'TRANSFER' ? 'Trasferimento' : 'Apertura'"
+                                        severity="secondary" />
                                     }
                                 </td>
                                 <td>
                                     <span>{{ movement.categoryName || '—' }}</span>
                                     @if (movement.eventName) {
-                                        <small class="block text-surface-500">{{ movement.eventName }}</small>
+                                    <small class="block text-surface-500">{{ movement.eventName }}</small>
                                     }
                                 </td>
-                                <td class="text-right font-semibold" [class.amount-income]="movement.direction === 'INCOME'" [class.amount-expense]="movement.direction === 'EXPENSE'">
-                                    {{ movement.direction === 'INCOME' ? '+' : '−' }} {{ movement.amount | currency: movement.currency || 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
+                                <td class="text-right font-semibold"
+                                    [class.amount-income]="movement.direction === 'INCOME'"
+                                    [class.amount-expense]="movement.direction === 'EXPENSE'">
+                                    {{ movement.direction === 'INCOME' ? '+' : '−' }} {{ movement.amount | currency:
+                                    movement.currency || 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
                                 </td>
                                 <td>
-                                    <p-button
-                                        [label]="movement.reconciled ? 'Verificato' : 'Da verificare'"
+                                    <p-button [label]="movement.reconciled ? 'Verificato' : 'Da verificare'"
                                         [icon]="movement.reconciled ? 'pi pi-check-circle' : 'pi pi-circle'"
-                                        [severity]="movement.reconciled ? 'success' : 'secondary'"
-                                        [text]="true"
-                                        size="small"
-                                        (onClick)="toggleReconciliation(movement)"
-                                    />
+                                        [severity]="movement.reconciled ? 'success' : 'secondary'" [text]="true"
+                                        size="small" (onClick)="toggleReconciliation(movement)" />
                                 </td>
                                 <td>
                                     <div class="flex justify-end gap-1">
-                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica movimento" [text]="true" pTooltip="Modifica" (onClick)="openMovement(movement)" />
-                                        <p-button icon="pi pi-trash" ariaLabel="Elimina movimento" severity="danger" [text]="true" pTooltip="Elimina" (onClick)="deleteMovement(movement)" />
+                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica movimento" [text]="true"
+                                            pTooltip="Modifica" (onClick)="openMovement(movement)" />
+                                        <p-button icon="pi pi-trash" ariaLabel="Elimina movimento" severity="danger"
+                                            [text]="true" pTooltip="Elimina" (onClick)="deleteMovement(movement)" />
                                     </div>
                                 </td>
                             </tr>
                         </ng-template>
                         <ng-template #loadingbody>
                             @for (row of [0, 1, 2, 3, 4, 5]; track row) {
-                                <tr>
-                                    @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
-                                        <td><p-skeleton /></td>
-                                    }
-                                </tr>
+                            <tr>
+                                @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
+                                <td><p-skeleton /></td>
+                                }
+                            </tr>
                             }
                         </ng-template>
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="7">
-                                    <app-empty-state compact icon="pi pi-wallet" heading="Nessun movimento" message="Nessun movimento corrisponde ai filtri selezionati." actionLabel="Azzera filtri" (action)="resetFilters()" />
+                                    <app-empty-state compact icon="pi pi-wallet" heading="Nessun movimento"
+                                        message="Nessun movimento corrisponde ai filtri selezionati."
+                                        actionLabel="Azzera filtri" (action)="resetFilters()" />
                                 </td>
                             </tr>
                         </ng-template>
@@ -175,38 +188,50 @@
                         <p-button label="Nuovo conto" icon="pi pi-plus" (onClick)="openAccount()" />
                     </div>
                     <p-table [value]="accounts" dataKey="id">
-                        <ng-template #header
-                            ><tr>
+                        <ng-template #header>
+                            <tr>
                                 <th>Nome</th>
                                 <th>Tipo</th>
                                 <th>Banca / IBAN</th>
                                 <th class="text-right">Saldo</th>
                                 <th>Stato</th>
-                                <th></th></tr
-                        ></ng-template>
+                                <th></th>
+                            </tr>
+                        </ng-template>
                         <ng-template #body let-account>
                             <tr>
                                 <td>
-                                    <strong>{{ account.name }}</strong
-                                    ><small class="block text-surface-500">{{ account.description }}</small>
+                                    <strong>{{ account.name }}</strong><small class="block text-surface-500">{{
+                                        account.description }}</small>
                                 </td>
                                 <td>{{ account.accountType === 'CASH' ? 'Cassa' : 'Conto corrente' }}</td>
                                 <td>
-                                    {{ account.bankName || '—' }}<small class="block text-surface-500">{{ account.iban }}</small>
+                                    {{ account.bankName || '—' }}<small class="block text-surface-500">{{ account.iban
+                                        }}</small>
                                 </td>
-                                <td class="text-right font-semibold">{{ account.balance | currency: account.currency : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                <td><p-tag [value]="account.active ? 'Attivo' : 'Archiviato'" [severity]="account.active ? 'success' : 'secondary'" /></td>
+                                <td class="text-right font-semibold">{{ account.balance | currency: account.currency :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</td>
+                                <td><p-tag [value]="account.active ? 'Attivo' : 'Archiviato'"
+                                        [severity]="account.active ? 'success' : 'secondary'" /></td>
                                 <td>
                                     <div class="flex justify-end gap-1">
-                                        <p-button icon="pi pi-list" [text]="true" pTooltip="Estratto conto" ariaLabel="Estratto conto" (onClick)="showStatement(account)" />
+                                        <p-button icon="pi pi-list" [text]="true" pTooltip="Estratto conto"
+                                            ariaLabel="Estratto conto" (onClick)="showStatement(account)" />
                                         @if (account.active) {
-                                            <p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica conto" ariaLabel="Modifica conto" (onClick)="openAccount(account)" />
-                                            <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia conto" ariaLabel="Archivia conto" (onClick)="archiveAccount(account)" />
+                                        <p-button icon="pi pi-pencil" [text]="true" pTooltip="Modifica conto"
+                                            ariaLabel="Modifica conto" (onClick)="openAccount(account)" />
+                                        <p-button icon="pi pi-box" severity="danger" [text]="true"
+                                            pTooltip="Archivia conto" ariaLabel="Archivia conto"
+                                            (onClick)="archiveAccount(account)" />
                                         } @else {
-                                            <p-button icon="pi pi-replay" severity="success" [text]="true" pTooltip="Riattiva conto" ariaLabel="Riattiva conto" (onClick)="restoreAccount(account)" />
+                                        <p-button icon="pi pi-replay" severity="success" [text]="true"
+                                            pTooltip="Riattiva conto" ariaLabel="Riattiva conto"
+                                            (onClick)="restoreAccount(account)" />
                                         }
                                         @if (!account.active && !account.movementCount) {
-                                            <p-button icon="pi pi-trash" severity="danger" [text]="true" pTooltip="Elimina conto" ariaLabel="Elimina conto" (onClick)="deleteAccount(account)" />
+                                        <p-button icon="pi pi-trash" severity="danger" [text]="true"
+                                            pTooltip="Elimina conto" ariaLabel="Elimina conto"
+                                            (onClick)="deleteAccount(account)" />
                                         }
                                     </div>
                                 </td>
@@ -215,86 +240,104 @@
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="6">
-                                    <app-empty-state compact icon="pi pi-briefcase" heading="Nessun conto" message="Crea il primo conto per registrare i movimenti." actionLabel="Nuovo conto" (action)="openAccount()" />
+                                    <app-empty-state compact icon="pi pi-briefcase" heading="Nessun conto"
+                                        message="Crea il primo conto per registrare i movimenti."
+                                        actionLabel="Nuovo conto" (action)="openAccount()" />
                                 </td>
                             </tr>
                         </ng-template>
                     </p-table>
 
                     @if (statementAccount) {
-                        <section class="report-panel">
-                            <div class="section-heading">
-                                <div>
-                                    <h2>Estratto conto — {{ statementAccount.name }}</h2>
-                                    <p>Saldo iniziale, movimenti del periodo e saldo progressivo.</p>
-                                </div>
-                                <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="closeStatement()" />
+                    <section class="report-panel">
+                        <div class="section-heading">
+                            <div>
+                                <h2>Estratto conto — {{ statementAccount.name }}</h2>
+                                <p>Saldo iniziale, movimenti del periodo e saldo progressivo.</p>
                             </div>
+                            <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [text]="true"
+                                (onClick)="closeStatement()" />
+                        </div>
 
-                            <div class="report-toolbar">
-                                <app-form-field label="Dal" forId="statement-from"><p-datepicker inputId="statement-from" [(ngModel)]="statementFrom" dateFormat="dd/mm/yy" /></app-form-field>
-                                <app-form-field label="Al" forId="statement-to"><p-datepicker inputId="statement-to" [(ngModel)]="statementTo" dateFormat="dd/mm/yy" /></app-form-field>
-                                <p-button label="Aggiorna" icon="pi pi-refresh" (onClick)="loadStatement()" />
-                                <div class="report-exports">
-                                    <span>Esporta estratto conto</span>
-                                    <div class="flex gap-1">
-                                        <p-button label="CSV" severity="secondary" [outlined]="true" size="small" (onClick)="exportStatement('csv')" />
-                                        <p-button label="XLSX" severity="secondary" [outlined]="true" size="small" (onClick)="exportStatement('xlsx')" />
-                                        <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportStatement('pdf')" />
-                                    </div>
+                        <div class="report-toolbar">
+                            <app-form-field label="Dal" forId="statement-from"><p-datepicker inputId="statement-from"
+                                    [(ngModel)]="statementFrom" dateFormat="dd/mm/yy" /></app-form-field>
+                            <app-form-field label="Al" forId="statement-to"><p-datepicker inputId="statement-to"
+                                    [(ngModel)]="statementTo" dateFormat="dd/mm/yy" /></app-form-field>
+                            <p-button label="Aggiorna" icon="pi pi-refresh" (onClick)="loadStatement()" />
+                            <div class="report-exports">
+                                <span>Esporta estratto conto</span>
+                                <div class="flex gap-1">
+                                    <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportStatement('csv')" />
+                                    <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportStatement('xlsx')" />
+                                    <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportStatement('pdf')" />
                                 </div>
                             </div>
+                        </div>
 
-                            @if (statement) {
-                                <div class="summary-grid">
-                                    <div class="summary-card">
-                                        <span>Saldo iniziale</span><strong>{{ statement.openingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                    </div>
-                                    <div class="summary-card income">
-                                        <span>Entrate del periodo</span><strong>{{ statement.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                    </div>
-                                    <div class="summary-card expense">
-                                        <span>Uscite del periodo</span><strong>{{ statement.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                    </div>
-                                    <div class="summary-card">
-                                        <span>Saldo finale</span><strong [class.negative]="statement.closingBalance < 0">{{ statement.closingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                    </div>
-                                </div>
-                            }
+                        @if (statement) {
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <span>Saldo iniziale</span><strong>{{ statement.openingBalance | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card income">
+                                <span>Entrate del periodo</span><strong>{{ statement.income | currency: 'EUR' : 'symbol'
+                                    : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card expense">
+                                <span>Uscite del periodo</span><strong>{{ statement.expense | currency: 'EUR' : 'symbol'
+                                    : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card">
+                                <span>Saldo finale</span><strong [class.negative]="statement.closingBalance < 0">{{
+                                    statement.closingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}</strong>
+                            </div>
+                        </div>
+                        }
 
-                            <p-table [value]="statement?.lines ?? []" [loading]="statementLoading" dataKey="movement.id">
-                                <ng-template #header
-                                    ><tr>
-                                        <th>Data</th>
-                                        <th>Descrizione</th>
-                                        <th>Categoria / Evento</th>
-                                        <th class="text-right">Importo</th>
-                                        <th class="text-right">Saldo</th>
-                                    </tr></ng-template
-                                >
-                                <ng-template #body let-line
-                                    ><tr>
-                                        <td>{{ line.movement.bookingDate | date: 'dd/MM/yyyy' }}</td>
-                                        <td>{{ line.movement.description }}</td>
-                                        <td>
-                                            <span>{{ line.movement.categoryName || '—' }}</span>
-                                            @if (line.movement.eventName) {
-                                                <small class="block text-surface-500">{{ line.movement.eventName }}</small>
-                                            }
-                                        </td>
-                                        <td class="text-right" [class.amount-income]="line.movement.direction === 'INCOME'" [class.amount-expense]="line.movement.direction === 'EXPENSE'">
-                                            {{ line.movement.direction === 'INCOME' ? '+' : '−' }} {{ line.movement.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
-                                        </td>
-                                        <td class="text-right font-semibold" [class.negative]="line.balance < 0">{{ line.balance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                    </tr></ng-template
-                                >
-                                <ng-template #emptymessage>
-                                    <tr>
-                                        <td colspan="5"><app-empty-state compact icon="pi pi-wallet" heading="Nessun movimento" message="Il conto non registra movimenti nel periodo scelto." /></td>
-                                    </tr>
-                                </ng-template>
-                            </p-table>
-                        </section>
+                        <p-table [value]="statement?.lines ?? []" [loading]="statementLoading" dataKey="movement.id">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrizione</th>
+                                    <th>Categoria / Evento</th>
+                                    <th class="text-right">Importo</th>
+                                    <th class="text-right">Saldo</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-line>
+                                <tr>
+                                    <td>{{ line.movement.bookingDate | date: 'dd/MM/yyyy' }}</td>
+                                    <td>{{ line.movement.description }}</td>
+                                    <td>
+                                        <span>{{ line.movement.categoryName || '—' }}</span>
+                                        @if (line.movement.eventName) {
+                                        <small class="block text-surface-500">{{ line.movement.eventName }}</small>
+                                        }
+                                    </td>
+                                    <td class="text-right" [class.amount-income]="line.movement.direction === 'INCOME'"
+                                        [class.amount-expense]="line.movement.direction === 'EXPENSE'">
+                                        {{ line.movement.direction === 'INCOME' ? '+' : '−' }} {{ line.movement.amount |
+                                        currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
+                                    </td>
+                                    <td class="text-right font-semibold" [class.negative]="line.balance < 0">{{
+                                        line.balance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="5"><app-empty-state compact icon="pi pi-wallet"
+                                            heading="Nessun movimento"
+                                            message="Il conto non registra movimenti nel periodo scelto." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </section>
                     }
                 </p-tabpanel>
 
@@ -306,35 +349,46 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm text-muted-color">Rendiconto</span>
-                            <p-button label="CSV" severity="secondary" [outlined]="true" size="small" (onClick)="exportCategoriesReport('csv')" />
-                            <p-button label="XLSX" severity="secondary" [outlined]="true" size="small" (onClick)="exportCategoriesReport('xlsx')" />
-                            <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportCategoriesReport('pdf')" />
+                            <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportCategoriesReport('csv')" />
+                            <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportCategoriesReport('xlsx')" />
+                            <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportCategoriesReport('pdf')" />
                             <p-button label="Nuova categoria" icon="pi pi-plus" (onClick)="openCategory()" />
                         </div>
                     </div>
-                    <p class="report-period">Periodo del rendiconto: {{ statementFrom | date: 'dd/MM/yyyy' }} – {{ statementTo | date: 'dd/MM/yyyy' }}, modificabile dall’estratto conto.</p>
+                    <p class="report-period">Periodo del rendiconto: {{ statementFrom | date: 'dd/MM/yyyy' }} – {{
+                        statementTo | date: 'dd/MM/yyyy' }}, modificabile dall’estratto conto.</p>
                     <p-table [value]="categories" dataKey="id">
-                        <ng-template #header
-                            ><tr>
+                        <ng-template #header>
+                            <tr>
                                 <th>Nome</th>
                                 <th>Direzione</th>
                                 <th>Descrizione</th>
                                 <th>Stato</th>
-                                <th></th></tr
-                        ></ng-template>
+                                <th></th>
+                            </tr>
+                        </ng-template>
                         <ng-template #body let-category>
                             <tr>
                                 <td>
                                     <strong>{{ category.name }}</strong>
                                 </td>
-                                <td><p-tag [value]="directionLabel(category.direction)" [severity]="category.direction === 'INCOME' ? 'success' : category.direction === 'EXPENSE' ? 'danger' : 'info'" /></td>
+                                <td><p-tag [value]="directionLabel(category.direction)"
+                                        [severity]="category.direction === 'INCOME' ? 'success' : category.direction === 'EXPENSE' ? 'danger' : 'info'" />
+                                </td>
                                 <td>{{ category.description || '—' }}</td>
-                                <td><p-tag [value]="category.active ? 'Attiva' : 'Archiviata'" [severity]="category.active ? 'success' : 'secondary'" /></td>
+                                <td><p-tag [value]="category.active ? 'Attiva' : 'Archiviata'"
+                                        [severity]="category.active ? 'success' : 'secondary'" /></td>
                                 <td>
                                     <div class="flex justify-end gap-1">
-                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica categoria" [text]="true" (onClick)="openCategory(category)" />
+                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica categoria" [text]="true"
+                                            (onClick)="openCategory(category)" />
                                         @if (category.active) {
-                                            <p-button icon="pi pi-box" severity="danger" [text]="true" pTooltip="Archivia categoria" ariaLabel="Archivia categoria" (onClick)="archiveCategory(category)" />
+                                        <p-button icon="pi pi-box" severity="danger" [text]="true"
+                                            pTooltip="Archivia categoria" ariaLabel="Archivia categoria"
+                                            (onClick)="archiveCategory(category)" />
                                         }
                                     </div>
                                 </td>
@@ -343,7 +397,9 @@
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="5">
-                                    <app-empty-state compact icon="pi pi-tags" heading="Nessuna categoria" message="Crea la prima categoria per classificare i movimenti." actionLabel="Nuova categoria" (action)="openCategory()" />
+                                    <app-empty-state compact icon="pi pi-tags" heading="Nessuna categoria"
+                                        message="Crea la prima categoria per classificare i movimenti."
+                                        actionLabel="Nuova categoria" (action)="openCategory()" />
                                 </td>
                             </tr>
                         </ng-template>
@@ -358,56 +414,60 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm text-muted-color">Rendiconto</span>
-                            <p-button label="CSV" severity="secondary" [outlined]="true" size="small" (onClick)="exportEventsReport('csv')" />
-                            <p-button label="XLSX" severity="secondary" [outlined]="true" size="small" (onClick)="exportEventsReport('xlsx')" />
-                            <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportEventsReport('pdf')" />
+                            <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportEventsReport('csv')" />
+                            <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportEventsReport('xlsx')" />
+                            <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                (onClick)="exportEventsReport('pdf')" />
                         </div>
                     </div>
-                    <p-table
-                        [value]="events"
-                        [lazy]="true"
-                        [loading]="eventsLoading"
-                        [paginator]="true"
-                        [rows]="12"
-                        [totalRecords]="totalEvents"
-                        [rowsPerPageOptions]="[12, 24, 48]"
-                        [showCurrentPageReport]="true"
-                        currentPageReportTemplate="Da {first} a {last} di {totalRecords} eventi"
-                        dataKey="eventId"
-                        (onLazyLoad)="onEventLazyLoad($event)"
-                    >
-                        <ng-template #header
-                            ><tr>
+                    <p-table [value]="events" [lazy]="true" [loading]="eventsLoading" [paginator]="true" [rows]="12"
+                        [totalRecords]="totalEvents" [rowsPerPageOptions]="[12, 24, 48]" [showCurrentPageReport]="true"
+                        currentPageReportTemplate="Da {first} a {last} di {totalRecords} eventi" dataKey="eventId"
+                        (onLazyLoad)="onEventLazyLoad($event)">
+                        <ng-template #header>
+                            <tr>
                                 <th>Evento</th>
                                 <th class="text-right">Preventivo</th>
                                 <th class="text-right">Consuntivo</th>
                                 <th class="text-right">Residui</th>
                                 <th>Stato</th>
-                                <th></th></tr
-                        ></ng-template>
+                                <th></th>
+                            </tr>
+                        </ng-template>
                         <ng-template #body let-event>
                             <tr>
                                 <td>
                                     <strong>{{ event.eventName }}</strong>
                                 </td>
                                 <td class="text-right">
-                                    Compenso {{ event.expectedFee | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}<small class="block text-surface-500">Costi {{ event.expectedCosts | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
+                                    Compenso {{ event.expectedFee | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}<small class="block text-surface-500">Costi {{ event.expectedCosts | currency:
+                                        'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td class="text-right">
-                                    Incassato {{ event.received | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}<small class="block text-surface-500">Pagato {{ event.paid | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
+                                    Incassato {{ event.received | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}<small class="block text-surface-500">Pagato {{ event.paid | currency: 'EUR' :
+                                        'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td class="text-right">
-                                    Da incassare {{ event.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
-                                    }}<small class="block text-surface-500">Da pagare {{ event.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
+                                    Da incassare {{ event.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' :
+                                    'it-IT'
+                                    }}<small class="block text-surface-500">Da pagare {{ event.remainingExpense |
+                                        currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
-                                <td><p-tag [value]="eventStatusLabel(event.economicStatus)" [severity]="eventStatusSeverity(event.economicStatus)" /></td>
-                                <td><p-button icon="pi pi-pencil" ariaLabel="Modifica preventivo" [text]="true" pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
+                                <td><p-tag [value]="eventStatusLabel(event.economicStatus)"
+                                        [severity]="eventStatusSeverity(event.economicStatus)" /></td>
+                                <td><p-button icon="pi pi-pencil" ariaLabel="Modifica preventivo" [text]="true"
+                                        pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
                             </tr>
                         </ng-template>
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="6">
-                                    <app-empty-state compact icon="pi pi-calendar" heading="Nessun evento" message="Non ci sono eventi con dati economici da mostrare." />
+                                    <app-empty-state compact icon="pi pi-calendar" heading="Nessun evento"
+                                        message="Non ci sono eventi con dati economici da mostrare." />
                                 </td>
                             </tr>
                         </ng-template>
@@ -420,150 +480,185 @@
                             <h2>Esercizi e riporti</h2>
                             <p>Il riporto non blocca mai la modifica dei movimenti.</p>
                         </div>
-                        <p-button label="Aggiorna riporto all’anno corrente" icon="pi pi-refresh" (onClick)="rolloverCurrentYear()" />
+                        <p-button label="Aggiorna riporto all’anno corrente" icon="pi pi-refresh"
+                            (onClick)="rolloverCurrentYear()" />
                     </div>
                     <p-table [value]="years">
-                        <ng-template #header
-                            ><tr>
+                        <ng-template #header>
+                            <tr>
                                 <th>Esercizio</th>
                                 <th>Periodo</th>
                                 <th>Riporto</th>
                                 <th>Ultimo ricalcolo</th>
-                                <th aria-label="Azioni"></th></tr
-                        ></ng-template>
-                        <ng-template #body let-year
-                            ><tr>
+                                <th aria-label="Azioni"></th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-year>
+                            <tr>
                                 <td>
                                     <strong>{{ year.year }}</strong>
                                 </td>
                                 <td>01/01/{{ year.year }} – 31/12/{{ year.year }}</td>
-                                <td><p-tag [value]="year.status === 'ROLLED_OVER' ? 'Generato' : 'Da generare'" [severity]="year.status === 'ROLLED_OVER' ? 'success' : 'secondary'" /></td>
-                                <td>{{ year.lastRecalculatedAt ? (year.lastRecalculatedAt | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                                <td><p-tag [value]="year.status === 'ROLLED_OVER' ? 'Generato' : 'Da generare'"
+                                        [severity]="year.status === 'ROLLED_OVER' ? 'success' : 'secondary'" /></td>
+                                <td>{{ year.lastRecalculatedAt ? (year.lastRecalculatedAt | date: 'dd/MM/yyyy HH:mm') :
+                                    '—' }}</td>
                                 <td>
                                     <div class="flex justify-end flex-wrap gap-1">
-                                        <p-button label="Riepilogo" icon="pi pi-chart-bar" [text]="true" size="small" (onClick)="showYearSummary(year)" />
-                                        <p-button label="Ricalcola" icon="pi pi-refresh" [text]="true" size="small" pTooltip="Ricalcola i riporti successivi" (onClick)="recalculateYear(year)" />
-                                        <p-button label="CSV" severity="secondary" [outlined]="true" size="small" (onClick)="exportAnnualReport(year.year, 'csv')" />
-                                        <p-button label="XLSX" severity="secondary" [outlined]="true" size="small" (onClick)="exportAnnualReport(year.year, 'xlsx')" />
-                                        <p-button label="PDF" severity="secondary" [outlined]="true" size="small" (onClick)="exportAnnualReport(year.year, 'pdf')" />
+                                        <p-button label="Riepilogo" icon="pi pi-chart-bar" [text]="true" size="small"
+                                            (onClick)="showYearSummary(year)" />
+                                        <p-button label="Ricalcola" icon="pi pi-refresh" [text]="true" size="small"
+                                            pTooltip="Ricalcola i riporti successivi"
+                                            (onClick)="recalculateYear(year)" />
+                                        <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                            (onClick)="exportAnnualReport(year.year, 'csv')" />
+                                        <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                            (onClick)="exportAnnualReport(year.year, 'xlsx')" />
+                                        <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                            (onClick)="exportAnnualReport(year.year, 'pdf')" />
                                     </div>
-                                </td></tr
-                        ></ng-template>
+                                </td>
+                            </tr>
+                        </ng-template>
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="5">
-                                    <app-empty-state compact icon="pi pi-calendar-clock" heading="Nessun esercizio" message="Gli esercizi compaiono dopo il primo movimento registrato." />
+                                    <app-empty-state compact icon="pi pi-calendar-clock" heading="Nessun esercizio"
+                                        message="Gli esercizi compaiono dopo il primo movimento registrato." />
                                 </td>
                             </tr>
                         </ng-template>
                     </p-table>
 
                     @if (yearSummary) {
-                        <section class="report-panel">
-                            <div class="section-heading">
-                                <div>
-                                    <h2>Rendiconto annuale {{ yearSummary.year.year }}</h2>
-                                    <p>Saldi per conto, totali ordinari, trasferimenti separati ed eventi ancora aperti.</p>
-                                </div>
-                                <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="closeYearSummary()" />
+                    <section class="report-panel">
+                        <div class="section-heading">
+                            <div>
+                                <h2>Rendiconto annuale {{ yearSummary.year.year }}</h2>
+                                <p>Saldi per conto, totali ordinari, trasferimenti separati ed eventi ancora aperti.</p>
                             </div>
+                            <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [text]="true"
+                                (onClick)="closeYearSummary()" />
+                        </div>
 
-                            <div class="summary-grid">
-                                <div class="summary-card">
-                                    <span>Saldo iniziale</span><strong>{{ yearSummary.openingTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                </div>
-                                <div class="summary-card income">
-                                    <span>Entrate ordinarie</span><strong>{{ yearSummary.ordinaryIncome | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                </div>
-                                <div class="summary-card expense">
-                                    <span>Uscite ordinarie</span><strong>{{ yearSummary.ordinaryExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                </div>
-                                <div class="summary-card">
-                                    <span>Saldo finale</span><strong [class.negative]="yearSummary.closingTotal < 0">{{ yearSummary.closingTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
-                                    <small>{{ yearSummary.unreconciledCount }} movimenti da verificare</small>
-                                </div>
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <span>Saldo iniziale</span><strong>{{ yearSummary.openingTotal | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</strong>
                             </div>
+                            <div class="summary-card income">
+                                <span>Entrate ordinarie</span><strong>{{ yearSummary.ordinaryIncome | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card expense">
+                                <span>Uscite ordinarie</span><strong>{{ yearSummary.ordinaryExpense | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card">
+                                <span>Saldo finale</span><strong [class.negative]="yearSummary.closingTotal < 0">{{
+                                    yearSummary.closingTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}</strong>
+                                <small>{{ yearSummary.unreconciledCount }} movimenti da verificare</small>
+                            </div>
+                        </div>
 
-                            <p class="report-period">
-                                Trasferimenti tra conti: {{ yearSummary.transferTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }} — non contano come entrate. Ultimo ricalcolo dei riporti:
-                                {{ yearSummary.lastRecalculatedAt ? (yearSummary.lastRecalculatedAt | date: 'dd/MM/yyyy HH:mm') : 'mai eseguito' }}.
-                            </p>
+                        <p class="report-period">
+                            Trasferimenti tra conti: {{ yearSummary.transferTotal | currency: 'EUR' : 'symbol' : '1.2-2'
+                            : 'it-IT' }} — non contano come entrate. Ultimo ricalcolo dei riporti:
+                            {{ yearSummary.lastRecalculatedAt ? (yearSummary.lastRecalculatedAt | date: 'dd/MM/yyyy
+                            HH:mm') : 'mai eseguito' }}.
+                        </p>
 
-                            <h3 class="report-subtitle">Conti</h3>
-                            <p-table [value]="yearSummary.accounts" dataKey="accountId">
-                                <ng-template #header
-                                    ><tr>
-                                        <th>Conto</th>
-                                        <th class="text-right">Saldo iniziale</th>
-                                        <th class="text-right">Entrate</th>
-                                        <th class="text-right">Uscite</th>
-                                        <th class="text-right">Saldo finale</th>
-                                    </tr></ng-template
-                                >
-                                <ng-template #body let-row
-                                    ><tr>
-                                        <td>{{ row.accountName }}</td>
-                                        <td class="text-right">{{ row.openingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right amount-income">{{ row.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right amount-expense">{{ row.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right font-semibold" [class.negative]="row.closingBalance < 0">{{ row.closingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                    </tr></ng-template
-                                >
-                            </p-table>
+                        <h3 class="report-subtitle">Conti</h3>
+                        <p-table [value]="yearSummary.accounts" dataKey="accountId">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Conto</th>
+                                    <th class="text-right">Saldo iniziale</th>
+                                    <th class="text-right">Entrate</th>
+                                    <th class="text-right">Uscite</th>
+                                    <th class="text-right">Saldo finale</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-row>
+                                <tr>
+                                    <td>{{ row.accountName }}</td>
+                                    <td class="text-right">{{ row.openingBalance | currency: 'EUR' : 'symbol' : '1.2-2'
+                                        : 'it-IT' }}</td>
+                                    <td class="text-right amount-income">{{ row.income | currency: 'EUR' : 'symbol' :
+                                        '1.2-2' : 'it-IT' }}</td>
+                                    <td class="text-right amount-expense">{{ row.expense | currency: 'EUR' : 'symbol' :
+                                        '1.2-2' : 'it-IT' }}</td>
+                                    <td class="text-right font-semibold" [class.negative]="row.closingBalance < 0">{{
+                                        row.closingBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
 
-                            <h3 class="report-subtitle">Categorie</h3>
-                            <p-table [value]="yearSummary.categories" dataKey="categoryName">
-                                <ng-template #header
-                                    ><tr>
-                                        <th>Categoria</th>
-                                        <th class="text-right">Entrate</th>
-                                        <th class="text-right">Uscite</th>
-                                        <th class="text-right">Netto</th>
-                                        <th class="text-right">Movimenti</th>
-                                    </tr></ng-template
-                                >
-                                <ng-template #body let-row
-                                    ><tr>
-                                        <td>{{ row.categoryName }}</td>
-                                        <td class="text-right amount-income">{{ row.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right amount-expense">{{ row.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right font-semibold" [class.negative]="row.net < 0">{{ row.net | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right">{{ row.movementCount }}</td>
-                                    </tr></ng-template
-                                >
-                                <ng-template #emptymessage>
-                                    <tr>
-                                        <td colspan="5"><app-empty-state compact icon="pi pi-tags" heading="Nessun movimento ordinario" message="Nell’esercizio non risultano movimenti classificati." /></td>
-                                    </tr>
-                                </ng-template>
-                            </p-table>
+                        <h3 class="report-subtitle">Categorie</h3>
+                        <p-table [value]="yearSummary.categories" dataKey="categoryName">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-right">Entrate</th>
+                                    <th class="text-right">Uscite</th>
+                                    <th class="text-right">Netto</th>
+                                    <th class="text-right">Movimenti</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-row>
+                                <tr>
+                                    <td>{{ row.categoryName }}</td>
+                                    <td class="text-right amount-income">{{ row.income | currency: 'EUR' : 'symbol' :
+                                        '1.2-2' : 'it-IT' }}</td>
+                                    <td class="text-right amount-expense">{{ row.expense | currency: 'EUR' : 'symbol' :
+                                        '1.2-2' : 'it-IT' }}</td>
+                                    <td class="text-right font-semibold" [class.negative]="row.net < 0">{{ row.net |
+                                        currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                                    <td class="text-right">{{ row.movementCount }}</td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="5"><app-empty-state compact icon="pi pi-tags"
+                                            heading="Nessun movimento ordinario"
+                                            message="Nell’esercizio non risultano movimenti classificati." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
 
-                            <h3 class="report-subtitle">Eventi economicamente aperti</h3>
-                            <p-table [value]="yearSummary.openEvents" dataKey="eventId">
-                                <ng-template #header
-                                    ><tr>
-                                        <th>Evento</th>
-                                        <th>Data</th>
-                                        <th class="text-right">Residuo entrate</th>
-                                        <th class="text-right">Residuo uscite</th>
-                                        <th>Stato</th>
-                                    </tr></ng-template
-                                >
-                                <ng-template #body let-row
-                                    ><tr>
-                                        <td>{{ row.eventName }}</td>
-                                        <td>{{ row.eventDate ? (row.eventDate | date: 'dd/MM/yyyy') : '—' }}</td>
-                                        <td class="text-right">{{ row.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td class="text-right">{{ row.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
-                                        <td><p-tag [value]="eventStatusLabel(row.economicStatus)" [severity]="eventStatusSeverity(row.economicStatus)" /></td></tr
-                                ></ng-template>
-                                <ng-template #emptymessage>
-                                    <tr>
-                                        <td colspan="5"><app-empty-state compact icon="pi pi-check-circle" heading="Nessun evento aperto" message="Tutti gli eventi dell’esercizio risultano saldati." /></td>
-                                    </tr>
-                                </ng-template>
-                            </p-table>
-                        </section>
+                        <h3 class="report-subtitle">Eventi economicamente aperti</h3>
+                        <p-table [value]="yearSummary.openEvents" dataKey="eventId">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Evento</th>
+                                    <th>Data</th>
+                                    <th class="text-right">Residuo entrate</th>
+                                    <th class="text-right">Residuo uscite</th>
+                                    <th>Stato</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-row>
+                                <tr>
+                                    <td>{{ row.eventName }}</td>
+                                    <td>{{ row.eventDate ? (row.eventDate | date: 'dd/MM/yyyy') : '—' }}</td>
+                                    <td class="text-right">{{ row.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2'
+                                        : 'it-IT' }}</td>
+                                    <td class="text-right">{{ row.remainingExpense | currency: 'EUR' : 'symbol' :
+                                        '1.2-2' : 'it-IT' }}</td>
+                                    <td><p-tag [value]="eventStatusLabel(row.economicStatus)"
+                                            [severity]="eventStatusSeverity(row.economicStatus)" /></td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="5"><app-empty-state compact icon="pi pi-check-circle"
+                                            heading="Nessun evento aperto"
+                                            message="Tutti gli eventi dell’esercizio risultano saldati." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </section>
                     }
                 </p-tabpanel>
             </p-tabpanels>

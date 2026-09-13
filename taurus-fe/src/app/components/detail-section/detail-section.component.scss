@@ -9,19 +9,22 @@
 :host(:last-child) {
     margin-bottom: 0;
 }
-.detail-section > header {
+
+.detail-section>header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
     margin-bottom: 1.25rem;
 }
+
 .detail-section__heading {
     display: flex;
     align-items: center;
     gap: 0.65rem;
 }
-.detail-section__heading > span {
+
+.detail-section__heading>span {
     display: grid;
     place-items: center;
     min-width: 1.5rem;
@@ -30,13 +33,16 @@
     background: var(--p-content-hover-background);
     font-size: 0.75rem;
 }
+
 h2,
 p {
     margin: 0;
 }
+
 h2 {
     font-size: 1.125rem;
 }
+
 header p {
     margin-top: 0.3rem;
     color: var(--p-text-muted-color);
@@ -47,6 +53,7 @@ header p {
     align-items: center;
     gap: 0.5rem;
 }
+
 .detail-section__link {
     display: inline-flex;
     align-items: center;

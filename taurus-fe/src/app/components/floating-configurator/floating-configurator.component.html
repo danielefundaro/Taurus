@@ -2,9 +2,9 @@
     <p-button type="button" (onClick)="toggleDarkMode()" [rounded]="true"
         [icon]="isDarkTheme() ? 'pi pi-moon' : 'pi pi-sun'" pTooltip="Cambia tema chiaro/scuro" severity="secondary" />
     <div class="relative">
-        <p-button icon="pi pi-palette" ariaLabel="Configura il tema" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein"
-            leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true" pTooltip="Configura il tema" type="button"
-            rounded />
+        <p-button icon="pi pi-palette" ariaLabel="Configura il tema" pStyleClass="@next" enterFromClass="hidden"
+            enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout"
+            [hideOnOutsideClick]="true" pTooltip="Configura il tema" type="button" rounded />
         <app-configurator />
     </div>
 </div>

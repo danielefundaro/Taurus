@@ -39,7 +39,7 @@ export class LegalDocumentsComponent implements OnInit {
         private readonly legalService: LegalService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService
-    ) {}
+    ) { }
 
     protected onSearchChange(value: string): void {
         this.searchTerm = value;

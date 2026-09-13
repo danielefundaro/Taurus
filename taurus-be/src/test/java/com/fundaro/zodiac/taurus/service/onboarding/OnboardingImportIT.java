@@ -1,17 +1,5 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.TaurusApp;
 import com.fundaro.zodiac.taurus.config.EmbeddedSQL;
@@ -30,6 +18,28 @@ import com.fundaro.zodiac.taurus.repository.onboarding.OnboardingImportIssueRepo
 import com.fundaro.zodiac.taurus.repository.onboarding.OnboardingImportJobRepository;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -38,29 +48,15 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpHeaders;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-@SpringBootTest(classes = { TaurusApp.class, JacksonConfiguration.class, TestSecurityConfiguration.class })
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest(classes = {TaurusApp.class, JacksonConfiguration.class, TestSecurityConfiguration.class})
 @EmbeddedSQL
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -80,22 +76,37 @@ class OnboardingImportIT {
     private static final String VALID_CSV = "riferimento,nome,descrizione\r\nSTR-1,Clarinetto,Legni\r\n";
     private static final String INVALID_CSV = "riferimento,nome,descrizione\r\nSTR-2,,Nome obbligatorio\r\n";
 
-    @MockBean ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean JwtDecoder jwtDecoder;
-    @MockBean KeycloakService keycloakService;
+    @MockBean
+    ClientRegistrationRepository clientRegistrationRepository;
+    @MockBean
+    JwtDecoder jwtDecoder;
+    @MockBean
+    KeycloakService keycloakService;
 
-    @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
-    @Autowired TenantSchemaProvisioningService provisioningService;
-    @Autowired TenantTransactionExecutor transactionExecutor;
-    @Autowired TenantStorageService storageService;
-    @Autowired TenantsRepository tenantsRepository;
-    @Autowired OnboardingImportJobRepository jobs;
-    @Autowired OnboardingImportIssueRepository issues;
-    @Autowired InstrumentsRepository instruments;
-    @Autowired InventoryItemRepository inventory;
-    @Autowired OnboardingTemplateService templates;
-    @Autowired JdbcTemplate jdbcTemplate;
+    @Autowired
+    MockMvc mockMvc;
+    @Autowired
+    ObjectMapper objectMapper;
+    @Autowired
+    TenantSchemaProvisioningService provisioningService;
+    @Autowired
+    TenantTransactionExecutor transactionExecutor;
+    @Autowired
+    TenantStorageService storageService;
+    @Autowired
+    TenantsRepository tenantsRepository;
+    @Autowired
+    OnboardingImportJobRepository jobs;
+    @Autowired
+    OnboardingImportIssueRepository issues;
+    @Autowired
+    InstrumentsRepository instruments;
+    @Autowired
+    InventoryItemRepository inventory;
+    @Autowired
+    OnboardingTemplateService templates;
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     private final String tenantOne = "onboarding-a-" + UUID.randomUUID();
     private final String tenantTwo = "onboarding-b-" + UUID.randomUUID();

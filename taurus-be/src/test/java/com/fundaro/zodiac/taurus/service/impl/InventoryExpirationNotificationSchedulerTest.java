@@ -1,26 +1,11 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryExpirationNotice;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryExpirationNoticeType;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
+import com.fundaro.zodiac.taurus.domain.inventory.*;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryExpirationNoticeRepository;
-import java.time.LocalDate;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,14 +14,26 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class InventoryExpirationNotificationSchedulerTest {
 
-    @Mock InventoryAssignmentRepository assignmentRepository;
-    @Mock InventoryExpirationNoticeRepository expirationNoticeRepository;
-    @Mock NotificationOutboxPublisher notificationPublisher;
-    @Mock TenantSchemaRegistry tenantSchemaRegistry;
-    @Mock TenantTransactionExecutor tenantTransactionExecutor;
+    @Mock
+    InventoryAssignmentRepository assignmentRepository;
+    @Mock
+    InventoryExpirationNoticeRepository expirationNoticeRepository;
+    @Mock
+    NotificationOutboxPublisher notificationPublisher;
+    @Mock
+    TenantSchemaRegistry tenantSchemaRegistry;
+    @Mock
+    TenantTransactionExecutor tenantTransactionExecutor;
 
     private InventoryExpirationNotificationScheduler scheduler;
 

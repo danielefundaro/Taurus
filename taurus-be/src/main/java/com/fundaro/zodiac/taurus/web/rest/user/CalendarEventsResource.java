@@ -1,13 +1,12 @@
 package com.fundaro.zodiac.taurus.web.rest.user;
 
-import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import com.fundaro.zodiac.taurus.web.rest.RequiresTenantFeature;
-
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.criteria.CalendarEventsCriteria;
-import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.BulkAvailabilityResultDTO;
+import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.user.CalendarEventsService;
+import com.fundaro.zodiac.taurus.web.rest.RequiresTenantFeature;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;

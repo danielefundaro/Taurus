@@ -3,11 +3,13 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
+
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;

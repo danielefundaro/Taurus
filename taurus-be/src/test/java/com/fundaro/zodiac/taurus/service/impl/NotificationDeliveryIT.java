@@ -1,15 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Notices;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
-import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
@@ -21,6 +18,13 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.TestPropertySource;
+
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
@@ -29,17 +33,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.test.context.TestPropertySource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @IntegrationTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -55,19 +51,32 @@ import org.springframework.test.context.TestPropertySource;
 )
 class NotificationDeliveryIT {
 
-    @MockBean ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean JwtDecoder jwtDecoder;
-    @MockBean NotificationScheduler notificationScheduler;
-    @MockBean TenantFeatureService tenantFeatureService;
-    @Autowired TenantSchemaProvisioningService provisioningService;
-    @Autowired TenantTransactionExecutor transactionExecutor;
-    @Autowired NotificationOutboxPublisher publisher;
-    @Autowired NotificationDispatcher dispatcher;
-    @Autowired NotificationOutboxRepository outboxRepository;
-    @Autowired NoticesRepository noticesRepository;
-    @Autowired NoticesService noticesService;
-    @Autowired DataErasureService dataErasureService;
-    @PersistenceContext EntityManager entityManager;
+    @MockBean
+    ClientRegistrationRepository clientRegistrationRepository;
+    @MockBean
+    JwtDecoder jwtDecoder;
+    @MockBean
+    NotificationScheduler notificationScheduler;
+    @MockBean
+    TenantFeatureService tenantFeatureService;
+    @Autowired
+    TenantSchemaProvisioningService provisioningService;
+    @Autowired
+    TenantTransactionExecutor transactionExecutor;
+    @Autowired
+    NotificationOutboxPublisher publisher;
+    @Autowired
+    NotificationDispatcher dispatcher;
+    @Autowired
+    NotificationOutboxRepository outboxRepository;
+    @Autowired
+    NoticesRepository noticesRepository;
+    @Autowired
+    NoticesService noticesService;
+    @Autowired
+    DataErasureService dataErasureService;
+    @PersistenceContext
+    EntityManager entityManager;
 
     private final String tenantOne = "notification-delivery-a-" + UUID.randomUUID();
     private final String tenantTwo = "notification-delivery-b-" + UUID.randomUUID();
@@ -223,13 +232,13 @@ class NotificationDeliveryIT {
     @Test
     void rollingCompatibilityPreservesLegacyPendingEventsAndBackfillsCsvRoles() {
         transactionExecutor.execute(tenantOne, () -> entityManager.createNativeQuery("""
-            INSERT INTO finance_notification_outbox(
-                event_key, aggregate_type, aggregate_id, operation, title, message, severity,
-                actor_id, actor_display_name, recipient_roles, occurred_at, status, attempts, next_attempt_at
-            ) VALUES (?1, 'MOVEMENT', 88, 'MOVEMENT_CREATED', 'Economia: movimento registrato',
-                      'Evento legacy', 'INFO', 'legacy-actor', 'Legacy Actor', ?2, CURRENT_TIMESTAMP,
-                      'PENDING', 0, CURRENT_TIMESTAMP)
-            """)
+                INSERT INTO finance_notification_outbox(
+                    event_key, aggregate_type, aggregate_id, operation, title, message, severity,
+                    actor_id, actor_display_name, recipient_roles, occurred_at, status, attempts, next_attempt_at
+                ) VALUES (?1, 'MOVEMENT', 88, 'MOVEMENT_CREATED', 'Economia: movimento registrato',
+                          'Evento legacy', 'INFO', 'legacy-actor', 'Legacy Actor', ?2, CURRENT_TIMESTAMP,
+                          'PENDING', 0, CURRENT_TIMESTAMP)
+                """)
             .setParameter(1, "legacy-pending")
             .setParameter(2, "ROLE_ADMIN, ROLE_TREASURER")
             .executeUpdate());

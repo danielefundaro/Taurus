@@ -1,31 +1,28 @@
-<app-dialog-shell #shell heading="Modifica parte" subtitle="Definisci ordine, strumenti e pagine dello spartito." confirmLabel="Salva parte" [invalidCount]="currentScore.order ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Modifica parte" subtitle="Definisci ordine, strumenti e pagine dello spartito."
+    confirmLabel="Salva parte" [invalidCount]="currentScore.order ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <p-fluid>
         <div class="flex flex-col gap-4">
-            <app-form-field label="Ordine" forId="order" required [error]="shell.validationAttempted && !currentScore.order ? 'Indica la posizione della parte.' : undefined">
-                <p-inputnumber inputId="order" [(ngModel)]="currentScore!.order" [showButtons]="true" (onInput)="onReorderScores($event)" [min]="1" [max]="scores.length" mode="decimal" />
+            <app-form-field label="Ordine" forId="order" required
+                [error]="shell.validationAttempted && !currentScore.order ? 'Indica la posizione della parte.' : undefined">
+                <p-inputnumber inputId="order" [(ngModel)]="currentScore!.order" [showButtons]="true"
+                    (onInput)="onReorderScores($event)" [min]="1" [max]="scores.length" mode="decimal" />
             </app-form-field>
             <app-form-field label="Strumenti" forId="scoreInstruments">
-                <p-autocomplete
-                    inputId="scoreInstruments"
-                    [(ngModel)]="currentScore!.instruments"
-                    [suggestions]="autoFilteredInstruments"
-                    [virtualScroll]="true"
-                    [virtualScrollItemSize]="34"
-                    optionLabel="name"
-                    dropdown
-                    multiple
-                    display="chip"
-                    (completeMethod)="filterInstruments($event)"
-                    (ngModelChange)="onReorderInstruments()"
-                />
+                <p-autocomplete inputId="scoreInstruments" [(ngModel)]="currentScore!.instruments"
+                    [suggestions]="autoFilteredInstruments" [virtualScroll]="true" [virtualScrollItemSize]="34"
+                    optionLabel="name" dropdown multiple display="chip" (completeMethod)="filterInstruments($event)"
+                    (ngModelChange)="onReorderInstruments()" />
             </app-form-field>
             <app-form-field label="Media" forId="scoreMedia" hint="Trascina le pagine per cambiarne l’ordine">
-                <p-orderlist [value]="currentScore.media" dataKey="id" breakpoint="575px" [stripedRows]="true" [responsive]="true" (onReorder)="onReorderMedia()">
+                <p-orderlist [value]="currentScore.media" dataKey="id" breakpoint="575px" [stripedRows]="true"
+                    [responsive]="true" (onReorder)="onReorderMedia()">
                     <ng-template let-option let-selected="selected" #item>
                         <span class="me-2">Pagina {{ option.order }}</span>
-                        <div class="div-image pi pi-image" (click)="toggleDataTable(op2, $event)" (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)">
+                        <div class="div-image pi pi-image" (click)="toggleDataTable(op2, $event)"
+                            (keydown)="toggleDataTable(op2, $event)" (keypress)="toggleDataTable(op2, $event)">
                             <p-popover #op2 [style]="{ width: '40rem' }">
-                                <img [src]="mediaStream(option) | secure | async" alt="sheet-music-{{ option.index }}" />
+                                <img [src]="mediaStream(option) | secure | async"
+                                    alt="sheet-music-{{ option.index }}" />
                             </p-popover>
                         </div>
                     </ng-template>

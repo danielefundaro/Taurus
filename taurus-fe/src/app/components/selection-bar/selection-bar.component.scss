@@ -1,6 +1,7 @@
 :host {
     display: block;
 }
+
 .selection-bar {
     display: flex;
     flex-wrap: wrap;
@@ -12,9 +13,11 @@
     border-radius: var(--p-content-border-radius);
     background: color-mix(in srgb, var(--p-primary-color), transparent 92%);
 }
+
 .selection-bar__spacer {
     flex: 1 1 auto;
 }
+
 .selection-bar__custom-actions,
 .selection-bar__default-actions {
     display: flex;
@@ -22,6 +25,7 @@
     align-items: center;
     gap: 0.5rem;
 }
+
 @media (max-width: 640px) {
     .selection-bar__spacer {
         flex-basis: 100%;

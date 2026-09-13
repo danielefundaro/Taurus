@@ -1,3 +1,3 @@
 package com.fundaro.zodiac.taurus.domain.onboarding;
 
-public enum OnboardingImportFormat { XLSX, CSV }
+public enum OnboardingImportFormat {XLSX, CSV}

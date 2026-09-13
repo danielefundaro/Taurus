@@ -1,13 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -40,26 +34,91 @@ public class InventoryIssueReport extends TenantAuditedEntity {
     @Column(name = "resolved_by")
     private String resolvedBy;
 
-    public InventoryItem getItem() { return item; }
-    public void setItem(InventoryItem value) { item = value; }
-    public InventoryAssignment getAssignment() { return assignment; }
-    public void setAssignment(InventoryAssignment value) { assignment = value; }
-    public int getReportedQuantity() { return reportedQuantity; }
-    public void setReportedQuantity(int value) { reportedQuantity = value; }
-    public InventoryIssueSeverity getSeverity() { return severity; }
-    public void setSeverity(InventoryIssueSeverity value) { severity = value; }
-    public String getDescription() { return description; }
-    public void setDescription(String value) { description = value; }
-    public InventoryIssueStatus getStatus() { return status; }
-    public void setStatus(InventoryIssueStatus value) { status = value; }
-    public String getResolutionNotes() { return resolutionNotes; }
-    public void setResolutionNotes(String value) { resolutionNotes = value; }
-    public ZonedDateTime getAcknowledgedAt() { return acknowledgedAt; }
-    public void setAcknowledgedAt(ZonedDateTime value) { acknowledgedAt = value; }
-    public String getAcknowledgedBy() { return acknowledgedBy; }
-    public void setAcknowledgedBy(String value) { acknowledgedBy = value; }
-    public ZonedDateTime getResolvedAt() { return resolvedAt; }
-    public void setResolvedAt(ZonedDateTime value) { resolvedAt = value; }
-    public String getResolvedBy() { return resolvedBy; }
-    public void setResolvedBy(String value) { resolvedBy = value; }
+    public InventoryItem getItem() {
+        return item;
+    }
+
+    public void setItem(InventoryItem value) {
+        item = value;
+    }
+
+    public InventoryAssignment getAssignment() {
+        return assignment;
+    }
+
+    public void setAssignment(InventoryAssignment value) {
+        assignment = value;
+    }
+
+    public int getReportedQuantity() {
+        return reportedQuantity;
+    }
+
+    public void setReportedQuantity(int value) {
+        reportedQuantity = value;
+    }
+
+    public InventoryIssueSeverity getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(InventoryIssueSeverity value) {
+        severity = value;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String value) {
+        description = value;
+    }
+
+    public InventoryIssueStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(InventoryIssueStatus value) {
+        status = value;
+    }
+
+    public String getResolutionNotes() {
+        return resolutionNotes;
+    }
+
+    public void setResolutionNotes(String value) {
+        resolutionNotes = value;
+    }
+
+    public ZonedDateTime getAcknowledgedAt() {
+        return acknowledgedAt;
+    }
+
+    public void setAcknowledgedAt(ZonedDateTime value) {
+        acknowledgedAt = value;
+    }
+
+    public String getAcknowledgedBy() {
+        return acknowledgedBy;
+    }
+
+    public void setAcknowledgedBy(String value) {
+        acknowledgedBy = value;
+    }
+
+    public ZonedDateTime getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(ZonedDateTime value) {
+        resolvedAt = value;
+    }
+
+    public String getResolvedBy() {
+        return resolvedBy;
+    }
+
+    public void setResolvedBy(String value) {
+        resolvedBy = value;
+    }
 }

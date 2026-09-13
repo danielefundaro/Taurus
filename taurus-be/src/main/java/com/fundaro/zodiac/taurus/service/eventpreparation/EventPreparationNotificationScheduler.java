@@ -10,10 +10,12 @@ import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationServic
 import com.fundaro.zodiac.taurus.service.impl.NotificationOutboxPublisher;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

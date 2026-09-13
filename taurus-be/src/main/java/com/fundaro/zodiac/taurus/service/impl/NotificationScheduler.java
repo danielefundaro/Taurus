@@ -3,8 +3,10 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+
 import java.time.ZonedDateTime;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

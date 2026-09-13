@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.time.DateTimeException;
 import java.time.ZoneId;
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -178,12 +180,17 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     private void preserveOmittedFeatureFlags(TenantsDTO dto, Tenants previous) {
         if (dto.getFinanceEnabled() == null) dto.setFinanceEnabled(previous.getFinanceEnabled());
         if (dto.getInventoryEnabled() == null) dto.setInventoryEnabled(previous.getInventoryEnabled());
-        if (dto.getOnboardingImportEnabled() == null) dto.setOnboardingImportEnabled(previous.getOnboardingImportEnabled());
-        if (dto.getExternalCalendarFeedEnabled() == null) dto.setExternalCalendarFeedEnabled(previous.getExternalCalendarFeedEnabled());
+        if (dto.getOnboardingImportEnabled() == null)
+            dto.setOnboardingImportEnabled(previous.getOnboardingImportEnabled());
+        if (dto.getExternalCalendarFeedEnabled() == null)
+            dto.setExternalCalendarFeedEnabled(previous.getExternalCalendarFeedEnabled());
         if (dto.getInventoryQrEnabled() == null) dto.setInventoryQrEnabled(previous.getInventoryQrEnabled());
-        if (dto.getNotificationPreferencesEnabled() == null) dto.setNotificationPreferencesEnabled(previous.getNotificationPreferencesEnabled());
-        if (dto.getWebPushRemindersEnabled() == null) dto.setWebPushRemindersEnabled(previous.getWebPushRemindersEnabled());
-        if (dto.getEventPreparationEnabled() == null) dto.setEventPreparationEnabled(previous.getEventPreparationEnabled());
+        if (dto.getNotificationPreferencesEnabled() == null)
+            dto.setNotificationPreferencesEnabled(previous.getNotificationPreferencesEnabled());
+        if (dto.getWebPushRemindersEnabled() == null)
+            dto.setWebPushRemindersEnabled(previous.getWebPushRemindersEnabled());
+        if (dto.getEventPreparationEnabled() == null)
+            dto.setEventPreparationEnabled(previous.getEventPreparationEnabled());
     }
 
     private Map<String, Boolean> featureFlags(Tenants tenant) {

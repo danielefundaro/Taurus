@@ -11,13 +11,13 @@
         border-left: 1px solid var(--p-content-border-color);
     }
 
-    > span {
+    >span {
         display: block;
         color: var(--p-text-muted-color);
         font-size: 0.72rem;
     }
 
-    > strong {
+    >strong {
         display: block;
         margin-top: 0.25rem;
         color: var(--p-primary-color);
@@ -44,7 +44,7 @@
     font-size: 0.82rem;
     font-weight: 600;
 
-    > span:last-child {
+    >span:last-child {
         color: var(--p-text-muted-color);
         font-weight: 400;
     }
@@ -78,6 +78,7 @@
         background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
         color: var(--p-yellow-700);
     }
+
     &--returns {
         background: color-mix(in srgb, var(--p-blue-500) 16%, transparent);
         color: var(--p-blue-700);

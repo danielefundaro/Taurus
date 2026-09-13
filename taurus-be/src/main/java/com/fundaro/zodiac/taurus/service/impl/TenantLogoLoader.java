@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
 import javax.imageio.ImageIO;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -58,7 +59,8 @@ public class TenantLogoLoader {
                 .exchange((request, response) -> {
                     if (!response.getStatusCode().is2xxSuccessful()) return Optional.empty();
                     MediaType contentType = response.getHeaders().getContentType();
-                    if (contentType == null || !"image".equalsIgnoreCase(contentType.getType())) return Optional.empty();
+                    if (contentType == null || !"image".equalsIgnoreCase(contentType.getType()))
+                        return Optional.empty();
                     long contentLength = response.getHeaders().getContentLength();
                     if (contentLength > MAX_DOWNLOAD_SIZE) return Optional.empty();
                     byte[] bytes = response.getBody().readNBytes(MAX_DOWNLOAD_SIZE + 1);
@@ -74,7 +76,8 @@ public class TenantLogoLoader {
     Optional<byte[]> normalizeAsPng(byte[] bytes) {
         try (ByteArrayInputStream input = new ByteArrayInputStream(bytes); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             BufferedImage image = ImageIO.read(input);
-            if (image == null || (long) image.getWidth() * image.getHeight() > MAX_SOURCE_PIXELS) return Optional.empty();
+            if (image == null || (long) image.getWidth() * image.getHeight() > MAX_SOURCE_PIXELS)
+                return Optional.empty();
             BufferedImage normalized = resizeForPdf(image);
             if (!ImageIO.write(normalized, "png", output)) return Optional.empty();
             return Optional.of(output.toByteArray());
@@ -113,11 +116,11 @@ public class TenantLogoLoader {
         for (InetAddress address : InetAddress.getAllByName(uri.getHost())) {
             if (
                 address.isAnyLocalAddress() ||
-                address.isLoopbackAddress() ||
-                address.isLinkLocalAddress() ||
-                address.isSiteLocalAddress() ||
-                address.isMulticastAddress() ||
-                isUniqueLocalIpv6(address)
+                    address.isLoopbackAddress() ||
+                    address.isLinkLocalAddress() ||
+                    address.isSiteLocalAddress() ||
+                    address.isMulticastAddress() ||
+                    isUniqueLocalIpv6(address)
             ) {
                 return false;
             }

@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -51,17 +52,17 @@ class SecurityUtilsUnitTest {
             new UsernamePasswordAuthenticationToken("admin", "admin", authorities)
         );
         Boolean hasCurrentUserThisAuthority = SecurityUtils.hasCurrentUserAnyOfAuthorities(
-            AuthoritiesConstants.USER,
-            AuthoritiesConstants.ADMIN
-        )
+                AuthoritiesConstants.USER,
+                AuthoritiesConstants.ADMIN
+            )
             .contextWrite(context)
             .block();
         assertThat(hasCurrentUserThisAuthority).isTrue();
 
         hasCurrentUserThisAuthority = SecurityUtils.hasCurrentUserAnyOfAuthorities(
-            AuthoritiesConstants.ANONYMOUS,
-            AuthoritiesConstants.ADMIN
-        )
+                AuthoritiesConstants.ANONYMOUS,
+                AuthoritiesConstants.ADMIN
+            )
             .contextWrite(context)
             .block();
         assertThat(hasCurrentUserThisAuthority).isFalse();
@@ -75,17 +76,17 @@ class SecurityUtilsUnitTest {
             new UsernamePasswordAuthenticationToken("admin", "admin", authorities)
         );
         Boolean hasCurrentUserThisAuthority = SecurityUtils.hasCurrentUserNoneOfAuthorities(
-            AuthoritiesConstants.USER,
-            AuthoritiesConstants.ADMIN
-        )
+                AuthoritiesConstants.USER,
+                AuthoritiesConstants.ADMIN
+            )
             .contextWrite(context)
             .block();
         assertThat(hasCurrentUserThisAuthority).isFalse();
 
         hasCurrentUserThisAuthority = SecurityUtils.hasCurrentUserNoneOfAuthorities(
-            AuthoritiesConstants.ANONYMOUS,
-            AuthoritiesConstants.ADMIN
-        )
+                AuthoritiesConstants.ANONYMOUS,
+                AuthoritiesConstants.ADMIN
+            )
             .contextWrite(context)
             .block();
         assertThat(hasCurrentUserThisAuthority).isTrue();

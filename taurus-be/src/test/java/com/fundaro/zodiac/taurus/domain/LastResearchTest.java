@@ -1,10 +1,11 @@
 package com.fundaro.zodiac.taurus.domain;
 
-import static com.fundaro.zodiac.taurus.domain.LastResearchTestSamples.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.web.rest.TestUtil;
 import org.junit.jupiter.api.Test;
+
+import static com.fundaro.zodiac.taurus.domain.LastResearchTestSamples.getLastResearchSample1;
+import static com.fundaro.zodiac.taurus.domain.LastResearchTestSamples.getLastResearchSample2;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class LastResearchTest {
 

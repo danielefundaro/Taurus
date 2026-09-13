@@ -3,7 +3,9 @@ package com.fundaro.zodiac.taurus.service;
 import com.fundaro.zodiac.taurus.service.dto.LegalAcceptanceRequestDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalDocumentDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalStatusDTO;
+
 import java.util.List;
+
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 public interface LegalService {
