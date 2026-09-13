@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header heading="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')"></app-page-header>
+<app-page-header heading="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')">
     <div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"><p-button label="Nuovo evento"
             icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
