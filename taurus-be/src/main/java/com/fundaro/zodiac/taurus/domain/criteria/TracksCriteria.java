@@ -3,10 +3,9 @@ package com.fundaro.zodiac.taurus.domain.criteria;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
-import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
-import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.LongFilter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.util.Objects;
 import java.util.Optional;

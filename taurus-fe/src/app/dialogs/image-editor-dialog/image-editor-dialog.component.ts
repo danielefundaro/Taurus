@@ -107,13 +107,13 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         this.recipe.crops =
             direction === 'vertical'
                 ? [
-                      { x: 0, y: 0, width: 0.5, height: 1 },
-                      { x: 0.5, y: 0, width: 0.5, height: 1 }
-                  ]
+                    { x: 0, y: 0, width: 0.5, height: 1 },
+                    { x: 0.5, y: 0, width: 0.5, height: 1 }
+                ]
                 : [
-                      { x: 0, y: 0, width: 1, height: 0.5 },
-                      { x: 0, y: 0.5, width: 1, height: 0.5 }
-                  ];
+                    { x: 0, y: 0, width: 1, height: 0.5 },
+                    { x: 0, y: 0.5, width: 1, height: 0.5 }
+                ];
         this.activeCropIndex = 0;
         this.cropDrawing = false;
         this.changed(direction === 'vertical' ? 'Pagina divisa in metà sinistra e destra' : 'Pagina divisa in metà alta e bassa');

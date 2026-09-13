@@ -27,7 +27,7 @@ export class AppComponent implements OnInit {
         private readonly pushNotificationService: PushNotificationService,
         private readonly listLayoutService: ListLayoutService,
         private readonly appUpdateService: AppUpdateService
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         this.appUpdateService.init();

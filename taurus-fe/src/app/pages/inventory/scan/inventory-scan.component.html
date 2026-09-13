@@ -1,77 +1,82 @@
 <main class="scan-shell" aria-live="polite">
     @if (loading) {
-        <section class="card scan-card" aria-busy="true">
-            <p-skeleton width="9rem" height="1rem" />
-            <p-skeleton width="75%" height="2rem" styleClass="mt-4" />
-            <p-skeleton width="100%" height="12rem" styleClass="mt-5" />
-        </section>
+    <section class="card scan-card" aria-busy="true">
+        <p-skeleton width="9rem" height="1rem" />
+        <p-skeleton width="75%" height="2rem" styleClass="mt-4" />
+        <p-skeleton width="100%" height="12rem" styleClass="mt-5" />
+    </section>
     } @else if (unavailable) {
-        <section class="card scan-card text-center">
-            <i class="pi pi-qrcode scan-icon" aria-hidden="true"></i>
-            <h1 #resultTitle tabindex="-1">Codice non disponibile</h1>
-            <p>Non è possibile mostrare questo oggetto. Il codice potrebbe non essere più valido oppure l’oggetto non è disponibile per il tuo profilo.</p>
-            <div class="scan-actions">
-                <p-button label="Riprova" icon="pi pi-refresh" (onClick)="resolve()" />
-                <p-button label="Vai al mio inventario" icon="pi pi-box" severity="secondary" [routerLink]="['/inventory']" [queryParams]="{ view: 'mine' }" />
-            </div>
-        </section>
+    <section class="card scan-card text-center">
+        <i class="pi pi-qrcode scan-icon" aria-hidden="true"></i>
+        <h1 #resultTitle tabindex="-1">Codice non disponibile</h1>
+        <p>Non è possibile mostrare questo oggetto. Il codice potrebbe non essere più valido oppure l’oggetto non è
+            disponibile per il tuo profilo.</p>
+        <div class="scan-actions">
+            <p-button label="Riprova" icon="pi pi-refresh" (onClick)="resolve()" />
+            <p-button label="Vai al mio inventario" icon="pi pi-box" severity="secondary" [routerLink]="['/inventory']"
+                [queryParams]="{ view: 'mine' }" />
+        </div>
+    </section>
     } @else if (result?.target === 'ADMIN_ITEM') {
-        <section class="card scan-card">
-            <span class="text-sm text-muted-color">{{ tenantCode }} · {{ result?.inventoryNumber }}</span>
-            <h1 #resultTitle tabindex="-1">{{ result?.name }}</h1>
-            @if (adminPhotoUrl(); as photoUrl) {
-                <img class="scan-photo" [src]="photoUrl | secure | async" [alt]="'Anteprima di ' + result?.name" />
-            }
-            <div class="scan-metrics">
-                <div>
-                    <strong>{{ result?.availableQuantity }}</strong
-                    ><span>disponibili</span>
-                </div>
-                <div>
-                    <strong>{{ result?.assignedQuantity }}</strong
-                    ><span>assegnati</span>
-                </div>
-                <div>
-                    <strong>{{ result?.totalQuantity }}</strong
-                    ><span>totali</span>
-                </div>
+    <section class="card scan-card">
+        <span class="text-sm text-muted-color">{{ tenantCode }} · {{ result?.inventoryNumber }}</span>
+        <h1 #resultTitle tabindex="-1">{{ result?.name }}</h1>
+        @if (adminPhotoUrl(); as photoUrl) {
+        <img class="scan-photo" [src]="photoUrl | secure | async" [alt]="'Anteprima di ' + result?.name" />
+        }
+        <div class="scan-metrics">
+            <div>
+                <strong>{{ result?.availableQuantity }}</strong><span>disponibili</span>
             </div>
-            @if (result?.unsafe) {
-                <app-inline-alert severity="warn" heading="Nuove assegnazioni bloccate" detail="È presente almeno una segnalazione di sicurezza aperta." />
-            } @else if (result?.openIssueCount) {
-                <app-inline-alert severity="info" heading="Segnalazioni aperte" [detail]="result?.openIssueCount + ' segnalazioni richiedono attenzione.'" />
-            }
-            <div class="scan-actions">
-                <p-button label="Apri scheda completa" icon="pi pi-external-link" [routerLink]="['/inventory/items', result?.itemId]" />
-                <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportAdminIssue()" />
-                <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
+            <div>
+                <strong>{{ result?.assignedQuantity }}</strong><span>assegnati</span>
             </div>
-        </section>
+            <div>
+                <strong>{{ result?.totalQuantity }}</strong><span>totali</span>
+            </div>
+        </div>
+        @if (result?.unsafe) {
+        <app-inline-alert severity="warn" heading="Nuove assegnazioni bloccate"
+            detail="È presente almeno una segnalazione di sicurezza aperta." />
+        } @else if (result?.openIssueCount) {
+        <app-inline-alert severity="info" heading="Segnalazioni aperte"
+            [detail]="result?.openIssueCount + ' segnalazioni richiedono attenzione.'" />
+        }
+        <div class="scan-actions">
+            <p-button label="Apri scheda completa" icon="pi pi-external-link"
+                [routerLink]="['/inventory/items', result?.itemId]" />
+            <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportAdminIssue()" />
+            <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
+        </div>
+    </section>
     } @else {
-        <section class="card scan-card">
-            <span class="text-sm text-muted-color">{{ tenantCode }}</span>
-            <h1 #resultTitle tabindex="-1">Le tue consegne</h1>
-            <p>Il codice identifica un oggetto presente nel tuo inventario.</p>
-            <div class="flex flex-col gap-4">
-                @for (assignment of result?.assignments; track assignment.assignmentId) {
-                    <article class="assignment-card">
-                        @if (assignmentPhotoUrl(assignment); as photoUrl) {
-                            <img [src]="photoUrl | secure | async" [alt]="assignment.itemName" />
-                        }
-                        <div>
-                            <span>{{ assignment.inventoryNumber }}</span>
-                            <h2>{{ assignment.itemName }}</h2>
-                            <p>{{ assignment.outstandingQuantity }} {{ assignment.outstandingQuantity === 1 ? 'unità in possesso' : 'unità in possesso' }}</p>
-                        </div>
-                        <div class="scan-actions">
-                            <p-button label="Apri consegna" icon="pi pi-eye" [routerLink]="['/inventory/assignments', assignment.assignmentId]" />
-                            @if (assignment.allowedActions.includes('REPORT_ISSUE')) {
-                                <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportAssignmentIssue(assignment)" />
-                            }
-                        </div>
-                    </article>
+    <section class="card scan-card">
+        <span class="text-sm text-muted-color">{{ tenantCode }}</span>
+        <h1 #resultTitle tabindex="-1">Le tue consegne</h1>
+        <p>Il codice identifica un oggetto presente nel tuo inventario.</p>
+        <div class="flex flex-col gap-4">
+            @for (assignment of result?.assignments; track assignment.assignmentId) {
+            <article class="assignment-card">
+                @if (assignmentPhotoUrl(assignment); as photoUrl) {
+                <img [src]="photoUrl | secure | async" [alt]="assignment.itemName" />
                 }
-            </div>
-        </section>
+                <div>
+                    <span>{{ assignment.inventoryNumber }}</span>
+                    <h2>{{ assignment.itemName }}</h2>
+                    <p>{{ assignment.outstandingQuantity }} {{ assignment.outstandingQuantity === 1 ? 'unità in
+                        possesso' : 'unità in possesso' }}</p>
+                </div>
+                <div class="scan-actions">
+                    <p-button label="Apri consegna" icon="pi pi-eye"
+                        [routerLink]="['/inventory/assignments', assignment.assignmentId]" />
+                    @if (assignment.allowedActions.includes('REPORT_ISSUE')) {
+                    <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn"
+                        (onClick)="reportAssignmentIssue(assignment)" />
+                    }
+                </div>
+            </article>
+            }
+        </div>
+    </section>
     }
 </main>

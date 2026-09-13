@@ -1,21 +1,23 @@
-<app-detail-section heading="Tracce recenti" description="Ultimi inserimenti nel catalogo" actionLabel="Tutte le tracce" actionLink="/tracks">
+<app-detail-section heading="Tracce recenti" description="Ultimi inserimenti nel catalogo" actionLabel="Tutte le tracce"
+    actionLink="/tracks">
     @if (visibleTracks.length > 0) {
-        @for (track of visibleTracks; track track.id) {
-            <app-list-row compact>
-                <span rowMedia class="track-icon"><i class="pi pi-file" aria-hidden="true"></i></span>
-                <span rowIdentity class="track-main">
-                    <a [routerLink]="['/tracks', track.id]">{{ track.name || 'Traccia senza nome' }}</a>
-                    <small>{{ track.arranger || track.composer || 'Autore non indicato' }}</small>
-                </span>
-                <span rowMetrics class="track-tags">
-                    @for (type of visibleTypes(track); track type) {
-                        <span>{{ type }}</span>
-                    }
-                </span>
-                <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
-            </app-list-row>
-        }
+    @for (track of visibleTracks; track track.id) {
+    <app-list-row compact>
+        <span rowMedia class="track-icon"><i class="pi pi-file" aria-hidden="true"></i></span>
+        <span rowIdentity class="track-main">
+            <a [routerLink]="['/tracks', track.id]">{{ track.name || 'Traccia senza nome' }}</a>
+            <small>{{ track.arranger || track.composer || 'Autore non indicato' }}</small>
+        </span>
+        <span rowMetrics class="track-tags">
+            @for (type of visibleTypes(track); track type) {
+            <span>{{ type }}</span>
+            }
+        </span>
+        <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+    </app-list-row>
+    }
     } @else {
-        <app-empty-state icon="pi pi-file" heading="Nessuna traccia disponibile" message="Le ultime tracce inserite compariranno qui." compact />
+    <app-empty-state icon="pi pi-file" heading="Nessuna traccia disponibile"
+        message="Le ultime tracce inserite compariranno qui." compact />
     }
 </app-detail-section>

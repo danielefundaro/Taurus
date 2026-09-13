@@ -3,16 +3,17 @@ package com.fundaro.zodiac.taurus.repository.notification;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDeliveryType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public interface NotificationPushDeliveryRepository extends JpaRepository<NotificationPushDelivery, Long> {
 
@@ -37,7 +38,9 @@ public interface NotificationPushDeliveryRepository extends JpaRepository<Notifi
     @Query("select d from NotificationPushDelivery d left join fetch d.notice where d.id = :id and d.deleted = false")
     Optional<NotificationPushDelivery> findByIdForUpdate(@Param("id") Long id);
 
-    /** Lock senza join fetch: la console amministrativa non legge mai la notice collegata. */
+    /**
+     * Lock senza join fetch: la console amministrativa non legge mai la notice collegata.
+     */
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from NotificationPushDelivery d where d.id = :id and d.deleted = false")
     Optional<NotificationPushDelivery> findByIdForAdminUpdate(@Param("id") Long id);

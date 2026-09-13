@@ -1,26 +1,19 @@
-<app-page-header heading="Documenti legali" [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')"
-    ><div pageActions><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div
-></app-page-header>
+<app-page-header heading="Documenti legali"
+    [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')">
+    <div pageActions><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div>
+</app-page-header>
 
-<app-inline-alert severity="info" heading="Versioni immutabili" detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." />
+<app-inline-alert severity="info" heading="Versioni immutabili"
+    detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." />
 
-<app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false" (searchChange)="onSearchChange($event)" />
+<app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false"
+    (searchChange)="onSearchChange($event)" />
 
 <div class="card !p-0 overflow-hidden">
-    <p-table
-        #documentTable
-        [value]="documents"
-        [globalFilterFields]="['title', 'version', 'documentType']"
-        [loading]="loading"
-        [rowHover]="true"
-        [paginator]="true"
-        [rows]="12"
-        [rowsPerPageOptions]="[12, 24, 48]"
-        paginatorDropdownAppendTo="body"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        responsiveLayout="scroll"
-    >
+    <p-table #documentTable [value]="documents" [globalFilterFields]="['title', 'version', 'documentType']"
+        [loading]="loading" [rowHover]="true" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
+        paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" responsiveLayout="scroll">
         <ng-template #header>
             <tr>
                 <th scope="col">Documento</th>
@@ -37,41 +30,42 @@
                 <td>
                     <div class="font-semibold">{{ document.title }}</div>
                     <div class="text-sm text-surface-500 mt-1">{{ typeLabel(document.documentType) }}</div>
-                    <a class="document-link" [href]="document.url" target="_blank" rel="noopener noreferrer"> {{ document.url }} <i class="pi pi-external-link"></i> </a>
+                    <a class="document-link" [href]="document.url" target="_blank" rel="noopener noreferrer"> {{
+                        document.url }} <i class="pi pi-external-link"></i> </a>
                 </td>
                 <td>{{ document.version }}</td>
                 <td>{{ document.publishedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td>{{ actionLabel(document.action) }}</td>
                 <td>
-                    <p-tag [value]="document.required ? 'Sì' : 'No'" [severity]="document.required ? 'info' : 'secondary'" />
+                    <p-tag [value]="document.required ? 'Sì' : 'No'"
+                        [severity]="document.required ? 'info' : 'secondary'" />
                 </td>
                 <td>
-                    <p-tag [value]="document.active ? 'Attivo' : 'Non attivo'" [severity]="document.active ? 'success' : 'secondary'" />
+                    <p-tag [value]="document.active ? 'Attivo' : 'Non attivo'"
+                        [severity]="document.active ? 'success' : 'secondary'" />
                 </td>
                 <td class="text-right">
-                    <p-button icon="pi pi-pencil" ariaLabel="Modifica documento" [rounded]="true" [text]="true" pTooltip="Modifica" (onClick)="editDocument(document)" />
+                    <p-button icon="pi pi-pencil" ariaLabel="Modifica documento" [rounded]="true" [text]="true"
+                        pTooltip="Modifica" (onClick)="editDocument(document)" />
                 </td>
             </tr>
         </ng-template>
         <ng-template #loadingbody>
             @for (row of [0, 1, 2, 3, 4, 5]; track row) {
-                <tr>
-                    @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
-                        <td><p-skeleton /></td>
-                    }
-                </tr>
+            <tr>
+                @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
+                <td><p-skeleton /></td>
+                }
+            </tr>
             }
         </ng-template>
         <ng-template #emptymessage>
             <tr>
                 <td colspan="7">
-                    <app-empty-state
-                        icon="pi pi-file"
-                        [heading]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
+                    <app-empty-state icon="pi pi-file" [heading]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
                         [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Pubblica il primo documento legale per iniziare.'"
                         [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo documento'"
-                        (action)="searchTerm ? onSearchChange('') : addDocument()"
-                    />
+                        (action)="searchTerm ? onSearchChange('') : addDocument()" />
                 </td>
             </tr>
         </ng-template>

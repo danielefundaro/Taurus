@@ -7,8 +7,8 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.RoleFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.BooleanFilter;
-import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.LongFilter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.util.Objects;
 import java.util.Optional;

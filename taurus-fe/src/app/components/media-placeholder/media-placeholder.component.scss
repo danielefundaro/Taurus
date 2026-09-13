@@ -2,6 +2,7 @@
     display: block;
     width: 100%;
 }
+
 .media-placeholder {
     display: grid;
     width: 100%;
@@ -18,20 +19,25 @@
     font-size: 0.85rem;
     text-align: center;
 }
+
 .media-placeholder p {
     max-width: 22rem;
     margin: 0;
 }
+
 .media-placeholder strong {
     color: var(--text-color);
 }
+
 .media-placeholder--error {
     border-style: solid;
 }
+
 .media-placeholder--error i {
     font-size: 1.5rem;
     color: var(--p-orange-500);
 }
+
 .media-placeholder__retry {
     display: inline-flex;
     min-width: 44px;
@@ -48,6 +54,7 @@
     cursor: pointer;
     font-weight: 600;
 }
+
 .media-placeholder__retry:hover {
     background: var(--surface-hover);
 }

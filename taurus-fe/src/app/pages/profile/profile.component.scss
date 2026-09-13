@@ -12,12 +12,14 @@
 }
 
 :host ::ng-deep .notification-category-table {
+
     th,
     td {
         vertical-align: middle;
     }
 
     @media (max-width: 640px) {
+
         th:nth-child(2),
         td:nth-child(2) {
             min-width: 10rem;

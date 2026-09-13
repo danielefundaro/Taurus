@@ -1,15 +1,16 @@
 package com.fundaro.zodiac.taurus.utils.pdf;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+
+import java.awt.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class PdfPageWriter {
 
@@ -365,7 +366,8 @@ public final class PdfPageWriter {
         for (int column = 0; column < headers.size(); column++) {
             float width = textWidth(normalize(headers.get(column)), bold, TABLE_FONT_SIZE);
             for (List<String> row : rows) {
-                if (column < row.size()) width = Math.max(width, textWidth(normalize(row.get(column)), regular, TABLE_FONT_SIZE));
+                if (column < row.size())
+                    width = Math.max(width, textWidth(normalize(row.get(column)), regular, TABLE_FONT_SIZE));
             }
             widths.add(Math.max(TABLE_MIN_COLUMN_WIDTH, Math.min(width + 2 * TABLE_CELL_PADDING, TABLE_MAX_COLUMN_WIDTH)));
         }
@@ -403,7 +405,7 @@ public final class PdfPageWriter {
             int fittingCharacters = 1;
             while (
                 fittingCharacters < remaining.length() &&
-                textWidth(remaining.substring(0, fittingCharacters + 1), font, size) <= maxWidth
+                    textWidth(remaining.substring(0, fittingCharacters + 1), font, size) <= maxWidth
             ) fittingCharacters++;
             int breakAt = remaining.lastIndexOf(' ', fittingCharacters);
             if (breakAt <= 0) breakAt = fittingCharacters;

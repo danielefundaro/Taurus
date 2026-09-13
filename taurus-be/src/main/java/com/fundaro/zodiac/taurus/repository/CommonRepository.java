@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.data.repository.query.Param;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.time.ZonedDateTime;
 
 @NoRepositoryBean
 public interface CommonRepository<E extends CommonFields, C extends CommonCriteria>

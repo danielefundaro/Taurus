@@ -1,295 +1,330 @@
 <p-confirmdialog />
 <p-fluid>
     @if (loading) {
-        <div class="card flex flex-col gap-3">
-            <p-skeleton width="14rem" height="2rem" />
-            <p-skeleton width="10rem" height="1rem" />
-        </div>
-        <div class="card flex flex-col gap-4">
-            <p-skeleton height="3rem" />
-            <p-skeleton height="3rem" />
-            <p-skeleton height="8rem" />
-        </div>
+    <div class="card flex flex-col gap-3">
+        <p-skeleton width="14rem" height="2rem" />
+        <p-skeleton width="10rem" height="1rem" />
+    </div>
+    <div class="card flex flex-col gap-4">
+        <p-skeleton height="3rem" />
+        <p-skeleton height="3rem" />
+        <p-skeleton height="8rem" />
+    </div>
     } @else {
-        <app-page-header kicker="Oggetto inventario" [heading]="isNew ? 'Nuovo oggetto' : item.name" [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory" [dirty]="isDirty"
-            ><div pageActions><p-button label="Salva oggetto" icon="pi pi-check" [loading]="saving" [disabled]="!canSave" (onClick)="save()" /></div
-        ></app-page-header>
+    <app-page-header kicker="Oggetto inventario" [heading]="isNew ? 'Nuovo oggetto' : item.name"
+        [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory"
+        [dirty]="isDirty">
+        <div pageActions><p-button label="Salva oggetto" icon="pi pi-check" [loading]="saving" [disabled]="!canSave"
+                (onClick)="save()" /></div>
+    </app-page-header>
 
-        @if (!isNew) {
-            <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="inventory-stat">
-                    <strong>{{ item.totalQuantity }}</strong
-                    ><span>Quantità totale</span>
-                </div>
-                <div class="inventory-stat">
-                    <strong>{{ item.assignedQuantity }}</strong
-                    ><span>Assegnati</span>
-                </div>
-                <div class="inventory-stat">
-                    <strong>{{ item.availableQuantity }}</strong
-                    ><span>Disponibili</span>
+    @if (!isNew) {
+    <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="inventory-stat">
+            <strong>{{ item.totalQuantity }}</strong><span>Quantità totale</span>
+        </div>
+        <div class="inventory-stat">
+            <strong>{{ item.assignedQuantity }}</strong><span>Assegnati</span>
+        </div>
+        <div class="inventory-stat">
+            <strong>{{ item.availableQuantity }}</strong><span>Disponibili</span>
+        </div>
+    </div>
+    }
+
+    <app-detail-section heading="Dati oggetto"
+        description="Identificazione, quantità e stato di conservazione. Si salva con «Salva oggetto» in alto."
+        [dirty]="itemDirty">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <app-form-field label="Numero inventariale" forId="inventoryNumber" required
+                [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
+                <input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber"
+                    (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Nome" forId="name" required
+                [error]="item.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'">
+                <input pInputText id="name" [(ngModel)]="item.name" (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Quantità totale" forId="totalQuantity">
+                <p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true"
+                    (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Stato di conservazione" forId="condition">
+                <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value"
+                    [(ngModel)]="item.conditionStatus" (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Valore unitario stimato" forId="value">
+                <p-inputnumber inputId="value" [(ngModel)]="item.estimatedUnitValue" mode="decimal"
+                    [minFractionDigits]="2" (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Valuta ISO" forId="currency" hint="Ad esempio EUR">
+                <input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency"
+                    (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"
+                    (ngModelChange)="markItemDirty()"></textarea>
+            </app-form-field>
+            <app-form-field class="md:col-span-2 lg:col-span-3" label="Note di conservazione" forId="conditionNotes">
+                <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"
+                    (ngModelChange)="markItemDirty()"></textarea>
+            </app-form-field>
+        </div>
+    </app-detail-section>
+
+    @if (isNew) {
+    <app-inline-alert severity="info" heading="Completa prima il salvataggio"
+        detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
+    } @else {
+    @if (inventoryQrEnabled()) {
+    <app-detail-section heading="Codice QR"
+        description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
+        <div sectionActions class="flex flex-wrap gap-2">
+            <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
+            <p-button label="Ruota codice" icon="pi pi-refresh" severity="danger" [outlined]="true"
+                (onClick)="rotateQrCode()" />
+        </div>
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + item.inventoryNumber"
+                class="w-48 h-48 bg-white border border-surface rounded-lg" />
+            <app-inline-alert severity="info" heading="Etichetta privata"
+                detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
+        </div>
+    </app-detail-section>
+    }
+
+    <app-detail-section heading="Fotografie" [count]="item.photos?.length"
+        description="JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
+        [dirty]="photoOrderDirty">
+        <div sectionActions class="flex flex-wrap gap-2">
+            <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty"
+                (onClick)="savePhotoOrder()" />
+            <label class="p-button p-component p-button-secondary cursor-pointer">
+                <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
+                <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
+            </label>
+        </div>
+        @if (item.photos?.length) {
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            @for (photo of item.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
+            <div class="inventory-photo relative" [class.inventory-photo-preview]="photo.preview">
+                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" />
+                @if (photo.preview) {
+                <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
+                }
+                <p-button icon="pi pi-times" ariaLabel="Rimuovi fotografia" severity="danger" size="small"
+                    [rounded]="true" class="absolute top-2 right-2" pTooltip="Rimuovi fotografia"
+                    (onClick)="removePhoto(photo.id)" />
+                <span class="photo-name">{{ photo.fileName }}</span>
+                <div class="photo-actions">
+                    <p-button icon="pi pi-arrow-left" ariaLabel="Sposta fotografia prima" severity="secondary"
+                        size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima"
+                        (onClick)="movePhoto(index, -1)" />
+                    <p-button icon="pi pi-star" ariaLabel="Usa fotografia come anteprima" severity="secondary"
+                        size="small" [text]="!photo.preview" [disabled]="photo.preview || photoOrderDirty"
+                        [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'"
+                        (onClick)="setPreviewPhoto(photo.id)" />
+                    <p-button icon="pi pi-arrow-right" ariaLabel="Sposta fotografia dopo" severity="secondary"
+                        size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo"
+                        (onClick)="movePhoto(index, 1)" />
                 </div>
             </div>
-        }
-
-        <app-detail-section heading="Dati oggetto" description="Identificazione, quantità e stato di conservazione. Si salva con «Salva oggetto» in alto." [dirty]="itemDirty">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <app-form-field label="Numero inventariale" forId="inventoryNumber" required [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
-                    <input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field label="Nome" forId="name" required [error]="item.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'">
-                    <input pInputText id="name" [(ngModel)]="item.name" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field label="Quantità totale" forId="totalQuantity">
-                    <p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field label="Stato di conservazione" forId="condition">
-                    <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="item.conditionStatus" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field label="Valore unitario stimato" forId="value">
-                    <p-inputnumber inputId="value" [(ngModel)]="item.estimatedUnitValue" mode="decimal" [minFractionDigits]="2" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field label="Valuta ISO" forId="currency" hint="Ad esempio EUR">
-                    <input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency" (ngModelChange)="markItemDirty()" />
-                </app-form-field>
-                <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                    <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description" (ngModelChange)="markItemDirty()"></textarea>
-                </app-form-field>
-                <app-form-field class="md:col-span-2 lg:col-span-3" label="Note di conservazione" forId="conditionNotes">
-                    <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes" (ngModelChange)="markItemDirty()"></textarea>
-                </app-form-field>
-            </div>
-        </app-detail-section>
-
-        @if (isNew) {
-            <app-inline-alert severity="info" heading="Completa prima il salvataggio" detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
-        } @else {
-            @if (inventoryQrEnabled()) {
-                <app-detail-section heading="Codice QR" description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
-                    <div sectionActions class="flex flex-wrap gap-2">
-                        <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
-                        <p-button label="Ruota codice" icon="pi pi-refresh" severity="danger" [outlined]="true" (onClick)="rotateQrCode()" />
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                        <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + item.inventoryNumber" class="w-48 h-48 bg-white border border-surface rounded-lg" />
-                        <app-inline-alert severity="info" heading="Etichetta privata" detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
-                    </div>
-                </app-detail-section>
             }
+        </div>
+        } @else {
+        <app-empty-state compact icon="pi pi-images" heading="Nessuna fotografia"
+            message="Aggiungi una fotografia per documentare l’oggetto." />
+        }
+    </app-detail-section>
 
-            <app-detail-section
-                heading="Fotografie"
-                [count]="item.photos?.length"
-                description="JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
-                [dirty]="photoOrderDirty"
-            >
-                <div sectionActions class="flex flex-wrap gap-2">
-                    <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty" (onClick)="savePhotoOrder()" />
-                    <label class="p-button p-component p-button-secondary cursor-pointer">
-                        <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
-                        <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
-                    </label>
-                </div>
-                @if (item.photos?.length) {
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                        @for (photo of item.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
-                            <div class="inventory-photo relative" [class.inventory-photo-preview]="photo.preview">
-                                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" />
-                                @if (photo.preview) {
-                                    <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
-                                }
-                                <p-button icon="pi pi-times" ariaLabel="Rimuovi fotografia" severity="danger" size="small" [rounded]="true" class="absolute top-2 right-2" pTooltip="Rimuovi fotografia" (onClick)="removePhoto(photo.id)" />
-                                <span class="photo-name">{{ photo.fileName }}</span>
-                                <div class="photo-actions">
-                                    <p-button icon="pi pi-arrow-left" ariaLabel="Sposta fotografia prima" severity="secondary" size="small" [text]="true" [disabled]="first" pTooltip="Sposta prima" (onClick)="movePhoto(index, -1)" />
-                                    <p-button
-                                        icon="pi pi-star"
-                                        ariaLabel="Usa fotografia come anteprima"
-                                        severity="secondary"
-                                        size="small"
-                                        [text]="!photo.preview"
-                                        [disabled]="photo.preview || photoOrderDirty"
-                                        [pTooltip]="photoOrderDirty ? 'Salva prima il nuovo ordine' : 'Usa come anteprima'"
-                                        (onClick)="setPreviewPhoto(photo.id)"
-                                    />
-                                    <p-button icon="pi pi-arrow-right" ariaLabel="Sposta fotografia dopo" severity="secondary" size="small" [text]="true" [disabled]="last" pTooltip="Sposta dopo" (onClick)="movePhoto(index, 1)" />
+    <app-detail-section heading="Assegna a un utente"
+        description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-4">
+                <app-form-field label="Utente" forId="assignmentUser">
+                    <p-select inputId="assignmentUser" [options]="users" [(ngModel)]="selectedUser" optionLabel="name"
+                        placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
+                        <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
+                        <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
+                    </p-select>
+                </app-form-field>
+            </div>
+            <div class="md:col-span-2">
+                <app-form-field label="Quantità" forId="assignmentQuantity">
+                    <p-inputnumber inputId="assignmentQuantity" [(ngModel)]="assignmentQuantity" [min]="1"
+                        [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
+                </app-form-field>
+            </div>
+            <div class="md:col-span-3">
+                <app-form-field label="Data di scadenza" forId="assignmentExpirationDate">
+                    <p-datepicker inputId="assignmentExpirationDate" [(ngModel)]="assignmentExpirationDate"
+                        dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+                        appendTo="body" />
+                </app-form-field>
+            </div>
+            <div class="md:col-span-3 flex items-end">
+                <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full"
+                    [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity"
+                    (onClick)="assign()" />
+            </div>
+            <div class="md:col-span-12">
+                <app-form-field label="Descrizione dell’assegnazione" forId="assignmentDescription">
+                    <textarea pTextarea id="assignmentDescription" rows="2"
+                        [(ngModel)]="assignmentDescription"></textarea>
+                </app-form-field>
+            </div>
+        </div>
+    </app-detail-section>
+
+    <app-detail-section heading="Assegnazioni e riconsegne" [count]="item.assignments?.length"
+        description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»."
+        [dirty]="dirtyAssignments.size > 0">
+        <p-table [value]="item.assignments || []" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
+            dataKey="id" [rowHover]="true"
+            currentPageReportTemplate="Da {first} a {last} di {totalRecords} assegnazioni"
+            [showCurrentPageReport]="true" responsiveLayout="scroll">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Utente</th>
+                    <th scope="col">Quantità assegnata</th>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col">Scadenza</th>
+                    <th scope="col">Presa visione</th>
+                    <th scope="col">Riconsegne</th>
+                    <th scope="col"></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-assignment>
+                <tr>
+                    <td class="min-w-48">
+                        <strong>{{ assignment.userName }} {{ assignment.userLastName }}</strong>
+                        <div class="text-xs text-surface-500 mt-1">Assegnato il {{ assignment.assignedAt | date:
+                            'dd/MM/yyyy HH:mm' }}</div>
+                        <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" class="mt-2" />
+                    </td>
+                    <td class="min-w-40">
+                        <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity"
+                            [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24"
+                            (ngModelChange)="markAssignmentDirty(assignment.id)" />
+                        <div class="text-xs text-surface-500 mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
+                    </td>
+                    <td class="min-w-56">
+                        <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description"
+                            (ngModelChange)="markAssignmentDirty(assignment.id)"></textarea>
+                    </td>
+                    <td class="min-w-52">
+                        <div class="flex flex-col items-start gap-2">
+                            <p-datepicker [(ngModel)]="assignmentExpirationDateEdits[assignment.id]"
+                                dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
+                                appendTo="body" (ngModelChange)="markAssignmentDirty(assignment.id)" />
+                            <app-inventory-expiration-badge
+                                [expirationDate]="assignmentExpirationDateEdits[assignment.id]" [compact]="true" />
+                        </div>
+                    </td>
+                    <td class="min-w-44">
+                        @if (assignment.decision) {
+                        <p-tag [value]="decisionLabel(assignment.decision.decision)"
+                            [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
+                        @if (assignment.decision.rejectionReason) {
+                        <div class="text-sm mt-2">{{ assignment.decision.rejectionReason }}</div>
+                        }
+                        } @else {
+                        <p-tag value="In attesa" severity="warn" />
+                        }
+                        <div class="text-xs text-surface-500 mt-2">Revisione {{ assignment.revision }}</div>
+                    </td>
+                    <td class="min-w-80">
+                        @for (itemReturn of assignment.returns; track itemReturn.id) {
+                        <div class="return-entry">
+                            <div class="flex items-center justify-between gap-2">
+                                <span><strong>{{ itemReturn.quantity }}</strong> unità</span>
+                                <div class="flex items-center gap-1">
+                                    <p-tag [value]="returnStatusLabel(itemReturn.status)"
+                                        [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
+                                    <p-button icon="pi pi-trash" ariaLabel="Elimina riconsegna" severity="danger"
+                                        size="small" [text]="true" pTooltip="Elimina riconsegna"
+                                        (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
                                 </div>
                             </div>
+                            <div class="text-xs text-surface-500 mt-1">
+                                Richiesta {{ itemReturn.requestedAt | date: 'dd/MM/yyyy HH:mm' }}
+                                @if (itemReturn.completedAt) {
+                                · Completata {{ itemReturn.completedAt | date: 'dd/MM/yyyy HH:mm' }}
+                                }
+                            </div>
+                            @if (itemReturn.status === 'REQUESTED') {
+                            <div class="flex flex-col gap-2 mt-2">
+                                <p-select [options]="conditions" optionLabel="label" optionValue="value"
+                                    [(ngModel)]="returnConditions[itemReturn.id]"
+                                    placeholder="Conservazione alla riconsegna" />
+                                <textarea pTextarea rows="2" [(ngModel)]="returnCompletionNotes[itemReturn.id]"
+                                    placeholder="Note di riconsegna"></textarea>
+                                <p-button label="Chiudi riconsegna" size="small" [text]="true"
+                                    (onClick)="completeReturn(itemReturn)" />
+                            </div>
+                            }
+                            <label class="text-xs text-primary cursor-pointer inline-block mt-2">
+                                <i class="pi pi-camera mr-1"></i>Aggiungi foto
+                                <input type="file" accept="image/jpeg,image/png" class="hidden"
+                                    (change)="uploadReturnPhoto(itemReturn, $event)" />
+                            </label>
+                            @if (itemReturn.photos.length) {
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                @for (photo of itemReturn.photos; track photo.id) {
+                                <img [src]="returnPhotoUrl(photo.id) | secure | async" [alt]="photo.fileName"
+                                    class="w-12 h-12 object-cover rounded border border-surface" />
+                                }
+                            </div>
+                            }
+                        </div>
                         }
-                    </div>
-                } @else {
-                    <app-empty-state compact icon="pi pi-images" heading="Nessuna fotografia" message="Aggiungi una fotografia per documentare l’oggetto." />
-                }
-            </app-detail-section>
+                        @if (assignment.outstandingQuantity > 0 && !hasOpenReturn(assignment)) {
+                        <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-surface">
+                            <div class="flex items-center gap-2">
+                                <p-inputnumber [(ngModel)]="returnQuantities[assignment.id]" [min]="1"
+                                    [max]="assignment.outstandingQuantity" [showButtons]="true" class="w-28" />
+                                <p-button label="Avvia riconsegna" size="small" severity="secondary"
+                                    (onClick)="requestReturn(assignment)" />
+                            </div>
+                            <input pInputText [(ngModel)]="returnRequestNotes[assignment.id]"
+                                placeholder="Note richiesta riconsegna" />
+                        </div>
+                        }
+                    </td>
+                    <td class="min-w-32">
+                        <div class="flex flex-col gap-2">
+                            <p-button label="Salva" icon="pi pi-save" size="small" [text]="true"
+                                [disabled]="!dirtyAssignments.has(assignment.id)"
+                                (onClick)="saveAssignment(assignment.id)" />
+                            <p-button label="Elimina" icon="pi pi-trash" severity="danger" size="small" [text]="true"
+                                (onClick)="confirmDeleteAssignment(assignment)" />
+                            @if (assignment.decision?.decision === 'REJECTED') {
+                            <p-button label="Riemetti" icon="pi pi-refresh" size="small" [text]="true"
+                                (onClick)="reissue(assignment.id)" />
+                            }
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="7">
+                        <app-empty-state compact icon="pi pi-user-plus" heading="Nessuna assegnazione"
+                            message="Assegna l’oggetto a un utente dalla sezione qui sopra." />
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </app-detail-section>
 
-            <app-detail-section heading="Assegna a un utente" description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div class="md:col-span-4">
-                        <app-form-field label="Utente" forId="assignmentUser">
-                            <p-select inputId="assignmentUser" [options]="users" [(ngModel)]="selectedUser" optionLabel="name" placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
-                                <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
-                                <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
-                            </p-select>
-                        </app-form-field>
-                    </div>
-                    <div class="md:col-span-2">
-                        <app-form-field label="Quantità" forId="assignmentQuantity">
-                            <p-inputnumber inputId="assignmentQuantity" [(ngModel)]="assignmentQuantity" [min]="1" [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
-                        </app-form-field>
-                    </div>
-                    <div class="md:col-span-3">
-                        <app-form-field label="Data di scadenza" forId="assignmentExpirationDate">
-                            <p-datepicker inputId="assignmentExpirationDate" [(ngModel)]="assignmentExpirationDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body" />
-                        </app-form-field>
-                    </div>
-                    <div class="md:col-span-3 flex items-end">
-                        <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full" [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity" (onClick)="assign()" />
-                    </div>
-                    <div class="md:col-span-12">
-                        <app-form-field label="Descrizione dell’assegnazione" forId="assignmentDescription">
-                            <textarea pTextarea id="assignmentDescription" rows="2" [(ngModel)]="assignmentDescription"></textarea>
-                        </app-form-field>
-                    </div>
-                </div>
-            </app-detail-section>
+    @if (inventoryQrEnabled()) {
+    <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" />
+    }
 
-            <app-detail-section heading="Assegnazioni e riconsegne" [count]="item.assignments?.length" description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»." [dirty]="dirtyAssignments.size > 0">
-                <p-table
-                    [value]="item.assignments || []"
-                    [paginator]="true"
-                    [rows]="12"
-                    [rowsPerPageOptions]="[12, 24, 48]"
-                    dataKey="id"
-                    [rowHover]="true"
-                    currentPageReportTemplate="Da {first} a {last} di {totalRecords} assegnazioni"
-                    [showCurrentPageReport]="true"
-                    responsiveLayout="scroll"
-                >
-                    <ng-template #header>
-                        <tr>
-                            <th scope="col">Utente</th>
-                            <th scope="col">Quantità assegnata</th>
-                            <th scope="col">Descrizione</th>
-                            <th scope="col">Scadenza</th>
-                            <th scope="col">Presa visione</th>
-                            <th scope="col">Riconsegne</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </ng-template>
-                    <ng-template #body let-assignment>
-                        <tr>
-                            <td class="min-w-48">
-                                <strong>{{ assignment.userName }} {{ assignment.userLastName }}</strong>
-                                <div class="text-xs text-surface-500 mt-1">Assegnato il {{ assignment.assignedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
-                                <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" class="mt-2" />
-                            </td>
-                            <td class="min-w-40">
-                                <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity" [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24" (ngModelChange)="markAssignmentDirty(assignment.id)" />
-                                <div class="text-xs text-surface-500 mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
-                            </td>
-                            <td class="min-w-56">
-                                <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description" (ngModelChange)="markAssignmentDirty(assignment.id)"></textarea>
-                            </td>
-                            <td class="min-w-52">
-                                <div class="flex flex-col items-start gap-2">
-                                    <p-datepicker
-                                        [(ngModel)]="assignmentExpirationDateEdits[assignment.id]"
-                                        dateFormat="dd/mm/yy"
-                                        [showIcon]="true"
-                                        iconDisplay="input"
-                                        [showButtonBar]="true"
-                                        appendTo="body"
-                                        (ngModelChange)="markAssignmentDirty(assignment.id)"
-                                    />
-                                    <app-inventory-expiration-badge [expirationDate]="assignmentExpirationDateEdits[assignment.id]" [compact]="true" />
-                                </div>
-                            </td>
-                            <td class="min-w-44">
-                                @if (assignment.decision) {
-                                    <p-tag [value]="decisionLabel(assignment.decision.decision)" [severity]="assignment.decision.decision === 'ACCEPTED' ? 'success' : 'danger'" />
-                                    @if (assignment.decision.rejectionReason) {
-                                        <div class="text-sm mt-2">{{ assignment.decision.rejectionReason }}</div>
-                                    }
-                                } @else {
-                                    <p-tag value="In attesa" severity="warn" />
-                                }
-                                <div class="text-xs text-surface-500 mt-2">Revisione {{ assignment.revision }}</div>
-                            </td>
-                            <td class="min-w-80">
-                                @for (itemReturn of assignment.returns; track itemReturn.id) {
-                                    <div class="return-entry">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <span
-                                                ><strong>{{ itemReturn.quantity }}</strong> unità</span
-                                            >
-                                            <div class="flex items-center gap-1">
-                                                <p-tag [value]="returnStatusLabel(itemReturn.status)" [severity]="itemReturn.status === 'COMPLETED' ? 'success' : itemReturn.status === 'REQUESTED' ? 'warn' : 'secondary'" />
-                                                <p-button icon="pi pi-trash" ariaLabel="Elimina riconsegna" severity="danger" size="small" [text]="true" pTooltip="Elimina riconsegna" (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
-                                            </div>
-                                        </div>
-                                        <div class="text-xs text-surface-500 mt-1">
-                                            Richiesta {{ itemReturn.requestedAt | date: 'dd/MM/yyyy HH:mm' }}
-                                            @if (itemReturn.completedAt) {
-                                                · Completata {{ itemReturn.completedAt | date: 'dd/MM/yyyy HH:mm' }}
-                                            }
-                                        </div>
-                                        @if (itemReturn.status === 'REQUESTED') {
-                                            <div class="flex flex-col gap-2 mt-2">
-                                                <p-select [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="returnConditions[itemReturn.id]" placeholder="Conservazione alla riconsegna" />
-                                                <textarea pTextarea rows="2" [(ngModel)]="returnCompletionNotes[itemReturn.id]" placeholder="Note di riconsegna"></textarea>
-                                                <p-button label="Chiudi riconsegna" size="small" [text]="true" (onClick)="completeReturn(itemReturn)" />
-                                            </div>
-                                        }
-                                        <label class="text-xs text-primary cursor-pointer inline-block mt-2">
-                                            <i class="pi pi-camera mr-1"></i>Aggiungi foto
-                                            <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="uploadReturnPhoto(itemReturn, $event)" />
-                                        </label>
-                                        @if (itemReturn.photos.length) {
-                                            <div class="flex flex-wrap gap-2 mt-2">
-                                                @for (photo of itemReturn.photos; track photo.id) {
-                                                    <img [src]="returnPhotoUrl(photo.id) | secure | async" [alt]="photo.fileName" class="w-12 h-12 object-cover rounded border border-surface" />
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                @if (assignment.outstandingQuantity > 0 && !hasOpenReturn(assignment)) {
-                                    <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-surface">
-                                        <div class="flex items-center gap-2">
-                                            <p-inputnumber [(ngModel)]="returnQuantities[assignment.id]" [min]="1" [max]="assignment.outstandingQuantity" [showButtons]="true" class="w-28" />
-                                            <p-button label="Avvia riconsegna" size="small" severity="secondary" (onClick)="requestReturn(assignment)" />
-                                        </div>
-                                        <input pInputText [(ngModel)]="returnRequestNotes[assignment.id]" placeholder="Note richiesta riconsegna" />
-                                    </div>
-                                }
-                            </td>
-                            <td class="min-w-32">
-                                <div class="flex flex-col gap-2">
-                                    <p-button label="Salva" icon="pi pi-save" size="small" [text]="true" [disabled]="!dirtyAssignments.has(assignment.id)" (onClick)="saveAssignment(assignment.id)" />
-                                    <p-button label="Elimina" icon="pi pi-trash" severity="danger" size="small" [text]="true" (onClick)="confirmDeleteAssignment(assignment)" />
-                                    @if (assignment.decision?.decision === 'REJECTED') {
-                                        <p-button label="Riemetti" icon="pi pi-refresh" size="small" [text]="true" (onClick)="reissue(assignment.id)" />
-                                    }
-                                </div>
-                            </td>
-                        </tr>
-                    </ng-template>
-                    <ng-template #emptymessage>
-                        <tr>
-                            <td colspan="7">
-                                <app-empty-state compact icon="pi pi-user-plus" heading="Nessuna assegnazione" message="Assegna l’oggetto a un utente dalla sezione qui sopra." />
-                            </td>
-                        </tr>
-                    </ng-template>
-                </p-table>
-            </app-detail-section>
-
-            @if (inventoryQrEnabled()) {
-                <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" />
-            }
-
-            <app-danger-zone [operations]="[{ id: 'delete', title: 'Elimina oggetto', consequence: 'L’oggetto può essere eliminato solo se non risulta ancora assegnato.', label: 'Elimina oggetto' }]" (execute)="confirmDelete()" />
-        }
+    <app-danger-zone
+        [operations]="[{ id: 'delete', title: 'Elimina oggetto', consequence: 'L’oggetto può essere eliminato solo se non risulta ancora assegnato.', label: 'Elimina oggetto' }]"
+        (execute)="confirmDelete()" />
+    }
     }
     <p-scrolltop />
 </p-fluid>

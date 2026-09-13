@@ -5,6 +5,8 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import org.springframework.stereotype.Repository;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -13,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.stereotype.Repository;
 
 /**
  * Lettura unificata delle tre origini tecniche della console amministrativa:
@@ -27,7 +28,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class NotificationDeliveryAdminQueryRepository {
 
-    /** Campi ordinabili esposti dall'API mappati sulla colonna della union. */
+    /**
+     * Campi ordinabili esposti dall'API mappati sulla colonna della union.
+     */
     private static final Map<String, String> SORTABLE_COLUMNS = Map.of(
         "occurredAt", "occurred_at",
         "editDate", "edit_date",
@@ -173,10 +176,15 @@ public class NotificationDeliveryAdminQueryRepository {
         throw new IllegalStateException("Unsupported timestamp type: " + value.getClass().getName());
     }
 
-    /** Aggregato a bassa cardinalità: nessun identificativo, solo conteggio e istante. */
-    public record NotificationDeliverySummary(long failureCount, ZonedDateTime oldestOccurredAt) {}
+    /**
+     * Aggregato a bassa cardinalità: nessun identificativo, solo conteggio e istante.
+     */
+    public record NotificationDeliverySummary(long failureCount, ZonedDateTime oldestOccurredAt) {
+    }
 
-    /** Filtri della console: origine, sorgente, operazione e intervallo temporale. */
+    /**
+     * Filtri della console: origine, sorgente, operazione e intervallo temporale.
+     */
     public record NotificationDeliveryFilter(
         NotificationStatus status,
         NotificationDeliveryOrigin origin,
@@ -184,9 +192,12 @@ public class NotificationDeliveryAdminQueryRepository {
         String operation,
         ZonedDateTime from,
         ZonedDateTime to
-    ) {}
+    ) {
+    }
 
-    /** Riga tecnica grezza; la chiave evento viene sempre hashata prima di uscire dal servizio. */
+    /**
+     * Riga tecnica grezza; la chiave evento viene sempre hashata prima di uscire dal servizio.
+     */
     public record NotificationDeliveryRow(
         NotificationDeliveryOrigin origin,
         long id,
@@ -201,5 +212,6 @@ public class NotificationDeliveryAdminQueryRepository {
         String lastError,
         String skipReason,
         String eventKey
-    ) {}
+    ) {
+    }
 }

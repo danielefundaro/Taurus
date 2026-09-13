@@ -7,7 +7,8 @@ import java.time.ZonedDateTime;
 
 public final class NotificationTiming {
 
-    private NotificationTiming() {}
+    private NotificationTiming() {
+    }
 
     public static ZonedDateTime nextAllowed(NotificationPreferenceDecision preference, ZonedDateTime requested) {
         ZonedDateTime candidate = requested;

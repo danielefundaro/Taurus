@@ -1,12 +1,10 @@
 package com.fundaro.zodiac.taurus.service;
 
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDelivery;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushDeliveryType;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
+import com.fundaro.zodiac.taurus.domain.notification.*;
+import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.PushSubscriptionRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
@@ -15,24 +13,21 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetr
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutChannel;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.FanoutResult;
 import com.fundaro.zodiac.taurus.service.notification.NotificationTiming;
-import java.time.ZonedDateTime;
+import com.fundaro.zodiac.taurus.service.notification.PushDeliveryResult;
+import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import jakarta.persistence.EntityManager;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.PageRequest;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
-import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
-import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
-import com.fundaro.zodiac.taurus.service.notification.PushDeliveryResult;
-import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
-import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.EntityManager;
 
 @Service
 public class NotificationPushDeliveryService {
@@ -82,7 +77,8 @@ public class NotificationPushDeliveryService {
         NotificationPushDeliveryType type = preference.pushMode() == NotificationPushMode.IMMEDIATE
             ? NotificationPushDeliveryType.IMMEDIATE
             : NotificationPushDeliveryType.DIGEST_ITEM;
-        if (repository.existsBySourceEventKeyAndUserIdAndDeliveryTypeAndDeletedFalse(event.getEventKey(), preference.userId(), type)) return;
+        if (repository.existsBySourceEventKeyAndUserIdAndDeliveryTypeAndDeletedFalse(event.getEventKey(), preference.userId(), type))
+            return;
 
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime scheduledAt = type == NotificationPushDeliveryType.IMMEDIATE
@@ -158,7 +154,8 @@ public class NotificationPushDeliveryService {
     public void process(long id) {
         ZonedDateTime now = ZonedDateTime.now();
         NotificationPushDelivery delivery = repository.findByIdForUpdate(id).orElse(null);
-        if (delivery == null || delivery.getStatus() != NotificationStatus.PENDING || delivery.getNextAttemptAt().isAfter(now)) return;
+        if (delivery == null || delivery.getStatus() != NotificationStatus.PENDING || delivery.getNextAttemptAt().isAfter(now))
+            return;
         if (preferenceMetrics != null) {
             preferenceMetrics.recordDispatchDelay(delivery.getDeliveryType().name(), delivery.getScheduledAt(), now);
         }
@@ -209,7 +206,8 @@ public class NotificationPushDeliveryService {
         );
         Map<com.fundaro.zodiac.taurus.domain.notification.NotificationSource, Integer> counts = new EnumMap<>(com.fundaro.zodiac.taurus.domain.notification.NotificationSource.class);
         List<NotificationPushDelivery> eligible = bucket.stream().filter(delivery -> {
-            if (!eligibleUser(delivery.getUserId()) || noticeNoLongerEligible(delivery) || now.isAfter(delivery.getExpiresAt())) return false;
+            if (!eligibleUser(delivery.getUserId()) || noticeNoLongerEligible(delivery) || now.isAfter(delivery.getExpiresAt()))
+                return false;
             NotificationPreferenceDecision preference = currentPreference(delivery);
             return preference.pushMode() == NotificationPushMode.DAILY_DIGEST;
         }).toList();

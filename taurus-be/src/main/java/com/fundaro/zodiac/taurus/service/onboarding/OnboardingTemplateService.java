@@ -1,11 +1,13 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingSection;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Set;
+
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,9 @@ public class OnboardingTemplateService {
             workbook.getProperties().getCoreProperties().setCreator("Taurus");
             workbook.getProperties().getCoreProperties().setCreated(java.util.Optional.of(new Date(0)));
             CellStyle header = workbook.createCellStyle();
-            Font font = workbook.createFont(); font.setBold(true); header.setFont(font);
+            Font font = workbook.createFont();
+            font.setBold(true);
+            header.setFont(font);
             header.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
             header.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
@@ -34,8 +38,10 @@ public class OnboardingTemplateService {
             instructions.setColumnWidth(0, 12000);
 
             Sheet metadata = workbook.createSheet("_taurus");
-            metadata.createRow(0).createCell(0).setCellValue("product"); metadata.getRow(0).createCell(1).setCellValue("taurus");
-            metadata.createRow(1).createCell(0).setCellValue("templateVersion"); metadata.getRow(1).createCell(1).setCellValue(VERSION);
+            metadata.createRow(0).createCell(0).setCellValue("product");
+            metadata.getRow(0).createCell(1).setCellValue("taurus");
+            metadata.createRow(1).createCell(0).setCellValue("templateVersion");
+            metadata.getRow(1).createCell(1).setCellValue(VERSION);
             workbook.setSheetHidden(workbook.getSheetIndex(metadata), true);
 
             for (OnboardingSection section : OnboardingSection.values()) {
@@ -43,7 +49,9 @@ public class OnboardingTemplateService {
                 Sheet sheet = workbook.createSheet(section.getSheetName());
                 Row row = sheet.createRow(0);
                 for (int i = 0; i < section.getHeaders().size(); i++) {
-                    Cell cell = row.createCell(i); cell.setCellValue(section.getHeaders().get(i)); cell.setCellStyle(header);
+                    Cell cell = row.createCell(i);
+                    cell.setCellValue(section.getHeaders().get(i));
+                    cell.setCellStyle(header);
                     sheet.setColumnWidth(i, Math.min(12000, Math.max(4000, section.getHeaders().get(i).length() * 450)));
                 }
                 sheet.createFreezePane(0, 1);
@@ -68,7 +76,8 @@ public class OnboardingTemplateService {
             case INVENTORY -> list(sheet, 6, "NEW", "EXCELLENT", "GOOD", "FAIR", "TO_REPAIR", "OUT_OF_SERVICE");
             case CATEGORIES -> list(sheet, 2, "INCOME", "EXPENSE", "BOTH");
             case ACCOUNTS -> list(sheet, 3, "CASH", "BANK");
-            default -> { }
+            default -> {
+            }
         }
     }
 
@@ -76,6 +85,8 @@ public class OnboardingTemplateService {
         DataValidationHelper helper = sheet.getDataValidationHelper();
         DataValidation validation = helper.createValidation(helper.createExplicitListConstraint(values),
             new org.apache.poi.ss.util.CellRangeAddressList(1, 5000, column, column));
-        validation.setShowErrorBox(true); validation.setSuppressDropDownArrow(true); sheet.addValidationData(validation);
+        validation.setShowErrorBox(true);
+        validation.setSuppressDropDownArrow(true);
+        sheet.addValidationData(validation);
     }
 }

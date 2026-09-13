@@ -18,7 +18,7 @@ export class DialogShellComponent {
     private interacted = false;
     private confirmationOpen = false;
 
-    constructor(private readonly confirmService: ConfirmService) {}
+    constructor(private readonly confirmService: ConfirmService) { }
 
     @HostListener('input')
     @HostListener('change')

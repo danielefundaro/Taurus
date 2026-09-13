@@ -1,22 +1,23 @@
 <header class="page-header">
     <div class="page-header__identity">
         @if (backLink) {
-            <a pButton [routerLink]="backLink" text severity="secondary" icon="pi pi-arrow-left" aria-label="Torna all’elenco"></a>
+        <a pButton [routerLink]="backLink" text severity="secondary" icon="pi pi-arrow-left"
+            aria-label="Torna all’elenco"></a>
         }
         <div class="page-header__copy">
             @if (kicker) {
-                <span class="page-header__kicker">{{ kicker }}</span>
+            <span class="page-header__kicker">{{ kicker }}</span>
             }
             <div class="page-header__heading-row">
                 <h1>{{ heading }}</h1>
                 @if (dirty) {
-                    <p-tag severity="warn" value="Modifiche non salvate" icon="pi pi-pencil" />
+                <p-tag severity="warn" value="Modifiche non salvate" icon="pi pi-pencil" />
                 } @else if (state) {
-                    <p-tag severity="secondary" [value]="state" />
+                <p-tag severity="secondary" [value]="state" />
                 }
             </div>
             @if (subtitle) {
-                <p class="page-header__subtitle">{{ subtitle }}</p>
+            <p class="page-header__subtitle">{{ subtitle }}</p>
             }
             <div class="page-header__metadata"><ng-content select="[pageMetadata]" /></div>
         </div>

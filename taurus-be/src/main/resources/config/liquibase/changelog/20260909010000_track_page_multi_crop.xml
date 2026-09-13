@@ -16,7 +16,7 @@
           'name', result_media_name,
           'order', result_media_order
         )
-      )::text
+                              )::text
     </sql>
     <addNotNullConstraint tableName="track_page_edit_receipt" columnName="result_media_json" columnDataType="TEXT"/>
     <sql>ALTER TABLE track_page_edit_receipt DROP CONSTRAINT IF EXISTS fk_track_page_edit_receipt_result</sql>

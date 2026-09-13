@@ -7,4 +7,5 @@ public record InventoryUserSummaryDTO(
     long outstandingQuantity,
     long pendingDecisions,
     ZonedDateTime lastAssignedAt
-) {}
+) {
+}

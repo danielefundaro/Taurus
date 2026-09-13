@@ -7,18 +7,21 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public final class TrackPageImageDTOs {
 
-    private TrackPageImageDTOs() {}
+    private TrackPageImageDTOs() {
+    }
 
     public record Crop(
         @DecimalMin("0.0") @DecimalMax("1.0") double x,
         @DecimalMin("0.0") @DecimalMax("1.0") double y,
         @DecimalMin("0.02") @DecimalMax("1.0") double width,
         @DecimalMin("0.02") @DecimalMax("1.0") double height
-    ) {}
+    ) {
+    }
 
     public record EditRequest(
         @NotNull Long expectedTrackVersion,
@@ -31,7 +34,8 @@ public final class TrackPageImageDTOs {
         @Min(-100) @Max(100) int contrast,
         boolean autoContrast,
         @Min(0) @Max(255) Integer threshold
-    ) {}
+    ) {
+    }
 
     public record Analysis(
         Long mediaId,
@@ -44,7 +48,8 @@ public final class TrackPageImageDTOs {
         double contrastScore,
         List<String> suggestions,
         List<String> warnings
-    ) {}
+    ) {
+    }
 
     public record EditResult(
         Long trackId,
@@ -52,5 +57,6 @@ public final class TrackPageImageDTOs {
         Long scoreId,
         Long replacedMediaId,
         List<ChildrenEntitiesDTO> media
-    ) {}
+    ) {
+    }
 }

@@ -46,6 +46,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.criteria.Predicate;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -62,6 +63,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -779,7 +781,8 @@ public class FinanceService {
 
     private void updateTransferPair(FinancialMovement selected, MovementRequest request, String actor) {
         List<FinancialMovement> pair = movementRepository.findAllByTransferGroupAndDeletedFalse(selected.getTransferGroup());
-        if (pair.size() != 2) throw error(HttpStatus.CONFLICT, "Il trasferimento non contiene due movimenti coerenti", "finance.transfer.inconsistent");
+        if (pair.size() != 2)
+            throw error(HttpStatus.CONFLICT, "Il trasferimento non contiene due movimenti coerenti", "finance.transfer.inconsistent");
         FinancialMovement other = pair.stream().filter(value -> !value.getId().equals(selected.getId())).findFirst().orElseThrow();
         AccountingYear year = ensureYear(request.bookingDate().getYear(), actor);
         for (FinancialMovement movement : pair) {
@@ -981,14 +984,16 @@ public class FinanceService {
     private FinancialAccount requiredAccount(long id, boolean active) {
         FinancialAccount account = accountRepository.findByIdAndDeletedFalse(id)
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Conto non trovato", "finance.account.notFound"));
-        if (active && !account.isActive()) throw error(HttpStatus.CONFLICT, "Il conto è archiviato", "finance.account.archived");
+        if (active && !account.isActive())
+            throw error(HttpStatus.CONFLICT, "Il conto è archiviato", "finance.account.archived");
         return account;
     }
 
     private FinancialCategory requiredCategory(long id, boolean active) {
         FinancialCategory category = categoryRepository.findByIdAndDeletedFalse(id)
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Categoria non trovata", "finance.category.notFound"));
-        if (active && !category.isActive()) throw error(HttpStatus.CONFLICT, "La categoria è archiviata", "finance.category.archived");
+        if (active && !category.isActive())
+            throw error(HttpStatus.CONFLICT, "La categoria è archiviata", "finance.category.archived");
         return category;
     }
 
@@ -1015,7 +1020,9 @@ public class FinanceService {
         );
     }
 
-    /** Conta le scritture ancora vive collegate al conto: le eliminate logicamente non ne impediscono l'eliminazione. */
+    /**
+     * Conta le scritture ancora vive collegate al conto: le eliminate logicamente non ne impediscono l'eliminazione.
+     */
     private long movementCount(Long accountId) {
         return accountId == null ? 0 : movementRepository.countByAccount_IdAndDeletedFalse(accountId);
     }
@@ -1048,13 +1055,22 @@ public class FinanceService {
         return new YearDTO(year.getYear(), year.getStartDate(), year.getEndDate(), year.getStatus(), year.getRolledOverAt(), year.getLastRecalculatedAt());
     }
 
-    private static BigDecimal moneyOrZero(BigDecimal value) { return value == null ? ZERO : value; }
-    private static boolean notBlank(String value) { return value != null && !value.isBlank(); }
-    private static String trimToNull(String value) { return notBlank(value) ? value.trim() : null; }
+    private static BigDecimal moneyOrZero(BigDecimal value) {
+        return value == null ? ZERO : value;
+    }
+
+    private static boolean notBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static String trimToNull(String value) {
+        return notBlank(value) ? value.trim() : null;
+    }
 
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
-        if (!notBlank(value)) throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "finance.identity.missing");
+        if (!notBlank(value))
+            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "finance.identity.missing");
         return value;
     }
 
@@ -1068,5 +1084,6 @@ public class FinanceService {
         return new RequestAlertException(status, message, ENTITY, key);
     }
 
-    private record RolloverResult(YearDTO year, boolean changed) {}
+    private record RolloverResult(YearDTO year, boolean changed) {
+    }
 }

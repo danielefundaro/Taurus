@@ -3,9 +3,11 @@ package com.fundaro.zodiac.taurus.service.onboarding;
 import com.fundaro.zodiac.taurus.domain.onboarding.*;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.onboarding.*;
+
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -21,8 +23,13 @@ public class OnboardingWorker {
     private final OnboardingJobStateService states;
 
     public OnboardingWorker(OnboardingValidationService validation, OnboardingImportJobRepository jobs, OnboardingImportRowRepository rows,
-        OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains, OnboardingJobStateService states) {
-        this.validation = validation; this.jobs = jobs; this.rows = rows; this.identities = identities; this.domains = domains; this.states = states;
+                            OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains, OnboardingJobStateService states) {
+        this.validation = validation;
+        this.jobs = jobs;
+        this.rows = rows;
+        this.identities = identities;
+        this.domains = domains;
+        this.states = states;
     }
 
     @Async
@@ -65,8 +72,11 @@ public class OnboardingWorker {
 
     private void compensateCurrentTenant(Long jobId, String tenantCode) {
         boolean compensated;
-        try { compensated = identities.compensate(jobId, tenantCode); }
-        catch (RuntimeException compensationException) { compensated = false; }
+        try {
+            compensated = identities.compensate(jobId, tenantCode);
+        } catch (RuntimeException compensationException) {
+            compensated = false;
+        }
         states.fail(jobId, compensated);
     }
 }

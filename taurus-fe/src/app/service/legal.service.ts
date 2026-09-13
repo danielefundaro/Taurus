@@ -9,7 +9,7 @@ export class LegalService {
     private readonly baseUrl = `${environment.baseUrl}/legal`;
     private status$?: Observable<LegalStatus>;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getStatus(forceRefresh = false): Observable<LegalStatus> {
         if (!this.status$ || forceRefresh) {

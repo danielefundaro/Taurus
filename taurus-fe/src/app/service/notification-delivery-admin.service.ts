@@ -8,7 +8,7 @@ import { NotificationDeliveryAdmin, NotificationDeliveryFilters, NotificationDel
 export class NotificationDeliveryAdminService {
     private readonly resourceUrl = `${environment.baseUrl}/admin/notification-delivery`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getDeliveries(
         status: NotificationDeliveryStatus,

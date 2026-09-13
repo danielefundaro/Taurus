@@ -23,11 +23,13 @@ import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepo
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.service.MediaService;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -186,8 +188,8 @@ public class DataErasureService {
         );
         long pushDeliveries = notificationPushDeliveryRepository == null ? 0 :
             notificationPushDeliveryRepository.deleteAllByStatusAndDeliveredAtBefore(NotificationStatus.DELIVERED, now.minusDays(30)) +
-            notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.SKIPPED, now.minusDays(30)) +
-            notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.FAILED, now.minusDays(90));
+                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.SKIPPED, now.minusDays(30)) +
+                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.FAILED, now.minusDays(90));
         log.info("Retention cleanup physically deleted {} notices, {} searches, {} sent reminders and {} push jobs", notices, searches, reminders, pushDeliveries);
     }
 
@@ -226,8 +228,10 @@ public class DataErasureService {
         deleted += pushSubscriptionRepository.deleteAllByUserId(userId);
         deleted += pushReminderRepository.deleteAllByUserId(userId);
         deleted += userLegalAcceptanceRepository.deleteAllByUserId(userId);
-        if (notificationPushDeliveryRepository != null) deleted += notificationPushDeliveryRepository.deleteAllByUserId(userId);
-        if (notificationProfileRepository != null) deleted += notificationProfileRepository.deleteAllByKeycloakSubject(userId);
+        if (notificationPushDeliveryRepository != null)
+            deleted += notificationPushDeliveryRepository.deleteAllByUserId(userId);
+        if (notificationProfileRepository != null)
+            deleted += notificationProfileRepository.deleteAllByKeycloakSubject(userId);
         log.info("Physically deleted {} relational records for user {}", deleted, userId);
     }
 

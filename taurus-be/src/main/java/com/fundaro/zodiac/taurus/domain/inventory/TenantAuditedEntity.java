@@ -10,5 +10,7 @@ public abstract class TenantAuditedEntity extends AuditedEntity {
     @jakarta.persistence.Column(name = "entity_version", nullable = false)
     private long entityVersion;
 
-    public long getEntityVersion() { return entityVersion; }
+    public long getEntityVersion() {
+        return entityVersion;
+    }
 }

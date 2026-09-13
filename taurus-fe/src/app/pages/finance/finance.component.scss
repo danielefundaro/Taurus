@@ -38,7 +38,7 @@
     margin-bottom: 1.25rem;
 }
 
-.filter-grid > div {
+.filter-grid>div {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -100,7 +100,7 @@
     margin-left: auto;
 }
 
-.report-exports > span {
+.report-exports>span {
     color: var(--text-color-secondary);
     font-size: 0.875rem;
 }

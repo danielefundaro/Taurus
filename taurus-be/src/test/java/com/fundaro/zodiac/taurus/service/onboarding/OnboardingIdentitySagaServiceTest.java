@@ -1,16 +1,20 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
-
-import com.fundaro.zodiac.taurus.domain.onboarding.*;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingIdentityOperation;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportJob;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportRow;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingRowAction;
 import com.fundaro.zodiac.taurus.repository.onboarding.OnboardingIdentityOperationRepository;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
 class OnboardingIdentitySagaServiceTest {
 

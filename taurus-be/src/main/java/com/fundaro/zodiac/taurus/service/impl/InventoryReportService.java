@@ -14,6 +14,7 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -24,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
@@ -130,18 +132,21 @@ public class InventoryReportService {
                     writer.line("Presa visione: in attesa", true);
                 } else {
                     writer.line("Presa visione: " + ReportLabels.inventoryDecision(assignment.decision().decision()) + " il " + DATE_TIME.format(assignment.decision().decidedAt()), true);
-                    if (assignment.decision().rejectionReason() != null) writer.line("Motivazione: " + assignment.decision().rejectionReason(), false);
+                    if (assignment.decision().rejectionReason() != null)
+                        writer.line("Motivazione: " + assignment.decision().rejectionReason(), false);
                 }
                 if (!assignment.returns().isEmpty()) {
                     writer.subheading("Riconsegne");
                     for (InventoryReturnDTO inventoryReturn : assignment.returns()) {
                         String completed = inventoryReturn.completedAt() == null ? "" : ", completata il " + DATE_TIME.format(inventoryReturn.completedAt());
                         writer.line("- Quantità " + inventoryReturn.quantity() + ", stato " + ReportLabels.inventoryReturnStatus(inventoryReturn.status()) + completed, false);
-                        if (inventoryReturn.condition() != null) writer.line("  Conservazione alla riconsegna: " + ReportLabels.inventoryCondition(inventoryReturn.condition()), false);
+                        if (inventoryReturn.condition() != null)
+                            writer.line("  Conservazione alla riconsegna: " + ReportLabels.inventoryCondition(inventoryReturn.condition()), false);
                         if (inventoryReturn.notes() != null) writer.line("  Note: " + inventoryReturn.notes(), false);
                         if (includePhotos) {
                             for (InventoryPhotoDTO returnPhoto : inventoryReturn.photos()) {
-                                if (++photoCount > 100) throw reportTooLarge("Il report supera il limite di 100 fotografie");
+                                if (++photoCount > 100)
+                                    throw reportTooLarge("Il report supera il limite di 100 fotografie");
                                 InventoryService.PhotoContent content = inventoryService.getReturnPhoto(returnPhoto.id(), ownerPhotoAccess, token);
                                 writer.image(content.bytes(), "Riconsegna - " + returnPhoto.fileName());
                                 checkTimeout(startedAt);
@@ -233,6 +238,7 @@ public class InventoryReportService {
         return value == null || value.isBlank() ? "-" : value;
     }
 
-    public record ReportContent(String fileName, byte[] bytes) {}
+    public record ReportContent(String fileName, byte[] bytes) {
+    }
 
 }

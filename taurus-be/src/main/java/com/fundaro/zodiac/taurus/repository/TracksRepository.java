@@ -2,11 +2,12 @@ package com.fundaro.zodiac.taurus.repository;
 
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import jakarta.persistence.LockModeType;
-import java.util.Optional;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 
 public interface TracksRepository extends CatalogRepository<Tracks> {
 

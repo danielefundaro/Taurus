@@ -1,7 +1,12 @@
-<app-dialog-shell #shell heading="Nuovo album" subtitle="Crea una raccolta per organizzare le tracce." confirmLabel="Aggiungi album" [invalidCount]="album.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
+<app-dialog-shell #shell heading="Nuovo album" subtitle="Crea una raccolta per organizzare le tracce."
+    confirmLabel="Aggiungi album" [invalidCount]="album.name?.trim() ? 0 : 1" (cancel)="cancel()" (confirm)="save()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <app-form-field label="Nome" forId="name" required [error]="shell.validationAttempted && !album.name?.trim() ? 'Inserisci il nome dell’album.' : undefined"><input pInputText id="name" type="text" [(ngModel)]="album.name" /></app-form-field>
-        <app-form-field label="Data" forId="date"><p-datepicker inputId="date" dateFormat="dd-mm-yy" [showIcon]="true" class="w-full" appendTo="body" [(ngModel)]="album.date" /></app-form-field>
-        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea id="description" rows="6" class="w-full" [(ngModel)]="album.description"></textarea></app-form-field>
+        <app-form-field label="Nome" forId="name" required
+            [error]="shell.validationAttempted && !album.name?.trim() ? 'Inserisci il nome dell’album.' : undefined"><input
+                pInputText id="name" type="text" [(ngModel)]="album.name" /></app-form-field>
+        <app-form-field label="Data" forId="date"><p-datepicker inputId="date" dateFormat="dd-mm-yy" [showIcon]="true"
+                class="w-full" appendTo="body" [(ngModel)]="album.date" /></app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="description"><textarea pTextarea
+                id="description" rows="6" class="w-full" [(ngModel)]="album.description"></textarea></app-form-field>
     </div>
 </app-dialog-shell>

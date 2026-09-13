@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface InventoryReportExportRepository extends JpaRepository<InventoryReportExport, Long> {}
+public interface InventoryReportExportRepository extends JpaRepository<InventoryReportExport, Long> {
+}

@@ -5,8 +5,8 @@ import com.fundaro.zodiac.taurus.domain.criteria.filter.DateFilter;
 import com.fundaro.zodiac.taurus.domain.criteria.filter.StateFilter;
 import org.springdoc.core.annotations.ParameterObject;
 import tech.jhipster.service.filter.Filter;
-import tech.jhipster.service.filter.StringFilter;
 import tech.jhipster.service.filter.LongFilter;
+import tech.jhipster.service.filter.StringFilter;
 
 import java.util.Objects;
 import java.util.Optional;

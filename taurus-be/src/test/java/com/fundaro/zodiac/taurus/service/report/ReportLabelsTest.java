@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.service.report;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialCategoryDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
@@ -11,6 +9,8 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ReportLabelsTest {
 

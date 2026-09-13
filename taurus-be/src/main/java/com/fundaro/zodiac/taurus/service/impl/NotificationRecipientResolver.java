@@ -5,10 +5,12 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationAudienceType;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutboxAudience;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +40,8 @@ public class NotificationRecipientResolver {
             }
         }
         if (allActiveUsers) usersRepository.findAllActiveKeycloakIds().forEach(value -> add(recipients, value));
-        if (!roles.isEmpty()) usersRepository.findActiveKeycloakIdsByRolesIn(roles).forEach(value -> add(recipients, value));
+        if (!roles.isEmpty())
+            usersRepository.findActiveKeycloakIdsByRolesIn(roles).forEach(value -> add(recipients, value));
         if (roles.contains(RoleEnum.ROLE_SUPER_ADMIN)) {
             keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN).forEach(user -> add(recipients, user.getId()));
         }

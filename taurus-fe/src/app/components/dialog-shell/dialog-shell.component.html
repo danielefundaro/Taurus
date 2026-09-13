@@ -3,18 +3,21 @@
         <div>
             <h2>{{ heading }}</h2>
             @if (subtitle) {
-                <p>{{ subtitle }}</p>
+            <p>{{ subtitle }}</p>
             }
         </div>
-        <p-button icon="pi pi-times" ariaLabel="Chiudi finestra" severity="secondary" [text]="true" [rounded]="true" [disabled]="saving" (onClick)="requestCancel()" />
+        <p-button icon="pi pi-times" ariaLabel="Chiudi finestra" severity="secondary" [text]="true" [rounded]="true"
+            [disabled]="saving" (onClick)="requestCancel()" />
     </header>
     <div class="dialog-shell__body"><ng-content /></div>
     <footer>
         <span>
             @if (validationAttempted && invalidCount) {
-                {{ invalidCount }} {{ invalidCount === 1 ? 'campo da correggere' : 'campi da correggere' }}
+            {{ invalidCount }} {{ invalidCount === 1 ? 'campo da correggere' : 'campi da correggere' }}
             }
         </span>
-        <div><p-button [label]="cancelLabel" text severity="secondary" [disabled]="saving" (onClick)="requestCancel()" /><p-button [label]="confirmLabel" icon="pi pi-check" [loading]="saving" [disabled]="saving" (onClick)="submit()" /></div>
+        <div><p-button [label]="cancelLabel" text severity="secondary" [disabled]="saving"
+                (onClick)="requestCancel()" /><p-button [label]="confirmLabel" icon="pi pi-check" [loading]="saving"
+                [disabled]="saving" (onClick)="submit()" /></div>
     </footer>
 </div>

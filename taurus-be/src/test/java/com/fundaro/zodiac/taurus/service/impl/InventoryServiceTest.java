@@ -1,54 +1,33 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentRevision;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturn;
-import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnPhoto;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
+import com.fundaro.zodiac.taurus.domain.inventory.*;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
-import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
-import com.fundaro.zodiac.taurus.service.AlbumsService;
-import com.fundaro.zodiac.taurus.service.CalendarEventsService;
-import com.fundaro.zodiac.taurus.service.InstrumentsService;
-import com.fundaro.zodiac.taurus.service.MediaService;
-import com.fundaro.zodiac.taurus.service.TenantsService;
-import com.fundaro.zodiac.taurus.service.TracksService;
-import com.fundaro.zodiac.taurus.service.UsersService;
+import com.fundaro.zodiac.taurus.repository.inventory.*;
+import com.fundaro.zodiac.taurus.service.*;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentScope;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
-import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
-import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import com.fundaro.zodiac.taurus.service.dto.inventory.*;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -56,46 +35,59 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.imageio.ImageIO;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.mock.web.MockMultipartFile;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
 
-    @Mock InventoryItemRepository itemRepository;
-    @Mock InventoryItemPhotoRepository photoRepository;
-    @Mock InventoryAssignmentRepository assignmentRepository;
-    @Mock InventoryAssignmentRevisionRepository revisionRepository;
-    @Mock InventoryAssignmentDecisionRepository decisionRepository;
-    @Mock InventoryReturnRepository returnRepository;
-    @Mock InventoryReturnPhotoRepository returnPhotoRepository;
-    @Mock UsersService usersService;
-    @Mock MediaService mediaService;
-    @Mock MediaRepository mediaRepository;
-    @Mock InventoryQrCodeService qrCodeService;
-    @Mock InventoryIssueReportRepository issueRepository;
-    @Mock NotificationOutboxPublisher notificationPublisher;
-    @Mock TenantsService tenantsService;
-    @Mock InstrumentsService instrumentsService;
-    @Mock AlbumsService albumsService;
-    @Mock TracksService tracksService;
-    @Mock CalendarEventsService calendarEventsService;
-    @Mock UsersRepository usersRepository;
-    @Mock KeycloakService keycloakService;
+    @Mock
+    InventoryItemRepository itemRepository;
+    @Mock
+    InventoryItemPhotoRepository photoRepository;
+    @Mock
+    InventoryAssignmentRepository assignmentRepository;
+    @Mock
+    InventoryAssignmentRevisionRepository revisionRepository;
+    @Mock
+    InventoryAssignmentDecisionRepository decisionRepository;
+    @Mock
+    InventoryReturnRepository returnRepository;
+    @Mock
+    InventoryReturnPhotoRepository returnPhotoRepository;
+    @Mock
+    UsersService usersService;
+    @Mock
+    MediaService mediaService;
+    @Mock
+    MediaRepository mediaRepository;
+    @Mock
+    InventoryQrCodeService qrCodeService;
+    @Mock
+    InventoryIssueReportRepository issueRepository;
+    @Mock
+    NotificationOutboxPublisher notificationPublisher;
+    @Mock
+    TenantsService tenantsService;
+    @Mock
+    InstrumentsService instrumentsService;
+    @Mock
+    AlbumsService albumsService;
+    @Mock
+    TracksService tracksService;
+    @Mock
+    CalendarEventsService calendarEventsService;
+    @Mock
+    UsersRepository usersRepository;
+    @Mock
+    KeycloakService keycloakService;
 
     private InventoryService service;
 

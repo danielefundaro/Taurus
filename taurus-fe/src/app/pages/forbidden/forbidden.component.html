@@ -1,10 +1,13 @@
 <app-floating-configurator />
 <main class="min-h-screen flex items-center justify-center p-6 bg-surface-50 dark:bg-surface-950">
     <section class="card max-w-xl w-full text-center" aria-labelledby="forbidden-title">
-        <div class="mx-auto mb-5 w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950 flex items-center justify-center"><i class="pi pi-lock text-orange-500 text-3xl" aria-hidden="true"></i></div>
+        <div
+            class="mx-auto mb-5 w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-950 flex items-center justify-center">
+            <i class="pi pi-lock text-orange-500 text-3xl" aria-hidden="true"></i></div>
         <span class="text-orange-500 font-bold">Accesso negato</span>
         <h1 id="forbidden-title" class="text-3xl font-semibold mt-2 mb-3">Permesso insufficiente</h1>
-        <p class="text-muted-color mt-0 mb-6">Non hai i permessi necessari per visualizzare questa pagina. Se ritieni sia un errore, contatta un amministratore.</p>
+        <p class="text-muted-color mt-0 mb-6">Non hai i permessi necessari per visualizzare questa pagina. Se ritieni
+            sia un errore, contatta un amministratore.</p>
         <p-button label="Torna alla dashboard" icon="pi pi-home" routerLink="/" severity="warn" />
     </section>
 </main>

@@ -6,7 +6,7 @@ import { OperationalDashboard } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class OperationalDashboardService {
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getOperations(): Observable<OperationalDashboard> {
         return this.http.get<OperationalDashboard>(`${environment.baseUrl}/dashboard/operations`);

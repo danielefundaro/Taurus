@@ -9,14 +9,18 @@ import com.fundaro.zodiac.taurus.repository.finance.FinancialAccountRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialCategoryRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Supplies domain snapshots to {@code NoticesAspect} without composing notification text. */
+/**
+ * Supplies domain snapshots to {@code NoticesAspect} without composing notification text.
+ */
 @Service
 @Transactional(readOnly = true)
 public class FinanceNoticeDataService {
@@ -96,7 +100,8 @@ public class FinanceNoticeDataService {
         );
     }
 
-    public record NamedNotice(Long id, String name, boolean active) {}
+    public record NamedNotice(Long id, String name, boolean active) {
+    }
 
     public record MovementNotice(
         Long id,
@@ -108,7 +113,9 @@ public class FinanceNoticeDataService {
         String currency,
         String description,
         UUID transferGroup
-    ) {}
+    ) {
+    }
 
-    public record AttachmentNotice(Long id, String fileName, MovementNotice movement) {}
+    public record AttachmentNotice(Long id, String fileName, MovementNotice movement) {
+    }
 }

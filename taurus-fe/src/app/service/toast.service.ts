@@ -5,7 +5,7 @@ import { MessageService } from 'primeng/api';
     providedIn: 'root'
 })
 export class ToastService {
-    constructor(private readonly service: MessageService) {}
+    constructor(private readonly service: MessageService) { }
 
     public success(title: string, message: string) {
         this.service.add({ severity: 'success', summary: title, detail: message, life: 3000, closable: true });

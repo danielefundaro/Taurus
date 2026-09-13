@@ -21,7 +21,7 @@ import {
 export class InventoryService {
     private readonly baseUrl = `${environment.baseUrl}/inventory`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getItems(query = '', page = 0, size = 100, sort = 'name,asc', attention?: string): Observable<Page<InventoryItem>> {
         let params = new HttpParams().set('page', page).set('size', size).set('sort', sort);

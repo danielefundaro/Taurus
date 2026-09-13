@@ -1,124 +1,122 @@
-<app-detail-section
-    [heading]="isAdmin ? 'Inventario' : 'Il mio inventario'"
+<app-detail-section [heading]="isAdmin ? 'Inventario' : 'Il mio inventario'"
     [description]="isAdmin ? 'Situazione del materiale' : 'Il materiale attualmente affidato a te'"
-    [actionLabel]="isAdmin ? 'Apri inventario' : 'I miei oggetti'"
-    actionLink="/inventory"
-    [actionQueryParams]="isAdmin ? undefined : { view: 'mine' }"
->
+    [actionLabel]="isAdmin ? 'Apri inventario' : 'I miei oggetti'" actionLink="/inventory"
+    [actionQueryParams]="isAdmin ? undefined : { view: 'mine' }">
     @if (loading) {
-        <div class="flex flex-col gap-3">
-            <p-skeleton height="3rem" />
-            <p-skeleton height="1rem" />
-            <p-skeleton height="4rem" />
-        </div>
+    <div class="flex flex-col gap-3">
+        <p-skeleton height="3rem" />
+        <p-skeleton height="1rem" />
+        <p-skeleton height="4rem" />
+    </div>
     } @else if (isAdmin) {
-        <div class="grid grid-cols-3 mb-4" aria-label="Riepilogo inventario">
-            <div class="inventory-metric">
-                <span>Oggetti registrati</span>
-                <strong>{{ adminSummary?.registeredItems ?? 0 }}</strong>
-            </div>
-            <div class="inventory-metric inventory-metric--divided">
-                <span>Disponibili</span>
-                <strong>{{ adminSummary?.availableQuantity ?? 0 }}</strong>
-            </div>
-            <div class="inventory-metric inventory-metric--divided">
-                <span>Assegnati</span>
-                <strong>{{ adminSummary?.assignedQuantity ?? 0 }}</strong>
-            </div>
+    <div class="grid grid-cols-3 mb-4" aria-label="Riepilogo inventario">
+        <div class="inventory-metric">
+            <span>Oggetti registrati</span>
+            <strong>{{ adminSummary?.registeredItems ?? 0 }}</strong>
         </div>
+        <div class="inventory-metric inventory-metric--divided">
+            <span>Disponibili</span>
+            <strong>{{ adminSummary?.availableQuantity ?? 0 }}</strong>
+        </div>
+        <div class="inventory-metric inventory-metric--divided">
+            <span>Assegnati</span>
+            <strong>{{ adminSummary?.assignedQuantity ?? 0 }}</strong>
+        </div>
+    </div>
 
-        <div class="flex items-center justify-between gap-3 text-xs text-muted-color">
-            <span>Distribuzione quantità</span>
-            <span
-                ><strong class="text-surface-900 dark:text-surface-0">{{ availabilityPercentage }}%</strong> disponibile</span
-            >
-        </div>
-        <div class="inventory-progress" role="progressbar" aria-label="Quantità disponibile" [attr.aria-valuenow]="availabilityPercentage" aria-valuemin="0" aria-valuemax="100">
-            <span class="inventory-progress-available" [style.width.%]="availabilityPercentage"></span>
-            <span class="inventory-progress-assigned" [style.width.%]="100 - availabilityPercentage"></span>
-        </div>
-        <div class="flex gap-5 text-xs text-muted-color mb-4">
-            <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-available"></i>Disponibili</span>
-            <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-assigned"></i>Assegnati</span>
-        </div>
+    <div class="flex items-center justify-between gap-3 text-xs text-muted-color">
+        <span>Distribuzione quantità</span>
+        <span><strong class="text-surface-900 dark:text-surface-0">{{ availabilityPercentage }}%</strong>
+            disponibile</span>
+    </div>
+    <div class="inventory-progress" role="progressbar" aria-label="Quantità disponibile"
+        [attr.aria-valuenow]="availabilityPercentage" aria-valuemin="0" aria-valuemax="100">
+        <span class="inventory-progress-available" [style.width.%]="availabilityPercentage"></span>
+        <span class="inventory-progress-assigned" [style.width.%]="100 - availabilityPercentage"></span>
+    </div>
+    <div class="flex gap-5 text-xs text-muted-color mb-4">
+        <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-available"></i>Disponibili</span>
+        <span class="flex items-center gap-2"><i class="inventory-dot inventory-dot-assigned"></i>Assegnati</span>
+    </div>
 
-        <div class="inventory-subheader"><span>Da gestire</span><span>{{ adminActivities }} attività</span></div>
-        @if (adminActivities > 0) {
-            @if ((adminSummary?.pendingDecisions ?? 0) > 0) {
-                <app-list-row compact>
-                    <span rowMedia class="inventory-row-icon inventory-row-icon--pending"><i class="pi pi-clipboard" aria-hidden="true"></i></span>
-                    <span rowIdentity
-                        ><a routerLink="/inventory" class="font-semibold block">{{ adminSummary?.pendingDecisions }} {{ adminSummary?.pendingDecisions === 1 ? 'presa visione in attesa' : 'prese visione in attesa' }}</a>
-                        <small class="block text-muted-color mt-1">Assegnazioni non ancora confermate</small></span
-                    >
-                    <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
-                </app-list-row>
-            }
-            @if ((adminSummary?.pendingReturns ?? 0) > 0) {
-                <app-list-row compact>
-                    <span rowMedia class="inventory-row-icon inventory-row-icon--returns"><i class="pi pi-replay" aria-hidden="true"></i></span>
-                    <span rowIdentity
-                        ><a routerLink="/inventory" class="font-semibold block">{{ adminSummary?.pendingReturns }} {{ adminSummary?.pendingReturns === 1 ? 'richiesta di riconsegna' : 'richieste di riconsegna' }}</a>
-                        <small class="block text-muted-color mt-1">Da verificare e chiudere</small></span
-                    >
-                    <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
-                </app-list-row>
-            }
-        } @else {
-            <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna attività in attesa" message="Non c’è nulla da gestire in questo momento." />
-        }
-
-        <div class="inventory-footer">
-            <span><i class="pi pi-clock" aria-hidden="true"></i> Aggiornato pochi istanti fa</span>
-            <p-button label="Nuovo oggetto" icon="pi pi-plus" routerLink="/inventory" [queryParams]="{ action: 'new' }" />
-        </div>
+    <div class="inventory-subheader"><span>Da gestire</span><span>{{ adminActivities }} attività</span></div>
+    @if (adminActivities > 0) {
+    @if ((adminSummary?.pendingDecisions ?? 0) > 0) {
+    <app-list-row compact>
+        <span rowMedia class="inventory-row-icon inventory-row-icon--pending"><i class="pi pi-clipboard"
+                aria-hidden="true"></i></span>
+        <span rowIdentity><a routerLink="/inventory" class="font-semibold block">{{ adminSummary?.pendingDecisions }} {{
+                adminSummary?.pendingDecisions === 1 ? 'presa visione in attesa' : 'prese visione in attesa' }}</a>
+            <small class="block text-muted-color mt-1">Assegnazioni non ancora confermate</small></span>
+        <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+    </app-list-row>
+    }
+    @if ((adminSummary?.pendingReturns ?? 0) > 0) {
+    <app-list-row compact>
+        <span rowMedia class="inventory-row-icon inventory-row-icon--returns"><i class="pi pi-replay"
+                aria-hidden="true"></i></span>
+        <span rowIdentity><a routerLink="/inventory" class="font-semibold block">{{ adminSummary?.pendingReturns }} {{
+                adminSummary?.pendingReturns === 1 ? 'richiesta di riconsegna' : 'richieste di riconsegna' }}</a>
+            <small class="block text-muted-color mt-1">Da verificare e chiudere</small></span>
+        <i rowActions class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+    </app-list-row>
+    }
     } @else {
-        <div class="grid grid-cols-1 md:grid-cols-[minmax(12rem,.65fr)_minmax(18rem,1.35fr)] gap-5 mb-4">
-            <div class="inventory-metric">
-                <span>In tuo possesso</span>
-                <strong>{{ userSummary?.possessedItems ?? 0 }} <small class="text-sm font-normal">oggetti</small></strong>
-                <small class="text-xs text-muted-color">{{ userSummary?.outstandingQuantity ?? 0 }} unità complessive</small>
-            </div>
-            @if ((userSummary?.pendingDecisions ?? 0) > 0) {
-                <app-inline-alert
-                    severity="warn"
-                    [heading]="(userSummary?.pendingDecisions ?? 0) + ((userSummary?.pendingDecisions ?? 0) === 1 ? ' presa visione richiesta' : ' prese visione richieste')"
-                    detail="Apri l’inventario per confermare le consegne."
-                    actionLabel="Apri"
-                    actionLink="/inventory"
-                    [queryParams]="{ view: 'mine' }"
-                />
-            } @else {
-                <app-inline-alert severity="success" heading="Tutto confermato" detail="Nessuna presa visione in attesa." />
-            }
-        </div>
+    <app-empty-state compact icon="pi pi-check-circle" heading="Nessuna attività in attesa"
+        message="Non c’è nulla da gestire in questo momento." />
+    }
 
-        <div class="inventory-subheader"><span>Materiale recente</span><a class="text-primary" routerLink="/inventory" [queryParams]="{ view: 'mine' }">Vedi tutti</a></div>
-        @if (recentAssignments.length > 0) {
-            @for (assignment of recentAssignments; track assignment.id) {
-                <app-list-row compact>
-                    <span rowMedia class="inventory-row-icon"><i class="pi pi-box" aria-hidden="true"></i></span>
-                    <span rowIdentity
-                        ><a [routerLink]="['/inventory/assignments', assignment.id]" class="font-semibold block truncate">{{ assignment.itemName }}</a>
-                        <small class="block text-muted-color mt-1 truncate">{{ assignment.inventoryNumber }} · {{ assignment.outstandingQuantity }} in possesso</small></span
-                    >
-                    <p-tag rowActions [value]="decisionLabel(assignment.decision?.decision)" [severity]="decisionSeverity(assignment.decision?.decision)" />
-                </app-list-row>
-            }
+    <div class="inventory-footer">
+        <span><i class="pi pi-clock" aria-hidden="true"></i> Aggiornato pochi istanti fa</span>
+        <p-button label="Nuovo oggetto" icon="pi pi-plus" routerLink="/inventory" [queryParams]="{ action: 'new' }" />
+    </div>
+    } @else {
+    <div class="grid grid-cols-1 md:grid-cols-[minmax(12rem,.65fr)_minmax(18rem,1.35fr)] gap-5 mb-4">
+        <div class="inventory-metric">
+            <span>In tuo possesso</span>
+            <strong>{{ userSummary?.possessedItems ?? 0 }} <small class="text-sm font-normal">oggetti</small></strong>
+            <small class="text-xs text-muted-color">{{ userSummary?.outstandingQuantity ?? 0 }} unità
+                complessive</small>
+        </div>
+        @if ((userSummary?.pendingDecisions ?? 0) > 0) {
+        <app-inline-alert severity="warn"
+            [heading]="(userSummary?.pendingDecisions ?? 0) + ((userSummary?.pendingDecisions ?? 0) === 1 ? ' presa visione richiesta' : ' prese visione richieste')"
+            detail="Apri l’inventario per confermare le consegne." actionLabel="Apri" actionLink="/inventory"
+            [queryParams]="{ view: 'mine' }" />
         } @else {
-            <app-empty-state compact icon="pi pi-box" heading="Nessun materiale" message="Non hai materiale attualmente in possesso." />
+        <app-inline-alert severity="success" heading="Tutto confermato" detail="Nessuna presa visione in attesa." />
         }
+    </div>
 
-        <div class="inventory-footer">
-            <span
-                ><i class="pi pi-clock" aria-hidden="true"></i>
-                @if (userSummary?.lastAssignedAt) {
-                    Ultima consegna: {{ userSummary?.lastAssignedAt | date: 'dd MMMM yyyy' }}
-                } @else {
-                    Nessuna consegna registrata
-                }
-            </span>
-            <p-button label="Scarica proforma" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadReport()" />
-        </div>
+    <div class="inventory-subheader"><span>Materiale recente</span><a class="text-primary" routerLink="/inventory"
+            [queryParams]="{ view: 'mine' }">Vedi tutti</a></div>
+    @if (recentAssignments.length > 0) {
+    @for (assignment of recentAssignments; track assignment.id) {
+    <app-list-row compact>
+        <span rowMedia class="inventory-row-icon"><i class="pi pi-box" aria-hidden="true"></i></span>
+        <span rowIdentity><a [routerLink]="['/inventory/assignments', assignment.id]"
+                class="font-semibold block truncate">{{ assignment.itemName }}</a>
+            <small class="block text-muted-color mt-1 truncate">{{ assignment.inventoryNumber }} · {{
+                assignment.outstandingQuantity }} in possesso</small></span>
+        <p-tag rowActions [value]="decisionLabel(assignment.decision?.decision)"
+            [severity]="decisionSeverity(assignment.decision?.decision)" />
+    </app-list-row>
+    }
+    } @else {
+    <app-empty-state compact icon="pi pi-box" heading="Nessun materiale"
+        message="Non hai materiale attualmente in possesso." />
+    }
+
+    <div class="inventory-footer">
+        <span><i class="pi pi-clock" aria-hidden="true"></i>
+            @if (userSummary?.lastAssignedAt) {
+            Ultima consegna: {{ userSummary?.lastAssignedAt | date: 'dd MMMM yyyy' }}
+            } @else {
+            Nessuna consegna registrata
+            }
+        </span>
+        <p-button label="Scarica proforma" icon="pi pi-download" severity="secondary" [outlined]="true"
+            (onClick)="downloadReport()" />
+    </div>
     }
 </app-detail-section>

@@ -14,6 +14,7 @@ import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.HexFormat;
 import java.util.UUID;
 import java.util.Set;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -108,7 +110,8 @@ public class InventoryQrCodeService {
     }
 
     public void requireEnabled() {
-        if (!properties.isEnabled()) throw new RequestAlertException(HttpStatus.NOT_FOUND, "Funzionalità QR inventario non disponibile", ENTITY, "inventory.qr.disabled");
+        if (!properties.isEnabled())
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Funzionalità QR inventario non disponibile", ENTITY, "inventory.qr.disabled");
     }
 
     private static String digest(UUID value) {
@@ -121,7 +124,8 @@ public class InventoryQrCodeService {
 
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
-        if (value == null || value.isBlank()) throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
+        if (value == null || value.isBlank())
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
         return value;
     }
 

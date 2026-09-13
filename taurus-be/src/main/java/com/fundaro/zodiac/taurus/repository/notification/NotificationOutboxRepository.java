@@ -2,18 +2,19 @@ package com.fundaro.zodiac.taurus.repository.notification;
 
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
-import com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary;
 import com.fundaro.zodiac.taurus.repository.projection.NotificationFailureProjection;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary;
 import jakarta.persistence.LockModeType;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public interface NotificationOutboxRepository extends JpaRepository<NotificationOutbox, Long> {
     @Query("select event.id from NotificationOutbox event where event.deleted = false and event.status = :status and event.nextAttemptAt <= :now order by event.id")

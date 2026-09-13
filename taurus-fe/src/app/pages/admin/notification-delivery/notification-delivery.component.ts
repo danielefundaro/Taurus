@@ -87,7 +87,7 @@ export class NotificationDeliveryComponent implements OnInit {
         private readonly toastService: ToastService,
         protected readonly notificationPresentation: NotificationPresentationService,
         private readonly route: ActivatedRoute
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         const status = this.route.snapshot.queryParamMap.get('status');

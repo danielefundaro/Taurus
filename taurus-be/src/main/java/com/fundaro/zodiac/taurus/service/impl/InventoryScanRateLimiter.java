@@ -3,8 +3,10 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.time.Duration;
 import java.time.Instant;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,6 +31,10 @@ public class InventoryScanRateLimiter {
         return window.count <= limit;
     }
 
-    private static String safe(String value) { return value == null || value.isBlank() ? "unknown" : value; }
-    private record Window(long minute, int count) {}
+    private static String safe(String value) {
+        return value == null || value.isBlank() ? "unknown" : value;
+    }
+
+    private record Window(long minute, int count) {
+    }
 }

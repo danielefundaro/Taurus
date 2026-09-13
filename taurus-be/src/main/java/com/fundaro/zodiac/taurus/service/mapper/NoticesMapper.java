@@ -8,4 +8,5 @@ import org.mapstruct.Mapper;
  * Mapper for the entity {@link Notices} and its DTO {@link NoticesDTO}.
  */
 @Mapper(componentModel = "spring")
-public interface NoticesMapper extends EntityMapper<NoticesDTO, Notices> {}
+public interface NoticesMapper extends EntityMapper<NoticesDTO, Notices> {
+}

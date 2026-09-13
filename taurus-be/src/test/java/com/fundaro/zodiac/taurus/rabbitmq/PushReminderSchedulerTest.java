@@ -20,11 +20,13 @@ import com.fundaro.zodiac.taurus.service.NotificationPreferenceResolver;
 import com.fundaro.zodiac.taurus.service.PushService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision;
 import com.fundaro.zodiac.taurus.service.notification.PushDeliveryResult;
+
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 class PushReminderSchedulerTest {

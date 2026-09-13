@@ -11,7 +11,7 @@ export interface ConfirmRequest {
 }
 @Injectable({ providedIn: 'root' })
 export class ConfirmService {
-    constructor(private readonly confirmationService: ConfirmationService) {}
+    constructor(private readonly confirmationService: ConfirmationService) { }
     confirmDestructive(request: ConfirmRequest): void {
         this.open(request, 'pi pi-trash', { severity: 'danger' }, 'Annulla');
     }

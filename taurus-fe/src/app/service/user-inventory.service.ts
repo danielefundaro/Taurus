@@ -8,7 +8,7 @@ import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSumma
 export class UserInventoryService {
     private readonly baseUrl = `${environment.baseUrl}/user/inventory`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getAssignments(query = '', scope: InventoryAssignmentScope = 'POSSESSED', page = 0, size = 10, sort = 'assignedAt,desc', attention?: string): Observable<Page<InventoryAssignmentSummary>> {
         let params = new HttpParams().set('scope', scope).set('page', page).set('size', size).set('sort', sort);

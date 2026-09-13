@@ -49,7 +49,7 @@ export class ScoreWorkspaceComponent implements OnChanges {
     private draggedScoreIndex?: number;
     private draggedPage?: { scoreIndex: number; pageIndex: number; mediaId: number };
 
-    constructor(private readonly confirmService: ConfirmService) {}
+    constructor(private readonly confirmService: ConfirmService) { }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['scores'] && this.scores !== this.lastEmitted) {

@@ -14,4 +14,5 @@ public record NotificationDelivery(
     String targetPath,
     String actorId,
     NotificationPreferencePolicy preferencePolicy
-) {}
+) {
+}

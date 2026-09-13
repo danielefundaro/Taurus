@@ -1,6 +1,7 @@
 :host {
     display: block;
 }
+
 .empty-state {
     min-height: 12rem;
     display: flex;
@@ -12,6 +13,7 @@
     text-align: center;
     color: var(--p-text-muted-color);
 }
+
 .empty-state__icon {
     width: 3.5rem;
     height: 3.5rem;
@@ -21,14 +23,17 @@
     background: var(--p-content-hover-background);
     font-size: 1.4rem;
 }
+
 .empty-state--compact {
     min-height: 8rem;
     padding: 1.25rem;
 }
+
 h2,
 p {
     margin: 0;
 }
+
 h2 {
     font-size: 1.1rem;
     color: var(--p-text-color);

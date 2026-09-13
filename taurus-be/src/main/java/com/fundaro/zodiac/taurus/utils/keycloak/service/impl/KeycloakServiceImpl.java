@@ -127,7 +127,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void updateUserGroup(String userId, String groupId) {
         String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -178,7 +179,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void sendResetPasswordEmail(String userId) {
         String url = String.format("%s/users/%s/reset-password-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -190,7 +192,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void sendVerifyEmail(String userId) {
         String url = String.format("%s/users/%s/send-verify-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -202,7 +205,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void sendExecuteActionsEmail(String userId, List<String> actions) {
         String url = String.format("%s/users/%s/execute-actions-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), actions, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -228,7 +232,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void deleteUserGroup(String userId, String groupId) {
         String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -240,7 +245,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public List<Group> getUserGroups(String userId) {
         String url = String.format("%s/users/%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
-        ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
@@ -252,7 +258,8 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public void deleteGroup(String groupId) {
         String url = String.format("%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), groupId);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
@@ -325,7 +332,8 @@ public class KeycloakServiceImpl implements KeycloakService {
         role.setDescription(description);
         role.setComposite(false);
         role.setClientRole(true);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {};
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), role, typeRef);
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "role.provision");

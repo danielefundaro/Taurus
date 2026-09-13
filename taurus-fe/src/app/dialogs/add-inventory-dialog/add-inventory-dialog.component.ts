@@ -31,7 +31,7 @@ export class AddInventoryDialogComponent {
         { label: 'Fuori servizio', value: 'OUT_OF_SERVICE' }
     ];
 
-    constructor(private readonly dialogRef: DynamicDialogRef<AddInventoryDialogComponent>) {}
+    constructor(private readonly dialogRef: DynamicDialogRef<AddInventoryDialogComponent>) { }
 
     protected get canSave(): boolean {
         return !!this.item.inventoryNumber.trim() && !!this.item.name.trim();

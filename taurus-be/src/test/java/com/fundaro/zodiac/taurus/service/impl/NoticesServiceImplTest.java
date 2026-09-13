@@ -1,25 +1,16 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.Notices;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.repository.NoticesRepository;
-import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.dto.NoticesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapper;
 import com.fundaro.zodiac.taurus.service.mapper.NoticesMapperImpl;
 import com.fundaro.zodiac.taurus.service.notification.NotificationDelivery;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.ZonedDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +20,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.time.ZonedDateTime;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class NoticesServiceImplTest {
 
-    @Mock NoticesRepository noticesRepository;
-    @Mock NoticesMapper noticesMapper;
-    @Mock TenantFeatureService tenantFeatureService;
+    @Mock
+    NoticesRepository noticesRepository;
+    @Mock
+    NoticesMapper noticesMapper;
+    @Mock
+    TenantFeatureService tenantFeatureService;
     private NoticesServiceImpl service;
 
     @BeforeEach
@@ -93,6 +95,7 @@ class NoticesServiceImplTest {
 
         verify(noticesRepository, never()).save(any(Notices.class));
     }
+
     @Test
     void refusesASnoozeShorterThanTheConfiguredMinimum() {
         assertThatThrownBy(() -> service.snooze(1L, ZonedDateTime.now().plusMinutes(2), authentication()))

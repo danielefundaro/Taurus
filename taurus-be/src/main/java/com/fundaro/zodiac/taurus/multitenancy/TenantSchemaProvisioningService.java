@@ -1,12 +1,5 @@
 package com.fundaro.zodiac.taurus.multitenancy;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
-import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +7,14 @@ import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class TenantSchemaProvisioningService {
@@ -102,11 +103,11 @@ public class TenantSchemaProvisioningService {
     public void deactivate(String tenantCode, String actor) {
         int updated = new JdbcTemplate(dataSource).update(
             """
-            UPDATE public.tenant_schema_registry
-            SET status = 'DELETED', deleted = TRUE, edit_by = ?,
-                updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
-            WHERE tenant_code = ? AND status = 'ACTIVE' AND deleted = FALSE
-            """,
+                UPDATE public.tenant_schema_registry
+                SET status = 'DELETED', deleted = TRUE, edit_by = ?,
+                    updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
+                WHERE tenant_code = ? AND status = 'ACTIVE' AND deleted = FALSE
+                """,
             actor == null || actor.isBlank() ? "system" : actor,
             tenantCode
         );
@@ -126,11 +127,11 @@ public class TenantSchemaProvisioningService {
                 statement.execute("DROP SCHEMA IF EXISTS " + quoteIdentifier(schemaName) + " CASCADE");
                 try (PreparedStatement update = connection.prepareStatement(
                     """
-                    UPDATE public.tenant_schema_registry
-                    SET status = 'DELETED', deleted = TRUE, edit_by = 'system',
-                        updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
-                    WHERE tenant_code = ?
-                    """
+                        UPDATE public.tenant_schema_registry
+                        SET status = 'DELETED', deleted = TRUE, edit_by = 'system',
+                            updated_at = CURRENT_TIMESTAMP, edit_date = CURRENT_TIMESTAMP
+                        WHERE tenant_code = ?
+                        """
                 )) {
                     update.setString(1, tenantCode);
                     update.executeUpdate();

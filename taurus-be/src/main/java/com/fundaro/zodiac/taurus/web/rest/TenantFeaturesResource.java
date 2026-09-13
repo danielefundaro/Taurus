@@ -1,14 +1,15 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import com.fundaro.zodiac.taurus.service.TenantFeatureService;
-import com.fundaro.zodiac.taurus.service.dto.TenantFeaturesDTO;
-import com.fundaro.zodiac.taurus.service.dto.TenantFeatureCapabilityDTO;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import java.util.Map;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.dto.TenantFeatureCapabilityDTO;
+import com.fundaro.zodiac.taurus.service.dto.TenantFeaturesDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tenant-features")

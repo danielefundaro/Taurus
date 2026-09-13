@@ -30,7 +30,7 @@
 .event-main {
     min-width: 0;
 
-    > a {
+    >a {
         display: block;
         overflow: hidden;
         color: var(--p-text-color);
@@ -46,7 +46,7 @@
         }
     }
 
-    > small {
+    >small {
         display: flex;
         flex-wrap: wrap;
         gap: 0.25rem 0.65rem;

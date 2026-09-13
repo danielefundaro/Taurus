@@ -1,17 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +11,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -86,7 +87,7 @@ class MediaStorageCleanupServiceTest {
     void removesStaleTemporaryLeftovers() throws Exception {
         Path work = tenantRoot.resolve(".tmp").resolve("pdf-processing").resolve("work-1");
         Files.createDirectories(work);
-        Files.write(work.resolve("page.pdf"), new byte[] { 1 });
+        Files.write(work.resolve("page.pdf"), new byte[]{1});
         aged(work, 30);
         Path partial = aged(write("inventory/.digest.jpg.1234.tmp"), 30);
         when(mediaRepository.findActiveStorageKeys()).thenReturn(List.of());
@@ -98,7 +99,7 @@ class MediaStorageCleanupServiceTest {
     }
 
     private Path write(String storageKey) throws Exception {
-        tenantStorageService.writeAtomically(TENANT, storageKey, new byte[] { 1, 2, 3 });
+        tenantStorageService.writeAtomically(TENANT, storageKey, new byte[]{1, 2, 3});
         return tenantStorageService.resolveStorageKey(TENANT, storageKey);
     }
 

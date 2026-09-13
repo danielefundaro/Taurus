@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.inventory;
 
 import jakarta.persistence.*;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -23,18 +24,59 @@ public class InventoryAssignmentRevision extends AuditedEntity {
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
-    public InventoryAssignment getAssignment() { return assignment; }
-    public void setAssignment(InventoryAssignment assignment) { this.assignment = assignment; }
-    public int getRevisionNumber() { return revisionNumber; }
-    public void setRevisionNumber(int revisionNumber) { this.revisionNumber = revisionNumber; }
-    public InventoryRevisionReason getReason() { return reason; }
-    public void setReason(InventoryRevisionReason reason) { this.reason = reason; }
-    public String getSnapshotJson() { return snapshotJson; }
-    public void setSnapshotJson(String snapshotJson) { this.snapshotJson = snapshotJson; }
-    public String getSnapshotHash() { return snapshotHash; }
-    public void setSnapshotHash(String snapshotHash) { this.snapshotHash = snapshotHash; }
-    public ZonedDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(ZonedDateTime createdAt) { this.createdAt = createdAt; }
-    public String getCreatedBy() { return createdBy; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public InventoryAssignment getAssignment() {
+        return assignment;
+    }
+
+    public void setAssignment(InventoryAssignment assignment) {
+        this.assignment = assignment;
+    }
+
+    public int getRevisionNumber() {
+        return revisionNumber;
+    }
+
+    public void setRevisionNumber(int revisionNumber) {
+        this.revisionNumber = revisionNumber;
+    }
+
+    public InventoryRevisionReason getReason() {
+        return reason;
+    }
+
+    public void setReason(InventoryRevisionReason reason) {
+        this.reason = reason;
+    }
+
+    public String getSnapshotJson() {
+        return snapshotJson;
+    }
+
+    public void setSnapshotJson(String snapshotJson) {
+        this.snapshotJson = snapshotJson;
+    }
+
+    public String getSnapshotHash() {
+        return snapshotHash;
+    }
+
+    public void setSnapshotHash(String snapshotHash) {
+        this.snapshotHash = snapshotHash;
+    }
+
+    public ZonedDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(ZonedDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
 }

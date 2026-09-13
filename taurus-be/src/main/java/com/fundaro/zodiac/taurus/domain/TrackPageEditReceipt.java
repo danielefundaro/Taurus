@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -45,22 +46,75 @@ public class TrackPageEditReceipt {
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
-    public Long getId() { return id; }
-    public UUID getRequestKey() { return requestKey; }
-    public void setRequestKey(UUID requestKey) { this.requestKey = requestKey; }
-    public String getRequestedBy() { return requestedBy; }
-    public void setRequestedBy(String requestedBy) { this.requestedBy = requestedBy; }
-    public String getRequestFingerprint() { return requestFingerprint; }
-    public void setRequestFingerprint(String requestFingerprint) { this.requestFingerprint = requestFingerprint; }
-    public Long getTrackId() { return trackId; }
-    public void setTrackId(Long trackId) { this.trackId = trackId; }
-    public Long getSheetMusicId() { return sheetMusicId; }
-    public void setSheetMusicId(Long sheetMusicId) { this.sheetMusicId = sheetMusicId; }
-    public Long getSourceMediaId() { return sourceMediaId; }
-    public void setSourceMediaId(Long sourceMediaId) { this.sourceMediaId = sourceMediaId; }
-    public Long getResultTrackVersion() { return resultTrackVersion; }
-    public void setResultTrackVersion(Long resultTrackVersion) { this.resultTrackVersion = resultTrackVersion; }
-    public String getResultMediaJson() { return resultMediaJson; }
-    public void setResultMediaJson(String resultMediaJson) { this.resultMediaJson = resultMediaJson; }
-    public ZonedDateTime getCreatedAt() { return createdAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public UUID getRequestKey() {
+        return requestKey;
+    }
+
+    public void setRequestKey(UUID requestKey) {
+        this.requestKey = requestKey;
+    }
+
+    public String getRequestedBy() {
+        return requestedBy;
+    }
+
+    public void setRequestedBy(String requestedBy) {
+        this.requestedBy = requestedBy;
+    }
+
+    public String getRequestFingerprint() {
+        return requestFingerprint;
+    }
+
+    public void setRequestFingerprint(String requestFingerprint) {
+        this.requestFingerprint = requestFingerprint;
+    }
+
+    public Long getTrackId() {
+        return trackId;
+    }
+
+    public void setTrackId(Long trackId) {
+        this.trackId = trackId;
+    }
+
+    public Long getSheetMusicId() {
+        return sheetMusicId;
+    }
+
+    public void setSheetMusicId(Long sheetMusicId) {
+        this.sheetMusicId = sheetMusicId;
+    }
+
+    public Long getSourceMediaId() {
+        return sourceMediaId;
+    }
+
+    public void setSourceMediaId(Long sourceMediaId) {
+        this.sourceMediaId = sourceMediaId;
+    }
+
+    public Long getResultTrackVersion() {
+        return resultTrackVersion;
+    }
+
+    public void setResultTrackVersion(Long resultTrackVersion) {
+        this.resultTrackVersion = resultTrackVersion;
+    }
+
+    public String getResultMediaJson() {
+        return resultMediaJson;
+    }
+
+    public void setResultMediaJson(String resultMediaJson) {
+        this.resultMediaJson = resultMediaJson;
+    }
+
+    public ZonedDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

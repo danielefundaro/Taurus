@@ -17,10 +17,12 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -72,7 +74,8 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
         List<OperationalItemDTO> result = new ArrayList<>();
         boolean administrator = context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN);
         if (administrator && qrProperties.isEnabled()
-            && (tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_QR))) addIssues(result);
+            && (tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_QR)))
+            addIssues(result);
         long pendingDecisions = administrator
             ? decisionRepository.countPendingCurrentRevisions(OUTSTANDING)
             : decisionRepository.countPendingCurrentRevisionsForUser(context.subject(), OUTSTANDING);
@@ -113,11 +116,13 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     private void addIssues(List<OperationalItemDTO> result) {
         List<InventoryIssueStatus> open = List.of(InventoryIssueStatus.OPEN, InventoryIssueStatus.ACKNOWLEDGED);
         long unsafe = issueRepository.countBySeverityAndStatusInAndDeletedFalse(InventoryIssueSeverity.UNSAFE, open);
-        if (unsafe > 0) result.add(item(DashboardOperationType.INVENTORY_UNSAFE_ISSUES, DashboardSeverity.DANGER, unsafe,
-            "Guasti non sicuri", "Segnalazioni che bloccano prudenzialmente nuove assegnazioni.", null, "Verifica", "/inventory?attention=issues-unsafe"));
+        if (unsafe > 0)
+            result.add(item(DashboardOperationType.INVENTORY_UNSAFE_ISSUES, DashboardSeverity.DANGER, unsafe,
+                "Guasti non sicuri", "Segnalazioni che bloccano prudenzialmente nuove assegnazioni.", null, "Verifica", "/inventory?attention=issues-unsafe"));
         long limiting = issueRepository.countBySeverityAndStatusInAndDeletedFalse(InventoryIssueSeverity.LIMITING, open);
-        if (limiting > 0) result.add(item(DashboardOperationType.INVENTORY_LIMITING_ISSUES, DashboardSeverity.WARNING, limiting,
-            "Guasti limitanti", "Segnalazioni che richiedono una valutazione amministrativa.", null, "Verifica", "/inventory?attention=issues-limiting"));
+        if (limiting > 0)
+            result.add(item(DashboardOperationType.INVENTORY_LIMITING_ISSUES, DashboardSeverity.WARNING, limiting,
+                "Guasti limitanti", "Segnalazioni che richiedono una valutazione amministrativa.", null, "Verifica", "/inventory?attention=issues-limiting"));
     }
 
     private void addExpiring(DashboardRequestContext context, boolean administrator, List<OperationalItemDTO> result) {

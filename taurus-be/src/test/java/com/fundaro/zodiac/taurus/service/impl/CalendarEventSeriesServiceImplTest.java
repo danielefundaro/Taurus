@@ -1,9 +1,5 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.CalendarEventSeries;
 import com.fundaro.zodiac.taurus.domain.CalendarEventSeriesCost;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
@@ -11,27 +7,32 @@ import com.fundaro.zodiac.taurus.domain.EventCost;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceEndType;
 import com.fundaro.zodiac.taurus.domain.enumeration.RecurrenceFrequency;
 import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.rabbitmq.EventReminderProducer;
 import com.fundaro.zodiac.taurus.repository.CalendarEventSeriesRepository;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.service.RecurringEventGenerator;
-import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
-import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesRequest;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceEndDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CalendarEventSeriesServiceImplTest {
 

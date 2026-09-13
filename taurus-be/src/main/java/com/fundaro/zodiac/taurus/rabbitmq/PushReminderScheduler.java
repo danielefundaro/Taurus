@@ -1,23 +1,23 @@
 package com.fundaro.zodiac.taurus.rabbitmq;
 
-import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
-import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
-import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
-import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
-import com.fundaro.zodiac.taurus.service.PushService;
-import com.fundaro.zodiac.taurus.service.NotificationPreferenceResolver;
-import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
-import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
-import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.QuietOutcome;
-import com.fundaro.zodiac.taurus.service.notification.NotificationTiming;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
+import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
+import com.fundaro.zodiac.taurus.service.NotificationPreferenceResolver;
+import com.fundaro.zodiac.taurus.service.PushService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
+import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics.QuietOutcome;
+import com.fundaro.zodiac.taurus.service.notification.NotificationTiming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

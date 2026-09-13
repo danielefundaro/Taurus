@@ -6,7 +6,7 @@ import { InventoryScanResult } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryScanService {
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     resolve(publicId: string): Observable<InventoryScanResult> {
         return this.http.get<InventoryScanResult>(`${environment.baseUrl}/inventory-scan/v1/${encodeURIComponent(publicId)}`);

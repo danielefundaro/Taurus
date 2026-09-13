@@ -1,18 +1,12 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.same;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.Media;
+import com.fundaro.zodiac.taurus.domain.QueueUploadFiles;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
-import com.fundaro.zodiac.taurus.repository.QueueUploadFilesRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.repository.QueueUploadFilesRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
@@ -20,9 +14,6 @@ import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,15 +23,29 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 class QueueUploadFilesServiceImplTest {
 
-    @Mock QueueUploadFilesRepository repository;
-    @Mock QueueUploadFilesMapper mapper;
-    @Mock MediaService mediaService;
-    @Mock MediaRepository mediaRepository;
-    @Mock UsersRepository usersRepository;
-    @Mock TracksRepository tracksRepository;
+    @Mock
+    QueueUploadFilesRepository repository;
+    @Mock
+    QueueUploadFilesMapper mapper;
+    @Mock
+    MediaService mediaService;
+    @Mock
+    MediaRepository mediaRepository;
+    @Mock
+    UsersRepository usersRepository;
+    @Mock
+    TracksRepository tracksRepository;
 
     private QueueUploadFilesServiceImpl service;
 

@@ -1,10 +1,11 @@
 package com.fundaro.zodiac.taurus.multitenancy;
 
-import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.function.Supplier;
 
 @Component
 public class TenantTransactionExecutor {

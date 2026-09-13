@@ -1,35 +1,23 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardOperationProvider;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardRequestContext;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardResultStatus;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalDashboardDTO;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
-import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalSummaryDTO;
-import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.dto.dashboard.*;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.*;
 
 @Service
 public class OperationalDashboardService {
@@ -95,8 +83,10 @@ public class OperationalDashboardService {
         Map<DashboardOperationType, OperationalItemDTO> uniqueItems = new LinkedHashMap<>();
         EnumSet<DashboardDomain> unavailable = EnumSet.noneOf(DashboardDomain.class);
         for (DashboardOperationProvider provider : providers) {
-            if (provider.domain() == DashboardDomain.INVENTORY && !tenantFeatureService.isEnabled(TenantFeature.INVENTORY)) continue;
-            if (provider.domain() == DashboardDomain.FINANCE && !tenantFeatureService.isEnabled(TenantFeature.FINANCE)) continue;
+            if (provider.domain() == DashboardDomain.INVENTORY && !tenantFeatureService.isEnabled(TenantFeature.INVENTORY))
+                continue;
+            if (provider.domain() == DashboardDomain.FINANCE && !tenantFeatureService.isEnabled(TenantFeature.FINANCE))
+                continue;
             long providerStartedAt = System.nanoTime();
             try {
                 for (OperationalItemDTO item : provider.getOperations(context)) {

@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,6 +27,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -241,7 +243,8 @@ public class TrackPageImageService {
 
     private List<ChildrenEntitiesDTO> deserializeMedia(String mediaJson) {
         try {
-            return objectMapper.readValue(mediaJson, new TypeReference<>() {});
+            return objectMapper.readValue(mediaJson, new TypeReference<>() {
+            });
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to deserialize image edit result", exception);
         }
@@ -249,24 +252,34 @@ public class TrackPageImageService {
 
     private static String requiredActor(AbstractAuthenticationToken token) {
         String actor = SecurityUtils.getUserIdFromAuthentication(token);
-        if (actor == null || actor.isBlank()) throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "trackPageImage", "identity.missing");
+        if (actor == null || actor.isBlank())
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "trackPageImage", "identity.missing");
         return actor;
     }
 
     private static void requireEditor(AbstractAuthenticationToken token) {
         boolean allowed = token != null && token.getAuthorities().stream().anyMatch(authority ->
             AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()) ||
-            AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
-            AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
+                AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
+                AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
         );
-        if (!allowed) throw new RequestAlertException(HttpStatus.FORBIDDEN, "Image editing is not allowed", "trackPageImage", "image.forbidden");
+        if (!allowed)
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Image editing is not allowed", "trackPageImage", "image.forbidden");
     }
 
     private static void requireUuidV4(UUID key) {
-        if (key == null || key.version() != 4) throw new RequestAlertException(HttpStatus.BAD_REQUEST, "A random UUID v4 idempotency key is required", "trackPageImage", "image.idempotencyKey");
+        if (key == null || key.version() != 4)
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "A random UUID v4 idempotency key is required", "trackPageImage", "image.idempotencyKey");
     }
 
-    private static RequestAlertException notFound(String message) { return new RequestAlertException(HttpStatus.NOT_FOUND, message, "trackPageImage", "image.notFound"); }
-    private static RequestAlertException conflict(String message, String key) { return new RequestAlertException(HttpStatus.CONFLICT, message, "trackPageImage", key); }
-    private record PageSource(String fileName, String mimeType, byte[] content) {}
+    private static RequestAlertException notFound(String message) {
+        return new RequestAlertException(HttpStatus.NOT_FOUND, message, "trackPageImage", "image.notFound");
+    }
+
+    private static RequestAlertException conflict(String message, String key) {
+        return new RequestAlertException(HttpStatus.CONFLICT, message, "trackPageImage", key);
+    }
+
+    private record PageSource(String fileName, String mimeType, byte[] content) {
+    }
 }

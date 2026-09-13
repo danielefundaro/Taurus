@@ -13,11 +13,13 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+
 import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -49,7 +51,8 @@ public class NotificationOutboxPublisher {
     @Transactional(propagation = Propagation.MANDATORY)
     public void enqueue(NotificationCommand rawCommand) {
         NotificationCommand command = normalizeAndValidate(rawCommand);
-        if (featurePolicy != null && tenantFeatures != null && featurePolicy.requiredFeatures(command.source(), command.aggregateType(), command.operation()).stream().anyMatch(feature -> !tenantFeatures.isEnabled(feature))) return;
+        if (featurePolicy != null && tenantFeatures != null && featurePolicy.requiredFeatures(command.source(), command.aggregateType(), command.operation()).stream().anyMatch(feature -> !tenantFeatures.isEnabled(feature)))
+            return;
         if (repository.existsByEventKey(command.eventKey())) return;
 
         ZonedDateTime now = ZonedDateTime.now();
@@ -98,14 +101,16 @@ public class NotificationOutboxPublisher {
         if (targetPath != null && (!targetPath.startsWith("/") || targetPath.contains("://") || targetPath.toLowerCase(Locale.ROOT).contains("javascript:"))) {
             throw new IllegalArgumentException("targetPath must be an internal application path");
         }
-        if (targetPath != null && targetPath.length() > 500) throw new IllegalArgumentException("targetPath exceeds 500 characters");
+        if (targetPath != null && targetPath.length() > 500)
+            throw new IllegalArgumentException("targetPath exceeds 500 characters");
 
         if (command.audiences() == null || command.audiences().isEmpty()) {
             throw new IllegalArgumentException("At least one notification audience is required");
         }
         Set<NotificationAudience> audiences = new LinkedHashSet<>();
         for (NotificationAudience rawAudience : command.audiences()) {
-            if (rawAudience == null || rawAudience.type() == null) throw new IllegalArgumentException("Audience type is required");
+            if (rawAudience == null || rawAudience.type() == null)
+                throw new IllegalArgumentException("Audience type is required");
             String value = required(rawAudience.value(), "audience value", 255);
             if (rawAudience.type() == NotificationAudienceType.ROLE) {
                 RoleEnum.valueOf(value);
@@ -142,7 +147,8 @@ public class NotificationOutboxPublisher {
 
     private static String required(String value, String field, int maxLength) {
         String normalized = required(value, field);
-        if (normalized.length() > maxLength) throw new IllegalArgumentException(field + " exceeds " + maxLength + " characters");
+        if (normalized.length() > maxLength)
+            throw new IllegalArgumentException(field + " exceeds " + maxLength + " characters");
         return normalized;
     }
 

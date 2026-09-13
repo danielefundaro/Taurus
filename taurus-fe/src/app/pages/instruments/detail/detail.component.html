@@ -1,25 +1,30 @@
 <p-confirmdialog />
 @if (loading) { <app-detail-loading-skeleton /> }
 <p-fluid [class.hidden]="loading">
-    <app-page-header kicker="Strumento" [heading]="instrument.name || 'Nuovo strumento'" backLink="/instruments" [dirty]="isDirty"
-        ><div pageActions><p-button label="Salva strumento" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty" (onClick)="save()" /></div
-    ></app-page-header>
+    <app-page-header kicker="Strumento" [heading]="instrument.name || 'Nuovo strumento'" backLink="/instruments"
+        [dirty]="isDirty">
+        <div pageActions><p-button label="Salva strumento" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty"
+                (onClick)="save()" /></div>
+    </app-page-header>
 
-    <app-detail-section heading="Dati strumento" description="Nome e descrizione. Si salva con «Salva strumento» in alto." [dirty]="isDirty">
+    <app-detail-section heading="Dati strumento"
+        description="Nome e descrizione. Si salva con «Salva strumento» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <app-form-field label="Nome" forId="name" required [error]="instrument.name?.trim() ? undefined : 'Inserisci il nome dello strumento.'">
-                <input pInputText id="name" type="text" [(ngModel)]="instrument!.name" (ngModelChange)="isDirty = true" />
+            <app-form-field label="Nome" forId="name" required
+                [error]="instrument.name?.trim() ? undefined : 'Inserisci il nome dello strumento.'">
+                <input pInputText id="name" type="text" [(ngModel)]="instrument!.name"
+                    (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="instrument!.description" (ngModelChange)="isDirty = true"></textarea>
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="instrument!.description"
+                    (ngModelChange)="isDirty = true"></textarea>
             </app-form-field>
         </div>
     </app-detail-section>
 
     <app-danger-zone
         [operations]="[{ id: 'delete', title: 'Elimina strumento', consequence: 'Lo strumento e i relativi collegamenti verranno eliminati definitivamente.', label: 'Elimina strumento' }]"
-        (execute)="confirmDelete()"
-    />
+        (execute)="confirmDelete()" />
 
     <p-scrolltop />
 </p-fluid>

@@ -218,13 +218,13 @@ export class PdfManipulatorDialogComponent {
         this.pageCrops =
             direction === 'vertical'
                 ? [
-                      { page: this.cropPageNum, x: 0, y: 0, width: 0.5, height: 1 },
-                      { page: this.cropPageNum, x: 0.5, y: 0, width: 0.5, height: 1 }
-                  ]
+                    { page: this.cropPageNum, x: 0, y: 0, width: 0.5, height: 1 },
+                    { page: this.cropPageNum, x: 0.5, y: 0, width: 0.5, height: 1 }
+                ]
                 : [
-                      { page: this.cropPageNum, x: 0, y: 0, width: 1, height: 0.5 },
-                      { page: this.cropPageNum, x: 0, y: 0.5, width: 1, height: 0.5 }
-                  ];
+                    { page: this.cropPageNum, x: 0, y: 0, width: 1, height: 0.5 },
+                    { page: this.cropPageNum, x: 0, y: 0.5, width: 1, height: 0.5 }
+                ];
         this.cropRect = { ...this.pageCrops[0] };
         this.cropDrawing = false;
         this.editingCropIndex = 0;

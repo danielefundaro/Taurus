@@ -1,16 +1,20 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
-import com.fundaro.zodiac.taurus.domain.onboarding.*;
-import java.io.*;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportFormat;
+import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingSection;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.EnumSet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class OnboardingFileInspectionServiceTest {
     private final OnboardingFileInspectionService service = new OnboardingFileInspectionService(new ApplicationProperties());
@@ -28,7 +32,11 @@ class OnboardingFileInspectionServiceTest {
         OnboardingTemplateService templates = new OnboardingTemplateService();
         byte[] bytes;
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(templates.xlsx())); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            var row = workbook.getSheet("Strumenti").createRow(1); row.createCell(0).setCellValue("ref"); row.createCell(1).setCellFormula("1+1"); workbook.write(output); bytes = output.toByteArray();
+            var row = workbook.getSheet("Strumenti").createRow(1);
+            row.createCell(0).setCellValue("ref");
+            row.createCell(1).setCellFormula("1+1");
+            workbook.write(output);
+            bytes = output.toByteArray();
         }
         assertThatThrownBy(() -> service.inspect(bytes, OnboardingImportFormat.XLSX, null, EnumSet.of(OnboardingSection.INSTRUMENTS)))
             .isInstanceOf(OnboardingFileInspectionService.InspectionException.class).hasMessageContaining("formule");
@@ -37,7 +45,8 @@ class OnboardingFileInspectionServiceTest {
     @Test
     void validatesTheConfiguredFiveThousandRowBatchWithinTheReleaseTarget() {
         StringBuilder csv = new StringBuilder("riferimento,nome,descrizione\r\n");
-        for (int row = 1; row <= 5_000; row++) csv.append("REF-").append(row).append(",Strumento ").append(row).append(",\r\n");
+        for (int row = 1; row <= 5_000; row++)
+            csv.append("REF-").append(row).append(",Strumento ").append(row).append(",\r\n");
 
         var inspection = assertTimeoutPreemptively(
             Duration.ofSeconds(60),

@@ -1,22 +1,20 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.PushSubscription;
 import com.fundaro.zodiac.taurus.repository.PushSubscriptionRepository;
 import com.fundaro.zodiac.taurus.service.dto.PushSubscriptionDTO;
 import com.fundaro.zodiac.taurus.service.mapper.PushSubscriptionMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
-import java.time.Instant;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 class PushSubscriptionServiceImplTest {
 

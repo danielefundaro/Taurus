@@ -2,12 +2,7 @@ package com.fundaro.zodiac.taurus.domain.finance;
 
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.inventory.TenantAuditedEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "financial_movement_attachment")
@@ -27,12 +22,35 @@ public class FinancialMovementAttachment extends TenantAuditedEntity {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
-    public FinancialMovement getMovement() { return movement; }
-    public void setMovement(FinancialMovement movement) { this.movement = movement; }
-    public Media getMediaAsset() { return mediaAsset; }
-    public void setMediaAsset(Media mediaAsset) { this.mediaAsset = mediaAsset; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
+    public FinancialMovement getMovement() {
+        return movement;
+    }
+
+    public void setMovement(FinancialMovement movement) {
+        this.movement = movement;
+    }
+
+    public Media getMediaAsset() {
+        return mediaAsset;
+    }
+
+    public void setMediaAsset(Media mediaAsset) {
+        this.mediaAsset = mediaAsset;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

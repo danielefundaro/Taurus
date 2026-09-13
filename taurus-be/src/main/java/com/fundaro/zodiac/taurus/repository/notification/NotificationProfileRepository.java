@@ -1,11 +1,12 @@
 package com.fundaro.zodiac.taurus.repository.notification;
 
 import com.fundaro.zodiac.taurus.domain.notification.NotificationProfile;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NotificationProfileRepository extends JpaRepository<NotificationProfile, Long> {
 

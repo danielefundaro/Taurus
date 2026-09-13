@@ -10,7 +10,8 @@ public final class TenantContext {
 
     private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
 
-    private TenantContext() {}
+    private TenantContext() {
+    }
 
     public static Optional<String> getTenantCode() {
         return Optional.ofNullable(CURRENT_TENANT.get());

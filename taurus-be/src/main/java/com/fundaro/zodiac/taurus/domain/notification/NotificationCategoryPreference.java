@@ -29,12 +29,35 @@ public class NotificationCategoryPreference extends TenantAuditedEntity {
     @Column(name = "push_mode", nullable = false, length = 20)
     private NotificationPushMode pushMode = NotificationPushMode.OFF;
 
-    public NotificationProfile getProfile() { return profile; }
-    public void setProfile(NotificationProfile profile) { this.profile = profile; }
-    public NotificationSource getSource() { return source; }
-    public void setSource(NotificationSource source) { this.source = source; }
-    public boolean isInAppEnabled() { return inAppEnabled; }
-    public void setInAppEnabled(boolean inAppEnabled) { this.inAppEnabled = inAppEnabled; }
-    public NotificationPushMode getPushMode() { return pushMode; }
-    public void setPushMode(NotificationPushMode pushMode) { this.pushMode = pushMode; }
+    public NotificationProfile getProfile() {
+        return profile;
+    }
+
+    public void setProfile(NotificationProfile profile) {
+        this.profile = profile;
+    }
+
+    public NotificationSource getSource() {
+        return source;
+    }
+
+    public void setSource(NotificationSource source) {
+        this.source = source;
+    }
+
+    public boolean isInAppEnabled() {
+        return inAppEnabled;
+    }
+
+    public void setInAppEnabled(boolean inAppEnabled) {
+        this.inAppEnabled = inAppEnabled;
+    }
+
+    public NotificationPushMode getPushMode() {
+        return pushMode;
+    }
+
+    public void setPushMode(NotificationPushMode pushMode) {
+        this.pushMode = pushMode;
+    }
 }

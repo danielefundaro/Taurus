@@ -1,32 +1,26 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
-import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialAccount;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialAccountType;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialCategoryDirection;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialMovement;
-import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
+import com.fundaro.zodiac.taurus.domain.finance.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.service.TenantsService;
-import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
-
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountYearBalanceDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryTotalDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLineDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
-import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.*;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -35,28 +29,25 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import javax.imageio.ImageIO;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.ArgumentCaptor;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FinanceReportServiceTest {
 
-    @Mock FinancialMovementRepository movementRepository;
-    @Mock NotificationOutboxPublisher notificationPublisher;
-    @Mock FinanceService financeService;
-    @Mock TenantsService tenantsService;
-    @Mock TenantLogoLoader tenantLogoLoader;
+    @Mock
+    FinancialMovementRepository movementRepository;
+    @Mock
+    NotificationOutboxPublisher notificationPublisher;
+    @Mock
+    FinanceService financeService;
+    @Mock
+    TenantsService tenantsService;
+    @Mock
+    TenantLogoLoader tenantLogoLoader;
     private FinanceReportService service;
 
     @BeforeEach

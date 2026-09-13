@@ -126,40 +126,141 @@ public class Tenants extends CommonFieldsOpenSearch {
         this.active = active;
     }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public String getPostalCode() { return postalCode; }
-    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-    public String getProvince() { return province; }
-    public void setProvince(String province) { this.province = province; }
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
-    public String getTaxCode() { return taxCode; }
-    public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
-    public String getVatNumber() { return vatNumber; }
-    public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
-    public String getLogoUrl() { return logoUrl; }
-    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
-    public String getTimeZone() { return timeZone; }
-    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
-    public Boolean getFinanceEnabled() { return financeEnabled; }
-    public void setFinanceEnabled(Boolean financeEnabled) { this.financeEnabled = financeEnabled; }
-    public Boolean getInventoryEnabled() { return inventoryEnabled; }
-    public void setInventoryEnabled(Boolean inventoryEnabled) { this.inventoryEnabled = inventoryEnabled; }
-    public Boolean getOnboardingImportEnabled() { return onboardingImportEnabled; }
-    public void setOnboardingImportEnabled(Boolean value) { onboardingImportEnabled = value; }
-    public Boolean getExternalCalendarFeedEnabled() { return externalCalendarFeedEnabled; }
-    public void setExternalCalendarFeedEnabled(Boolean value) { externalCalendarFeedEnabled = value; }
-    public Boolean getInventoryQrEnabled() { return inventoryQrEnabled; }
-    public void setInventoryQrEnabled(Boolean value) { inventoryQrEnabled = value; }
-    public Boolean getNotificationPreferencesEnabled() { return notificationPreferencesEnabled; }
-    public void setNotificationPreferencesEnabled(Boolean value) { notificationPreferencesEnabled = value; }
-    public Boolean getWebPushRemindersEnabled() { return webPushRemindersEnabled; }
-    public void setWebPushRemindersEnabled(Boolean value) { webPushRemindersEnabled = value; }
-    public Boolean getEventPreparationEnabled() { return eventPreparationEnabled; }
-    public void setEventPreparationEnabled(Boolean value) { eventPreparationEnabled = value; }
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getProvince() {
+        return province;
+    }
+
+    public void setProvince(String province) {
+        this.province = province;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getTaxCode() {
+        return taxCode;
+    }
+
+    public void setTaxCode(String taxCode) {
+        this.taxCode = taxCode;
+    }
+
+    public String getVatNumber() {
+        return vatNumber;
+    }
+
+    public void setVatNumber(String vatNumber) {
+        this.vatNumber = vatNumber;
+    }
+
+    public String getLogoUrl() {
+        return logoUrl;
+    }
+
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
+    }
+
+    public Boolean getFinanceEnabled() {
+        return financeEnabled;
+    }
+
+    public void setFinanceEnabled(Boolean financeEnabled) {
+        this.financeEnabled = financeEnabled;
+    }
+
+    public Boolean getInventoryEnabled() {
+        return inventoryEnabled;
+    }
+
+    public void setInventoryEnabled(Boolean inventoryEnabled) {
+        this.inventoryEnabled = inventoryEnabled;
+    }
+
+    public Boolean getOnboardingImportEnabled() {
+        return onboardingImportEnabled;
+    }
+
+    public void setOnboardingImportEnabled(Boolean value) {
+        onboardingImportEnabled = value;
+    }
+
+    public Boolean getExternalCalendarFeedEnabled() {
+        return externalCalendarFeedEnabled;
+    }
+
+    public void setExternalCalendarFeedEnabled(Boolean value) {
+        externalCalendarFeedEnabled = value;
+    }
+
+    public Boolean getInventoryQrEnabled() {
+        return inventoryQrEnabled;
+    }
+
+    public void setInventoryQrEnabled(Boolean value) {
+        inventoryQrEnabled = value;
+    }
+
+    public Boolean getNotificationPreferencesEnabled() {
+        return notificationPreferencesEnabled;
+    }
+
+    public void setNotificationPreferencesEnabled(Boolean value) {
+        notificationPreferencesEnabled = value;
+    }
+
+    public Boolean getWebPushRemindersEnabled() {
+        return webPushRemindersEnabled;
+    }
+
+    public void setWebPushRemindersEnabled(Boolean value) {
+        webPushRemindersEnabled = value;
+    }
+
+    public Boolean getEventPreparationEnabled() {
+        return eventPreparationEnabled;
+    }
+
+    public void setEventPreparationEnabled(Boolean value) {
+        eventPreparationEnabled = value;
+    }
 
     @Override
     public boolean equals(Object o) {

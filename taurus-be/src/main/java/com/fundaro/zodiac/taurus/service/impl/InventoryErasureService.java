@@ -9,9 +9,11 @@ import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDTO;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -82,7 +84,8 @@ public class InventoryErasureService {
 
     private static String tenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (tenant == null || tenant.isBlank()) throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventoryErasure", "inventory.tenant.missing");
+        if (tenant == null || tenant.isBlank())
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventoryErasure", "inventory.tenant.missing");
         return tenant;
     }
 }

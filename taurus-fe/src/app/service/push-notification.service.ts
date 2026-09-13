@@ -14,7 +14,7 @@ export class PushNotificationService {
     constructor(
         private readonly swPush: SwPush,
         private readonly pushSubscriptionService: PushSubscriptionService
-    ) {}
+    ) { }
 
     get supported(): boolean {
         return this.swPush.isEnabled && !!this.vapidKey && typeof Notification !== 'undefined';

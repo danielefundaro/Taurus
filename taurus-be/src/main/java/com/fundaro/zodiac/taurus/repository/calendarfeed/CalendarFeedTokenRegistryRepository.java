@@ -1,9 +1,13 @@
 package com.fundaro.zodiac.taurus.repository.calendarfeed;
 
-import com.fundaro.zodiac.taurus.domain.calendarfeed.*;
-import java.util.*;
-import org.springframework.data.jpa.repository.*;
+import com.fundaro.zodiac.taurus.domain.calendarfeed.CalendarFeedTokenRegistry;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
+import java.util.UUID;
 
 public interface CalendarFeedTokenRegistryRepository extends JpaRepository<CalendarFeedTokenRegistry, byte[]> {
     @Query(value = """

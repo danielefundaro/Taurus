@@ -6,7 +6,9 @@ import com.fundaro.zodiac.taurus.repository.onboarding.OnboardingImportJobReposi
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+
 import java.util.List;
+
 import org.slf4j.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(prefix = "application.onboarding", name = { "enabled", "recovery-enabled" }, havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "application.onboarding", name = {"enabled", "recovery-enabled"}, havingValue = "true", matchIfMissing = true)
 public class OnboardingRecoveryScheduler {
     private static final Logger log = LoggerFactory.getLogger(OnboardingRecoveryScheduler.class);
     private final TenantSchemaRegistry schemas;
@@ -24,10 +26,20 @@ public class OnboardingRecoveryScheduler {
     private final OnboardingValidationService validation;
     private final OnboardingWorker worker;
     private TenantFeatureService tenantFeatureService;
-    public OnboardingRecoveryScheduler(TenantSchemaRegistry schemas, TenantTransactionExecutor transactions, OnboardingImportJobRepository jobs, MediaService media, OnboardingValidationService validation, OnboardingWorker worker) { this.schemas = schemas; this.transactions = transactions; this.jobs = jobs; this.media = media; this.validation = validation; this.worker = worker; }
+
+    public OnboardingRecoveryScheduler(TenantSchemaRegistry schemas, TenantTransactionExecutor transactions, OnboardingImportJobRepository jobs, MediaService media, OnboardingValidationService validation, OnboardingWorker worker) {
+        this.schemas = schemas;
+        this.transactions = transactions;
+        this.jobs = jobs;
+        this.media = media;
+        this.validation = validation;
+        this.worker = worker;
+    }
 
     @Autowired
-    void setTenantFeatureService(TenantFeatureService value) { tenantFeatureService = value; }
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
 
     @Scheduled(fixedDelayString = "${application.onboarding.worker-delay:2000}")
     public void resumeUploadedJobs() {
@@ -49,7 +61,8 @@ public class OnboardingRecoveryScheduler {
     private void resume(String tenant, RecoveryJob job) {
         try {
             if ((job.status() == OnboardingJobStatus.UPLOADED || job.status() == OnboardingJobStatus.VALIDATING)
-                && tenantFeatureService != null && !tenantFeatureService.isEnabledForTenant(tenant, TenantFeature.ONBOARDING_IMPORT)) return;
+                && tenantFeatureService != null && !tenantFeatureService.isEnabledForTenant(tenant, TenantFeature.ONBOARDING_IMPORT))
+                return;
             switch (job.status()) {
                 case UPLOADED, VALIDATING -> {
                     MediaService.MediaContent content = media.getContent(job.mediaId(), tenant);
@@ -57,12 +70,14 @@ public class OnboardingRecoveryScheduler {
                 }
                 case APPLYING -> worker.resumeApply(job.id(), tenant, job.actor());
                 case COMPENSATING -> worker.resumeCompensation(job.id(), tenant);
-                default -> { }
+                default -> {
+                }
             }
         } catch (RuntimeException exception) {
             log.warn("Unable to resume onboarding job {} for tenant {}", job.id(), tenant);
         }
     }
 
-    private record RecoveryJob(Long id, OnboardingJobStatus status, Long mediaId, String actor) {}
+    private record RecoveryJob(Long id, OnboardingJobStatus status, Long mediaId, String actor) {
+    }
 }

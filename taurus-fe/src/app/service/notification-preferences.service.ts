@@ -8,7 +8,7 @@ import { environment } from '../../environments/environment';
 export class NotificationPreferencesService {
     private readonly resourceUrl = `${environment.baseUrl}/notification-preferences`;
 
-    constructor(private readonly http: HttpClient) {}
+    constructor(private readonly http: HttpClient) { }
 
     getPreferences(): Observable<NotificationPreferences> {
         return this.http.get<NotificationPreferences>(this.resourceUrl);

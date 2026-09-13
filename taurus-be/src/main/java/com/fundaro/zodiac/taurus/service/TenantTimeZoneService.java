@@ -4,11 +4,12 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import java.time.DateTimeException;
-import java.time.ZoneId;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.DateTimeException;
+import java.time.ZoneId;
 
 @Service
 public class TenantTimeZoneService {

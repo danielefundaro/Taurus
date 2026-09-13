@@ -3,13 +3,15 @@
         <div>
             <strong>{{ heading }}</strong>
             @if (detail) {
-                <span>{{ detail }}</span>
+            <span>{{ detail }}</span>
             }
         </div>
         @if (actionLabel && actionLink) {
-            <p-button [label]="actionLabel" size="small" [severity]="severity === 'error' ? 'danger' : 'secondary'" outlined [routerLink]="actionLink" [queryParams]="queryParams" />
+        <p-button [label]="actionLabel" size="small" [severity]="severity === 'error' ? 'danger' : 'secondary'" outlined
+            [routerLink]="actionLink" [queryParams]="queryParams" />
         } @else if (actionLabel) {
-            <p-button [label]="actionLabel" size="small" [severity]="severity === 'error' ? 'danger' : 'secondary'" outlined (onClick)="action.emit()" />
+        <p-button [label]="actionLabel" size="small" [severity]="severity === 'error' ? 'danger' : 'secondary'" outlined
+            (onClick)="action.emit()" />
         }
     </div>
 </p-message>

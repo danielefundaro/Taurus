@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.domain.Albums;
+import com.fundaro.zodiac.taurus.domain.criteria.AlbumsCriteria;
 import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import org.springframework.web.bind.annotation.RequestMapping;

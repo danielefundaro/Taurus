@@ -81,7 +81,9 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     @Autowired
-    void setCalendarFeedRevocationService(CalendarFeedOwnerRevocationService value) { this.calendarFeedRevocationService = value; }
+    void setCalendarFeedRevocationService(CalendarFeedOwnerRevocationService value) {
+        this.calendarFeedRevocationService = value;
+    }
 
     @Override
     public UsersDTO save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
@@ -182,7 +184,8 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             }
         }
         UsersDTO result = saveEntity(entity, abstractAuthenticationToken, false);
-        if (calendarFeedRevocationService != null) calendarFeedRevocationService.revokeUnauthorized(entity, SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken));
+        if (calendarFeedRevocationService != null)
+            calendarFeedRevocationService.revokeUnauthorized(entity, SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken));
         return result;
     }
 

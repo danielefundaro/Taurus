@@ -1,12 +1,13 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingSection;
-import java.io.ByteArrayInputStream;
-import java.util.Set;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class OnboardingTemplateServiceTest {
     private final OnboardingTemplateService service = new OnboardingTemplateService();

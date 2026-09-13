@@ -1,69 +1,58 @@
 <p-confirmdialog />
-<app-page-header heading="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')"
-    ><div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div
-></app-page-header>
+<app-page-header heading="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')">
+    <div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div>
+</app-page-header>
 
-<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)" (layoutChange)="onLayoutChange($event)" />
-<app-selection-bar
-    [count]="selectedTenants.length"
-    [allSelected]="isAllSelected(tenants)"
-    deleteLabel="Elimina istanze selezionate"
-    (toggleAll)="toggleSelectAll(tenants)"
-    (clear)="selectedTenants = []"
-    (delete)="deleteSelectedElements()"
-/>
+<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
+    (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
+    (layoutChange)="onLayoutChange($event)" />
+<app-selection-bar [count]="selectedTenants.length" [allSelected]="isAllSelected(tenants)"
+    deleteLabel="Elimina istanze selezionate" (toggleAll)="toggleSelectAll(tenants)" (clear)="selectedTenants = []"
+    (delete)="deleteSelectedElements()" />
 
 <div class="card !p-0 overflow-hidden">
-    <p-dataview
-        [value]="tenants"
-        [layout]="layout"
-        [lazy]="true"
-        [lazyLoadOnInit]="true"
-        [loading]="loading"
-        [first]="dataViewLazyLoadEvent.first"
-        [rows]="dataViewLazyLoadEvent.rows"
-        [paginator]="true"
-        paginatorPosition="bottom"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        [totalRecords]="totalRecords"
-        [sortField]="dataViewLazyLoadEvent.sortField"
-        [sortOrder]="dataViewLazyLoadEvent.sortOrder"
-        [rowsPerPageOptions]="[12, 24, 48]"
-        paginatorDropdownAppendTo="body"
-        (onLazyLoad)="onLazyLoad($event)"
-    >
+    <p-dataview [value]="tenants" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
+        [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
+        paginatorPosition="bottom" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" [totalRecords]="totalRecords"
+        [sortField]="dataViewLazyLoadEvent.sortField" [sortOrder]="dataViewLazyLoadEvent.sortOrder"
+        [rowsPerPageOptions]="[12, 24, 48]" paginatorDropdownAppendTo="body" (onLazyLoad)="onLazyLoad($event)">
         <ng-template #loadingicon><app-list-loading-skeleton [layout]="layout" /></ng-template>
         <ng-template #list let-items>
             <div class="flex flex-col">
                 @for (item of items; track item.id) {
-                    <app-list-row>
-                        <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
-                        <a rowMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name">{{ initials(item.name) }}</a>
-                        <div rowIdentity>
-                            <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name }}</a>
-                            <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{ item.description || 'Nessuna descrizione' }}</span>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                @if (item.code) {
-                                    <p-tag severity="secondary" [value]="item.code" [rounded]="true" />
-                                }
-                                @if (item.active === false) {
-                                    <p-tag severity="warn" value="Non attiva" [rounded]="true" />
-                                }
-                                @if (item.expireDate) {
-                                    <p-tag severity="secondary" icon="pi pi-calendar" [value]="(item.expireDate | date: 'dd-MM-yyyy') ?? ''" [rounded]="true" />
-                                }
-                            </div>
+                <app-list-row>
+                    <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)"
+                        (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                    <a rowMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name">{{
+                        initials(item.name) }}</a>
+                    <div rowIdentity>
+                        <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name
+                            }}</a>
+                        <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{
+                            item.description || 'Nessuna descrizione' }}</span>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            @if (item.code) {
+                            <p-tag severity="secondary" [value]="item.code" [rounded]="true" />
+                            }
+                            @if (item.active === false) {
+                            <p-tag severity="warn" value="Non attiva" [rounded]="true" />
+                            }
+                            @if (item.expireDate) {
+                            <p-tag severity="secondary" icon="pi pi-calendar"
+                                [value]="(item.expireDate | date: 'dd-MM-yyyy') ?? ''" [rounded]="true" />
+                            }
                         </div>
-                        <div rowMetrics class="list-metric">
-                            <strong>{{ item.maxUsers ?? '—' }}</strong
-                            ><small>utenti max</small>
-                        </div>
-                        <div rowActions>
-                            <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id" />
-                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant" pTooltip="Elimina" (onClick)="deleteElement(item)" />
-                        </div>
-                    </app-list-row>
+                    </div>
+                    <div rowMetrics class="list-metric">
+                        <strong>{{ item.maxUsers ?? '—' }}</strong><small>utenti max</small>
+                    </div>
+                    <div rowActions>
+                        <p-button icon="pi pi-pencil" label="Modifica" [routerLink]="item.id" />
+                        <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant"
+                            pTooltip="Elimina" (onClick)="deleteElement(item)" />
+                    </div>
+                </app-list-row>
                 }
             </div>
         </ng-template>
@@ -71,53 +60,55 @@
         <ng-template #grid let-items>
             <div class="grid grid-cols-12 gap-4 p-4">
                 @for (item of items; track item.id) {
-                    <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
-                        <app-entity-card [selected]="isSelected(item)">
-                            <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
-                            <a cardMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name">{{ initials(item.name) }}</a>
-                            <div cardBody>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    @if (item.code) {
-                                        <p-tag severity="secondary" [value]="item.code" [rounded]="true" />
-                                    }
-                                    @if (item.active === false) {
-                                        <p-tag severity="warn" value="Non attiva" [rounded]="true" />
-                                    }
-                                    @if (item.expireDate) {
-                                        <p-tag severity="secondary" icon="pi pi-calendar" [value]="(item.expireDate | date: 'dd-MM-yyyy') ?? ''" [rounded]="true" />
-                                    }
-                                </div>
-                                <a class="text-base font-semibold block mt-2" [routerLink]="item.id">{{ item.name }}</a>
-                                <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ item.description || 'Nessuna descrizione' }}</p>
+                <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+                    <app-entity-card [selected]="isSelected(item)">
+                        <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)"
+                            (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                        <a cardMedia class="list-thumbnail" [routerLink]="item.id" [attr.aria-label]="item.name">{{
+                            initials(item.name) }}</a>
+                        <div cardBody>
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if (item.code) {
+                                <p-tag severity="secondary" [value]="item.code" [rounded]="true" />
+                                }
+                                @if (item.active === false) {
+                                <p-tag severity="warn" value="Non attiva" [rounded]="true" />
+                                }
+                                @if (item.expireDate) {
+                                <p-tag severity="secondary" icon="pi pi-calendar"
+                                    [value]="(item.expireDate | date: 'dd-MM-yyyy') ?? ''" [rounded]="true" />
+                                }
                             </div>
-                            <div cardMetrics>
-                                <div>
-                                    <strong>{{ item.maxUsers ?? '—' }}</strong
-                                    ><small class="block text-muted-color">utenti max</small>
-                                </div>
-                                <div>
-                                    <strong>{{ item.expireDate ? (item.expireDate | date: 'dd-MM-yyyy') : '—' }}</strong
-                                    ><small class="block text-muted-color">scadenza</small>
-                                </div>
+                            <a class="text-base font-semibold block mt-2" [routerLink]="item.id">{{ item.name }}</a>
+                            <p class="text-sm text-muted-color line-clamp-2 mt-1 mb-0">{{ item.description || 'Nessuna
+                                descrizione' }}</p>
+                        </div>
+                        <div cardMetrics>
+                            <div>
+                                <strong>{{ item.maxUsers ?? '—' }}</strong><small class="block text-muted-color">utenti
+                                    max</small>
                             </div>
-                            <div cardActions class="contents">
-                                <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" styleClass="flex-1" />
-                                <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant" (onClick)="deleteElement(item)" />
+                            <div>
+                                <strong>{{ item.expireDate ? (item.expireDate | date: 'dd-MM-yyyy') : '—'
+                                    }}</strong><small class="block text-muted-color">scadenza</small>
                             </div>
-                        </app-entity-card>
-                    </div>
+                        </div>
+                        <div cardActions class="contents">
+                            <p-button label="Modifica" icon="pi pi-pencil" [routerLink]="item.id" styleClass="flex-1" />
+                            <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina tenant"
+                                (onClick)="deleteElement(item)" />
+                        </div>
+                    </app-entity-card>
+                </div>
                 }
             </div>
         </ng-template>
 
         <ng-template #empty>
-            <app-empty-state
-                icon="pi pi-building"
-                [heading]="searchTerm ? 'Nessun risultato' : 'Nessun tenant'"
+            <app-empty-state icon="pi pi-building" [heading]="searchTerm ? 'Nessun risultato' : 'Nessun tenant'"
                 [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Crea il primo tenant per iniziare.'"
                 [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo tenant'"
-                (action)="searchTerm ? onSearchChange('') : addNew()"
-            />
+                (action)="searchTerm ? onSearchChange('') : addNew()" />
         </ng-template>
     </p-dataview>
 </div>

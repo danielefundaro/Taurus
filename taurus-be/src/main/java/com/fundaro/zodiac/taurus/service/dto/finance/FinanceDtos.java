@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -19,7 +20,8 @@ import java.util.UUID;
 
 public final class FinanceDtos {
 
-    private FinanceDtos() {}
+    private FinanceDtos() {
+    }
 
     public record AccountRequest(
         @NotBlank @Size(max = 255) String name,
@@ -31,7 +33,8 @@ public final class FinanceDtos {
         Integer displayOrder,
         BigDecimal initialBalance,
         LocalDate initialBalanceDate
-    ) {}
+    ) {
+    }
 
     public record AccountDTO(
         Long id,
@@ -46,14 +49,16 @@ public final class FinanceDtos {
         BigDecimal balance,
         long movementCount,
         long version
-    ) {}
+    ) {
+    }
 
     public record CategoryRequest(
         @NotBlank @Size(max = 255) String name,
         String description,
         @NotNull FinancialCategoryDirection direction,
         Integer displayOrder
-    ) {}
+    ) {
+    }
 
     public record CategoryDTO(
         Long id,
@@ -64,7 +69,8 @@ public final class FinanceDtos {
         boolean systemDefined,
         int displayOrder,
         long version
-    ) {}
+    ) {
+    }
 
     public record MovementRequest(
         @NotNull Long accountId,
@@ -79,7 +85,8 @@ public final class FinanceDtos {
         @Size(max = 255) String documentReference,
         @Size(max = 10000) String notes,
         UUID requestKey
-    ) {}
+    ) {
+    }
 
     public record MovementDTO(
         Long id,
@@ -105,9 +112,11 @@ public final class FinanceDtos {
         ZonedDateTime reconciledAt,
         String reconciliationReference,
         long version
-    ) {}
+    ) {
+    }
 
-    public record ReconciliationRequest(boolean reconciled, @Size(max = 255) String reference) {}
+    public record ReconciliationRequest(boolean reconciled, @Size(max = 255) String reference) {
+    }
 
     public record TransferRequest(
         @NotNull Long sourceAccountId,
@@ -118,9 +127,11 @@ public final class FinanceDtos {
         @NotBlank @Size(max = 4000) String description,
         @Size(max = 10000) String notes,
         UUID requestKey
-    ) {}
+    ) {
+    }
 
-    public record TransferDTO(UUID transferGroup, MovementDTO outgoing, MovementDTO incoming) {}
+    public record TransferDTO(UUID transferGroup, MovementDTO outgoing, MovementDTO incoming) {
+    }
 
     public record DashboardDTO(
         BigDecimal totalBalance,
@@ -130,9 +141,12 @@ public final class FinanceDtos {
         long movementCount,
         long unreconciledCount,
         List<AccountDTO> accounts
-    ) {}
+    ) {
+    }
 
-    public record AttachmentDTO(Long id, Long movementId, Long mediaAssetId, String fileName, String mimeType, long fileSize, String description) {}
+    public record AttachmentDTO(Long id, Long movementId, Long mediaAssetId, String fileName, String mimeType,
+                                long fileSize, String description) {
+    }
 
     public record YearDTO(
         int year,
@@ -141,13 +155,18 @@ public final class FinanceDtos {
         AccountingYearStatus status,
         ZonedDateTime rolledOverAt,
         ZonedDateTime lastRecalculatedAt
-    ) {}
+    ) {
+    }
 
-    public record EventCostRequest(@NotBlank @Size(max = 4000) String description, @NotNull @DecimalMin("0.00") BigDecimal amount) {}
+    public record EventCostRequest(@NotBlank @Size(max = 4000) String description,
+                                   @NotNull @DecimalMin("0.00") BigDecimal amount) {
+    }
 
-    public record EventCostDTO(Long id, String description, BigDecimal amount) {}
+    public record EventCostDTO(Long id, String description, BigDecimal amount) {
+    }
 
-    public record EventBudgetRequest(@DecimalMin("0.00") BigDecimal fee, @NotNull List<@Valid EventCostRequest> costs) {}
+    public record EventBudgetRequest(@DecimalMin("0.00") BigDecimal fee, @NotNull List<@Valid EventCostRequest> costs) {
+    }
 
     public record EventSummaryDTO(
         Long eventId,
@@ -163,9 +182,11 @@ public final class FinanceDtos {
         BigDecimal remainingExpense,
         String economicStatus,
         List<MovementDTO> movements
-    ) {}
+    ) {
+    }
 
-    public record StatementLineDTO(MovementDTO movement, BigDecimal balance) {}
+    public record StatementLineDTO(MovementDTO movement, BigDecimal balance) {
+    }
 
     public record AccountStatementDTO(
         AccountDTO account,
@@ -176,7 +197,8 @@ public final class FinanceDtos {
         BigDecimal expense,
         BigDecimal closingBalance,
         List<StatementLineDTO> lines
-    ) {}
+    ) {
+    }
 
     public record CategoryTotalDTO(
         Long categoryId,
@@ -186,7 +208,8 @@ public final class FinanceDtos {
         BigDecimal expense,
         BigDecimal net,
         long movementCount
-    ) {}
+    ) {
+    }
 
     public record AccountYearBalanceDTO(
         Long accountId,
@@ -195,7 +218,8 @@ public final class FinanceDtos {
         BigDecimal income,
         BigDecimal expense,
         BigDecimal closingBalance
-    ) {}
+    ) {
+    }
 
     public record EventEconomicLineDTO(
         Long eventId,
@@ -210,7 +234,8 @@ public final class FinanceDtos {
         BigDecimal remainingIncome,
         BigDecimal remainingExpense,
         String economicStatus
-    ) {}
+    ) {
+    }
 
     public record YearSummaryDTO(
         YearDTO year,
@@ -226,5 +251,6 @@ public final class FinanceDtos {
         long unreconciledCount,
         BigDecimal unreconciledAmount,
         ZonedDateTime lastRecalculatedAt
-    ) {}
+    ) {
+    }
 }

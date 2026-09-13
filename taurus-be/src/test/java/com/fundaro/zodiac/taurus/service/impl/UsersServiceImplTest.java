@@ -1,19 +1,11 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.TenantUserMembership;
 import com.fundaro.zodiac.taurus.domain.UserIdentity;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
-import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
-import com.fundaro.zodiac.taurus.repository.TenantUserMembershipRepository;
-import com.fundaro.zodiac.taurus.repository.TenantsRepository;
-import com.fundaro.zodiac.taurus.repository.UserIdentityRepository;
-import com.fundaro.zodiac.taurus.repository.UsersRepository;
+import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.service.CalendarEventsService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -23,12 +15,6 @@ import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,19 +27,36 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.time.Instant;
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class UsersServiceImplTest {
 
-    @Mock UsersRepository usersRepository;
-    @Mock UsersMapper usersMapper;
-    @Mock KeycloakService keycloakService;
-    @Mock TenantsService tenantsService;
-    @Mock CalendarEventsService calendarEventsService;
-    @Mock DataErasureService dataErasureService;
-    @Mock UserIdentityRepository userIdentityRepository;
-    @Mock InstrumentsRepository instrumentsRepository;
-    @Mock TenantUserMembershipRepository membershipRepository;
-    @Mock TenantsRepository tenantsRepository;
+    @Mock
+    UsersRepository usersRepository;
+    @Mock
+    UsersMapper usersMapper;
+    @Mock
+    KeycloakService keycloakService;
+    @Mock
+    TenantsService tenantsService;
+    @Mock
+    CalendarEventsService calendarEventsService;
+    @Mock
+    DataErasureService dataErasureService;
+    @Mock
+    UserIdentityRepository userIdentityRepository;
+    @Mock
+    InstrumentsRepository instrumentsRepository;
+    @Mock
+    TenantUserMembershipRepository membershipRepository;
+    @Mock
+    TenantsRepository tenantsRepository;
 
     private UsersServiceImpl service;
 

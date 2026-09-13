@@ -28,5 +28,6 @@ public interface MediaService extends CommonOpenSearchService<Media, MediaDTO, M
 
     void deleteIfUnreferenced(Long id, String tenantCode, String actor);
 
-    record MediaContent(String fileName, String mimeType, long fileSize, byte[] bytes) {}
+    record MediaContent(String fileName, String mimeType, long fileSize, byte[] bytes) {
+    }
 }

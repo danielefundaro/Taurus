@@ -9,4 +9,5 @@ public record InventoryDecisionRequest(
     @NotNull InventoryDecisionType decision,
     @Size(max = 2000) String rejectionReason,
     @NotBlank @Size(min = 64, max = 64) String revisionHash
-) {}
+) {
+}

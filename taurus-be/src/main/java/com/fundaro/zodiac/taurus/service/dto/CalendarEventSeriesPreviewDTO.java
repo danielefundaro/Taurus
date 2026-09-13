@@ -10,12 +10,35 @@ public class CalendarEventSeriesPreviewDTO {
     private List<Date> occurrences = new ArrayList<>();
     private Date lastOccurrence;
 
-    public String getTimeZone() { return timeZone; }
-    public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
-    public Integer getOccurrenceCount() { return occurrenceCount; }
-    public void setOccurrenceCount(Integer occurrenceCount) { this.occurrenceCount = occurrenceCount; }
-    public List<Date> getOccurrences() { return occurrences; }
-    public void setOccurrences(List<Date> occurrences) { this.occurrences = occurrences; }
-    public Date getLastOccurrence() { return lastOccurrence; }
-    public void setLastOccurrence(Date lastOccurrence) { this.lastOccurrence = lastOccurrence; }
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
+    }
+
+    public Integer getOccurrenceCount() {
+        return occurrenceCount;
+    }
+
+    public void setOccurrenceCount(Integer occurrenceCount) {
+        this.occurrenceCount = occurrenceCount;
+    }
+
+    public List<Date> getOccurrences() {
+        return occurrences;
+    }
+
+    public void setOccurrences(List<Date> occurrences) {
+        this.occurrences = occurrences;
+    }
+
+    public Date getLastOccurrence() {
+        return lastOccurrence;
+    }
+
+    public void setLastOccurrence(Date lastOccurrence) {
+        this.lastOccurrence = lastOccurrence;
+    }
 }

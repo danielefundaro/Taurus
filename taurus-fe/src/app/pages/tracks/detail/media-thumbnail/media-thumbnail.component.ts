@@ -32,7 +32,7 @@ export class MediaThumbnailComponent implements AfterViewInit, OnChanges, OnDest
         private readonly elementRef: ElementRef<HTMLElement>,
         private readonly mediaService: MediaService,
         private readonly changeDetector: ChangeDetectorRef
-    ) {}
+    ) { }
 
     ngAfterViewInit(): void {
         if (!('IntersectionObserver' in globalThis)) {

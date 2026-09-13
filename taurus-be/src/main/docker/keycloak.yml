@@ -8,10 +8,10 @@ services:
     restart: unless-stopped
     command: 'start-dev --import-realm'
     volumes:
-#      - ./keycloak/realm-config:/opt/keycloak/data/import
-#      - ./keycloak/realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
-#      - ./keycloak/realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar
-#      - ./keycloak/realm-config/taurus-theme:/opt/keycloak/themes/taurus-theme:ro
+      #      - ./keycloak/realm-config:/opt/keycloak/data/import
+      #      - ./keycloak/realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
+      #      - ./keycloak/realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar
+      #      - ./keycloak/realm-config/taurus-theme:/opt/keycloak/themes/taurus-theme:ro
       - ./realm-config:/opt/keycloak/data/import
       - ./realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
       - ./realm-config/keycloak-authenticator.jar:/opt/keycloak/providers/keycloak-authenticator.jar

@@ -1,41 +1,179 @@
 <?xml version="1.0" encoding="utf-8"?>
-<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <changeSet id="20260905040000-1" author="codex">
-        <createTable tableName="calendar_event_preparation">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
-            <column name="event_id" type="bigint"><constraints nullable="false" unique="true" foreignKeyName="fk_event_preparation_event" references="calendar_event(id)"/></column>
-            <column name="profile" type="varchar(32)"><constraints nullable="false"/></column>
-            <column name="location_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="program_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="scores_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="availability_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="minimum_available_participants" type="integer"/>
-            <column name="availability_deadline_minutes" type="integer" defaultValueNumeric="1440"><constraints nullable="false"/></column>
-            <column name="materials_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="materials_deadline_minutes" type="integer" defaultValueNumeric="180"><constraints nullable="false"/></column>
-            <column name="budget_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="presence_closure_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="financial_closure_required" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
-            <column name="budget_confirmation_hash" type="varchar(64)"/><column name="budget_confirmation_at" type="timestamp with time zone"/><column name="budget_confirmation_by" type="varchar(255)"/>
-            <column name="presence_confirmation_hash" type="varchar(64)"/><column name="presence_confirmation_at" type="timestamp with time zone"/><column name="presence_confirmation_by" type="varchar(255)"/>
-            <column name="no_movements_confirmation_hash" type="varchar(64)"/><column name="no_movements_confirmation_at" type="timestamp with time zone"/><column name="no_movements_confirmation_by" type="varchar(255)"/>
-            <column name="deleted" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column><column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="insert_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="edit_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="entity_version" type="bigint" defaultValueNumeric="0"><constraints nullable="false"/></column>
-        </createTable>
-        <createTable tableName="calendar_event_program_entry">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column><column name="event_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_event_program_event" references="calendar_event(id)"/></column><column name="track_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_event_program_track" references="track(id)"/></column><column name="display_order" type="integer"><constraints nullable="false"/></column><column name="planned_duration_seconds" type="integer"/><column name="notes" type="varchar(2000)"/>
-            <column name="deleted" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column><column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="insert_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="edit_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="entity_version" type="bigint" defaultValueNumeric="0"><constraints nullable="false"/></column>
-        </createTable>
-        <createTable tableName="calendar_event_material">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column><column name="event_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_event_material_event" references="calendar_event(id)"/></column><column name="item_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_event_material_item" references="inventory_item(id)"/></column><column name="assignment_id" type="bigint"><constraints foreignKeyName="fk_event_material_assignment" references="inventory_assignment(id)"/></column><column name="display_order" type="integer"><constraints nullable="false"/></column><column name="required_quantity" type="integer"><constraints nullable="false"/></column><column name="notes" type="varchar(2000)"/><column name="confirmation_hash" type="varchar(64)"/><column name="confirmation_at" type="timestamp with time zone"/><column name="confirmation_by" type="varchar(255)"/>
-            <column name="deleted" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column><column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="insert_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp"><constraints nullable="false"/></column><column name="edit_by" type="varchar(255)" defaultValue="system"><constraints nullable="false"/></column><column name="entity_version" type="bigint" defaultValueNumeric="0"><constraints nullable="false"/></column>
-        </createTable>
-        <sql>ALTER TABLE calendar_event_preparation ADD CONSTRAINT ck_event_preparation_deadlines CHECK (availability_deadline_minutes BETWEEN 0 AND 43200 AND materials_deadline_minutes BETWEEN 0 AND 43200)</sql>
-        <sql>ALTER TABLE calendar_event_preparation ADD CONSTRAINT ck_event_preparation_requirements CHECK ((NOT scores_required OR program_required) AND (NOT availability_required OR minimum_available_participants &gt; 0))</sql>
-        <sql>ALTER TABLE calendar_event_material ADD CONSTRAINT ck_event_material_quantity CHECK (required_quantity &gt; 0)</sql>
-        <sql>ALTER TABLE calendar_event_program_entry ADD CONSTRAINT ck_event_program_duration CHECK (planned_duration_seconds IS NULL OR planned_duration_seconds &gt; 0)</sql>
-        <sql>CREATE UNIQUE INDEX uq_event_program_active_order ON calendar_event_program_entry(event_id, display_order) WHERE deleted = false</sql>
-        <sql>CREATE UNIQUE INDEX uq_event_material_active_order ON calendar_event_material(event_id, display_order) WHERE deleted = false</sql>
-        <createIndex tableName="calendar_event_program_entry" indexName="idx_event_program_track"><column name="track_id"/></createIndex><createIndex tableName="calendar_event_material" indexName="idx_event_material_item"><column name="item_id"/></createIndex><createIndex tableName="calendar_event_material" indexName="idx_event_material_assignment"><column name="assignment_id"/></createIndex>
-        <rollback><dropTable tableName="calendar_event_material"/><dropTable tableName="calendar_event_program_entry"/><dropTable tableName="calendar_event_preparation"/></rollback>
-    </changeSet>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20260905040000-1" author="codex">
+    <createTable tableName="calendar_event_preparation">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="event_id" type="bigint">
+        <constraints nullable="false" unique="true" foreignKeyName="fk_event_preparation_event"
+                     references="calendar_event(id)"/>
+      </column>
+      <column name="profile" type="varchar(32)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="location_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="program_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="scores_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="availability_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="minimum_available_participants" type="integer"/>
+      <column name="availability_deadline_minutes" type="integer" defaultValueNumeric="1440">
+        <constraints nullable="false"/>
+      </column>
+      <column name="materials_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="materials_deadline_minutes" type="integer" defaultValueNumeric="180">
+        <constraints nullable="false"/>
+      </column>
+      <column name="budget_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="presence_closure_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="financial_closure_required" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="budget_confirmation_hash" type="varchar(64)"/>
+      <column name="budget_confirmation_at" type="timestamp with time zone"/>
+      <column name="budget_confirmation_by" type="varchar(255)"/>
+      <column name="presence_confirmation_hash" type="varchar(64)"/>
+      <column name="presence_confirmation_at" type="timestamp with time zone"/>
+      <column name="presence_confirmation_by" type="varchar(255)"/>
+      <column name="no_movements_confirmation_hash" type="varchar(64)"/>
+      <column name="no_movements_confirmation_at" type="timestamp with time zone"/>
+      <column name="no_movements_confirmation_by" type="varchar(255)"/>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createTable tableName="calendar_event_program_entry">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="event_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_event_program_event" references="calendar_event(id)"/>
+      </column>
+      <column name="track_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_event_program_track" references="track(id)"/>
+      </column>
+      <column name="display_order" type="integer">
+        <constraints nullable="false"/>
+      </column>
+      <column name="planned_duration_seconds" type="integer"/>
+      <column name="notes" type="varchar(2000)"/>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createTable tableName="calendar_event_material">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="event_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_event_material_event" references="calendar_event(id)"/>
+      </column>
+      <column name="item_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_event_material_item" references="inventory_item(id)"/>
+      </column>
+      <column name="assignment_id" type="bigint">
+        <constraints foreignKeyName="fk_event_material_assignment" references="inventory_assignment(id)"/>
+      </column>
+      <column name="display_order" type="integer">
+        <constraints nullable="false"/>
+      </column>
+      <column name="required_quantity" type="integer">
+        <constraints nullable="false"/>
+      </column>
+      <column name="notes" type="varchar(2000)"/>
+      <column name="confirmation_hash" type="varchar(64)"/>
+      <column name="confirmation_at" type="timestamp with time zone"/>
+      <column name="confirmation_by" type="varchar(255)"/>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone" defaultValueComputed="current_timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)" defaultValue="system">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <sql>ALTER TABLE calendar_event_preparation
+      ADD CONSTRAINT ck_event_preparation_deadlines CHECK (availability_deadline_minutes BETWEEN 0 AND 43200 AND
+                                                           materials_deadline_minutes BETWEEN 0 AND 43200)</sql>
+    <sql>ALTER TABLE calendar_event_preparation
+      ADD CONSTRAINT ck_event_preparation_requirements CHECK ((NOT scores_required OR program_required) AND
+                                                              (NOT availability_required OR minimum_available_participants &gt; 0))</sql>
+    <sql>ALTER TABLE calendar_event_material
+      ADD CONSTRAINT ck_event_material_quantity CHECK (required_quantity &gt; 0)</sql>
+    <sql>ALTER TABLE calendar_event_program_entry
+      ADD CONSTRAINT ck_event_program_duration CHECK (planned_duration_seconds IS NULL OR planned_duration_seconds &gt; 0)</sql>
+    <sql>CREATE UNIQUE INDEX uq_event_program_active_order ON calendar_event_program_entry (event_id, display_order) WHERE deleted = false</sql>
+    <sql>CREATE UNIQUE INDEX uq_event_material_active_order ON calendar_event_material (event_id, display_order) WHERE deleted = false</sql>
+    <createIndex tableName="calendar_event_program_entry" indexName="idx_event_program_track">
+      <column name="track_id"/>
+    </createIndex>
+    <createIndex tableName="calendar_event_material" indexName="idx_event_material_item">
+      <column name="item_id"/>
+    </createIndex>
+    <createIndex tableName="calendar_event_material" indexName="idx_event_material_assignment">
+      <column name="assignment_id"/>
+    </createIndex>
+    <rollback>
+      <dropTable tableName="calendar_event_material"/>
+      <dropTable tableName="calendar_event_program_entry"/>
+      <dropTable tableName="calendar_event_preparation"/>
+    </rollback>
+  </changeSet>
 </databaseChangeLog>

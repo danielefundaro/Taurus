@@ -17,8 +17,10 @@ import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.mapper.QueueUploadFilesMapper;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.List;
 import java.util.ArrayList;
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -85,8 +87,10 @@ public class QueueUploadFilesServiceImpl
         return super.buildSpecification(criteria).and((root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (criteria == null) return cb.conjunction();
-            if (criteria.getUserId() != null) addFilter(predicates, cb, root.join("user").get("id"), criteria.getUserId());
-            if (criteria.getTrackId() != null) addFilter(predicates, cb, root.join("track").get("id"), criteria.getTrackId());
+            if (criteria.getUserId() != null)
+                addFilter(predicates, cb, root.join("user").get("id"), criteria.getUserId());
+            if (criteria.getTrackId() != null)
+                addFilter(predicates, cb, root.join("track").get("id"), criteria.getTrackId());
             addFilter(predicates, cb, root.get("status"), criteria.getStatus());
             addStringFilter(predicates, cb, root.get("type"), criteria.getType());
             return cb.and(predicates.toArray(Predicate[]::new));

@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.service.dto.LegalDocumentDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalDocumentStatusDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalStatusDTO;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -192,12 +194,12 @@ public class LegalServiceImpl implements LegalService {
     private boolean contentChanged(LegalDocument document, LegalDocumentDTO dto) {
         return (
             document.getDocumentType() != dto.getDocumentType() ||
-            !Objects.equals(document.getVersion(), dto.getVersion().trim()) ||
-            !Objects.equals(document.getTitle(), dto.getTitle().trim()) ||
-            !Objects.equals(document.getUrl(), dto.getUrl().trim()) ||
-            document.getAction() != dto.getAction() ||
-            !sameInstant(document.getPublishedAt(), dto.getPublishedAt()) ||
-            !Objects.equals(document.getRequired(), dto.getRequired() == null || Boolean.TRUE.equals(dto.getRequired()))
+                !Objects.equals(document.getVersion(), dto.getVersion().trim()) ||
+                !Objects.equals(document.getTitle(), dto.getTitle().trim()) ||
+                !Objects.equals(document.getUrl(), dto.getUrl().trim()) ||
+                document.getAction() != dto.getAction() ||
+                !sameInstant(document.getPublishedAt(), dto.getPublishedAt()) ||
+                !Objects.equals(document.getRequired(), dto.getRequired() == null || Boolean.TRUE.equals(dto.getRequired()))
         );
     }
 

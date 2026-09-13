@@ -15,9 +15,11 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanAssig
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanResponse;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanTarget;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -92,15 +94,18 @@ public class InventoryScanService {
     private static boolean isAdministrator(AbstractAuthenticationToken token) {
         return token.getAuthorities().stream().anyMatch(authority -> AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) || AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()));
     }
+
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
         if (value == null || value.isBlank()) throw notFound();
         return value;
     }
+
     private static void tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
         if (value == null || value.isBlank()) throw notFound();
     }
+
     private static RequestAlertException notFound() {
         return new RequestAlertException(HttpStatus.NOT_FOUND, "Codice inventario non disponibile", "inventoryScan", "inventory.qr.notFound");
     }

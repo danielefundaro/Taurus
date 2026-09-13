@@ -1,16 +1,17 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fundaro.zodiac.taurus.domain.notification.NotificationOutbox;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPendingSummary;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.Test;
+
 import java.time.ZonedDateTime;
 import java.util.List;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class NotificationMetricsTest {
 
@@ -21,13 +22,19 @@ class NotificationMetricsTest {
         ZonedDateTime now = ZonedDateTime.now();
         NotificationPendingSummary pending = new NotificationPendingSummary() {
             @Override
-            public NotificationSource getSource() { return NotificationSource.INVENTORY; }
+            public NotificationSource getSource() {
+                return NotificationSource.INVENTORY;
+            }
 
             @Override
-            public long getPendingCount() { return 3; }
+            public long getPendingCount() {
+                return 3;
+            }
 
             @Override
-            public ZonedDateTime getOldestOccurredAt() { return now.minusMinutes(20); }
+            public ZonedDateTime getOldestOccurredAt() {
+                return now.minusMinutes(20);
+            }
         };
         NotificationOutbox event = new NotificationOutbox();
         event.setSource(NotificationSource.INVENTORY);
