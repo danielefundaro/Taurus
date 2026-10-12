@@ -1,0 +1,159 @@
+<app-detail-section heading="Fogli di affidamento" [count]="loading ? undefined : sheets.length" description="Contratti di comodato da stampare e far firmare. Residenza, codice fiscale e documento si compilano a mano sulla copia stampata.">
+    <div sectionActions>
+        <p-button
+            label="Emetti foglio"
+            icon="pi pi-file-edit"
+            [disabled]="!canIssue"
+            [pTooltip]="openSheet ? 'Il socio ha già il foglio n. ' + openSheet.sheetNumber + ' emesso' : !proposal?.assignments?.length ? 'Nessun bene in carico da inserire' : undefined"
+            (onClick)="issue()"
+        />
+    </div>
+
+    @if (openSheet && proposal?.assignments?.length) {
+        <app-inline-alert
+            severity="warn"
+            [heading]="'Beni non inseriti nel foglio n. ' + openSheet.sheetNumber"
+            detail="Questi beni sono in carico al socio ma non compaiono nel foglio. Aggiungili come consegne successive per annotarli nel registro delle variazioni."
+        />
+        <div class="flex flex-col gap-2 mt-3 mb-4">
+            @for (assignment of proposal!.assignments; track assignment.assignmentId) {
+                <div class="flex flex-wrap items-center justify-between gap-2 p-3 border border-surface rounded-lg">
+                    <span>
+                        <strong>{{ assignment.inventoryNumber }} – {{ assignment.itemName }}</strong>
+                        <span class="text-sm text-surface-500"> · {{ loanTypeLabel(assignment.loanType) }} · quantità {{ assignment.outstandingQuantity }}</span>
+                        @for (issue of assignment.issues; track issue.code) {
+                            <span class="block text-sm text-red-600 dark:text-red-400">{{ issueMessage(issue) }}</span>
+                        }
+                    </span>
+                    <p-button label="Aggiungi al foglio" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" [disabled]="assignment.issues.length > 0" (onClick)="link(assignment.assignmentId)" />
+                </div>
+            }
+        </div>
+    }
+
+    <p-table [value]="sheets" [loading]="loading" dataKey="id" [rowHover]="true" responsiveLayout="scroll">
+        <ng-template #header>
+            <tr>
+                <th scope="col">Foglio</th>
+                <th scope="col">Stato</th>
+                <th scope="col">Affidatario</th>
+                <th scope="col">Esito</th>
+                <th scope="col"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-sheet>
+            <tr>
+                <td>
+                    <strong>n. {{ sheet.sheetNumber }}</strong>
+                    <div class="text-xs text-surface-500">del {{ sheet.issuedOn | date: 'dd/MM/yyyy' }} · modello {{ sheet.templateLabel }}</div>
+                </td>
+                <td>
+                    <p-tag [value]="statusLabel(sheet.status)" [severity]="statusSeverity(sheet.status)" />
+                    @if (sheet.personalDataPurged) {
+                        <div class="text-xs text-surface-500 mt-1">Dati personali rimossi</div>
+                    }
+                </td>
+                <td>{{ roleLabel(sheet.holderRole) }}</td>
+                <td>{{ sheet.returnOutcome ? outcomeLabel(sheet.returnOutcome) : '—' }}</td>
+                <td class="min-w-64">
+                    <div class="flex flex-wrap justify-end gap-1">
+                        <p-button icon="pi pi-list" [label]="detail?.summary?.id === sheet.id ? 'Nascondi' : 'Dettaglio'" size="small" [text]="true" (onClick)="showDetail(sheet)" />
+                        @if (!sheet.personalDataPurged && sheet.status !== 'CANCELLED') {
+                            <p-button icon="pi pi-file-pdf" label="PDF" size="small" [text]="true" (onClick)="download(sheet)" />
+                        }
+                        @if (sheet.status === 'ISSUED') {
+                            <p-button
+                                icon="pi pi-check-square"
+                                label="Chiudi"
+                                size="small"
+                                [text]="true"
+                                [disabled]="!sheet.closable"
+                                [pTooltip]="sheet.closable ? undefined : 'Si chiude quando tutti i beni sono stati riconsegnati'"
+                                (onClick)="close(sheet)"
+                            />
+                            <p-button icon="pi pi-ban" label="Annulla" size="small" severity="danger" [text]="true" (onClick)="cancel(sheet)" />
+                        }
+                        @if (sheet.status === 'CLOSED') {
+                            <p-button icon="pi pi-verified" label="Definisci" size="small" [text]="true" (onClick)="settle(sheet)" />
+                        }
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="5">
+                    <app-empty-state compact icon="pi pi-file" heading="Nessun foglio di affidamento" message="Emetti il foglio quando consegni i beni al socio." />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    @if (detail) {
+        <div class="mt-6 flex flex-col gap-6">
+            <div>
+                <h3 class="text-base font-semibold mb-2">Beni consegnati (sezione 3)</h3>
+                <p-table [value]="detail.lines" responsiveLayout="scroll">
+                    <ng-template #header>
+                        <tr>
+                            <th scope="col">N.</th>
+                            <th scope="col">Bene</th>
+                            <th scope="col">Matricola / cod. inventario</th>
+                            <th scope="col">Regime</th>
+                            <th scope="col">Q.tà</th>
+                            <th scope="col">Stato alla consegna</th>
+                            <th scope="col">Scadenza</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-line>
+                        <tr>
+                            <td>{{ line.lineNumber }}</td>
+                            <td>
+                                {{ line.itemName }}
+                                <div class="text-xs text-surface-500">{{ line.brandModel }}</div>
+                            </td>
+                            <td>{{ line.serialNumber ? line.serialNumber + ' / ' : '' }}{{ line.inventoryNumber }}</td>
+                            <td>{{ loanTypeLabel(line.loanType) }}</td>
+                            <td>{{ line.quantity }}</td>
+                            <td>{{ line.conditionStatus ? conditionLabel(line.conditionStatus) : '—' }}</td>
+                            <td>{{ line.expirationDate ? (line.expirationDate | date: 'dd/MM/yyyy') : '—' }}</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold mb-2">Registro delle variazioni</h3>
+                @if (detail.register.length) {
+                    <p-table [value]="detail.register" responsiveLayout="scroll">
+                        <ng-template #header>
+                            <tr>
+                                <th scope="col">Data</th>
+                                <th scope="col">Operazione</th>
+                                <th scope="col">Bene</th>
+                                <th scope="col">Scadenza</th>
+                                <th scope="col">Delibera</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-entry>
+                            <tr>
+                                <td>{{ entry.date | date: 'dd/MM/yyyy' }}</td>
+                                <td>{{ entry.operation }} · {{ operationLabels[entry.operation] }}</td>
+                                <td>
+                                    {{ entry.itemName }}
+                                    <div class="text-xs text-surface-500">{{ entry.brandModelSerial }}</div>
+                                </td>
+                                <td>{{ entry.expirationDate ? (entry.expirationDate | date: 'dd/MM/yyyy') : '—' }}</td>
+                                <td class="whitespace-pre-line">{{ entry.authorization || '—' }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                } @else {
+                    <p class="text-sm text-surface-500">Nessuna variazione registrata dopo l’emissione.</p>
+                }
+            </div>
+            @if (detail.summary.status === 'CANCELLED') {
+                <app-inline-alert severity="info" heading="Foglio annullato" [detail]="detail.cancellationReason ?? ''" />
+            }
+        </div>
+    }
+</app-detail-section>

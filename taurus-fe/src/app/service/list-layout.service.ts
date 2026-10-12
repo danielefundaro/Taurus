@@ -1,8 +1,9 @@
 import { Injectable, signal } from '@angular/core';
-import { first, of, switchMap } from 'rxjs';
+import { filter, first, of, switchMap } from 'rxjs';
 import { Preferences, PreferencesCriteria } from '../module';
 import { LocalStorageService } from './local-storage.service';
 import { PreferencesService } from './preferences.service';
+import { TenantStatusService } from './tenant-status.service';
 
 export type ListLayout = 'list' | 'grid';
 
@@ -17,7 +18,8 @@ export class ListLayoutService {
 
     constructor(
         private readonly preferencesService: PreferencesService,
-        private readonly localStorageService: LocalStorageService
+        private readonly localStorageService: LocalStorageService,
+        private readonly tenantStatus: TenantStatusService
     ) { }
 
     hydrate(preferences: Preferences[]): void {
@@ -66,10 +68,12 @@ export class ListLayoutService {
             preference.key = key;
             preference.value = value;
             this.localStorageService.setItem(key, preference);
-            this.preferencesService
-                .count()
+            this.tenantStatus
+                .load()
                 .pipe(
-                    first(),
+                    // In modalità bootstrap la preferenza resta solo locale: il tenant non ha schema.
+                    filter((status) => status.provisioned),
+                    switchMap(() => this.preferencesService.count().pipe(first())),
                     switchMap((count) => {
                         const criteria = new PreferencesCriteria();
                         criteria.page = 0;
@@ -85,10 +89,14 @@ export class ListLayoutService {
         }
         preference.value = value;
         this.localStorageService.setItem(key, preference);
-        if (preference.id)
-            this.preferencesService
-                .update(preference.id, preference)
-                .pipe(first())
+        const { id } = preference;
+        if (id)
+            this.tenantStatus
+                .load()
+                .pipe(
+                    filter((status) => status.provisioned),
+                    switchMap(() => this.preferencesService.update(id, preference!).pipe(first()))
+                )
                 .subscribe((result) => this.localStorageService.setItem(key, result));
     }
 

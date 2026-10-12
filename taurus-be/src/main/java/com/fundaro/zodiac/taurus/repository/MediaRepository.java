@@ -23,7 +23,7 @@ public interface MediaRepository extends CatalogRepository<Media> {
                 UNION ALL
                 SELECT 1 FROM inventory_return_photo WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL
-                SELECT 1 FROM inventory_report_export WHERE media_asset_id = :id AND deleted = FALSE
+                SELECT 1 FROM inventory_loan_sheet_export WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL
                 SELECT 1 FROM inventory_issue_photo WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL
@@ -56,7 +56,7 @@ public interface MediaRepository extends CatalogRepository<Media> {
             SELECT EXISTS (
                 SELECT 1 FROM inventory_item_photo WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL SELECT 1 FROM inventory_return_photo WHERE media_asset_id = :id AND deleted = FALSE
-                UNION ALL SELECT 1 FROM inventory_report_export WHERE media_asset_id = :id AND deleted = FALSE
+                UNION ALL SELECT 1 FROM inventory_loan_sheet_export WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL SELECT 1 FROM inventory_issue_photo WHERE media_asset_id = :id AND deleted = FALSE
             )
             """,

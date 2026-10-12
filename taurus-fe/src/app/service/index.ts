@@ -1,3 +1,5 @@
+export * from './api-error-context';
+export * from './api-error.service';
 export * from './app-update.service';
 export * from './albums.service';
 export * from './calendar-event-series.service';
@@ -29,6 +31,7 @@ export * from './printer.service';
 export * from './push-notification.service';
 export * from './push-subscription.service';
 export * from './tenant-feature.service';
+export * from './tenant-status.service';
 export * from './tenants.service';
 export * from './toast.service';
 export * from './tracks.service';

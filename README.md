@@ -43,6 +43,8 @@ npm start
 
 Il backend usa il profilo di sviluppo configurato nel modulo; il frontend Angular è normalmente disponibile su `http://localhost:4200`.
 
+Su un ambiente vuoto o appena resettato non esiste ancora nessun tenant: il primo accesso richiede di preparare il super amministratore in Keycloak e di creare il primo tenant, come descritto nel [runbook operativo, §5.2](docs/runbook-operativo.md#52-primo-accesso-su-ambiente-vuoto).
+
 ## Verifiche
 
 | Ambito | Comandi |

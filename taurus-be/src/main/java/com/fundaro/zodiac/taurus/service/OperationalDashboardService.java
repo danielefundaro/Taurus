@@ -61,13 +61,19 @@ public class OperationalDashboardService {
     }
 
     private OperationalDashboardDTO buildOperations(AbstractAuthenticationToken authentication, long startedAt) {
-        String subject = required(SecurityUtils.getUserIdFromAuthentication(authentication), "user", HttpStatus.UNAUTHORIZED);
-        String tenant = required(SecurityUtils.getTenantIdFromAuthentication(authentication), "tenant", HttpStatus.BAD_REQUEST);
+        String subject = SecurityUtils.getUserIdFromAuthentication(authentication);
+        if (subject == null || subject.isBlank()) {
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing user claim", "OperationalDashboard", "auth.identity.missing");
+        }
+        String tenant = SecurityUtils.getTenantIdFromAuthentication(authentication);
+        if (tenant == null || tenant.isBlank()) {
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Missing tenant claim", "OperationalDashboard", "auth.tenant.missing");
+        }
         String activeTenant = TenantContext.getTenantCode().orElseThrow(() ->
-            new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant context is required", "OperationalDashboard", "tenant.missing")
+            new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant context is required", "OperationalDashboard", "auth.tenant.missing")
         );
         if (!tenant.equals(activeTenant)) {
-            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant context mismatch", "OperationalDashboard", "tenant.mismatch");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant context mismatch", "OperationalDashboard", "auth.tenant.mismatch");
         }
         ZoneId zoneId = tenantTimeZoneService.currentZoneId();
         ZonedDateTime generatedAt = ZonedDateTime.now(zoneId);
@@ -147,13 +153,6 @@ public class OperationalDashboardService {
         if (!item.targetPath().startsWith("/") || item.targetPath().startsWith("//")) {
             throw new IllegalArgumentException("Dashboard target path must be internal");
         }
-    }
-
-    private static String required(String value, String claim, HttpStatus status) {
-        if (value == null || value.isBlank()) {
-            throw new RequestAlertException(status, "Missing " + claim + " claim", "OperationalDashboard", "dashboard.token.claim.missing");
-        }
-        return value;
     }
 
     private static int severityOrder(DashboardSeverity severity) {

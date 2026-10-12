@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanType;
 
 import java.util.List;
 
@@ -36,6 +37,13 @@ public record InventoryAssignmentDTO(
     ZonedDateTime revisionDate,
     InventoryDecisionDTO decision,
     List<InventoryReturnDTO> returns,
-    List<InventoryPhotoDTO> photos
+    List<InventoryPhotoDTO> photos,
+    String brandModel,
+    String serialNumber,
+    InventoryLoanType loanType,
+    String accessories,
+    Long loanSheetId,
+    String loanSheetNumber,
+    Long replacesAssignmentId
 ) {
 }

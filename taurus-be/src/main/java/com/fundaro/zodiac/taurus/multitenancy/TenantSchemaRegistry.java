@@ -58,6 +58,19 @@ public class TenantSchemaRegistry {
         );
     }
 
+    public boolean isActive(String tenantCode) {
+        try {
+            return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM public.tenant_schema_registry WHERE tenant_code = ? AND status = 'ACTIVE' AND deleted = FALSE)",
+                Boolean.class,
+                tenantCode
+            ));
+        } catch (DataAccessException exception) {
+            log.debug("Tenant schema registry is not ready yet", exception);
+            return false;
+        }
+    }
+
     public List<String> requireActiveTenantCodes() {
         return queryActiveTenantCodes();
     }

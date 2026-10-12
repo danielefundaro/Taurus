@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.config;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.security.oauth2.AudienceValidator;
+import com.fundaro.zodiac.taurus.web.rest.errors.SecurityProblemSupport;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,8 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.client.RestClient;
 import tech.jhipster.config.JHipsterProperties;
 
@@ -56,6 +59,8 @@ public class SecurityConfiguration {
 
     private final ClientRegistrationRepository clientRegistrationRepository;
 
+    private final SecurityProblemSupport problemSupport;
+
     // See https://github.com/jhipster/generator-jhipster/issues/18868
     // We don't use a distributed cache or the user selected cache implementation here on purpose
     private final Cache<String, Jwt> users = Caffeine.newBuilder()
@@ -64,13 +69,20 @@ public class SecurityConfiguration {
         .recordStats()
         .build();
 
-    public SecurityConfiguration(ClientRegistrationRepository clientRegistrationRepository, JHipsterProperties jHipsterProperties) {
+    public SecurityConfiguration(
+        ClientRegistrationRepository clientRegistrationRepository,
+        JHipsterProperties jHipsterProperties,
+        SecurityProblemSupport problemSupport
+    ) {
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.jHipsterProperties = jHipsterProperties;
+        this.problemSupport = problemSupport;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // API errors of the filter chain get the same body as the other errors; pages keep the login redirect.
+        RequestMatcher api = AntPathRequestMatcher.antMatcher("/api/**");
         http
             .cors(withDefaults())
             .csrf(csrf -> csrf.disable())
@@ -118,7 +130,8 @@ public class SecurityConfiguration {
                         "/api/user/inventory/issues/**",
                         "/api/user/inventory/issue-photos/**",
                         "/api/user/inventory/summary",
-                        "/api/user/inventory/report"
+                        "/api/user/inventory/loan-sheets",
+                        "/api/user/inventory/loan-sheets/{id}/pdf"
                     )
                     .authenticated()
                     .requestMatchers(
@@ -267,7 +280,17 @@ public class SecurityConfiguration {
                 endpoint.authorizationRequestResolver(authorizationRequestResolver(this.clientRegistrationRepository))
             ))
             .oauth2Client(withDefaults())
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+            .exceptionHandling(exceptions ->
+                exceptions
+                    .defaultAuthenticationEntryPointFor(problemSupport, api)
+                    .defaultAccessDeniedHandlerFor(problemSupport, api)
+            )
+            .oauth2ResourceServer(oauth2 ->
+                oauth2
+                    .authenticationEntryPoint(problemSupport)
+                    .accessDeniedHandler(problemSupport)
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+            );
 
         return http.build();
     }

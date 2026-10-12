@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TenantFeatureService } from './tenant-feature.service';
+import { TenantStatusService } from './tenant-status.service';
 
 describe('TenantFeatureService', () => {
     let service: TenantFeatureService;
@@ -71,5 +72,19 @@ describe('TenantFeatureService', () => {
         });
         await forced;
         expect(service.financeEnabled()).toBeFalse();
+    });
+
+    it('turns every feature off without calling the backend while the tenant has no schema', async () => {
+        const status = firstValueFrom(TestBed.inject(TenantStatusService).load());
+        http.expectOne(`${environment.baseUrl}/tenant-status`).flush({ tenantCode: 'temp', provisioned: false });
+        await status;
+
+        const features = await firstValueFrom(service.refresh(true));
+
+        http.expectNone(`${environment.baseUrl}/tenant-features/current`);
+        expect(features.tenantCode).toBe('temp');
+        expect(features.financeEnabled).toBeFalse();
+        expect(features.inventoryEnabled).toBeFalse();
+        expect(service.loaded()).toBeFalse();
     });
 });

@@ -2,6 +2,43 @@
   "schemaVersion": 1,
   "entries": [
     {
+      "id": "application-errors-standard",
+      "title": "Standard degli errori applicativi",
+      "kind": "standard",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/application-errors-standard.md",
+      "relatedDocs": ["docs/taurus-layout-standard.md", "docs/inventory-loan-sheet-spec.md"],
+      "modules": ["taurus-be", "taurus-fe", "repository"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/errors/ApiErrorResponses.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/errors/ErrorArgs.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/errors/ExceptionTranslator.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/errors/RequestAlertException.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/errors/SecurityProblemSupport.java",
+          "taurus-fe/src/app/constants/api-error-behaviors.ts",
+          "taurus-fe/src/app/constants/api-error-messages.ts",
+          "taurus-fe/src/app/interceptor/http-interceptor.service.ts",
+          "taurus-fe/src/app/service/api-error-context.ts",
+          "taurus-fe/src/app/service/api-error.service.ts",
+          "scripts/docs/check-error-catalog.mjs",
+          "scripts/docs/error-catalog-lib.mjs"
+        ],
+        "migrations": [],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/errors/ExceptionTranslatorIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanDurationPolicyTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanTemplateValidatorTest.java",
+          "taurus-fe/src/app/service/api-error.service.spec.ts",
+          "scripts/docs/error-catalog.test.mjs"
+        ]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-11",
+      "notes": "Bozza del 2026-10-10, riscritta e implementata il 2026-10-11. Il backend restituisce solo stato, chiave, parametri strutturati ed errorId, anche per i 401 e 403 della catena di sicurezza; descrizioni, nomi delle entità e messaggi di Keycloak restano nel log. Il frontend costruisce ogni messaggio dal catalogo per chiave. Rinominate e scomposte le chiavi della tabella di corrispondenza; le risorse di altri soci rispondono 404. La verifica automatica del catalogo gira nella CI."
+    },
+    {
       "id": "documentation-implementation-alignment",
       "title": "Governance e allineamento tra documentazione e implementazione",
       "kind": "standard",
@@ -116,6 +153,87 @@
       "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono il contratto economico principale, inclusi riattivazione ed eliminazione dei conti."
     },
     {
+      "id": "inventory-electronic-signature",
+      "title": "Firma elettronica del foglio di affidamento e della presa visione",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/inventory-electronic-signature-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/external-calendar-feed-spec.md",
+        "docs/inventory-loan-sheet-spec.md",
+        "docs/inventory-management-spec.md",
+        "docs/media-asset-spec.md",
+        "docs/postgres-tenant-schemas.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe", "keycloak-authenticator"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-12",
+      "notes": "Bozza del 2026-10-12: firma elettronica semplice con codice via e-mail o app di autenticazione verificata da Keycloak, CieSign facoltativo, link monouso per il genitore; nessun provider esterno né costo per il tenant."
+    },
+    {
+      "id": "inventory-loan-sheet",
+      "title": "Foglio di consegna e affidamento in comodato",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "in-progress",
+      "spec": "docs/inventory-loan-sheet-spec.md",
+      "relatedDocs": [
+        "docs/inventory-management-spec.md",
+        "docs/media-asset-spec.md",
+        "docs/postgres-tenant-schemas.md",
+        "docs/runbook-test.md",
+        "docs/taurus-layout-standard.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanSheetService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanTemplateService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanSheetPolicy.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/LoanSheetVariables.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/LoanTemplateValidator.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/loansheet/LoanSheetPdfRenderer.java",
+          "taurus-be/src/main/resources/templates/inventory/loan-sheet.html",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/InventoryLoanSheetResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/InventoryLoanTemplateResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/user/UserInventoryLoanSheetResource.java",
+          "taurus-fe/src/app/components/inventory-loan-sheets/inventory-loan-sheets.component.ts",
+          "taurus-fe/src/app/pages/inventory/loan-template/loan-template.component.ts",
+          "taurus-fe/src/app/service/inventory.service.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260928000000_tenant_contacts.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260928000001_inventory_loan_sheet.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261010000000_drop_inventory_report_export.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanSheetServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanTemplateServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanTemplateValidatorTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanSheetModelFactoryTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanSheetPdfRendererTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanSheetRegisterBuilderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/InventoryLoanSheetPolicyTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanDurationPolicyTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/InventoryLoanSheetMigrationIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/LoanSheetSecurityConfigurationTest.java",
+          "taurus-fe/src/app/service/inventory-loan-sheet.service.spec.ts",
+          "taurus-fe/src/app/pages/inventory/loan-template/loan-template.component.spec.ts",
+          "taurus-fe/src/app/dialogs/inventory-loan-sheet-issue-dialog/inventory-loan-sheet-issue-dialog.component.spec.ts"
+        ]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-10",
+      "notes": "Implementazione completa nella working tree con il modello HTML caricabile per tenant, il modello predefinito in sintassi Mustache e le regole di durata registrate sul foglio. Verificati la suite backend completa, le migrazioni su PostgreSQL 17, i test Angular e la build di produzione; il PDF del modello predefinito coincide nel testo con quello della stesura precedente. Prima di implemented restano il merge sul ramo principale, la verifica manuale dell'interfaccia con un tenant di prova e la stampa A4 di confronto con il modello (LOAN-006). Il 2026-10-10 il foglio è diventato l'unico documento dell'inventario al posto del proforma, il valore concordato deriva dal valore stimato dell'oggetto e la scadenza degli oggetti a scadenza è controllata fin dall'assegnazione (LOAN-007, LOAN-008)."
+    },
+    {
       "id": "inventory-management",
       "title": "Gestione inventario tenant",
       "kind": "feature",
@@ -136,8 +254,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-04",
-      "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono vincoli di quantità, revisioni e riconsegne."
+      "lastVerifiedOn": "2026-10-10",
+      "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono vincoli di quantità, revisioni e riconsegne. Il 2026-10-10 il proforma PDF è stato rimosso a favore del foglio di affidamento e il valore concordato non è più un dato dell'assegnazione."
     },
     {
       "id": "inventory-qr-code",
@@ -168,7 +286,7 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-07",
+      "lastVerifiedOn": "2026-10-10",
       "notes": "Implementazione verificata con test unitari, build Angular e applicazione Liquibase su PostgreSQL 17. Il profilo dev abilita i QR con il frontend locale e la card delle segnalazioni rispetta la separazione prevista prima della zona pericolosa; le ultime modifiche sono state verificate con compilazione backend e build Angular. La verifica generale ha rilevato una regressione nella fixture SQL di RelationalSoftDeleteIT, che non valorizza il nuovo campo obbligatorio qr_public_id: il difetto di test non modifica lo stato implementato, ma mantiene non verde il quality gate backend. Prima del rilascio resta inoltre la validazione fisica delle etichette su stampanti e dispositivi reali prevista dalla specifica."
     },
     {
@@ -192,8 +310,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-04",
-      "notes": "La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media."
+      "lastVerifiedOn": "2026-10-10",
+      "notes": "La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT."
     },
     {
       "id": "notification-delivery-generalization",
@@ -348,9 +466,9 @@
         "migrations": [],
         "tests": []
       },
-      "notes": "Il runbook consolida esercizio, rilascio, osservabilità, backup/restore, incident response e disaster recovery. Resta in-progress finché i gap bloccanti di produzione elencati nel documento non dispongono di una baseline infrastrutturale validata e di prove periodiche.",
+      "notes": "Il runbook consolida esercizio, rilascio, osservabilità, backup/restore, incident response e disaster recovery. Resta in-progress finché i gap bloccanti di produzione elencati nel documento non dispongono di una baseline infrastrutturale validata e di prove periodiche. Il 2026-10-09 aggiunta la procedura di primo accesso su ambiente vuoto (§5.2), con preparazione del super amministratore in Keycloak e modalità bootstrap.",
       "release": null,
-      "lastVerifiedOn": "2026-09-07"
+      "lastVerifiedOn": "2026-10-09"
     },
     {
       "id": "postgres-tenant-schemas",
@@ -359,20 +477,34 @@
       "designStatus": "approved",
       "deliveryStatus": "implemented",
       "spec": "docs/postgres-tenant-schemas.md",
-      "modules": ["taurus-be"],
+      "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
         "implementation": [
-          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningService.java"
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/multitenancy/TenantProvisioningStatus.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TenantProvisioningInterceptor.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TenantStatusResource.java",
+          "taurus-fe/src/app/service/tenant-status.service.ts",
+          "taurus-fe/src/app/guard/tenant-bootstrap.guard.ts",
+          "taurus-fe/src/app/pages/tenant-unavailable/tenant-unavailable.component.ts"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260820000000_add_tenant_schema_registry.xml"
         ],
         "tests": [
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantProvisioningStatusTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/TenantProvisioningInterceptorTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/TenantBootstrapIT.java",
+          "taurus-fe/src/app/service/tenant-status.service.spec.ts",
+          "taurus-fe/src/app/guard/tenant-bootstrap.guard.spec.ts",
+          "taurus-fe/src/app/guard/legal-documents.guard.spec.ts",
+          "taurus-fe/src/app/components/topbar/topbar.component.spec.ts"
         ]
       },
+      "notes": "Il 2026-10-09 aggiunta la modalità bootstrap del primo accesso: le API dello schema tenant rispondono 409 error.tenant.notProvisioned quando il tenant della sessione non ha uno schema ACTIVE, GET /api/tenant-status guida il frontend, che offre al super amministratore solo la gestione dei tenant e agli altri ruoli la pagina Tenant non configurato.",
       "release": null,
-      "lastVerifiedOn": "2026-09-04"
+      "lastVerifiedOn": "2026-10-09"
     },
     {
       "id": "recurring-calendar-events",
@@ -468,19 +600,22 @@
           "taurus-fe/src/app/components/list-loading-skeleton/list-loading-skeleton.component.ts",
           "taurus-fe/src/app/components/detail-loading-skeleton/detail-loading-skeleton.component.ts",
           "taurus-fe/src/app/pages/_shared/list-page.base.ts",
-          "taurus-fe/src/app/service/confirm.service.ts"
+          "taurus-fe/src/app/service/confirm.service.ts",
+          "taurus-fe/src/app/constants/primeng-translation.ts"
         ],
         "migrations": [],
         "tests": [
           "taurus-fe/src/app/service/list-layout.service.spec.ts",
+          "taurus-fe/src/app/service/layout.service.spec.ts",
           "taurus-fe/src/app/components/dialog-shell/dialog-shell.component.spec.ts",
           "taurus-fe/src/app/pages/_shared/list-page.base.spec.ts",
-          "taurus-fe/src/app/service/confirm.service.spec.ts"
+          "taurus-fe/src/app/service/confirm.service.spec.ts",
+          "taurus-fe/src/app/constants/primeng-translation.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-09-12",
-      "notes": "Audit FE completato il 2026-09-07. Allineati protezione delle modifiche non salvate e validazione nei dialoghi, ripristino dello stato delle liste, skeleton di caricamento, messaggi e toast, accessibilità dei pulsanti a sola icona, taglie dei dialoghi e adozione del dialog-shell. Il 2026-09-12 l'ingresso title dei cinque componenti condivisi è diventato heading, e titleId di detail-section è diventato headingId: il nome collideva con l'attributo HTML omonimo e faceva comparire il tooltip nativo del browser sui titoli. Test Angular e build di produzione verificati."
+      "lastVerifiedOn": "2026-10-09",
+      "notes": "Audit FE completato il 2026-09-07. Allineati protezione delle modifiche non salvate e validazione nei dialoghi, ripristino dello stato delle liste, skeleton di caricamento, messaggi e toast, accessibilità dei pulsanti a sola icona, taglie dei dialoghi e adozione del dialog-shell. Il 2026-09-12 l'ingresso title dei cinque componenti condivisi è diventato heading, e titleId di detail-section è diventato headingId: il nome collideva con l'attributo HTML omonimo e faceva comparire il tooltip nativo del browser sui titoli. Test Angular e build di produzione verificati. Il 2026-10-09 la persistenza delle preferenze attende lo stato del tenant, resta locale in modalità bootstrap e aggiorna una riga solo se la preferenza ha già un id; i testi interni di PrimeNG sono in italiano tramite una traduzione globale."
     },
     {
       "id": "tenant-feature-flags",
@@ -581,7 +716,7 @@
       },
       "notes": "Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati. Dal 2026-09-12 annota il limite di connessioni del container PostgreSQL dei test e le convenzioni degli integration test a tenant.",
       "release": null,
-      "lastVerifiedOn": "2026-09-12"
+      "lastVerifiedOn": "2026-10-09"
     },
     {
       "id": "track-page-image-editing",

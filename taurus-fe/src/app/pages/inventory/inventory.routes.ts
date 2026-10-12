@@ -6,6 +6,7 @@ import { InventoryComponent } from './inventory.component';
 import { InventoryDetailComponent } from './detail/detail.component';
 import { InventoryAssignmentDetailComponent } from './assignment-detail/assignment-detail.component';
 import { InventoryScanComponent } from './scan/inventory-scan.component';
+import { InventoryLoanTemplateComponent } from './loan-template/loan-template.component';
 
 export default [
     {
@@ -19,6 +20,13 @@ export default [
         component: InventoryComponent,
         canActivate: [canActivateAuthRole],
         data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+    },
+    {
+        path: 'loan-template',
+        component: InventoryLoanTemplateComponent,
+        canActivate: [canActivateAuthRole],
+        canDeactivate: [canDeactivateUnsavedChanges],
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
     },
     {
         path: 'items/:id',

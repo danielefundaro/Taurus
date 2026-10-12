@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { NotificationPreferences } from '../module';
@@ -10,11 +10,11 @@ export class NotificationPreferencesService {
 
     constructor(private readonly http: HttpClient) { }
 
-    getPreferences(): Observable<NotificationPreferences> {
-        return this.http.get<NotificationPreferences>(this.resourceUrl);
+    getPreferences(context?: HttpContext): Observable<NotificationPreferences> {
+        return this.http.get<NotificationPreferences>(this.resourceUrl, { context });
     }
 
-    savePreferences(preferences: NotificationPreferences): Observable<NotificationPreferences> {
-        return this.http.put<NotificationPreferences>(this.resourceUrl, preferences);
+    savePreferences(preferences: NotificationPreferences, context?: HttpContext): Observable<NotificationPreferences> {
+        return this.http.put<NotificationPreferences>(this.resourceUrl, preferences, { context });
     }
 }

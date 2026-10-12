@@ -57,7 +57,7 @@ class TenantFeatureServiceTest {
         assertThatThrownBy(() -> service.requireEnabled(TenantFeature.FINANCE))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("tenantFeature.tenant.invalid");
+            .isEqualTo("auth.tenant.missing");
 
         Tenants tenant = tenant("A", false, true);
         when(repository.findByCodeAndDeletedFalse("A")).thenReturn(Optional.of(tenant));

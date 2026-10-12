@@ -30,3 +30,9 @@ export interface TenantFeatureCapability {
 }
 
 export type TenantFeatureCapabilities = Record<TenantFeature, TenantFeatureCapability>;
+
+/** Stato del tenant della sessione: `provisioned` è falso finché il tenant non ha uno schema attivo. */
+export interface TenantStatus {
+    tenantCode: string | null;
+    provisioned: boolean;
+}

@@ -63,6 +63,14 @@
             <app-form-field label="Partita IVA" forId="vatNumber">
                 <input pInputText id="vatNumber" [(ngModel)]="tenant.vatNumber" (ngModelChange)="isDirty = true" />
             </app-form-field>
+            <app-form-field label="Telefono" forId="phone" hint="Stampato tra i recapiti del foglio di affidamento.">
+                <input pInputText id="phone" type="tel" maxlength="64" [(ngModel)]="tenant.phone"
+                    (ngModelChange)="isDirty = true" />
+            </app-form-field>
+            <app-form-field label="PEC" forId="pec">
+                <input pInputText id="pec" type="email" maxlength="255" [(ngModel)]="tenant.pec"
+                    (ngModelChange)="isDirty = true" />
+            </app-form-field>
             <app-form-field label="Dominio" forId="domain">
                 <input pInputText id="domain" type="text" [(ngModel)]="tenant!.domain"
                     (ngModelChange)="isDirty = true" />

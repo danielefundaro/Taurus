@@ -9,6 +9,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
+import { PRIMENG_TRANSLATION_IT } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
@@ -36,6 +37,7 @@ export const appConfig: ApplicationConfig = {
             providers: [AutoRefreshTokenService, UserActivityService],
         }),
         providePrimeNG({
+            translation: PRIMENG_TRANSLATION_IT,
             theme: {
                 preset: Aura,
                 options: {

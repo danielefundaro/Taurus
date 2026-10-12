@@ -257,20 +257,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }
     }
 
-    protected downloadInventoryReport(): void {
-        this.userInventoryService
-            .downloadReport(true, true, true)
-            .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = 'prospetto-inventario.pdf';
-                anchor.click();
-                URL.revokeObjectURL(url);
-            });
-    }
-
     private adminMethods() {
         this.inventoryMode = 'admin';
         this.usersService

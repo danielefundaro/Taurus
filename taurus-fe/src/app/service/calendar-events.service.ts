@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RoleEnums } from '../constants';
@@ -36,10 +36,10 @@ export class CalendarEventsService extends CommonOpenSearchService<CalendarEvent
     }
 
     /** Promemoria personale dell'utente corrente: `undefined` ripristina il valore dell'evento, `0` disattiva. */
-    public setReminder(id: number, minutes?: number): Observable<CalendarEvents> {
+    public setReminder(id: number, minutes?: number, context?: HttpContext): Observable<CalendarEvents> {
         let params = new HttpParams();
         if (minutes !== undefined && minutes !== null) params = params.set('minutes', String(minutes));
-        return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/reminder`, null, { params });
+        return this.http.patch<CalendarEvents>(`${this.baseUrl}/${this.resourceName()}/${id}/reminder`, null, { params, context });
     }
 
     public getReminder(id: number): Observable<number | null> {

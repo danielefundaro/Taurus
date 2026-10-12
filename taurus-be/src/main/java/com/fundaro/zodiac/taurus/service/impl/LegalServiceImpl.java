@@ -226,7 +226,9 @@ public class LegalServiceImpl implements LegalService {
 
     private String requiredTokenValue(String value, String claim) {
         if (value == null || value.isBlank()) {
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing " + claim + " claim", ENTITY_NAME, "legal.token.claim.missing");
+            throw "tenant".equals(claim)
+                ? new RequestAlertException(HttpStatus.FORBIDDEN, "Missing tenant claim", ENTITY_NAME, "auth.tenant.missing")
+                : new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing " + claim + " claim", ENTITY_NAME, "auth.identity.missing");
         }
         return value;
     }

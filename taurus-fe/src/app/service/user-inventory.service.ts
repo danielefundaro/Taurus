@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryIssue, InventoryIssueSeverity, InventoryReturn, InventoryUserSummary, Page } from '../module';
+import { InventoryAssignment, InventoryAssignmentScope, InventoryAssignmentSummary, InventoryDecisionType, InventoryIssue, InventoryIssueSeverity, InventoryLoanSheetSummary, InventoryReturn, InventoryUserSummary, Page } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class UserInventoryService {
@@ -47,10 +47,6 @@ export class UserInventoryService {
         return `${this.baseUrl}/return-photos/${id}`;
     }
 
-    downloadReport(includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
-        const params = new HttpParams().set('includeAssigned', includeAssigned).set('includeReturned', includeReturned).set('includePhotos', includePhotos);
-        return this.http.get(`${this.baseUrl}/report`, { params, responseType: 'blob' });
-    }
     createIssue(assignmentId: number, reportedQuantity: number, severity: InventoryIssueSeverity, description: string): Observable<InventoryIssue> {
         return this.http.post<InventoryIssue>(`${this.baseUrl}/assignments/${assignmentId}/issues`, { reportedQuantity, severity, description });
     }
@@ -64,5 +60,11 @@ export class UserInventoryService {
     }
     issuePhotoUrl(id: number): string {
         return `${this.baseUrl}/issue-photos/${id}`;
+    }
+    getLoanSheets(): Observable<InventoryLoanSheetSummary[]> {
+        return this.http.get<InventoryLoanSheetSummary[]>(`${this.baseUrl}/loan-sheets`);
+    }
+    downloadLoanSheet(id: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-sheets/${id}/pdf`, { responseType: 'blob' });
     }
 }

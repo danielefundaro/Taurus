@@ -27,6 +27,7 @@ public class TenantFeaturesResource {
     }
 
     @GetMapping("/capabilities")
+    @TenantSchemaNotRequired
     @PreAuthorize("hasAuthority('ROLE_SUPER_ADMIN')")
     public Map<TenantFeature, TenantFeatureCapabilityDTO> capabilities() {
         return tenantFeatureService.capabilities();

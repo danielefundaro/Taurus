@@ -53,13 +53,36 @@
                 <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value"
                     [(ngModel)]="item.conditionStatus" (ngModelChange)="markItemDirty()" />
             </app-form-field>
-            <app-form-field label="Valore unitario stimato" forId="value">
+            <app-form-field label="Valore unitario stimato" forId="value"
+                hint="In euro, è il valore concordato del foglio di affidamento.">
                 <p-inputnumber inputId="value" [(ngModel)]="item.estimatedUnitValue" mode="decimal"
                     [minFractionDigits]="2" (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Valuta ISO" forId="currency" hint="Ad esempio EUR">
                 <input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency"
                     (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Marca / modello" forId="brandModel">
+                <input pInputText id="brandModel" maxlength="255" [(ngModel)]="item.brandModel"
+                    (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Matricola" forId="serialNumber" hint="Numero di serie del costruttore.">
+                <input pInputText id="serialNumber" maxlength="128" [(ngModel)]="item.serialNumber"
+                    (ngModelChange)="markItemDirty()" />
+            </app-form-field>
+            <app-form-field label="Regime di comodato" forId="loanType"
+                hint="Necessario per inserire il bene in un foglio di affidamento.">
+                <p-select inputId="loanType" [options]="loanTypes" optionLabel="label" optionValue="value"
+                    [(ngModel)]="item.loanType" (ngModelChange)="markItemDirty()">
+                    <ng-template pTemplate="item" let-option>
+                        <span class="flex flex-col">
+                            <span>{{ option.label }}</span>
+                            @if (option.description) {
+                            <small class="text-surface-500">{{ option.description }}</small>
+                            }
+                        </span>
+                    </ng-template>
+                </p-select>
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
                 <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"
@@ -143,6 +166,7 @@
             <div class="md:col-span-4">
                 <app-form-field label="Utente" forId="assignmentUser">
                     <p-select inputId="assignmentUser" [options]="users" [(ngModel)]="selectedUser" optionLabel="name"
+                        (ngModelChange)="onAssigneeChange()"
                         placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
                         <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
                         <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
@@ -156,16 +180,23 @@
                 </app-form-field>
             </div>
             <div class="md:col-span-3">
-                <app-form-field label="Data di scadenza" forId="assignmentExpirationDate">
+                <app-form-field label="Data di scadenza" forId="assignmentExpirationDate" [required]="fixedTerm"
+                    [hint]="rangeHint(assignmentRange)" [error]="assignmentExpirationProblem">
                     <p-datepicker inputId="assignmentExpirationDate" [(ngModel)]="assignmentExpirationDate"
                         dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
-                        appendTo="body" />
+                        appendTo="body" (ngModelChange)="assignmentExpirationProblem = undefined" />
                 </app-form-field>
             </div>
             <div class="md:col-span-3 flex items-end">
                 <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full"
                     [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity"
                     (onClick)="assign()" />
+            </div>
+            <div class="md:col-span-12">
+                <app-form-field label="Accessori / taglia" forId="assignmentAccessories"
+                    hint="Custodia, bocchino, cinghia o taglia della divisa.">
+                    <input pInputText id="assignmentAccessories" maxlength="500" [(ngModel)]="assignmentAccessories" />
+                </app-form-field>
             </div>
             <div class="md:col-span-12">
                 <app-form-field label="Descrizione dell’assegnazione" forId="assignmentDescription">
@@ -201,22 +232,39 @@
                         <div class="text-xs text-surface-500 mt-1">Assegnato il {{ assignment.assignedAt | date:
                             'dd/MM/yyyy HH:mm' }}</div>
                         <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" class="mt-2" />
+                        @if (assignment.loanSheetNumber) {
+                        <p-tag [value]="'Foglio n. ' + assignment.loanSheetNumber" severity="secondary" class="mt-2 ml-1" />
+                        }
                     </td>
                     <td class="min-w-40">
                         <p-inputnumber [(ngModel)]="assignmentEdits[assignment.id].quantity"
                             [min]="assignment.returnedQuantity || 1" [showButtons]="true" class="w-24"
+                            [disabled]="!!assignment.loanSheetId"
+                            [pTooltip]="assignment.loanSheetId ? 'Nel foglio di affidamento la quantità si modifica con una nuova consegna o una riconsegna' : undefined"
                             (ngModelChange)="markAssignmentDirty(assignment.id)" />
                         <div class="text-xs text-surface-500 mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
                     </td>
                     <td class="min-w-56">
                         <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description"
+                            aria-label="Descrizione dell’assegnazione"
                             (ngModelChange)="markAssignmentDirty(assignment.id)"></textarea>
+                        <input pInputText class="mt-2" maxlength="500" placeholder="Accessori / taglia"
+                            aria-label="Accessori / taglia" [(ngModel)]="assignmentEdits[assignment.id].accessories"
+                            (ngModelChange)="markAssignmentDirty(assignment.id)" />
                     </td>
                     <td class="min-w-52">
                         <div class="flex flex-col items-start gap-2">
                             <p-datepicker [(ngModel)]="assignmentExpirationDateEdits[assignment.id]"
                                 dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true"
-                                appendTo="body" (ngModelChange)="markAssignmentDirty(assignment.id)" />
+                                appendTo="body" [disabled]="!!assignment.loanSheetId"
+                                (ngModelChange)="editExpiration(assignment.id)" />
+                            @if (assignment.loanSheetId) {
+                            <small class="text-surface-500">Si modifica con un rinnovo.</small>
+                            } @else if (assignmentExpirationProblems[assignment.id]) {
+                            <small class="text-red-500" role="alert">{{ assignmentExpirationProblems[assignment.id] }}</small>
+                            } @else if (assignmentRanges[assignment.id]) {
+                            <small class="text-surface-500">{{ rangeHint(assignmentRanges[assignment.id]) }}</small>
+                            }
                             <app-inventory-expiration-badge
                                 [expirationDate]="assignmentExpirationDateEdits[assignment.id]" [compact]="true" />
                         </div>
@@ -296,8 +344,18 @@
                             <p-button label="Salva" icon="pi pi-save" size="small" [text]="true"
                                 [disabled]="!dirtyAssignments.has(assignment.id)"
                                 (onClick)="saveAssignment(assignment.id)" />
+                            @if (canRenew(assignment)) {
+                            <p-button label="Rinnova" icon="pi pi-calendar-plus" size="small" [text]="true"
+                                (onClick)="renew(assignment)" />
+                            }
+                            @if (canSubstitute(assignment)) {
+                            <p-button label="Sostituisci" icon="pi pi-sync" size="small" [text]="true"
+                                (onClick)="substitute(assignment)" />
+                            }
+                            @if (!assignment.loanSheetId) {
                             <p-button label="Elimina" icon="pi pi-trash" severity="danger" size="small" [text]="true"
                                 (onClick)="confirmDeleteAssignment(assignment)" />
+                            }
                             @if (assignment.decision?.decision === 'REJECTED') {
                             <p-button label="Riemetti" icon="pi pi-refresh" size="small" [text]="true"
                                 (onClick)="reissue(assignment.id)" />

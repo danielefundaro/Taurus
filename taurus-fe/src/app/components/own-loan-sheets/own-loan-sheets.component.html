@@ -1,0 +1,22 @@
+@if (sheets.length) {
+    <div class="card flex flex-col gap-3">
+        <div>
+            <h2 class="text-lg font-semibold m-0">Fogli di affidamento</h2>
+            <p class="text-sm text-muted-color m-0">Copia dei contratti di comodato firmati per il materiale ricevuto.</p>
+        </div>
+        @for (sheet of sheets; track sheet.id) {
+            <div class="flex flex-wrap items-center justify-between gap-2 p-3 border border-surface rounded-lg">
+                <span class="flex flex-wrap items-center gap-2">
+                    <strong>Foglio n. {{ sheet.sheetNumber }}</strong>
+                    <span class="text-sm text-muted-color">del {{ sheet.issuedOn | date: 'dd/MM/yyyy' }}</span>
+                    <p-tag [value]="statusLabel(sheet.status)" [severity]="statusSeverity(sheet.status)" [rounded]="true" />
+                </span>
+                @if (!sheet.personalDataPurged) {
+                    <p-button label="Scarica PDF" icon="pi pi-file-pdf" size="small" severity="secondary" [outlined]="true" (onClick)="download(sheet)" />
+                } @else {
+                    <span class="text-sm text-muted-color">Rapporto concluso: il PDF non è più disponibile</span>
+                }
+            </div>
+        }
+    </div>
+}

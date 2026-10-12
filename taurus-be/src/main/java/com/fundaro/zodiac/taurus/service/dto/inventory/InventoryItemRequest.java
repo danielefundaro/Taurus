@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto.inventory;
 
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +19,9 @@ public record InventoryItemRequest(
     @DecimalMin("0.0") BigDecimal estimatedUnitValue,
     @Pattern(regexp = "[A-Za-z]{3}") String currency,
     @NotNull InventoryCondition conditionStatus,
-    @Size(max = 2000) String conditionNotes
+    @Size(max = 2000) String conditionNotes,
+    @Size(max = 255) String brandModel,
+    @Size(max = 128) String serialNumber,
+    InventoryLoanType loanType
 ) {
 }

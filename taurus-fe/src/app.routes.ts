@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { RoleEnums } from './app/constants';
-import { canActivateAuthRole, canDeactivateUnsavedChanges, legalDocumentsGuard, tenantFeatureGuard } from './app/guard';
+import { canActivateAuthRole, canDeactivateUnsavedChanges, legalDocumentsGuard, tenantBootstrapGuard, tenantFeatureGuard } from './app/guard';
 import { TenantFeature } from './app/module';
 import { LayoutComponent } from './app/pages/layout/layout.component';
 
@@ -9,7 +9,7 @@ export const appRoutes: Routes = [
     {
         path: '',
         component: LayoutComponent,
-        canActivateChild: [legalDocumentsGuard],
+        canActivateChild: [tenantBootstrapGuard, legalDocumentsGuard],
         children: [
             {
                 path: '',
@@ -106,5 +106,6 @@ export const appRoutes: Routes = [
     },
     { path: 'notfound', loadComponent: () => import('./app/pages/notfound/notfound.component').then((module) => module.Notfound) },
     { path: 'forbidden', loadComponent: () => import('./app/pages/forbidden/forbidden.component').then((module) => module.Forbidden) },
+    { path: 'tenant-unavailable', loadComponent: () => import('./app/pages/tenant-unavailable/tenant-unavailable.component').then((module) => module.TenantUnavailableComponent) },
     { path: '**', redirectTo: '/notfound' }
 ];

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RoleEnums } from '../constants';
@@ -35,8 +35,8 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
         return `${this.baseUrl}/${this.resourceName()}/stream`;
     }
 
-    public uploadPdf(formData: FormData, id?: number): Observable<TrackUploadJob> {
-        return this.http.post<TrackUploadJob>(this.stream(id), formData);
+    public uploadPdf(formData: FormData, id?: number, context?: HttpContext): Observable<TrackUploadJob> {
+        return this.http.post<TrackUploadJob>(this.stream(id), formData, { context });
     }
 
     public getUploadJobs(id: number): Observable<TrackUploadJob[]> {

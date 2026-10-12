@@ -1,19 +1,23 @@
 import { of } from 'rxjs';
-import { Preferences } from '../module';
+import { Preferences, TenantStatus } from '../module';
 import { ListLayoutService } from './list-layout.service';
 import { LocalStorageService } from './local-storage.service';
 import { PreferencesService } from './preferences.service';
+import { TenantStatusService } from './tenant-status.service';
 
 describe('ListLayoutService', () => {
     let preferencesService: jasmine.SpyObj<PreferencesService>;
     let localStorageService: jasmine.SpyObj<LocalStorageService>;
+    let tenantStatus: TenantStatus;
     let service: ListLayoutService;
 
     beforeEach(() => {
         preferencesService = jasmine.createSpyObj<PreferencesService>('PreferencesService', ['count', 'getAll', 'create', 'update']);
         localStorageService = jasmine.createSpyObj<LocalStorageService>('LocalStorageService', ['getItem', 'setItem']);
         localStorageService.getItem.and.returnValue(null);
-        service = new ListLayoutService(preferencesService, localStorageService);
+        tenantStatus = { tenantCode: 'tenant-a', provisioned: true };
+        const tenantStatusService = { load: () => of(tenantStatus) } as unknown as TenantStatusService;
+        service = new ListLayoutService(preferencesService, localStorageService, tenantStatusService);
     });
 
     it('hydrates only valid list layout preferences', () => {
@@ -74,6 +78,19 @@ describe('ListLayoutService', () => {
 
         expect(service.get('users')).toBe('grid');
         expect(preferencesService.update).toHaveBeenCalledWith(7, jasmine.objectContaining({ key: 'listLayout.users', value: 'grid' }));
+        expect(localStorageService.setItem).toHaveBeenCalled();
+    });
+
+    it('keeps the layout local while the tenant has no schema', () => {
+        tenantStatus = { tenantCode: 'temp', provisioned: false };
+        localStorageService.getItem.and.returnValue({ id: 7, key: 'listLayout.users', value: 'list' } as Preferences);
+
+        service.set('users', 'grid');
+        service.set('tenants', 'grid');
+
+        expect(service.get('users')).toBe('grid');
+        expect(preferencesService.update).not.toHaveBeenCalled();
+        expect(preferencesService.count).not.toHaveBeenCalled();
         expect(localStorageService.setItem).toHaveBeenCalled();
     });
 });

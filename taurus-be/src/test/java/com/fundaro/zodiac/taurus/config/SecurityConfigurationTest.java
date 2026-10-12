@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.config;
 
+import com.fundaro.zodiac.taurus.multitenancy.TenantProvisioningStatus;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.fundaro.zodiac.taurus.web.rest.errors.SecurityProblemSupport;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -27,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = SecurityConfigurationTest.CancelAvailabilityController.class)
-@Import({SecurityConfiguration.class, SecurityConfigurationTest.CancelAvailabilityController.class})
+@Import({SecurityConfiguration.class, SecurityProblemSupport.class, SecurityConfigurationTest.CancelAvailabilityController.class})
 @EnableConfigurationProperties(JHipsterProperties.class)
 @TestPropertySource(properties = "spring.security.oauth2.client.provider.oidc.issuer-uri=https://issuer.example")
 @SuppressWarnings("removal")
@@ -44,6 +46,9 @@ class SecurityConfigurationTest {
 
     @MockBean
     private TenantFeatureService tenantFeatureService;
+
+    @MockBean
+    private TenantProvisioningStatus tenantProvisioningStatus;
 
     @ParameterizedTest
     @MethodSource("allowedCancellationRequests")

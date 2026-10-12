@@ -1,3 +1,4 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CalendarEvents, Page, Users, UsersCalendarEventsCriteria, UsersCriteria } from '../module';
@@ -30,12 +31,12 @@ export class UsersService extends CommonOpenSearchService<Users, UsersCriteria> 
         return this.http.patch<Users>(`${this.baseUrl}/${this.resourceName()}/me`, dto);
     }
 
-    public deleteOwn(): Observable<void> {
-        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me`);
+    public deleteOwn(context?: HttpContext): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me`, { context });
     }
 
-    public deleteOwnForGdpr(): Observable<void> {
-        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me/gdpr`);
+    public deleteOwnForGdpr(context?: HttpContext): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${this.resourceName()}/me/gdpr`, { context });
     }
 
     public deleteForGdpr(id: number): Observable<void> {

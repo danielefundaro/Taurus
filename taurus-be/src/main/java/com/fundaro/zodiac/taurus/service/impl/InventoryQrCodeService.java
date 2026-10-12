@@ -125,7 +125,7 @@ public class InventoryQrCodeService {
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
         if (value == null || value.isBlank())
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "auth.identity.missing");
         return value;
     }
 

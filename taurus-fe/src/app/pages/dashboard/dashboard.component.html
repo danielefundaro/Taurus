@@ -24,8 +24,7 @@
     <app-inventory-widget
         *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]"
         [mode]="inventoryMode" [adminSummary]="inventoryAdminSummary" [userSummary]="inventoryUserSummary"
-        [recentAssignments]="recentInventoryAssignments" [loading]="inventoryLoading"
-        (reportDownload)="downloadInventoryReport()" />
+        [recentAssignments]="recentInventoryAssignments" [loading]="inventoryLoading" />
     }
 
     <app-recents-widget [tracks]="tracks" />

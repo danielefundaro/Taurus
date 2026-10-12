@@ -6,7 +6,7 @@ import { ToastModule } from 'primeng/toast';
 import { first, switchMap } from 'rxjs';
 import { LoadingSpinnerComponent } from './app/components/loading-spinner/loading-spinner.component';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
-import { AppUpdateService, LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService } from './app/service';
+import { AppUpdateService, LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService, TenantStatusService } from './app/service';
 
 @Component({
     selector: 'app-root',
@@ -26,11 +26,23 @@ export class AppComponent implements OnInit {
         private readonly layoutService: LayoutService,
         private readonly pushNotificationService: PushNotificationService,
         private readonly listLayoutService: ListLayoutService,
-        private readonly appUpdateService: AppUpdateService
+        private readonly appUpdateService: AppUpdateService,
+        private readonly tenantStatusService: TenantStatusService
     ) { }
 
     ngOnInit(): void {
         this.appUpdateService.init();
+        this.tenantStatusService.load().subscribe((status) => {
+            // In modalità bootstrap il tenant non ha schema: niente notifiche, push né preferenze da leggere.
+            if (status.provisioned) {
+                this.loadTenantData();
+            } else {
+                this.listLayoutService.hydrate([]);
+            }
+        });
+    }
+
+    private loadTenantData(): void {
         this.pushNotificationService.init();
 
         setInterval(() => {

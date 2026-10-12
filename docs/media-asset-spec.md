@@ -23,7 +23,7 @@ Il catalogo sostituirà progressivamente le informazioni tecniche duplicate tra 
 - `mime_type` è l'unico campo per il tipo MIME: non viene mantenuto un duplicato `content_type`;
 - SHA-256 è usato per integrità e diagnostica, non per imporre deduplicazione;
 - file identici possono essere caricati più volte, sia nello stesso tenant sia in tenant differenti;
-- i PDF inventario generati con successo vengono conservati sul filesystem e referenziati tramite `media_asset`.
+- i PDF dei fogli di affidamento generati con successo vengono conservati sul filesystem e referenziati tramite `media_asset`.
 
 ## Isolamento tenant
 
@@ -98,7 +98,8 @@ Categorie iniziali:
 - `scores` per le pagine e i media degli spartiti;
 - `inventory` per le fotografie degli oggetti;
 - `inventory-returns` per le fotografie delle riconsegne;
-- `inventory-reports` per i PDF inventario generati;
+- `inventory-reports` per i PDF del proforma inventario, rimosso: i media esistenti sono marcati come eliminati;
+- `inventory-loan-sheets` per i fogli di affidamento generati;
 - `financial-attachments` per gli allegati dei movimenti finanziari.
 
 Il nome originale non viene usato per determinare directory o nome fisico. L'estensione deriva dal contenuto riconosciuto dal server. La chiave non può essere fornita o modificata dal client e deve essere normalizzata e verificata prima di ogni accesso al filesystem.
@@ -115,18 +116,14 @@ Relazioni target:
 | `inventory_return_photo` | `media_asset_id` obbligatorio | `return_id` e informazioni della riconsegna |
 | `sheet_music_media` | `media_asset_id` obbligatorio | `sheet_music_id` e ordine |
 | `upload_job` | `source_media_asset_id` | stato e informazioni dell'elaborazione |
-| `inventory_report_export` | `media_asset_id` obbligatorio per un'esportazione riuscita | utente richiesto, filtri, richiedente e data |
+| `inventory_loan_sheet_export` | `media_asset_id`, azzerato quando il PDF viene rimosso | foglio di affidamento, richiedente e data |
 | `financial_movement_attachment` | `media_asset_id` obbligatorio | movimento, descrizione, validità e audit funzionale |
 
 Non deve essere introdotta una relazione polimorfica `owner_type` più `owner_id`, perché non garantirebbe l'integrità referenziale. Ogni dominio usa una foreign key o una tabella di relazione specifica.
 
 ## Conservazione dei PDF inventario
 
-Ogni PDF inventario generato con successo viene salvato nel filesystem nella categoria `inventory-reports` e registrato in `media_asset`.
-
-`inventory_report_export` conserva il riferimento `media_asset_id` e i dati di audit della generazione. Dimensione e SHA-256 sono proprietà del relativo `media_asset` e non devono essere duplicati nella tabella di export una volta completata la migrazione.
-
-Un PDF non deve essere registrato come esportazione riuscita se la scrittura del file o la creazione del relativo `media_asset` non è completata correttamente.
+Il proforma PDF dell'inventario è stato rimosso e sostituito dal foglio di affidamento, i cui PDF sono registrati in `inventory_loan_sheet_export`. Il changeset `20261010000000_drop_inventory_report_export.xml` elimina la tabella `inventory_report_export` e marca come eliminati i media `inventory-reports` non usati da altre tabelle: la pulizia dei file orfani li rimuove dal filesystem dopo il periodo di attesa configurato.
 
 ## Stati tecnici
 

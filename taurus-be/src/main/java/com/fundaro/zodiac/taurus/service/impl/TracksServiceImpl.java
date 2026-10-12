@@ -112,7 +112,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
 
         for (SheetsMusicDTO score : scores) {
             if (score.getId() != null) {
-                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Generated score cannot already have an ID", getEntityName(), "score.id.exists");
+                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Generated score cannot already have an ID", getEntityName(), "id.exists");
             }
             normalizeOrder(score.getMedia());
             normalizeOrder(score.getInstruments());
@@ -156,7 +156,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     @Override
     public QueueUploadFilesDTO uploadFile(Long id, MultipartFile file, String annotations, AbstractAuthenticationToken token) {
         if (file == null || file.isEmpty()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "track.file.empty");
         }
         QueueUploadFilesDTO upload = new QueueUploadFilesDTO();
         upload.setMultipartFile(file);
@@ -175,7 +175,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             byte[] message = Converter.objectToBytes(new UploadFilesPackage(queued.getId(), token));
             sendAfterCommit(message);
         } catch (Exception exception) {
-            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "queue.error");
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
         return queued;
     }
@@ -196,18 +196,18 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         }
         QueueUploadFilesDTO job = queueUploadFilesService.findOne(jobId, token)
             .filter(value -> id.equals(value.getTrackId()))
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Upload job not found", getEntityName(), "upload.notFound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Upload job not found", getEntityName(), "track.upload.notFound"));
         if (job.getStatus() != UploadFileStatusEnum.ERROR) {
-            throw new RequestAlertException(HttpStatus.CONFLICT, "Only failed upload jobs can be retried", getEntityName(), "upload.notRetryable");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Only failed upload jobs can be retried", getEntityName(), "track.upload.notRetryable");
         }
         if (!queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.ERROR, UploadFileStatusEnum.TO_PROCESS, token)) {
-            throw new RequestAlertException(HttpStatus.CONFLICT, "Upload job state changed", getEntityName(), "upload.notRetryable");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Upload job state changed", getEntityName(), "track.upload.versionConflict");
         }
         try {
             sendAfterCommit(Converter.objectToBytes(new UploadFilesPackage(jobId, token)));
         } catch (Exception exception) {
             queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.ERROR, token);
-            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "queue.error");
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
         return queueUploadFilesService.findOne(jobId, token).orElseThrow();
     }
@@ -249,7 +249,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         } else {
             score = existingById.remove(dto.getId());
             if (score == null) {
-                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Score does not belong to track", getEntityName(), "score.id.invalid");
+                throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Score does not belong to track", getEntityName(), "track.score.notFound");
             }
         }
         score.setDescription(dto.getDescription());

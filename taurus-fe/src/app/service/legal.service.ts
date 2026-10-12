@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -23,16 +23,16 @@ export class LegalService {
         return this.http.post<LegalStatus>(`${this.baseUrl}/acceptances`, request).pipe(tap((status) => (this.status$ = of(status).pipe(shareReplay({ bufferSize: 1, refCount: false })))));
     }
 
-    getDocuments(): Observable<LegalDocument[]> {
-        return this.http.get<LegalDocument[]>(`${this.baseUrl}/documents`);
+    getDocuments(context?: HttpContext): Observable<LegalDocument[]> {
+        return this.http.get<LegalDocument[]>(`${this.baseUrl}/documents`, { context });
     }
 
-    createDocument(document: LegalDocument): Observable<LegalDocument> {
-        return this.http.post<LegalDocument>(`${this.baseUrl}/documents`, document).pipe(tap(() => this.clearCache()));
+    createDocument(document: LegalDocument, context?: HttpContext): Observable<LegalDocument> {
+        return this.http.post<LegalDocument>(`${this.baseUrl}/documents`, document, { context }).pipe(tap(() => this.clearCache()));
     }
 
-    updateDocument(id: number, document: LegalDocument): Observable<LegalDocument> {
-        return this.http.put<LegalDocument>(`${this.baseUrl}/documents/${id}`, document).pipe(tap(() => this.clearCache()));
+    updateDocument(id: number, document: LegalDocument, context?: HttpContext): Observable<LegalDocument> {
+        return this.http.put<LegalDocument>(`${this.baseUrl}/documents/${id}`, document, { context }).pipe(tap(() => this.clearCache()));
     }
 
     clearCache(): void {

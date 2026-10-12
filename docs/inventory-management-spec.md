@@ -11,7 +11,7 @@ La consegna delle notifiche interne descritte in questa specifica segue `docs/no
 
 La funzionalità introduce un inventario separato da album, tracce e dall'anagrafica degli strumenti musicali assegnabile a utenti e tracce. L'inventario rappresenta beni fisici di proprietà del tenant: strumenti musicali, divise, leggii, libretti e altro materiale.
 
-Non è prevista una tassonomia di categorie: il nome e la descrizione identificano il tipo di oggetto. Ogni dato e ogni ricerca sono isolati per tenant.
+Non è prevista una tassonomia di categorie: il nome e la descrizione identificano il tipo di oggetto. L'unica qualificazione è il regime di comodato (`loan_type`), richiesto dal [foglio di consegna e affidamento](inventory-loan-sheet-spec.md): non classifica gli oggetti, ma indica se il bene è concesso con scadenza o in comodato precario. Ogni dato e ogni ricerca sono isolati per tenant.
 
 ## Ruoli e autorizzazioni
 
@@ -20,7 +20,7 @@ Non è prevista una tassonomia di categorie: il nome e la descrizione identifica
 | Visualizzare il proprio materiale | sì | sì | sì |
 | Accettare o negare una propria assegnazione | sì | sì | sì |
 | Avviare una propria riconsegna | sì | sì | sì |
-| Scaricare il proprio proforma | sì | sì | sì |
+| Scaricare i propri fogli di affidamento | sì | sì | sì |
 | Gestire oggetti, foto e assegnazioni | no | sì | sì |
 | Consultare inventario di un utente | no | sì | sì |
 | Avviare una riconsegna per un utente | no | sì | sì |
@@ -49,7 +49,9 @@ Tabella `inventory_item`:
 - `estimated_unit_value`, valore stimato unitario;
 - `currency`, codice ISO 4217 di tre caratteri, obbligatorio insieme al valore;
 - `condition_status`: `NEW`, `EXCELLENT`, `GOOD`, `FAIR`, `TO_REPAIR`, `OUT_OF_SERVICE`;
-- `condition_notes`.
+- `condition_notes`;
+- `brand_model` e `serial_number` (matricola), facoltativi;
+- `loan_type`: `FIXED_TERM` (strumento musicale o accessorio, comodato con scadenza) o `PRECARIOUS` (divisa, accessorio o altro bene, comodato precario); facoltativo, obbligatorio per inserire il bene in un foglio di affidamento e non modificabile finché il bene è in un foglio emesso.
 
 La quantità disponibile è calcolata come quantità totale meno la somma delle quantità ancora consegnate. La quantità totale non può essere ridotta sotto il totale già in carico agli utenti.
 
@@ -79,10 +81,14 @@ Tabella `inventory_assignment`:
 - quantità assegnata e quantità riconsegnata;
 - data di assegnazione;
 - descrizione;
-- data di scadenza facoltativa, specifica della singola assegnazione e quindi differenziabile per utente;
+- data di scadenza, specifica della singola assegnazione e quindi differenziabile per utente: facoltativa, salvo per gli oggetti in comodato con scadenza, per i quali è obbligatoria e deve rispettare le regole di durata fin dall'assegnazione (vedi [Scadenza all'assegnazione](inventory-loan-sheet-spec.md#scadenza-allassegnazione));
 - stato `ACTIVE`, `PARTIALLY_RETURNED` o `RETURNED`;
 - revisione corrente;
+- accessori o taglia (`accessories`), facoltativi; il valore concordato del foglio di affidamento è il valore unitario stimato dell'oggetto e non un dato dell'assegnazione;
+- foglio di affidamento collegato (`loan_sheet_id`) e assegnazione sostituita (`replaces_assignment_id`), gestiti dal foglio;
 - dati di audit e versione ottimistica.
+
+Per un'assegnazione collegata a un foglio non annullato la scadenza si modifica solo con un rinnovo, la quantità non è modificabile e l'assegnazione non può essere eliminata. Se il socio ha un foglio emesso, una nuova assegnazione vi viene collegata come consegna successiva e deve rispettarne le regole di durata. Il dettaglio è nella [specifica del foglio](inventory-loan-sheet-spec.md).
 
 La creazione e l'aggiornamento usano un lock pessimista sull'oggetto per impedire sovra-assegnazioni in richieste concorrenti.
 
@@ -95,12 +101,12 @@ Un processo giornaliero crea notifiche interne per l'assegnatario e per gli uten
 Ogni assegnazione ha revisioni immutabili nella tabella `inventory_assignment_revision`. La revisione contiene:
 
 - numero progressivo;
-- causa: assegnazione iniziale, aggiornamento oggetto, aggiornamento assegnazione, modifica foto o riemissione dopo un rifiuto;
+- causa: assegnazione iniziale, aggiornamento oggetto, aggiornamento assegnazione, modifica foto, riemissione dopo un rifiuto o rinnovo del comodato (`RENEWAL`);
 - snapshot JSON canonico;
 - hash SHA-256 dello snapshot;
 - autore e data.
 
-Lo snapshot include numero inventariale, nome, descrizione, valore unitario, valuta, stato e note di conservazione, data di scadenza, quantità e descrizione dell'assegnazione, nonché id e digest delle fotografie. Sono esclusi la quantità totale, i dati di audit e gli attributi tecnici non percepibili dall'utente.
+Lo snapshot include numero inventariale, nome, descrizione, valore unitario, valuta, stato e note di conservazione, data di scadenza, quantità e descrizione dell'assegnazione, nonché id e digest delle fotografie. Marca e modello, matricola, regime di comodato e accessori sono inclusi solo se valorizzati, così gli hash delle revisioni precedenti restano riproducibili. Sono esclusi la quantità totale, i dati di audit e gli attributi tecnici non percepibili dall'utente.
 
 La presa visione è per singola assegnazione e singola revisione. L'utente invia l'hash visualizzato insieme alla scelta. Il server rifiuta hash non correnti, utenti non proprietari e seconde decisioni sulla stessa revisione.
 
@@ -127,40 +133,15 @@ Alla chiusura sono registrati:
 
 La chiusura aggiorna atomicamente la quantità riconsegnata e lo stato dell'assegnazione. Non è possibile riconsegnare più della quantità residua.
 
-## PDF proforma
+Il motivo della riconsegna (`reason`) vale `STANDARD`, oppure `SUBSTITUTION` quando la riconsegna è generata dalla sostituzione di un bene in un foglio di affidamento. Una riconsegna completata di un bene appartenente a un foglio chiuso o definito non può essere eliminata.
 
-Il PDF viene generato server-side con PDFBox. Può essere richiesto dall'utente per sé oppure da admin/super admin per un utente del tenant.
+## Documenti PDF
 
-Filtri disponibili:
+Il proforma PDF dell'inventario è stato rimosso: il documento da consegnare e far firmare al socio è il [foglio di consegna e affidamento in comodato](inventory-loan-sheet-spec.md), emesso dalla pagina utente e scaricabile dal socio nella propria lista dell'inventario.
 
-- materiale ancora assegnato;
-- materiale già riconsegnato;
-- inclusione delle fotografie.
+La tabella `inventory_report_export`, che registrava i proforma generati, è eliminata dal changeset `20261010000000_drop_inventory_report_export.xml`. Lo stesso changeset marca come eliminati i media dei PDF già generati, se nessun'altra tabella li usa: la pulizia periodica dei media ne rimuove poi i file.
 
-Una riconsegna parziale può comparire sia nel gruppo assegnato sia in quello riconsegnato, perché contiene contemporaneamente quantità residua e quantità restituita.
-
-Il documento contiene:
-
-- denominazione e dati fiscali/anagrafici del tenant disponibili;
-- nome, cognome, email e data di nascita dell'utente, se presente;
-- numero inventariale e tutti i dati descrittivi degli oggetti;
-- quantità assegnate, riconsegnate e residue;
-- revisioni, hash e prese visione;
-- richieste e completamenti di riconsegna;
-- stato, note e fotografie allegate quando richieste;
-- data di generazione e numerazione delle pagine.
-
-L'intestazione è il modello comune dei PDF generati da Taurus ed è resa tramite `TenantPdfHeaderService` e `PdfPageWriter`. Logo, denominazione, sede, paese, codice fiscale, partita IVA, data di generazione e stile non devono essere reimplementati nei singoli servizi di reportistica.
-
-Limiti applicati:
-
-- massimo 100 fotografie per documento;
-- massimo 100 MB per il PDF risultante;
-- timeout di generazione di 120 secondi.
-
-Il timeout evita che un documento particolarmente pesante occupi indefinitamente thread e memoria del server. Se viene superato, la richiesta termina in modo controllato e può essere ripetuta con filtri più restrittivi, ad esempio senza fotografie.
-
-Ogni esportazione riuscita è tracciata in `inventory_report_export`: tenant, utente oggetto del report, richiedente autenticato, filtri, data e riferimento `media_asset_id`. Il PDF viene conservato sul filesystem nella categoria `inventory-reports`; dimensione, MIME type, chiave relativa e digest SHA-256 sono registrati nel relativo `media_asset`. Il contenuto binario non viene duplicato nel database.
+L'intestazione comune dei PDF generati da Taurus è resa tramite `TenantPdfHeaderService` e `PdfPageWriter`. Logo, denominazione, sede, paese, codice fiscale, partita IVA, data di generazione e stile non devono essere reimplementati nei singoli servizi di reportistica. Fa eccezione il foglio di affidamento: è un contratto da stampare e firmare che riproduce il modello dell'associazione, senza logo né data di generazione, e usa un proprio template HTML convertito con OpenHTMLtoPDF. Legge comunque i dati del tenant tramite `TenantsService`.
 
 ## OpenSearch
 
@@ -226,7 +207,6 @@ Endpoint amministrativi principali:
 - `POST /api/inventory/assignments/{id}/returns`;
 - `POST /api/inventory/returns/{id}/complete`;
 - `POST /api/inventory/returns/{id}/photos`;
-- `GET /api/inventory/users/{userIndex}/report`;
 - `GET /api/inventory/erasure-requests`;
 - `POST /api/inventory/erasure-requests/{id}/complete`.
 
@@ -238,8 +218,9 @@ Endpoint personali principali:
 - `POST /api/user/inventory/assignments/{id}/returns`;
 - `POST /api/user/inventory/returns/{id}/photos`;
 - `GET /api/user/inventory/photos/{id}`;
-- `GET /api/user/inventory/return-photos/{id}`;
-- `GET /api/user/inventory/report`.
+- `GET /api/user/inventory/return-photos/{id}`.
+
+Gli endpoint dei fogli di affidamento e del relativo modello (`/api/inventory/loan-sheets/**`, `/api/inventory/users/{userIndex}/loan-sheets/**`, `/api/inventory/loan-template/**`, `/api/inventory/assignments/{id}/renewals`, `/api/inventory/assignments/{id}/substitution`, `/api/user/inventory/loan-sheets/**`) sono descritti nella [specifica del foglio](inventory-loan-sheet-spec.md#api-rest).
 
 Tutti gli identificativi sono verificati insieme al tenant ricavato dal token. Gli endpoint personali verificano inoltre la proprietà dell'assegnazione.
 
@@ -260,7 +241,7 @@ La voce `Inventario` è visibile nel menu solo ad admin e super admin. La pagina
 
 La creazione parte dal pulsante `Nuovo` dell'elenco e utilizza un modale, coerente con Album e Tracce, per raccogliere numero inventariale, nome, quantità, valore e valuta, stato e note di conservazione e descrizione. Dopo il salvataggio, fotografie, assegnazioni, prese visione e riconsegne sono gestite nella pagina di dettaglio `/inventory/items/{id}`, con protezione dalle modifiche non salvate.
 
-La voce laterale `Inventario` è disponibile a tutti i ruoli. Admin e super admin possono alternare `Inventario tenant` e `I miei oggetti`; gli altri ruoli accedono direttamente alla propria lista paginata, suddivisa tra materiale in possesso e riconsegnato. Ogni consegna apre `/inventory/assignments/{id}`, da cui l'utente può prendere visione, motivare un rifiuto, avviare una riconsegna, allegare fotografie e scaricare il proforma. La sezione non è più mostrata nel profilo personale.
+La voce laterale `Inventario` è disponibile a tutti i ruoli. Admin e super admin possono alternare `Inventario tenant` e `I miei oggetti`; gli altri ruoli accedono direttamente alla propria lista paginata, suddivisa tra materiale in possesso e riconsegnato. Ogni consegna apre `/inventory/assignments/{id}`, da cui l'utente può prendere visione, motivare un rifiuto, avviare una riconsegna e allegare fotografie. I fogli di affidamento del socio si scaricano dalla stessa lista. La sezione non è più mostrata nel profilo personale.
 
 La pagina utente consultata da un amministratore mantiene il riepilogo delle assegnazioni e delle decisioni dell'utente.
 

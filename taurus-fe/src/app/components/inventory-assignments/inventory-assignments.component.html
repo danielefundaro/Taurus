@@ -1,21 +1,6 @@
 @if (loading || assignments.length > 0) {
 <app-detail-section heading="Inventario consegnato" [count]="loading ? undefined : assignments.length"
     description="Materiale assegnato, prese visione e riconsegne.">
-    <div sectionActions class="flex flex-col items-end gap-2">
-        <div class="flex flex-wrap justify-end gap-3 text-sm">
-            <label for="reportIncludeAssigned" class="flex items-center gap-2"><p-checkbox
-                    inputId="reportIncludeAssigned" [(ngModel)]="reportIncludeAssigned" [binary]="true" />
-                Assegnati</label>
-            <label for="reportIncludeReturned" class="flex items-center gap-2"><p-checkbox
-                    inputId="reportIncludeReturned" [(ngModel)]="reportIncludeReturned" [binary]="true" />
-                Riconsegnati</label>
-            <label for="reportIncludePhotos" class="flex items-center gap-2"><p-checkbox inputId="reportIncludePhotos"
-                    [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
-        </div>
-        <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true"
-            [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
-    </div>
-
     <p-table [value]="assignments" [loading]="loading" dataKey="id" [rowHover]="true">
         <ng-template #header>
             <tr>

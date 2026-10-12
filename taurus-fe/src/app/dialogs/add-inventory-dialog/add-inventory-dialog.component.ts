@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
-import { InventoryCondition, InventoryItem } from '../../module';
+import { inventoryLoanTypeOptions } from '../../constants';
+import { InventoryCondition, InventoryItem, InventoryLoanType } from '../../module';
 
 @Component({
     selector: 'app-add-inventory-dialog',
@@ -18,9 +19,15 @@ export class AddInventoryDialogComponent {
         estimatedUnitValue: undefined,
         currency: 'EUR',
         conditionStatus: 'GOOD',
+        loanType: null,
         photos: [],
         assignments: []
     };
+
+    protected readonly loanTypes: { label: string; value: InventoryLoanType | null; description?: string }[] = [
+        { label: 'Non indicato', value: null },
+        ...inventoryLoanTypeOptions
+    ];
 
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },

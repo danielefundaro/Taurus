@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRep
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDTO;
+import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetService;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
@@ -27,19 +28,22 @@ public class InventoryErasureService {
     private final DataErasureService dataErasureService;
     private final KeycloakService keycloakService;
     private final InventoryIssueReportRepository issueRepository;
+    private final InventoryLoanSheetService loanSheetService;
 
     public InventoryErasureService(
         InventoryErasureRequestRepository requestRepository,
         InventoryAssignmentRepository assignmentRepository,
         DataErasureService dataErasureService,
         KeycloakService keycloakService,
-        InventoryIssueReportRepository issueRepository
+        InventoryIssueReportRepository issueRepository,
+        InventoryLoanSheetService loanSheetService
     ) {
         this.requestRepository = requestRepository;
         this.assignmentRepository = assignmentRepository;
         this.dataErasureService = dataErasureService;
         this.keycloakService = keycloakService;
         this.issueRepository = issueRepository;
+        this.loanSheetService = loanSheetService;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +68,7 @@ public class InventoryErasureService {
         String pseudonym = "erased:" + UUID.randomUUID();
         assignmentRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
         issueRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
+        loanSheetService.purgeForUser(request.getUserKeycloakId(), pseudonym, tenant, actor);
         dataErasureService.eraseUserData(request.getUserKeycloakId(), tenant);
         var groups = keycloakService.getUserGroups(request.getUserKeycloakId());
         if (groups.size() <= 1) {
@@ -85,7 +90,7 @@ public class InventoryErasureService {
     private static String tenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
         if (tenant == null || tenant.isBlank())
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventoryErasure", "inventory.tenant.missing");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant non disponibile", "inventoryErasure", "auth.tenant.missing");
         return tenant;
     }
 }

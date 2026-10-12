@@ -62,7 +62,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting users from Keycloak");
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting users from Keycloak", User.class.getSimpleName(), "users.list");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting users from Keycloak", User.class.getSimpleName(), "keycloak.users.readFailed");
         }
 
         return response.getBody();
@@ -77,7 +77,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting user with id {} from Keycloak", id);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting user from Keycloak", User.class.getSimpleName(), "get.user");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting user from Keycloak", User.class.getSimpleName(), "keycloak.user.readFailed");
         }
 
         return response.getBody();
@@ -92,7 +92,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting user with username or email from Keycloak: {}, {}", username, email);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting user with username or email from Keycloak: %s, %s", username, email), User.class.getSimpleName(), "get.user");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting user with username or email from Keycloak: %s, %s", username, email), User.class.getSimpleName(), "keycloak.user.readFailed");
         }
 
         return response.getBody().get(0).getId();
@@ -107,7 +107,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error saving user on Keycloak: {}", user);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error saving user on Keycloak", User.class.getSimpleName(), "save.user");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error saving user on Keycloak", User.class.getSimpleName(), "keycloak.user.createFailed");
         }
     }
 
@@ -120,7 +120,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error updating user on Keycloak: {}", user);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user on Keycloak", User.class.getSimpleName(), "update.user");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error updating user on Keycloak", User.class.getSimpleName(), "keycloak.user.updateFailed");
         }
     }
 
@@ -133,7 +133,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error updating user group on Keycloak: {}, {}", userId, groupId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error updating user group on Keycloak", User.class.getSimpleName(), "update.user.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error updating user group on Keycloak", User.class.getSimpleName(), "keycloak.userGroup.updateFailed");
         }
     }
 
@@ -146,7 +146,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error deleting user on Keycloak: {}", userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error deleting user on Keycloak", User.class.getSimpleName(), "delete.user");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error deleting user on Keycloak", User.class.getSimpleName(), "keycloak.user.deleteFailed");
         }
     }
 
@@ -160,7 +160,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error getting roles for user on Keycloak: {}", userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting roles for user on Keycloak", User.class.getSimpleName(), "get.user.roles");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting roles for user on Keycloak", User.class.getSimpleName(), "keycloak.userRoles.readFailed");
         }
 
         return response.getBody();
@@ -168,12 +168,16 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void saveUserRoles(String userId, List<Role> roles) {
-        handleUserRoles(userId, roles, HttpMethod.POST, "saving");
+        if (!updateUserRoles(userId, roles, HttpMethod.POST)) {
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error saving roles for user on Keycloak", User.class.getSimpleName(), "keycloak.userRoles.assignFailed");
+        }
     }
 
     @Override
     public void deleteUserRoles(String userId, List<Role> roles) {
-        handleUserRoles(userId, roles, HttpMethod.DELETE, "deleting");
+        if (!updateUserRoles(userId, roles, HttpMethod.DELETE)) {
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error deleting roles for user on Keycloak", User.class.getSimpleName(), "keycloak.userRoles.removeFailed");
+        }
     }
 
     @Override
@@ -185,7 +189,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error sending reset password for user on Keycloak: {}", userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending reset password for user on Keycloak", User.class.getSimpleName(), "send.user.reset.password");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error sending reset password for user on Keycloak", User.class.getSimpleName(), "keycloak.email.resetPasswordFailed");
         }
     }
 
@@ -198,7 +202,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error sending verify password for user on Keycloak: {}", userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending verify password for user on Keycloak", User.class.getSimpleName(), "send.user.verify.email");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error sending verify password for user on Keycloak", User.class.getSimpleName(), "keycloak.email.verifyAddressFailed");
         }
     }
 
@@ -211,7 +215,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error sending execute actions email for user on Keycloak: {}", userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error sending execute actions email for user on Keycloak", User.class.getSimpleName(), "send.user.execute.actions.email");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error sending execute actions email for user on Keycloak", User.class.getSimpleName(), "keycloak.email.setupFailed");
         }
     }
 
@@ -224,7 +228,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error saving group on Keycloak: {}", group);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error saving group on Keycloak", Group.class.getSimpleName(), "save.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error saving group on Keycloak", Group.class.getSimpleName(), "keycloak.group.createFailed");
 
         }
     }
@@ -238,7 +242,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error removing user {} from Keycloak group {}", userId, groupId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error removing user from Keycloak group", Group.class.getSimpleName(), "delete.user.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error removing user from Keycloak group", Group.class.getSimpleName(), "keycloak.userGroup.deleteFailed");
         }
     }
 
@@ -250,7 +254,7 @@ public class KeycloakServiceImpl implements KeycloakService {
         ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error getting user groups from Keycloak", Group.class.getSimpleName(), "get.user.groups");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting user groups from Keycloak", Group.class.getSimpleName(), "keycloak.userGroups.readFailed");
         }
         return response.getBody();
     }
@@ -264,7 +268,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful()) {
             log.error("Error deleting group from Keycloak: {}", groupId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error deleting group from Keycloak", Group.class.getSimpleName(), "delete.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error deleting group from Keycloak", Group.class.getSimpleName(), "keycloak.group.deleteFailed");
         }
     }
 
@@ -277,13 +281,13 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting group with name from Keycloak: {}", name);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "get.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "keycloak.group.readFailed");
         }
 
         Group group = response.getBody().stream().filter(g -> g.getName().equals(name)).findFirst().orElse(null);
 
         if (group == null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "get.group");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "keycloak.group.readFailed");
         }
 
         return group.getId();
@@ -299,7 +303,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting client with clientId from Keycloak: {}", clientId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "get.client");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
 
         return response.getBody().get(0).getId();
@@ -315,7 +319,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting roles of client with clientId from Keycloak: {}", clientId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting roles of client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "get.client.roles");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting roles of client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
 
         return response.getBody();
@@ -336,7 +340,7 @@ public class KeycloakServiceImpl implements KeycloakService {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), role, typeRef);
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "role.provision");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
         log.info("Provisioned Keycloak client role {}", roleName);
     }
@@ -351,13 +355,16 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting users by client role from Keycloak: {}", roleEnum);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error getting users by client role from Keycloak: %s", roleEnum), Client.class.getSimpleName(), "get.users");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting users by client role from Keycloak: %s", roleEnum), Client.class.getSimpleName(), "keycloak.roleUsers.readFailed");
         }
 
         return response.getBody();
     }
 
-    private void handleUserRoles(String userId, List<Role> roles, HttpMethod httpMethod, String action) {
+    /**
+     * Applies a change of the client roles of a user; false when Keycloak does not confirm it.
+     */
+    private boolean updateUserRoles(String userId, List<Role> roles, HttpMethod httpMethod) {
         String id = getIdByClientId();
         String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
@@ -365,9 +372,10 @@ public class KeycloakServiceImpl implements KeycloakService {
         ResponseEntity<Void> response = responseEntity(url, httpMethod, getAdminHttpHeaders(), roles, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Error {} roles for user on Keycloak: {}", action, userId);
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Error %s roles for user on Keycloak", action), User.class.getSimpleName(), String.format("%s.user.roles", action.replace("ing", "e")));
+            log.error("Error {} roles for user on Keycloak: {}", httpMethod, userId);
+            return false;
         }
+        return true;
     }
 
     private HttpHeaders getAdminHttpHeaders() {
@@ -394,13 +402,13 @@ public class KeycloakServiceImpl implements KeycloakService {
         ResponseEntity<String> response = postFormEntity(url, new HttpHeaders(), form);
 
         if (!response.getStatusCode().is2xxSuccessful() || !response.hasBody()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Token not acquired", AccessToken.class.getSimpleName(), "token.error");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Token not acquired", AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
         }
 
         try {
             return objectMapper.readValue(response.getBody(), AccessToken.class);
         } catch (JsonProcessingException e) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Token not acquired", AccessToken.class.getSimpleName(), "token.error");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Token not acquired", AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
         }
     }
 
@@ -413,14 +421,14 @@ public class KeycloakServiceImpl implements KeycloakService {
             return responseEntity(url, HttpMethod.POST, httpHeaders, form, typeRef);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().isSameCodeAs(HttpStatus.UNAUTHORIZED)) {
-                throw new RequestAlertException(HttpStatus.UNAUTHORIZED, e.getMessage(), AccessToken.class.getSimpleName(), "credentials.error");
+                throw new RequestAlertException(HttpStatus.BAD_GATEWAY, e.getMessage(), AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
             }
 
             if (e.getStatusCode().isSameCodeAs(HttpStatus.FORBIDDEN)) {
-                throw new RequestAlertException(HttpStatus.FORBIDDEN, e.getMessage(), AccessToken.class.getSimpleName(), "credentials.error");
+                throw new RequestAlertException(HttpStatus.BAD_GATEWAY, e.getMessage(), AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
             }
 
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, e.getMessage(), AccessToken.class.getSimpleName(), "token.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, e.getMessage(), AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
         }
     }
 
@@ -449,10 +457,10 @@ public class KeycloakServiceImpl implements KeycloakService {
                 .toEntity(responseType);
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT)) {
-                throw new RequestAlertException(HttpStatus.CONFLICT, e.getMessage(), AccessToken.class.getSimpleName(), "conflict.error");
+                throw new RequestAlertException(HttpStatus.CONFLICT, e.getMessage(), AccessToken.class.getSimpleName(), "keycloak.conflict");
             }
 
-            throw new RequestAlertException(HttpStatus.valueOf(e.getStatusCode().value()), e.getMessage(), AccessToken.class.getSimpleName(), "generic.error");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, e.getStatusCode() + " " + e.getMessage(), AccessToken.class.getSimpleName(), "keycloak.requestFailed");
         }
     }
 }

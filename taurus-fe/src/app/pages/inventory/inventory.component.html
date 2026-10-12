@@ -5,6 +5,8 @@
         <div pageActions class="flex flex-wrap gap-2">
             @if (!personalView) {
             <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+            <p-button label="Modello del foglio di affidamento" icon="pi pi-file-edit" severity="secondary"
+                [outlined]="true" routerLink="/inventory/loan-template" />
             @if (inventoryQrEnabled()) {
             <p-button label="Genera etichette" icon="pi pi-print" severity="secondary"
                 [disabled]="!selectedItems.length" (onClick)="generateLabels()" />
@@ -62,18 +64,12 @@
         @if (personalView) {
         <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value"
             [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
-        <div class="flex flex-wrap items-center gap-3 text-sm">
-            <label class="flex items-center gap-2" for="assigned"><p-checkbox inputId="assigned"
-                    [(ngModel)]="reportIncludeAssigned" [binary]="true" /> Assegnati</label>
-            <label class="flex items-center gap-2" for="returned"><p-checkbox inputId="returned"
-                    [(ngModel)]="reportIncludeReturned" [binary]="true" /> Riconsegnati</label>
-            <label class="flex items-center gap-2" for="photos"><p-checkbox inputId="photos"
-                    [(ngModel)]="reportIncludePhotos" [binary]="true" /> Fotografie</label>
-            <p-button label="Scarica proforma PDF" icon="pi pi-file-pdf" severity="secondary" [outlined]="true"
-                [disabled]="!canDownloadReport" (onClick)="downloadReport()" />
-        </div>
         }
     </div>
+    }
+
+    @if (personalView) {
+    <app-own-loan-sheets />
     }
 
     <app-list-toolbar [search]="searchTerm" searchPlaceholder="Nome o numero inventariale" [sortOptions]="sortOptions"

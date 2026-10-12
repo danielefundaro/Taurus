@@ -23,9 +23,6 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     protected returnNotes: Record<number, string> = {};
     protected returnConditions: Record<number, InventoryCondition | undefined> = {};
     protected returnCompletionNotes: Record<number, string> = {};
-    protected reportIncludeAssigned = true;
-    protected reportIncludeReturned = true;
-    protected reportIncludePhotos = true;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
     protected readonly returnStatusLabel = inventoryReturnStatusLabel;
@@ -91,24 +88,6 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
                 input.value = '';
                 this.load();
             });
-    }
-
-    protected downloadReport(): void {
-        this.inventoryService
-            .downloadReport(this.userIndex, this.reportIncludeAssigned, this.reportIncludeReturned, this.reportIncludePhotos)
-            .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = 'prospetto-inventario.pdf';
-                anchor.click();
-                URL.revokeObjectURL(url);
-            });
-    }
-
-    protected get canDownloadReport(): boolean {
-        return this.reportIncludeAssigned || this.reportIncludeReturned;
     }
 
     protected hasOpenReturn(assignment: InventoryAssignment): boolean {

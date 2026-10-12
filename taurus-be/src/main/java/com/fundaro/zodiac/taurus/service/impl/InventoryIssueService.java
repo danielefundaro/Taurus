@@ -52,6 +52,7 @@ public class InventoryIssueService {
     private static final String ENTITY = "inventoryIssue";
     private static final long MAX_PHOTO_SIZE = 10L * 1024 * 1024;
     private static final int MAX_PHOTOS = 20;
+    private static final int MAX_PHOTO_SIDE = 6000;
     private final InventoryItemRepository itemRepository;
     private final InventoryAssignmentRepository assignmentRepository;
     private final InventoryIssueReportRepository issueRepository;
@@ -89,7 +90,7 @@ public class InventoryIssueService {
         tenant(token);
         InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(InventoryIssueService::notFound);
         if (request.reportedQuantity() > item.getTotalQuantity())
-            throw badRequest("La quantità segnalata supera la quantità del bene", "inventory.issue.quantity");
+            throw badRequest("La quantità segnalata supera la quantità del bene", "inventory.issue.quantityExceeded").with("maximum", item.getTotalQuantity());
         return create(item, null, request, token);
     }
 
@@ -103,7 +104,7 @@ public class InventoryIssueService {
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId).orElseThrow(InventoryIssueService::notFound);
         if (!actor.equals(assignment.getUserKeycloakId())) throw notFound();
         if (request.reportedQuantity() > assignment.getOutstandingQuantity())
-            throw badRequest("La quantità segnalata supera la quantità residua", "inventory.issue.quantity");
+            throw badRequest("La quantità segnalata supera la quantità residua", "inventory.issue.quantityExceeded").with("maximum", assignment.getOutstandingQuantity());
         return create(item, assignment, request, token);
     }
 
@@ -151,7 +152,7 @@ public class InventoryIssueService {
         InventoryIssueReport issue = issueRepository.findForUpdate(issueId).orElseThrow(InventoryIssueService::notFound);
         InventoryItem item = itemRepository.findForUpdate(issue.getItem().getId()).orElseThrow(InventoryIssueService::notFound);
         if (issue.getEntityVersion() != request.version())
-            throw conflict("La segnalazione è stata aggiornata da un altro utente", "inventory.issue.version");
+            throw conflict("La segnalazione è stata aggiornata da un altro utente", "inventory.issue.versionConflict");
         InventoryIssueStatus current = issue.getStatus();
         if (current.isTerminal() || !allowed(current, request.status()))
             throw badRequest("Transizione di stato non consentita", "inventory.issue.transition");
@@ -188,7 +189,7 @@ public class InventoryIssueService {
             throw conflict("La segnalazione è già chiusa", "inventory.issue.closed");
         validatePhoto(file);
         if (photoRepository.countByIssue_IdAndDeletedFalse(issueId) >= MAX_PHOTOS)
-            throw conflict("Numero massimo di fotografie raggiunto", "inventory.issue.photo.limit");
+            throw conflict("Numero massimo di fotografie raggiunto", "inventory.issue.photo.limit").with("maximum", MAX_PHOTOS);
         String type = Objects.requireNonNull(file.getContentType()).toLowerCase(Locale.ROOT);
         byte[] normalized = normalizeImage(file.getBytes(), type);
         String extension = type.equals("image/png") ? ".png" : ".jpg";
@@ -263,8 +264,8 @@ public class InventoryIssueService {
 
     private static byte[] normalizeImage(byte[] bytes, String contentType) throws IOException {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-        if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0 || image.getWidth() > 6000 || image.getHeight() > 6000)
-            throw badRequest("Immagine non valida o dimensioni superiori a 6000x6000", "inventory.issue.photo.invalid");
+        if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0 || image.getWidth() > MAX_PHOTO_SIDE || image.getHeight() > MAX_PHOTO_SIDE)
+            throw badRequest("Immagine non valida o dimensioni superiori a 6000x6000", "inventory.issue.photo.invalid").with("maxSide", MAX_PHOTO_SIDE);
         String format = contentType.equals("image/png") ? "png" : "jpg";
         BufferedImage output = image;
         if (format.equals("jpg") && image.getColorModel().hasAlpha()) {
@@ -277,16 +278,16 @@ public class InventoryIssueService {
         }
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
             if (!ImageIO.write(output, format, stream))
-                throw badRequest("Impossibile normalizzare l'immagine", "inventory.issue.photo.invalid");
+                throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile normalizzare l'immagine", ENTITY, "inventory.issue.photo.processingFailed");
             if (stream.size() > MAX_PHOTO_SIZE)
-                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
+                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", ENTITY, "inventory.issue.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
             return stream.toByteArray();
         }
     }
 
     private static void validatePhoto(MultipartFile file) {
         if (file == null || file.isEmpty() || file.getSize() > MAX_PHOTO_SIZE)
-            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", ENTITY, "inventory.issue.photo.tooLarge");
+            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", ENTITY, "inventory.issue.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
         String type = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!type.equals("image/jpeg") && !type.equals("image/png"))
             throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Sono supportate solo immagini JPEG e PNG", ENTITY, "inventory.issue.photo.unsupported");
@@ -308,13 +309,13 @@ public class InventoryIssueService {
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
         if (value == null || value.isBlank())
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "inventory.identity.missing");
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", ENTITY, "auth.identity.missing");
         return value;
     }
 
     private static void tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (value == null || value.isBlank()) throw badRequest("Tenant non disponibile", "inventory.tenant.missing");
+        if (value == null || value.isBlank()) throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant non disponibile", ENTITY, "auth.tenant.missing");
     }
 
     private static String trimToNull(String value) {

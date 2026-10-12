@@ -50,6 +50,10 @@ public class Tenants extends CommonFieldsOpenSearch {
     private String vatNumber;
     @Column(name = "logo_url", length = 2048)
     private String logoUrl;
+    @Column(name = "phone", length = 64)
+    private String phone;
+    @Column(name = "pec")
+    private String pec;
 
     @Column(name = "time_zone", nullable = false, length = 64)
     private String timeZone = "Europe/Rome";
@@ -190,6 +194,22 @@ public class Tenants extends CommonFieldsOpenSearch {
         this.logoUrl = logoUrl;
     }
 
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPec() {
+        return pec;
+    }
+
+    public void setPec(String pec) {
+        this.pec = pec;
+    }
+
     public String getTimeZone() {
         return timeZone;
     }
@@ -285,6 +305,8 @@ public class Tenants extends CommonFieldsOpenSearch {
             Objects.equals(taxCode, tenants.taxCode) &&
             Objects.equals(vatNumber, tenants.vatNumber) &&
             Objects.equals(logoUrl, tenants.logoUrl) &&
+            Objects.equals(phone, tenants.phone) &&
+            Objects.equals(pec, tenants.pec) &&
             Objects.equals(timeZone, tenants.timeZone) &&
             Objects.equals(financeEnabled, tenants.financeEnabled) &&
             Objects.equals(inventoryEnabled, tenants.inventoryEnabled) &&
@@ -298,7 +320,7 @@ public class Tenants extends CommonFieldsOpenSearch {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled);
     }
 
     @Override
@@ -325,6 +347,8 @@ public class Tenants extends CommonFieldsOpenSearch {
             ", taxCode='" + getTaxCode() + '\'' +
             ", vatNumber='" + getVatNumber() + '\'' +
             ", logoUrl='" + getLogoUrl() + '\'' +
+            ", phone='" + getPhone() + '\'' +
+            ", pec='" + getPec() + '\'' +
             ", timeZone='" + getTimeZone() + '\'' +
             ", financeEnabled=" + getFinanceEnabled() +
             ", inventoryEnabled=" + getInventoryEnabled() +

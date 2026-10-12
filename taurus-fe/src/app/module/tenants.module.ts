@@ -15,6 +15,8 @@ export class Tenants extends CommonFieldsOpenSearch {
     taxCode?: string;
     vatNumber?: string;
     logoUrl?: string;
+    phone?: string;
+    pec?: string;
     timeZone?: string = 'Europe/Rome';
     financeEnabled: boolean = false;
     inventoryEnabled: boolean = false;

@@ -101,7 +101,7 @@ class NoticesServiceImplTest {
         assertThatThrownBy(() -> service.snooze(1L, ZonedDateTime.now().plusMinutes(2), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("snooze.invalid");
+            .isEqualTo("notice.snooze.invalid");
         verify(noticesRepository, never()).findByIdAndUserId(any(), any());
     }
 
@@ -110,7 +110,7 @@ class NoticesServiceImplTest {
         assertThatThrownBy(() -> service.snooze(1L, ZonedDateTime.now().plusDays(31), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("snooze.invalid");
+            .isEqualTo("notice.snooze.invalid");
     }
 
     @Test
@@ -122,7 +122,7 @@ class NoticesServiceImplTest {
         assertThatThrownBy(() -> service.snooze(1L, ZonedDateTime.now().plusHours(1), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("snooze.read");
+            .isEqualTo("notice.snooze.read");
     }
 
     @Test

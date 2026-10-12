@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { KeycloakService, LoadingService, TenantFeatureService, ToastService } from '../service';
+import { ApiErrorService, KeycloakService, LoadingService, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -10,16 +10,18 @@ import { Router } from '@angular/router';
 })
 export class HttpInterceptorService implements HttpInterceptor {
     private readonly _nonProtectedRoutes: (RegExp | string)[] = [];
-    private readonly excludedRoutes = ['api/preferences', 'api/notices'];
+    private readonly excludedRoutes = ['api/preferences', 'api/notices', '/count'];
 
     private readonly httpRequestStack = new Array<HttpRequest<any>>();
     private isRefreshing = false;
+    private endingSession = false;
     private readonly refreshTokenSubject: BehaviorSubject<any>;
 
     constructor(
         private readonly keycloakService: KeycloakService,
         private readonly toastService: ToastService,
         private readonly loadingService: LoadingService,
+        private readonly apiErrorService: ApiErrorService,
         private readonly router: Router,
         private readonly injector: Injector
     ) {
@@ -34,10 +36,14 @@ export class HttpInterceptorService implements HttpInterceptor {
         if (!this.keycloakService.isUserLoggedIn) {
             this.keycloakService.logout();
             return next.handle(req).pipe(
-                catchError((error: HttpErrorResponse) => {
-                    this.toastService.error('Connessione non disponibile', 'Non è stato possibile raggiungere il servizio. Verifica la connessione e riprova.');
-                    return throwError(() => error);
-                })
+                catchError((error: HttpErrorResponse) =>
+                    this.apiErrorService.readBody(error).pipe(
+                        switchMap((readable) => {
+                            this.notify(this.apiErrorService.resolve(readable, req));
+                            return throwError(() => readable);
+                        })
+                    )
+                )
             );
         }
 
@@ -59,161 +65,71 @@ export class HttpInterceptorService implements HttpInterceptor {
                     this.loadingService.loading = false;
                 }
             }),
-            catchError((error: HttpErrorResponse) => {
-                let title = 'Richiesta non riuscita';
-                let detail = 'Non è stato possibile completare l’operazione.';
-                const responseBody = error.error;
-                const responseMessage = responseBody !== null && typeof responseBody === 'object' && 'message' in responseBody && typeof responseBody.message === 'string' ? responseBody.message : undefined;
-
-                if (error.status === 401 && !this.isRefresh(authReq)) {
-                    return this.handle401Error(authReq, next);
-                } else if (error.status === 403 && responseMessage?.startsWith('error.tenantFeature.') && responseMessage.endsWith('.disabled')) {
-                    const featureKey: string = responseMessage.slice('error.tenantFeature.'.length, -'.disabled'.length);
-                    const feature =
-                        (
-                            {
-                                finance: 'Economia',
-                                inventory: 'Inventario',
-                                onboardingImport: 'Configurazione iniziale',
-                                externalCalendarFeed: 'Feed calendario esterno',
-                                inventoryQr: 'QR code inventario',
-                                notificationPreferences: 'Preferenze notifiche',
-                                webPushReminders: 'Promemoria eventi Web Push',
-                                eventPreparation: 'Preparazione evento'
-                            } as Record<string, string>
-                        )[featureKey] ?? 'richiesta';
-                    this.toastService.error('Funzionalità non disponibile', `La funzionalità ${feature} non è disponibile per questo tenant.`);
-                    this.injector
-                        .get(TenantFeatureService)
-                        .refresh(true)
-                        .subscribe({ error: () => undefined });
-                    this.router.navigate(['/']);
-                } else if (error.status === 403) {
-                    title = 'Permesso negato';
-                    detail = 'Non hai i permessi necessari per completare questa operazione.';
-                    this.toastService.error(title, detail);
-                    this.router.navigate(['forbidden']);
-                } else {
-                    if (error.status === 0) {
-                        title = 'Connessione non disponibile';
-                        detail = 'Il server non è raggiungibile. Verifica la connessione e riprova.';
-                    } else if (error.status === 404) {
-                        title = 'Elemento non trovato';
-                        detail = 'L’elemento richiesto non esiste più o non è accessibile.';
-                    } else if (error.status === 409) {
-                        title = 'Dati modificati';
-                        detail = 'I dati sono cambiati nel frattempo. Ricarica la pagina e riprova.';
-                    } else if (error.status >= 500) {
-                        title = 'Servizio temporaneamente non disponibile';
-                        detail = 'Si è verificato un problema sul server. Riprova tra qualche minuto.';
-                    }
-                    if (responseMessage) {
-                        const message = responseMessage.replace('error.', '').toLowerCase();
-
-                        switch (message) {
-                            case 'id.notfound':
-                                detail = 'Elemento non trovato';
-                                break;
-                            case 'id.exists':
-                                detail = 'Elemento già esistente';
-                                break;
-                            case 'id.null':
-                            case 'id.invalid':
-                                detail = 'Elemento non valido';
-                                break;
-                            case 'send.message':
-                            case 'file.upload':
-                                detail = "Errore durante l'upload del file";
-                                break;
-                            case 'save.tenant':
-                                detail = 'Errore durante il salvataggio del tenant';
-                                break;
-                            case 'code.exists':
-                                detail = 'Codice già esistente';
-                                break;
-                            case 'user.limit.exceeded':
-                                detail = 'Limite superato';
-                                break;
-                            case 'inventory.return.materialreassigned':
-                                detail = 'La riconsegna non può essere eliminata perché il materiale è già stato riassegnato';
-                                break;
-                            case 'finance.account.hasmovements':
-                                title = 'Conto non eliminabile';
-                                detail = 'Il conto ha movimenti attivi: può essere soltanto archiviato';
-                                break;
-                            case 'finance.account.notarchived':
-                                title = 'Conto non eliminabile';
-                                detail = 'Il conto deve essere archiviato prima di essere eliminato';
-                                break;
-                            case 'finance.account.alreadyactive':
-                                title = 'Conto già attivo';
-                                detail = 'Il conto non risulta archiviato';
-                                break;
-                            case 'finance.account.nameexists':
-                                title = 'Nome già in uso';
-                                detail = 'Esiste già un conto attivo con questo nome';
-                                break;
-                            case 'snooze.invalid':
-                                detail = 'Il promemoria deve essere posticipato tra i 5 minuti e i 30 giorni';
-                                break;
-                            // Inizio errori su keycloak
-                            case 'get.users':
-                            case 'users.list':
-                                detail = 'Errore durante il recupero della lista utenti';
-                                break;
-                            case 'get.user':
-                                detail = "Errore durante il recupero dell'utente";
-                                break;
-                            case 'save.user':
-                                detail = "Errore durante il salvataggio dell'utente";
-                                break;
-                            case 'update.user':
-                                detail = "Errore durante l'aggiornamento dell'utente";
-                                break;
-                            case 'delete.user':
-                                detail = "Errore durante l'eliminazione dell'utente";
-                                break;
-                            case 'send.user.reset.password':
-                                detail = "Errore durante l'invio dell'email per il reset della password";
-                                break;
-                            case 'send.user.verify.email':
-                                detail = "Errore durante l'invio dell'email per la verifica dell'account";
-                                break;
-                            case 'save.group':
-                                detail = 'Errore durante il salvataggio del tenant';
-                                break;
-                            case 'get.group':
-                                detail = 'Errore durante il recupero del tenant';
-                                break;
-                            case 'get.client':
-                            case 'update.user.group':
-                            case 'get.user.roles':
-                            case 'save.user.roles':
-                            case 'delete.user.roles':
-                            case 'get.client.roles':
-                            case 'token.error':
-                            case 'token.invalid':
-                            case 'conflict.error':
-                            case 'credentials.error':
-                            case 'generic.error':
-                                detail = "Errore durante l'operazione. Contattare l'amministratore";
-                                break;
-                            // Fine errori su keycloak
-                        }
-
-                        this.toastService.error(title, detail);
-
-                        if (message === 'id.notfound') {
-                            this.router.navigate(['notfound']);
-                        }
-                    } else {
-                        this.toastService.error(title, detail);
-                    }
-                }
-
-                return throwError(() => error);
-            })
+            catchError((error: HttpErrorResponse) => this.apiErrorService.readBody(error).pipe(switchMap((readable) => this.handleError(readable, authReq, next, true))))
         );
+    }
+
+    /**
+     * Applies the behavior registered for the error key, or shows the toast built by ApiErrorService.
+     * The error is always propagated to the caller, which may show it next to a field (HANDLED_ERRORS).
+     */
+    private handleError(error: HttpErrorResponse, request: HttpRequest<any>, next: HttpHandler, canRenewSession: boolean): Observable<HttpEvent<any>> {
+        const resolved = this.apiErrorService.resolve(error, request);
+
+        switch (resolved.behavior) {
+            case 'renewSession':
+                if (canRenewSession && !this.isRefresh(request)) {
+                    return this.handle401Error(error, resolved, request, next);
+                }
+                this.endSession(resolved);
+                break;
+            case 'endSession':
+                this.endSession(resolved);
+                break;
+            case 'forbiddenPage':
+                this.notify(resolved);
+                if (!resolved.handled) this.router.navigate(['forbidden']);
+                break;
+            case 'tenantSetup':
+                // The tenant of the session has no schema (any more): the guard leads to the initial setup.
+                this.injector.get(TenantStatusService).invalidate();
+                this.router.navigate(['/']);
+                break;
+            case 'tenantFeatureDisabled':
+                this.notify(resolved);
+                this.injector
+                    .get(TenantFeatureService)
+                    .refresh(true)
+                    .subscribe({ error: () => undefined });
+                this.router.navigate(['/']);
+                break;
+            case 'notFoundPage':
+                if (request.method === 'GET' && !resolved.handled) {
+                    this.router.navigate(['notfound']);
+                } else {
+                    this.notify(resolved);
+                }
+                break;
+            default:
+                // Version conflicts included: ApiErrorService already titles them «Dati modificati».
+                this.notify(resolved);
+        }
+
+        return throwError(() => error);
+    }
+
+    private notify(resolved: ResolvedApiError): void {
+        if (!resolved.handled) {
+            this.toastService.error(resolved.summary, resolved.detail);
+        }
+    }
+
+    /** Shows why the session ends and logs out, once even when several requests fail together. */
+    private endSession(resolved: ResolvedApiError): void {
+        if (this.endingSession) return;
+        this.endingSession = true;
+        this.notify(resolved);
+        this.keycloakService.logout();
     }
 
     private _isFreeRoute(url: string): boolean {
@@ -245,35 +161,42 @@ export class HttpInterceptorService implements HttpInterceptor {
         return request.url.includes('/api/auth/token');
     }
 
-    private handle401Error(request: HttpRequest<any>, next: HttpHandler) {
+    private handle401Error(error: HttpErrorResponse, resolved: ResolvedApiError, request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         if (!this.isRefreshing) {
             this.isRefreshing = true;
             this.refreshTokenSubject.next(null);
 
             const token = this.getAuthToken();
+            const renewed = token ? this.keycloakService.refreshToken() : undefined;
+            this.isRefreshing = false;
 
-            if (token) {
-                this.isRefreshing = false;
-                this.refreshTokenSubject.next(this.keycloakService.refreshToken());
-                // return this.keycloakService.refreshToken().pipe(switchMap((token: AccessTokenResponse) => {
-                //     this.isRefreshing = false;
-                //     this.refreshTokenSubject.next(this.keycloakService.refreshToken());
-
-                //     return next.handle(this.addTokenHeader(request, this.keycloakService.refreshToken()));
-                // }), catchError((error) => {
-                //     this.isRefreshing = false;
-
-                //     return throwError(() => {
-                //         this.keycloakService.logout();
-                //     });
-                // }));
+            if (!renewed) {
+                // Without a token to retry with the request would wait forever: the session cannot be renewed.
+                this.endSession(resolved);
+                return throwError(() => error);
             }
+
+            this.refreshTokenSubject.next(renewed);
+            // return this.keycloakService.refreshToken().pipe(switchMap((token: AccessTokenResponse) => {
+            //     this.isRefreshing = false;
+            //     this.refreshTokenSubject.next(this.keycloakService.refreshToken());
+
+            //     return next.handle(this.addTokenHeader(request, this.keycloakService.refreshToken()));
+            // }), catchError((error) => {
+            //     this.isRefreshing = false;
+
+            //     return throwError(() => {
+            //         this.keycloakService.logout();
+            //     });
+            // }));
         }
 
         return this.refreshTokenSubject.pipe(
             filter((token) => token),
             take(1),
-            switchMap((token) => next.handle(this.addTokenHeader(request, token)))
+            switchMap((token) => next.handle(this.addTokenHeader(request, token))),
+            // A second 401 means the renewal did not help: the session ends instead of retrying again.
+            catchError((retryError: HttpErrorResponse) => this.apiErrorService.readBody(retryError).pipe(switchMap((readable) => this.handleError(readable, request, next, false))))
         );
     }
 }

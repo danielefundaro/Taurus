@@ -7,7 +7,7 @@ import { AddTenantsDialogComponent } from '../../dialogs/add-tenants-dialog/add-
 import { ImportsModule } from '../../imports';
 import { Page, Tenants, TenantsCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { ConfirmService, ListLayout, ListLayoutService, TenantsService, ToastService, UsersService } from '../../service';
+import { ConfirmService, KeycloakService, ListLayout, ListLayoutService, TenantStatusService, TenantsService, ToastService, UsersService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 
 @Component({
@@ -28,7 +28,9 @@ export class TenantsComponent extends ListPageBase implements OnInit {
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmService: ConfirmService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly tenantStatusService: TenantStatusService,
+        private readonly keycloakService: KeycloakService
     ) {
         super();
         this.tenants = [];
@@ -41,6 +43,21 @@ export class TenantsComponent extends ListPageBase implements OnInit {
             { label: 'Nome Z-A', value: '!name' }
         ];
         this.listLayoutService.observe('tenants', (value) => (this.layout = value));
+    }
+
+    /** Primo accesso: la sessione usa un tenant senza schema e serve solo a creare il primo tenant. */
+    protected get bootstrap(): boolean {
+        return this.tenantStatusService.bootstrap();
+    }
+
+    protected get bootstrapDetail(): string {
+        const tenantCode = this.tenantStatusService.tenantCode();
+        const session = tenantCode ? `Stai usando il tenant di avvio «${tenantCode}», che non contiene dati.` : 'Stai usando un tenant di avvio, che non contiene dati.';
+        return `${session} Crea il primo tenant, poi esci e accedi di nuovo scegliendolo nella schermata di selezione.`;
+    }
+
+    protected logout(): void {
+        this.keycloakService.logout();
     }
 
     protected onLayoutChange(value: ListLayout): void {

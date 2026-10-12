@@ -1,0 +1,67 @@
+<app-dialog-shell
+    #shell
+    heading="Sostituisci bene"
+    [subtitle]="assignment.inventoryNumber + ' – ' + assignment.itemName + ' · foglio n. ' + assignment.loanSheetNumber"
+    confirmLabel="Registra sostituzione"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <app-inline-alert
+        severity="info"
+        heading="Riconsegna e nuova consegna in un solo passaggio"
+        [detail]="'Le ' + assignment.outstandingQuantity + ' unità in carico vengono riconsegnate e il nuovo bene viene annotato nel registro delle variazioni come sostituzione. Per uno strumento decorrono nuovi termini.'"
+    />
+
+    <h3 class="text-base font-semibold mt-4 mb-2">Bene riconsegnato</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field label="Stato alla riconsegna" forId="substitutionReturnCondition">
+            <p-select inputId="substitutionReturnCondition" [options]="conditions" optionLabel="label" optionValue="value" [(ngModel)]="returnCondition" placeholder="Seleziona lo stato" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Note di riconsegna" forId="substitutionReturnNotes">
+            <input pInputText id="substitutionReturnNotes" maxlength="2000" [(ngModel)]="returnNotes" />
+        </app-form-field>
+    </div>
+
+    <h3 class="text-base font-semibold mt-4 mb-2">Bene consegnato</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field
+            class="md:col-span-2"
+            label="Oggetto"
+            forId="substitutionItem"
+            required
+            hint="Sono elencati gli oggetti disponibili con il regime di comodato indicato."
+            [error]="shell.validationAttempted && !item ? 'Seleziona l’oggetto da consegnare.' : undefined"
+        >
+            <p-select inputId="substitutionItem" [options]="items" [(ngModel)]="item" [filter]="true" filterBy="name,inventoryNumber" placeholder="Seleziona oggetto" appendTo="body" (onChange)="selectItem()">
+                <ng-template #selectedItem let-value>{{ value.inventoryNumber }} – {{ value.name }}</ng-template>
+                <ng-template pTemplate="item" let-value>
+                    <span class="flex flex-col">
+                        <span>{{ value.inventoryNumber }} – {{ value.name }}</span>
+                        <small class="text-surface-500">{{ loanTypeLabel(value.loanType) }} · disponibili {{ value.availableQuantity }}</small>
+                    </span>
+                </ng-template>
+            </p-select>
+        </app-form-field>
+        <app-form-field label="Quantità" forId="substitutionQuantity" required>
+            <p-inputnumber inputId="substitutionQuantity" [(ngModel)]="quantity" [min]="1" [max]="item?.availableQuantity || 1" [showButtons]="true" />
+        </app-form-field>
+        @if (fixedTerm) {
+            <app-form-field
+                label="Scadenza"
+                forId="substitutionExpiration"
+                required
+                [hint]="'Tra ' + terms.minMonths + ' e ' + terms.maxMonths + ' mesi dalla consegna.'"
+                [error]="shell.validationAttempted && !expirationDate ? 'Indica la scadenza dello strumento.' : undefined"
+            >
+                <p-datepicker inputId="substitutionExpiration" [(ngModel)]="expirationDate" dateFormat="dd/mm/yy" [minDate]="minimumExpiration" [maxDate]="maximumExpiration" [showIcon]="true" iconDisplay="input" appendTo="body" />
+            </app-form-field>
+        }
+        <app-form-field label="Accessori / taglia" forId="substitutionAccessories">
+            <input pInputText id="substitutionAccessories" maxlength="500" [(ngModel)]="accessories" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione dell’assegnazione" forId="substitutionDescription">
+            <textarea pTextarea id="substitutionDescription" rows="2" [(ngModel)]="description"></textarea>
+        </app-form-field>
+    </div>
+</app-dialog-shell>

@@ -1,0 +1,11 @@
+:host {
+    display: block;
+    /* Il componente rende una sezione a tutti gli effetti: il ritmo verticale
+       sta qui, perché la `detail-section` interna è figlio unico e il suo
+       `:last-child { margin-bottom: 0 }` scatta sempre. */
+    margin-bottom: 2rem;
+}
+
+:host(:last-child) {
+    margin-bottom: 0;
+}

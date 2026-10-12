@@ -178,7 +178,7 @@ public class CalendarEventsServiceImpl
     @Override
     public CalendarEventsDTO setReminderMinutes(Long eventId, Integer minutes, AbstractAuthenticationToken token) {
         if (minutes != null && (minutes < 0 || minutes > 1440)) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Reminder must be between 0 and 1440 minutes", getEntityName(), "reminder.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Reminder must be between 0 and 1440 minutes", getEntityName(), "calendar.reminder.invalid").with("maximum", 1440);
         }
         CalendarEvents event = findEntity(eventId);
         Users user = currentUser(token);
@@ -187,7 +187,7 @@ public class CalendarEventsServiceImpl
             .filter(entry -> entry.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
             .findFirst()
             .orElseThrow(() ->
-                new RequestAlertException(HttpStatus.CONFLICT, "Availability must be confirmed before setting a reminder", getEntityName(), "reminder.availabilityMissing")
+                new RequestAlertException(HttpStatus.CONFLICT, "Availability must be confirmed before setting a reminder", getEntityName(), "calendar.reminder.availabilityMissing")
             );
         response.setReminderMinutes(minutes);
         CalendarEventsDTO result = saveEntity(event, token, false);
@@ -302,7 +302,7 @@ public class CalendarEventsServiceImpl
 
     private Users currentUser(AbstractAuthenticationToken token) {
         return usersRepository.findByKeycloakIdAndDeletedFalse(SecurityUtils.getUserIdFromAuthentication(token))
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Current user not found", "Users", "user.notFound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.FORBIDDEN, "Current user not found", "Users", "auth.user.inactive"));
     }
 
     private void applyDefaultEndDate(CalendarEventsDTO dto) {

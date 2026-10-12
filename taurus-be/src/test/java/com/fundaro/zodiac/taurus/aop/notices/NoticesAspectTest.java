@@ -243,7 +243,10 @@ class NoticesAspectTest {
             null,
             0,
             List.of(),
-            List.of()
+            List.of(),
+            null,
+            null,
+            null
         );
 
         invoke("onInventoryChange", joinPoint("createItem", item, new Object(), authentication));

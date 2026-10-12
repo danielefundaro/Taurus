@@ -7,7 +7,7 @@ import { finalize, first } from 'rxjs';
 import { LegalDocumentDialogComponent } from '../../dialogs/legal-document-dialog/legal-document-dialog.component';
 import { ImportsModule } from '../../imports';
 import { LegalDocument, LegalDocumentAction, LegalDocumentType } from '../../module';
-import { LegalService, ToastService } from '../../service';
+import { LegalService, ToastService, withErrorSummary } from '../../service';
 
 @Component({
     selector: 'app-legal-documents',
@@ -76,7 +76,8 @@ export class LegalDocumentsComponent implements OnInit {
     private saveDocument(document: LegalDocument): void {
         if (this.saving) return;
         this.saving = true;
-        const request = document.id ? this.legalService.updateDocument(document.id, document) : this.legalService.createDocument(document);
+        const context = withErrorSummary('Salvataggio non riuscito');
+        const request = document.id ? this.legalService.updateDocument(document.id, document, context) : this.legalService.createDocument(document, context);
 
         request
             .pipe(
@@ -88,9 +89,7 @@ export class LegalDocumentsComponent implements OnInit {
                     this.toastService.success('Documenti legali', document.id ? 'Documento aggiornato.' : 'Documento creato.');
                     this.loadDocuments();
                 },
-                error: () => {
-                    this.toastService.error('Salvataggio non riuscito', 'Se il documento è già stato accettato, crea una nuova versione invece di modificarne il contenuto.');
-                }
+                error: () => undefined
             });
     }
 
@@ -105,14 +104,14 @@ export class LegalDocumentsComponent implements OnInit {
     private loadDocuments(): void {
         this.loading = true;
         this.legalService
-            .getDocuments()
+            .getDocuments(withErrorSummary('Caricamento non riuscito'))
             .pipe(
                 first(),
                 finalize(() => (this.loading = false))
             )
             .subscribe({
                 next: (documents) => (this.documents = documents),
-                error: () => this.toastService.error('Caricamento non riuscito', 'I documenti legali non sono disponibili. Riprova.')
+                error: () => undefined
             });
     }
 }

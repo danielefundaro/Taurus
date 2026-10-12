@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -28,7 +28,6 @@ export class InventoryWidgetComponent {
     @Input() userSummary?: InventoryUserSummary;
     @Input() recentAssignments: InventoryAssignmentSummary[] = [];
     @Input() loading: boolean = false;
-    @Output() reportDownload: EventEmitter<void> = new EventEmitter<void>();
 
     protected get isAdmin(): boolean {
         return this.mode === 'admin';
@@ -54,7 +53,4 @@ export class InventoryWidgetComponent {
         return decision === 'ACCEPTED' ? 'success' : 'danger';
     }
 
-    protected downloadReport(): void {
-        this.reportDownload.emit();
-    }
 }

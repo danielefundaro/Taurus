@@ -1,0 +1,232 @@
+<p-confirmdialog />
+@if (loading) {
+    <app-detail-loading-skeleton />
+}
+<p-fluid [class.hidden]="loading">
+    @if (overview) {
+        <app-page-header kicker="Inventario" heading="Modello del foglio di affidamento" [subtitle]="activeLabel" backLink="/inventory" [dirty]="isDirty">
+            <div pageActions class="flex flex-wrap gap-2">
+                <p-button label="Anteprima PDF" icon="pi pi-eye" severity="secondary" [outlined]="true" [loading]="busy === 'preview-active'" [disabled]="!!busy" (onClick)="previewActive()" />
+                <p-button label="Scarica il modello in uso" icon="pi pi-download" [loading]="busy === 'download-active'" [disabled]="!!busy" (onClick)="downloadActive()" />
+            </div>
+        </app-page-header>
+
+        <app-inline-alert
+            class="block mb-4"
+            severity="warn"
+            heading="Coerenza del contratto"
+            detail="Il modello è il contratto che l’Affidatario firma. Rimandi tra articoli, elenco delle clausole approvate nella sezione 7 e lettera f) dell’informativa, che descrive come Taurus conserva e rimuove i dati del foglio, sono esclusiva responsabilità dell’associazione."
+        />
+
+        <app-detail-section heading="Modello in uso" description="Il modello con cui vengono stampati i nuovi fogli. Ogni foglio emesso resta legato al modello con cui è stato firmato.">
+            <div class="flex flex-col gap-3">
+                @if (overview.active; as active) {
+                    <p class="m-0">
+                        <strong>Versione {{ active.versionNumber }}</strong> · {{ active.fileName }} · attivata il {{ active.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                    </p>
+                } @else {
+                    <p class="m-0"><strong>Modello predefinito di Taurus</strong> · {{ overview.defaultLabel }}</p>
+                    <p class="m-0 text-sm text-surface-500">Riproduce il modello dell’associazione con le dieci sezioni del foglio. Scaricalo come punto di partenza per il tuo modello.</p>
+                }
+                <div class="flex flex-wrap gap-2">
+                    <p-button label="Scarica il modello predefinito" icon="pi pi-download" severity="secondary" [outlined]="true" [loading]="busy === 'download-default'" [disabled]="!!busy" (onClick)="downloadDefault()" />
+                    @if (overview.active) {
+                        <p-button label="Anteprima del predefinito" icon="pi pi-eye" severity="secondary" [text]="true" [loading]="busy === 'preview-default'" [disabled]="!!busy" (onClick)="previewDefault()" />
+                        <p-button label="Torna al modello predefinito" icon="pi pi-undo" severity="secondary" [outlined]="true" [loading]="busy === 'use-default'" [disabled]="!!busy" (onClick)="useDefault()" />
+                    }
+                </div>
+            </div>
+        </app-detail-section>
+
+        <app-detail-section heading="Carica un modello" description="File HTML in UTF-8, al massimo 2 MB. Il file viene verificato subito e diventa il modello dei nuovi fogli solo con «Attiva modello».">
+            <input #fileInput type="file" accept=".html,.htm,text/html" class="hidden" aria-label="File del modello" (change)="selectFile(fileInput)" />
+            <div class="flex flex-wrap items-center gap-2">
+                <p-button label="Scegli il file" icon="pi pi-upload" severity="secondary" [outlined]="true" [loading]="checking" [disabled]="checking || !!busy" (onClick)="fileInput.click()" />
+                @if (file) {
+                    <span class="text-sm">{{ file.fileName }} · {{ fileSize / 1024 | number: '1.0-1' }} KB</span>
+                    <p-button icon="pi pi-times" severity="secondary" [text]="true" [rounded]="true" ariaLabel="Rimuovi il file scelto" [disabled]="!!busy" (onClick)="clearFile()" />
+                }
+            </div>
+            @if (file && check) {
+                @if (check.issues.length === 0) {
+                    <app-inline-alert class="block mt-4" severity="success" heading="Nessun problema rilevato" detail="Controlla l’anteprima prima di attivare il modello." />
+                } @else {
+                    <div class="flex flex-col gap-2 mt-4">
+                        @if (blockingCount) {
+                            <p class="m-0 text-sm">{{ blockingCount }} {{ blockingCount === 1 ? 'problema da correggere' : 'problemi da correggere' }} prima di attivare il modello.</p>
+                        }
+                        @for (issue of check.issues; track $index) {
+                            <app-inline-alert [severity]="issue.blocking ? 'error' : 'warn'" [heading]="(issue.blocking ? 'Da correggere' : 'Da verificare') + (issue.line ? ' · riga ' + issue.line : '')" [detail]="issueMessage(issue)" />
+                        }
+                    </div>
+                }
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <p-button
+                        label="Anteprima PDF"
+                        icon="pi pi-eye"
+                        severity="secondary"
+                        [outlined]="true"
+                        [loading]="busy === 'preview-file'"
+                        [disabled]="!check.valid || !!busy"
+                        [pTooltip]="check.valid ? undefined : 'Correggi i problemi segnalati'"
+                        (onClick)="previewFile()"
+                    />
+                    <p-button label="Attiva modello" icon="pi pi-check" [loading]="busy === 'activate'" [disabled]="!check.valid || !!busy" [pTooltip]="check.valid ? undefined : 'Correggi i problemi segnalati'" (onClick)="activate()" />
+                </div>
+            }
+        </app-detail-section>
+
+        <app-detail-section heading="Regole di durata del comodato" [description]="durationDescription" [dirty]="isDirty">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <app-form-field label="Durata minima (mesi)" forId="loanMinMonths">
+                    <p-inputnumber inputId="loanMinMonths" [(ngModel)]="durations.minMonths" [min]="1" [max]="120" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+                <app-form-field label="Durata massima (mesi)" forId="loanMaxMonths">
+                    <p-inputnumber inputId="loanMaxMonths" [(ngModel)]="durations.maxMonths" [min]="1" [max]="120" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+                <app-form-field label="Estensione massima del rinnovo (mesi)" forId="loanRenewalMonths">
+                    <p-inputnumber inputId="loanRenewalMonths" [(ngModel)]="durations.renewalMaxMonths" [min]="1" [max]="120" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+                <app-form-field label="Durata complessiva massima (mesi)" forId="loanTotalMonths">
+                    <p-inputnumber inputId="loanTotalMonths" [(ngModel)]="durations.totalMaxMonths" [min]="1" [max]="120" [showButtons]="true" (ngModelChange)="isDirty = true" />
+                </app-form-field>
+            </div>
+            <div class="flex justify-end mt-4">
+                <p-button label="Salva regole di durata" icon="pi pi-save" [loading]="saving" [disabled]="!isDirty || saving" (onClick)="saveDurations()" />
+            </div>
+        </app-detail-section>
+
+        <app-detail-section heading="Guida alle variabili" description="Il modello è un file HTML: i dati del foglio si inseriscono con le variabili, scritte con la sintassi Mustache.">
+            <h3 class="text-base font-semibold mt-0 mb-2">Sintassi</h3>
+            <p-table [value]="syntax">
+                <ng-template #header>
+                    <tr>
+                        <th scope="col">Esempio</th>
+                        <th scope="col">Significato</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-row>
+                    <tr>
+                        <td class="whitespace-nowrap">
+                            <code>{{ row.example }}</code>
+                        </td>
+                        <td>{{ row.meaning }}</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+
+            <h3 class="text-base font-semibold mt-6 mb-2">Regole del file</h3>
+            <ul class="mt-0 pl-5 flex flex-col gap-1">
+                @for (rule of rules; track rule) {
+                    <li>{{ rule }}</li>
+                }
+            </ul>
+
+            <h3 class="text-base font-semibold mt-6 mb-2">Variabili</h3>
+            <p-tabs [value]="0" [scrollable]="true">
+                <p-tablist>
+                    @for (group of overview.variables; track group.label; let index = $index) {
+                        <p-tab [value]="index">{{ group.label }}</p-tab>
+                    }
+                </p-tablist>
+                <p-tabpanels>
+                    @for (group of overview.variables; track group.label; let index = $index) {
+                        <p-tabpanel [value]="index">
+                            <p class="mt-0 text-sm text-surface-500">{{ group.description }}</p>
+                            <p-table [value]="group.variables">
+                                <ng-template #header>
+                                    <tr>
+                                        <th scope="col">Variabile</th>
+                                        <th scope="col">Tipo</th>
+                                        <th scope="col">Contenuto</th>
+                                        <th scope="col">Esempio</th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template #body let-variable>
+                                    <tr>
+                                        <td>
+                                            <code>{{ token(variable) }}</code>
+                                        </td>
+                                        <td><p-tag [value]="typeLabel(variable.type)" severity="secondary" /></td>
+                                        <td>{{ variable.description }}</td>
+                                        <td class="text-sm text-surface-500 break-all">{{ variable.example }}</td>
+                                    </tr>
+                                    @for (field of variable.fields; track field.name) {
+                                        <tr>
+                                            <td class="pl-8">
+                                                <code>{{ fieldToken(field) }}</code>
+                                            </td>
+                                            <td><p-tag [value]="typeLabel(field.type)" severity="secondary" /></td>
+                                            <td>{{ field.description }}</td>
+                                            <td class="text-sm text-surface-500 break-all">{{ field.example }}</td>
+                                        </tr>
+                                    }
+                                </ng-template>
+                            </p-table>
+                        </p-tabpanel>
+                    }
+                </p-tabpanels>
+            </p-tabs>
+        </app-detail-section>
+
+        <app-detail-section heading="Storico dei modelli caricati" [count]="overview.versions.length" description="Ogni foglio emesso registra la versione e l’impronta del modello usato.">
+            @if (overview.versions.length) {
+                <p-table [value]="overview.versions">
+                    <ng-template #header>
+                        <tr>
+                            <th scope="col">Versione</th>
+                            <th scope="col">Attivata il</th>
+                            <th scope="col">File</th>
+                            <th scope="col">Stato</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-version>
+                        <tr>
+                            <td>{{ version.versionNumber }}</td>
+                            <td>{{ version.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                            <td class="break-all">{{ version.fileName }}</td>
+                            <td>
+                                @if (version.active) {
+                                    <p-tag value="In uso" severity="success" />
+                                }
+                            </td>
+                            <td>
+                                <div class="flex flex-wrap justify-end gap-1">
+                                    <p-button
+                                        label="Scarica"
+                                        icon="pi pi-download"
+                                        size="small"
+                                        severity="secondary"
+                                        [text]="true"
+                                        [loading]="busy === 'download-' + version.id"
+                                        [disabled]="!!busy"
+                                        [ariaLabel]="'Scarica la versione ' + version.versionNumber"
+                                        (onClick)="downloadVersion(version)"
+                                    />
+                                    <p-button
+                                        label="Anteprima PDF"
+                                        icon="pi pi-eye"
+                                        size="small"
+                                        severity="secondary"
+                                        [text]="true"
+                                        [loading]="busy === 'preview-' + version.id"
+                                        [disabled]="!!busy"
+                                        [ariaLabel]="'Anteprima PDF della versione ' + version.versionNumber"
+                                        (onClick)="previewVersion(version)"
+                                    />
+                                    @if (!version.active) {
+                                        <p-button label="Usa questa versione" icon="pi pi-check" size="small" [text]="true" [loading]="busy === 'activate-' + version.id" [disabled]="!!busy" (onClick)="activateVersion(version)" />
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            } @else {
+                <p class="m-0 text-sm text-surface-500">Nessun modello caricato: i fogli usano il modello predefinito di Taurus.</p>
+            }
+        </app-detail-section>
+    }
+    <p-scrolltop />
+</p-fluid>

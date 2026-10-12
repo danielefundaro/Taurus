@@ -73,4 +73,6 @@
   <include file="config/liquibase/changelog/20260910000000_repair_score_order.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20260910000001_allow_super_admin_notification_preferences.xml"
            relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20260928000001_inventory_loan_sheet.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261010000000_drop_inventory_report_export.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

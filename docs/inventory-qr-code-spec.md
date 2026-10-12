@@ -190,7 +190,7 @@ Questo preset è pensato per fogli da ritagliare. La compatibilità con formati 
 - ordinamento uguale a quello inviato dal client;
 - nome file `etichette-inventario-YYYYMMDD-HHmm.pdf`.
 
-Il PDF viene generato in memoria entro un limite controllato e restituito come `application/pdf` con `Content-Disposition: attachment`. Non viene salvato in `media_asset` né in `inventory_report_export`: non è un report storico, è rigenerabile e una copia conservata potrebbe contenere codici successivamente ruotati.
+Il PDF viene generato in memoria entro un limite controllato e restituito come `application/pdf` con `Content-Disposition: attachment`. Non viene salvato in `media_asset`: non è un documento storico, è rigenerabile e una copia conservata potrebbe contenere codici successivamente ruotati.
 
 ## Flusso di stampa
 

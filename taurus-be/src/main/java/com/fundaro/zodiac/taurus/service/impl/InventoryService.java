@@ -11,7 +11,9 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturn;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnReason;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnPhoto;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryRevisionReason;
@@ -38,11 +40,13 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
+import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetPolicy;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
 import java.awt.image.BufferedImage;
@@ -79,6 +83,7 @@ public class InventoryService {
     private static final String ENTITY = "inventory";
     private static final long MAX_PHOTO_SIZE = 10L * 1024 * 1024;
     private static final int MAX_PHOTOS_PER_ITEM = 20;
+    private static final int MAX_PHOTO_SIDE = 6000;
     static final List<InventoryAssignmentStatus> OUTSTANDING_ASSIGNMENT_STATUSES = List.of(
         InventoryAssignmentStatus.ACTIVE,
         InventoryAssignmentStatus.PARTIALLY_RETURNED
@@ -97,6 +102,7 @@ public class InventoryService {
     private final ObjectMapper objectMapper;
     private final InventoryQrCodeService qrCodeService;
     private final InventoryIssueReportRepository issueRepository;
+    private final InventoryLoanSheetPolicy loanSheetPolicy;
 
     public InventoryService(
         InventoryItemRepository itemRepository,
@@ -111,7 +117,8 @@ public class InventoryService {
         MediaRepository mediaRepository,
         ObjectMapper objectMapper,
         InventoryQrCodeService qrCodeService,
-        InventoryIssueReportRepository issueRepository
+        InventoryIssueReportRepository issueRepository,
+        InventoryLoanSheetPolicy loanSheetPolicy
     ) {
         this.itemRepository = itemRepository;
         this.photoRepository = photoRepository;
@@ -126,6 +133,7 @@ public class InventoryService {
         this.objectMapper = objectMapper;
         this.qrCodeService = qrCodeService;
         this.issueRepository = issueRepository;
+        this.loanSheetPolicy = loanSheetPolicy;
     }
 
     @Transactional(readOnly = true)
@@ -213,15 +221,16 @@ public class InventoryService {
     public InventoryItemDTO updateItem(long id, InventoryItemRequest request, AbstractAuthenticationToken token) {
         String tenant = tenant(token);
         String actor = actor(token);
-        InventoryItem item = itemRepository.findForUpdate(id).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(id).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         if (itemRepository.existsByInventoryNumberIgnoreCaseAndIdNotAndDeletedFalse(request.inventoryNumber().trim(), id)) {
             throw error(HttpStatus.CONFLICT, "Numero inventariale già utilizzato", "inventory.number.exists");
         }
         validateValueCurrency(request.estimatedUnitValue(), request.currency());
         long outstanding = outstanding(item.getId());
         if (request.totalQuantity() < outstanding) {
-            throw error(HttpStatus.CONFLICT, "La quantità totale non può essere inferiore a quella ancora assegnata", "inventory.quantity.belowAssigned");
+            throw error(HttpStatus.CONFLICT, "La quantità totale non può essere inferiore a quella ancora assegnata", "inventory.quantity.belowAssigned").with("assigned", outstanding);
         }
+        loanSheetPolicy.checkItemUpdate(item, request.loanType());
         boolean relevantChange = relevantItemChange(item, request);
         apply(item, request);
         touch(item, actor);
@@ -234,7 +243,7 @@ public class InventoryService {
 
     public void deleteItem(long id, AbstractAuthenticationToken token) {
         String tenant = tenant(token);
-        InventoryItem item = itemRepository.findForUpdate(id).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(id).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         if (outstanding(id) > 0) {
             throw error(HttpStatus.CONFLICT, "Non è possibile eliminare un oggetto ancora assegnato", "inventory.item.assigned");
         }
@@ -244,9 +253,18 @@ public class InventoryService {
     }
 
     public InventoryAssignmentDTO assign(long itemId, InventoryAssignmentRequest request, AbstractAuthenticationToken token) {
+        return toAssignmentDto(createAssignment(itemId, request, null, token));
+    }
+
+    private InventoryAssignment createAssignment(
+        long itemId,
+        InventoryAssignmentRequest request,
+        Long replacesAssignmentId,
+        AbstractAuthenticationToken token
+    ) {
         String tenant = tenant(token);
         String actor = actor(token);
-        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         if (issueRepository.existsByItem_IdAndSeverityAndStatusInAndDeletedFalse(
             itemId,
             InventoryIssueSeverity.UNSAFE,
@@ -256,14 +274,15 @@ public class InventoryService {
         }
         long available = item.getTotalQuantity() - outstanding(itemId);
         if (request.quantity() > available) {
-            throw error(HttpStatus.CONFLICT, "Quantità disponibile insufficiente", "inventory.quantity.unavailable");
+            throw error(HttpStatus.CONFLICT, "Quantità disponibile insufficiente", "inventory.quantity.unavailable").with("available", Math.max(0, available));
         }
         UsersDTO user = usersService.findOne(request.userIndex(), token)
-            .orElseThrow(() -> error(HttpStatus.BAD_REQUEST, "Utente non trovato nel tenant", "inventory.user.notFound"));
+            .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Utente non trovato nel tenant", "inventory.user.notFound"));
         if (user.getKeycloakId() == null || user.getKeycloakId().isBlank()) {
             throw error(HttpStatus.BAD_REQUEST, "L'utente non dispone di un'identità autenticabile", "inventory.user.identityMissing");
         }
         ZonedDateTime now = ZonedDateTime.now();
+        InventoryLoanSheet loanSheet = loanSheetPolicy.sheetForNewAssignment(user.getId(), item, now, request.expirationDate(), actor).orElse(null);
         InventoryAssignment assignment = new InventoryAssignment();
         assignment.setDeleted(false);
         assignment.setInsertDate(now);
@@ -283,34 +302,41 @@ public class InventoryService {
         assignment.setExpirationDate(request.expirationDate());
         assignment.setStatus(InventoryAssignmentStatus.ACTIVE);
         assignment.setCurrentRevision(0);
+        assignment.setAccessories(trimToNull(request.accessories()));
+        assignment.setLoanSheetId(loanSheet == null ? null : loanSheet.getId());
+        assignment.setReplacesAssignmentId(replacesAssignmentId);
         assignmentRepository.save(assignment);
         createRevision(assignment, InventoryRevisionReason.INITIAL_ASSIGNMENT, actor);
-        return toAssignmentDto(assignment);
+        return assignment;
     }
 
     public InventoryAssignmentDTO updateAssignment(long assignmentId, InventoryAssignmentRequest request, AbstractAuthenticationToken token) {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         if (!assignment.getUserIndex().equals(request.userIndex())) {
             throw error(HttpStatus.BAD_REQUEST, "Per cambiare utente occorre creare una nuova assegnazione", "inventory.assignment.userImmutable");
         }
         int minimum = assignment.getReturnedQuantity();
         if (request.quantity() < minimum) {
-            throw error(HttpStatus.CONFLICT, "La quantità assegnata non può essere inferiore a quella già riconsegnata", "inventory.assignment.quantityInvalid");
+            throw error(HttpStatus.CONFLICT, "La quantità assegnata non può essere inferiore a quella già riconsegnata", "inventory.assignment.quantityInvalid").with("minimum", minimum);
         }
+        loanSheetPolicy.checkAssignmentUpdate(assignment, request.quantity(), request.expirationDate(), actor);
         long otherOutstanding = outstanding(assignment.getItem().getId()) - assignment.getOutstandingQuantity();
         if (otherOutstanding + request.quantity() - assignment.getReturnedQuantity() > assignment.getItem().getTotalQuantity()) {
-            throw error(HttpStatus.CONFLICT, "Quantità disponibile insufficiente", "inventory.quantity.unavailable");
+            long available = assignment.getItem().getTotalQuantity() - otherOutstanding + assignment.getReturnedQuantity();
+            throw error(HttpStatus.CONFLICT, "Quantità disponibile insufficiente", "inventory.quantity.unavailable").with("available", Math.max(0, available));
         }
         boolean relevant = assignment.getAssignedQuantity() != request.quantity()
             || !Objects.equals(assignment.getDescription(), trimToNull(request.description()))
-            || !Objects.equals(assignment.getExpirationDate(), request.expirationDate());
+            || !Objects.equals(assignment.getExpirationDate(), request.expirationDate())
+            || !Objects.equals(assignment.getAccessories(), trimToNull(request.accessories()));
         assignment.setAssignedQuantity(request.quantity());
         assignment.setDisplayOrder(request.order());
         assignment.setDescription(trimToNull(request.description()));
         assignment.setExpirationDate(request.expirationDate());
+        assignment.setAccessories(trimToNull(request.accessories()));
         refreshAssignmentStatus(assignment);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
@@ -324,7 +350,8 @@ public class InventoryService {
         tenant(token);
         String actor = actor(token);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
+        loanSheetPolicy.checkAssignmentDeletion(assignment);
         List<InventoryReturn> returns = returnRepository.findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(assignmentId);
         returns.forEach(value -> softDeleteReturn(value, actor));
         assignment.setDeleted(true);
@@ -335,7 +362,7 @@ public class InventoryService {
     public InventoryAssignmentDTO reissue(long assignmentId, AbstractAuthenticationToken token) {
         tenant(token);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         InventoryAssignmentRevision current = currentRevision(assignment);
         InventoryAssignmentDecision decision = decisionRepository.findByRevision_Id(current.getId()).orElse(null);
         if (decision == null || decision.getDecision() != InventoryDecisionType.REJECTED) {
@@ -411,7 +438,7 @@ public class InventoryService {
     public InventoryAssignmentDTO findOwnAssignment(long assignmentId, AbstractAuthenticationToken token) {
         tenant(token);
         InventoryAssignment assignment = assignmentRepository.findByIdAndUserKeycloakIdAndDeletedFalse(assignmentId, actor(token))
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         return toAssignmentDto(assignment);
     }
 
@@ -426,13 +453,13 @@ public class InventoryService {
         String userId = actor(token);
         tenant(token);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         if (!assignment.getUserKeycloakId().equals(userId)) {
-            throw error(HttpStatus.FORBIDDEN, "L'assegnazione non appartiene all'utente autenticato", "inventory.assignment.forbidden");
+            throw error(HttpStatus.NOT_FOUND, "L'assegnazione non appartiene all'utente autenticato", "inventory.assignment.notFound");
         }
         InventoryAssignmentRevision revision = currentRevision(assignment);
         if (!MessageDigest.isEqual(revision.getSnapshotHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII), request.revisionHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII))) {
-            throw error(HttpStatus.CONFLICT, "I dati dell'assegnazione sono cambiati: ricaricare prima di confermare", "inventory.revision.stale");
+            throw error(HttpStatus.CONFLICT, "I dati dell'assegnazione sono cambiati: ricaricare prima di confermare", "inventory.revision.versionConflict");
         }
         if (decisionRepository.findByRevision_Id(revision.getId()).isPresent()) {
             throw error(HttpStatus.CONFLICT, "La scelta per questa revisione è già definitiva", "inventory.decision.immutable");
@@ -458,13 +485,13 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         if (ownerRequired && !assignment.getUserKeycloakId().equals(actor)) {
-            throw error(HttpStatus.FORBIDDEN, "L'assegnazione non appartiene all'utente autenticato", "inventory.assignment.forbidden");
+            throw error(HttpStatus.NOT_FOUND, "L'assegnazione non appartiene all'utente autenticato", "inventory.assignment.notFound");
         }
         long pending = returnRepository.sumQuantities(assignmentId, List.of(InventoryReturnStatus.REQUESTED));
         if (request.quantity() + pending > assignment.getOutstandingQuantity()) {
-            throw error(HttpStatus.CONFLICT, "La quantità richiesta supera il materiale ancora da riconsegnare", "inventory.return.quantityInvalid");
+            throw error(HttpStatus.CONFLICT, "La quantità richiesta supera il materiale ancora da riconsegnare", "inventory.return.quantityExceeded").with("maximum", Math.max(0, assignment.getOutstandingQuantity() - pending));
         }
         InventoryReturn inventoryReturn = new InventoryReturn();
         inventoryReturn.initializeAudit(actor);
@@ -482,11 +509,11 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         InventoryAssignment assignment = assignmentRepository.findForUpdate(candidate.getAssignment().getId())
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         if (inventoryReturn.getStatus() != InventoryReturnStatus.REQUESTED) {
             throw error(HttpStatus.CONFLICT, "La procedura di riconsegna è già chiusa", "inventory.return.closed");
         }
@@ -513,11 +540,11 @@ public class InventoryService {
     public InventoryReturnDTO cancelReturn(long returnId, AbstractAuthenticationToken token) {
         tenant(token);
         InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         assignmentRepository.findForUpdate(candidate.getAssignment().getId())
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         if (inventoryReturn.getStatus() != InventoryReturnStatus.REQUESTED) {
             throw error(HttpStatus.CONFLICT, "La procedura di riconsegna è già chiusa", "inventory.return.closed");
         }
@@ -530,12 +557,13 @@ public class InventoryService {
         tenant(token);
         String actor = actor(token);
         InventoryReturn candidate = returnRepository.findByIdAndDeletedFalse(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         InventoryAssignment assignment = assignmentRepository.findForUpdate(candidate.getAssignment().getId())
-            .orElseThrow(() -> notFound("Assegnazione non trovata"));
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         InventoryReturn inventoryReturn = returnRepository.findForUpdate(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         if (inventoryReturn.getStatus() == InventoryReturnStatus.COMPLETED) {
+            loanSheetPolicy.checkCompletedReturnDeletion(assignment);
             long restoredOutstanding = outstanding(assignment.getItem().getId()) + inventoryReturn.getQuantity();
             if (restoredOutstanding > assignment.getItem().getTotalQuantity()) {
                 throw error(
@@ -556,13 +584,13 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryReturn inventoryReturn = returnRepository.findByIdAndDeletedFalse(returnId)
-            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Procedura di riconsegna non trovata", "inventory.return.notFound"));
         if (ownerRequired && !inventoryReturn.getAssignment().getUserKeycloakId().equals(actor)) {
-            throw error(HttpStatus.FORBIDDEN, "La riconsegna non appartiene all'utente autenticato", "inventory.return.forbidden");
+            throw error(HttpStatus.NOT_FOUND, "La riconsegna non appartiene all'utente autenticato", "inventory.return.notFound");
         }
         validatePhoto(file);
         if (returnPhotoRepository.countByInventoryReturn_IdAndDeletedFalse(returnId) >= MAX_PHOTOS_PER_ITEM) {
-            throw error(HttpStatus.CONFLICT, "Numero massimo di fotografie raggiunto", "inventory.photo.limit");
+            throw error(HttpStatus.CONFLICT, "Numero massimo di fotografie raggiunto", "inventory.photo.limit").with("maximum", MAX_PHOTOS_PER_ITEM);
         }
         String type = file.getContentType().toLowerCase(Locale.ROOT);
         byte[] normalized = normalizeImage(file.getBytes(), type);
@@ -580,9 +608,9 @@ public class InventoryService {
     public PhotoContent getReturnPhoto(long photoId, boolean ownerRequired, AbstractAuthenticationToken token) throws IOException {
         tenant(token);
         InventoryReturnPhoto photo = returnPhotoRepository.findByIdAndDeletedFalse(photoId)
-            .orElseThrow(() -> notFound("Fotografia di riconsegna non trovata"));
+            .orElseThrow(() -> notFound("Fotografia di riconsegna non trovata", "inventory.photo.notFound"));
         if (ownerRequired && !photo.getInventoryReturn().getAssignment().getUserKeycloakId().equals(actor(token))) {
-            throw error(HttpStatus.FORBIDDEN, "La fotografia non appartiene all'utente autenticato", "inventory.photo.forbidden");
+            throw error(HttpStatus.NOT_FOUND, "La fotografia non appartiene all'utente autenticato", "inventory.photo.notFound");
         }
         MediaService.MediaContent content = mediaService.getContent(photo.getMediaAsset().getId(), token);
         return new PhotoContent(content.fileName(), content.mimeType(), content.bytes());
@@ -591,11 +619,11 @@ public class InventoryService {
     public InventoryPhotoDTO addPhoto(long itemId, MultipartFile file, AbstractAuthenticationToken token) throws IOException {
         String tenant = tenant(token);
         String actor = actor(token);
-        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         validatePhoto(file);
         String type = file.getContentType().toLowerCase(Locale.ROOT);
         if (photoRepository.countByItem_IdAndDeletedFalse(itemId) >= MAX_PHOTOS_PER_ITEM) {
-            throw error(HttpStatus.CONFLICT, "Numero massimo di fotografie raggiunto", "inventory.photo.limit");
+            throw error(HttpStatus.CONFLICT, "Numero massimo di fotografie raggiunto", "inventory.photo.limit").with("maximum", MAX_PHOTOS_PER_ITEM);
         }
         byte[] normalized = normalizeImage(file.getBytes(), type);
         String extension = type.equals("image/png") ? ".png" : ".jpg";
@@ -616,10 +644,10 @@ public class InventoryService {
     public PhotoContent getPhoto(long photoId, boolean ownerRequired, AbstractAuthenticationToken token) throws IOException {
         tenant(token);
         InventoryItemPhoto photo = photoRepository.findByIdAndDeletedFalse(photoId)
-            .orElseThrow(() -> notFound("Fotografia non trovata"));
+            .orElseThrow(() -> notFound("Fotografia non trovata", "inventory.photo.notFound"));
         if (ownerRequired && !assignmentRepository.existsByItem_IdAndUserKeycloakIdAndDeletedFalse(
             photo.getItem().getId(), actor(token))) {
-            throw error(HttpStatus.FORBIDDEN, "La fotografia non appartiene a materiale assegnato all'utente", "inventory.photo.forbidden");
+            throw error(HttpStatus.NOT_FOUND, "La fotografia non appartiene a materiale assegnato all'utente", "inventory.photo.notFound");
         }
         MediaService.MediaContent content = mediaService.getContent(photo.getMediaAsset().getId(), token);
         return new PhotoContent(content.fileName(), content.mimeType(), content.bytes());
@@ -629,9 +657,9 @@ public class InventoryService {
         String tenant = tenant(token);
         String actor = actor(token);
         InventoryItemPhoto photo = photoRepository.findByIdAndDeletedFalse(photoId)
-            .orElseThrow(() -> notFound("Fotografia non trovata"));
+            .orElseThrow(() -> notFound("Fotografia non trovata", "inventory.photo.notFound"));
         InventoryItem item = itemRepository.findForUpdate(photo.getItem().getId())
-            .orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+            .orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         photo.setDeleted(true);
         photo.touchAudit(actor);
         photoRepository.save(photo);
@@ -652,7 +680,7 @@ public class InventoryService {
     ) {
         tenant(token);
         String actor = actor(token);
-        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         List<InventoryItemPhoto> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(itemId);
         List<Long> requestedIds = request.photoIds();
         if (requestedIds.size() != photos.size() || new HashSet<>(requestedIds).size() != requestedIds.size()
@@ -679,9 +707,9 @@ public class InventoryService {
     ) {
         tenant(token);
         String actor = actor(token);
-        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        InventoryItem item = itemRepository.findForUpdate(itemId).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
         InventoryItemPhoto selected = photoRepository.findByIdAndItem_IdAndDeletedFalse(photoId, itemId)
-            .orElseThrow(() -> notFound("Fotografia non trovata"));
+            .orElseThrow(() -> notFound("Fotografia non trovata", "inventory.photo.notFound"));
         List<InventoryItemPhoto> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(itemId);
         boolean changed = false;
         for (InventoryItemPhoto photo : photos) {
@@ -699,6 +727,70 @@ public class InventoryService {
         return photos.stream().map(this::toPhotoDto).toList();
     }
 
+    /**
+     * Applies a renewal already validated against the loan sheet: new expiration date and a revision to acknowledge.
+     */
+    public InventoryAssignmentDTO applyRenewal(long assignmentId, LocalDate newExpirationDate, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
+        assignment.setExpirationDate(newExpirationDate);
+        touch(assignment, actor);
+        assignmentRepository.save(assignment);
+        createRevision(assignment, InventoryRevisionReason.RENEWAL, actor);
+        return toAssignmentDto(assignment);
+    }
+
+    /**
+     * Replaces the goods of an assignment: the outstanding quantity is returned with a substitution return and the new
+     * goods are delivered with an assignment that references the replaced one.
+     */
+    public InventoryAssignmentDTO substitute(
+        long assignmentId,
+        InventoryLoanSheetDtos.SubstitutionRequest request,
+        AbstractAuthenticationToken token
+    ) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryAssignment replaced = assignmentRepository.findForUpdate(assignmentId)
+            .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
+        int outstandingQuantity = replaced.getOutstandingQuantity();
+        if (outstandingQuantity < 1) {
+            throw error(HttpStatus.CONFLICT, "L'assegnazione non ha materiale da sostituire", "inventory.substitution.nothingOutstanding");
+        }
+        if (returnRepository.sumQuantities(assignmentId, List.of(InventoryReturnStatus.REQUESTED)) > 0) {
+            throw error(HttpStatus.CONFLICT, "Chiudere o annullare le richieste di riconsegna aperte prima della sostituzione", "inventory.substitution.pendingReturn");
+        }
+        ZonedDateTime now = ZonedDateTime.now();
+        InventoryReturn substitutionReturn = new InventoryReturn();
+        substitutionReturn.initializeAudit(actor);
+        substitutionReturn.setAssignment(replaced);
+        substitutionReturn.setQuantity(outstandingQuantity);
+        substitutionReturn.setStatus(InventoryReturnStatus.COMPLETED);
+        substitutionReturn.setRequestedAt(now);
+        substitutionReturn.setRequestedBy(actor);
+        substitutionReturn.setCompletedAt(now);
+        substitutionReturn.setCompletedBy(actor);
+        substitutionReturn.setReturnCondition(request.returnCondition());
+        substitutionReturn.setNotes(trimToNull(request.returnNotes()));
+        substitutionReturn.setReason(InventoryReturnReason.SUBSTITUTION);
+        returnRepository.save(substitutionReturn);
+        replaced.setReturnedQuantity(replaced.getReturnedQuantity() + outstandingQuantity);
+        refreshAssignmentStatus(replaced);
+        touch(replaced, actor);
+        assignmentRepository.save(replaced);
+        InventoryAssignmentRequest delivery = new InventoryAssignmentRequest(
+            replaced.getUserIndex(),
+            replaced.getDisplayOrder(),
+            request.quantity(),
+            request.description(),
+            request.expirationDate(),
+            request.accessories()
+        );
+        return toAssignmentDto(createAssignment(request.itemId(), delivery, replaced.getId(), token));
+    }
+
     @Transactional(readOnly = true)
     public boolean hasOutstandingMaterial(String userKeycloakId) {
         return assignmentRepository.hasOutstanding(userKeycloakId, OUTSTANDING_ASSIGNMENT_STATUSES);
@@ -713,7 +805,7 @@ public class InventoryService {
             : List.of();
         return new InventoryItemDTO(item.getId(), item.getInventoryNumber(), item.getName(), item.getDescription(), item.getTotalQuantity(), assigned,
             item.getTotalQuantity() - assigned, item.getEstimatedUnitValue(), item.getCurrency(), item.getConditionStatus(), item.getConditionNotes(),
-            item.getEntityVersion(), photos, assignments);
+            item.getEntityVersion(), photos, assignments, item.getBrandModel(), item.getSerialNumber(), item.getLoanType());
     }
 
     void updateConditionFromIssue(InventoryItem item, com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition condition, String actor) {
@@ -734,7 +826,9 @@ public class InventoryService {
             assignment.getItem().getDescription(), assignment.getItem().getEstimatedUnitValue(), assignment.getItem().getCurrency(), assignment.getItem().getConditionStatus(),
             assignment.getItem().getConditionNotes(), assignment.getExpirationDate(), assignment.getUserIndex(), assignment.getUserName(), assignment.getUserLastName(), assignment.getDisplayOrder(),
             assignment.getAssignedQuantity(), assignment.getReturnedQuantity(), assignment.getOutstandingQuantity(), assignment.getAssignedAt(), assignment.getDescription(),
-            assignment.getStatus(), revision.getRevisionNumber(), revision.getSnapshotHash(), revision.getCreatedAt(), decision == null ? null : toDecisionDto(decision), returns, photos);
+            assignment.getStatus(), revision.getRevisionNumber(), revision.getSnapshotHash(), revision.getCreatedAt(), decision == null ? null : toDecisionDto(decision), returns, photos,
+            assignment.getItem().getBrandModel(), assignment.getItem().getSerialNumber(), assignment.getItem().getLoanType(), assignment.getAccessories(),
+            assignment.getLoanSheetId(), loanSheetPolicy.sheetNumber(assignment.getLoanSheetId()), assignment.getReplacesAssignmentId());
     }
 
     private InventoryAssignmentSummaryDTO toAssignmentSummaryDto(InventoryAssignment assignment) {
@@ -834,6 +928,11 @@ public class InventoryService {
         root.put("expirationDate", assignment.getExpirationDate() == null ? null : assignment.getExpirationDate().toString());
         root.put("assignedQuantity", assignment.getAssignedQuantity());
         root.put("assignmentDescription", assignment.getDescription());
+        // Loan fields are added only when valued, so the hashes of revisions created before they existed stay reproducible.
+        putIfPresent(root, "brandModel", item.getBrandModel());
+        putIfPresent(root, "serialNumber", item.getSerialNumber());
+        putIfPresent(root, "loanType", item.getLoanType() == null ? null : item.getLoanType().name());
+        putIfPresent(root, "accessories", assignment.getAccessories());
         List<Map<String, Object>> photos = photoRepository.findAllByItem_IdAndDeletedFalseOrderByDisplayOrderAsc(item.getId())
             .stream().map(photo -> {
                 Map<String, Object> value = new LinkedHashMap<>();
@@ -847,8 +946,12 @@ public class InventoryService {
         try {
             return objectMapper.writeValueAsString(root);
         } catch (JsonProcessingException e) {
-            throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile creare la revisione inventario", "inventory.revision.serialization");
+            throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile creare la revisione inventario", "inventory.revision.createFailed");
         }
+    }
+
+    private static void putIfPresent(Map<String, Object> root, String key, String value) {
+        if (value != null) root.put(key, value);
     }
 
     private void reviseOutstandingAssignments(InventoryItem item, InventoryRevisionReason reason, String actor) {
@@ -862,7 +965,7 @@ public class InventoryService {
     }
 
     private InventoryItem requiredItem(long id) {
-        return itemRepository.findByIdAndDeletedFalse(id).orElseThrow(() -> notFound("Oggetto inventario non trovato"));
+        return itemRepository.findByIdAndDeletedFalse(id).orElseThrow(() -> notFound("Oggetto inventario non trovato", "inventory.item.notFound"));
     }
 
     private static void apply(InventoryItem item, InventoryItemRequest request) {
@@ -874,6 +977,9 @@ public class InventoryService {
         item.setCurrency(request.currency() == null ? null : request.currency().toUpperCase(Locale.ROOT));
         item.setConditionStatus(request.conditionStatus());
         item.setConditionNotes(trimToNull(request.conditionNotes()));
+        item.setBrandModel(trimToNull(request.brandModel()));
+        item.setSerialNumber(trimToNull(request.serialNumber()));
+        item.setLoanType(request.loanType());
     }
 
     private static boolean relevantItemChange(InventoryItem item, InventoryItemRequest request) {
@@ -883,7 +989,10 @@ public class InventoryService {
             || !sameAmount(item.getEstimatedUnitValue(), normalizedEstimatedUnitValue(request))
             || !Objects.equals(item.getCurrency(), request.currency() == null ? null : request.currency().toUpperCase(Locale.ROOT))
             || item.getConditionStatus() != request.conditionStatus()
-            || !Objects.equals(item.getConditionNotes(), trimToNull(request.conditionNotes()));
+            || !Objects.equals(item.getConditionNotes(), trimToNull(request.conditionNotes()))
+            || !Objects.equals(item.getBrandModel(), trimToNull(request.brandModel()))
+            || !Objects.equals(item.getSerialNumber(), trimToNull(request.serialNumber()))
+            || item.getLoanType() != request.loanType();
     }
 
     private static boolean sameAmount(BigDecimal a, BigDecimal b) {
@@ -919,8 +1028,8 @@ public class InventoryService {
 
     private static byte[] normalizeImage(byte[] bytes, String contentType) throws IOException {
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
-        if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0 || image.getWidth() > 6000 || image.getHeight() > 6000) {
-            throw error(HttpStatus.BAD_REQUEST, "Immagine non valida o dimensioni superiori a 6000x6000", "inventory.photo.invalid");
+        if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0 || image.getWidth() > MAX_PHOTO_SIDE || image.getHeight() > MAX_PHOTO_SIDE) {
+            throw error(HttpStatus.BAD_REQUEST, "Immagine non valida o dimensioni superiori a 6000x6000", "inventory.photo.invalid").with("maxSide", MAX_PHOTO_SIDE);
         }
         String format = contentType.equals("image/png") ? "png" : "jpg";
         BufferedImage output = image;
@@ -934,10 +1043,10 @@ public class InventoryService {
         }
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             if (!ImageIO.write(output, format, out)) {
-                throw error(HttpStatus.BAD_REQUEST, "Impossibile normalizzare l'immagine", "inventory.photo.invalid");
+                throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile normalizzare l'immagine", "inventory.photo.processingFailed");
             }
             if (out.size() > MAX_PHOTO_SIZE) {
-                throw error(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", "inventory.photo.tooLarge");
+                throw error(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
             }
             return out.toByteArray();
         }
@@ -945,7 +1054,7 @@ public class InventoryService {
 
     private static void validatePhoto(MultipartFile file) {
         if (file == null || file.isEmpty() || file.getSize() > MAX_PHOTO_SIZE) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", "inventory.photo.tooLarge");
+            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
         }
         String type = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!type.equals("image/jpeg") && !type.equals("image/png")) {
@@ -970,14 +1079,14 @@ public class InventoryService {
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
         if (value == null || value.isBlank())
-            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "inventory.identity.missing");
+            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "auth.identity.missing");
         return value;
     }
 
     private static String tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
         if (value == null || value.isBlank())
-            throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "inventory.tenant.missing");
+            throw error(HttpStatus.FORBIDDEN, "Tenant non disponibile", "auth.tenant.missing");
         return value;
     }
 
@@ -986,8 +1095,8 @@ public class InventoryService {
         return value.trim();
     }
 
-    private static RequestAlertException notFound(String message) {
-        return error(HttpStatus.NOT_FOUND, message, "inventory.notFound");
+    private static RequestAlertException notFound(String message, String key) {
+        return error(HttpStatus.NOT_FOUND, message, key);
     }
 
     private static RequestAlertException error(HttpStatus status, String message, String key) {

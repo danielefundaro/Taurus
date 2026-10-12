@@ -14,6 +14,7 @@ import java.util.Map;
  * REST controller for managing global OIDC logout.
  */
 @RestController
+@TenantSchemaNotRequired
 public class LogoutResource {
 
     private final ClientRegistrationRepository registrations;

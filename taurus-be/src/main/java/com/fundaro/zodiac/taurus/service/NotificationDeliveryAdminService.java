@@ -77,7 +77,7 @@ public class NotificationDeliveryAdminService {
         String sort
     ) {
         if (page < 0 || size < 1 || size > 100)
-            throw badRequest("Invalid page or size", "notification.delivery.page.invalid");
+            throw badRequest("Invalid page or size", "notification.delivery.page.invalid").with("maxSize", 100);
         if (from != null && to != null && !from.isBefore(to)) {
             throw badRequest("The range start must precede its end", "notification.delivery.range.invalid");
         }
@@ -120,7 +120,7 @@ public class NotificationDeliveryAdminService {
     @Transactional
     public NotificationDeliveryRetryResult retry(List<NotificationDeliveryRef> refs, AbstractAuthenticationToken authentication) {
         if (refs == null || refs.isEmpty() || refs.size() > 100) {
-            throw badRequest("Between 1 and 100 references are required", "notification.delivery.ids.invalid");
+            throw badRequest("Between 1 and 100 references are required", "notification.delivery.ids.invalid").with("maximum", 100);
         }
         Set<NotificationDeliveryRef> unique = new HashSet<>(refs);
         if (unique.size() != refs.size())
@@ -391,7 +391,7 @@ public class NotificationDeliveryAdminService {
     private static String actor(AbstractAuthenticationToken authentication) {
         String actor = SecurityUtils.getUserIdFromAuthentication(authentication);
         if (actor == null || actor.isBlank()) {
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing user claim", ENTITY, "notification.delivery.user.missing");
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing user claim", ENTITY, "auth.identity.missing");
         }
         return actor;
     }

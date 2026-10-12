@@ -58,7 +58,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         normalizeTimeZone(dto);
         normalizeFeatureFlagsForCreate(dto);
         if (getRepository().findByCodeAndDeletedFalse(dto.getCode()).isPresent()) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant code already exists", getEntityName(), "code.exists");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Tenant code already exists", getEntityName(), "tenant.code.exists");
         }
         TenantsDTO saved = super.save(dto, token);
         try {
@@ -69,7 +69,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         } catch (RuntimeException exception) {
             getRepository().deleteById(saved.getId());
             if (exception instanceof TenantSchemaProvisioningException) {
-                throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Tenant schema provisioning failed", getEntityName(), "save.tenant.schema");
+                throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Tenant schema provisioning failed", getEntityName(), "tenant.schema.provisioningFailed");
             }
             throw exception;
         }
@@ -162,7 +162,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         try {
             dto.setTimeZone(ZoneId.of(timeZone.trim()).getId());
         } catch (DateTimeException exception) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid tenant time zone", getEntityName(), "timeZone.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid tenant time zone", getEntityName(), "tenant.timeZone.invalid");
         }
     }
 

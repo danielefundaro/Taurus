@@ -35,6 +35,16 @@ public class InventoryItem extends TenantAuditedEntity {
     @Column(name = "condition_notes", length = 2000)
     private String conditionNotes;
 
+    @Column(name = "brand_model")
+    private String brandModel;
+
+    @Column(name = "serial_number", length = 128)
+    private String serialNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "loan_type", length = 32)
+    private InventoryLoanType loanType;
+
     @Column(name = "qr_public_id", nullable = false, unique = true)
     private UUID qrPublicId;
 
@@ -141,5 +151,29 @@ public class InventoryItem extends TenantAuditedEntity {
 
     public void setQrIssuedBy(String value) {
         qrIssuedBy = value;
+    }
+
+    public String getBrandModel() {
+        return brandModel;
+    }
+
+    public void setBrandModel(String brandModel) {
+        this.brandModel = brandModel;
+    }
+
+    public String getSerialNumber() {
+        return serialNumber;
+    }
+
+    public void setSerialNumber(String serialNumber) {
+        this.serialNumber = serialNumber;
+    }
+
+    public InventoryLoanType getLoanType() {
+        return loanType;
+    }
+
+    public void setLoanType(InventoryLoanType loanType) {
+        this.loanType = loanType;
     }
 }

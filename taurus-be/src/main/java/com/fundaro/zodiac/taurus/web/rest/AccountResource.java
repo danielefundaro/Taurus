@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
+@TenantSchemaNotRequired
 public class AccountResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccountResource.class);

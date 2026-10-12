@@ -30,7 +30,7 @@ import {
 } from '../../../module';
 import { StringFilter } from '../../../module/criteria/filter';
 import { DateConverterPipe } from '../../../pipe';
-import { AlbumsService, CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, UsersService } from '../../../service';
+import { AlbumsService, CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../../service';
 import { programFromAlbum } from './event-program';
 
 interface UserPresenceRow {
@@ -577,7 +577,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         if (!this.event?.id) return;
         this.savingReminder = true;
         this.calendarEventsService
-            .setReminder(this.event.id, this.personalReminderMinutes)
+            .setReminder(this.event.id, this.personalReminderMinutes, withErrorSummary('Salvataggio non riuscito'))
             .pipe(first())
             .subscribe({
                 next: () => {
@@ -586,10 +586,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.setUnitDirty(this.reminderUnit, false);
                     this.toastService.success('Promemoria aggiornato', this.personalReminderMinutes === 0 ? 'Non riceverai promemoria per questo evento.' : 'Il promemoria vale solo per te.');
                 },
-                error: () => {
-                    this.savingReminder = false;
-                    this.toastService.error('Salvataggio non riuscito', 'Non è stato possibile salvare il promemoria personale.');
-                }
+                error: () => (this.savingReminder = false)
             });
     }
 

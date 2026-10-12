@@ -57,7 +57,7 @@ public class InventoryLabelService {
     public BinaryContent png(long itemId, int size, AbstractAuthenticationToken token) {
         requireTenant(token);
         if (size != 256 && size != 512)
-            throw badRequest("La dimensione PNG deve essere 256 o 512 pixel", "inventory.qr.size.invalid");
+            throw badRequest("La dimensione PNG deve essere 256 o 512 pixel", "inventory.qr.size.invalid").with("sizes", List.of(256, 512));
         InventoryItem item = itemRepository.findByIdAndDeletedFalse(itemId).orElseThrow(InventoryLabelService::notFound);
         try {
             BitMatrix matrix = matrix(qrCodeService.publicUrl(item), size, size);
@@ -198,9 +198,9 @@ public class InventoryLabelService {
             throw badRequest("Ogni oggetto può comparire una sola volta", "inventory.labels.duplicate");
         int total = request.entries().stream().mapToInt(LabelEntry::copies).sum();
         if (request.layout() == LabelLayout.SINGLE_62X40 && (request.startCell() != 0 || total > 20))
-            throw badRequest("Il layout singolo ammette al massimo 20 etichette e startCell 0", "inventory.labels.limit");
+            throw badRequest("Il layout singolo ammette al massimo 20 etichette e startCell 0", "inventory.labels.singleLimit").with("maximum", 20);
         if (request.layout() == LabelLayout.A4_GRID_3X8 && total > 240 - request.startCell())
-            throw badRequest("Il foglio A4 non può superare 10 pagine", "inventory.labels.limit");
+            throw badRequest("Il foglio A4 non può superare 10 pagine", "inventory.labels.sheetLimit").with("maxPages", 10);
     }
 
     private static byte[] save(PDDocument document) throws IOException {
@@ -240,12 +240,12 @@ public class InventoryLabelService {
 
     private static String requireTenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (tenant == null || tenant.isBlank()) throw badRequest("Tenant non disponibile", "inventory.tenant.missing");
+        if (tenant == null || tenant.isBlank()) throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant non disponibile", "inventoryLabels", "auth.tenant.missing");
         return tenant;
     }
 
     private static RequestAlertException notFound() {
-        return new RequestAlertException(HttpStatus.NOT_FOUND, "Oggetto inventario non disponibile", "inventoryLabels", "inventory.notFound");
+        return new RequestAlertException(HttpStatus.NOT_FOUND, "Oggetto inventario non disponibile", "inventoryLabels", "inventory.item.notFound");
     }
 
     private static RequestAlertException badRequest(String message, String key) {

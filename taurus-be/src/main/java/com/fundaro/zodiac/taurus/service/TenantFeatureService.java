@@ -141,6 +141,6 @@ public class TenantFeatureService {
     }
 
     private RequestAlertException invalidTenant(String message) {
-        return new RequestAlertException(HttpStatus.FORBIDDEN, message, "TenantFeature", "tenantFeature.tenant.invalid");
+        return new RequestAlertException(HttpStatus.FORBIDDEN, message, "TenantFeature", "auth.tenant.missing");
     }
 }

@@ -1,7 +1,8 @@
 import { inject, Injectable } from "@angular/core";
 import { Router } from "@angular/router";
 import { forkJoin, Subscription } from "rxjs";
-import { ToastService, TracksService } from ".";
+import { TracksService } from "./tracks.service";
+import { withErrorSummary } from "./api-error-context";
 import { Albums, ChildrenEntities, SheetsMusic, Tracks } from "../module";
 
 @Injectable({
@@ -12,7 +13,6 @@ export class PrinterService {
     private _previewTitle: string = 'Spartiti selezionati';
     private _previewSource: 'Album' | 'Traccia' = 'Traccia';
     private readonly tracksService = inject(TracksService);
-    private readonly toastService = inject(ToastService);
     private readonly router = inject(Router);
     private $subscription?: Subscription;
 
@@ -50,7 +50,8 @@ export class PrinterService {
                 childrenEntities = element.tracks;
             }
 
-            this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index))).subscribe({
+            const context = withErrorSummary('Anteprima non disponibile');
+            this.$subscription = forkJoin(childrenEntities.map(track => this.tracksService.getById(track.index, context))).subscribe({
                 next: tracks => {
                     this._scores.push(...tracks.flatMap(track => track.scores!))
                     this.router.navigate(["preview"]);
@@ -58,7 +59,6 @@ export class PrinterService {
                 // Un errore su una traccia non deve aprire un'anteprima parziale: la pagina sorgente conserva la selezione.
                 error: () => {
                     this._scores = [];
-                    this.toastService.error('Anteprima non disponibile', 'Non è stato possibile caricare tutte le tracce selezionate. Riprova dalla pagina corrente.');
                 }
             });
         }

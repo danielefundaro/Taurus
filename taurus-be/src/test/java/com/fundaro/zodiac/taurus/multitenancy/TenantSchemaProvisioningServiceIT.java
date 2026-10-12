@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.DockerClientFactory;
 
@@ -88,6 +89,18 @@ class TenantSchemaProvisioningServiceIT {
             "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = ? AND column_name = 'tenant_code')",
             schemaName
         )).isFalse();
+    }
+
+    @Test
+    void reportsOnlyActiveSchemasAsActive() {
+        TenantSchemaRegistry registry = new TenantSchemaRegistry(new JdbcTemplate(dataSource));
+        String tenantCode = "registry-status";
+
+        assertThat(registry.isActive(tenantCode)).isFalse();
+        provisioningService.provision(tenantCode);
+        assertThat(registry.isActive(tenantCode)).isTrue();
+        provisioningService.dropSchema(tenantCode);
+        assertThat(registry.isActive(tenantCode)).isFalse();
     }
 
     private static long insertTenant(String tenantCode) throws Exception {
