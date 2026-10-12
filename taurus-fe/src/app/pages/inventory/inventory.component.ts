@@ -6,6 +6,7 @@ import { first, forkJoin } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
 import { InventoryLabelDialogComponent } from '../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { OwnLoanSheetsComponent } from '../../components/own-loan-sheets/own-loan-sheets.component';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, InventoryLabelRequest, Page } from '../../module';
@@ -17,7 +18,7 @@ type InventoryViewMode = 'TENANT' | 'MINE';
 @Component({
     selector: 'app-inventory',
     standalone: true,
-    imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent],
+    imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent, OwnLoanSheetsComponent],
     templateUrl: './inventory.component.html',
     providers: [DialogService]
 })
@@ -38,9 +39,6 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected viewMode: InventoryViewMode = 'TENANT';
     protected scope: InventoryAssignmentScope = 'POSSESSED';
     protected sortOptions: SelectItem[] = [];
-    protected reportIncludeAssigned = true;
-    protected reportIncludeReturned = true;
-    protected reportIncludePhotos = true;
     protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring' | 'issues-unsafe' | 'issues-limiting';
     protected readonly inventoryQrEnabled;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
@@ -88,10 +86,6 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         if (this.searchTerm) return 'Prova a modificare o azzerare la ricerca.';
         if (!this.personalView) return 'Aggiungi il primo oggetto all’inventario.';
         return this.scope === 'POSSESSED' ? 'Non hai materiale attualmente in possesso.' : 'Non risultano consegne completamente riconsegnate.';
-    }
-
-    protected get canDownloadReport(): boolean {
-        return this.reportIncludeAssigned || this.reportIncludeReturned;
     }
 
     ngOnInit(): void {
@@ -280,20 +274,6 @@ export class InventoryComponent extends ListPageBase implements OnInit {
 
     protected assignmentPhotoUrl(assignment: InventoryAssignmentSummary): string | undefined {
         return assignment.photo ? this.userInventoryService.photoUrl(assignment.photo.id) : undefined;
-    }
-
-    protected downloadReport(): void {
-        this.userInventoryService
-            .downloadReport(this.reportIncludeAssigned, this.reportIncludeReturned, this.reportIncludePhotos)
-            .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = 'prospetto-inventario.pdf';
-                anchor.click();
-                URL.revokeObjectURL(url);
-            });
     }
 
     private configureSortOptions(): void {

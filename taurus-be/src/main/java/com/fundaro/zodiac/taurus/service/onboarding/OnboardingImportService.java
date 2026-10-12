@@ -93,13 +93,13 @@ public class OnboardingImportService {
         OnboardingImportJob existing = jobs.findByRequestedByAndUploadIdempotencyKeyAndDeletedFalse(actor, key).orElse(null);
         if (existing != null) return dto(existing);
         if (file == null || file.isEmpty())
-            throw problem(HttpStatus.BAD_REQUEST, "Il file è obbligatorio", "file.required");
+            throw problem(HttpStatus.BAD_REQUEST, "Il file è obbligatorio", "onboarding.file.required");
         if (file.getSize() > properties.getMaxFileSize().toBytes())
-            throw problem(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", "file.tooLarge");
+            throw problem(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", "onboarding.file.tooLarge").with("maxMegabytes", properties.getMaxFileSize().toMegabytes());
         if (format == OnboardingImportFormat.CSV && csvSection == null)
-            throw problem(HttpStatus.BAD_REQUEST, "La sezione CSV è obbligatoria", "csvSection.required");
+            throw problem(HttpStatus.BAD_REQUEST, "La sezione CSV è obbligatoria", "onboarding.csvSection.required");
         if (format == OnboardingImportFormat.XLSX && (selectedSections == null || selectedSections.isEmpty()))
-            throw problem(HttpStatus.BAD_REQUEST, "Selezionare almeno una sezione", "selectedSections.required");
+            throw problem(HttpStatus.BAD_REQUEST, "Selezionare almeno una sezione", "onboarding.selectedSections.required");
         requireAvailableSections(format == OnboardingImportFormat.CSV ? Set.of(csvSection) : selectedSections);
         try {
             byte[] content = file.getBytes();
@@ -120,7 +120,7 @@ public class OnboardingImportService {
             events.publishEvent(new OnboardingWorkEvents.Validate(job.getId(), content, tenant.code));
             return dto(job);
         } catch (IOException exception) {
-            throw problem(HttpStatus.BAD_REQUEST, "Impossibile leggere il file", "file.read");
+            throw problem(HttpStatus.BAD_REQUEST, "Impossibile leggere il file", "onboarding.file.unreadable");
         }
     }
 
@@ -165,17 +165,17 @@ public class OnboardingImportService {
     public OnboardingDtos.Job apply(Long id, UUID key, OnboardingDtos.ApplyRequest request, AbstractAuthenticationToken token) {
         Tenant tenant = tenant(token);
         String actor = actor(token);
-        OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "id.notFound"));
+        OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "onboarding.job.notFound"));
         if (job.getStatus() == OnboardingJobStatus.COMPLETED || (job.getStatus() == OnboardingJobStatus.APPLYING && key.equals(job.getApplyIdempotencyKey())))
             return dto(job);
         if (job.getStatus() != OnboardingJobStatus.READY)
-            throw problem(HttpStatus.CONFLICT, "L'importazione non è pronta", "status.conflict");
+            throw problem(HttpStatus.CONFLICT, "L'importazione non è pronta", "onboarding.job.notReady");
         if (job.getApplyIdempotencyKey() != null && !key.equals(job.getApplyIdempotencyKey()))
-            throw problem(HttpStatus.CONFLICT, "Chiave di applicazione differente", "idempotency.conflict");
+            throw problem(HttpStatus.CONFLICT, "Chiave di applicazione differente", "onboarding.idempotency.conflict");
         if (job.getWarningRows() > 0 && !Boolean.TRUE.equals(request.warningsAccepted()))
-            throw problem(HttpStatus.CONFLICT, "È necessario accettare gli avvisi", "warnings.notAccepted");
+            throw problem(HttpStatus.CONFLICT, "È necessario accettare gli avvisi", "onboarding.warnings.notAccepted");
         if (jobs.existsByStatus(OnboardingJobStatus.APPLYING))
-            throw problem(HttpStatus.CONFLICT, "Un'altra importazione è già in corso", "tenant.busy");
+            throw problem(HttpStatus.CONFLICT, "Un'altra importazione è già in corso", "onboarding.tenant.busy");
         if (!jobSectionsAvailable(job)) {
             job.setStatus(OnboardingJobStatus.INVALID);
             job.setStage("FEATURE_DEPENDENCY_DISABLED");
@@ -197,9 +197,9 @@ public class OnboardingImportService {
     @Transactional
     public void cancel(Long id, AbstractAuthenticationToken token) {
         tenant(token);
-        OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "id.notFound"));
+        OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "onboarding.job.notFound"));
         if (!Set.of(OnboardingJobStatus.UPLOADED, OnboardingJobStatus.INVALID, OnboardingJobStatus.READY).contains(job.getStatus()))
-            throw problem(HttpStatus.CONFLICT, "Il job non può essere annullato", "status.conflict");
+            throw problem(HttpStatus.CONFLICT, "Il job non può essere annullato", "onboarding.job.notCancellable");
         job.setStatus(OnboardingJobStatus.CANCELLED);
         job.setStage("CANCELLED");
         job.setCompletedAt(ZonedDateTime.now());
@@ -211,7 +211,7 @@ public class OnboardingImportService {
         Tenant tenant = tenant(token);
         OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow();
         if (!Set.of(OnboardingJobStatus.INVALID, OnboardingJobStatus.FAILED).contains(job.getStatus()))
-            throw problem(HttpStatus.CONFLICT, "Validazione non ripetibile", "status.conflict");
+            throw problem(HttpStatus.CONFLICT, "Validazione non ripetibile", "onboarding.job.validationNotRetryable");
         MediaService.MediaContent content = mediaService.getContent(job.getSourceMediaAsset().getId(), token);
         job.setStatus(OnboardingJobStatus.UPLOADED);
         job.setStage("QUEUED_FOR_VALIDATION");
@@ -225,7 +225,7 @@ public class OnboardingImportService {
         Tenant tenant = tenant(token);
         OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow();
         if (job.getStatus() != OnboardingJobStatus.COMPENSATION_REQUIRED)
-            throw problem(HttpStatus.CONFLICT, "Ripristino non richiesto", "status.conflict");
+            throw problem(HttpStatus.CONFLICT, "Ripristino non richiesto", "onboarding.job.compensationNotRequired");
         boolean ok = identitySaga.compensate(id, tenant.code);
         job.setStatus(ok ? OnboardingJobStatus.FAILED : OnboardingJobStatus.COMPENSATION_REQUIRED);
         job.setStage(ok ? "COMPENSATED" : "COMPENSATION_REQUIRED");
@@ -237,7 +237,7 @@ public class OnboardingImportService {
         tenant(token);
         OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow();
         if (job.getStatus() != OnboardingJobStatus.COMPLETED || job.getSetupEmailFailures() == 0)
-            throw problem(HttpStatus.CONFLICT, "Nessuna e-mail da ritentare", "email.retryNotAllowed");
+            throw problem(HttpStatus.CONFLICT, "Nessuna e-mail da ritentare", "onboarding.email.retryNotAllowed");
         job.setSetupEmailFailures(identitySaga.retryFailedSetupEmails(id));
         return dto(jobs.save(job));
     }
@@ -246,22 +246,22 @@ public class OnboardingImportService {
         requireEnabled();
         String code = SecurityUtils.getTenantIdFromAuthentication(token);
         if (code == null || code.isBlank())
-            throw problem(HttpStatus.UNAUTHORIZED, "Tenant attivo richiesto", "tenant.missing");
-        Tenants entity = tenants.findByCodeAndDeletedFalse(code).filter(t -> Boolean.TRUE.equals(t.getActive())).orElseThrow(() -> problem(HttpStatus.CONFLICT, "Tenant non attivo", "tenant.inactive"));
+            throw problem(HttpStatus.FORBIDDEN, "Tenant attivo richiesto", "auth.tenant.missing");
+        Tenants entity = tenants.findByCodeAndDeletedFalse(code).filter(t -> Boolean.TRUE.equals(t.getActive())).orElseThrow(() -> problem(HttpStatus.FORBIDDEN, "Tenant non attivo", "auth.tenant.missing"));
         if (schemas.findActiveTenantCode(entity.getId()).filter(code::equals).isEmpty())
-            throw problem(HttpStatus.CONFLICT, "Schema tenant non attivo", "tenant.schemaInactive");
+            throw problem(HttpStatus.CONFLICT, "Schema tenant non attivo", "tenant.notProvisioned");
         return new Tenant(code, entity);
     }
 
     private String actor(AbstractAuthenticationToken token) {
         String actor = SecurityUtils.getUserIdFromAuthentication(token);
         if (actor == null || actor.isBlank())
-            throw problem(HttpStatus.UNAUTHORIZED, "Identità richiesta", "identity.missing");
+            throw problem(HttpStatus.UNAUTHORIZED, "Identità richiesta", "auth.identity.missing");
         return actor;
     }
 
     private void requireEnabled() {
-        if (!properties.isEnabled()) throw problem(HttpStatus.NOT_FOUND, "Onboarding non disponibile", "disabled");
+        if (!properties.isEnabled()) throw problem(HttpStatus.NOT_FOUND, "Onboarding non disponibile", "onboarding.disabled");
     }
 
     public Set<OnboardingSection> availableSections() {
@@ -279,7 +279,7 @@ public class OnboardingImportService {
 
     private void requireAvailableSections(Set<OnboardingSection> requested) {
         if (requested == null || availableSections().containsAll(requested)) return;
-        throw problem(HttpStatus.BAD_REQUEST, "La sezione richiede una funzionalità tenant non disponibile", "section.featureDisabled");
+        throw problem(HttpStatus.BAD_REQUEST, "La sezione richiede una funzionalità tenant non disponibile", "onboarding.section.featureDisabled");
     }
 
     private boolean jobSectionsAvailable(OnboardingImportJob job) {
@@ -291,7 +291,7 @@ public class OnboardingImportService {
     }
 
     private OnboardingImportJob required(Long id) {
-        return jobs.findByIdAndDeletedFalse(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "id.notFound"));
+        return jobs.findByIdAndDeletedFalse(id).orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "Importazione non trovata", "onboarding.job.notFound"));
     }
 
     private long activeUsers() {

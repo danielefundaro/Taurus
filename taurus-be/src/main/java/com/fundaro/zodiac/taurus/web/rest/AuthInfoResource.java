@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api")
+@TenantSchemaNotRequired
 public class AuthInfoResource {
 
     @Value("${spring.security.oauth2.client.provider.oidc.issuer-uri:}")

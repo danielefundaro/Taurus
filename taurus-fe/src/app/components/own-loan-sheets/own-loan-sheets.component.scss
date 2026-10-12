@@ -1,0 +1,16 @@
+:host {
+    display: block;
+    /* La `.card` interna è figlio unico dell'host, quindi il suo
+       `:last-child { margin-bottom: 0 }` scatta sempre: il ritmo fra le
+       sezioni deve stare qui. */
+    margin-bottom: 2rem;
+}
+
+:host(:last-child) {
+    margin-bottom: 0;
+}
+
+/* Senza fogli il template non rende nulla: l'host non deve occupare spazio. */
+:host(:empty) {
+    display: none;
+}

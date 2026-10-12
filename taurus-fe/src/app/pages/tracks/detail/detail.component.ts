@@ -14,7 +14,7 @@ import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackPageEditResult, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
-import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, ToastService, TracksService } from '../../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, ToastService, TracksService, withErrorSummary } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
@@ -126,7 +126,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.saving = true;
         this.saveError = false;
         this.tracksService
-            .update(this.track.id, this.track)
+            .update(this.track.id, this.track, withErrorSummary('Salvataggio non riuscito'))
             .pipe(
                 delay(1000),
                 first(),
@@ -140,10 +140,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.toastService.success('Traccia aggiornata', 'Le modifiche sono state salvate.');
                     this.track = track;
                 },
-                error: () => {
-                    this.saveError = true;
-                    this.toastService.error('Salvataggio non riuscito', 'La bozza è ancora disponibile. Correggi l’errore o riprova.');
-                }
+                error: () => (this.saveError = true)
             });
     }
 
@@ -228,10 +225,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.syncFormDirty();
     }
 
-    protected onUploadError(): void {
-        this.toastService.error('Caricamento non riuscito', 'Il file non è stato aggiunto. Riprova.');
-    }
-
     protected onFileSelect(event: any): void {
         this.selectedFile = event.currentFiles?.[0] ?? event.files?.[0] ?? null;
         this.annotations = null;
@@ -277,7 +270,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             formData.append('annotations', JSON.stringify(this.annotations));
         }
 
-        this.tracksService.uploadPdf(formData, this.track.id).subscribe({
+        this.tracksService.uploadPdf(formData, this.track.id, withErrorSummary('Caricamento non riuscito')).subscribe({
             next: (job) => {
                 this.uploading = false;
                 this.selectedFile = null;
@@ -286,10 +279,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 this.uploadJobs = [job, ...this.uploadJobs.filter((value) => value.id !== job.id)];
                 this.toastService.success('PDF ricevuto', 'Il file è stato aggiunto alla coda di elaborazione.');
             },
-            error: () => {
-                this.uploading = false;
-                this.onUploadError();
-            }
+            error: () => (this.uploading = false)
         });
     }
 

@@ -275,7 +275,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         CalendarEventSeries series = findSeries(seriesId);
         CalendarEvents event = eventRepository.findById(eventId)
             .filter(value -> value.getSeries() != null && Objects.equals(value.getSeries().getId(), seriesId))
-            .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Occurrence not found", "occurrence.notFound"));
+            .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Occurrence not found", "calendar.series.occurrence.notFound"));
         CalendarFeedEventLifecycle.Snapshot feedBefore = calendarFeedLifecycle == null ? null : calendarFeedLifecycle.snapshot(event);
         String actor = actor(token);
         ZonedDateTime original = event.getOriginalStartDate().toInstant().atZone(ZoneId.of(series.getTimeZone()));
@@ -293,20 +293,20 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
     private SeriesDefinition definition(CalendarEventSeriesRequest request, ZoneId zone) {
         if (request == null || request.getTemplate() == null || request.getRecurrence() == null) {
-            throw error(HttpStatus.BAD_REQUEST, "Template and recurrence are required", "request.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Template and recurrence are required", "calendar.series.request.invalid");
         }
         CalendarEventsDTO template = request.getTemplate();
         if (template.getName() == null || template.getName().isBlank() || template.getStartDate() == null) {
-            throw error(HttpStatus.BAD_REQUEST, "Name and start date are required", "template.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Name and start date are required", "calendar.series.template.invalid");
         }
         if (template.getReminderMinutes() != null && (template.getReminderMinutes() < 0 || template.getReminderMinutes() > 1440)) {
-            throw error(HttpStatus.BAD_REQUEST, "Reminder minutes must be between 0 and 1440", "reminder.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Reminder minutes must be between 0 and 1440", "calendar.series.reminder.invalid").with("maximum", 1440);
         }
         Instant start = template.getStartDate().toInstant();
         Instant end = template.getEndDate() == null ? start.plusSeconds(3600) : template.getEndDate().toInstant();
         long duration = Duration.between(start, end).toMinutes();
         if (duration < 1 || duration > Integer.MAX_VALUE) {
-            throw error(HttpStatus.BAD_REQUEST, "End date must be after start date", "duration.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "End date must be after start date", "calendar.series.duration.invalid");
         }
         LocalDateTime firstLocal = start.atZone(zone).toLocalDateTime();
         try {
@@ -315,7 +315,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
                 throw new IllegalArgumentException("The recurrence does not generate occurrences");
             return new SeriesDefinition(firstLocal, (int) duration, occurrences);
         } catch (IllegalArgumentException exception) {
-            throw error(HttpStatus.BAD_REQUEST, exception.getMessage(), "recurrence.invalid");
+            throw error(HttpStatus.BAD_REQUEST, exception.getMessage(), "calendar.series.recurrence.invalid");
         }
     }
 
@@ -478,7 +478,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             .filter(event -> Objects.equals(event.getId(), sourceOccurrenceId))
             .findFirst()
             .orElseThrow(() ->
-                error(HttpStatus.BAD_REQUEST, "Source occurrence does not belong to the recurring series", "sourceOccurrence.invalid")
+                error(HttpStatus.BAD_REQUEST, "Source occurrence does not belong to the recurring series", "calendar.series.sourceOccurrence.invalid")
             );
     }
 

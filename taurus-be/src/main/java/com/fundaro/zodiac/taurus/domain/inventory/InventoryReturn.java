@@ -28,6 +28,9 @@ public class InventoryReturn extends AuditedEntity {
     private InventoryCondition returnCondition;
     @Column(name = "notes", length = 2000)
     private String notes;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reason", nullable = false, length = 32)
+    private InventoryReturnReason reason = InventoryReturnReason.STANDARD;
 
     public InventoryAssignment getAssignment() {
         return assignment;
@@ -99,5 +102,13 @@ public class InventoryReturn extends AuditedEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public InventoryReturnReason getReason() {
+        return reason;
+    }
+
+    public void setReason(InventoryReturnReason reason) {
+        this.reason = reason;
     }
 }

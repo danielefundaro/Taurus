@@ -5,7 +5,6 @@ import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.*;
 import com.fundaro.zodiac.taurus.service.impl.InventoryIssueService;
-import com.fundaro.zodiac.taurus.service.impl.InventoryReportService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import com.fundaro.zodiac.taurus.web.rest.RequiresTenantFeature;
 import jakarta.validation.Valid;
@@ -26,20 +25,17 @@ import java.time.LocalDate;
 public class InventoryResource {
 
     private final InventoryService inventoryService;
-    private final InventoryReportService inventoryReportService;
     private final ApplicationProperties.DashboardProperties dashboardProperties;
     private final TenantTimeZoneService tenantTimeZoneService;
     private final InventoryIssueService inventoryIssueService;
 
     public InventoryResource(
         InventoryService inventoryService,
-        InventoryReportService inventoryReportService,
         ApplicationProperties applicationProperties,
         TenantTimeZoneService tenantTimeZoneService,
         InventoryIssueService inventoryIssueService
     ) {
         this.inventoryService = inventoryService;
-        this.inventoryReportService = inventoryReportService;
         this.dashboardProperties = applicationProperties.getDashboard();
         this.tenantTimeZoneService = tenantTimeZoneService;
         this.inventoryIssueService = inventoryIssueService;
@@ -108,18 +104,6 @@ public class InventoryResource {
     @GetMapping("/return-photos/{id}")
     public ResponseEntity<byte[]> getReturnPhoto(@PathVariable long id, AbstractAuthenticationToken token) throws IOException {
         return com.fundaro.zodiac.taurus.web.rest.InventoryResource.photoResponse(inventoryService.getReturnPhoto(id, true, token));
-    }
-
-    @GetMapping(value = "/report", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> getReport(
-        @RequestParam(defaultValue = "true") boolean includeAssigned,
-        @RequestParam(defaultValue = "true") boolean includeReturned,
-        @RequestParam(defaultValue = "true") boolean includePhotos,
-        AbstractAuthenticationToken token
-    ) {
-        return com.fundaro.zodiac.taurus.web.rest.InventoryResource.reportResponse(
-            inventoryReportService.createOwn(includeAssigned, includeReturned, includePhotos, token)
-        );
     }
 
     @PostMapping("/assignments/{id}/issues")

@@ -1,16 +1,35 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
-import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../../constants';
+import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryLoanTypeLabel, inventoryLoanTypeOptions, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueListComponent } from '../../../components/inventory-issue-list/inventory-issue-list.component';
 import { InventoryLabelDialogComponent } from '../../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryQrRotateDialogComponent } from '../../../dialogs/inventory-qr-rotate-dialog/inventory-qr-rotate-dialog.component';
+import { InventoryRenewalDialogComponent } from '../../../dialogs/inventory-renewal-dialog/inventory-renewal-dialog.component';
+import { InventorySubstitutionDialogComponent } from '../../../dialogs/inventory-substitution-dialog/inventory-substitution-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
-import { InventoryAssignment, InventoryAssignmentRequest, InventoryCondition, InventoryItem, InventoryLabelRequest, InventoryReturn, Users, UsersCriteria } from '../../../module';
-import { ConfirmService, InventoryService, TenantFeatureService, ToastService, UsersService } from '../../../service';
+import {
+    InventoryAssignment,
+    InventoryAssignmentRequest,
+    InventoryCondition,
+    InventoryItem,
+    InventoryLabelRequest,
+    InventoryLoanExpirationRange,
+    InventoryLoanType,
+    InventoryRenewalRequest,
+    InventoryReturn,
+    InventorySubstitutionRequest,
+    Users,
+    UsersCriteria
+} from '../../../module';
+import { ApiErrorService, ConfirmService, InventoryService, TenantFeatureService, ToastService, UsersService, withErrorSummary, withHandledErrors } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
+
+/** Expiration errors shown under the date field instead of a toast: duration rules of the tenant or of the issued sheet. */
+const EXPIRATION_ERRORS: readonly string[] = ['inventory.loanDuration.*', 'inventory.loanSheet.missingExpiration', 'inventory.loanSheet.precariousExpiration', 'inventory.loanSheet.expirationOutOfRange'];
 
 @Component({
     selector: 'app-inventory-detail',
@@ -27,6 +46,15 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected assignmentQuantity = 1;
     protected assignmentDescription = '';
     protected assignmentExpirationDate?: Date | null;
+    protected assignmentAccessories = '';
+    /** Scadenze ammesse per la nuova assegnazione di un oggetto a scadenza all'utente scelto. */
+    protected assignmentRange?: InventoryLoanExpirationRange;
+    /** Scadenze ammesse per le assegnazioni a scadenza non ancora collegate a un foglio. */
+    protected assignmentRanges: Partial<Record<number, InventoryLoanExpirationRange>> = {};
+    /** Scadenza della nuova assegnazione rifiutata dal backend, con il motivo da mostrare sotto il campo. */
+    protected assignmentExpirationProblem?: string;
+    /** Scadenze modificate in tabella e rifiutate dal backend, per assegnazione. */
+    protected assignmentExpirationProblems: Partial<Record<number, string>> = {};
     protected assignmentEdits: Record<number, InventoryAssignmentRequest> = {};
     protected assignmentExpirationDateEdits: Record<number, Date | null | undefined> = {};
     protected returnQuantities: Record<number, number> = {};
@@ -47,6 +75,8 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
     protected readonly returnStatusLabel = inventoryReturnStatusLabel;
+    protected readonly loanTypeLabel = inventoryLoanTypeLabel;
+    protected readonly loanTypes: { label: string; value: InventoryLoanType | null; description?: string }[] = [{ label: 'Non indicato', value: null }, ...inventoryLoanTypeOptions];
 
     private static readonly PHOTO_ORDER_UNIT = 'ordine fotografie';
     private static readonly ASSIGNMENTS_UNIT = 'assegnazioni';
@@ -71,6 +101,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         private readonly toastService: ToastService,
         private readonly confirmService: ConfirmService,
         private readonly dialogService: DialogService,
+        private readonly apiErrorService: ApiErrorService,
         tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
@@ -212,6 +243,36 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         });
     }
 
+    /** Gli strumenti in comodato con scadenza seguono le regole di durata fin dall'assegnazione. */
+    protected get fixedTerm(): boolean {
+        return this.item.loanType === 'FIXED_TERM';
+    }
+
+    protected rangeHint(range?: InventoryLoanExpirationRange): string | undefined {
+        if (!range) return undefined;
+        const rules = range.sheetNumber ? `regole del foglio n. ${range.sheetNumber}` : 'regole di durata del comodato';
+        return `Tra il ${this.formatDate(range.minimum)} e il ${this.formatDate(range.maximum)} (${rules}).`;
+    }
+
+    /** La data in tabella resta libera: il backend la verifica al salvataggio e ne spiega l'eventuale rifiuto. */
+    protected editExpiration(assignmentId: number): void {
+        this.assignmentExpirationProblems[assignmentId] = undefined;
+        this.markAssignmentDirty(assignmentId);
+    }
+
+    protected onAssigneeChange(): void {
+        this.assignmentRange = undefined;
+        this.assignmentExpirationProblem = undefined;
+        if (!this.fixedTerm || !this.selectedUser?.id) return;
+        const userId = this.selectedUser.id;
+        this.inventoryService
+            .getLoanExpirationRange(userId)
+            .pipe(first())
+            .subscribe((range) => {
+                if (this.selectedUser?.id === userId) this.assignmentRange = range;
+            });
+    }
+
     protected assign(): void {
         if (!this.item.id || !this.selectedUser?.id) return;
         const request: InventoryAssignmentRequest = {
@@ -219,18 +280,25 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             order: this.item.assignments?.length ?? 0,
             quantity: this.assignmentQuantity,
             description: this.assignmentDescription,
-            expirationDate: this.toLocalDate(this.assignmentExpirationDate)
+            expirationDate: this.toLocalDate(this.assignmentExpirationDate),
+            accessories: this.assignmentAccessories.trim() || undefined
         };
+        this.assignmentExpirationProblem = undefined;
         this.inventoryService
-            .assign(this.item.id, request)
+            .assign(this.item.id, request, withHandledErrors(EXPIRATION_ERRORS, withErrorSummary('Assegnazione non riuscita')))
             .pipe(first())
-            .subscribe(() => {
-                this.toastService.success('Materiale assegnato', 'L’utente può ora prenderne visione dal profilo.');
-                this.selectedUser = undefined;
-                this.assignmentQuantity = 1;
-                this.assignmentDescription = '';
-                this.assignmentExpirationDate = undefined;
-                this.loadItem(this.item.id!);
+            .subscribe({
+                next: () => {
+                    this.toastService.success('Materiale assegnato', 'L’utente può ora prenderne visione dal profilo.');
+                    this.selectedUser = undefined;
+                    this.assignmentRange = undefined;
+                    this.assignmentQuantity = 1;
+                    this.assignmentDescription = '';
+                    this.assignmentExpirationDate = undefined;
+                    this.assignmentAccessories = '';
+                    this.loadItem(this.item.id!);
+                },
+                error: (error: HttpErrorResponse) => (this.assignmentExpirationProblem = this.apiErrorService.handledMessage(error, EXPIRATION_ERRORS))
             });
     }
 
@@ -241,14 +309,18 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             ...edit,
             expirationDate: this.toLocalDate(this.assignmentExpirationDateEdits[assignmentId])
         };
+        this.assignmentExpirationProblems[assignmentId] = undefined;
         this.inventoryService
-            .updateAssignment(assignmentId, request)
+            .updateAssignment(assignmentId, request, withHandledErrors(EXPIRATION_ERRORS, withErrorSummary('Assegnazione non aggiornata')))
             .pipe(first())
-            .subscribe(() => {
-                this.dirtyAssignments.delete(assignmentId);
-                this.syncAssignmentsUnit();
-                this.toastService.success('Assegnazione aggiornata', 'Quantità, ordine e descrizione sono stati salvati.');
-                this.loadItem(this.item.id!);
+            .subscribe({
+                next: () => {
+                    this.dirtyAssignments.delete(assignmentId);
+                    this.syncAssignmentsUnit();
+                    this.toastService.success('Assegnazione aggiornata', 'Le modifiche dell’assegnazione sono state salvate.');
+                    this.loadItem(this.item.id!);
+                },
+                error: (error: HttpErrorResponse) => (this.assignmentExpirationProblems[assignmentId] = this.apiErrorService.handledMessage(error, EXPIRATION_ERRORS))
             });
     }
 
@@ -284,6 +356,72 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                         this.loadItem(this.item.id!);
                     })
         });
+    }
+
+    protected canRenew(assignment: InventoryAssignment): boolean {
+        return !!assignment.loanSheetId && assignment.loanType === 'FIXED_TERM' && assignment.outstandingQuantity > 0 && !!assignment.expirationDate;
+    }
+
+    protected canSubstitute(assignment: InventoryAssignment): boolean {
+        return !!assignment.loanSheetId && assignment.outstandingQuantity > 0 && !this.hasOpenReturn(assignment);
+    }
+
+    protected renew(assignment: InventoryAssignment): void {
+        if (!assignment.loanSheetId) return;
+        this.inventoryService
+            .getLoanSheet(assignment.loanSheetId)
+            .pipe(first())
+            .subscribe((sheet) =>
+                this.dialogService
+                    .open(InventoryRenewalDialogComponent, {
+                        header: 'Rinnova comodato',
+                        showHeader: false,
+                        modal: true,
+                        width: '40rem',
+                        breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                        data: { assignment, terms: sheet.terms }
+                    })
+                    .onClose.pipe(first())
+                    .subscribe((request?: InventoryRenewalRequest) => {
+                        if (!request) return;
+                        this.inventoryService
+                            .renewAssignment(assignment.id, request)
+                            .pipe(first())
+                            .subscribe(() => {
+                                this.toastService.success('Rinnovo registrato', 'Il rinnovo compare nel registro delle variazioni e il socio deve prenderne visione.');
+                                this.loadItem(this.item.id!);
+                            });
+                    })
+            );
+    }
+
+    protected substitute(assignment: InventoryAssignment): void {
+        if (!assignment.loanSheetId) return;
+        this.inventoryService
+            .getLoanSheet(assignment.loanSheetId)
+            .pipe(first())
+            .subscribe((sheet) =>
+                this.dialogService
+                    .open(InventorySubstitutionDialogComponent, {
+                        header: 'Sostituisci bene',
+                        showHeader: false,
+                        modal: true,
+                        width: '44rem',
+                        breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                        data: { assignment, terms: sheet.terms }
+                    })
+                    .onClose.pipe(first())
+                    .subscribe((request?: InventorySubstitutionRequest) => {
+                        if (!request) return;
+                        this.inventoryService
+                            .substituteAssignment(assignment.id, request)
+                            .pipe(first())
+                            .subscribe((delivered) => {
+                                this.toastService.success('Sostituzione registrata', `${delivered.itemName} è stato consegnato al posto di ${assignment.itemName}.`);
+                                this.loadItem(this.item.id!);
+                            });
+                    })
+            );
     }
 
     protected reissue(assignmentId: number): void {
@@ -424,11 +562,13 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                             order: assignment.order,
                             quantity: assignment.assignedQuantity,
                             description: assignment.description,
-                            expirationDate: assignment.expirationDate
+                            expirationDate: assignment.expirationDate,
+                            accessories: assignment.accessories
                         }
                     ])
                 );
                 this.assignmentExpirationDateEdits = Object.fromEntries((value.assignments ?? []).map((assignment) => [assignment.id, this.fromLocalDate(assignment.expirationDate)]));
+                this.loadAssignmentRanges(value);
                 (value.assignments ?? []).forEach((assignment) => {
                     this.returnQuantities[assignment.id] = Math.max(1, assignment.outstandingQuantity);
                     assignment.returns.forEach((itemReturn) => {
@@ -454,6 +594,25 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             this.toastService.error('Fotografia non valida', 'Sono ammessi JPEG/PNG fino a 10 MB. WebP non è supportato.');
         }
         return valid;
+    }
+
+    /** Le assegnazioni a scadenza ancora libere da un foglio si correggono entro le regole che si applicherebbero alla consegna. */
+    private loadAssignmentRanges(item: InventoryItem): void {
+        this.assignmentRanges = {};
+        if (item.loanType !== 'FIXED_TERM') return;
+        (item.assignments ?? [])
+            .filter((assignment) => !assignment.loanSheetId && assignment.outstandingQuantity > 0)
+            .forEach((assignment) =>
+                this.inventoryService
+                    .getLoanExpirationRange(assignment.userIndex, this.toLocalDate(new Date(assignment.assignedAt)))
+                    .pipe(first())
+                    .subscribe((range) => (this.assignmentRanges[assignment.id] = range))
+            );
+    }
+
+    private formatDate(value: string): string {
+        const [year, month, day] = value.split('-');
+        return `${day}/${month}/${year}`;
     }
 
     private toLocalDate(value?: Date | null): string | undefined {

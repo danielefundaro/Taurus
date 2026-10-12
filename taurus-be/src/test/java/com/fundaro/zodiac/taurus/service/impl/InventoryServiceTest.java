@@ -88,6 +88,8 @@ class InventoryServiceTest {
     UsersRepository usersRepository;
     @Mock
     KeycloakService keycloakService;
+    @Mock
+    com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetPolicy loanSheetPolicy;
 
     private InventoryService service;
 
@@ -129,7 +131,8 @@ class InventoryServiceTest {
             mediaRepository,
             new ObjectMapper(),
             qrCodeService,
-            issueRepository
+            issueRepository,
+            loanSheetPolicy
         );
         AspectJProxyFactory serviceProxyFactory = new AspectJProxyFactory(target);
         serviceProxyFactory.addAspect(noticesAspect);
@@ -142,7 +145,7 @@ class InventoryServiceTest {
         when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
         when(assignmentRepository.sumOutstanding(1L, InventoryService.OUTSTANDING_ASSIGNMENT_STATUSES)).thenReturn(5L);
 
-        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 4, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null);
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 4, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null, null, null, null);
 
         assertThatThrownBy(() -> service.updateItem(1L, request, authentication()))
             .isInstanceOf(RequestAlertException.class)
@@ -151,7 +154,7 @@ class InventoryServiceTest {
 
     @Test
     void shouldCheckOnlyActiveItemsWhenCreating() {
-        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null);
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null, null, null, null);
         when(itemRepository.save(any(InventoryItem.class)))
             .thenAnswer(invocation -> {
                 InventoryItem item = invocation.getArgument(0);
@@ -167,7 +170,7 @@ class InventoryServiceTest {
 
     @Test
     void shouldDefaultMissingEstimatedUnitValueToZero() {
-        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, null, "EUR", InventoryCondition.GOOD, null);
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, null, "EUR", InventoryCondition.GOOD, null, null, null, null);
         when(itemRepository.save(any(InventoryItem.class)))
             .thenAnswer(invocation -> {
                 InventoryItem item = invocation.getArgument(0);
@@ -189,7 +192,7 @@ class InventoryServiceTest {
 
         service.updateItem(
             1L,
-            new InventoryItemRequest("INV-1", "Leggio aggiornato", null, 10, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null),
+            new InventoryItemRequest("INV-1", "Leggio aggiornato", null, 10, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null, null, null, null),
             authentication()
         );
 
@@ -234,10 +237,78 @@ class InventoryServiceTest {
         when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1))
             .thenAnswer(invocation -> Optional.ofNullable(savedRevision.get()));
 
-        service.assign(1L, new InventoryAssignmentRequest(42L, 0, 2, null, null), authentication());
+        service.assign(1L, new InventoryAssignmentRequest(42L, 0, 2, null, null, null), authentication());
 
         verifyNotification("Inventario: oggetto assegnato", "ha assegnato 2 unità dell'oggetto “INV-1 — Leggio” a Mario Rossi");
         verifyNotification("Inventario: presa visione richiesta", "revisione 1 della tua assegnazione dell'oggetto “INV-1 — Leggio”");
+    }
+
+    @Test
+    void shouldLinkNewAssignmentsToTheIssuedLoanSheetAndSnapshotLoanFields() {
+        InventoryItem item = item(1L);
+        item.setLoanType(InventoryLoanType.FIXED_TERM);
+        item.setSerialNumber("SN-1");
+        InventoryLoanSheet sheet = new InventoryLoanSheet();
+        sheet.setId(100L);
+        AtomicReference<InventoryAssignmentRevision> savedRevision = new AtomicReference<>();
+        LocalDate expirationDate = LocalDate.now().plusMonths(18);
+
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+        when(usersService.findOne(eq(42L), any(JwtAuthenticationToken.class))).thenReturn(Optional.of(assignee()));
+        when(loanSheetPolicy.sheetForNewAssignment(eq(42L), eq(item), any(ZonedDateTime.class), eq(expirationDate), anyString())).thenReturn(Optional.of(sheet));
+        when(assignmentRepository.save(any(InventoryAssignment.class))).thenAnswer(invocation -> {
+            InventoryAssignment assignment = invocation.getArgument(0);
+            if (assignment.getId() == null) assignment.setId(2L);
+            return assignment;
+        });
+        when(revisionRepository.save(any(InventoryAssignmentRevision.class))).thenAnswer(invocation -> {
+            savedRevision.set(invocation.getArgument(0));
+            return invocation.getArgument(0);
+        });
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenAnswer(invocation -> Optional.ofNullable(savedRevision.get()));
+
+        var result = service.assign(
+            1L,
+            new InventoryAssignmentRequest(42L, 0, 1, null, expirationDate, " Custodia "),
+            authentication()
+        );
+
+        assertThat(result.loanSheetId()).isEqualTo(100L);
+        assertThat(result.accessories()).isEqualTo("Custodia");
+        assertThat(savedRevision.get().getSnapshotJson())
+            .contains("\"serialNumber\":\"SN-1\"")
+            .contains("\"loanType\":\"FIXED_TERM\"")
+            .contains("\"accessories\":\"Custodia\"")
+            .doesNotContain("agreedUnitValue");
+    }
+
+    @Test
+    void shouldKeepTheRevisionSnapshotOfAssignmentsWithoutLoanData() {
+        InventoryItem item = item(1L);
+        AtomicReference<InventoryAssignmentRevision> savedRevision = new AtomicReference<>();
+
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item));
+        when(usersService.findOne(eq(42L), any(JwtAuthenticationToken.class))).thenReturn(Optional.of(assignee()));
+        when(assignmentRepository.save(any(InventoryAssignment.class))).thenAnswer(invocation -> {
+            InventoryAssignment assignment = invocation.getArgument(0);
+            if (assignment.getId() == null) assignment.setId(2L);
+            return assignment;
+        });
+        when(revisionRepository.save(any(InventoryAssignmentRevision.class))).thenAnswer(invocation -> {
+            savedRevision.set(invocation.getArgument(0));
+            return invocation.getArgument(0);
+        });
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenAnswer(invocation -> Optional.ofNullable(savedRevision.get()));
+
+        service.assign(1L, new InventoryAssignmentRequest(42L, 0, 1, null, null, null), authentication());
+
+        assertThat(savedRevision.get().getSnapshotJson())
+            .doesNotContain("brandModel")
+            .doesNotContain("serialNumber")
+            .doesNotContain("loanType")
+            .doesNotContain("accessories")
+            .doesNotContain("agreedUnitValue")
+            .endsWith("\"assignmentDescription\":null,\"photos\":[]}");
     }
 
     @Test
@@ -279,7 +350,7 @@ class InventoryServiceTest {
 
         var result = service.updateAssignment(
             2L,
-            new InventoryAssignmentRequest(42L, 0, 1, null, expirationDate),
+            new InventoryAssignmentRequest(42L, 0, 1, null, expirationDate, null),
             authentication()
         );
 
@@ -573,6 +644,15 @@ class InventoryServiceTest {
 
         assertThat(inventoryReturn.isDeleted()).isFalse();
         assertThat(assignment.getReturnedQuantity()).isEqualTo(2);
+    }
+
+    private static UsersDTO assignee() {
+        UsersDTO user = new UsersDTO();
+        user.setId(42L);
+        user.setKeycloakId("assigned-user");
+        user.setName("Mario");
+        user.setLastName("Rossi");
+        return user;
     }
 
     private InventoryItem item(Long id) {

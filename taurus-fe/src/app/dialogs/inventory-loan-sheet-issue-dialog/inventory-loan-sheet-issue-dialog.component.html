@@ -1,0 +1,78 @@
+<app-dialog-shell
+    #shell
+    heading="Emetti foglio di affidamento"
+    [subtitle]="proposal.memberName + ' ' + proposal.memberLastName + ' · modello ' + proposal.terms.templateLabel"
+    confirmLabel="Emetti foglio"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <app-inline-alert
+        severity="info"
+        heading="Dati anagrafici da compilare a mano"
+        detail="Il foglio riporta nome, data di nascita ed e-mail del socio. Residenza, codice fiscale, documento e dati del genitore o tutore si compilano sulla copia stampata."
+    />
+
+    <h3 class="text-base font-semibold mt-4 mb-2">Beni da consegnare</h3>
+    @if (proposal.assignments.length) {
+        <div class="flex flex-col gap-2">
+            @for (assignment of proposal.assignments; track assignment.assignmentId) {
+                <label class="flex items-start gap-3 p-3 border border-surface rounded-lg" [for]="'loan-assignment-' + assignment.assignmentId">
+                    <p-checkbox [inputId]="'loan-assignment-' + assignment.assignmentId" [binary]="true" [(ngModel)]="selected[assignment.assignmentId]" />
+                    <span class="flex flex-col gap-1">
+                        <strong>{{ assignment.inventoryNumber }} – {{ assignment.itemName }}</strong>
+                        <span class="text-sm text-surface-500">
+                            {{ loanTypeLabel(assignment.loanType) }} · quantità {{ assignment.outstandingQuantity }} · consegnato il {{ assignment.assignedOn | date: 'dd/MM/yyyy' }}
+                            @if (assignment.expirationDate) {
+                                · scadenza {{ assignment.expirationDate | date: 'dd/MM/yyyy' }}
+                            }
+                        </span>
+                        @for (issue of assignment.issues; track issue.code) {
+                            <span class="text-sm text-red-600 dark:text-red-400"><i class="pi pi-exclamation-triangle mr-1"></i>{{ issueMessage(issue) }}</span>
+                        }
+                    </span>
+                </label>
+            }
+        </div>
+        @if (shell.validationAttempted && !selectedAssignments.length) {
+            <small class="text-red-600 dark:text-red-400">Seleziona almeno un bene.</small>
+        }
+        @if (blockingIssues) {
+            <small class="block mt-2 text-red-600 dark:text-red-400">Correggi i beni segnalati dalla scheda dell’oggetto o dell’assegnazione, oppure deselezionali.</small>
+        }
+    } @else {
+        <app-empty-state compact icon="pi pi-box" heading="Nessun bene da inserire" message="Il socio non ha materiale in carico non ancora collegato a un foglio." />
+    }
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <app-form-field label="Data del foglio" forId="loanIssuedOn" required [error]="shell.validationAttempted && !issuedOn ? 'Indica la data del foglio.' : undefined">
+            <p-datepicker inputId="loanIssuedOn" [(ngModel)]="issuedOn" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Luogo" forId="loanPlace">
+            <input pInputText id="loanPlace" maxlength="255" [(ngModel)]="place" />
+        </app-form-field>
+        <app-form-field
+            class="md:col-span-2"
+            label="Affidatario"
+            forId="loanHolderRole"
+            required
+            [hint]="proposal.roleRequired ? 'La data di nascita del socio non è registrata: indica chi firma il foglio.' : 'Proposto in base all’età del socio alla data del foglio.'"
+            [error]="shell.validationAttempted && !holderRole ? 'Indica chi firma il foglio.' : undefined"
+        >
+            <p-selectbutton ariaLabelledBy="loanHolderRole" [options]="roles" optionLabel="label" optionValue="value" [(ngModel)]="holderRole" [allowEmpty]="false" />
+        </app-form-field>
+        <app-form-field label="Delibera o provvedimento n." forId="loanAuthorizationReference" hint="Facoltativo: se vuoto si compila a mano.">
+            <input pInputText id="loanAuthorizationReference" maxlength="128" [(ngModel)]="authorizationReference" />
+        </app-form-field>
+        <app-form-field label="Data della delibera" forId="loanAuthorizationDate">
+            <p-datepicker inputId="loanAuthorizationDate" [(ngModel)]="authorizationDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Firmatario per l’Associazione" forId="loanSignatory" hint="Presidente o consigliere delegato: nome e cognome.">
+            <input pInputText id="loanSignatory" maxlength="255" [(ngModel)]="associationSignatoryName" />
+        </app-form-field>
+    </div>
+
+    <div class="flex justify-end mt-4">
+        <p-button label="Anteprima PDF" icon="pi pi-eye" severity="secondary" [outlined]="true" [loading]="previewing" [disabled]="!selectedAssignments.length || !issuedOn" (onClick)="preview()" />
+    </div>
+</app-dialog-shell>

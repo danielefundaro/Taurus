@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/tenants")
+@TenantSchemaNotRequired
 public class TenantsResource extends CommonOpenSearchResource<Tenants, TenantsDTO, TenantsCriteria, TenantsService> {
 
     public TenantsResource(TenantsService tenantsService) {

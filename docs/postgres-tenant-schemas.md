@@ -40,6 +40,14 @@ provisioning è ripetibile.
 imposta lo schema deterministico del tenant e la riporta sempre a `public` prima di restituirla al pool. Le richieste
 senza claim tenant usano `public`.
 
+Subito dopo, `TenantProvisioningInterceptor` verifica che il tenant della richiesta abbia uno schema `ACTIVE` nel
+registro. Se non ce l'ha, ad esempio al primo accesso con il gruppo di bootstrap `temp`, risponde `409` con
+`error.tenant.notProvisioned` invece di lasciare fallire la query su relazioni inesistenti. Sono escluse le API annotate
+con `@TenantSchemaNotRequired`, che usano solo `public` o Keycloak: gestione tenant, capability delle funzioni, account,
+`auth-info`, logout e `GET /api/tenant-status`. Quest'ultima indica al frontend se lavorare in modalità bootstrap. L'esito positivo
+della verifica resta in cache per 30 secondi per istanza, quello negativo no: un tenant appena creato è subito
+utilizzabile, uno eliminato viene respinto entro 30 secondi.
+
 Scheduler, outbox inventario, retention e notifiche push iterano il registro centrale ed eseguono una transazione
 separata per ogni tenant.
 
@@ -66,13 +74,20 @@ allo stato `DELETED`.
 Test rapidi:
 
 ```powershell
-.\mvnw.cmd "-Dtest=TenantContextTest,TenantSchemaNameResolverTest,SchemaMultiTenantConnectionProviderTest" test
+.\mvnw.cmd "-Dtest=TenantContextTest,TenantSchemaNameResolverTest,SchemaMultiTenantConnectionProviderTest,TenantProvisioningStatusTest,TenantProvisioningInterceptorTest" test
 ```
 
 Test di provisioning su PostgreSQL reale:
 
 ```powershell
 .\mvnw.cmd "-Dtest=TenantSchemaProvisioningServiceIT" test
+```
+
+Modalità bootstrap del primo accesso, cioè stato del tenant e risposta `409` alle API dello schema tenant per un tenant
+senza schema:
+
+```powershell
+.\mvnw.cmd "-Dtest=NoSuchTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Dit.test=TenantBootstrapIT" verify
 ```
 
 Il test di integrazione usa Testcontainers quando Docker è disponibile. Può anche essere puntato a un PostgreSQL

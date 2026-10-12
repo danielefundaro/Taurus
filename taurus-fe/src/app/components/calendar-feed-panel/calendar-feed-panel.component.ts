@@ -2,7 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { CalendarFeed, CalendarFeedCreate, CalendarFeedDetailLevel, CalendarFeedScope, CalendarFeedSecret } from '../../module';
-import { CalendarFeedService, ConfirmService, ToastService } from '../../service';
+import { CalendarFeedService, ConfirmService, ToastService, withErrorSummary } from '../../service';
 
 @Component({
     selector: 'app-calendar-feed-panel',
@@ -41,7 +41,7 @@ export class CalendarFeedPanelComponent implements OnInit {
         if (!this.draft.name.trim() || this.saving) return;
         this.saving = true;
         this.service
-            .create(this.draft, this.admin)
+            .create(this.draft, this.admin, withErrorSummary('Creazione non riuscita'))
             .pipe(
                 first(),
                 finalize(() => (this.saving = false))
@@ -54,7 +54,7 @@ export class CalendarFeedPanelComponent implements OnInit {
                     this.toast.success('Feed creato', 'Copia subito il link: per sicurezza non potrai recuperarlo in seguito.');
                     this.load();
                 },
-                error: () => this.toast.error('Creazione non riuscita', 'Controlla i dati e il numero di feed attivi.')
+                error: () => undefined
             });
     }
     protected rotate(feed: CalendarFeed): void {
@@ -66,7 +66,7 @@ export class CalendarFeedPanelComponent implements OnInit {
                 const idempotencyKey = this.rotationKeys.get(feed.id) ?? crypto.randomUUID();
                 this.rotationKeys.set(feed.id, idempotencyKey);
                 this.service
-                    .rotate(feed.id, this.admin, idempotencyKey)
+                    .rotate(feed.id, this.admin, idempotencyKey, withErrorSummary('Rotazione non riuscita'))
                     .pipe(first())
                     .subscribe({
                         next: (secret) => {
@@ -75,7 +75,7 @@ export class CalendarFeedPanelComponent implements OnInit {
                             this.toast.success('Nuovo link generato', 'Copialo subito: per sicurezza non potrai recuperarlo in seguito.');
                             this.load();
                         },
-                        error: () => this.toast.error('Rotazione non riuscita', 'Il feed potrebbe essere già stato revocato.')
+                        error: () => undefined
                     });
             }
         });
@@ -87,7 +87,7 @@ export class CalendarFeedPanelComponent implements OnInit {
             actionLabel: 'Revoca',
             accept: () =>
                 this.service
-                    .revoke(feed.id, this.admin)
+                    .revoke(feed.id, this.admin, withErrorSummary('Revoca non riuscita'))
                     .pipe(first())
                     .subscribe({
                         next: () => {
@@ -95,7 +95,7 @@ export class CalendarFeedPanelComponent implements OnInit {
                             this.toast.success('Feed revocato', 'Il link non è più valido.');
                             this.load();
                         },
-                        error: () => this.toast.error('Revoca non riuscita', 'Riprova tra poco.')
+                        error: () => undefined
                     })
         });
     }
@@ -106,14 +106,14 @@ export class CalendarFeedPanelComponent implements OnInit {
             actionLabel: "Elimina dall'elenco",
             accept: () =>
                 this.service
-                    .remove(feed.id, this.admin)
+                    .remove(feed.id, this.admin, withErrorSummary('Eliminazione non riuscita'))
                     .pipe(first())
                     .subscribe({
                         next: () => {
                             this.toast.success('Feed eliminato', "Il feed revocato non è più visibile nell'elenco.");
                             this.load();
                         },
-                        error: () => this.toast.error('Eliminazione non riuscita', 'Il feed deve essere revocato prima di poterlo eliminare.')
+                        error: () => undefined
                     })
         });
     }
@@ -129,12 +129,12 @@ export class CalendarFeedPanelComponent implements OnInit {
     private load(): void {
         this.loading = true;
         this.service
-            .list(this.admin)
+            .list(this.admin, withErrorSummary('Feed non disponibili'))
             .pipe(
                 first(),
                 finalize(() => (this.loading = false))
             )
-            .subscribe({ next: (feeds) => (this.feeds = feeds), error: () => this.toast.error('Feed non disponibili', 'Non è stato possibile caricare i feed calendario.') });
+            .subscribe({ next: (feeds) => (this.feeds = feeds), error: () => undefined });
     }
     private emptyDraft(): CalendarFeedCreate {
         return { name: '', visibilityScope: 'INTERNAL', detailLevel: 'MINIMAL', pastDays: 90, futureMonths: 18, idempotencyKey: crypto.randomUUID() };

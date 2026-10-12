@@ -291,6 +291,23 @@
       <artifactId>pdfbox</artifactId>
       <version>3.0.3</version>
     </dependency>
+    <!-- Last OpenHTMLtoPDF release built on PDFBox 3.0.3, kept aligned with the pdfbox dependency above. -->
+    <dependency>
+      <groupId>io.github.openhtmltopdf</groupId>
+      <artifactId>openhtmltopdf-pdfbox</artifactId>
+      <version>1.1.44</version>
+    </dependency>
+    <!-- Logic-less templates uploaded by tenants for the inventory loan sheet; version managed by Spring Boot. -->
+    <dependency>
+      <groupId>com.samskivert</groupId>
+      <artifactId>jmustache</artifactId>
+    </dependency>
+    <!-- Lenient HTML parsing of the loan sheet templates before the PDF conversion. -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.23.2</version>
+    </dependency>
     <dependency>
       <groupId>com.google.zxing</groupId>
       <artifactId>core</artifactId>

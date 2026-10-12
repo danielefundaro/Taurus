@@ -1,8 +1,16 @@
+import { ApiErrorIssue } from './api-error.module';
+
 export type InventoryCondition = 'NEW' | 'EXCELLENT' | 'GOOD' | 'FAIR' | 'TO_REPAIR' | 'OUT_OF_SERVICE';
 export type InventoryDecisionType = 'ACCEPTED' | 'REJECTED';
 export type InventoryAssignmentStatus = 'ACTIVE' | 'PARTIALLY_RETURNED' | 'RETURNED' | 'CANCELLED';
 export type InventoryReturnStatus = 'REQUESTED' | 'COMPLETED' | 'CANCELLED';
 export type InventoryAssignmentScope = 'POSSESSED' | 'RETURNED';
+export type InventoryLoanType = 'FIXED_TERM' | 'PRECARIOUS';
+export type InventoryLoanSheetStatus = 'ISSUED' | 'CLOSED' | 'SETTLED' | 'CANCELLED';
+export type InventoryLoanHolderRole = 'MEMBER' | 'GUARDIAN';
+export type InventoryLoanReturnOutcome = 'COMPLIANT' | 'CHARGES';
+export type InventoryLoanTemplateOrigin = 'DEFAULT' | 'CUSTOM';
+export type InventoryLoanTemplateVariableType = 'TEXT' | 'FLAG' | 'LIST';
 
 export interface InventoryPhoto {
     id: number;
@@ -57,6 +65,13 @@ export interface InventoryAssignment {
     decision?: InventoryDecision;
     returns: InventoryReturn[];
     photos: InventoryPhoto[];
+    brandModel?: string;
+    serialNumber?: string;
+    loanType?: InventoryLoanType;
+    accessories?: string;
+    loanSheetId?: number;
+    loanSheetNumber?: string;
+    replacesAssignmentId?: number;
 }
 
 export interface InventoryAssignmentSummary {
@@ -95,6 +110,9 @@ export interface InventoryItem {
     version?: number;
     photos?: InventoryPhoto[];
     assignments?: InventoryAssignment[];
+    brandModel?: string;
+    serialNumber?: string;
+    loanType?: InventoryLoanType | null;
 }
 
 export interface InventoryAssignmentRequest {
@@ -103,6 +121,229 @@ export interface InventoryAssignmentRequest {
     quantity: number;
     description?: string;
     expirationDate?: string;
+    accessories?: string;
+}
+
+/**
+ * Scadenze ammesse per un comodato a scadenza consegnato il giorno `deliveredOn`: regole del foglio emesso indicato
+ * da `sheetNumber`, oppure regole correnti del tenant.
+ */
+export interface InventoryLoanExpirationRange {
+    deliveredOn: string;
+    minimum: string;
+    maximum: string;
+    sheetNumber?: string | null;
+}
+
+/** Modello e regole di durata di un foglio, oppure del tenant per un foglio ancora da emettere. */
+export interface InventoryLoanSheetTerms {
+    templateId?: number;
+    templateLabel: string;
+    minMonths: number;
+    maxMonths: number;
+    renewalMaxMonths: number;
+    totalMaxMonths: number;
+}
+
+export interface InventoryLoanSheetSummary {
+    id: number;
+    sheetNumber: string;
+    status: InventoryLoanSheetStatus;
+    issuedOn: string;
+    userIndex: number;
+    memberName: string;
+    memberLastName: string;
+    holderRole: InventoryLoanHolderRole;
+    templateLabel: string;
+    returnOutcome?: InventoryLoanReturnOutcome;
+    closedAt?: string;
+    settledAt?: string;
+    cancelledAt?: string;
+    personalDataPurged: boolean;
+    closable: boolean;
+    entityVersion: number;
+}
+
+export interface InventoryLoanSheetLine {
+    lineNumber: number;
+    assignmentId: number;
+    itemName: string;
+    brandModel?: string;
+    serialNumber?: string;
+    inventoryNumber: string;
+    accessories?: string;
+    quantity: number;
+    agreedUnitValue?: number;
+    conditionStatus?: InventoryCondition;
+    conditionNotes?: string;
+    loanType: InventoryLoanType;
+    expirationDate?: string;
+}
+
+export interface InventoryLoanSheetRegisterEntry {
+    date?: string;
+    operation: 'C' | 'R' | 'S' | 'N';
+    itemName: string;
+    brandModelSerial?: string;
+    expirationDate?: string;
+    agreedValue?: string;
+    authorization?: string;
+}
+
+export interface InventoryLoanSheetLinkedAssignment {
+    assignmentId: number;
+    itemId: number;
+    itemName: string;
+    inventoryNumber: string;
+    loanType?: InventoryLoanType;
+    assignedQuantity: number;
+    outstandingQuantity: number;
+    status: InventoryAssignmentStatus;
+    expirationDate?: string;
+    variation: boolean;
+    replacesAssignmentId?: number;
+}
+
+export interface InventoryLoanSheetDetail {
+    summary: InventoryLoanSheetSummary;
+    place?: string;
+    authorizationReference?: string;
+    authorizationDate?: string;
+    associationSignatoryName?: string;
+    chargeAmount?: number;
+    chargeDueDate?: string;
+    receivedByName?: string;
+    cancellationReason?: string;
+    terms: InventoryLoanSheetTerms;
+    lines: InventoryLoanSheetLine[];
+    register: InventoryLoanSheetRegisterEntry[];
+    assignments: InventoryLoanSheetLinkedAssignment[];
+}
+
+/** A duration problem of a good in the sheet proposal: `code` is an `inventory.loanDuration.*` code. */
+export interface InventoryLoanSheetIssue extends ApiErrorIssue {
+    assignmentId: number;
+}
+
+export interface InventoryLoanSheetProposalAssignment {
+    assignmentId: number;
+    itemId: number;
+    itemName: string;
+    inventoryNumber: string;
+    loanType?: InventoryLoanType;
+    outstandingQuantity: number;
+    assignedOn: string;
+    expirationDate?: string;
+    issues: InventoryLoanSheetIssue[];
+}
+
+export interface InventoryLoanSheetProposal {
+    userIndex: number;
+    memberName: string;
+    memberLastName: string;
+    memberBirthDate?: string;
+    suggestedRole?: InventoryLoanHolderRole;
+    roleRequired: boolean;
+    issuedOn: string;
+    place?: string;
+    associationSignatoryName?: string;
+    openSheetId?: number;
+    openSheetNumber?: string;
+    terms: InventoryLoanSheetTerms;
+    assignments: InventoryLoanSheetProposalAssignment[];
+}
+
+export interface InventoryLoanSheetIssueRequest {
+    assignmentIds: number[];
+    issuedOn: string;
+    place?: string;
+    holderRole?: InventoryLoanHolderRole;
+    authorizationReference?: string;
+    authorizationDate?: string;
+    associationSignatoryName?: string;
+}
+
+export interface InventoryLoanSheetCloseRequest {
+    outcome: InventoryLoanReturnOutcome;
+    chargeAmount?: number | null;
+    chargeDueDate?: string;
+    receivedByName?: string;
+}
+
+export interface InventoryRenewalRequest {
+    newExpirationDate: string;
+    authorizationReference: string;
+    authorizationDate: string;
+    renewedOn?: string;
+}
+
+export interface InventorySubstitutionRequest {
+    itemId: number;
+    quantity: number;
+    expirationDate?: string;
+    accessories?: string;
+    description?: string;
+    returnCondition?: InventoryCondition;
+    returnNotes?: string;
+}
+
+export interface InventoryLoanDurations {
+    minMonths: number;
+    maxMonths: number;
+    renewalMaxMonths: number;
+    totalMaxMonths: number;
+}
+
+export interface InventoryLoanTemplateFile {
+    fileName: string;
+    content: string;
+}
+
+/** An outcome of the template check: the message is `inventory.loanTemplate.issue.{code}` in the error catalog. */
+export interface InventoryLoanTemplateIssue extends ApiErrorIssue {
+    line?: number;
+    blocking: boolean;
+}
+
+export interface InventoryLoanTemplateCheck {
+    valid: boolean;
+    issues: InventoryLoanTemplateIssue[];
+}
+
+export interface InventoryLoanTemplateVersion {
+    id: number;
+    versionNumber?: number;
+    origin: InventoryLoanTemplateOrigin;
+    defaultLabel?: string;
+    fileName: string;
+    contentHash: string;
+    createdAt: string;
+    active: boolean;
+}
+
+export interface InventoryLoanTemplateVariable {
+    name: string;
+    type: InventoryLoanTemplateVariableType;
+    description: string;
+    example?: string;
+    fields: InventoryLoanTemplateVariable[];
+}
+
+export interface InventoryLoanTemplateVariableGroup {
+    label: string;
+    description: string;
+    variables: InventoryLoanTemplateVariable[];
+}
+
+export interface InventoryLoanTemplateOverview {
+    /** Modello caricato in uso; assente quando i nuovi fogli usano il modello predefinito. */
+    active?: InventoryLoanTemplateVersion;
+    defaultLabel: string;
+    durations: InventoryLoanDurations;
+    settingsVersion: number;
+    versions: InventoryLoanTemplateVersion[];
+    variables: InventoryLoanTemplateVariableGroup[];
+    limits: { maxFileBytes: number };
 }
 
 export interface InventoryErasureRequest {

@@ -98,7 +98,7 @@ class NotificationPreferencesServiceTest {
         assertThatThrownBy(() -> service.save(request, authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("digest.quietHours");
+            .isEqualTo("preferences.digest.quietHours");
     }
 
     private static JwtAuthenticationToken authentication() {
@@ -111,7 +111,7 @@ class NotificationPreferencesServiceTest {
         assertThatThrownBy(() -> service.save(request(builder -> builder.timeZone = "Mars/Olympus"), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("timeZone.invalid");
+            .isEqualTo("preferences.timeZone.invalid");
     }
 
     @Test
@@ -119,11 +119,11 @@ class NotificationPreferencesServiceTest {
         assertThatThrownBy(() -> service.save(request(builder -> builder.reminderMinutes = 1441), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("reminder.invalid");
+            .isEqualTo("preferences.reminder.invalid");
         assertThatThrownBy(() -> service.save(request(builder -> builder.reminderMinutes = -1), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("reminder.invalid");
+            .isEqualTo("preferences.reminder.invalid");
     }
 
     @Test
@@ -159,7 +159,7 @@ class NotificationPreferencesServiceTest {
         }), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("user.notFound");
+            .isEqualTo("auth.user.inactive");
     }
 
     @Test
@@ -170,7 +170,7 @@ class NotificationPreferencesServiceTest {
         ))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("quietHours.invalid");
+            .isEqualTo("preferences.quietHours.invalid");
     }
 
     @Test
@@ -181,7 +181,7 @@ class NotificationPreferencesServiceTest {
         ))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("pushPause.invalid");
+            .isEqualTo("preferences.pushPause.invalid");
     }
 
     @Test
@@ -192,7 +192,7 @@ class NotificationPreferencesServiceTest {
         ))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("pushPause.invalid");
+            .isEqualTo("preferences.pushPause.invalid");
     }
 
     @Test
@@ -205,7 +205,7 @@ class NotificationPreferencesServiceTest {
         ))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("categories.incomplete");
+            .isEqualTo("preferences.categories.incomplete");
 
         var duplicated = Arrays.stream(NotificationSource.values())
             .map(source -> new NotificationCategoryPreferenceDTO(NotificationSource.CALENDAR, true, NotificationPushMode.OFF))
@@ -213,7 +213,7 @@ class NotificationPreferencesServiceTest {
         assertThatThrownBy(() -> service.save(request(builder -> builder.categories = duplicated), authentication()))
             .isInstanceOf(RequestAlertException.class)
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
-            .isEqualTo("categories.invalid");
+            .isEqualTo("preferences.categories.invalid");
     }
 
     @Test

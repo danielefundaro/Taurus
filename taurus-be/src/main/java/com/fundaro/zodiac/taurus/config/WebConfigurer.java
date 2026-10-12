@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.config;
 
 import com.fundaro.zodiac.taurus.multitenancy.TenantContextInterceptor;
 import com.fundaro.zodiac.taurus.web.rest.TenantFeatureInterceptor;
+import com.fundaro.zodiac.taurus.web.rest.TenantProvisioningInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -30,15 +31,18 @@ public class WebConfigurer implements WebMvcConfigurer {
     private final JHipsterProperties jHipsterProperties;
 
     private final TenantContextInterceptor tenantContextInterceptor;
+    private final TenantProvisioningInterceptor tenantProvisioningInterceptor;
     private final TenantFeatureInterceptor tenantFeatureInterceptor;
 
     public WebConfigurer(
         JHipsterProperties jHipsterProperties,
         TenantContextInterceptor tenantContextInterceptor,
+        TenantProvisioningInterceptor tenantProvisioningInterceptor,
         TenantFeatureInterceptor tenantFeatureInterceptor
     ) {
         this.jHipsterProperties = jHipsterProperties;
         this.tenantContextInterceptor = tenantContextInterceptor;
+        this.tenantProvisioningInterceptor = tenantProvisioningInterceptor;
         this.tenantFeatureInterceptor = tenantFeatureInterceptor;
     }
 
@@ -65,6 +69,8 @@ public class WebConfigurer implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(tenantContextInterceptor).addPathPatterns("/api/**");
+        // Before the feature check: an unprovisioned tenant has no feature flags to read
+        registry.addInterceptor(tenantProvisioningInterceptor).addPathPatterns("/api/**");
         registry.addInterceptor(tenantFeatureInterceptor).addPathPatterns("/api/**");
     }
 }

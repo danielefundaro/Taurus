@@ -60,6 +60,10 @@ jobs:
         run: node scripts/docs/validate-feature-catalog.mjs
       - name: Test documentation tooling
         run: node --test scripts/docs/feature-catalog.test.mjs
+      - name: Test error catalog check
+        run: node --test scripts/docs/error-catalog.test.mjs
+      - name: Check error catalog
+        run: node scripts/docs/check-error-catalog.mjs
       - name: Verify generated matrix
         run: |
           node scripts/docs/generate-feature-index.mjs

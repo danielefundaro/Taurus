@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -12,8 +12,20 @@ import {
     InventoryIssueStatus,
     InventoryItem,
     InventoryLabelRequest,
+    InventoryLoanExpirationRange,
+    InventoryLoanSheetCloseRequest,
+    InventoryLoanSheetDetail,
+    InventoryLoanSheetIssueRequest,
+    InventoryLoanSheetProposal,
+    InventoryLoanSheetSummary,
+    InventoryLoanDurations,
+    InventoryLoanTemplateCheck,
+    InventoryLoanTemplateFile,
+    InventoryLoanTemplateOverview,
     InventoryPhoto,
+    InventoryRenewalRequest,
     InventoryReturn,
+    InventorySubstitutionRequest,
     Page
 } from '../module';
 
@@ -46,11 +58,11 @@ export class InventoryService {
     deleteItem(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/items/${id}`);
     }
-    assign(itemId: number, request: InventoryAssignmentRequest): Observable<InventoryAssignment> {
-        return this.http.post<InventoryAssignment>(`${this.baseUrl}/items/${itemId}/assignments`, request);
+    assign(itemId: number, request: InventoryAssignmentRequest, context?: HttpContext): Observable<InventoryAssignment> {
+        return this.http.post<InventoryAssignment>(`${this.baseUrl}/items/${itemId}/assignments`, request, { context });
     }
-    updateAssignment(id: number, request: InventoryAssignmentRequest): Observable<InventoryAssignment> {
-        return this.http.put<InventoryAssignment>(`${this.baseUrl}/assignments/${id}`, request);
+    updateAssignment(id: number, request: InventoryAssignmentRequest, context?: HttpContext): Observable<InventoryAssignment> {
+        return this.http.put<InventoryAssignment>(`${this.baseUrl}/assignments/${id}`, request, { context });
     }
     deleteAssignment(id: number): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/assignments/${id}`);
@@ -92,11 +104,6 @@ export class InventoryService {
         data.append('file', file);
         return this.http.post(`${this.baseUrl}/returns/${returnId}/photos`, data);
     }
-    downloadReport(userIndex: number, includeAssigned = true, includeReturned = true, includePhotos = true): Observable<Blob> {
-        const url = `${this.baseUrl}/users/${userIndex}/report`;
-        const params = new HttpParams().set('includeAssigned', includeAssigned).set('includeReturned', includeReturned).set('includePhotos', includePhotos);
-        return this.http.get(url, { params, responseType: 'blob' });
-    }
     getErasureRequests(): Observable<InventoryErasureRequest[]> {
         return this.http.get<InventoryErasureRequest[]>(`${this.baseUrl}/erasure-requests`);
     }
@@ -128,5 +135,81 @@ export class InventoryService {
     }
     issuePhotoUrl(id: number): string {
         return `${this.baseUrl}/issue-photos/${id}`;
+    }
+
+    getLoanSheets(userIndex: number): Observable<InventoryLoanSheetSummary[]> {
+        return this.http.get<InventoryLoanSheetSummary[]>(`${this.baseUrl}/users/${userIndex}/loan-sheets`);
+    }
+    /** Scadenze ammesse per un comodato a scadenza del socio consegnato in `deliveredOn` (oggi se assente). */
+    getLoanExpirationRange(userIndex: number, deliveredOn?: string): Observable<InventoryLoanExpirationRange> {
+        const params = deliveredOn ? new HttpParams().set('deliveredOn', deliveredOn) : undefined;
+        return this.http.get<InventoryLoanExpirationRange>(`${this.baseUrl}/users/${userIndex}/loan-expiration-range`, { params });
+    }
+    getLoanSheetProposal(userIndex: number): Observable<InventoryLoanSheetProposal> {
+        return this.http.get<InventoryLoanSheetProposal>(`${this.baseUrl}/users/${userIndex}/loan-sheets/proposal`);
+    }
+    previewLoanSheet(userIndex: number, request: InventoryLoanSheetIssueRequest): Observable<Blob> {
+        return this.http.post(`${this.baseUrl}/users/${userIndex}/loan-sheets/preview`, request, { responseType: 'blob' });
+    }
+    issueLoanSheet(userIndex: number, request: InventoryLoanSheetIssueRequest, context?: HttpContext): Observable<InventoryLoanSheetDetail> {
+        return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/users/${userIndex}/loan-sheets`, request, { context });
+    }
+    getLoanSheet(id: number): Observable<InventoryLoanSheetDetail> {
+        return this.http.get<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}`);
+    }
+    downloadLoanSheet(id: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-sheets/${id}/pdf`, { responseType: 'blob' });
+    }
+    linkLoanSheetAssignment(sheetId: number, assignmentId: number): Observable<InventoryLoanSheetDetail> {
+        return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${sheetId}/assignments/${assignmentId}`, null);
+    }
+    closeLoanSheet(id: number, request: InventoryLoanSheetCloseRequest): Observable<InventoryLoanSheetDetail> {
+        return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}/close`, request);
+    }
+    settleLoanSheet(id: number): Observable<InventoryLoanSheetDetail> {
+        return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}/settle`, null);
+    }
+    cancelLoanSheet(id: number, reason: string): Observable<InventoryLoanSheetDetail> {
+        return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}/cancel`, { reason });
+    }
+    renewAssignment(id: number, request: InventoryRenewalRequest): Observable<InventoryAssignment> {
+        return this.http.post<InventoryAssignment>(`${this.baseUrl}/assignments/${id}/renewals`, request);
+    }
+    substituteAssignment(id: number, request: InventorySubstitutionRequest): Observable<InventoryAssignment> {
+        return this.http.post<InventoryAssignment>(`${this.baseUrl}/assignments/${id}/substitution`, request);
+    }
+
+    getLoanTemplate(): Observable<InventoryLoanTemplateOverview> {
+        return this.http.get<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template`);
+    }
+    updateLoanDurations(durations: InventoryLoanDurations, entityVersion: number): Observable<InventoryLoanTemplateOverview> {
+        return this.http.put<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template/durations`, { durations, entityVersion });
+    }
+    checkLoanTemplate(file: InventoryLoanTemplateFile): Observable<InventoryLoanTemplateCheck> {
+        return this.http.post<InventoryLoanTemplateCheck>(`${this.baseUrl}/loan-template/check`, file);
+    }
+    previewLoanTemplate(file: InventoryLoanTemplateFile, context?: HttpContext): Observable<Blob> {
+        return this.http.post(`${this.baseUrl}/loan-template/preview`, file, { responseType: 'blob', context });
+    }
+    activateLoanTemplate(file: InventoryLoanTemplateFile, context?: HttpContext): Observable<InventoryLoanTemplateOverview> {
+        return this.http.post<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template`, file, { context });
+    }
+    activateLoanTemplateVersion(id: number, context?: HttpContext): Observable<InventoryLoanTemplateOverview> {
+        return this.http.post<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template/versions/${id}/activate`, null, { context });
+    }
+    useDefaultLoanTemplate(): Observable<InventoryLoanTemplateOverview> {
+        return this.http.post<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template/use-default`, null);
+    }
+    downloadDefaultLoanTemplate(): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-template/default/file`, { responseType: 'blob' });
+    }
+    previewDefaultLoanTemplate(context?: HttpContext): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-template/default/preview`, { responseType: 'blob', context });
+    }
+    downloadLoanTemplateVersion(id: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-template/versions/${id}/file`, { responseType: 'blob' });
+    }
+    previewLoanTemplateVersion(id: number, context?: HttpContext): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-template/versions/${id}/preview`, { responseType: 'blob', context });
     }
 }

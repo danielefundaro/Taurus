@@ -6,7 +6,7 @@ import { BadgeModule } from 'primeng/badge';
 import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { StyleClassModule } from 'primeng/styleclass';
 import { TooltipModule } from 'primeng/tooltip';
-import { KeycloakService, LayoutService, TenantFeatureService } from '../../service';
+import { KeycloakService, LayoutService, TenantFeatureService, TenantStatusService } from '../../service';
 import { ConfiguratorComponent } from '../configurator/configurator.component';
 
 @Component({
@@ -22,20 +22,30 @@ export class TopbarComponent implements OnInit {
     constructor(
         protected layoutService: LayoutService,
         private readonly keycloakService: KeycloakService,
-        private readonly tenantFeatureService: TenantFeatureService
+        private readonly tenantFeatureService: TenantFeatureService,
+        private readonly tenantStatusService: TenantStatusService
     ) { }
 
     ngOnInit(): void {
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
     }
 
+    protected get bootstrap(): boolean {
+        return this.tenantStatusService.bootstrap();
+    }
+
     protected get tenantName(): string {
+        if (this.bootstrap) return 'Primo accesso';
         return this.tenantFeatureService.current()?.tenantName?.trim() ?? '';
     }
 
     protected get fullName(): string {
         const parts = [this.keycloakService.currentUserFirstName, this.keycloakService.currentUserLastName];
         return parts.filter(Boolean).join(' ');
+    }
+
+    protected logout(): void {
+        this.keycloakService.logout();
     }
 
     protected toggleMenu(): void {

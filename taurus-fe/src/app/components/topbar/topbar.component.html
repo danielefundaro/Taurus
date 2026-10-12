@@ -94,6 +94,7 @@
                     <span class="topbar-user-welcome">Benvenuto {{ fullName }}</span>
                 </div>
                 }
+                @if (!bootstrap) {
                 <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']" pTooltip="Calendario"
                     tooltipPosition="bottom">
                     <i class="pi pi-calendar"></i>
@@ -111,6 +112,14 @@
                     <i class="pi pi-user"></i>
                     <span>Profilo</span>
                 </button>
+                } @else {
+                <!-- In modalità bootstrap il profilo non è raggiungibile: l'uscita resta sempre a portata di mano. -->
+                <button type="button" class="layout-topbar-action" aria-label="Esci" pTooltip="Esci"
+                    tooltipPosition="bottom" (click)="logout()">
+                    <i class="pi pi-sign-out"></i>
+                    <span>Esci</span>
+                </button>
+                }
             </div>
         </div>
     </div>

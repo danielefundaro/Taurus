@@ -25,7 +25,7 @@ public class TenantTimeZoneService {
     @Transactional(readOnly = true)
     public ZoneId currentZoneId() {
         String tenantCode = TenantContext.getTenantCode().orElseThrow(() ->
-            new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant context is required", "CalendarEventSeries", "tenant.missing")
+            new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant context is required", "CalendarEventSeries", "auth.tenant.missing")
         );
         String timeZone = tenantsRepository.findByCodeAndDeletedFalse(tenantCode)
             .map(tenant -> tenant.getTimeZone())

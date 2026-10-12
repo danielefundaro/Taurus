@@ -64,16 +64,16 @@ public class QueueUploadFilesServiceImpl
         boolean superAdmin = token.getAuthorities().stream()
             .anyMatch(authority -> AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()));
         if (user == null && !superAdmin) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Current user not found", getEntityName(), "user.notFound");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Current user not found", getEntityName(), "auth.user.inactive");
         }
         dto.setUserId(user == null ? null : user.getId());
         QueueUploadFiles upload = getMapper().toEntity(dto);
         upload.setUser(user);
         if (dto.getSourceMediaAssetId() == null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Source media asset is required", getEntityName(), "media.required");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Source media asset is required", getEntityName(), "track.upload.mediaRequired");
         }
         upload.setSourceMediaAsset(mediaRepository.findByIdAndDeletedFalse(dto.getSourceMediaAssetId())
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Source media asset not found", getEntityName(), "media.notFound")));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Source media asset not found", getEntityName(), "track.upload.mediaNotFound")));
         if (dto.getTrackId() != null) {
             Tracks track = tracksRepository.findByIdAndDeletedFalse(dto.getTrackId())
                 .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Track not found", getEntityName(), "track.notFound"));
@@ -111,14 +111,14 @@ public class QueueUploadFilesServiceImpl
                 token
             );
             if (!"application/pdf".equals(media.getMimeType())) {
-                throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Only PDF uploads are supported", getEntityName(), "file.unsupported");
+                throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Only PDF uploads are supported", getEntityName(), "track.upload.unsupported");
             }
             dto.setSourceMediaAssetId(media.getId());
             dto.setStatus(UploadFileStatusEnum.TO_PROCESS);
             dto.setName(fileName);
             return save(dto, token);
         } catch (java.io.IOException exception) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Error occurred while uploading the file", getEntityName(), "file.upload");
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Error occurred while uploading the file", getEntityName(), "track.upload.failed");
         }
     }
 

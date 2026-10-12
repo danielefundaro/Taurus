@@ -74,7 +74,7 @@ public class CalendarFeedManagementService {
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
         if (subscriptions.countByOwner_IdAndStatusAndDeletedFalse(owner.getId(), CalendarFeedStatus.ACTIVE) >= 3)
-            throw conflict("Maximum active personal feeds reached");
+            throw conflict("Maximum active personal feeds reached").with("maximum", 3);
         return create(request, CalendarFeedType.PERSONAL, scope, owner, actor, requestDigest, fingerprint);
     }
 
@@ -89,7 +89,7 @@ public class CalendarFeedManagementService {
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
         if (subscriptions.countByFeedTypeAndStatusAndDeletedFalse(CalendarFeedType.TENANT, CalendarFeedStatus.ACTIVE) >= 10)
-            throw conflict("Maximum active tenant feeds reached");
+            throw conflict("Maximum active tenant feeds reached").with("maximum", 10);
         return create(request, CalendarFeedType.TENANT, scope, null, actor, requestDigest, fingerprint);
     }
 
@@ -186,16 +186,16 @@ public class CalendarFeedManagementService {
         CalendarFeedIdempotency receipt = idempotency.findById(requestDigest).orElse(null);
         if (receipt == null) return null;
         if (!MessageDigest.isEqual(receipt.getRequestFingerprint(), fingerprint))
-            throw conflict("Idempotency key already used for a different request");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Idempotency key already used for a different request", "CalendarFeed", "calendarFeed.idempotency.conflict");
         CalendarFeedSubscription subscription = subscriptions.findByIdAndDeletedFalse(receipt.getSubscriptionId()).orElseThrow(this::notFound);
         if (subscription.getStatus() != CalendarFeedStatus.ACTIVE || subscription.getTokenVersion() != receipt.getTokenVersion()) {
-            throw conflict("Idempotency response is no longer current");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Idempotency response is no longer current", "CalendarFeed", "calendarFeed.idempotency.stale");
         }
         String token = idempotencyCodec.decrypt(receipt.getTokenCiphertext(), receipt.getTokenNonce(), key, requestDigest);
         byte[] digest = tokens.decodeAndDigest(token);
         if (digest == null || !MessageDigest.isEqual(subscription.getTokenFingerprint().getBytes(StandardCharsets.US_ASCII),
             tokens.fingerprint(digest).getBytes(StandardCharsets.US_ASCII)))
-            throw conflict("Idempotency response is no longer current");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Idempotency response is no longer current", "CalendarFeed", "calendarFeed.idempotency.stale");
         return secret(subscription, token);
     }
 

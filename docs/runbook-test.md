@@ -197,6 +197,8 @@ node scripts/docs/validate-feature-catalog.mjs
 node --test scripts/docs/feature-catalog.test.mjs
 node scripts/docs/generate-feature-index.mjs
 git diff --exit-code -- docs/features.md
+node --test scripts/docs/error-catalog.test.mjs
+node scripts/docs/check-error-catalog.mjs
 ```
 
 ### 8.2 Backend
@@ -224,15 +226,15 @@ Build e test con profilo produzione:
 Test mirati tenant:
 
 ```powershell
-.\mvnw.cmd "-Dtest=TenantContextTest,TenantSchemaNameResolverTest,SchemaMultiTenantConnectionProviderTest" test
-.\mvnw.cmd "-Dit.test=TenantSchemaProvisioningServiceIT" failsafe:integration-test failsafe:verify
+.\mvnw.cmd "-Dtest=TenantContextTest,TenantSchemaNameResolverTest,SchemaMultiTenantConnectionProviderTest,TenantProvisioningStatusTest,TenantProvisioningInterceptorTest" test
+.\mvnw.cmd "-Dit.test=TenantSchemaProvisioningServiceIT,TenantBootstrapIT" failsafe:integration-test failsafe:verify
 ```
 
 Verificare che Docker sia realmente disponibile: `TenantSchemaProvisioningServiceIT` usa un'assumption e può risultare saltato se Docker non è raggiungibile. Un test P0 saltato rende il run incompleto.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
-Gli integration test delle risorse le cui tabelle vivono solo negli schemi tenant — `NoticesResourceIT`, `PreferencesResourceIT`, `LastResearchResourceIT` — estendono `TenantAwareResourceIT`, che provisiona lo schema, registra un tenant attivo in `public.tenant` e apre il `TenantContext` sul thread di test. L'autenticazione passa da `@WithMockTenantUser`: `@WithMockUser` non basta, perché tenant e utente vengono letti dai claim di un `JwtAuthenticationToken` e qualsiasi altra autenticazione viene ignorata o rifiutata.
+Gli integration test delle risorse le cui tabelle vivono solo negli schemi tenant — `NoticesResourceIT`, `PreferencesResourceIT`, `LastResearchResourceIT`, `TenantBootstrapIT` — estendono `TenantAwareResourceIT`, che provisiona lo schema, registra un tenant attivo in `public.tenant` e apre il `TenantContext` sul thread di test. L'autenticazione passa da `@WithMockTenantUser`: `@WithMockUser` non basta, perché tenant e utente vengono letti dai claim di un `JwtAuthenticationToken` e qualsiasi altra autenticazione viene ignorata o rifiutata.
 
 Report JaCoCo attesi sotto `taurus-be/target/site/jacoco` e `taurus-be/target/site/jacoco-it`.
 
@@ -296,7 +298,7 @@ Eseguire per ogni risorsa tenant-scoped significativa:
 | `MT-002` | Utente A usa ID di record B | `404` o rifiuto senza rivelare l'esistenza |
 | `MT-003` | Utente A crea/aggiorna/elimina indicando tenant B nel payload | Tenant da token; nessuna scrittura in B |
 | `MT-004` | Token senza claim tenant su endpoint tenant | Rifiuto controllato |
-| `MT-005` | Claim tenant sconosciuto/eliminato | Rifiuto fail-closed |
+| `MT-005` | Claim tenant sconosciuto/eliminato | Rifiuto fail-closed: `409` con `error.tenant.notProvisioned` sulle API dello schema tenant (per un tenant appena eliminato entro 30 secondi) |
 | `MT-006` | Due richieste concorrenti A/B sul pool JDBC | Nessuna contaminazione di schema |
 | `MT-007` | Eccezione durante richiesta A e riuso connessione da B | Schema ripristinato, nessun leak |
 | `MT-008` | Scheduler attraversa A e B, A fallisce | B prosegue; contesto sempre corretto |
@@ -313,8 +315,8 @@ Ripetere CRUD, ricerca, paginazione, export, upload e cancellazione per almeno d
 | --- | --- | --- | --- |
 | `AUTH-001` | Login per ogni ruolo | P0 | Ruolo e tenant corretti; landing page consentita |
 | `AUTH-002` | Password errata/utente disabilitato | P0 | Accesso negato senza dettaglio sensibile |
-| `AUTH-003` | Token scaduto, firma errata o issuer diverso | P0 | `401`, nessuna elaborazione |
-| `AUTH-004` | Token valido ma ruolo insufficiente | P0 | `403`; UI non sostituisce il controllo BE |
+| `AUTH-003` | Token scaduto, firma errata o issuer diverso | P0 | `401` con `error.auth.unauthenticated`, nessuna elaborazione |
+| `AUTH-004` | Token valido ma ruolo insufficiente | P0 | `403` con `error.auth.forbidden`; UI non sostituisce il controllo BE |
 | `AUTH-005` | Accesso diretto a route FE non consentita | P1 | Redirect/rifiuto coerente |
 | `AUTH-006` | Refresh token | P0 | Sessione rinnovata senza perdere tenant/ruolo |
 | `AUTH-007` | Logout | P0 | Sessione locale e IdP chiuse come previsto |
@@ -359,6 +361,8 @@ Automatizzare questi casi con Keycloak reale; i soli unit test attuali non basta
 | `DB-010` | Soft delete e cascade | P0 | Record nascosti/cascati secondo specifica |
 | `DB-011` | Cancellazione GDPR tenant | P0 | Commit, drop schema e registry `DELETED` coerenti |
 | `DB-012` | Restore DB più media | P0 | Referenze e file coerenti allo stesso punto |
+| `DB-014` | Upgrade di un tenant con proforma inventario già generati | P1 | Tabella `inventory_report_export` eliminata; media dei PDF marcati come eliminati, salvo quelli usati da altre tabelle; file rimossi dalla pulizia dei media dopo il periodo di attesa |
+| `DB-013` | Primo accesso con tenant senza schema (gruppo di bootstrap `temp`) | P0 | `GET /api/tenant-status` con `provisioned: false`; `409` con `error.tenant.notProvisioned` sulle API dello schema tenant e nessun errore di relazione inesistente; gestione tenant disponibile al super amministratore; altri ruoli sulla pagina «Tenant non configurato»; dopo creazione del tenant e nuovo login nessun errore |
 
 Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alterare changeset applicati: aggiungere un nuovo changeset correttivo.
 
@@ -432,8 +436,16 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `INV-003 P1`: revisioni, decisioni e audit immutabili.
 - `INV-004 P1`: reso parziale/totale e foto associate.
 - `INV-005 P0`: cancellazione/erasure non rompe la tracciabilità prevista.
-- `INV-006 P1`: report/export rispetta filtri, ruoli e tenant.
+- `INV-006 P1`: il proforma PDF dell'inventario non esiste più: nessun pulsante né endpoint `/report`; il socio scarica solo i propri fogli di affidamento.
 - `INV-007 P1`: scadenze e notifiche una volta per finestra.
+- `LOAN-001 P0`: foglio di affidamento emesso solo con regime di comodato e scadenze coerenti con le regole di durata del tenant, copiate sul foglio; un solo foglio emesso per socio.
+- `LOAN-002 P0`: consegne successive, sostituzioni, rinnovi e riconsegne parziali compaiono nel registro delle variazioni; il rinnovo oltre i limiti è rifiutato.
+- `LOAN-003 P1`: chiusura solo con beni tutti rientrati; il verbale di riconsegna riporta esito, addebito e firmatario.
+- `LOAN-004 P0`: definizione manuale e automatica rimuovono dati personali e PDF del foglio; il socio non scarica più il PDF.
+- `LOAN-005 P1`: modello del foglio caricabile per tenant con versioni immutabili; il predefinito e il proprio modello si scaricano; variabili sconosciute, risorse esterne e costrutti non ammessi bloccano anteprima e attivazione; i fogli già emessi restano generati con il proprio modello.
+- `LOAN-006 P1`: stampa A4 del foglio sovrapponibile al modello Word dell'associazione (verifica fisica).
+- `LOAN-007 P0`: assegnazione, o modifica della scadenza, di un oggetto in comodato con scadenza: data mancante o fuori dall'intervallo rifiutata con un messaggio che indica le date ammesse, mostrato sotto il campo; il calendario resta libero e indica l'intervallo; regole del foglio emesso del socio o, senza foglio, regole correnti del tenant; comodato precario e regime non indicato restano liberi.
+- `LOAN-008 P1`: valore concordato del foglio uguale al valore unitario stimato dell'oggetto in euro, copiato sulla riga all'emissione; con altra valuta la cella resta vuota.
 - `QR-001 P0`: risoluzione public ID restituisce solo dati pubblici previsti.
 - `QR-002 P0`: ID inesistente, ruotato o tenant/feature disabilitati non espongono dati.
 - `QR-003 P1`: rate limit per risoluzione applicato e recupera dopo finestra.
@@ -526,6 +538,19 @@ Unità e componente sono automatizzati in `taurus-fe/src/app/pages/preview/previ
 - `PRV-011 P1`: refresh o collegamento diretto a `/preview` senza stato riporta a una destinazione sicura senza errori non gestiti.
 - `PRV-012 P1`: la presentazione parte dalla pagina corrente, `Escape` chiude prima la presentazione e alla chiusura l'anteprima resta sull'ultima pagina mostrata.
 - `PRV-013 P1`: tema chiaro/scuro, viewport fino a 320 px, nomi lunghi e comandi a sola icona con area attiva di almeno 44 × 44 px.
+
+### 14.13 Errori applicativi
+
+Riferimento: [Standard degli errori applicativi](application-errors-standard.md).
+
+- `ERR-001 P0`: ogni risposta d'errore, in ogni profilo, contiene solo `type`, `title`, `status`, `message`, eventualmente `args` o `fieldErrors`, ed `errorId`; nessun `detail`, `params`, `path`, `cause`, messaggio di eccezione o risposta di Keycloak.
+- `ERR-002 P0`: l'`errorId` della risposta compare nella riga `error_response` del log del backend, con chiave e descrizione interna.
+- `ERR-003 P0`: il toast mostra il testo del catalogo del frontend per la chiave, con i parametri formattati (date `dd/MM/yyyy`); il `title` della risposta non compare mai.
+- `ERR-004 P0`: un socio che chiede assegnazione, riconsegna, fotografia o foglio di un altro socio riceve `404` con la stessa chiave di una risorsa inesistente.
+- `ERR-005 P1`: un 409 di regola (per esempio quantità non disponibile) mostra il messaggio della regola; un 409 di concorrenza mostra il titolo «Dati modificati».
+- `ERR-006 P1`: un errore 5xx o 502 mostra nel toast «Codice errore» con l'`errorId`.
+- `ERR-007 P1`: la scadenza non valida nel dettaglio inventario compare sotto il campo, senza toast.
+- `ERR-008 P0`: `node scripts/docs/check-error-catalog.mjs` termina senza errori: backend, catalogo e frontend riportano le stesse chiavi e gli stessi parametri.
 
 ## 15. Frontend, UX e accessibilità
 

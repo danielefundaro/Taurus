@@ -1,14 +1,16 @@
 package com.fundaro.zodiac.taurus.web.rest.errors;
 
-import java.net.URI;
-
+/**
+ * Keys of the errors that do not come from a {@link RequestAlertException}. See docs/application-errors-standard.md.
+ */
 public final class ErrorConstants {
 
-    public static final String ERR_CONCURRENCY_FAILURE = "error.concurrencyFailure";
-    public static final String ERR_VALIDATION = "error.validation";
-    public static final String PROBLEM_BASE_URL = "https://www.jhipster.tech/problem";
-    public static final URI DEFAULT_TYPE = URI.create(PROBLEM_BASE_URL + "/problem-with-message");
-    public static final URI CONSTRAINT_VIOLATION_TYPE = URI.create(PROBLEM_BASE_URL + "/constraint-violation");
+    public static final String MESSAGE_PREFIX = "error.";
+    public static final String VALIDATION = "validation";
+    public static final String CONCURRENCY_FAILURE = "concurrencyFailure";
+    public static final String UNAUTHENTICATED = "auth.unauthenticated";
+    public static final String FORBIDDEN = "auth.forbidden";
+    public static final String HTTP_PREFIX = "http.";
 
     private ErrorConstants() {
     }

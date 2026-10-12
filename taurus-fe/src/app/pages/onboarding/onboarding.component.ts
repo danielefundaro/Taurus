@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin, interval, startWith, switchMap } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { OnboardingContext, OnboardingIssue, OnboardingJob, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../../module';
-import { OnboardingService, ToastService } from '../../service';
+import { OnboardingService, withErrorSummary } from '../../service';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { StepperModule } from 'primeng/stepper';
 
@@ -121,7 +121,6 @@ export class OnboardingComponent implements OnInit {
 
     constructor(
         private readonly onboarding: OnboardingService,
-        private readonly toast: ToastService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
     ) {
@@ -151,7 +150,7 @@ export class OnboardingComponent implements OnInit {
     protected upload(): void {
         if (!this.selectedFile || this.busy) return;
         this.busy = true;
-        this.onboarding.upload(this.selectedFile, this.format, this.format === 'CSV' ? this.csvSection : undefined, this.format === 'XLSX' ? this.selectedSections : [], crypto.randomUUID()).subscribe({
+        this.onboarding.upload(this.selectedFile, this.format, this.format === 'CSV' ? this.csvSection : undefined, this.format === 'XLSX' ? this.selectedSections : [], crypto.randomUUID(), withErrorSummary('Caricamento non riuscito')).subscribe({
             next: (job) => {
                 this.busy = false;
                 this.selectedFile = undefined;
@@ -160,26 +159,20 @@ export class OnboardingComponent implements OnInit {
                 this.router.navigate(['/onboarding/imports', job.id], { replaceUrl: true });
                 this.startPolling(job.id);
             },
-            error: () => {
-                this.busy = false;
-                this.toast.error('Caricamento non riuscito', 'Controlla formato e dimensione del file, quindi riprova.');
-            }
+            error: () => (this.busy = false)
         });
     }
     protected apply(): void {
         if (!this.job || !this.canApply || this.busy) return;
         this.busy = true;
-        this.onboarding.apply(this.job.id, this.warningsAccepted, this.sendSetupEmails, crypto.randomUUID()).subscribe({
+        this.onboarding.apply(this.job.id, this.warningsAccepted, this.sendSetupEmails, crypto.randomUUID(), withErrorSummary('Importazione non avviata')).subscribe({
             next: (job) => {
                 this.busy = false;
                 this.job = job;
                 this.activeStep = 5;
                 this.startPolling(job.id);
             },
-            error: () => {
-                this.busy = false;
-                this.toast.error('Importazione non avviata', 'Lo stato del tenant o del job è cambiato. Ricarica la verifica.');
-            }
+            error: () => (this.busy = false)
         });
     }
     protected retryValidation(): void {
@@ -256,7 +249,8 @@ export class OnboardingComponent implements OnInit {
     }
 
     private loadContext(): void {
-        forkJoin({ context: this.onboarding.context(), jobs: this.onboarding.jobs(0, 10) }).subscribe({
+        const context = withErrorSummary('Onboarding non disponibile');
+        forkJoin({ context: this.onboarding.context(context), jobs: this.onboarding.jobs(0, 10, context) }).subscribe({
             next: ({ context, jobs }) => {
                 this.context = context;
                 this.recentJobs = jobs.content;
@@ -264,7 +258,7 @@ export class OnboardingComponent implements OnInit {
                 this.selectedSections = this.selectedSections.filter((section) => context.availableSections.includes(section));
                 if (!context.availableSections.includes(this.csvSection)) this.csvSection = context.availableSections[0] ?? 'USERS';
             },
-            error: () => this.toast.error('Onboarding non disponibile', 'Verifica di avere accesso alla configurazione iniziale.')
+            error: () => undefined
         });
     }
     private loadJob(id: number, poll: boolean): void {

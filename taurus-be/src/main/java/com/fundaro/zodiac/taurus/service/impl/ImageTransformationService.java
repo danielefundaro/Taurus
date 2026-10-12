@@ -26,6 +26,7 @@ public class ImageTransformationService implements PageImageTransformer {
     static final long MAX_PIXELS = 40_000_000L;
     static final int MAX_SIDE = 20_000;
     static final int MAX_BYTES = 50 * 1024 * 1024;
+    static final int MAX_CROPS = 8;
 
     public TrackPageImageDTOs.Analysis analyze(Long mediaId, byte[] content) {
         BufferedImage image = decode(content);
@@ -147,7 +148,7 @@ public class ImageTransformationService implements PageImageTransformer {
             if (!ImageIO.write(image, "png", output)) throw new IOException("PNG writer is not available");
             byte[] bytes = output.toByteArray();
             if (bytes.length > MAX_BYTES)
-                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge");
+                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
             return bytes;
         } catch (IOException exception) {
             throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Unable to encode image", "trackPageImage", "image.encode");
@@ -157,13 +158,13 @@ public class ImageTransformationService implements PageImageTransformer {
     private BufferedImage decode(byte[] content) {
         if (content == null || content.length == 0) throw badRequest("Image is empty", "image.empty");
         if (content.length > MAX_BYTES)
-            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge");
+            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
             if (image == null)
                 throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image format", "trackPageImage", "image.unsupported");
             if (image.getWidth() > MAX_SIDE || image.getHeight() > MAX_SIDE || (long) image.getWidth() * image.getHeight() > MAX_PIXELS) {
-                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge");
+                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge").with("maxSide", MAX_SIDE).with("maxMegapixels", (int) (MAX_PIXELS / 1_000_000));
             }
             return image;
         } catch (IOException exception) {
@@ -258,7 +259,7 @@ public class ImageTransformationService implements PageImageTransformer {
     }
 
     private static void validateCrops(List<PageEditRecipe.Crop> crops) {
-        if (crops == null || crops.size() > 8) throw badRequest("Invalid crop regions", "image.crops.invalid");
+        if (crops == null || crops.size() > MAX_CROPS) throw badRequest("Invalid crop regions", "image.crops.invalid").with("maximum", MAX_CROPS);
         for (PageEditRecipe.Crop crop : crops) {
             if (crop == null || crop.x() < 0 || crop.y() < 0 || crop.width() < 0.02 || crop.height() < 0.02 || crop.x() + crop.width() > 1.000001 || crop.y() + crop.height() > 1.000001) {
                 throw badRequest("Invalid crop region", "image.crop.invalid");

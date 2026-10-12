@@ -284,7 +284,7 @@ Le operazioni interne non raggiunte tramite controller, in particolare job sched
 
 ### Risposta in caso di funzionalità disabilitata
 
-Restituire `403 Forbidden` con un codice applicativo distinguibile dal normale errore di ruolo:
+Restituire `403 Forbidden` con un codice applicativo distinguibile dal normale errore di ruolo (`error.auth.forbidden`), nella forma prevista dallo [Standard degli errori applicativi](application-errors-standard.md):
 
 ```json
 {

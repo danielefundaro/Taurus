@@ -24,9 +24,6 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     protected rejectionReason = '';
     protected returnQuantity = 1;
     protected returnNotes = '';
-    protected reportIncludeAssigned = true;
-    protected reportIncludeReturned = true;
-    protected reportIncludePhotos = true;
     protected readonly inventoryQrEnabled;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
@@ -62,10 +59,6 @@ export class InventoryAssignmentDetailComponent implements OnInit {
 
     protected get returnableQuantity(): number {
         return Math.max(0, (this.assignment?.outstandingQuantity ?? 0) - this.pendingReturnQuantity);
-    }
-
-    protected get canDownloadReport(): boolean {
-        return this.reportIncludeAssigned || this.reportIncludeReturned;
     }
 
     ngOnInit(): void {
@@ -153,20 +146,6 @@ export class InventoryAssignmentDetailComponent implements OnInit {
 
     protected returnPhotoUrl(id: number): string {
         return this.inventoryService.returnPhotoUrl(id);
-    }
-
-    protected downloadReport(): void {
-        this.inventoryService
-            .downloadReport(this.reportIncludeAssigned, this.reportIncludeReturned, this.reportIncludePhotos)
-            .pipe(first())
-            .subscribe((blob) => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = 'prospetto-inventario.pdf';
-                anchor.click();
-                URL.revokeObjectURL(url);
-            });
     }
 
     private load(id: number): void {

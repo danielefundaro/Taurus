@@ -253,7 +253,7 @@ public class TrackPageImageService {
     private static String requiredActor(AbstractAuthenticationToken token) {
         String actor = SecurityUtils.getUserIdFromAuthentication(token);
         if (actor == null || actor.isBlank())
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "trackPageImage", "identity.missing");
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "trackPageImage", "auth.identity.missing");
         return actor;
     }
 

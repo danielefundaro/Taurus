@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -25,8 +25,8 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this.http.post<D>(`${this._baseUrl}/${this.resourceName()}`, d);
     }
 
-    public update(id: number, d: D): Observable<D> {
-        return this.http.put<D>(`${this._baseUrl}/${this.resourceName()}/${id}`, d);
+    public update(id: number, d: D, context?: HttpContext): Observable<D> {
+        return this.http.put<D>(`${this._baseUrl}/${this.resourceName()}/${id}`, d, { context });
     }
 
     public partialUpdate(id: number, d: D): Observable<D> {
@@ -38,8 +38,8 @@ export abstract class CommonOpenSearchService<D extends CommonFieldsOpenSearch, 
         return this.http.get<Page<D>>(`${this._baseUrl}/${this.resourceName()}`, { params: options, observe: 'body' });
     }
 
-    public getById(id: number): Observable<D> {
-        return this.http.get<D>(`${this._baseUrl}/${this.resourceName()}/${id}`);
+    public getById(id: number, context?: HttpContext): Observable<D> {
+        return this.http.get<D>(`${this._baseUrl}/${this.resourceName()}/${id}`, { context });
     }
 
     public delete(id: number): Observable<void> {

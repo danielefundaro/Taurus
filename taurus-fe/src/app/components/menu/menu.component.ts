@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, effect, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective } from '../../directive';
 import { MenuItemComponent } from '../menu-item/menu-item.component';
-import { TenantFeatureService } from '../../service';
+import { TenantFeatureService, TenantStatusService } from '../../service';
 
 @Component({
     selector: 'app-menu',
@@ -16,8 +16,11 @@ import { TenantFeatureService } from '../../service';
 export class MenuComponent implements OnInit {
     model: MenuItem[] = [];
 
+    private readonly tenantStatusService = inject(TenantStatusService);
+
     constructor(private readonly tenantFeatureService: TenantFeatureService) {
         effect(() => {
+            this.tenantStatusService.bootstrap();
             this.tenantFeatureService.loaded();
             this.tenantFeatureService.financeEnabled();
             this.tenantFeatureService.inventoryEnabled();
@@ -32,6 +35,11 @@ export class MenuComponent implements OnInit {
     }
 
     private buildMenu(): void {
+        if (this.tenantStatusService.bootstrap()) {
+            this.model = this.bootstrapMenu();
+            return;
+        }
+
         this.model = [
             {
                 label: 'Home',
@@ -137,6 +145,24 @@ export class MenuComponent implements OnInit {
                         icon: 'pi pi-fw pi-calendar',
                         routerLink: ['/calendar'],
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                    }
+                ]
+            }
+        ];
+    }
+
+    /** Un tenant senza schema non ha dati: al super amministratore resta solo la creazione del primo tenant. */
+    private bootstrapMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Primo accesso',
+                hasRoles: [RoleEnums.SUPER_ADMIN],
+                items: [
+                    {
+                        label: 'Tenant',
+                        icon: 'pi pi-fw pi-building',
+                        routerLink: ['/tenants'],
+                        hasRoles: [RoleEnums.SUPER_ADMIN]
                     }
                 ]
             }

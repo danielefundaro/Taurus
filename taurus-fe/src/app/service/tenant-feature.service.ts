@@ -3,6 +3,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import { finalize, interval, Observable, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TenantFeature, TenantFeatureCapabilities, TenantFeatures } from '../module';
+import { TenantStatusService } from './tenant-status.service';
 
 @Injectable({ providedIn: 'root' })
 export class TenantFeatureService {
@@ -24,7 +25,10 @@ export class TenantFeatureService {
     readonly current = this.features.asReadonly();
     readonly capabilities = this.capabilityState.asReadonly();
 
-    constructor(private readonly http: HttpClient) {
+    constructor(
+        private readonly http: HttpClient,
+        private readonly tenantStatus: TenantStatusService
+    ) {
         interval(TenantFeatureService.maxAgeMs).subscribe(() => {
             if (document.visibilityState === 'visible') this.refresh().subscribe({ error: () => undefined });
         });
@@ -34,6 +38,8 @@ export class TenantFeatureService {
     }
 
     refresh(force = false): Observable<TenantFeatures> {
+        // Un tenant senza schema non ha flag da leggere: tutte le funzioni restano spente.
+        if (this.tenantStatus.bootstrap()) return of(TenantFeatureService.bootstrapFeatures(this.tenantStatus.tenantCode()));
         const cached = this.features();
         if (!force && cached && Date.now() - this.lastLoadedAt < TenantFeatureService.maxAgeMs) return of(cached);
         if (this.inFlight) return this.inFlight;
@@ -68,6 +74,22 @@ export class TenantFeatureService {
             case TenantFeature.EVENT_PREPARATION:
                 return this.eventPreparationEnabled();
         }
+    }
+
+    private static bootstrapFeatures(tenantCode: string | null): TenantFeatures {
+        return {
+            tenantCode: tenantCode ?? '',
+            tenantName: '',
+            version: 0,
+            financeEnabled: false,
+            inventoryEnabled: false,
+            onboardingImportEnabled: false,
+            externalCalendarFeedEnabled: false,
+            inventoryQrEnabled: false,
+            notificationPreferencesEnabled: false,
+            webPushRemindersEnabled: false,
+            eventPreparationEnabled: false
+        };
     }
 
     loadCapabilities(): Observable<TenantFeatureCapabilities> {

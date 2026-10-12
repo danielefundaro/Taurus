@@ -383,10 +383,10 @@ public class FinanceService {
     public AttachmentDTO addAttachment(long movementId, MultipartFile file, String description, AbstractAuthenticationToken token) throws IOException {
         tenant(token);
         if (file == null || file.isEmpty() || file.getSize() > MAX_ATTACHMENT_SIZE) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge");
+            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge").with("maxMegabytes", (int) (MAX_ATTACHMENT_SIZE / (1024 * 1024)));
         }
         if (attachmentRepository.countByMovement_IdAndDeletedFalseAndActiveTrue(movementId) >= MAX_ATTACHMENTS) {
-            throw error(HttpStatus.CONFLICT, "Sono consentiti al massimo 20 allegati per movimento", "finance.attachment.limit");
+            throw error(HttpStatus.CONFLICT, "Sono consentiti al massimo 20 allegati per movimento", "finance.attachment.limit").with("maximum", MAX_ATTACHMENTS);
         }
         String mime = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!List.of("application/pdf", "image/jpeg", "image/png").contains(mime)) {
@@ -1070,13 +1070,13 @@ public class FinanceService {
     private static String actor(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getUserIdFromAuthentication(token);
         if (!notBlank(value))
-            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "finance.identity.missing");
+            throw error(HttpStatus.UNAUTHORIZED, "Identità utente non disponibile", "auth.identity.missing");
         return value;
     }
 
     private static String tenant(AbstractAuthenticationToken token) {
         String value = SecurityUtils.getTenantIdFromAuthentication(token);
-        if (!notBlank(value)) throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "finance.tenant.missing");
+        if (!notBlank(value)) throw error(HttpStatus.FORBIDDEN, "Tenant non disponibile", "auth.tenant.missing");
         return value;
     }
 

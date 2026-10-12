@@ -195,7 +195,7 @@ public class EventPreparationService {
         int order = 0;
         List<CalendarEventProgramEntry> added = new ArrayList<>();
         for (ProgramEntryRequest row : request.entries()) {
-            Tracks track = tracks.findByIdAndDeletedFalse(row.trackId()).orElseThrow(() -> invalid("Traccia non trovata"));
+            Tracks track = tracks.findByIdAndDeletedFalse(row.trackId()).orElseThrow(() -> invalid("Traccia non trovata", "eventPreparation.track.notFound"));
             CalendarEventProgramEntry entry = new CalendarEventProgramEntry();
             entry.setEvent(event);
             entry.setTrack(track);
@@ -222,10 +222,10 @@ public class EventPreparationService {
         int order = 0;
         List<CalendarEventMaterial> added = new ArrayList<>();
         for (MaterialRequest row : request.materials()) {
-            InventoryItem item = inventoryItems.findByIdAndDeletedFalse(row.itemId()).orElseThrow(() -> invalid("Oggetto inventario non trovato"));
-            InventoryAssignment assignment = row.assignmentId() == null ? null : assignments.findByIdAndDeletedFalse(row.assignmentId()).orElseThrow(() -> invalid("Assegnazione non trovata"));
+            InventoryItem item = inventoryItems.findByIdAndDeletedFalse(row.itemId()).orElseThrow(() -> invalid("Oggetto inventario non trovato", "eventPreparation.item.notFound"));
+            InventoryAssignment assignment = row.assignmentId() == null ? null : assignments.findByIdAndDeletedFalse(row.assignmentId()).orElseThrow(() -> invalid("Assegnazione non trovata", "eventPreparation.assignment.notFound"));
             if (assignment != null && !assignment.getItem().getId().equals(item.getId()))
-                throw invalid("L'assegnazione non appartiene all'oggetto selezionato");
+                throw invalid("L'assegnazione non appartiene all'oggetto selezionato", "eventPreparation.assignment.itemMismatch");
             CalendarEventMaterial material = new CalendarEventMaterial();
             material.setEvent(event);
             material.setItem(item);
@@ -242,7 +242,7 @@ public class EventPreparationService {
     }
 
     public View confirmMaterial(Long eventId, Long materialId, AbstractAuthenticationToken token) {
-        CalendarEventMaterial material = materials.findCurrentById(eventId, materialId).orElseThrow(() -> invalid("Materiale non trovato"));
+        CalendarEventMaterial material = materials.findCurrentById(eventId, materialId).orElseThrow(() -> invalid("Materiale non trovato", "eventPreparation.material.notFound"));
         material.setConfirmationHash(materialHash(material));
         material.setConfirmationAt(ZonedDateTime.now());
         material.setConfirmationBy(actor(token));
@@ -277,7 +277,7 @@ public class EventPreparationService {
         CalendarEvents event = event(eventId);
         CalendarEventPreparation preparation = requiredPreparation(eventId);
         List<FinancialMovement> current = movements.findAllByEvent_IdAndDeletedFalseOrderByBookingDateAscIdAsc(eventId);
-        if (!current.isEmpty()) throw invalid("Sono presenti movimenti economici");
+        if (!current.isEmpty()) throw invalid("Sono presenti movimenti economici", "eventPreparation.movements.exists");
         preparation.setNoMovementsConfirmationHash(financialHash(event, current));
         preparation.setNoMovementsConfirmationAt(ZonedDateTime.now());
         preparation.setNoMovementsConfirmationBy(actor(token));
@@ -498,9 +498,9 @@ public class EventPreparationService {
     }
 
     private void validate(Configuration c) {
-        if (c.scoresRequired() && !c.programRequired()) throw invalid("Gli spartiti richiedono il programma");
+        if (c.scoresRequired() && !c.programRequired()) throw invalid("Gli spartiti richiedono il programma", "eventPreparation.program.required");
         if (c.availabilityRequired() && (c.minimumAvailableParticipants() == null || c.minimumAvailableParticipants() < 1))
-            throw invalid("Indica il numero minimo di partecipanti");
+            throw invalid("Indica il numero minimo di partecipanti", "eventPreparation.participants.required");
     }
 
     private String materialHash(CalendarEventMaterial m) {
@@ -555,14 +555,14 @@ public class EventPreparationService {
     }
 
     private CalendarEvents event(Long id) {
-        CalendarEvents value = events.findByIdAndDeletedFalse(id).orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "notFound"));
+        CalendarEvents value = events.findByIdAndDeletedFalse(id).orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "eventPreparation.event.notFound"));
         if (Boolean.TRUE.equals(value.getSeriesExcluded()))
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "notFound");
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "eventPreparation.event.notFound");
         return value;
     }
 
     private CalendarEventPreparation requiredPreparation(Long id) {
-        return preparations.findByEvent_IdAndDeletedFalse(id).orElseThrow(() -> invalid("Configura prima la preparazione"));
+        return preparations.findByEvent_IdAndDeletedFalse(id).orElseThrow(() -> invalid("Configura prima la preparazione", "eventPreparation.notConfigured"));
     }
 
     private static String actor(AbstractAuthenticationToken token) {
@@ -573,16 +573,16 @@ public class EventPreparationService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    private static RequestAlertException invalid(String message) {
-        return new RequestAlertException(HttpStatus.BAD_REQUEST, message, ENTITY, "invalid");
+    private static RequestAlertException invalid(String message, String key) {
+        return new RequestAlertException(HttpStatus.BAD_REQUEST, message, ENTITY, key);
     }
 
     private static void conflict() {
-        throw new RequestAlertException(HttpStatus.CONFLICT, "La configurazione è stata modificata", ENTITY, "concurrentModification");
+        throw new RequestAlertException(HttpStatus.CONFLICT, "La configurazione è stata modificata", ENTITY, "eventPreparation.versionConflict");
     }
 
     private static RequestAlertException notFound() {
-        return new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "notFound");
+        return new RequestAlertException(HttpStatus.NOT_FOUND, "Evento non trovato", ENTITY, "eventPreparation.event.notFound");
     }
 
     private void notifyProgramChanged(CalendarEvents event, List<CalendarEventProgramEntry> rows, AbstractAuthenticationToken token) {

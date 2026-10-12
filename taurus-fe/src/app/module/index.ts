@@ -1,3 +1,4 @@
+export * from './api-error.module';
 export * from './albums.module';
 export * from './calendar-event-series.module';
 export * from './calendar-events.module';

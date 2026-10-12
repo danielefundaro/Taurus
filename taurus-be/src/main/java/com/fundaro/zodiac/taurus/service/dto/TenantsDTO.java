@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -36,6 +37,13 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     @URL(regexp = "https?://.*", message = "must be a valid HTTP or HTTPS URL")
     @Size(max = 2048)
     private String logoUrl;
+
+    @Size(max = 64)
+    private String phone;
+
+    @Email
+    @Size(max = 255)
+    private String pec;
 
     @NotBlank
     @Size(max = 64)
@@ -163,6 +171,22 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
         this.logoUrl = logoUrl;
     }
 
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPec() {
+        return pec;
+    }
+
+    public void setPec(String pec) {
+        this.pec = pec;
+    }
+
     public String getTimeZone() {
         return timeZone;
     }
@@ -266,6 +290,8 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(taxCode, that.taxCode) &&
             Objects.equals(vatNumber, that.vatNumber) &&
             Objects.equals(logoUrl, that.logoUrl) &&
+            Objects.equals(phone, that.phone) &&
+            Objects.equals(pec, that.pec) &&
             Objects.equals(timeZone, that.timeZone) &&
             Objects.equals(financeEnabled, that.financeEnabled) &&
             Objects.equals(inventoryEnabled, that.inventoryEnabled) &&
@@ -280,7 +306,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, entityVersion);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, entityVersion);
     }
 
     @Override
@@ -303,6 +329,8 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", taxCode='" + taxCode + '\'' +
             ", vatNumber='" + vatNumber + '\'' +
             ", logoUrl='" + logoUrl + '\'' +
+            ", phone='" + phone + '\'' +
+            ", pec='" + pec + '\'' +
             ", timeZone='" + timeZone + '\'' +
             ", financeEnabled=" + financeEnabled +
             ", inventoryEnabled=" + inventoryEnabled +

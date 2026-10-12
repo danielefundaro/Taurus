@@ -239,7 +239,72 @@ Endpoint locali attesi:
 
 Il backend abilita Spring Docker Compose e può tentare di avviare `services.yml` automaticamente. Per evitare due owner dello stesso stack, scegliere una sola modalità: avvio manuale del compose oppure lifecycle Spring.
 
-### 5.2 Controllo stato
+### 5.2 Primo accesso su ambiente vuoto
+
+Dopo un reset completo di PostgreSQL e Keycloak l'ambiente non contiene tenant reali. Il realm importato da `taurus-be/src/main/docker/realm-config/taurus-realm.json` definisce solo il gruppo di bootstrap `temp`, che non ha una riga in `public.tenant` né uno schema PostgreSQL. Il primo accesso serve solo a creare il primo tenant reale.
+
+Segnale di ambiente vuoto: all'avvio il backend registra `No active PostgreSQL tenant schemas to migrate`.
+
+**1. Preparare il super amministratore in Keycloak.** Dalla console `http://localhost:9080`, nel realm `taurus` (non `master`), creare l'utente, ad esempio `superadmin`, e configurarlo così:
+
+| Impostazione | Dove | Valore |
+| --- | --- | --- |
+| Password | Credentials | Password non temporanea |
+| Ruolo client | Role mapping → Assign role → filtro per client | `web_app` → `ROLE_SUPER_ADMIN`, assegnato direttamente all'utente |
+| Gruppo | Groups → Join group | `temp` |
+| Attributo | Attributes | Chiave `temp_roles`, valore `ROLE_SUPER_ADMIN` |
+
+Perché servono:
+
+- il flusso di login `Browser with Tenant and Role` ricava i tenant dai gruppi dell'utente e i ruoli dall'attributo `<gruppo>_roles`, con valori separati da virgola. Se nessun gruppo ha il relativo attributo, il login fallisce dopo la password con `INVALID_USER`;
+- alla creazione di un tenant il backend aggiunge al nuovo gruppo solo gli utenti che hanno il ruolo client `web_app` → `ROLE_SUPER_ADMIN` assegnato direttamente, non tramite un gruppo o un ruolo composito.
+
+**2. Accedere con il tenant `temp`.** Accedere a `http://localhost:4200` come `superadmin`. Con un solo tenant e un solo ruolo la selezione è automatica.
+
+`temp` non ha uno schema, quindi l'app entra in **modalità bootstrap**: `GET /api/tenant-status` risponde `provisioned: false`. In questa modalità:
+
+- il menu contiene solo la voce Tenant e ogni altra pagina riporta a `/tenants`;
+- la pagina Tenant mostra l'avviso «Primo accesso» con il pulsante Esci;
+- la barra in alto mostra «Primo accesso» e, al posto di calendario, notifiche e profilo, il pulsante Esci;
+- notifiche, promemoria push, preferenze e funzioni del tenant non vengono richiesti;
+- un utente senza `ROLE_SUPER_ADMIN` vede invece la pagina «Tenant non configurato».
+
+Il backend risponde `409` con `error.tenant.notProvisioned` a ogni API che richiede lo schema del tenant, invece di fallire su tabelle inesistenti. Restano disponibili solo le API annotate con `@TenantSchemaNotRequired`: gestione tenant, capability delle funzioni, account, `auth-info`, logout e stato del tenant.
+
+**3. Creare il primo tenant.** Dalla pagina Tenant, aperta automaticamente, creare il tenant. La pagina usa solo lo schema `public` e Keycloak.
+
+Il codice diventa il nome del gruppo Keycloak e il prefisso dell'attributo `<codice>_roles`. Usare quindi solo minuscole, cifre e trattini, senza spazi né virgole.
+
+La creazione esegue il provisioning descritto al §13.1 e, in più:
+
+1. crea il gruppo Keycloak `<codice>`;
+2. vi aggiunge ogni utente con il ruolo client `ROLE_SUPER_ADMIN`;
+3. imposta su ciascuno l'attributo `<codice>_roles` con i suoi ruoli client `web_app`.
+
+Verifiche:
+
+- nel log del backend compare `Tenant <codice> PostgreSQL schema tenant_<hash> is ready`;
+- in Keycloak l'utente è membro del gruppo `<codice>` e ha l'attributo `<codice>_roles` = `ROLE_SUPER_ADMIN`. Se manca, aggiungerlo a mano.
+
+Se la creazione fallisce, la riga del tenant viene rimossa: seguire il §13.2.
+
+**4. Rientrare nel tenant reale.**
+
+1. Eseguire il logout con il pulsante Esci della barra in alto o dell'avviso «Primo accesso». Le preferenze di layout scelte sotto `temp` restano solo nel browser e vengono cancellate all'uscita.
+2. Eseguire di nuovo il login e scegliere il nuovo tenant nella schermata di selezione.
+
+**5. Facoltativo: dismettere `temp`.** Rimuovere l'utente dal gruppo `temp` ed eliminare l'attributo `temp_roles`: da quel momento il login entra direttamente nel tenant reale. Il gruppo `temp` può restare, perché serve solo al bootstrap.
+
+| Sintomo | Causa | Intervento |
+| --- | --- | --- |
+| `user_not_found` nei log Keycloak | Utente creato in un altro realm, ad esempio `master` | Creare l'utente nel realm `taurus` |
+| Login rifiutato dopo la password, con `AuthenticationFlowException` o `INVALID_USER` | Nessun gruppo con attributo `<gruppo>_roles` valorizzato | Passo 1 |
+| Avviso «Primo accesso» e menu con la sola voce Tenant | Sessione su un tenant senza schema, ad esempio `temp` | Passi 3 e 4 |
+| Risposte `409` con `error.tenant.notProvisioned` nel log del backend | Richieste fatte con un tenant senza schema | Nessuno durante il primo accesso; altrimenti verificare il registro (§13.2) |
+| Pagina «Tenant non configurato» | Utente senza `ROLE_SUPER_ADMIN` su un tenant senza schema | Accedere con il super amministratore e creare il tenant, oppure scegliere un tenant configurato |
+| Il nuovo tenant non compare nella selezione | Ruolo client non assegnato direttamente oppure attributo `<codice>_roles` assente | Aggiungere a mano gruppo e attributo |
+
+### 5.3 Controllo stato
 
 ```powershell
 docker compose -f taurus-be/src/main/docker/services.yml ps
@@ -251,7 +316,7 @@ Test-NetConnection localhost -Port 9080
 
 Health atteso del backend: HTTP `200` e stato `UP`. I dettagli completi richiedono autorizzazione amministrativa.
 
-### 5.3 Arresto
+### 5.4 Arresto
 
 Arrestare backend e frontend con `Ctrl+C`, quindi:
 
@@ -573,7 +638,8 @@ La creazione tramite `POST /api/tenants`:
 2. genera uno schema fisico sicuro;
 3. applica `tenant-master.xml`;
 4. copia eventuali dati legacy in modo idempotente;
-5. porta il registro a `ACTIVE`.
+5. porta il registro a `ACTIVE`;
+6. crea il gruppo Keycloak con lo stesso codice e vi associa i super amministratori, impostando su ciascuno l'attributo `<codice>_roles`.
 
 Verificare registro, log e presenza delle tabelle Liquibase nello schema. Il ruolo DB deve avere `CREATE` sul database e `USAGE, CREATE` su `public`; in produzione separare per quanto possibile privilegi di migration e runtime.
 
@@ -656,7 +722,8 @@ In caso di perdita dati attivare la procedura DR e ripristinare database e media
 - verificare redirect URI e web origins;
 - controllare connessione al database `taurus_keycloak`;
 - verificare caricamento e compatibilità del provider custom;
-- escludere clock skew tra browser, backend e Keycloak.
+- escludere clock skew tra browser, backend e Keycloak;
+- su un ambiente appena resettato verificare gruppo, attributo `<gruppo>_roles` e ruolo client del super amministratore (§5.2).
 
 Non bypassare OIDC e non distribuire client secret nel frontend.
 

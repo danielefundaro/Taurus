@@ -6,6 +6,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { CalendarEventsTableComponent } from '../../../components/calendar-events-table/calendar-events-table.component';
 import { InventoryAssignmentsComponent } from '../../../components/inventory-assignments/inventory-assignments.component';
+import { InventoryLoanSheetsComponent } from '../../../components/inventory-loan-sheets/inventory-loan-sheets.component';
 import { RoleEnums, RoleLabel, RoleLabelsMap } from '../../../constants';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
@@ -15,7 +16,7 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
 
 @Component({
     selector: 'app-user-detail',
-    imports: [ImportsModule, MultiSelectModule, CalendarEventsTableComponent, InventoryAssignmentsComponent],
+    imports: [ImportsModule, MultiSelectModule, CalendarEventsTableComponent, InventoryAssignmentsComponent, InventoryLoanSheetsComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [InstrumentsService]

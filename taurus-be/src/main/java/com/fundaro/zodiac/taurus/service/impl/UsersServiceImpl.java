@@ -88,17 +88,17 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public UsersDTO save(UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "user.role.forbidden");
         }
 
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         TenantsDTO tenantsDTO = tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.BAD_REQUEST, "Tenant not found", getEntityName(), "tenant.notFound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant not found", getEntityName(), "auth.tenant.missing"));
         long usersCount = super.count(new UsersCriteria(), abstractAuthenticationToken);
         Long maxUsers = tenantsDTO.getMaxUsers();
 
         if (maxUsers != null && maxUsers >= 0 && usersCount >= maxUsers) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", maxUsers), getEntityName(), "user.limit.exceeded");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", maxUsers), getEntityName(), "user.limit.exceeded").with("maximum", maxUsers);
         }
 
         User user = getMapper().toKeycloakUser(dto);
@@ -166,7 +166,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public UsersDTO update(Long id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles() == null || dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "user.role.forbidden");
         }
 
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
@@ -192,7 +192,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public UsersDTO partialUpdate(Long id, UsersDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         if (dto.getRoles() != null && dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
-            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "not.allow");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "user.role.forbidden");
         }
 
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
@@ -204,10 +204,10 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public UsersDTO partialUpdateOwn(UsersMeDTO dto, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO currentUser = findMe(abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
 
         if (currentUser.getId() == null) {
-            throw new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound");
+            throw new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound");
         }
 
         // Fetch full Keycloak user to preserve existing attributes (e.g. tenant roles)
@@ -228,7 +228,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public void deleteOwn(AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO currentUser = findMe(abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
         String keycloakId = Strings.isNotBlank(currentUser.getKeycloakId())
             ? currentUser.getKeycloakId()
             : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
@@ -244,7 +244,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public void deleteOwnForGdpr(AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO currentUser = findMe(abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
         String keycloakId = Strings.isNotBlank(currentUser.getKeycloakId())
             ? currentUser.getKeycloakId()
             : SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken);
@@ -273,7 +273,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public UsersDTO delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO user = findOne(id, abstractAuthenticationToken)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         UsersDTO deleted = super.delete(id, abstractAuthenticationToken);
         removeUserFromTenant(user.getKeycloakId(), tenantCode);
@@ -283,7 +283,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     @Override
     public void deleteForGdpr(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO user = findOneIncludingDeleted(id)
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notfound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         boolean deferred = dataErasureService.requestInventoryAwareErasure(
             user.getKeycloakId(),

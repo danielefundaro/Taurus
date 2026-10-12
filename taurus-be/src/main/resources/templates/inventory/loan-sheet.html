@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<!--
+  Modello predefinito Taurus del foglio di consegna e affidamento in comodato.
+
+  Il modello è un file HTML con CSS, convertito in PDF con le regole del CSS paged media.
+  I dati del foglio si inseriscono con le variabili Mustache, per esempio {{associazione.nome}};
+  sintassi, regole del file ed elenco completo delle variabili sono descritti nella pagina
+  «Modello del foglio di affidamento» dell'inventario.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Foglio di consegna e affidamento in comodato</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 20mm 20mm 20mm;
+      @top-right {
+        content: element(pageHeader);
+        vertical-align: top;
+        padding-top: 9mm;
+      }
+      @bottom-left {
+        content: element(pageFooterLeft);
+        vertical-align: bottom;
+        padding-bottom: 9mm;
+      }
+      @bottom-right {
+        content: element(pageFooterRight);
+        vertical-align: bottom;
+        padding-bottom: 9mm;
+      }
+    }
+
+    body {
+      font-family: sans-serif;
+      font-size: 10pt;
+      line-height: 1.15;
+      color: #000000;
+      margin: 0;
+    }
+
+    .page-header {
+      position: running(pageHeader);
+      font-size: 8pt;
+      font-style: italic;
+      text-align: right;
+    }
+
+    .page-footer-left {
+      position: running(pageFooterLeft);
+      font-size: 8pt;
+    }
+
+    .page-footer-right {
+      position: running(pageFooterRight);
+      font-size: 8pt;
+      text-align: right;
+    }
+
+    .page-number::after {
+      content: counter(page);
+    }
+
+    .page-count::after {
+      content: counter(pages);
+    }
+
+    .tenant-name {
+      text-align: center;
+      font-size: 24pt;
+      line-height: 1.1;
+      margin: 0;
+    }
+
+    .tenant-address {
+      text-align: center;
+      font-size: 14pt;
+      margin: 1pt 0 0 0;
+    }
+
+    .tenant-contacts {
+      text-align: center;
+      font-size: 9pt;
+      margin: 2pt 0 12pt 0;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 0 0 10pt 0;
+      padding-bottom: 4pt;
+      border-bottom: 1pt solid #404040;
+    }
+
+    h2 {
+      font-size: 11pt;
+      font-weight: bold;
+      margin: 12pt 0 6pt 0;
+      padding-bottom: 2pt;
+      border-bottom: 0.75pt solid #404040;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 10pt;
+      font-weight: bold;
+      margin: 10pt 0 4pt 0;
+      page-break-after: avoid;
+    }
+
+    .new-page {
+      page-break-before: always;
+    }
+
+    p {
+      margin: 0 0 4pt 0;
+      text-align: justify;
+    }
+
+    p.item {
+      margin-left: 26pt;
+      text-indent: -13pt;
+    }
+
+    .italic p {
+      font-style: italic;
+      font-size: 9pt;
+    }
+
+    .option p {
+      margin-left: 13pt;
+      text-indent: -13pt;
+    }
+
+    .box {
+      display: inline-block;
+      width: 7pt;
+      height: 7pt;
+      border: 0.6pt solid #000000;
+      margin-right: 4pt;
+      font-size: 6.5pt;
+      font-weight: bold;
+      line-height: 7pt;
+      text-align: center;
+      text-indent: 0;
+      font-style: normal;
+      vertical-align: baseline;
+    }
+
+    .checks {
+      margin: 6pt 0 8pt 0;
+    }
+
+    .checks .box {
+      margin-left: 10pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+
+    table.form td {
+      border: 0.5pt solid #808080;
+      height: 21pt;
+      padding: 1pt 4pt;
+      font-size: 9pt;
+      vertical-align: middle;
+    }
+
+    table.form td.label {
+      background-color: #ededed;
+    }
+
+    table.grid {
+      -fs-table-paginate: paginate;
+      margin-top: 4pt;
+    }
+
+    table.grid th {
+      border: 0.5pt solid #808080;
+      background-color: #ededed;
+      font-size: 8pt;
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+      padding: 2pt 2pt;
+    }
+
+    table.grid td {
+      border: 0.5pt solid #808080;
+      font-size: 8pt;
+      padding: 1pt 3pt;
+      vertical-align: middle;
+      word-wrap: break-word;
+    }
+
+    table.goods td, table.returns td {
+      height: 20pt;
+    }
+
+    table.register td {
+      height: 24pt;
+    }
+
+    td.number {
+      text-align: center;
+      font-size: 9pt;
+    }
+
+    td.center {
+      text-align: center;
+    }
+
+    .authorization {
+      display: block;
+      font-size: 6.5pt;
+      line-height: 1.1;
+      margin-bottom: 8pt;
+      white-space: pre-line;
+    }
+
+    .nowrap, td.date {
+      white-space: nowrap;
+    }
+
+    td.date {
+      text-align: center;
+      font-size: 7.5pt;
+      padding: 1pt 1pt;
+    }
+
+    table.signatures {
+      margin-top: 8pt;
+    }
+
+    table.signatures td {
+      border: none;
+      width: 50%;
+      padding: 0 12pt 0 0;
+      vertical-align: top;
+      font-size: 9pt;
+    }
+
+    .signature-value {
+      margin-top: 4pt;
+      min-height: 10pt;
+    }
+
+    .signature-line {
+      width: 62mm;
+      border-bottom: 0.5pt solid #000000;
+      margin-top: 18pt;
+      margin-bottom: 8pt;
+    }
+
+    .signature-value + .signature-line {
+      margin-top: 2pt;
+    }
+
+    .fill {
+      border-bottom: 0.5pt solid #000000;
+      padding: 0 2pt;
+    }
+
+    .fill-wide {
+      display: inline-block;
+      min-width: 62mm;
+      border-bottom: 0.5pt solid #000000;
+    }
+
+    .place-date {
+      margin: 6pt 0 14pt 0;
+    }
+
+    .association {
+      margin-top: 16pt;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Intestazione e piè di pagina ripetuti su ogni pagina (elementi «running» del CSS paged media). -->
+<div class="page-header">{{associazione.nome}} – Foglio di affidamento n. {{#foglio.numero}}{{foglio.numero}}{{/foglio.numero}}{{^foglio.numero}}________{{/foglio.numero}}</div>
+<div class="page-footer-left">Pagina <span class="page-number"></span> di <span class="page-count"></span></div>
+<div class="page-footer-right">Sigla dell’Affidatario ____________</div>
+
+<p class="tenant-name">{{associazione.nome}}</p>
+<p class="tenant-address">{{associazione.indirizzo}}</p>
+<p class="tenant-contacts">{{associazione.recapiti}}{{#associazione.recapiti}}{{#associazione.datiFiscali}} – {{/associazione.datiFiscali}}{{/associazione.recapiti}}{{#associazione.partitaIva}}P. IVA {{associazione.partitaIva}}{{/associazione.partitaIva}}{{#associazione.partitaIva}}{{#associazione.codiceFiscale}} – {{/associazione.codiceFiscale}}{{/associazione.partitaIva}}{{#associazione.codiceFiscale}}C.F. {{associazione.codiceFiscale}}{{/associazione.codiceFiscale}}</p>
+<p class="title">FOGLIO DI CONSEGNA E AFFIDAMENTO IN COMODATO DI BENI ASSOCIATIVI</p>
+
+<div>
+  <p>Il presente foglio documenta la consegna in comodato gratuito di beni di proprietà {{associazione.nome}} (di seguito «<strong>Associazione</strong>») a un socio maggiorenne o al genitore/tutore di un socio minorenne (di seguito «<strong>Affidatario</strong>»), per il loro utilizzo nell’ambito delle attività musicali, istituzionali e associative. Con «<strong>Consiglio</strong>» si intende l’organo di amministrazione dell’Associazione previsto dallo Statuto.</p>
+</div>
+
+<!-- Sezione 1: i dati del socio sono precompilati solo se l'Affidatario è il socio maggiorenne. -->
+<h2>1. AFFIDATARIO</h2>
+<table class="form">
+  <colgroup>
+    <col style="width: 21.8%"/>
+    <col style="width: 28.2%"/>
+    <col style="width: 19.7%"/>
+    <col style="width: 30.3%"/>
+  </colgroup>
+  <tr>
+    <td class="label">Nome e cognome</td>
+    <td colspan="3">{{affidatario.nomeCognome}}</td>
+  </tr>
+  <tr>
+    <td class="label">Nato/a a</td>
+    <td></td>
+    <td class="label">Il</td>
+    <td>{{affidatario.dataNascita}}</td>
+  </tr>
+  <tr>
+    <td class="label">Residente in (via/piazza, n.)</td>
+    <td colspan="3"></td>
+  </tr>
+  <tr>
+    <td class="label">CAP</td>
+    <td></td>
+    <td class="label">Città e provincia</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="label">Codice fiscale</td>
+    <td></td>
+    <td class="label">Documento (tipo e n.)</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="label">Rilasciato da</td>
+    <td></td>
+    <td class="label">Il</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="label">Telefono</td>
+    <td></td>
+    <td class="label">E-mail</td>
+    <td>{{affidatario.email}}</td>
+  </tr>
+</table>
+<p class="checks">In qualità di:<span class="box">{{#affidatario.socioMaggiorenne}}X{{/affidatario.socioMaggiorenne}}</span>socio maggiorenne<span class="box">{{#affidatario.genitoreTutore}}X{{/affidatario.genitoreTutore}}</span>genitore / tutore del socio minorenne indicato di seguito</p>
+
+<!-- Sezione 2: precompilata solo se l'Affidatario è il genitore o tutore. -->
+<h2>2. SOCIO UTILIZZATORE MINORENNE (da compilare solo se il socio è minorenne)</h2>
+<table class="form">
+  <colgroup>
+    <col style="width: 21.8%"/>
+    <col style="width: 28.2%"/>
+    <col style="width: 19.7%"/>
+    <col style="width: 30.3%"/>
+  </colgroup>
+  <tr>
+    <td class="label">Nome e cognome</td>
+    <td colspan="3">{{minore.nomeCognome}}</td>
+  </tr>
+  <tr>
+    <td class="label">Nato/a a</td>
+    <td></td>
+    <td class="label">Il</td>
+    <td>{{minore.dataNascita}}</td>
+  </tr>
+</table>
+<div class="italic" style="margin-top: 4pt">
+  <p>Se il socio è minorenne, l’Affidatario è il genitore o tutore firmatario, che assume in proprio gli obblighi del presente foglio (art. 13).</p>
+</div>
+
+<div class="new-page">
+  <h2>3. BENI CONSEGNATI</h2>
+  <div class="italic">
+    <p>Il «valore concordato» è il valore di riferimento accettato da entrambe le parti ai fini dell’art. 8. Per gli strumenti indicare sempre la matricola e gli accessori consegnati (custodia, bocchino, cinghia, ecc.).</p>
+  </div>
+  <!-- Una riga per bene, seguita dalle righe vuote fino a 14 righe. -->
+  <table class="grid goods">
+    <colgroup>
+      <col style="width: 4.2%"/>
+      <col style="width: 15.6%"/>
+      <col style="width: 15.6%"/>
+      <col style="width: 15.6%"/>
+      <col style="width: 15.6%"/>
+      <col style="width: 6.2%"/>
+      <col style="width: 11.4%"/>
+      <col style="width: 15.8%"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th>N.</th>
+        <th>Nome</th>
+        <th>Marca / modello</th>
+        <th>Matricola / cod. inventario</th>
+        <th>Accessori / taglia</th>
+        <th>Q.tà</th>
+        <th>Valore concordato (€)</th>
+        <th>Stato alla consegna / note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#beni}}
+      <tr>
+        <td class="number">{{numero}}</td>
+        <td>{{nome}}</td>
+        <td>{{marcaModello}}</td>
+        <td>{{matricolaInventario}}</td>
+        <td>{{accessori}}</td>
+        <td class="center">{{quantita}}</td>
+        <td class="center">{{valoreConcordato}}</td>
+        <td>{{statoENote}}{{#durata.scadenzeDiverse}}{{#scadenza}}{{#statoENote}} – {{/statoENote}}Scadenza: <span class="nowrap">{{scadenza}}</span>{{/scadenza}}{{/durata.scadenzeDiverse}}</td>
+      </tr>
+      {{/beni}}
+      {{#beniRigheVuote}}
+      <tr>
+        <td class="number">{{numero}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="center"></td>
+        <td class="center"></td>
+        <td></td>
+      </tr>
+      {{/beniRigheVuote}}
+    </tbody>
+  </table>
+
+  <h2>4. DURATA DELL’AFFIDAMENTO</h2>
+  <div class="option">
+    <p><span class="box">{{#durata.aScadenza}}X{{/durata.aScadenza}}</span><strong>Strumento musicale e relativi accessori – comodato d’uso con scadenza (art. 1809 c.c.)</strong>: fino all’acquisto di uno strumento proprio da parte del socio e comunque non oltre la data di scadenza {{#durata.scadenzaUnica}}del <span class="nowrap">{{durata.scadenzaUnica}}</span>{{/durata.scadenzaUnica}}{{^durata.scadenzaUnica}}{{#durata.scadenzeDiverse}}indicata per ciascuno strumento nella sezione 3{{/durata.scadenzeDiverse}}{{^durata.scadenzeDiverse}}del ____ / ____ / ________{{/durata.scadenzeDiverse}}{{/durata.scadenzaUnica}} (non anteriore a {{durata.mesiMinimi}} mesi e non successiva a {{durata.mesiMassimi}} mesi dalla consegna), salvo rinnovo scritto ai sensi dell’art. 4.</p>
+  </div>
+  <div class="option">
+    <p><span class="box">{{#durata.precario}}X{{/durata.precario}}</span><strong>Divisa, relativi accessori e altri beni – comodato d’uso precario (art. 1810 c.c.)</strong>: senza data di scadenza determinata; i beni si restituiscono a richiesta dell’Associazione o alla cessazione del rapporto associativo, ai sensi dell’art. 10.</p>
+  </div>
+
+  <h2>5. DICHIARAZIONI DELL’AFFIDATARIO</h2>
+  <div>
+    <p>L’Affidatario, come sopra identificato, dichiara:</p>
+    <p class="item">a) di ricevere i beni elencati nella sezione 3 e di averne verificato lo stato al momento della consegna, salvo quanto annotato nella colonna «Stato alla consegna / note»;</p>
+    <p class="item">b) di accettare i valori concordati indicati nella sezione 3 come valori di riferimento ai fini dell’art. 8;</p>
+    <p class="item">c) di aver letto e di accettare le Condizioni di affidamento e responsabilità che seguono, che costituiscono parte integrante del presente foglio;</p>
+    <p class="item">d) di aver ricevuto e letto l’informativa sul trattamento dei dati personali resa ai sensi dell’art. 13 del Reg. UE 2016/679, riportata nella sezione 10.</p>
+  </div>
+</div>
+
+<div class="new-page">
+  <h2>6. CONDIZIONI DI AFFIDAMENTO E RESPONSABILITÀ</h2>
+  <div>
+    <p><strong>Art. 1 – Natura dell’affidamento.</strong> I beni sono concessi in comodato gratuito ai sensi degli artt. 1803 e seguenti del Codice civile, secondo due distinte tipologie:</p>
+    <p class="item">a) lo strumento musicale, con i relativi accessori (custodia, bocchino, cinghia, ecc.), è concesso in <strong>comodato d’uso con scadenza</strong>, con la data di scadenza determinata indicata nella sezione 4 (art. 1809 c.c.);</p>
+    <p class="item">b) la divisa, i relativi accessori e gli altri beni elencati nella sezione 3 sono concessi in <strong>comodato d’uso precario</strong>, senza data di scadenza determinata (art. 1810 c.c.).</p>
+    <p>L’affidamento non prevede alcun corrispettivo né il versamento di una cauzione.</p>
+    <p><strong>Art. 2 – Proprietà.</strong> I beni restano di esclusiva proprietà dell’Associazione. La consegna non ne trasferisce la proprietà e non attribuisce all’Affidatario alcun diritto di cederli, venderli, darli in pegno o prestarli.</p>
+    <p><strong>Art. 3 – Uso consentito.</strong> I beni possono essere utilizzati esclusivamente:</p>
+    <p class="item">a) per lo studio personale del socio;</p>
+    <p class="item">b) per le prove, i servizi, i concerti e le altre attività dell’Associazione;</p>
+    <p class="item">c) per le lezioni presso scuole di musica o conservatori frequentati dal socio.</p>
+    <p>Ogni altro utilizzo, e in particolare l’impiego in altre formazioni musicali, in esibizioni retribuite o in eventi privati, richiede la preventiva autorizzazione scritta del Presidente. È vietato affidare i beni a terzi, anche temporaneamente (art. 1804 c.c.). La divisa e i relativi accessori si indossano esclusivamente in occasione delle attività dell’Associazione.</p>
+    <p><strong>Art. 4 – Durata.</strong> Lo strumento musicale, concesso in comodato d’uso con scadenza, è affidato fino all’acquisto di uno strumento proprio da parte del socio e comunque non oltre la data di scadenza indicata nella sezione 4, che non può essere anteriore a {{durata.mesiMinimi}} mesi né successiva a {{durata.mesiMassimi}} mesi dalla consegna. Alla scadenza l’Affidatario restituisce lo strumento (art. 1809, primo comma, c.c.), salvo che il Consiglio abbia concesso per iscritto un rinnovo prima della scadenza in corso, annotato nel Registro delle variazioni (sezione 8) ai sensi dell’art. 15. Ogni rinnovo fissa una nuova data di scadenza, non successiva a {{durata.mesiRinnovoMassimi}} mesi dalla scadenza precedente e comunque non oltre {{durata.mesiComplessiviMassimi}} mesi complessivi dalla prima consegna del medesimo strumento, identificato dalla matricola; decorso tale termine complessivo lo strumento è restituito e non è ammesso alcun ulteriore rinnovo. Il termine complessivo si riferisce al singolo strumento: se l’Associazione lo sostituisce con un altro strumento, per quest’ultimo decorrono nuovi termini ai sensi del presente articolo. Non è previsto il rinnovo tacito. Prima della scadenza l’Associazione può esigere la restituzione dello strumento solo nei casi previsti dall’art. 10, lettere c) e d). La divisa, i relativi accessori e gli altri beni, concessi in comodato d’uso precario, sono affidati senza data di scadenza determinata: l’Affidatario è tenuto a restituirli non appena l’Associazione li richiede (art. 1810 c.c.), nei termini previsti dall’art. 10.</p>
+    <p><strong>Art. 5 – Custodia.</strong> L’Affidatario custodisce e conserva i beni con la diligenza del buon padre di famiglia (art. 1804 c.c.), li protegge da urti, umidità, calore e sottrazione, si attiene alle indicazioni di manutenzione ricevute dall’Associazione e comunica senza ritardo guasti, danni o malfunzionamenti.</p>
+    <p><strong>Art. 6 – Manutenzione.</strong> Sono a carico dell’Affidatario le spese di manutenzione ordinaria e di consumo necessarie per servirsi dei beni (art. 1808, primo comma, c.c.), come ance, oli, grassi, corde, pulizia dello strumento, lavaggio e stiratura della divisa secondo le indicazioni riportate in etichetta. Le manutenzioni straordinarie e le riparazioni devono essere preventivamente autorizzate per iscritto dall’Associazione, che ne sostiene i costi salvo che si tratti di danni posti a carico dell’Affidatario dall’art. 8. Le spese straordinarie sostenute senza autorizzazione non sono rimborsate, salvo che fossero necessarie e urgenti (art. 1808, secondo comma, c.c.).</p>
+    <p><strong>Art. 7 – Furto, smarrimento e perdita.</strong> L’Affidatario comunica all’Associazione il furto, lo smarrimento o la perdita di un bene entro 48 ore dal momento in cui ne ha avuto conoscenza. In caso di furto, sporge denuncia all’autorità competente e ne trasmette copia all’Associazione entro 7 giorni; in caso di smarrimento, consegna nello stesso termine una dichiarazione scritta sulle circostanze e, se si tratta di uno strumento, copia della denuncia di smarrimento. Se l’Associazione dispone di una copertura assicurativa sui beni, l’Affidatario fornisce la documentazione necessaria alla pratica. Gli adempimenti previsti dal presente articolo non esonerano l’Affidatario dal pagamento dovuto ai sensi dell’art. 8.</p>
+    <p><strong>Art. 8 – Danni e risarcimento.</strong> L’Affidatario assume a proprio carico il rischio del danneggiamento, dello smarrimento, del furto e di ogni altra perdita dei beni affidati, qualunque ne sia la natura o la causa, anche se non a lui imputabile, compresi il caso fortuito e la forza maggiore, in deroga all’art. 1805 c.c. I danni sono risarciti in misura pari al costo della riparazione. Se il bene non è riparabile oppure è smarrito, sottratto o comunque perduto, l’Affidatario corrisponde il valore concordato indicato nella sezione 3 o nel Registro delle variazioni o, in mancanza, il valore di un bene equivalente al momento dell’evento. Sono esclusi soltanto il normale deterioramento dovuto all’uso conforme al presente foglio (art. 1807 c.c.) e i difetti già presenti alla consegna e annotati nella colonna «Stato alla consegna / note». Se per lo stesso evento l’Associazione riceve un indennizzo assicurativo, l’importo dovuto dall’Affidatario è ridotto in misura corrispondente.</p>
+    <p><strong>Art. 9 – Verifiche.</strong> L’Associazione può chiedere in qualsiasi momento di verificare lo stato dei beni, con un preavviso di almeno 7 giorni, presso la propria sede o in occasione di prove e servizi.</p>
+    <p><strong>Art. 10 – Restituzione.</strong> L’Affidatario restituisce i beni:</p>
+    <p class="item">a) per lo strumento musicale, alla data di scadenza prevista dall’art. 4 o, se anteriore, all’acquisto di uno strumento proprio da parte del socio;</p>
+    <p class="item">b) per la divisa, i relativi accessori e gli altri beni in comodato d’uso precario, entro 30 giorni dalla richiesta scritta dell’Associazione (art. 1810 c.c.);</p>
+    <p class="item">c) per tutti i beni, entro 15 giorni dalla cessazione, per qualsiasi causa (recesso, esclusione, decadenza), del rapporto associativo del socio;</p>
+    <p class="item">d) per tutti i beni, anche prima della scadenza o dei termini sopra indicati, nel termine più breve indicato dall’Associazione in caso di bisogno urgente e imprevisto (art. 1809, secondo comma, c.c.).</p>
+    <p>I beni si restituiscono presso la sede dell’Associazione o nel luogo concordato, completi di accessori, puliti e in uno stato compatibile con la normale usura. La restituzione è constatata con il Verbale di riconsegna (sezione 9), firmato da entrambe le parti; fino alla firma del verbale l’Affidatario resta responsabile dei beni.</p>
+    <p><strong>Art. 11 – Mancata o ritardata restituzione.</strong> Decorso inutilmente il termine di restituzione, l’Associazione può agire per ottenere la restituzione dei beni e il risarcimento del danno. Durante il ritardo l’Affidatario risponde della perdita o del deterioramento dei beni anche se dovuti a causa a lui non imputabile (art. 1221 c.c.). Il Consiglio può inoltre valutare l’inadempimento ai fini dei provvedimenti previsti dallo Statuto.</p>
+    <p><strong>Art. 12 – Comunicazioni.</strong> Le comunicazioni previste dal presente foglio si effettuano per iscritto, tramite e-mail ai recapiti indicati nella sezione 1 e all’indirizzo dell’Associazione, PEC, raccomandata con ricevuta di ritorno oppure consegna a mano con firma per ricevuta. I termini decorrono dalla ricezione. L’Affidatario comunica tempestivamente ogni variazione dei propri recapiti.</p>
+    <p><strong>Art. 13 – Socio minorenne.</strong> Se il socio utilizzatore è minorenne, l’Affidatario è il genitore o tutore firmatario, che assume in proprio tutti gli obblighi previsti dal presente foglio, vigila sull’uso dei beni da parte del minore e ne risponde nei confronti dell’Associazione.</p>
+    <p><strong>Art. 14 – Casi non disciplinati.</strong> Per i casi straordinari, particolari o non disciplinati dal presente foglio, il Consiglio può deliberare caso per caso le modalità di concessione, mantenimento o restituzione dei beni, informandone per iscritto l’Affidatario. Tali deliberazioni non possono aggravare gli obblighi dell’Affidatario senza il suo consenso scritto. Ogni modifica delle presenti condizioni richiede la forma scritta.</p>
+    <p><strong>Art. 15 – Variazioni dei beni.</strong> Le consegne successive, le sostituzioni, le restituzioni parziali e i rinnovi sono annotati nel Registro delle variazioni (sezione 8) e firmati da entrambe le parti. Ai beni così consegnati si applicano le presenti condizioni. In caso di consegna, sostituzione o rinnovo di uno strumento musicale, nel Registro è annotata anche la relativa data di scadenza, determinata ai sensi dell’art. 4; per il rinnovo sono indicati anche gli estremi della delibera del Consiglio.</p>
+    <p><strong>Art. 16 – Dati personali.</strong> I dati personali raccolti con il presente foglio sono trattati dall’Associazione, in qualità di titolare, secondo l’informativa resa ai sensi dell’art. 13 del Reg. UE 2016/679 e riportata nella sezione 10, che costituisce parte integrante del presente foglio.</p>
+    <p><strong>Art. 17 – Norme applicabili.</strong> Per quanto non previsto si applicano gli artt. 1803-1812 c.c. in materia di comodato e le norme generali sull’inadempimento delle obbligazioni (artt. 1218 e seguenti c.c.).</p>
+  </div>
+</div>
+
+<div class="new-page">
+  <h2>7. SOTTOSCRIZIONE</h2>
+  <p class="place-date">Luogo e data&#160;&#160;<span class="fill-wide">{{foglio.luogoEData}}</span></p>
+  <table class="signatures">
+    <tr>
+      <td>Firma dell’Affidatario<div class="signature-line"></div></td>
+      <td>Firma del socio minorenne (per presa visione)<div class="signature-line"></div></td>
+    </tr>
+  </table>
+  <p class="association"><strong>Per l’Associazione</strong> – consegna autorizzata con delibera / provvedimento n. <span class="fill">{{#foglio.delibera}}{{foglio.delibera}}{{/foglio.delibera}}{{^foglio.delibera}}________{{/foglio.delibera}}</span> del <span class="fill">{{#foglio.dataDelibera}}{{foglio.dataDelibera}}{{/foglio.dataDelibera}}{{^foglio.dataDelibera}}______________{{/foglio.dataDelibera}}</span></p>
+  <table class="signatures">
+    <tr>
+      <td>Il Presidente (legale rappresentante) o consigliere delegato – nome e cognome
+        {{#foglio.firmatario}}<div class="signature-value">{{foglio.firmatario}}</div>{{/foglio.firmatario}}
+        <div class="signature-line"></div>
+      </td>
+      <td>Firma<div class="signature-line"></div></td>
+    </tr>
+  </table>
+  <h3>Approvazione specifica delle clausole</h3>
+  <div>
+    <p>Ai sensi e per gli effetti degli artt. 1341 e 1342 c.c., l’Affidatario dichiara di aver letto e di approvare specificamente le seguenti clausole: art. 3 (uso consentito e divieti); art. 4 (durata, limiti del rinnovo ed esclusione del rinnovo tacito); art. 6 (oneri di manutenzione); art. 7 (obblighi e termini in caso di furto o smarrimento); art. 8 (assunzione del rischio di danni, smarrimento e furto anche per causa non imputabile, compresi caso fortuito e forza maggiore, e relativo risarcimento); art. 10 (termini di restituzione); art. 11 (mancata restituzione e rischio durante il ritardo); art. 14 (deliberazioni del Consiglio).</p>
+  </div>
+  <table class="signatures">
+    <tr>
+      <td>Firma dell’Affidatario<div class="signature-line"></div></td>
+      <td></td>
+    </tr>
+  </table>
+</div>
+
+<div class="new-page">
+  <h2>8. REGISTRO DELLE VARIAZIONI</h2>
+  <div class="italic">
+    <p>Da compilare per ogni consegna successiva, sostituzione, restituzione parziale o rinnovo (artt. 4 e 15). Operazione: C = consegna, R = restituzione, S = sostituzione, N = rinnovo. Per gli strumenti musicali consegnati, sostituiti o rinnovati indicare la data di scadenza (art. 4); per il rinnovo indicare, accanto alla firma per l’Associazione, gli estremi della delibera del Consiglio.</p>
+  </div>
+  <!-- Una riga per variazione, seguita dalle righe vuote fino a 21 righe. -->
+  <table class="grid register">
+    <colgroup>
+      <col style="width: 9.9%"/>
+      <col style="width: 11.4%"/>
+      <col style="width: 13.5%"/>
+      <col style="width: 12.5%"/>
+      <col style="width: 11.9%"/>
+      <col style="width: 12.5%"/>
+      <col style="width: 13.5%"/>
+      <col style="width: 14.8%"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Bene</th>
+        <th>Marca / modello, matricola</th>
+        <th>Operazione (C / R / S / N)</th>
+        <th>Scadenza strumento</th>
+        <th>Valore concordato (€)</th>
+        <th>Firma Affidatario</th>
+        <th>Firma per l’Associazione</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#registro}}
+      <tr>
+        <td class="date">{{data}}</td>
+        <td>{{bene}}</td>
+        <td>{{marcaModelloMatricola}}</td>
+        <td class="center">{{operazione}}</td>
+        <td class="date">{{scadenza}}</td>
+        <td class="center">{{valoreConcordato}}</td>
+        <td></td>
+        <td>{{#delibera}}<span class="authorization">{{delibera}}</span>{{/delibera}}</td>
+      </tr>
+      {{/registro}}
+      {{#registroRigheVuote}}
+      <tr>
+        <td class="date"></td>
+        <td></td>
+        <td></td>
+        <td class="center"></td>
+        <td class="date"></td>
+        <td class="center"></td>
+        <td></td>
+        <td></td>
+      </tr>
+      {{/registroRigheVuote}}
+    </tbody>
+  </table>
+</div>
+
+<!-- Sezione 9: precompilata solo per un foglio chiuso con la riconsegna finale registrata. -->
+<div class="new-page">
+  <h2>9. VERBALE DI RICONSEGNA</h2>
+  <p class="checks">Riconsegna<span class="box">{{#riconsegna.registrata}}X{{/riconsegna.registrata}}</span>totale<span class="box"></span>parziale&#160;&#160;&#160;&#160;&#160;&#160;in data&#160;&#160;<span class="nowrap">{{#riconsegna.data}}{{riconsegna.data}}{{/riconsegna.data}}{{^riconsegna.data}}____ / ____ / ________{{/riconsegna.data}}</span></p>
+  <table class="grid returns">
+    <colgroup>
+      <col style="width: 5.2%"/>
+      <col style="width: 17.6%"/>
+      <col style="width: 15.6%"/>
+      <col style="width: 10.4%"/>
+      <col style="width: 35.6%"/>
+      <col style="width: 15.6%"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th>N.</th>
+        <th>Bene</th>
+        <th>Matricola / cod. inventario</th>
+        <th>Restituito (Sì / No)</th>
+        <th>Stato alla riconsegna / danni o mancanze rilevati</th>
+        <th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#riconsegna.beni}}
+      <tr>
+        <td class="number">{{numero}}</td>
+        <td>{{bene}}</td>
+        <td>{{matricolaInventario}}</td>
+        <td class="center">{{restituito}}</td>
+        <td>{{stato}}</td>
+        <td>{{note}}</td>
+      </tr>
+      {{/riconsegna.beni}}
+      {{#riconsegna.righeVuote}}
+      <tr>
+        <td class="number">{{numero}}</td>
+        <td></td>
+        <td></td>
+        <td class="center"></td>
+        <td></td>
+        <td></td>
+      </tr>
+      {{/riconsegna.righeVuote}}
+    </tbody>
+  </table>
+  <h3>Esito</h3>
+  <div class="option">
+    <p><span class="box">{{#riconsegna.senzaAddebiti}}X{{/riconsegna.senzaAddebiti}}</span>Beni restituiti in stato conforme, tenuto conto della normale usura: nessun addebito.</p>
+  </div>
+  <div class="option">
+    <p><span class="box">{{#riconsegna.conAddebiti}}X{{/riconsegna.conAddebiti}}</span>Rilevati danni o mancanze come sopra descritti: importo da corrispondere ai sensi dell’art. 8 € {{#riconsegna.importo}}{{riconsegna.importo}}{{/riconsegna.importo}}{{^riconsegna.importo}}______________{{/riconsegna.importo}}, entro il {{#riconsegna.termine}}<span class="nowrap">{{riconsegna.termine}}</span>{{/riconsegna.termine}}{{^riconsegna.termine}}____ / ____ / ________{{/riconsegna.termine}}.</p>
+  </div>
+  <table class="signatures">
+    <tr>
+      <td>Firma dell’Affidatario<div class="signature-line"></div></td>
+      <td>Per l’Associazione (chi riceve i beni) – nome, cognome e firma
+        {{#riconsegna.ricevutoDa}}<div class="signature-value">{{riconsegna.ricevutoDa}}</div>{{/riconsegna.ricevutoDa}}
+        <div class="signature-line"></div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div class="new-page">
+  <h2>10. INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI (art. 13 Reg. UE 2016/679 – GDPR)</h2>
+  <div>
+    <p>Ai sensi dell’art. 13 del Regolamento (UE) 2016/679 («GDPR»), l’Associazione informa l’Affidatario e, se presente, il socio minorenne, di quanto segue.</p>
+    <p><strong>a) Titolare del trattamento.</strong> {{associazione.nome}}, {{#associazione.indirizzo}}{{associazione.indirizzo}}{{/associazione.indirizzo}}{{^associazione.indirizzo}}______________{{/associazione.indirizzo}}, {{#associazione.recapiti}}{{associazione.recapiti}}{{/associazione.recapiti}}{{^associazione.recapiti}}______________{{/associazione.recapiti}}, {{#associazione.datiFiscali}}{{associazione.datiFiscali}}{{/associazione.datiFiscali}}{{^associazione.datiFiscali}}______________{{/associazione.datiFiscali}}.</p>
+    <p><strong>b) Dati trattati.</strong> Dati anagrafici, di residenza e di contatto, codice fiscale ed estremi del documento di identità dell’Affidatario e, se presente, del socio minorenne, riportati nelle sezioni 1 e 2, nonché i dati relativi ai beni affidati. Il presente foglio non richiede dati appartenenti a categorie particolari ai sensi dell’art. 9 GDPR.</p>
+    <p><strong>c) Finalità.</strong> Tutti i dati personali riportati nel presente foglio servono all’Associazione esclusivamente per identificare con certezza l’Affidatario quale soggetto responsabile dei beni affidati e per le sole operazioni connesse all’affidamento (consegna, comunicazioni, verifiche e restituzione). I dati non sono utilizzati per altre finalità, né sono oggetto di profilazione o di decisioni automatizzate.</p>
+    <p><strong>d) Base giuridica e natura del conferimento.</strong> Il trattamento è necessario all’esecuzione del comodato di cui l’Affidatario è parte (art. 6, par. 1, lett. b, GDPR). Il conferimento dei dati è necessario: in mancanza, l’Associazione non può procedere all’affidamento dei beni.</p>
+    <p><strong>e) Modalità e destinatari.</strong> I dati sono trattati su supporto cartaceo e, se necessario, informatico, con misure adeguate a garantirne la riservatezza, esclusivamente da persone autorizzate dall’Associazione (Presidente e consiglieri incaricati). I dati non sono diffusi né trasferiti fuori dall’Unione europea; possono essere comunicati soltanto alle autorità competenti, nei casi previsti dalla legge o dall’art. 7 (denuncia di furto o smarrimento), e all’eventuale compagnia assicurativa, limitatamente alla pratica di sinistro.</p>
+    <p><strong>f) Conservazione e distruzione.</strong> I dati sono conservati all’interno degli archivi dell’Associazione per tutta la durata del rapporto di affidamento e sono distrutti non appena tale rapporto termina, ossia alla firma del Verbale di riconsegna (sezione 9) che attesti la restituzione di tutti i beni senza addebiti. In presenza di danni, mancanze o contestazioni, i dati sono conservati per il solo tempo strettamente necessario alla loro definizione e poi distrutti.</p>
+    <p><strong>g) Diritti dell’interessato.</strong> L’interessato può esercitare in ogni momento i diritti di accesso, rettifica, cancellazione, limitazione, opposizione e portabilità previsti dagli artt. 15-22 GDPR, scrivendo ai recapiti del Titolare indicati alla lettera a), e ha diritto di proporre reclamo al Garante per la protezione dei dati personali (art. 77 GDPR – www.garanteprivacy.it). Per il socio minorenne i diritti sono esercitati da chi ne ha la responsabilità genitoriale o la tutela.</p>
+  </div>
+</div>
+
+</body>
+</html>

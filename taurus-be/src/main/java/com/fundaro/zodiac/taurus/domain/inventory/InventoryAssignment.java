@@ -36,6 +36,12 @@ public class InventoryAssignment extends TenantAuditedEntity {
     private InventoryAssignmentStatus status;
     @Column(name = "current_revision", nullable = false)
     private int currentRevision;
+    @Column(name = "accessories", length = 500)
+    private String accessories;
+    @Column(name = "loan_sheet_id")
+    private Long loanSheetId;
+    @Column(name = "replaces_assignment_id")
+    private Long replacesAssignmentId;
 
     public InventoryItem getItem() {
         return item;
@@ -139,6 +145,30 @@ public class InventoryAssignment extends TenantAuditedEntity {
 
     public void setCurrentRevision(int currentRevision) {
         this.currentRevision = currentRevision;
+    }
+
+    public String getAccessories() {
+        return accessories;
+    }
+
+    public void setAccessories(String accessories) {
+        this.accessories = accessories;
+    }
+
+    public Long getLoanSheetId() {
+        return loanSheetId;
+    }
+
+    public void setLoanSheetId(Long loanSheetId) {
+        this.loanSheetId = loanSheetId;
+    }
+
+    public Long getReplacesAssignmentId() {
+        return replacesAssignmentId;
+    }
+
+    public void setReplacesAssignmentId(Long replacesAssignmentId) {
+        this.replacesAssignmentId = replacesAssignmentId;
     }
 
     public int getOutstandingQuantity() {

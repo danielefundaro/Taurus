@@ -456,7 +456,7 @@ public class FinanceReportService {
     private static String requiredTenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
         if (tenant == null || tenant.isBlank())
-            throw error(HttpStatus.BAD_REQUEST, "Tenant non disponibile", "finance.tenant.missing");
+            throw error(HttpStatus.FORBIDDEN, "Tenant non disponibile", "auth.tenant.missing");
         return tenant;
     }
 

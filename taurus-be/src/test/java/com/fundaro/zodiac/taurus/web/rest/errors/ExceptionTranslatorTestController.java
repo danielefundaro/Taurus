@@ -2,11 +2,14 @@ package com.fundaro.zodiac.taurus.web.rest.errors;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/exception-translator-test")
@@ -19,6 +22,11 @@ public class ExceptionTranslatorTestController {
 
     @PostMapping("/method-argument")
     public void methodArgument(@Valid @RequestBody TestDTO testDTO) {
+        // empty method
+    }
+
+    @GetMapping("/type-mismatch/{id}")
+    public void typeMismatch(@PathVariable Long id) {
         // empty method
     }
 
@@ -47,15 +55,33 @@ public class ExceptionTranslatorTestController {
         throw new TestResponseStatusException();
     }
 
+    @GetMapping("/request-alert")
+    public void requestAlert() {
+        throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Internal description", "testEntity", "test.invalid")
+            .with("minimum", LocalDate.of(2026, 11, 10))
+            .with("maximum", 3);
+    }
+
     @GetMapping("/internal-server-error")
     public void internalServerError() {
-        throw new RuntimeException();
+        throw new RuntimeException("Internal failure");
     }
 
     public static class TestDTO {
 
         @NotNull(message = "must not be null")
         private String test;
+
+        @Size(max = 5)
+        private String code;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
 
         public String getTest() {
             return test;

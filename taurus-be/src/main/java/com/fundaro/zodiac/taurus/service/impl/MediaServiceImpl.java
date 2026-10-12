@@ -116,7 +116,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
         Media media = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> notFound("Media asset not found"));
         if (tenant == null || tenant.isBlank())
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Tenant is required", "mediaAsset", "tenant.missing");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant is required", "mediaAsset", "auth.tenant.missing");
         hydrateLegacyMetadata(media, tenant);
         if (media.getStatus() != MediaAssetStatus.READY) {
             throw new RequestAlertException(HttpStatus.CONFLICT, "Media asset is not available", getEntityName(), "media.notReady");
@@ -143,7 +143,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
         AbstractAuthenticationToken token
     ) {
         if (content == null || content.length == 0) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "file.empty");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "media.file.empty");
         }
         String tenant = requiredTenant(token);
         requiredActor(token);
@@ -157,7 +157,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
         try {
             tenantStorageService.writeAtomically(tenant, storageKey, content);
         } catch (IOException exception) {
-            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to store media file", getEntityName(), "file.store");
+            throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to store media file", getEntityName(), "media.file.storeFailed");
         }
 
         try {
@@ -261,7 +261,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     private static String requiredTenant(AbstractAuthenticationToken token) {
         String tenant = SecurityUtils.getTenantIdFromAuthentication(token);
         if (tenant == null || tenant.isBlank()) {
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Tenant is required", "mediaAsset", "tenant.missing");
+            throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant is required", "mediaAsset", "auth.tenant.missing");
         }
         return tenant;
     }
@@ -269,7 +269,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     private static String requiredActor(AbstractAuthenticationToken token) {
         String actor = SecurityUtils.getUserIdFromAuthentication(token);
         if (actor == null || actor.isBlank()) {
-            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "mediaAsset", "identity.missing");
+            throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Identity is required", "mediaAsset", "auth.identity.missing");
         }
         return actor;
     }
@@ -300,7 +300,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
 
     private static String requireCategory(String category) {
         if (category == null || !category.matches("[a-z0-9][a-z0-9-]{0,63}")) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid media category", "mediaAsset", "category.invalid");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Invalid media category", "mediaAsset", "media.category.invalid");
         }
         return category;
     }

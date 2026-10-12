@@ -1,0 +1,46 @@
+<app-dialog-shell
+    #shell
+    heading="Rinnova comodato"
+    [subtitle]="assignment.inventoryNumber + ' – ' + assignment.itemName + ' · foglio n. ' + assignment.loanSheetNumber"
+    confirmLabel="Registra rinnovo"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <app-inline-alert
+        severity="info"
+        heading="Regole del rinnovo"
+        [detail]="
+            'Il rinnovo si concede prima della scadenza in corso del ' +
+            (currentExpiration | date: 'dd/MM/yyyy') +
+            ', estende la scadenza al massimo di ' +
+            terms.renewalMaxMonths +
+            ' mesi e non può superare ' +
+            terms.totalMaxMonths +
+            ' mesi complessivi dalla prima consegna dello strumento. Il socio dovrà prendere nuovamente visione.'
+        "
+    />
+    @if (expired) {
+        <app-inline-alert class="block mt-3" severity="warn" heading="Scadenza superata" detail="La scadenza in corso è già passata: lo strumento va restituito oppure riconsegnato con un nuovo foglio." />
+    }
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <app-form-field
+            label="Nuova scadenza"
+            forId="renewalExpiration"
+            required
+            [hint]="maximumExpiration ? 'Al massimo il ' + (maximumExpiration | date: 'dd/MM/yyyy') + '.' : undefined"
+            [error]="shell.validationAttempted && !newExpirationDate ? 'Indica la nuova scadenza.' : undefined"
+        >
+            <p-datepicker inputId="renewalExpiration" [(ngModel)]="newExpirationDate" dateFormat="dd/mm/yy" [minDate]="minimumExpiration ?? null" [maxDate]="maximumExpiration ?? null" [showIcon]="true" iconDisplay="input" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Data del rinnovo" forId="renewalDate" required>
+            <p-datepicker inputId="renewalDate" [(ngModel)]="renewedOn" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Delibera del Consiglio n." forId="renewalAuthorization" required [error]="shell.validationAttempted && !authorizationReference.trim() ? 'Indica gli estremi della delibera.' : undefined">
+            <input pInputText id="renewalAuthorization" maxlength="128" [(ngModel)]="authorizationReference" />
+        </app-form-field>
+        <app-form-field label="Data della delibera" forId="renewalAuthorizationDate" required [error]="shell.validationAttempted && (!authorizationDate || authorizationDate > renewedOn) ? 'La delibera deve precedere il rinnovo.' : undefined">
+            <p-datepicker inputId="renewalAuthorizationDate" [(ngModel)]="authorizationDate" dateFormat="dd/mm/yy" [maxDate]="renewedOn" [showIcon]="true" iconDisplay="input" appendTo="body" />
+        </app-form-field>
+    </div>
+</app-dialog-shell>

@@ -1,3 +1,4 @@
+import { HttpContext } from '@angular/common/http';
 import { of } from 'rxjs';
 import { CalendarFeedPanelComponent } from './calendar-feed-panel.component';
 
@@ -29,7 +30,7 @@ describe('CalendarFeedPanelComponent', () => {
 
         (component as any).remove(feed);
 
-        expect(service.remove).toHaveBeenCalledWith('feed-id', false);
+        expect(service.remove).toHaveBeenCalledWith('feed-id', false, jasmine.any(HttpContext));
         expect(service.list).toHaveBeenCalled();
         expect(toast.success).toHaveBeenCalledWith('Feed eliminato', jasmine.any(String));
     });

@@ -80,7 +80,7 @@ public class NotificationPreferencesService {
         boolean superAdmin = authentication.getAuthorities().stream()
             .anyMatch(authority -> AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()));
         if ((user == null || !Boolean.TRUE.equals(user.getActive())) && !superAdmin) {
-            throw error(HttpStatus.NOT_FOUND, "Authenticated user is not active", "user.notFound");
+            throw error(HttpStatus.FORBIDDEN, "Authenticated user is not active", "auth.user.inactive");
         }
 
         NotificationProfile profile = repository.findByKeycloakSubjectAndDeletedFalse(subject).orElse(null);
@@ -160,38 +160,38 @@ public class NotificationPreferencesService {
         try {
             ZoneId.of(request.timeZone());
         } catch (DateTimeException | NullPointerException exception) {
-            throw error(HttpStatus.BAD_REQUEST, "Invalid time zone", "timeZone.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Invalid time zone", "preferences.timeZone.invalid");
         }
         if (request.defaultCalendarReminderMinutes() < 0 || request.defaultCalendarReminderMinutes() > 1440) {
-            throw error(HttpStatus.BAD_REQUEST, "Reminder minutes must be between 0 and 1440", "reminder.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Reminder minutes must be between 0 and 1440", "preferences.reminder.invalid").with("maximum", 1440);
         }
         NotificationQuietHoursDTO quiet = request.quietHours();
         if (quiet == null || quiet.start() == null || quiet.end() == null || (quiet.enabled() && quiet.start().equals(quiet.end()))) {
-            throw error(HttpStatus.BAD_REQUEST, "Invalid quiet hours", "quietHours.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Invalid quiet hours", "preferences.quietHours.invalid");
         }
         if (request.digestLocalTime() == null || request.pushPreview() == null) {
             throw error(HttpStatus.BAD_REQUEST, "Digest time and push preview are required", "preferences.invalid");
         }
         Set<NotificationSource> sources = EnumSet.noneOf(NotificationSource.class);
         if (request.categories() == null || request.categories().size() != NotificationSource.values().length) {
-            throw error(HttpStatus.BAD_REQUEST, "Every notification category is required", "categories.incomplete");
+            throw error(HttpStatus.BAD_REQUEST, "Every notification category is required", "preferences.categories.incomplete");
         }
         for (NotificationCategoryPreferenceDTO category : request.categories()) {
             if (category == null || category.source() == null || category.pushMode() == null || !sources.add(category.source())) {
-                throw error(HttpStatus.BAD_REQUEST, "Notification categories must be known and unique", "categories.invalid");
+                throw error(HttpStatus.BAD_REQUEST, "Notification categories must be known and unique", "preferences.categories.invalid");
             }
         }
         if (!sources.equals(EnumSet.allOf(NotificationSource.class))) {
-            throw error(HttpStatus.BAD_REQUEST, "Every notification category is required", "categories.incomplete");
+            throw error(HttpStatus.BAD_REQUEST, "Every notification category is required", "preferences.categories.incomplete");
         }
         ZonedDateTime now = ZonedDateTime.now();
         if (request.pushPausedUntil() != null &&
             (request.pushPausedUntil().isBefore(now) || request.pushPausedUntil().isAfter(now.plusDays(properties.getMaxPauseDays())))) {
-            throw error(HttpStatus.BAD_REQUEST, "Push pause must be in the next 30 days", "pushPause.invalid");
+            throw error(HttpStatus.BAD_REQUEST, "Push pause must be in the next 30 days", "preferences.pushPause.invalid").with("maxDays", properties.getMaxPauseDays());
         }
         boolean digestEnabled = request.categories().stream().anyMatch(value -> value.pushMode() == NotificationPushMode.DAILY_DIGEST);
         if (digestEnabled && quiet.enabled() && isWithin(quiet.start(), quiet.end(), request.digestLocalTime())) {
-            throw error(HttpStatus.BAD_REQUEST, "Digest time cannot be inside quiet hours", "digest.quietHours");
+            throw error(HttpStatus.BAD_REQUEST, "Digest time cannot be inside quiet hours", "preferences.digest.quietHours");
         }
     }
 
@@ -253,7 +253,7 @@ public class NotificationPreferencesService {
     private static String subject(AbstractAuthenticationToken authentication) {
         String subject = SecurityUtils.getUserIdFromAuthentication(authentication);
         if (subject == null || subject.isBlank())
-            throw error(HttpStatus.UNAUTHORIZED, "Authentication subject is required", "subject.missing");
+            throw error(HttpStatus.UNAUTHORIZED, "Authentication subject is required", "auth.identity.missing");
         return subject;
     }
 

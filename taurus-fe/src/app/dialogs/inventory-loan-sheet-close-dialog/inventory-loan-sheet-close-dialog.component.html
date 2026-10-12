@@ -1,0 +1,27 @@
+<app-dialog-shell
+    #shell
+    heading="Chiudi foglio di affidamento"
+    [subtitle]="'Foglio n. ' + sheet.sheetNumber + ' · tutti i beni sono stati riconsegnati'"
+    confirmLabel="Chiudi foglio"
+    [invalidCount]="invalidCount"
+    (cancel)="cancel()"
+    (confirm)="save()"
+>
+    <p class="mb-4">L’esito compila il verbale di riconsegna (sezione 9), da stampare e far firmare a entrambe le parti.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field class="md:col-span-2" label="Esito della riconsegna" forId="loanOutcome" required>
+            <p-selectbutton ariaLabelledBy="loanOutcome" [options]="outcomes" optionLabel="label" optionValue="value" [(ngModel)]="outcome" [allowEmpty]="false" />
+        </app-form-field>
+        @if (charges) {
+            <app-form-field label="Importo da corrispondere" forId="loanChargeAmount" required [error]="shell.validationAttempted && !(chargeAmount && chargeAmount > 0) ? 'Indica un importo maggiore di zero.' : undefined">
+                <p-inputnumber inputId="loanChargeAmount" [(ngModel)]="chargeAmount" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+            </app-form-field>
+            <app-form-field label="Termine di pagamento" forId="loanChargeDueDate" required [error]="shell.validationAttempted && !chargeDueDate ? 'Indica il termine di pagamento.' : undefined">
+                <p-datepicker inputId="loanChargeDueDate" [(ngModel)]="chargeDueDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+            </app-form-field>
+        }
+        <app-form-field class="md:col-span-2" label="Chi riceve i beni per l’Associazione" forId="loanReceivedBy" hint="Nome e cognome. Se vuoto viene usato il tuo nome.">
+            <input pInputText id="loanReceivedBy" maxlength="255" [(ngModel)]="receivedByName" />
+        </app-form-field>
+    </div>
+</app-dialog-shell>

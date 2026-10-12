@@ -3,7 +3,7 @@ import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
-import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService } from '../../service';
+import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
 import { NotificationCategoryPreference, NotificationPreferences, NotificationPushMode, NotificationSource } from '../../module';
@@ -95,11 +95,11 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     private loadNotificationPreferences(): void {
         this.pushNotificationService.refreshState().then((subscribed) => (this.pushEnabled = subscribed));
         this.notificationPreferencesService
-            .getPreferences()
+            .getPreferences(withErrorSummary('Preferenze non disponibili'))
             .pipe(first())
             .subscribe({
                 next: (value) => this.setNotificationPreferences(value),
-                error: () => this.toastService.error('Preferenze non disponibili', 'Non è stato possibile caricare le preferenze di notifica.')
+                error: () => undefined
             });
     }
 
@@ -177,7 +177,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         if (!this.notificationPreferences || this.notificationPreferencesInvalid) return;
         this.savingNotifications = true;
         this.notificationPreferencesService
-            .savePreferences(this.notificationPreferences)
+            .savePreferences(this.notificationPreferences, withErrorSummary('Salvataggio non riuscito'))
             .pipe(first())
             .subscribe({
                 next: (value) => {
@@ -186,14 +186,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
                     this.setUnitDirty(this.reminderUnit, false);
                     this.toastService.success('Preferenze aggiornate', 'Le nuove regole verranno applicate alle prossime notifiche.');
                 },
-                error: (error) => {
-                    this.savingNotifications = false;
-                    if (error.status === 409) {
-                        this.toastService.warn('Preferenze modificate altrove', 'Ricarica la pagina prima di salvare di nuovo.');
-                    } else {
-                        this.toastService.error('Salvataggio non riuscito', 'Non è stato possibile salvare le preferenze di notifica.');
-                    }
-                }
+                error: () => (this.savingNotifications = false)
             });
     }
 
@@ -268,23 +261,21 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
 
     private deleteAccount(): void {
         this.usersService
-            .deleteOwn()
+            .deleteOwn(withErrorSummary('Eliminazione non riuscita'))
             .pipe(first())
             .subscribe({
                 next: () => this.keycloakService.logout(),
-                error: () => {
-                    this.toastService.error('Eliminazione non riuscita', "L'account non è stato eliminato. Riprova.");
-                }
+                error: () => undefined
             });
     }
 
     private deleteAccountForGdpr(): void {
         this.usersService
-            .deleteOwnForGdpr()
+            .deleteOwnForGdpr(withErrorSummary('Cancellazione non riuscita'))
             .pipe(first())
             .subscribe({
                 next: () => this.keycloakService.logout(),
-                error: () => this.toastService.error('Cancellazione non riuscita', "La cancellazione definitiva dell'account non è stata completata. Riprova.")
+                error: () => undefined
             });
     }
 }

@@ -7,7 +7,7 @@ import { FooterComponent } from '../../components/footer/footer.component';
 import { InlineAlertComponent } from '../../components/inline-alert/inline-alert.component';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../components/topbar/topbar.component';
-import { LayoutService, NotificationCenterService, PushNotificationService, TenantFeatureService, ToastService } from '../../service';
+import { LayoutService, NotificationCenterService, PushNotificationService, TenantFeatureService, TenantStatusService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-layout',
@@ -35,12 +35,15 @@ export class LayoutComponent {
         private readonly notificationCenter: NotificationCenterService,
         private readonly pushNotificationService: PushNotificationService,
         private readonly tenantFeatureService: TenantFeatureService,
+        private readonly tenantStatusService: TenantStatusService,
         private readonly toastService: ToastService,
         public renderer: Renderer2,
         public router: Router
     ) {
-        this.pushPromptVisible = this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
-        this.notificationCenter.start();
+        // In modalità bootstrap il tenant non ha schema: niente notifiche né promemoria da attivare.
+        const bootstrap = this.tenantStatusService.bootstrap();
+        this.pushPromptVisible = !bootstrap && this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
+        if (!bootstrap) this.notificationCenter.start();
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
         effect(() => {
             if (!this.tenantFeatureService.loaded()) return;

@@ -15,6 +15,11 @@ import java.util.Optional;
 public interface InventoryReturnRepository extends JpaRepository<InventoryReturn, Long> {
     List<InventoryReturn> findAllByAssignment_IdAndDeletedFalseOrderByRequestedAtDesc(Long assignmentId);
 
+    List<InventoryReturn> findAllByAssignment_IdInAndStatusAndDeletedFalseOrderByCompletedAtAscIdAsc(
+        Collection<Long> assignmentIds,
+        InventoryReturnStatus status
+    );
+
     Optional<InventoryReturn> findByIdAndDeletedFalse(Long id);
 
     @Query("select r from InventoryReturn r join fetch r.assignment a join fetch a.item where r.id = :id and r.deleted = false")

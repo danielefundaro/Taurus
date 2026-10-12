@@ -158,7 +158,7 @@ La griglia serve a riconoscere, non a confrontare: mostra meno campi della lista
 
 **Una sola sintassi di template.** Blocchi `@if` e `@for` ovunque, con `track` esplicito. Oggi sei pagine su nove usano ancora `*ngIf` e `*ngFor`, con `NgIf` e `NgFor` importati globalmente da `imports.ts`.
 
-**Interfaccia interamente in italiano.** Etichette di ordinamento, placeholder, tooltip, riepiloghi di impaginazione e messaggi di stato vuoto. Le etichette `Name A-Z` e `Name Z-A` di `albums`, `tracks`, `users`, `tenants` e `instruments` diventano `Nome A-Z` e `Nome Z-A`.
+**Interfaccia interamente in italiano.** Etichette di ordinamento, placeholder, tooltip, riepiloghi di impaginazione e messaggi di stato vuoto. I testi interni dei componenti PrimeNG, come nomi di mesi e giorni del calendario, pulsanti «Oggi» e «Cancella» e messaggi senza risultati, arrivano dalla traduzione globale `PRIMENG_TRANSLATION_IT` registrata in `app.config.ts`, con la settimana che inizia di lunedì. Le etichette `Name A-Z` e `Name Z-A` di `albums`, `tracks`, `users`, `tenants` e `instruments` diventano `Nome A-Z` e `Nome Z-A`.
 
 **Stato di caricamento sempre visibile.** `[loading]` legato sulla dataview e sulla tabella, con scheletri che riprendono la forma della vista attiva — righe o card — invece di uno spinner sovrapposto.
 
@@ -190,6 +190,8 @@ Le pagine senza doppia vista — `finance` e `legal-documents` — non scrivono 
 
 L'idratazione delle preferenze dal backend esiste già. `AppComponent.ngOnInit` recupera tutte le preferenze dell'utente con una sola `getAll` e scrive ciascuna in `localStorage` tramite `LocalStorageService`; solo dopo applica alle signal di `LayoutService` le chiavi note, tramite uno `switch` esplicito su `preset`, `primary`, `menuMode`, `surface`, `darkTheme` e sugli stati del menu.
 
+La lettura parte solo dopo `GET /api/tenant-status`. Se il tenant della sessione non ha ancora uno schema, come nella modalità bootstrap del primo accesso descritta nel [runbook operativo, §5.2](runbook-operativo.md#52-primo-accesso-su-ambiente-vuoto), le preferenze non vengono lette: `ListLayoutService` viene idratato con un elenco vuoto e tema e liste usano i valori predefiniti.
+
 Poiché la scrittura in `localStorage` avviene per ogni preferenza restituita e non solo per quelle riconosciute dallo `switch`, le chiavi `listLayout.<pagina>` sono idratate automaticamente senza modificare `AppComponent`. Le pagine elenco leggono la propria vista in modo sincrono da `localStorage`, senza attendere alcuna chiamata e senza aggiungere casi allo `switch`.
 
 Restano due aspetti da governare.
@@ -205,6 +207,8 @@ In caso di errore o di risposta assente si procede con i valori predefiniti, sen
 Il cambio vista aggiorna immediatamente l'interfaccia e la copia in `localStorage`; la scrittura sul database è successiva e non attesa. Un errore di rete non annulla il cambio vista né produce una notifica: la preferenza resta valida per la sessione corrente e verrà riscritta al cambio successivo.
 
 Si riusa il meccanismo di `LayoutService.saveConfig`, che crea la riga alla prima scrittura e la aggiorna quando il valore cambia. La logica va estratta in un servizio dedicato, così da non caricare `LayoutService` di responsabilità che non riguardano il tema.
+
+Le scritture sul database attendono lo stato del tenant e partono solo se il tenant ha uno schema. In modalità bootstrap la preferenza resta nella sola copia locale, che l'uscita dall'app cancella. L'aggiornamento di una riga esistente parte solo se la preferenza in cache ha già un `id`: se la creazione non è riuscita, la preferenza resta locale per la sessione e non produce richieste verso `/api/preferences/undefined`.
 
 ## Applicazione alle pagine elenco
 
@@ -374,7 +378,7 @@ Quattro gravità e due forme. Il toast è effimero e riguarda un'azione appena c
 
 **Azione nel banner.** Un banner che segnala una condizione risolvibile porta l'azione che la risolve: «Vedi richieste», «Riprova». Oggi il banner GDPR descrive il problema e lascia l'utente a cercarne la soluzione altrove nella pagina.
 
-**Errori di rete.** L'interceptor distingue i casi invece di emettere sempre «Errore durante la richiesta»: connessione assente, sessione scaduta, permesso negato, conflitto di versione, errore del server. Ogni caso ha il proprio testo e, dove ha senso, la propria azione.
+**Errori di rete.** L'interceptor distingue i casi invece di emettere sempre «Errore durante la richiesta»: connessione assente, sessione scaduta, permesso negato, conflitto di versione, errore del server. Ogni caso ha il proprio testo e, dove ha senso, la propria azione. Il contratto delle risposte d'errore, i messaggi costruiti dal frontend a partire dalle chiavi e il catalogo delle chiavi sono nello [Standard degli errori applicativi](application-errors-standard.md).
 
 **Accessibilità.** I banner di errore dichiarano `role="alert"`, quelli informativi `role="status"`, come già fa `legal-acceptance`, oggi unica pagina a farlo.
 

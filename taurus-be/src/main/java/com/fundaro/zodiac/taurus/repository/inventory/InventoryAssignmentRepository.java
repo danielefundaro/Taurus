@@ -36,6 +36,26 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
 
     Optional<InventoryAssignment> findByIdAndDeletedFalse(Long id);
 
+    List<InventoryAssignment> findAllByLoanSheetIdAndDeletedFalseOrderByAssignedAtAscIdAsc(Long loanSheetId);
+
+    List<InventoryAssignment> findAllByUserIndexAndLoanSheetIdIsNullAndDeletedFalseAndStatusInOrderByAssignedAtAscIdAsc(
+        Long userIndex,
+        Collection<InventoryAssignmentStatus> statuses
+    );
+
+    @Query("""
+        select count(a) > 0 from InventoryAssignment a, InventoryLoanSheet s
+        where a.item.id = :itemId and a.deleted = false and a.loanSheetId = s.id and s.deleted = false and s.status in :statuses
+        """)
+    boolean existsForItemInLoanSheets(
+        @Param("itemId") Long itemId,
+        @Param("statuses") Collection<com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheetStatus> statuses
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from InventoryAssignment a join fetch a.item where a.id in :ids and a.deleted = false order by a.assignedAt asc, a.id asc")
+    List<InventoryAssignment> findAllForUpdate(@Param("ids") Collection<Long> ids);
+
     boolean existsByItem_IdAndUserKeycloakIdAndDeletedFalse(Long itemId, String userKeycloakId);
 
     @Query("select a from InventoryAssignment a join fetch a.item where a.id = :id and a.deleted = false")

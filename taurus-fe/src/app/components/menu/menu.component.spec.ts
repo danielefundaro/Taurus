@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { TenantFeatureService } from '../../service';
+import { TenantFeatureService, TenantStatusService } from '../../service';
 import { MenuComponent } from './menu.component';
 
 describe('MenuComponent', () => {
@@ -20,7 +20,10 @@ describe('MenuComponent', () => {
             refresh: jasmine.createSpy().and.returnValue(of({}))
         };
         TestBed.configureTestingModule({
-            providers: [{ provide: TenantFeatureService, useValue: service }]
+            providers: [
+                { provide: TenantFeatureService, useValue: service },
+                { provide: TenantStatusService, useValue: { bootstrap: signal(false) } }
+            ]
         });
         const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
         TestBed.flushEffects();
@@ -49,6 +52,36 @@ describe('MenuComponent', () => {
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeTrue();
+    });
+});
+
+describe('MenuComponent in bootstrap mode', () => {
+    it('offers only tenant management while the tenant has no schema', () => {
+        const bootstrap = signal(true);
+        const service = {
+            loaded: signal(false),
+            financeEnabled: signal(false),
+            inventoryEnabled: signal(false),
+            onboardingImportEnabled: signal(false),
+            externalCalendarFeedEnabled: signal(false),
+            refresh: jasmine.createSpy().and.returnValue(of({}))
+        };
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: TenantFeatureService, useValue: service },
+                { provide: TenantStatusService, useValue: { bootstrap } }
+            ]
+        });
+        const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
+        TestBed.flushEffects();
+
+        expect(component.model.flatMap((section) => section.items ?? []).map((item) => item.label)).toEqual(['Tenant']);
+
+        bootstrap.set(false);
+        TestBed.flushEffects();
+
+        expect(menuItem(component, 'Dashboard')).toBeDefined();
+        expect(menuItem(component, 'Tenant')).toBeDefined();
     });
 });
 

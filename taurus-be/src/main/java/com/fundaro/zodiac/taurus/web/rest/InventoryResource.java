@@ -23,7 +23,6 @@ import java.util.List;
 public class InventoryResource {
 
     private final InventoryService inventoryService;
-    private final InventoryReportService inventoryReportService;
     private final InventoryErasureService inventoryErasureService;
     private final ApplicationProperties.DashboardProperties dashboardProperties;
     private final TenantTimeZoneService tenantTimeZoneService;
@@ -33,7 +32,6 @@ public class InventoryResource {
 
     public InventoryResource(
         InventoryService inventoryService,
-        InventoryReportService inventoryReportService,
         InventoryErasureService inventoryErasureService,
         ApplicationProperties applicationProperties,
         TenantTimeZoneService tenantTimeZoneService,
@@ -42,7 +40,6 @@ public class InventoryResource {
         InventoryIssueService inventoryIssueService
     ) {
         this.inventoryService = inventoryService;
-        this.inventoryReportService = inventoryReportService;
         this.inventoryErasureService = inventoryErasureService;
         this.dashboardProperties = applicationProperties.getDashboard();
         this.tenantTimeZoneService = tenantTimeZoneService;
@@ -179,18 +176,6 @@ public class InventoryResource {
         return inventoryService.setPreviewPhoto(itemId, photoId, token);
     }
 
-    @GetMapping(value = "/users/{userIndex}/report", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> getUserReport(
-        @PathVariable Long userIndex,
-        @RequestParam(defaultValue = "true") boolean includeAssigned,
-        @RequestParam(defaultValue = "true") boolean includeReturned,
-        @RequestParam(defaultValue = "true") boolean includePhotos,
-        AbstractAuthenticationToken token
-    ) {
-        InventoryReportService.ReportContent report = inventoryReportService.createForUser(userIndex, includeAssigned, includeReturned, includePhotos, token);
-        return reportResponse(report);
-    }
-
     @GetMapping("/erasure-requests")
     public List<InventoryErasureRequestDTO> getPendingErasureRequests(AbstractAuthenticationToken token) {
         return inventoryErasureService.findPending(token);
@@ -276,13 +261,6 @@ public class InventoryResource {
         headers.setContentType(MediaType.parseMediaType(photo.contentType()));
         headers.setContentDisposition(ContentDisposition.inline().filename(photo.fileName()).build());
         return ResponseEntity.ok().headers(headers).body(photo.bytes());
-    }
-
-    public static ResponseEntity<byte[]> reportResponse(InventoryReportService.ReportContent report) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDisposition(ContentDisposition.attachment().filename(report.fileName()).build());
-        return ResponseEntity.ok().headers(headers).body(report.bytes());
     }
 
     private static ResponseEntity<byte[]> binaryResponse(InventoryQrDtos.BinaryContent content, ContentDisposition.Builder disposition) {

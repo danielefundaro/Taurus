@@ -163,12 +163,12 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
                 HttpStatus.BAD_REQUEST,
                 "Snooze must be between " + minMinutes + " minutes and " + maxDays + " days",
                 "notices",
-                "snooze.invalid"
-            );
+                "notice.snooze.invalid"
+            ).with("minMinutes", (int) minMinutes).with("maxDays", (int) maxDays);
         }
         Notices notice = owned(id, authentication);
         if (notice.getReadDate() != null) {
-            throw new RequestAlertException(HttpStatus.CONFLICT, "A read notice cannot be snoozed", "notices", "snooze.read");
+            throw new RequestAlertException(HttpStatus.CONFLICT, "A read notice cannot be snoozed", "notices", "notice.snooze.read");
         }
         notice.setSnoozedUntil(until);
         notice.setSnoozeRevision(notice.getSnoozeRevision() + 1);
