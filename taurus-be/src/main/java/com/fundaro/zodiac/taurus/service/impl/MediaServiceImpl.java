@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
@@ -18,6 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,6 +27,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -57,7 +60,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
 
     @Override
     public Resource streamFile(Long id, AbstractAuthenticationToken token) {
-        if (!isPrivileged(token) && !getRepository().hasActiveSheetMusicReference(id)) {
+        if (!isPrivileged(token) && !isVisibleSheetMusicPage(id, token)) {
             throw notFound("Media asset not found");
         }
         MediaContent content = getContent(id, token);
@@ -86,22 +89,27 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
             requireFeatureAccess(id);
             return super.findOne(id, token);
         }
-        return getRepository().findActiveSheetMusicMediaById(id).map(getMapper()::toDto);
+        if (!isVisibleSheetMusicPage(id, token)) return Optional.empty();
+        return getRepository().findByIdAndDeletedFalse(id).map(getMapper()::toDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<MediaDTO> findEntitiesByCriteria(MediaCriteria criteria, Pageable pageable, AbstractAuthenticationToken token) {
         if (isPrivileged(token)) return super.findEntitiesByCriteria(criteria, pageable, token);
-        return getRepository().findAll(buildSpecification(criteria).and(activeSheetMusicReference()), JpaPageableUtils.normalize(pageable))
-            .map(getMapper()::toDto);
+        Pageable normalized = JpaPageableUtils.normalize(pageable);
+        List<Long> visible = visibleSheetMusicPageIds(token);
+        if (visible.isEmpty()) return Page.empty(normalized);
+        return getRepository().findAll(buildSpecification(criteria).and(idIn(visible)), normalized).map(getMapper()::toDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long count(MediaCriteria criteria, AbstractAuthenticationToken token) {
         if (isPrivileged(token)) return super.count(criteria, token);
-        return getRepository().count(buildSpecification(criteria).and(activeSheetMusicReference()));
+        List<Long> visible = visibleSheetMusicPageIds(token);
+        if (visible.isEmpty()) return 0;
+        return getRepository().count(buildSpecification(criteria).and(idIn(visible)));
     }
 
     @Override
@@ -275,27 +283,40 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     }
 
     private static boolean isPrivileged(AbstractAuthenticationToken token) {
-        return token != null && token.getAuthorities().stream().anyMatch(authority ->
-            AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()) ||
-                AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
-                AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
-        );
+        return hasAuthority(token, AuthoritiesConstants.SUPER_ADMIN) ||
+            hasAuthority(token, AuthoritiesConstants.ADMIN) ||
+            hasAuthority(token, AuthoritiesConstants.ARCHIVIST);
     }
 
-    private static org.springframework.data.jpa.domain.Specification<Media> activeSheetMusicReference() {
-        return (root, query, cb) -> {
-            var subquery = query.subquery(Long.class);
-            var track = subquery.from(com.fundaro.zodiac.taurus.domain.Tracks.class);
-            var score = track.join("scores");
-            var media = score.join("media");
-            subquery.select(media.get("id"));
-            subquery.where(
-                cb.equal(media.get("id"), root.get("id")),
-                cb.isFalse(score.get("deleted")),
-                cb.isFalse(track.get("deleted"))
-            );
-            return cb.exists(subquery);
-        };
+    private static boolean hasAuthority(AbstractAuthenticationToken token, String authority) {
+        return token != null && token.getAuthorities().stream().anyMatch(granted -> authority.equals(granted.getAuthority()));
+    }
+
+    /**
+     * Track states visible to a non-privileged session, as in the user and external track services: standard users see
+     * complete and public tracks, external users public tracks only, any other role none.
+     */
+    private static List<String> visibleTrackStates(AbstractAuthenticationToken token) {
+        if (hasAuthority(token, AuthoritiesConstants.USER)) return List.of(StateEnum.COMPLETE.name(), StateEnum.PUBLIC.name());
+        if (hasAuthority(token, AuthoritiesConstants.USER_EXTERNAL)) return List.of(StateEnum.PUBLIC.name());
+        return List.of();
+    }
+
+    private boolean isVisibleSheetMusicPage(Long id, AbstractAuthenticationToken token) {
+        List<String> states = visibleTrackStates(token);
+        String keycloakId = SecurityUtils.getUserIdFromAuthentication(token);
+        return !states.isEmpty() && keycloakId != null && getRepository().hasVisibleSheetMusicReference(id, keycloakId, states);
+    }
+
+    private List<Long> visibleSheetMusicPageIds(AbstractAuthenticationToken token) {
+        List<String> states = visibleTrackStates(token);
+        String keycloakId = SecurityUtils.getUserIdFromAuthentication(token);
+        if (states.isEmpty() || keycloakId == null) return List.of();
+        return getRepository().findVisibleSheetMusicMediaIds(keycloakId, states);
+    }
+
+    private static Specification<Media> idIn(List<Long> ids) {
+        return (root, query, cb) -> root.get("id").in(ids);
     }
 
     private static String requireCategory(String category) {

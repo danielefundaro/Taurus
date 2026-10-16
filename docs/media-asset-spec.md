@@ -160,6 +160,7 @@ Filesystem e database non condividono la stessa transazione. Se la persistenza n
 
 - Il download avviene tramite l'identificativo applicativo, mai tramite un path fornito dal client.
 - Prima della lettura vengono verificati tenant, relazione con l'entità proprietaria e autorizzazioni.
+- Tramite `/api/media` super admin, admin e archivista leggono ogni media del tenant. Gli altri ruoli leggono solo le pagine delle parti che vedono nel dettaglio della traccia: `ROLE_USER` quelle delle tracce `COMPLETE` e `PUBLIC`, `ROLE_USER_EXTERNAL` quelle delle tracce `PUBLIC`, in entrambi i casi solo per le parti associate a uno dei propri strumenti. Ogni altro media risponde `404`; allegati economici, fotografie e PDF dell'inventario si scaricano dagli endpoint del proprio dominio.
 - `storage_key` e path fisico non sono URL pubblici.
 - Il path risolto deve rimanere all'interno della directory del tenant.
 - Il nome originale viene sanificato prima dell'uso nell'header `Content-Disposition`.

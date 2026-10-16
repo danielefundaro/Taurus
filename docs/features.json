@@ -306,12 +306,13 @@
           "taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml"
         ],
         "tests": [
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplIT.java"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-10",
-      "notes": "La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT."
+      "lastVerifiedOn": "2026-10-15",
+      "notes": "La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT. Il 2026-10-15 la lettura tramite /api/media per i ruoli senza privilegi è stata allineata alla visibilità delle tracce (stato e strumenti), verificato da MediaServiceImplIT."
     },
     {
       "id": "notification-delivery-generalization",
@@ -864,6 +865,33 @@
       "notes": "Il caricamento restituisce un job persistente con HTTP 202; il worker aggiorna TO_PROCESS, IN_PROGRESS, DONE ed ERROR. Il dettaglio traccia legge i job una sola volta in ngOnInit, ricostruisce lo stato dopo refresh e consente il retry degli errori senza polling.",
       "release": null,
       "lastVerifiedOn": "2026-09-08"
+    },
+    {
+      "id": "track-score-playback",
+      "title": "Ascolto e correzione delle parti",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/track-score-playback-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/media-asset-spec.md",
+        "docs/score-preview-printing-spec.md",
+        "docs/tenant-feature-flags-spec.md",
+        "docs/tenant-onboarding-import-spec.md",
+        "docs/track-page-image-editing-spec.md",
+        "docs/track-parts-workspace-spec.md",
+        "docs/track-pdf-processing-spec.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe", "repository"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-16",
+      "notes": "Bozza del 2026-10-15 basata su una prova di Audiveris 5.11.0 e homr 0.7.0 su tre parti reali; il 2026-10-16 aggiunti catalogo di riferimento, proposta di configurazione degli strumenti e suono come banco e programma. Il futuro servizio OMR (modulo taurus-omr) è registrato come repository finché il catalogo non ammette il nuovo modulo."
     },
     {
       "id": "web-push-reminders",

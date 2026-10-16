@@ -14,7 +14,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `inventory-loan-sheet` | [Foglio di consegna e affidamento in comodato](inventory-loan-sheet-spec.md) | feature | approved | in-progress | BE, FE | [3](#inventory-loan-sheet-evidenze) | [13](#inventory-loan-sheet-evidenze) | non rilasciata | 2026-10-10 |
 | `inventory-management` | [Gestione inventario tenant](inventory-management-spec.md) | feature | approved | implemented | BE, FE | [1](#inventory-management-evidenze) | [1](#inventory-management-evidenze) | non rilasciata | 2026-10-10 |
 | `inventory-qr-code` | [QR code ed etichette per l'inventario](inventory-qr-code-spec.md) | feature | approved | implemented | BE, FE | [1](#inventory-qr-code-evidenze) | [3](#inventory-qr-code-evidenze) | non rilasciata | 2026-10-10 |
-| `media-asset` | [Gestione centralizzata dei media](media-asset-spec.md) | platform | approved | implemented | BE, FE | [1](#media-asset-evidenze) | [1](#media-asset-evidenze) | non rilasciata | 2026-10-10 |
+| `media-asset` | [Gestione centralizzata dei media](media-asset-spec.md) | platform | approved | implemented | BE, FE | [1](#media-asset-evidenze) | [2](#media-asset-evidenze) | non rilasciata | 2026-10-15 |
 | `notification-delivery-generalization` | [Generalizzazione della consegna delle notifiche interne](notification-delivery-generalization-spec.md) | platform | approved | implemented | BE, FE | [1](#notification-delivery-generalization-evidenze) | [2](#notification-delivery-generalization-evidenze) | non rilasciata | 2026-09-06 |
 | `notification-editorial-style` | [Stile editoriale delle notifiche interne](notification-editorial-style.md) | standard | approved | implemented | BE, FE | 0 | [2](#notification-editorial-style-evidenze) | non rilasciata | 2026-09-04 |
 | `notification-preferences` | [Preferenze notifiche granulari](notification-preferences-spec.md) | feature | approved | implemented | BE, FE | [2](#notification-preferences-evidenze) | [9](#notification-preferences-evidenze) | non rilasciata | 2026-09-06 |
@@ -33,6 +33,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | in-progress | BE, FE | 0 | [5](#track-parts-workspace-evidenze) | non rilasciata | 2026-09-12 |
 | `track-pdf-manual-editing` | [Editor manuale delle pagine PDF](track-pdf-manual-editing-spec.md) | feature | approved | implemented | BE, FE | 0 | [4](#track-pdf-manual-editing-evidenze) | non rilasciata | 2026-09-12 |
 | `track-pdf-processing` | [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-pdf-processing-evidenze) | [4](#track-pdf-processing-evidenze) | non rilasciata | 2026-09-08 |
+| `track-score-playback` | [Ascolto e correzione delle parti](track-score-playback-spec.md) | feature | draft | not-planned | BE, FE, Repository | 0 | 0 | non rilasciata | 2026-10-16 |
 | `web-push-reminders` | [Promemoria eventi tramite Web Push](web-push-reminders-spec.md) | feature | approved | implemented | BE, FE | [3](#web-push-reminders-evidenze) | [4](#web-push-reminders-evidenze) | non rilasciata | 2026-09-12 |
 
 ## Evidenze
@@ -113,8 +114,8 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 
 - Implementazione: [`taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImpl.java`](../taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImpl.java), [`taurus-fe/src/app/service/media.service.ts`](../taurus-fe/src/app/service/media.service.ts)
 - Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml)
-- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java)
-- Note: La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT.
+- Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplIT.java)
+- Note: La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT. Il 2026-10-15 la lettura tramite /api/media per i ruoli senza privilegi è stata allineata alla visibilità delle tracce (stato e strumenti), verificato da MediaServiceImplIT.
 
 <a id="notification-delivery-generalization-evidenze"></a>
 ### Generalizzazione della consegna delle notifiche interne
@@ -256,6 +257,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260824000001_add_relational_catalog.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260824000001_add_relational_catalog.xml), [`taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml)
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java), [`taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts`](../taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts)
 - Note: Il caricamento restituisce un job persistente con HTTP 202; il worker aggiorna TO_PROCESS, IN_PROGRESS, DONE ed ERROR. Il dettaglio traccia legge i job una sola volta in ngOnInit, ricostruisce lo stato dopo refresh e consente il retry degli errori senza polling.
+
+<a id="track-score-playback-evidenze"></a>
+### Ascolto e correzione delle parti
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Bozza del 2026-10-15 basata su una prova di Audiveris 5.11.0 e homr 0.7.0 su tre parti reali; il 2026-10-16 aggiunti catalogo di riferimento, proposta di configurazione degli strumenti e suono come banco e programma. Il futuro servizio OMR (modulo taurus-omr) è registrato come repository finché il catalogo non ammette il nuovo modulo.
 
 <a id="web-push-reminders-evidenze"></a>
 ### Promemoria eventi tramite Web Push
