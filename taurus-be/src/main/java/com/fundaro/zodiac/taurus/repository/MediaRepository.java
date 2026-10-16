@@ -4,8 +4,8 @@ import com.fundaro.zodiac.taurus.domain.Media;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 public interface MediaRepository extends CatalogRepository<Media> {
 
@@ -34,19 +34,34 @@ public interface MediaRepository extends CatalogRepository<Media> {
     )
     boolean isUnreferenced(@Param("id") Long id);
 
-    @Query(
-        value = """
-            SELECT EXISTS (
-                SELECT 1
-                  FROM sheet_music_media relation
-                  JOIN sheet_music score ON score.id = relation.sheet_music_id AND score.deleted = FALSE
-                  JOIN track ON track.id = score.track_id AND track.deleted = FALSE
-                 WHERE relation.media_asset_id = :id AND relation.deleted = FALSE
-            )
-            """,
-        nativeQuery = true
-    )
-    boolean hasActiveSheetMusicReference(@Param("id") Long id);
+    /**
+     * Pages of active parts that the user can see: the track is in one of the given states and the part is assigned to at
+     * least one of the user's instruments. Written in SQL because the soft-deleted association rows of
+     * {@code user_instrument} are not filtered out by criteria joins.
+     */
+    String VISIBLE_SHEET_MUSIC_PAGES = """
+        SELECT relation.media_asset_id
+          FROM sheet_music_media relation
+          JOIN sheet_music score ON score.id = relation.sheet_music_id AND score.deleted = FALSE
+          JOIN track ON track.id = score.track_id AND track.deleted = FALSE AND track.state IN (:states)
+          JOIN sheet_music_instrument score_instrument
+            ON score_instrument.sheet_music_id = score.id AND score_instrument.deleted = FALSE
+          JOIN user_instrument assigned
+            ON assigned.instrument_id = score_instrument.instrument_id AND assigned.deleted = FALSE
+          JOIN app_user member ON member.id = assigned.user_id AND member.deleted = FALSE
+         WHERE relation.deleted = FALSE
+           AND member.keycloak_id = :keycloakId
+        """;
+
+    @Query(value = "SELECT EXISTS (" + VISIBLE_SHEET_MUSIC_PAGES + " AND relation.media_asset_id = :id)", nativeQuery = true)
+    boolean hasVisibleSheetMusicReference(
+        @Param("id") Long id,
+        @Param("keycloakId") String keycloakId,
+        @Param("states") Collection<String> states
+    );
+
+    @Query(value = "SELECT DISTINCT visible.media_asset_id FROM (" + VISIBLE_SHEET_MUSIC_PAGES + ") visible", nativeQuery = true)
+    List<Long> findVisibleSheetMusicMediaIds(@Param("keycloakId") String keycloakId, @Param("states") Collection<String> states);
 
     @Query(value = "SELECT EXISTS (SELECT 1 FROM financial_movement_attachment WHERE media_asset_id = :id AND deleted = FALSE AND active = TRUE)", nativeQuery = true)
     boolean hasFinanceReference(@Param("id") Long id);
@@ -74,22 +89,4 @@ public interface MediaRepository extends CatalogRepository<Media> {
         nativeQuery = true
     )
     boolean hasUnrestrictedReference(@Param("id") Long id);
-
-    @Query(
-        value = """
-            SELECT asset.*
-              FROM media_asset asset
-             WHERE asset.id = :id
-               AND asset.deleted = FALSE
-               AND EXISTS (
-                    SELECT 1
-                      FROM sheet_music_media relation
-                      JOIN sheet_music score ON score.id = relation.sheet_music_id AND score.deleted = FALSE
-                      JOIN track ON track.id = score.track_id AND track.deleted = FALSE
-                     WHERE relation.media_asset_id = asset.id AND relation.deleted = FALSE
-               )
-            """,
-        nativeQuery = true
-    )
-    Optional<Media> findActiveSheetMusicMediaById(@Param("id") Long id);
 }

@@ -2,17 +2,22 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Media;
+import com.fundaro.zodiac.taurus.domain.criteria.MediaCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.mapper.MediaMapper;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -20,10 +25,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +62,13 @@ class MediaServiceImplTest {
         properties.setBasePath(tempDirectory.toString());
         service = new MediaServiceImpl(repository, mapper, new TenantStorageService(properties), tenantFeatureService);
 
-        when(repository.save(any(Media.class))).thenAnswer(invocation -> {
+        lenient().when(repository.save(any(Media.class))).thenAnswer(invocation -> {
             Media media = invocation.getArgument(0);
             media.setId((long) savedMedia.size() + 1);
             savedMedia.add(media);
             return media;
         });
-        when(mapper.toDto(any(Media.class))).thenAnswer(invocation -> toDto(invocation.getArgument(0)));
+        lenient().when(mapper.toDto(any(Media.class))).thenAnswer(invocation -> toDto(invocation.getArgument(0)));
     }
 
     @Test
@@ -93,6 +107,38 @@ class MediaServiceImplTest {
         }
     }
 
+    @Test
+    void standardUsersReadOnlyPagesOfCompleteOrPublicTracksForTheirInstruments() {
+        when(repository.hasVisibleSheetMusicReference(7L, "user-1", List.of("COMPLETE", "PUBLIC"))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.streamFile(7L, authentication("tenant-a", AuthoritiesConstants.USER)))
+            .isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+        assertThat(service.findOne(7L, authentication("tenant-a", AuthoritiesConstants.USER))).isEmpty();
+        verify(repository, never()).findByIdAndDeletedFalse(7L);
+    }
+
+    @Test
+    void externalUsersReadOnlyPagesOfPublicTracks() {
+        Media media = new Media();
+        media.setId(7L);
+        when(repository.hasVisibleSheetMusicReference(7L, "user-1", List.of("PUBLIC"))).thenReturn(true);
+        when(repository.findByIdAndDeletedFalse(7L)).thenReturn(Optional.of(media));
+
+        assertThat(service.findOne(7L, authentication("tenant-a", AuthoritiesConstants.USER_EXTERNAL)))
+            .hasValueSatisfying(dto -> assertThat(dto.getId()).isEqualTo(7L));
+    }
+
+    @Test
+    void rolesWithoutTrackAccessReadNoPages() {
+        JwtAuthenticationToken treasurer = authentication("tenant-a", AuthoritiesConstants.TREASURER);
+
+        assertThatThrownBy(() -> service.streamFile(7L, treasurer))
+            .isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+        assertThat(service.findOne(7L, treasurer)).isEmpty();
+        assertThat(service.count(new MediaCriteria(), treasurer)).isZero();
+        verify(repository, never()).hasVisibleSheetMusicReference(anyLong(), anyString(), anyCollection());
+    }
+
     private static MediaDTO toDto(Media media) {
         MediaDTO dto = new MediaDTO();
         dto.setId(media.getId());
@@ -105,10 +151,10 @@ class MediaServiceImplTest {
         return dto;
     }
 
-    private static JwtAuthenticationToken authentication(String tenant) {
+    private static JwtAuthenticationToken authentication(String tenant, String... authorities) {
         Instant now = Instant.now();
         Jwt jwt = Jwt.withTokenValue("token").header("alg", "none").subject("user-1").claim("tenant", tenant)
             .issuedAt(now).expiresAt(now.plusSeconds(300)).build();
-        return new JwtAuthenticationToken(jwt);
+        return new JwtAuthenticationToken(jwt, Arrays.stream(authorities).map(SimpleGrantedAuthority::new).toList());
     }
 }
