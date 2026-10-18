@@ -17,7 +17,7 @@ const affected = new Set();
 const catalog = loadCatalog(defaultRepositoryRoot);
 
 for (const repositoryPath of changed) {
-    for (const module of ['taurus-be', 'taurus-fe', 'keycloak-authenticator', 'taurus-info']) {
+    for (const module of ['taurus-be', 'taurus-fe', 'taurus-omr', 'keycloak-authenticator', 'taurus-info']) {
         if (repositoryPath.startsWith(`${module}/`)) affected.add(module);
     }
     for (const entry of catalog.entries) {
@@ -30,6 +30,7 @@ for (const repositoryPath of changed) {
 for (const [output, module] of [
     ['backend', 'taurus-be'],
     ['frontend', 'taurus-fe'],
+    ['omr', 'taurus-omr'],
     ['keycloak', 'keycloak-authenticator'],
     ['info_site', 'taurus-info'],
 ]) {

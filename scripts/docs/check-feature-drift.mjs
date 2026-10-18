@@ -33,7 +33,7 @@ for (const entry of catalog.entries) {
     }
 }
 
-const moduleCodeChanged = [...changed].some(value => /^(taurus-be|taurus-fe|keycloak-authenticator|taurus-info)\//.test(value));
+const moduleCodeChanged = [...changed].some(value => /^(taurus-be|taurus-fe|taurus-omr|keycloak-authenticator|taurus-info)\//.test(value));
 const knownEvidenceChanged = catalog.entries.some(entry => Object.values(entry.evidence).flat().some(value => changed.has(value)));
 if (moduleCodeChanged && !knownEvidenceChanged && !catalogChanged) {
     warnings.push('Sono cambiati file applicativi senza toccare evidenze registrate o il catalogo: verificare se la pull request richiede un Feature ID.');

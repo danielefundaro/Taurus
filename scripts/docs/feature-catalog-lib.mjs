@@ -16,11 +16,12 @@ export const DELIVERY_STATUSES = new Set([
     'deprecated',
     'removed',
 ]);
-export const MODULES = new Set(['taurus-be', 'taurus-fe', 'keycloak-authenticator', 'taurus-info', 'repository']);
+export const MODULES = new Set(['taurus-be', 'taurus-fe', 'taurus-omr', 'keycloak-authenticator', 'taurus-info', 'repository']);
 
 const MODULE_LABELS = new Map([
     ['taurus-be', 'BE'],
     ['taurus-fe', 'FE'],
+    ['taurus-omr', 'OMR'],
     ['keycloak-authenticator', 'Keycloak'],
     ['taurus-info', 'Info'],
     ['repository', 'Repository'],
