@@ -100,6 +100,9 @@ export class OnboardingComponent implements OnInit {
         TENANT_USER_LIMIT_EXCEEDED: 'Limite utenti superato',
         EXISTING_RECORD_WILL_BE_REUSED: 'Dato esistente riutilizzato',
         EXISTING_RECORD_WILL_BE_SKIPPED: 'Dato esistente ignorato',
+        PLAYBACK_PROPOSED: 'Suono proposto dal nome',
+        PLAYBACK_NOT_CONFIGURED: "Strumento da configurare per l'ascolto",
+        PLAYBACK_NOT_APPLIED: 'Suono indicato non applicato',
         OPENING_BALANCE_NOT_ALLOWED: 'Saldo iniziale non consentito'
     };
     private readonly stageLabels: Record<string, string> = {

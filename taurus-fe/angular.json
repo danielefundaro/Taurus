@@ -35,6 +35,16 @@
                                 "input": "node_modules/ngx-extended-pdf-viewer/assets/",
                                 "output": "assets/"
                             },
+                            {
+                                "glob": "spessasynth_processor.min.js",
+                                "input": "node_modules/spessasynth_lib/dist/",
+                                "output": "assets/spessasynth/"
+                            },
+                            {
+                                "glob": "verovio-toolkit-wasm.js",
+                                "input": "node_modules/verovio/dist/",
+                                "output": "assets/verovio/"
+                            },
                             "src/favicon.ico",
                             "src/assets"
                         ],

@@ -4,6 +4,8 @@ import { RoleEnums } from '../../../constants';
 import { DetailComponent } from './detail.component';
 
 describe('Track DetailComponent', () => {
+    const tenantFeatures = { scorePlaybackEnabled: () => false, loaded: () => true } as any;
+
     it('loads upload jobs only once during initialization', () => {
         const tracksService = jasmine.createSpyObj('TracksService', ['getById', 'getUploadJobs']);
         const instrumentsService = jasmine.createSpyObj('InstrumentsService', ['getAll']);
@@ -12,7 +14,7 @@ describe('Track DetailComponent', () => {
         instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
         const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => null } } };
         const keycloakService = { currentUserRole: RoleEnums.ARCHIVIST };
-        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!);
+        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures);
 
         component.ngOnInit();
 
@@ -28,7 +30,7 @@ describe('Track DetailComponent', () => {
             instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
             const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => 'pdf' } } };
             const keycloakService = { currentUserRole: role, isUser: role === RoleEnums.USER, isUserExternal: role === RoleEnums.USER_EXTERNAL };
-            const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!);
+            const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures);
 
             component.ngOnInit();
 
@@ -38,8 +40,52 @@ describe('Track DetailComponent', () => {
         });
     });
 
+    it('opens the playback tab from a deep link only when score playback is enabled', () => {
+        const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => 'playback' } } };
+        const keycloakService = { currentUserRole: RoleEnums.USER, isUser: true, isUserExternal: false };
+        const open = (enabled: boolean) => {
+            const tracksService = jasmine.createSpyObj('TracksService', ['getById']);
+            const instrumentsService = jasmine.createSpyObj('InstrumentsService', ['getAll']);
+            tracksService.getById.and.returnValue(of(new Tracks()));
+            instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
+            const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, {
+                scorePlaybackEnabled: () => enabled,
+                loaded: () => true
+            } as any);
+            component.ngOnInit();
+            return component['activeTab'];
+        };
+
+        expect(open(true)).toBe('playback');
+        expect(open(false)).toBe('details');
+    });
+
+    it('opens the playback tab of a deep link once the tenant features arrive', () => {
+        const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => 'playback' } } };
+        const keycloakService = { currentUserRole: RoleEnums.USER, isUser: true, isUserExternal: false };
+        const tracksService = jasmine.createSpyObj('TracksService', ['getById']);
+        const instrumentsService = jasmine.createSpyObj('InstrumentsService', ['getAll']);
+        tracksService.getById.and.returnValue(of(new Tracks()));
+        instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
+        let enabled = false;
+        const tenantFeatures = {
+            scorePlaybackEnabled: () => enabled,
+            loaded: () => false,
+            refresh: jasmine.createSpy().and.callFake(() => {
+                enabled = true;
+                return of({});
+            })
+        };
+        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures as any);
+
+        component.ngOnInit();
+
+        expect(tenantFeatures.refresh).toHaveBeenCalled();
+        expect(component['activeTab']).toBe('playback');
+    });
+
     it('treats details and parts as one track save unit', () => {
-        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
 
         component['onScoresDirtyChange'](true);
         expect(component.isDirtyForm).toBeTrue();
@@ -51,7 +97,7 @@ describe('Track DetailComponent', () => {
 
     it('replaces one source page with every generated crop image', () => {
         const toastService = jasmine.createSpyObj('ToastService', ['success']);
-        const component = new DetailComponent(null!, null!, null!, null!, toastService, null!, null!, null!, null!);
+        const component = new DetailComponent(null!, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
         component['track'] = {
             id: 4,
             version: 2,

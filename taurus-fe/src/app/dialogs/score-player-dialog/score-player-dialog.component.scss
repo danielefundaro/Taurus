@@ -1,0 +1,176 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.score-player {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.score-player__transport {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.score-player__buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.score-player__position {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.score-player__progress {
+    flex: 1;
+}
+
+.score-player__measure,
+.score-player__time {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.score-player__options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+}
+
+.score-player__loop {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-player__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+
+.score-player__body--score {
+    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+}
+
+.score-player__mixer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    overflow: auto;
+    border-right: 1px solid var(--p-content-border-color);
+}
+
+.score-player__shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.score-player__parts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+// The toggle exists only where the mixer stacks above the notation.
+.score-player__parts-toggle {
+    display: none;
+    align-self: flex-start;
+}
+
+.score-player__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+}
+
+.score-player__row--muted {
+    opacity: 0.6;
+}
+
+.score-player__row--unavailable {
+    opacity: 0.7;
+    border-style: dashed;
+}
+
+.score-player__row-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.score-player__score {
+    padding: 1rem;
+    overflow: auto;
+    min-height: 0;
+}
+
+.score-player__notation-select {
+    display: block;
+    max-width: 24rem;
+    margin-bottom: 0.75rem;
+}
+
+.score-player__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    color: var(--p-text-muted-color);
+}
+
+.score-player__notation {
+    background: #fff;
+    border-radius: var(--p-content-border-radius);
+
+    ::ng-deep svg {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    ::ng-deep g.measure.is-current {
+        fill: var(--p-primary-color);
+        stroke: var(--p-primary-color);
+    }
+}
+
+@media (max-width: 768px) {
+    .score-player__body--score {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .score-player__mixer {
+        border-right: 0;
+        border-bottom: 1px solid var(--p-content-border-color);
+        max-height: 40vh;
+    }
+
+    .score-player__parts-toggle {
+        display: inline-flex;
+    }
+
+    .score-player__parts--closed {
+        display: none;
+    }
+}

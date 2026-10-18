@@ -7,6 +7,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from '../../../components/type-handler/type-handler.component';
 import { ScoreWorkspaceComponent } from './score-workspace/score-workspace.component';
+import { ScorePlaybackPanelComponent } from './score-playback-panel/score-playback-panel.component';
 import { RoleEnums, StateEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
 import { ImageEditorDialogComponent } from '../../../dialogs/image-editor-dialog/image-editor-dialog.component';
@@ -14,11 +15,11 @@ import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackPageEditResult, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
-import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, ToastService, TracksService, withErrorSummary } from '../../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, TenantFeatureService, ToastService, TracksService, withErrorSummary } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
-    imports: [ImportsModule, TypeHandlerComponent, ScoreWorkspaceComponent],
+    imports: [ImportsModule, TypeHandlerComponent, ScoreWorkspaceComponent, ScorePlaybackPanelComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [TracksService, InstrumentsService, KeycloakService, DialogService],
@@ -56,7 +57,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly routeService: ActivatedRoute,
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
-        private readonly dialogService: DialogService
+        private readonly dialogService: DialogService,
+        private readonly tenantFeatureService: TenantFeatureService
     ) {
         super();
         this.instruments = [];
@@ -65,8 +67,14 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     ngOnInit() {
         const requestedTab = this.routeService.snapshot?.queryParamMap?.get('tab');
-        const availableTabs = this.canManagePdf ? ['details', 'parts', 'pdf'] : ['details', 'parts'];
-        if (requestedTab && availableTabs.includes(requestedTab)) this.activeTab = requestedTab;
+        this.openRequestedTab(requestedTab);
+        // Aperta da un collegamento, per esempio di una notifica, la pagina può precedere le funzioni del tenant.
+        if (requestedTab && this.activeTab !== requestedTab && !this.tenantFeatureService.loaded()) {
+            this.tenantFeatureService
+                .refresh()
+                .pipe(first())
+                .subscribe({ next: () => this.openRequestedTab(requestedTab), error: () => undefined });
+        }
         this.routeService.params.pipe(first()).subscribe((params) => {
             const trackId = params['id'];
             this.loadElement(trackId);
@@ -95,6 +103,20 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected get isUser(): boolean {
         return this.keycloakService.isUser || this.keycloakService.isUserExternal;
+    }
+
+    protected get scorePlaybackEnabled(): boolean {
+        return this.tenantFeatureService.scorePlaybackEnabled();
+    }
+
+    private openRequestedTab(tab: string | null | undefined): void {
+        const availableTabs = ['details', 'parts', ...(this.scorePlaybackEnabled ? ['playback'] : []), ...(this.canManagePdf ? ['pdf'] : [])];
+        if (tab && availableTabs.includes(tab)) this.activeTab = tab;
+    }
+
+    /** Le impostazioni di ascolto aggiornano la versione della traccia: il salvataggio successivo deve usarla. */
+    protected onTrackVersionChange(version: number): void {
+        this.track = { ...this.track, version };
     }
 
     protected get canManagePdf(): boolean {

@@ -6,6 +6,12 @@
 <app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
     (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
+@if (scorePlaybackEnabled) {
+<div class="flex items-center gap-2 mb-3">
+    <p-checkbox inputId="onlyUnconfigured" [binary]="true" [(ngModel)]="onlyUnconfigured" (ngModelChange)="onUnconfiguredChange()" />
+    <label for="onlyUnconfigured">Da configurare per l'ascolto</label>
+</div>
+}
 <app-selection-bar [count]="selectedInstruments.length" [allSelected]="isAllSelected(instruments)"
     (toggleAll)="toggleSelectAll(instruments)" (clear)="selectedInstruments = []" (delete)="deleteSelectedElements()" />
 
@@ -29,6 +35,9 @@
                             }}</a>
                         <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis">{{
                             item.description || 'Nessuna descrizione' }}</span>
+                        @if (scorePlaybackEnabled && !item.playbackConfigured) {
+                        <p-tag severity="warn" value="Da configurare per l'ascolto" class="mt-1" />
+                        }
                     </div>
                     <div rowMetrics class="list-metric">
                         <strong>{{ item.usersCount ?? 0 }}</strong><small>{{ item.usersCount === 1 ? 'utente' : 'utenti'

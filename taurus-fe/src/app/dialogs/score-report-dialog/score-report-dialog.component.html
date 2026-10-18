@@ -1,0 +1,25 @@
+<app-dialog-shell
+    #shell
+    heading="Segnala un errore"
+    subtitle="Archivisti e amministratori riceveranno la segnalazione"
+    confirmLabel="Invia"
+    [saving]="saving"
+    [invalidCount]="invalidCount"
+    [dirty]="!!message.trim()"
+    (cancel)="cancel()"
+    (confirm)="send()"
+>
+    <div class="flex flex-col gap-4">
+        @if (data.parts.length > 1) {
+            <app-form-field label="Parte" forId="reportPart" required>
+                <p-select inputId="reportPart" [options]="data.parts" [ngModel]="scoreId" (ngModelChange)="changePart($event)" optionLabel="label" optionValue="scoreId" appendTo="body" />
+            </app-form-field>
+        }
+        <app-form-field label="Battuta" forId="reportMeasure" hint="Facoltativa: aiuta a trovare subito l'errore.">
+            <p-select inputId="reportMeasure" [options]="measureOptions" [(ngModel)]="measureNumber" optionLabel="label" optionValue="value" [showClear]="true" [filter]="measureOptions.length > 20" placeholder="Non indicata" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Che cosa non va" forId="reportMessage" required [hint]="message.length + ' di ' + maxLength + ' caratteri'" [error]="shell.validationAttempted && invalidCount ? 'Descrivi l\'errore che hai sentito.' : undefined">
+            <textarea pTextarea id="reportMessage" rows="4" class="w-full" [maxlength]="maxLength" [(ngModel)]="message" placeholder="Per esempio: la seconda nota è un Mi, non un Re"></textarea>
+        </app-form-field>
+    </div>
+</app-dialog-shell>

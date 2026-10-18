@@ -6,7 +6,8 @@ export enum TenantFeature {
     INVENTORY_QR = 'INVENTORY_QR',
     NOTIFICATION_PREFERENCES = 'NOTIFICATION_PREFERENCES',
     WEB_PUSH_REMINDERS = 'WEB_PUSH_REMINDERS',
-    EVENT_PREPARATION = 'EVENT_PREPARATION'
+    EVENT_PREPARATION = 'EVENT_PREPARATION',
+    SCORE_PLAYBACK = 'SCORE_PLAYBACK'
 }
 
 export interface TenantFeatures {
@@ -21,6 +22,7 @@ export interface TenantFeatures {
     notificationPreferencesEnabled: boolean;
     webPushRemindersEnabled: boolean;
     eventPreparationEnabled: boolean;
+    scorePlaybackEnabled: boolean;
 }
 
 export interface TenantFeatureCapability {

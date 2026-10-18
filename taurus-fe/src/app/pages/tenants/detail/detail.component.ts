@@ -27,6 +27,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         { key: 'onboardingImportEnabled', feature: TenantFeature.ONBOARDING_IMPORT, label: 'Onboarding e importazione iniziale', description: 'Wizard, template e importazioni iniziali del tenant.' },
         { key: 'externalCalendarFeedEnabled', feature: TenantFeature.EXTERNAL_CALENDAR_FEED, label: 'Feed calendario esterno', description: 'Feed personali e condivisi in formato iCalendar.' },
         { key: 'eventPreparationEnabled', feature: TenantFeature.EVENT_PREPARATION, label: 'Preparazione evento', description: 'Workspace operativo, indicatori, materiali e follow-up.' },
+        { key: 'scorePlaybackEnabled', feature: TenantFeature.SCORE_PLAYBACK, label: 'Ascolto delle parti', description: 'Ascolto di parti e partiture, caricamento MusicXML e versioni delle parti.' },
         { key: 'inventoryQrEnabled', feature: TenantFeature.INVENTORY_QR, label: 'QR code inventario', description: 'Etichette, scansione, azioni rapide e segnalazioni.', dependency: 'inventoryEnabled' },
         { key: 'notificationPreferencesEnabled', feature: TenantFeature.NOTIFICATION_PREFERENCES, label: 'Preferenze notifiche', description: 'Categorie, canali, digest, pausa e ore silenziose.' },
         { key: 'webPushRemindersEnabled', feature: TenantFeature.WEB_PUSH_REMINDERS, label: 'Promemoria eventi Web Push', description: 'Pianificazione e invio dei promemoria prima degli eventi.', dependency: 'notificationPreferencesEnabled' }
@@ -196,4 +197,4 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 }
 
-type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled';
+type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled' | 'scorePlaybackEnabled';
