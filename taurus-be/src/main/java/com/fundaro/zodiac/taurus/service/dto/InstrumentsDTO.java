@@ -14,12 +14,70 @@ public class InstrumentsDTO extends CommonFieldsOpenSearchDTO {
      */
     private Long usersCount;
 
+    /** Semitones from written to sounding pitch; {@code null} while the instrument is not configured for playback. */
+    private Integer transpositionSemitones;
+
+    /** Semitones for parts written in bass clef, when different from {@link #transpositionSemitones}. */
+    private Integer bassClefTranspositionSemitones;
+
+    private Integer soundBank;
+
+    private Integer soundProgram;
+
+    /** General MIDI drum key: when present the instrument is unpitched percussion. */
+    private Integer percussionKey;
+
     public Long getUsersCount() {
         return usersCount;
     }
 
     public void setUsersCount(Long usersCount) {
         this.usersCount = usersCount;
+    }
+
+    public Integer getTranspositionSemitones() {
+        return transpositionSemitones;
+    }
+
+    public void setTranspositionSemitones(Integer transpositionSemitones) {
+        this.transpositionSemitones = transpositionSemitones;
+    }
+
+    public Integer getBassClefTranspositionSemitones() {
+        return bassClefTranspositionSemitones;
+    }
+
+    public void setBassClefTranspositionSemitones(Integer bassClefTranspositionSemitones) {
+        this.bassClefTranspositionSemitones = bassClefTranspositionSemitones;
+    }
+
+    public Integer getSoundBank() {
+        return soundBank;
+    }
+
+    public void setSoundBank(Integer soundBank) {
+        this.soundBank = soundBank;
+    }
+
+    public Integer getSoundProgram() {
+        return soundProgram;
+    }
+
+    public void setSoundProgram(Integer soundProgram) {
+        this.soundProgram = soundProgram;
+    }
+
+    public Integer getPercussionKey() {
+        return percussionKey;
+    }
+
+    public void setPercussionKey(Integer percussionKey) {
+        this.percussionKey = percussionKey;
+    }
+
+    /** Whether parts of this instrument play with their own sound and transposition. */
+    public boolean isPlaybackConfigured() {
+        return percussionKey != null || (soundProgram != null && transpositionSemitones != null);
     }
 
     @Override
@@ -42,6 +100,11 @@ public class InstrumentsDTO extends CommonFieldsOpenSearchDTO {
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
             ", usersCount=" + getUsersCount() +
+            ", transpositionSemitones=" + getTranspositionSemitones() +
+            ", bassClefTranspositionSemitones=" + getBassClefTranspositionSemitones() +
+            ", soundBank=" + getSoundBank() +
+            ", soundProgram=" + getSoundProgram() +
+            ", percussionKey=" + getPercussionKey() +
             "}";
     }
 }

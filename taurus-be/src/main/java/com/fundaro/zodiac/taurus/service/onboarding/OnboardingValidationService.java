@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.onboarding;
 
 import com.fundaro.zodiac.taurus.domain.*;
 import com.fundaro.zodiac.taurus.domain.finance.*;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.onboarding.*;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
@@ -9,6 +10,7 @@ import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.finance.*;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.onboarding.*;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,11 +38,13 @@ public class OnboardingValidationService {
     private final FinancialCategoryRepository categories;
     private final FinancialAccountRepository accounts;
     private final TenantsRepository tenants;
+    private final TenantFeatureService tenantFeatures;
 
     public OnboardingValidationService(OnboardingFileInspectionService inspection, OnboardingImportJobRepository jobs,
                                        OnboardingImportRowRepository rows, OnboardingImportIssueRepository issues, OnboardingImportSectionRepository sections,
                                        InstrumentsRepository instruments, UsersRepository users, InventoryItemRepository inventory,
-                                       FinancialCategoryRepository categories, FinancialAccountRepository accounts, TenantsRepository tenants) {
+                                       FinancialCategoryRepository categories, FinancialAccountRepository accounts, TenantsRepository tenants,
+                                       TenantFeatureService tenantFeatures) {
         this.inspection = inspection;
         this.jobs = jobs;
         this.rows = rows;
@@ -52,6 +56,7 @@ public class OnboardingValidationService {
         this.categories = categories;
         this.accounts = accounts;
         this.tenants = tenants;
+        this.tenantFeatures = tenantFeatures;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -79,6 +84,7 @@ public class OnboardingValidationService {
             job.setStage("VALIDATING_ROWS");
             job.setProgressPercentage(20);
             ValidationState state = new ValidationState(job, existingInstruments(), existingUsers(), existingCategories(), existingAccounts());
+            state.scorePlayback = TenantContext.getTenantCode().map(code -> tenantFeatures.isEnabledForTenant(code, TenantFeature.SCORE_PLAYBACK)).orElse(false);
             for (String warning : parsed.warnings())
                 state.global(OnboardingIssueSeverity.WARNING, "SHEET_UNKNOWN", warning);
             for (OnboardingFileInspectionService.ParsedRow source : parsed.rows()) validateRow(state, source);
@@ -131,6 +137,7 @@ public class OnboardingValidationService {
         if (localKey != null && !state.keys.computeIfAbsent(source.section(), ignored -> new HashSet<>()).add(localKey))
             error(drafts, "DUPLICATE_IN_FILE", keyColumn(source.section()), "Valore duplicato nel file");
         reconcile(state, row, drafts);
+        if (source.section() == OnboardingSection.INSTRUMENTS) playbackWarnings(state, row, drafts);
         row.setStatus(drafts.stream().anyMatch(i -> i.severity == OnboardingIssueSeverity.ERROR) ? OnboardingRowStatus.ERROR : drafts.isEmpty() ? OnboardingRowStatus.VALID : OnboardingRowStatus.WARNING);
         state.persistedRows.add(row);
     }
@@ -151,6 +158,10 @@ public class OnboardingValidationService {
     private void validateTypes(OnboardingSection section, Map<String, Object> p, List<IssueDraft> d) {
         try {
             switch (section) {
+                case INSTRUMENTS -> {
+                    for (OnboardingInstrumentPlayback.Problem problem : playback(p).problems())
+                        error(d, "VALUE_INVALID_FORMAT", problem.column(), problem.message());
+                }
                 case USERS -> {
                     if (!text(p, "email").isBlank() && !EMAIL.matcher(text(p, "email")).matches())
                         error(d, "VALUE_INVALID_EMAIL", "email", "Indirizzo e-mail non valido");
@@ -237,6 +248,36 @@ public class OnboardingValidationService {
             default -> {
             }
         }
+    }
+
+    /**
+     * Tells how the sound and the transposition of a new instrument are chosen. The proposal and the instruments left
+     * to configure are reported only when the tenant uses score playback.
+     */
+    private void playbackWarnings(ValidationState state, OnboardingImportRow row, List<IssueDraft> d) {
+        OnboardingInstrumentPlayback.Resolution playback = playback(row.getNormalizedPayload());
+        if (!playback.problems().isEmpty()) return;
+        if (row.getAction() == OnboardingRowAction.REUSE) {
+            if (playback.explicit())
+                warning(d, "PLAYBACK_NOT_APPLIED", OnboardingInstrumentPlayback.SOUND, "Strumento esistente: suono e trasposizione indicati non vengono applicati");
+            return;
+        }
+        if (!state.scorePlayback) return;
+        if (playback.keyword() != null)
+            warning(d, "PLAYBACK_PROPOSED", OnboardingInstrumentPlayback.SOUND, "Suono e trasposizione proposti dal nome («" + playback.keyword() + "»): verificarli nel dettaglio dello strumento");
+        else if (!playback.values().configured())
+            warning(d, "PLAYBACK_NOT_CONFIGURED", OnboardingInstrumentPlayback.SOUND, playback.explicit()
+                ? "Suono e trasposizione incompleti: lo strumento resta da configurare per l'ascolto"
+                : "Nessuna proposta dal nome: lo strumento resta da configurare per l'ascolto");
+    }
+
+    private static OnboardingInstrumentPlayback.Resolution playback(Map<String, Object> p) {
+        return OnboardingInstrumentPlayback.resolve(
+            text(p, "nome"),
+            text(p, OnboardingInstrumentPlayback.SOUND),
+            text(p, OnboardingInstrumentPlayback.TRANSPOSITION),
+            text(p, OnboardingInstrumentPlayback.BASS_CLEF_TRANSPOSITION)
+        );
     }
 
     private void validateReferences(ValidationState state) {
@@ -408,6 +449,10 @@ public class OnboardingValidationService {
         d.add(new IssueDraft(OnboardingIssueSeverity.ERROR, code, column, message));
     }
 
+    private static void warning(List<IssueDraft> d, String code, String column, String message) {
+        d.add(new IssueDraft(OnboardingIssueSeverity.WARNING, code, column, message));
+    }
+
     private static void reuse(OnboardingImportRow row, List<IssueDraft> d, String message) {
         row.setAction(OnboardingRowAction.REUSE);
         d.add(new IssueDraft(OnboardingIssueSeverity.WARNING, "EXISTING_RECORD_WILL_BE_REUSED", null, message));
@@ -431,6 +476,7 @@ public class OnboardingValidationService {
         final Map<OnboardingImportRow, List<IssueDraft>> drafts = new LinkedHashMap<>();
         final Map<OnboardingSection, Set<String>> keys = new EnumMap<>(OnboardingSection.class);
         final List<IssueDraft> globalDrafts = new ArrayList<>();
+        boolean scorePlayback;
 
         ValidationState(OnboardingImportJob job, Set<String> i, Map<String, Users> u, Map<String, FinancialCategory> c, Map<String, FinancialAccount> a) {
             this.job = job;

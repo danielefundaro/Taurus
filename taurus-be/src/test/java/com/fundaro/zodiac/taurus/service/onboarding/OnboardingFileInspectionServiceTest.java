@@ -28,6 +28,27 @@ class OnboardingFileInspectionServiceTest {
     }
 
     @Test
+    void readsThePlaybackColumnsAndAcceptsFilesPreparedWithoutThem() {
+        byte[] current = "riferimento,nome,descrizione,suono,trasposizione,trasposizione_chiave_basso\r\nflic,Flicorno tenore,,57,-14,0\r\n".getBytes(StandardCharsets.UTF_8);
+        byte[] previous = "riferimento,nome,descrizione\r\nflic,Flicorno tenore,\r\n".getBytes(StandardCharsets.UTF_8);
+
+        var withColumns = service.inspect(current, OnboardingImportFormat.CSV, OnboardingSection.INSTRUMENTS, EnumSet.noneOf(OnboardingSection.class));
+        var withoutColumns = service.inspect(previous, OnboardingImportFormat.CSV, OnboardingSection.INSTRUMENTS, EnumSet.noneOf(OnboardingSection.class));
+
+        assertThat(withColumns.rows().get(0).values()).containsEntry("suono", "57").containsEntry("trasposizione", "-14").containsEntry("trasposizione_chiave_basso", "0");
+        assertThat(withoutColumns.rows().get(0).values()).containsEntry("suono", "").containsEntry("trasposizione", "");
+    }
+
+    @Test
+    void rejectsFilesWithOnlySomeOfTheOptionalColumns() {
+        byte[] csv = "riferimento,nome,descrizione,suono\r\nflic,Flicorno tenore,,57\r\n".getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> service.inspect(csv, OnboardingImportFormat.CSV, OnboardingSection.INSTRUMENTS, EnumSet.noneOf(OnboardingSection.class)))
+            .isInstanceOf(OnboardingFileInspectionService.InspectionException.class)
+            .hasMessageContaining("intestazioni");
+    }
+
+    @Test
     void rejectsFormulaCells() throws Exception {
         OnboardingTemplateService templates = new OnboardingTemplateService();
         byte[] bytes;

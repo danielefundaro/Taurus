@@ -23,12 +23,34 @@ public class TracksDTO extends StateFieldOpenSearchDTO {
 
     private String tone;
 
+    /** Read only: changed through the playback settings endpoint. */
+    private Integer tempoBpm;
+
+    /** Read only: changed through the playback settings endpoint. */
+    private Long referenceScoreId;
+
     private Set<String> type;
 
     private Set<SheetsMusicDTO> scores;
 
     public Long getVersion() {
         return version;
+    }
+
+    public Integer getTempoBpm() {
+        return tempoBpm;
+    }
+
+    public void setTempoBpm(Integer tempoBpm) {
+        this.tempoBpm = tempoBpm;
+    }
+
+    public Long getReferenceScoreId() {
+        return referenceScoreId;
+    }
+
+    public void setReferenceScoreId(Long referenceScoreId) {
+        this.referenceScoreId = referenceScoreId;
     }
 
     public void setVersion(Long version) {

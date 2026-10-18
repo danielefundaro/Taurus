@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20261018000000-1" author="taurus">
+    <comment>Errors heard by the listeners of a part, reported to archivists and administrators.</comment>
+    <createTable tableName="score_error_report">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="sheet_music_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="track_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="score_version_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="measure_number" type="varchar(16)"/>
+      <column name="message" type="varchar(1000)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="reported_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="varchar(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="closure" type="varchar(16)"/>
+      <column name="closed_by" type="varchar(255)"/>
+      <column name="closed_at" type="timestamp with time zone"/>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="score_error_report" baseColumnNames="sheet_music_id"
+                             referencedTableName="sheet_music" referencedColumnNames="id"
+                             constraintName="fk_score_error_report_sheet_music" onDelete="RESTRICT"/>
+    <addForeignKeyConstraint baseTableName="score_error_report" baseColumnNames="track_id"
+                             referencedTableName="track" referencedColumnNames="id"
+                             constraintName="fk_score_error_report_track" onDelete="RESTRICT"/>
+    <addForeignKeyConstraint baseTableName="score_error_report" baseColumnNames="score_version_id"
+                             referencedTableName="score_version" referencedColumnNames="id"
+                             constraintName="fk_score_error_report_score_version" onDelete="RESTRICT"/>
+    <sql><![CDATA[
+      ALTER TABLE score_error_report
+        ADD CONSTRAINT ck_score_error_report_status CHECK (status IN ('OPEN', 'CLOSED')),
+        ADD CONSTRAINT ck_score_error_report_closure CHECK (closure IN ('MANUAL', 'APPROVAL')),
+        ADD CONSTRAINT ck_score_error_report_closed
+          CHECK ((status = 'CLOSED') = (closure IS NOT NULL AND closed_by IS NOT NULL AND closed_at IS NOT NULL)),
+        ADD CONSTRAINT ck_score_error_report_message CHECK (length(btrim(message)) > 0);
+      CREATE INDEX idx_score_error_report_part ON score_error_report (sheet_music_id, status) WHERE deleted = FALSE;
+      CREATE INDEX idx_score_error_report_track ON score_error_report (track_id, deleted);
+      CREATE INDEX idx_score_error_report_version ON score_error_report (score_version_id);
+      CREATE INDEX idx_score_error_report_reporter ON score_error_report (reported_by);
+      ]]></sql>
+  </changeSet>
+
+  <changeSet id="20261018000000-2" author="taurus">
+    <comment>Name of the listener when the report was made, shown when the user is not a user of the tenant.</comment>
+    <addColumn tableName="score_error_report">
+      <column name="reporter_name" type="varchar(255)"/>
+    </addColumn>
+  </changeSet>
+</databaseChangeLog>

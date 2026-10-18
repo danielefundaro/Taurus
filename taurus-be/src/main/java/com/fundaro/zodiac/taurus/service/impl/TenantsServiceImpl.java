@@ -175,6 +175,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         if (dto.getNotificationPreferencesEnabled() == null) dto.setNotificationPreferencesEnabled(false);
         if (dto.getWebPushRemindersEnabled() == null) dto.setWebPushRemindersEnabled(false);
         if (dto.getEventPreparationEnabled() == null) dto.setEventPreparationEnabled(false);
+        if (dto.getScorePlaybackEnabled() == null) dto.setScorePlaybackEnabled(false);
     }
 
     private void preserveOmittedFeatureFlags(TenantsDTO dto, Tenants previous) {
@@ -191,6 +192,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             dto.setWebPushRemindersEnabled(previous.getWebPushRemindersEnabled());
         if (dto.getEventPreparationEnabled() == null)
             dto.setEventPreparationEnabled(previous.getEventPreparationEnabled());
+        if (dto.getScorePlaybackEnabled() == null) dto.setScorePlaybackEnabled(previous.getScorePlaybackEnabled());
     }
 
     private Map<String, Boolean> featureFlags(Tenants tenant) {
@@ -202,7 +204,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
             "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
             "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
-            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())
+            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled()),
+            "scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())
         );
     }
 
@@ -215,7 +218,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
             "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
             "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
-            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())
+            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled()),
+            "scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())
         );
     }
 }

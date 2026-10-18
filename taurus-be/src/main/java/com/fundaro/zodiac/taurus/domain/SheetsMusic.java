@@ -52,6 +52,19 @@ public class SheetsMusic extends AuditFields implements Serializable {
     @Column(name = "needs_review", nullable = false)
     private Boolean needsReview = Boolean.FALSE;
 
+    /** Score version played for this part; managed by the score playback services, not by the track form. */
+    @Column(name = "current_score_version_id")
+    private Long currentScoreVersionId;
+
+    @Column(name = "transposition_override")
+    private Integer transpositionOverride;
+
+    @Column(name = "sound_bank_override")
+    private Integer soundBankOverride;
+
+    @Column(name = "sound_program_override")
+    private Integer soundProgramOverride;
+
     public String getDescription() {
         return description;
     }
@@ -94,6 +107,38 @@ public class SheetsMusic extends AuditFields implements Serializable {
 
     public Boolean getNeedsReview() {
         return needsReview;
+    }
+
+    public Long getCurrentScoreVersionId() {
+        return currentScoreVersionId;
+    }
+
+    public void setCurrentScoreVersionId(Long currentScoreVersionId) {
+        this.currentScoreVersionId = currentScoreVersionId;
+    }
+
+    public Integer getTranspositionOverride() {
+        return transpositionOverride;
+    }
+
+    public void setTranspositionOverride(Integer transpositionOverride) {
+        this.transpositionOverride = transpositionOverride;
+    }
+
+    public Integer getSoundBankOverride() {
+        return soundBankOverride;
+    }
+
+    public void setSoundBankOverride(Integer soundBankOverride) {
+        this.soundBankOverride = soundBankOverride;
+    }
+
+    public Integer getSoundProgramOverride() {
+        return soundProgramOverride;
+    }
+
+    public void setSoundProgramOverride(Integer soundProgramOverride) {
+        this.soundProgramOverride = soundProgramOverride;
     }
 
     public void setNeedsReview(Boolean needsReview) {

@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.function.Function;
 import java.util.HexFormat;
 import java.util.Date;
 import java.util.List;
@@ -150,11 +151,38 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
         String category,
         AbstractAuthenticationToken token
     ) {
+        String tenant = requiredTenant(token);
+        requiredActor(token);
+        return store(content, originalFilename, declaredMimeType, category, tenant, media -> saveEntity(media, token, true));
+    }
+
+    @Override
+    public MediaDTO store(byte[] content, String originalFilename, String declaredMimeType, String category, String tenantCode, String actor) {
+        if (tenantCode == null || tenantCode.isBlank() || actor == null || actor.isBlank()) {
+            throw new IllegalArgumentException("Tenant and actor are required to store a media file");
+        }
+        return store(content, originalFilename, declaredMimeType, category, tenantCode, media -> {
+            Date now = new Date();
+            media.setInsertBy(actor);
+            media.setInsertDate(now);
+            media.setEditBy(actor);
+            media.setEditDate(now);
+            media.setDeleted(false);
+            return getMapper().toDto(getRepository().save(media));
+        });
+    }
+
+    private MediaDTO store(
+        byte[] content,
+        String originalFilename,
+        String declaredMimeType,
+        String category,
+        String tenant,
+        Function<Media, MediaDTO> save
+    ) {
         if (content == null || content.length == 0) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "media.file.empty");
         }
-        String tenant = requiredTenant(token);
-        requiredActor(token);
         String safeCategory = requireCategory(category);
         String mimeType = detectMimeType(content, declaredMimeType);
         String extension = extensionFor(mimeType, originalFilename);
@@ -179,7 +207,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
             media.setFileSize(content.length);
             media.setSha256(digest);
             media.setStatus(MediaAssetStatus.READY);
-            MediaDTO saved = saveEntity(media, token, true);
+            MediaDTO saved = save.apply(media);
             registerRollbackCleanup(tenant, storageKey);
             return saved;
         } catch (RuntimeException exception) {

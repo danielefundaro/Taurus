@@ -218,6 +218,20 @@ application:
       resolution-limit-per-minute: ${INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE:60}
   event-preparation:
     enabled: false
+  score-playback:
+    enabled: ${SCORE_PLAYBACK_ENABLED:false}
+    max-upload-bytes: 10485760
+    kept-versions: 20
+    cleanup-cron: '0 15 4 * * *'
+    omr:
+      # Empty: recognition and MIDI upload are not offered.
+      url: ${SCORE_PLAYBACK_OMR_URL:}
+      api-key: ${SCORE_PLAYBACK_OMR_API_KEY:}
+      timeout: PT12M
+      connect-timeout: PT5S
+      concurrency: 1
+      stale-after: PT30M
+      max-attempts: 3
   onboarding:
     enabled: true
     recovery-enabled: true

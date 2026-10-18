@@ -57,6 +57,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     private Boolean notificationPreferencesEnabled = false;
     private Boolean webPushRemindersEnabled = false;
     private Boolean eventPreparationEnabled = false;
+    private Boolean scorePlaybackEnabled = false;
     private Long entityVersion;
 
     public String getCode() {
@@ -259,6 +260,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
         eventPreparationEnabled = value;
     }
 
+    public Boolean getScorePlaybackEnabled() {
+        return scorePlaybackEnabled;
+    }
+
+    public void setScorePlaybackEnabled(Boolean value) {
+        scorePlaybackEnabled = value;
+    }
+
     public Long getEntityVersion() {
         return entityVersion;
     }
@@ -301,12 +310,13 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(notificationPreferencesEnabled, that.notificationPreferencesEnabled) &&
             Objects.equals(webPushRemindersEnabled, that.webPushRemindersEnabled) &&
             Objects.equals(eventPreparationEnabled, that.eventPreparationEnabled) &&
+            Objects.equals(scorePlaybackEnabled, that.scorePlaybackEnabled) &&
             Objects.equals(entityVersion, that.entityVersion);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, entityVersion);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, scorePlaybackEnabled, entityVersion);
     }
 
     @Override
@@ -340,6 +350,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", notificationPreferencesEnabled=" + notificationPreferencesEnabled +
             ", webPushRemindersEnabled=" + webPushRemindersEnabled +
             ", eventPreparationEnabled=" + eventPreparationEnabled +
+            ", scorePlaybackEnabled=" + scorePlaybackEnabled +
             ", entityVersion=" + entityVersion +
             '}';
     }

@@ -9,6 +9,7 @@ import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -51,6 +52,9 @@ public class ApplicationProperties {
 
     @Valid
     private EventPreparationProperties eventPreparation = new EventPreparationProperties();
+
+    @Valid
+    private ScorePlaybackProperties scorePlayback = new ScorePlaybackProperties();
 
     @Valid
     private InventoryProperties inventory = new InventoryProperties();
@@ -157,6 +161,14 @@ public class ApplicationProperties {
 
     public void setEventPreparation(EventPreparationProperties value) {
         eventPreparation = value;
+    }
+
+    public ScorePlaybackProperties getScorePlayback() {
+        return scorePlayback;
+    }
+
+    public void setScorePlayback(ScorePlaybackProperties value) {
+        scorePlayback = value;
     }
 
     public InventoryProperties getInventory() {
@@ -902,6 +914,157 @@ public class ApplicationProperties {
 
         public void setEnabled(boolean value) {
             enabled = value;
+        }
+    }
+
+    public static class ScorePlaybackProperties {
+        private boolean enabled;
+
+        /** Largest MusicXML or MIDI file accepted on upload, compressed or not. */
+        private long maxUploadBytes = 10L * 1024 * 1024;
+
+        /** Versions kept for each part by the nightly cleanup, besides the current and the approved ones. */
+        @Min(1)
+        private int keptVersions = 20;
+
+        private String cleanupCron = "0 15 4 * * *";
+
+        @Valid
+        private OmrProperties omr = new OmrProperties();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
+
+        public long getMaxUploadBytes() {
+            return maxUploadBytes;
+        }
+
+        public void setMaxUploadBytes(long value) {
+            maxUploadBytes = value;
+        }
+
+        public int getKeptVersions() {
+            return keptVersions;
+        }
+
+        public void setKeptVersions(int value) {
+            keptVersions = value;
+        }
+
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
+
+        public void setCleanupCron(String value) {
+            cleanupCron = value;
+        }
+
+        public OmrProperties getOmr() {
+            return omr;
+        }
+
+        public void setOmr(OmrProperties value) {
+            omr = value;
+        }
+    }
+
+    /** The optical music recognition service. Without a URL recognition and MIDI upload are not offered. */
+    public static class OmrProperties {
+        private String url = "";
+
+        /** Key shared with the service, sent in the X-Taurus-Omr-Key header. */
+        private String apiKey = "";
+
+        /** Longest wait for a recognition: both engines, all the pages. */
+        private Duration timeout = Duration.ofMinutes(12);
+
+        private Duration connectTimeout = Duration.ofSeconds(5);
+
+        /** Recognition jobs run at the same time by this backend instance. */
+        @Min(1)
+        @Max(8)
+        private int concurrency = 1;
+
+        /** A running job not finished after this time is queued again, at most {@code maxAttempts} times in total. */
+        private Duration staleAfter = Duration.ofMinutes(30);
+
+        @Min(1)
+        private int maxAttempts = 3;
+
+        /** Requeues interrupted jobs and republishes lost messages; disabled in tests that drive jobs by hand. */
+        private boolean recoveryEnabled = true;
+
+        public boolean isConfigured() {
+            return url != null && !url.isBlank();
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String value) {
+            url = value;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String value) {
+            apiKey = value;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration value) {
+            timeout = value;
+        }
+
+        public Duration getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(Duration value) {
+            connectTimeout = value;
+        }
+
+        public int getConcurrency() {
+            return concurrency;
+        }
+
+        public void setConcurrency(int value) {
+            concurrency = value;
+        }
+
+        public Duration getStaleAfter() {
+            return staleAfter;
+        }
+
+        public void setStaleAfter(Duration value) {
+            staleAfter = value;
+        }
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int value) {
+            maxAttempts = value;
+        }
+
+        public boolean isRecoveryEnabled() {
+            return recoveryEnabled;
+        }
+
+        public void setRecoveryEnabled(boolean value) {
+            recoveryEnabled = value;
         }
     }
 

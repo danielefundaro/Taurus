@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -13,6 +14,61 @@ import java.util.Date;
 @Entity
 @Table(name = "instrument")
 public class Instruments extends CommonFieldsOpenSearch {
+
+    @Column(name = "transposition_semitones")
+    private Integer transpositionSemitones;
+
+    @Column(name = "bass_clef_transposition_semitones")
+    private Integer bassClefTranspositionSemitones;
+
+    @Column(name = "sound_bank")
+    private Integer soundBank;
+
+    @Column(name = "sound_program")
+    private Integer soundProgram;
+
+    @Column(name = "percussion_key")
+    private Integer percussionKey;
+
+    public Integer getTranspositionSemitones() {
+        return transpositionSemitones;
+    }
+
+    public void setTranspositionSemitones(Integer transpositionSemitones) {
+        this.transpositionSemitones = transpositionSemitones;
+    }
+
+    public Integer getBassClefTranspositionSemitones() {
+        return bassClefTranspositionSemitones;
+    }
+
+    public void setBassClefTranspositionSemitones(Integer bassClefTranspositionSemitones) {
+        this.bassClefTranspositionSemitones = bassClefTranspositionSemitones;
+    }
+
+    public Integer getSoundBank() {
+        return soundBank;
+    }
+
+    public void setSoundBank(Integer soundBank) {
+        this.soundBank = soundBank;
+    }
+
+    public Integer getSoundProgram() {
+        return soundProgram;
+    }
+
+    public void setSoundProgram(Integer soundProgram) {
+        this.soundProgram = soundProgram;
+    }
+
+    public Integer getPercussionKey() {
+        return percussionKey;
+    }
+
+    public void setPercussionKey(Integer percussionKey) {
+        this.percussionKey = percussionKey;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -44,6 +100,11 @@ public class Instruments extends CommonFieldsOpenSearch {
             ", editDate='" + getEditDate() + "'" +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
+            ", transpositionSemitones=" + getTranspositionSemitones() +
+            ", bassClefTranspositionSemitones=" + getBassClefTranspositionSemitones() +
+            ", soundBank=" + getSoundBank() +
+            ", soundProgram=" + getSoundProgram() +
+            ", percussionKey=" + getPercussionKey() +
             "}";
     }
 }

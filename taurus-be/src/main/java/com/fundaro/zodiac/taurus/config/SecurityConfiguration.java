@@ -177,11 +177,15 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/albums/**", "/api/tracks/**", "/api/instruments/**")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
 
-                    // Read-only catalogue APIs for standard and external users.
+                    // Read-only catalogue APIs for standard and external users; listeners can report the errors they hear.
                     .requestMatchers(HttpMethod.GET, "/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**")
+                    .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers(HttpMethod.POST, "/api/user/tracks/{trackId}/scores/{scoreId}/error-reports")
                     .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers("/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**").denyAll()
                     .requestMatchers(HttpMethod.GET, "/api/external/albums/**", "/api/external/tracks/**")
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers(HttpMethod.POST, "/api/external/tracks/{trackId}/scores/{scoreId}/error-reports")
                     .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
 

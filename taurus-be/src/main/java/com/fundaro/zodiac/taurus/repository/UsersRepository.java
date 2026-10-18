@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface UsersRepository extends CatalogRepository<Users> {
     Optional<Users> findByKeycloakIdAndDeletedFalse(String keycloakId);
 
+    List<Users> findAllByKeycloakIdIn(Collection<String> keycloakIds);
+
     /**
      * Quanti utenti hanno assegnato ciascuno degli strumenti indicati.
      * Restituisce una riga per strumento con almeno un utente: gli strumenti

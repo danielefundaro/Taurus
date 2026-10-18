@@ -8,7 +8,8 @@ public enum TenantFeature {
     INVENTORY_QR("inventoryQr"),
     NOTIFICATION_PREFERENCES("notificationPreferences"),
     WEB_PUSH_REMINDERS("webPushReminders"),
-    EVENT_PREPARATION("eventPreparation");
+    EVENT_PREPARATION("eventPreparation"),
+    SCORE_PLAYBACK("scorePlayback");
 
     private final String errorKey;
 

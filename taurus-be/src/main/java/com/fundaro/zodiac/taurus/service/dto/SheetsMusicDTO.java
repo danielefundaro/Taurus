@@ -21,6 +21,16 @@ public class SheetsMusicDTO implements Serializable {
 
     private Boolean needsReview = Boolean.FALSE;
 
+    /** Read only: changed through the score version endpoints. */
+    private Long currentScoreVersionId;
+
+    /** Read only: changed through the part playback settings endpoint. */
+    private Integer transpositionOverride;
+
+    private Integer soundBankOverride;
+
+    private Integer soundProgramOverride;
+
     public Long getId() {
         return id;
     }
@@ -67,6 +77,38 @@ public class SheetsMusicDTO implements Serializable {
 
     public void setNeedsReview(Boolean needsReview) {
         this.needsReview = Boolean.TRUE.equals(needsReview);
+    }
+
+    public Long getCurrentScoreVersionId() {
+        return currentScoreVersionId;
+    }
+
+    public void setCurrentScoreVersionId(Long currentScoreVersionId) {
+        this.currentScoreVersionId = currentScoreVersionId;
+    }
+
+    public Integer getTranspositionOverride() {
+        return transpositionOverride;
+    }
+
+    public void setTranspositionOverride(Integer transpositionOverride) {
+        this.transpositionOverride = transpositionOverride;
+    }
+
+    public Integer getSoundBankOverride() {
+        return soundBankOverride;
+    }
+
+    public void setSoundBankOverride(Integer soundBankOverride) {
+        this.soundBankOverride = soundBankOverride;
+    }
+
+    public Integer getSoundProgramOverride() {
+        return soundProgramOverride;
+    }
+
+    public void setSoundProgramOverride(Integer soundProgramOverride) {
+        this.soundProgramOverride = soundProgramOverride;
     }
 
     @Override

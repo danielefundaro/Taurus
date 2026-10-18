@@ -24,6 +24,12 @@ public interface MediaService extends CommonOpenSearchService<Media, MediaDTO, M
         AbstractAuthenticationToken abstractAuthenticationToken
     );
 
+    /**
+     * Stores a file for a background task of the current tenant, without a user request; {@code actor} is written to
+     * the audit fields.
+     */
+    MediaDTO store(byte[] content, String originalFilename, String declaredMimeType, String category, String tenantCode, String actor);
+
     void deleteIfUnreferenced(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 
     void deleteIfUnreferenced(Long id, String tenantCode, String actor);

@@ -42,6 +42,14 @@ public class Tracks extends StateFieldsOpenSearch {
     @Column(name = "tone")
     private String tone;
 
+    /** Playback tempo in quarter notes per minute; managed by the playback settings, not by the track form. */
+    @Column(name = "tempo_bpm")
+    private Integer tempoBpm;
+
+    /** Part whose repeats and jumps drive the playback of the whole score. */
+    @Column(name = "reference_sheet_music_id")
+    private Long referenceSheetMusicId;
+
     @ElementCollection
     @CollectionTable(name = "track_type", joinColumns = @JoinColumn(name = "track_id"))
     @Column(name = "type")
@@ -52,6 +60,22 @@ public class Tracks extends StateFieldsOpenSearch {
     @JoinColumn(name = "track_id", nullable = false)
     @OrderColumn(name = "display_order")
     private List<SheetsMusic> scores = new ArrayList<>();
+
+    public Integer getTempoBpm() {
+        return tempoBpm;
+    }
+
+    public void setTempoBpm(Integer tempoBpm) {
+        this.tempoBpm = tempoBpm;
+    }
+
+    public Long getReferenceSheetMusicId() {
+        return referenceSheetMusicId;
+    }
+
+    public void setReferenceSheetMusicId(Long referenceSheetMusicId) {
+        this.referenceSheetMusicId = referenceSheetMusicId;
+    }
 
     public String getSubName() {
         return subName;

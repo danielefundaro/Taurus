@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tech.jhipster.config.JHipsterProperties;
 
@@ -26,10 +27,16 @@ import java.util.stream.Stream;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = SecurityConfigurationTest.CancelAvailabilityController.class)
-@Import({SecurityConfiguration.class, SecurityProblemSupport.class, SecurityConfigurationTest.CancelAvailabilityController.class})
+@WebMvcTest(controllers = {SecurityConfigurationTest.CancelAvailabilityController.class, SecurityConfigurationTest.ErrorReportController.class})
+@Import({
+    SecurityConfiguration.class,
+    SecurityProblemSupport.class,
+    SecurityConfigurationTest.CancelAvailabilityController.class,
+    SecurityConfigurationTest.ErrorReportController.class,
+})
 @EnableConfigurationProperties(JHipsterProperties.class)
 @TestPropertySource(properties = "spring.security.oauth2.client.provider.oidc.issuer-uri=https://issuer.example")
 @SuppressWarnings("removal")
@@ -68,6 +75,36 @@ class SecurityConfigurationTest {
             .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
+    @MethodSource("allowedErrorReports")
+    void allowsListenersToReportErrorsOnTheirOwnPaths(String authority, String path) throws Exception {
+        mockMvc.perform(post(path).with(user("member").authorities(new SimpleGrantedAuthority(authority)))).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @MethodSource("deniedListenerWrites")
+    void keepsTheOtherCatalogueWritesClosedToListeners(String authority, String path) throws Exception {
+        mockMvc.perform(post(path).with(user("member").authorities(new SimpleGrantedAuthority(authority)))).andExpect(status().isForbidden());
+    }
+
+    private static Stream<Arguments> allowedErrorReports() {
+        return Stream.of(
+            Arguments.of(AuthoritiesConstants.USER, "/api/user/tracks/4/scores/9/error-reports"),
+            Arguments.of(AuthoritiesConstants.USER_EXTERNAL, "/api/external/tracks/4/scores/9/error-reports"),
+            Arguments.of(AuthoritiesConstants.ARCHIVIST, "/api/tracks/4/scores/9/error-reports")
+        );
+    }
+
+    private static Stream<Arguments> deniedListenerWrites() {
+        return Stream.of(
+            Arguments.of(AuthoritiesConstants.USER_EXTERNAL, "/api/user/tracks/4/scores/9/error-reports"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/external/tracks/4/scores/9/error-reports"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/user/tracks/4/scores/9/score-versions"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/tracks/4/scores/9/error-reports"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/tracks/4/error-reports/1/close")
+        );
+    }
+
     private static Stream<Arguments> allowedCancellationRequests() {
         return Stream.of(
             Arguments.of(AuthoritiesConstants.ADMIN, "/api/calendar-events/42/availability/cancel"),
@@ -91,6 +128,20 @@ class SecurityConfigurationTest {
             "/api/external/calendar-events/series/{id}/availability/cancel",
         })
         void cancelAvailability() {
+        }
+    }
+
+    @RestController
+    static class ErrorReportController {
+
+        @PostMapping({
+            "/api/tracks/{trackId}/scores/{scoreId}/error-reports",
+            "/api/tracks/{trackId}/error-reports/{reportId}/close",
+            "/api/user/tracks/{trackId}/scores/{scoreId}/error-reports",
+            "/api/user/tracks/{trackId}/scores/{scoreId}/score-versions",
+            "/api/external/tracks/{trackId}/scores/{scoreId}/error-reports",
+        })
+        void reportError() {
         }
     }
 }

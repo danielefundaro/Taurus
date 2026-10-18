@@ -161,7 +161,7 @@ public class OnboardingFileInspectionService {
         for (String header : actual)
             if (!section.getHeaders().contains(header))
                 throw new InspectionException("COLUMN_UNKNOWN", "Colonna sconosciuta: " + header);
-        if (!actual.equals(section.getHeaders()))
+        if (!section.acceptsHeaders(actual))
             throw new InspectionException("COLUMN_MISMATCH", "Le intestazioni devono coincidere e mantenere l'ordine del template");
     }
 
