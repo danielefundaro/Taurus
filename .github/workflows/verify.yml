@@ -14,6 +14,7 @@ jobs:
     outputs:
       backend: ${{ steps.modules.outputs.backend }}
       frontend: ${{ steps.modules.outputs.frontend }}
+      omr: ${{ steps.modules.outputs.omr }}
       keycloak: ${{ steps.modules.outputs.keycloak }}
       info_site: ${{ steps.modules.outputs.info_site }}
     steps:
@@ -120,6 +121,38 @@ jobs:
       - run: npm ci
       - run: npm test -- --watch=false --browsers=ChromeHeadless
       - run: npm run build
+
+  omr:
+    needs: [changes, documentation]
+    if: needs.changes.outputs.omr == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: taurus-omr
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: taurus-omr/requirements-test.txt
+      - run: pip install -r requirements-test.txt
+      - run: python -m pytest
+      # Builds the complete image: every pinned download and checksum is verified again.
+      - run: docker build -t taurus-omr:verify .
+      # Accuracy of the real engines on the reference corpus, with the restrictions of omr.yml; the results are in the
+      # job summary.
+      - name: Check the accuracy of the engines
+        env:
+          TAURUS_OMR_ACCURACY_URL: http://127.0.0.1:8090
+          TAURUS_OMR_ACCURACY_KEY: accuracy-check-key-0123456789
+        run: |
+          docker run -d --name taurus-omr-verify -p 127.0.0.1:8090:8090 -e TAURUS_OMR_API_KEY="$TAURUS_OMR_ACCURACY_KEY" \
+            --read-only --tmpfs /tmp:rw,exec,size=2g --security-opt no-new-privileges:true --cap-drop ALL taurus-omr:verify
+          for attempt in $(seq 60); do curl -fs "$TAURUS_OMR_ACCURACY_URL/v1/health" && break; sleep 2; done
+          python -m pytest tests/test_accuracy.py -v -s
+      - if: failure()
+        run: docker logs taurus-omr-verify || true
 
   keycloak:
     needs: [changes, documentation]
