@@ -169,7 +169,7 @@ Il file ufficiale si chiama `taurus-onboarding-v1.xlsx` e contiene:
 - elenchi di convalida Excel per enum e valori booleani;
 - intestazioni bloccate e filtri attivi.
 
-I nomi e le intestazioni dei fogli devono coincidere esattamente con il template. Fogli sconosciuti producono un avviso; colonne sconosciute producono un errore, per evitare che un errore ortografico venga ignorato silenziosamente.
+I nomi e le intestazioni dei fogli devono coincidere esattamente con il template; fanno eccezione le colonne facoltative aggiunte in coda dopo la prima versione, che un file preparato prima può omettere tutte insieme. Fogli sconosciuti producono un avviso; colonne sconosciute producono un errore, per evitare che un errore ortografico venga ignorato silenziosamente.
 
 ### CSV per singola sezione
 
@@ -193,6 +193,11 @@ Se un CSV utenti fa riferimento a strumenti, questi devono già esistere nel ten
 | `riferimento` | sì | chiave locale, univoca nel workbook, massimo 64 caratteri |
 | `nome` | sì | massimo 255 caratteri |
 | `descrizione` | no | massimo 4000 caratteri |
+| `suono` | no | programma General MIDI da 0 a 127, oppure `batteria:<nota>` con nota da 27 a 87 |
+| `trasposizione` | no | semitoni interi tra −36 e +36 dalla nota scritta al suono reale; non ammessa con `batteria:` |
+| `trasposizione_chiave_basso` | no | come `trasposizione`, per le parti in chiave di basso se diversa |
+
+Le ultime tre colonne servono all'[ascolto delle parti](track-score-playback-spec.md) e sono state aggiunte dopo la prima versione del template: un foglio `Strumenti` con le sole prime tre colonne resta valido. Se le tre colonne sono vuote, Taurus applica la proposta calcolata dal nome; se il tenant usa l'ascolto delle parti, il rapporto la segnala con `PLAYBACK_PROPOSED`, oppure con `PLAYBACK_NOT_CONFIGURED` quando il nome non ha una proposta o i valori indicati non bastano a configurare lo strumento. Per uno strumento esistente, che viene riutilizzato, i valori indicati non vengono applicati (`PLAYBACK_NOT_APPLIED`).
 
 ### `Utenti`
 
@@ -416,7 +421,8 @@ Esempi di codici:
 - `TENANT_USER_LIMIT_EXCEEDED`;
 - `OPENING_BALANCE_NOT_ALLOWED`;
 - `KEYCLOAK_IDENTITY_WILL_BE_LINKED`;
-- `EXISTING_RECORD_WILL_BE_REUSED`.
+- `EXISTING_RECORD_WILL_BE_REUSED`;
+- `PLAYBACK_PROPOSED`, `PLAYBACK_NOT_CONFIGURED`, `PLAYBACK_NOT_APPLIED`.
 
 Gli `ERROR` bloccano l'applicazione. I `WARNING` richiedono una conferma unica nel passo finale e restano nel rapporto di audit. Nell'interfaccia questi valori e i codici problema sono presentati tramite etichette italiane; i codici originali non vengono modificati nel contratto API.
 

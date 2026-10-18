@@ -6,13 +6,15 @@ Modules are built independently:
 
 - `taurus-be/`: Java 17 Spring Boot API. Code is under `src/main/java`; configuration, Liquibase migrations, and Docker files are under `src/main/resources`; tests are under `src/test/java`.
 - `taurus-fe/`: Angular 19 client. Features live in `src/app/pages`, shared UI in `components` and `dialogs`, API access in `service`, and assets in `src/assets`.
+- `taurus-omr/`: Python 3.12 FastAPI service for optical music recognition (Audiveris, homr) and MIDI conversion, called only by the backend. Code is under `src/taurus_omr`, tests under `tests`; engines, models and dependencies are pinned in the `Dockerfile`, `requirements.txt` and `models.sha256`.
 - `keycloak-authenticator/`: Java 17 Keycloak provider and custom themes, following the standard Maven `src/main`/`src/test` layout.
 - `taurus-info/`: Astro marketing site; pages, components, and layouts are in `src`, with public assets in `public`.
 
 ## Build, Test, and Development Commands
 
-- Backend: `./mvnw` starts the API; `./mvnw verify` runs checks/tests; `docker compose -f src/main/docker/services.yml up --wait` starts dependencies.
-- Frontend: `npm ci`, then `npm start` for development, `npm run build` for production, and `npm test` for Karma/Jasmine tests.
+- Backend: `./mvnw` starts the API; `./mvnw verify` runs checks/tests; `docker compose -f src/main/docker/services.yml up --wait` starts dependencies, OMR service included.
+- Frontend: `npm ci`, then `npm start` for development, `npm run build` for production, and `npm test` for Karma/Jasmine tests. `npm start` and `npm run build` download the score player SoundFont first (`TAURUS_SKIP_SOUNDFONT=1` skips it).
+- OMR service: `pip install -r requirements-test.txt` and `python -m pytest` run the tests with fake engines; with `TAURUS_OMR_ACCURACY_URL` and `TAURUS_OMR_ACCURACY_KEY` set, `tests/test_accuracy.py` checks the real engines of a running service against the reference corpus in `accuracy/`; `docker build -t taurus-omr .` builds the complete image; `services.yml` starts it with the other backend dependencies, pulling `fundanie/taurus-omr` (published at every `v*.*.*` tag) or building it when not published; `docker compose -f taurus-be/src/main/docker/services.yml up -d --build omr` rebuilds it from the working tree.
 - Keycloak provider: `./mvnw verify` builds and tests the provider JAR.
 - Info site: `pnpm install`, `pnpm dev`, `pnpm check`, and `pnpm build`. Use pnpm 11 and Node.js 22.
 
