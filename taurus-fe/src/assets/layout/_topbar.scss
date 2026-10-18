@@ -28,8 +28,10 @@
         font-weight: 500;
         gap: 0.5rem;
 
+        // The SVG declares 1000 × 1000: without a height its box would cover the page below the topbar and take its taps.
         svg {
             width: 3rem;
+            height: 3rem;
         }
 
         &:focus-visible {
