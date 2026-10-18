@@ -3,7 +3,9 @@
     "version": "0.0.1",
     "scripts": {
         "ng": "ng",
+        "prestart": "node scripts/fetch-soundfont.mjs",
         "start": "ng serve",
+        "prebuild": "node scripts/fetch-soundfont.mjs",
         "build": "ng build",
         "update": "ng update",
         "watch": "ng build --watch --configuration development",
@@ -31,8 +33,10 @@
         "primeicons": "^7.0.0",
         "primeng": "^19.0.10",
         "rxjs": "~7.8.0",
+        "spessasynth_lib": "4.3.14",
         "tailwindcss-primeui": "^0.5.1",
         "tslib": "^2.3.0",
+        "verovio": "6.3.0",
         "zone.js": "~0.15.0"
     },
     "devDependencies": {

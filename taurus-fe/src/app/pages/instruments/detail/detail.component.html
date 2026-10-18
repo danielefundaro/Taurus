@@ -13,7 +13,7 @@
             <app-form-field label="Nome" forId="name" required
                 [error]="instrument.name?.trim() ? undefined : 'Inserisci il nome dello strumento.'">
                 <input pInputText id="name" type="text" [(ngModel)]="instrument!.name"
-                    (ngModelChange)="isDirty = true" />
+                    (ngModelChange)="onNameChange()" />
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
                 <textarea pTextarea id="description" rows="4" [(ngModel)]="instrument!.description"
@@ -21,6 +21,65 @@
             </app-form-field>
         </div>
     </app-detail-section>
+
+    @if (scorePlaybackEnabled) {
+    <app-detail-section heading="Ascolto"
+        description="Suono e trasposizione con cui si ascoltano le parti di questo strumento. Si salvano con «Salva strumento» in alto."
+        [dirty]="isDirty">
+        <div class="flex flex-col gap-4">
+            @if (proposal) {
+            <app-inline-alert severity="info" heading="Proposta da verificare"
+                [detail]="'Valori proposti dal nome («' + proposal.keyword + '»): provali e salva lo strumento per confermarli.'" />
+            } @else if (!configured) {
+            <app-inline-alert severity="warn" heading="Strumento da configurare per l'ascolto"
+                [detail]="noProposal ? 'Il nome non corrisponde a uno strumento noto: scegli suono e trasposizione. Fino ad allora le sue parti si ascoltano con il pianoforte e senza trasposizione.' : 'Le sue parti si ascoltano con il pianoforte e senza trasposizione finché non scegli suono e trasposizione.'" />
+            }
+            <p-selectbutton [options]="kindOptions" [ngModel]="percussion" (ngModelChange)="onKindChange($event)"
+                optionLabel="label" optionValue="value" [allowEmpty]="false" ariaLabel="Tipo di strumento" />
+            @if (percussion) {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <app-form-field label="Suono di batteria" forId="percussionKey" hint="Suono General MIDI della percussione.">
+                    <p-select inputId="percussionKey" [options]="drumOptions" [(ngModel)]="instrument.percussionKey"
+                        (ngModelChange)="markPlaybackDirty()" optionLabel="label" optionValue="value" [filter]="true"
+                        [showClear]="true" placeholder="Scegli un suono" appendTo="body" />
+                </app-form-field>
+            </div>
+            } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <app-form-field class="lg:col-span-2" label="Suono" forId="soundProgram">
+                    <p-select inputId="soundProgram" [options]="soundGroups" [group]="true"
+                        [ngModel]="instrument.soundProgram" (ngModelChange)="onSoundChange($event)" optionLabel="label"
+                        optionValue="value" [filter]="true" [showClear]="true" placeholder="Scegli un suono"
+                        appendTo="body" />
+                </app-form-field>
+                <app-form-field label="Banco" forId="soundBank" hint="0 per i suoni General MIDI.">
+                    <p-inputnumber inputId="soundBank" [(ngModel)]="instrument.soundBank"
+                        (ngModelChange)="markPlaybackDirty()" [min]="0" [max]="16383"
+                        [disabled]="instrument.soundProgram === null || instrument.soundProgram === undefined" />
+                </app-form-field>
+                <app-form-field label="Trasposizione (semitoni)" forId="transposition"
+                    hint="Dalla nota scritta al suono reale, es. −2 per gli strumenti in Si♭.">
+                    <p-inputnumber inputId="transposition" [(ngModel)]="instrument.transpositionSemitones"
+                        (ngModelChange)="markPlaybackDirty()" [min]="-36" [max]="36" [showButtons]="true" />
+                </app-form-field>
+                <app-form-field label="Trasposizione in chiave di basso" forId="bassClefTransposition"
+                    hint="Solo se diversa, es. 0 per i flicorni scritti in suoni reali.">
+                    <p-inputnumber inputId="bassClefTransposition"
+                        [(ngModel)]="instrument.bassClefTranspositionSemitones" (ngModelChange)="markPlaybackDirty()"
+                        [min]="-36" [max]="36" [showButtons]="true" />
+                </app-form-field>
+            </div>
+            }
+            <div class="flex flex-wrap gap-2">
+                <p-button label="Prova" icon="pi pi-volume-up" severity="secondary" outlined [loading]="previewing"
+                    [disabled]="percussion ? !instrument.percussionKey : instrument.soundProgram === null || instrument.soundProgram === undefined"
+                    (onClick)="preview()" />
+                <p-button label="Proponi dal nome" icon="pi pi-sparkles" severity="secondary" text
+                    [disabled]="!instrument.name?.trim()" (onClick)="propose()" />
+            </div>
+        </div>
+    </app-detail-section>
+    }
 
     <app-danger-zone
         [operations]="[{ id: 'delete', title: 'Elimina strumento', consequence: 'Lo strumento e i relativi collegamenti verranno eliminati definitivamente.', label: 'Elimina strumento' }]"

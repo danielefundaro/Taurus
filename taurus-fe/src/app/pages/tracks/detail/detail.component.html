@@ -24,6 +24,9 @@
             <p-tablist>
                 <p-tab value="details">Dettagli</p-tab>
                 <p-tab value="parts">Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab>
+                @if (scorePlaybackEnabled) {
+                <p-tab value="playback">Ascolto</p-tab>
+                }
                 @if (canManagePdf) {
                 <p-tab value="pdf">File PDF</p-tab>
                 }
@@ -79,6 +82,18 @@
                             (imageEdit)="openImageEditor($event)" />
                     </app-detail-section>
                 </p-tabpanel>
+
+                @if (scorePlaybackEnabled) {
+                <p-tabpanel value="playback">
+                    <app-detail-section heading="Ascolto"
+                        description="Ascolta le singole parti o la partitura intera. Le impostazioni dell'ascolto si salvano subito, separatamente dalla traccia.">
+                        @if (activeTab === 'playback' && track.id) {
+                        <app-score-playback-panel [trackId]="track.id" [trackDirty]="isDirty"
+                            (trackVersionChange)="onTrackVersionChange($event)" />
+                        }
+                    </app-detail-section>
+                </p-tabpanel>
+                }
 
                 @if (canManagePdf) {
                 <p-tabpanel value="pdf">

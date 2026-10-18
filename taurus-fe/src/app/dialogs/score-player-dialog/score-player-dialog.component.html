@@ -1,0 +1,131 @@
+<div class="score-player">
+    @if (status === 'error') {
+        <app-inline-alert class="block m-4" severity="warn" heading="Ascolto non disponibile" [detail]="errorMessage" />
+    } @else {
+        <section class="score-player__transport" aria-label="Controlli di ascolto">
+            <div class="score-player__buttons">
+                <p-button [icon]="playing ? 'pi pi-pause' : 'pi pi-play'" [label]="playing ? 'Pausa' : 'Ascolta'" [disabled]="status !== 'ready'" (onClick)="togglePlay()" />
+                <p-button icon="pi pi-step-backward" severity="secondary" outlined ariaLabel="Torna all'inizio" pTooltip="Torna all'inizio" [disabled]="status !== 'ready'" (onClick)="rewind()" />
+                <p-button icon="pi pi-flag" label="Segnala un errore" severity="secondary" text [disabled]="status !== 'ready'" pTooltip="Segnala a chi gestisce l'archivio una nota o un passaggio sbagliato" (onClick)="reportError()" />
+            </div>
+            <div class="score-player__position">
+                <span class="score-player__measure">{{ currentMeasure ? 'Battuta ' + currentMeasure : 'Attacco' }}</span>
+                <p-slider class="score-player__progress" [min]="0" [max]="durationSeconds || 1" [step]="0.1" [ngModel]="positionSeconds" (onSlideEnd)="seek($event.value ?? 0)" [disabled]="status !== 'ready'" ariaLabel="Posizione" />
+                <span class="score-player__time">{{ formatTime(positionSeconds) }} / {{ formatTime(durationSeconds) }}</span>
+            </div>
+            <div class="score-player__options">
+                <app-form-field label="Tempo (♩/min)" forId="playerTempo">
+                    <p-inputnumber
+                        inputId="playerTempo"
+                        [ngModel]="tempo"
+                        (ngModelChange)="changeTempo($event)"
+                        [min]="20"
+                        [max]="300"
+                        [showButtons]="true"
+                        buttonLayout="horizontal"
+                        [step]="5"
+                        [disabled]="status !== 'ready'"
+                        incrementButtonIcon="pi pi-plus"
+                        decrementButtonIcon="pi pi-minus"
+                    />
+                </app-form-field>
+                <p-selectbutton [options]="repeatOptions" [(ngModel)]="withRepeats" (ngModelChange)="changeStructure()" optionLabel="label" optionValue="value" [allowEmpty]="false" [disabled]="status !== 'ready'" ariaLabel="Ritornelli" />
+                <div class="flex items-center gap-2">
+                    <p-checkbox inputId="playerCountIn" [binary]="true" [(ngModel)]="countIn" (ngModelChange)="changeStructure()" [disabled]="status !== 'ready'" />
+                    <label for="playerCountIn">Battuta di attacco</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <p-checkbox inputId="playerMetronome" [binary]="true" [(ngModel)]="metronome" (ngModelChange)="toggleMetronome()" [disabled]="status !== 'ready'" />
+                    <label for="playerMetronome">Metronomo</label>
+                </div>
+                <div class="score-player__loop">
+                    <p-checkbox inputId="playerLoop" [binary]="true" [(ngModel)]="loopEnabled" [disabled]="status !== 'ready'" />
+                    <label for="playerLoop">Ripeti dalla battuta</label>
+                    <p-select [options]="measureNumbers" [(ngModel)]="loopFrom" optionLabel="label" optionValue="value" placeholder="—" [disabled]="!loopEnabled" ariaLabel="Prima battuta da ripetere" appendTo="body" />
+                    <span>alla</span>
+                    <p-select [options]="measureNumbers" [(ngModel)]="loopTo" optionLabel="label" optionValue="value" placeholder="—" [disabled]="!loopEnabled" ariaLabel="Ultima battuta da ripetere" appendTo="body" />
+                </div>
+            </div>
+        </section>
+
+        <div class="score-player__body" [class.score-player__body--score]="data.mode === 'score'">
+            @if (data.mode === 'score') {
+                <aside class="score-player__mixer" aria-label="Parti">
+                    <div class="score-player__shortcuts">
+                        <p-button label="Tutte" size="small" severity="secondary" outlined (onClick)="listen('all')" [disabled]="status !== 'ready'" />
+                        <p-button label="Solo le mie parti" size="small" severity="secondary" outlined (onClick)="listen('mine')" [disabled]="status !== 'ready' || !ownScoreIds.length" />
+                        <p-button label="Tutto tranne le mie" size="small" severity="secondary" outlined (onClick)="listen('others')" [disabled]="status !== 'ready' || !ownScoreIds.length" />
+                    </div>
+                    @if (lengthsDiffer) {
+                        <app-inline-alert severity="info" heading="Le parti hanno lunghezze diverse" detail="Le parti più corte tacciono nelle battute che non hanno." />
+                    }
+                    <button
+                        pButton
+                        type="button"
+                        class="score-player__parts-toggle"
+                        [label]="partsOpen ? 'Nascondi le parti' : 'Mostra le parti (' + (rows.length + unavailable.length) + ')'"
+                        [icon]="partsOpen ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                        severity="secondary"
+                        size="small"
+                        [text]="true"
+                        aria-controls="playerParts"
+                        [attr.aria-expanded]="partsOpen"
+                        (click)="partsOpen = !partsOpen"
+                    ></button>
+                    <div id="playerParts" class="score-player__parts" [class.score-player__parts--closed]="!partsOpen">
+                        @for (row of rows; track row.part.scoreId) {
+                            <div class="score-player__row" [class.score-player__row--muted]="row.muted">
+                                <div class="score-player__row-heading">
+                                    <strong class="truncate" [title]="row.label">{{ row.label }}</strong>
+                                    <div class="flex gap-1">
+                                        <p-togglebutton [(ngModel)]="row.muted" (ngModelChange)="applyMixer()" onLabel="M" offLabel="M" size="small" [ariaLabel]="'Silenzia ' + row.label" pTooltip="Silenzia" />
+                                        <p-togglebutton [(ngModel)]="row.solo" (ngModelChange)="applyMixer()" onLabel="S" offLabel="S" size="small" [ariaLabel]="'Solo ' + row.label" pTooltip="Solo questa parte" />
+                                    </div>
+                                </div>
+                                <p-slider [(ngModel)]="row.volume" (onChange)="applyMixer()" [min]="0" [max]="100" [ariaLabel]="'Volume ' + row.label" />
+                                <div class="flex flex-wrap gap-1">
+                                    @if (row.part.version?.status !== 'APPROVED') {
+                                        <p-tag severity="warn" value="Non verificata" />
+                                    }
+                                    @if (!row.part.sound.configured) {
+                                        <p-tag severity="secondary" value="Suono non configurato" />
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @for (part of unavailable; track part.scoreId) {
+                            <div class="score-player__row score-player__row--unavailable">
+                                <strong class="truncate">{{ label(part) }}</strong>
+                                <span class="text-sm text-muted-color">Ascolto non ancora disponibile</span>
+                            </div>
+                        }
+                    </div>
+                </aside>
+            }
+
+            <section class="score-player__score" aria-label="Spartito">
+                @if (data.mode === 'score' && notationParts.length > 1) {
+                    <app-form-field label="Spartito mostrato" forId="playerNotation" class="score-player__notation-select">
+                        <p-select inputId="playerNotation" [options]="notationParts" [ngModel]="notationScoreId" (ngModelChange)="changeNotation($event)" optionValue="scoreId" [optionLabel]="'description'" appendTo="body">
+                            <ng-template #selectedItem let-part>{{ label(part) }}</ng-template>
+                            <ng-template #item let-part>{{ label(part) }}</ng-template>
+                        </p-select>
+                    </app-form-field>
+                }
+                @if (notationWarning) {
+                    <app-inline-alert class="block mb-3" severity="warn" heading="Da verificare" [detail]="notationWarning" />
+                }
+                @if (status === 'loading' || notationLoading) {
+                    <div class="score-player__loading" role="status">
+                        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                        <span>{{ status === 'loading' ? loadingMessage : 'Disegno dello spartito…' }}</span>
+                    </div>
+                }
+                @if (data.mode === 'score' && !notationParts.length && status === 'ready') {
+                    <app-empty-state icon="pi pi-eye-slash" heading="Spartito non mostrato" message="Lo spartito si vede solo per le parti dei propri strumenti: le altre parti si ascoltano senza spartito." />
+                }
+                <div #notation class="score-player__notation"></div>
+            </section>
+        </div>
+    }
+</div>

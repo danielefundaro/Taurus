@@ -22,6 +22,7 @@ export class TenantFeatureService {
     readonly notificationPreferencesEnabled = computed(() => this.features()?.notificationPreferencesEnabled === true);
     readonly webPushRemindersEnabled = computed(() => this.features()?.webPushRemindersEnabled === true);
     readonly eventPreparationEnabled = computed(() => this.features()?.eventPreparationEnabled === true);
+    readonly scorePlaybackEnabled = computed(() => this.features()?.scorePlaybackEnabled === true);
     readonly current = this.features.asReadonly();
     readonly capabilities = this.capabilityState.asReadonly();
 
@@ -73,6 +74,8 @@ export class TenantFeatureService {
                 return this.webPushRemindersEnabled();
             case TenantFeature.EVENT_PREPARATION:
                 return this.eventPreparationEnabled();
+            case TenantFeature.SCORE_PLAYBACK:
+                return this.scorePlaybackEnabled();
         }
     }
 
@@ -88,7 +91,8 @@ export class TenantFeatureService {
             inventoryQrEnabled: false,
             notificationPreferencesEnabled: false,
             webPushRemindersEnabled: false,
-            eventPreparationEnabled: false
+            eventPreparationEnabled: false,
+            scorePlaybackEnabled: false
         };
     }
 

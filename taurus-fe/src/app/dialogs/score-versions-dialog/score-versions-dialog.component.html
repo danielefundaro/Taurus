@@ -1,0 +1,61 @@
+<app-dialog-shell heading="Versioni della parte" [subtitle]="data.partLabel" confirmLabel="Chiudi" cancelLabel="Chiudi" (cancel)="close()" (confirm)="close()">
+    @if (loading) {
+        <app-list-loading-skeleton />
+    } @else if (!versions.length) {
+        <app-empty-state icon="pi pi-file" heading="Nessuna versione" message="Carica un file MusicXML per rendere ascoltabile la parte." />
+    } @else {
+        <div class="flex flex-col gap-3">
+            @for (version of versions; track version.id) {
+                <div class="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-surface px-4 py-3">
+                    <div class="flex flex-col gap-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <strong>Versione {{ version.versionNumber }}</strong>
+                            <p-tag [severity]="version.status === 'APPROVED' ? 'success' : 'warn'" [value]="version.status === 'APPROVED' ? 'Approvata' : 'Non verificata'" />
+                            @if (version.current) {
+                                <p-tag severity="info" value="In ascolto" />
+                            }
+                            @if (version.pagesChanged) {
+                                <p-tag severity="secondary" value="Pagine modificate dopo" />
+                            }
+                        </div>
+                        <span class="text-sm text-muted-color">
+                            {{ originLabel(version.origin) }}{{ version.sourceFileName ? ' · ' + version.sourceFileName : '' }}{{ version.sourcePartName ? ' (' + version.sourcePartName + ')' : '' }} ·
+                            {{ version.createdAt | date: 'dd/MM/yyyy HH:mm' }} · {{ version.measureCount }} battute
+                        </span>
+                        @for (issue of issues(version); track issue) {
+                            <span class="text-sm"><i class="pi pi-exclamation-triangle text-orange-500 mr-1" aria-hidden="true"></i>{{ issue }}</span>
+                        }
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        @if (!version.current) {
+                            <p-button label="Usa questa versione" size="small" severity="secondary" outlined [disabled]="busy" (onClick)="use(version)" />
+                        }
+                        @if (version.status !== 'APPROVED') {
+                            <p-button label="Approva" icon="pi pi-check" size="small" [disabled]="busy" (onClick)="approve(version)" />
+                        }
+                        <p-button label="Correggi" icon="pi pi-pencil" size="small" severity="secondary" outlined [disabled]="busy" (onClick)="correct(version)" />
+                        <p-button label="Scarica" icon="pi pi-download" size="small" severity="secondary" text (onClick)="download(version)" />
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <h3 class="text-base font-semibold mt-6 mb-2">Suono della parte</h3>
+    <p class="text-sm text-muted-color mb-3">Lasciando vuoti i campi la parte usa suono e trasposizione del suo primo strumento.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <app-form-field label="Trasposizione (semitoni)" forId="partTransposition" hint="Dalla nota scritta al suono reale.">
+            <p-inputnumber inputId="partTransposition" [(ngModel)]="transpositionOverride" [min]="-36" [max]="36" [showButtons]="true" />
+        </app-form-field>
+        <app-form-field label="Suono" forId="partSound">
+            <p-select inputId="partSound" [options]="soundGroups" [group]="true" [(ngModel)]="soundProgramOverride" optionLabel="label" optionValue="value" [filter]="true" [showClear]="true" placeholder="Come lo strumento" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Banco" forId="partBank" hint="0 per i suoni General MIDI.">
+            <p-inputnumber inputId="partBank" [(ngModel)]="soundBankOverride" [min]="0" [max]="16383" [disabled]="soundProgramOverride === null" />
+        </app-form-field>
+    </div>
+    <div class="flex gap-2 mt-3">
+        <p-button label="Salva suono" icon="pi pi-check" size="small" [loading]="busy" (onClick)="saveSound()" />
+        <p-button label="Usa i valori dello strumento" size="small" severity="secondary" text [disabled]="busy" (onClick)="resetSound()" />
+    </div>
+</app-dialog-shell>

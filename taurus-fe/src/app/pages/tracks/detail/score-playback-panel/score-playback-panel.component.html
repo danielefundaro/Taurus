@@ -1,0 +1,136 @@
+@if (loading && !playback) {
+    <app-list-loading-skeleton />
+} @else if (playback) {
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-muted-color m-0">Si ascolta la versione corrente di ogni parte. Le versioni non verificate possono contenere errori del riconoscimento o del file caricato.</p>
+            <div class="flex flex-wrap gap-2">
+                @if (canRecognize) {
+                    <p-button
+                        label="Riconosci tutte le parti"
+                        icon="pi pi-images"
+                        severity="secondary"
+                        outlined
+                        [loading]="starting"
+                        [disabled]="trackDirty || !recognizableParts.length"
+                        pTooltip="Legge le note dalle pagine delle parti che non hanno un riconoscimento in corso"
+                        (onClick)="recognizeAll()"
+                    />
+                }
+                <p-button label="Ascolta la partitura" icon="pi pi-play" [disabled]="!anyAvailable" (onClick)="openPlayer('score')" />
+            </div>
+        </div>
+
+        @if (canManage) {
+            @if (trackDirty) {
+                <app-inline-alert severity="info" heading="Modifiche da salvare" detail="Salva la traccia prima di gestire l'ascolto delle parti nuove o modificate." />
+            }
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <app-form-field label="Tempo della partitura (♩/min)" forId="playbackTempo" hint="Vuoto: si usa l'indicazione dello spartito o 100.">
+                    <p-inputnumber inputId="playbackTempo" [(ngModel)]="tempoBpm" [min]="20" [max]="300" [showButtons]="true" [step]="5" />
+                </app-form-field>
+                <app-form-field label="Parte di riferimento" forId="playbackReference" hint="Ritornelli e salti della partitura seguono questa parte; se vuota, la prima parte approvata o, in mancanza, la prima disponibile.">
+                    <p-select inputId="playbackReference" [options]="playback.parts" [(ngModel)]="referenceScoreId" optionValue="scoreId" [optionLabel]="'description'" [showClear]="true" placeholder="Automatica" appendTo="body">
+                        <ng-template #selectedItem let-part>{{ label(part) }}</ng-template>
+                        <ng-template #item let-part>{{ label(part) }}</ng-template>
+                    </p-select>
+                </app-form-field>
+                <div>
+                    <p-button label="Salva impostazioni" icon="pi pi-check" severity="secondary" [loading]="savingSettings" (onClick)="saveSettings()" />
+                </div>
+            </div>
+        }
+
+        @if (!playback.parts.length) {
+            <app-empty-state icon="pi pi-music" heading="Nessuna parte" message="Aggiungi le parti della traccia per poterle ascoltare." />
+        }
+        @for (part of playback.parts; track part.scoreId) {
+            <div class="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-surface px-4 py-3">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <strong class="truncate">{{ label(part) }}</strong>
+                        @if (part.version) {
+                            <p-tag [severity]="part.version.status === 'APPROVED' ? 'success' : 'warn'" [value]="part.version.status === 'APPROVED' ? 'Approvata' : 'Non verificata'" />
+                            <span class="text-sm text-muted-color">versione {{ part.version.versionNumber }} · {{ part.version.measureCount }} battute</span>
+                        } @else {
+                            <p-tag severity="secondary" value="Ascolto non ancora disponibile" />
+                        }
+                        @if (canManage && part.openReports) {
+                            <button type="button" class="p-0 border-0 bg-transparent cursor-pointer" [attr.aria-label]="'Apri le segnalazioni di ' + label(part)" (click)="reports(part)">
+                                <p-tag severity="danger" icon="pi pi-comment" [value]="part.openReports === 1 ? '1 segnalazione' : part.openReports + ' segnalazioni'" />
+                            </button>
+                        }
+                    </div>
+                    @if (canManage && recognitionStatus(part.recognition); as status) {
+                        <span class="text-sm" [class.text-orange-600]="part.recognition?.status === 'FAILED'" role="status">
+                            @if (recognizing(part.recognition)) {
+                                <i class="pi pi-spin pi-spinner mr-1" aria-hidden="true"></i>
+                            }
+                            {{ status }}
+                        </span>
+                    }
+                    <span class="text-sm" [class.text-orange-600]="!part.sound.configured">
+                        {{ soundLabel(part) }}
+                        @if (part.sound.conflicting) {
+                            · gli strumenti della parte hanno impostazioni diverse: si usa il primo
+                        }
+                    </span>
+                    @if (canManage && !part.sound.configured) {
+                        <span class="flex flex-wrap gap-2 text-sm">
+                            @for (instrument of part.instruments; track instrument.id) {
+                                @if (!instrument.configured) {
+                                    <a [routerLink]="['/instruments', instrument.id]" class="text-primary">Configura {{ instrument.name }}</a>
+                                }
+                            }
+                        </span>
+                    }
+                    @if (summary(part); as warning) {
+                        <span class="text-sm text-muted-color">{{ warning }}</span>
+                    }
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span [pTooltip]="listenHint(part)">
+                        <p-button
+                            label="Ascolta"
+                            icon="pi pi-play"
+                            size="small"
+                            severity="secondary"
+                            outlined
+                            [disabled]="(part.availability !== 'AVAILABLE' && !listenStartsRecognition(part)) || (listenStartsRecognition(part) && trackDirty)"
+                            (onClick)="listen(part)"
+                        />
+                    </span>
+                    @if (canRecognize && part.hasPages && !recognizing(part.recognition)) {
+                        <p-button
+                            [label]="part.recognition?.status === 'FAILED' ? 'Riprova' : part.version ? 'Riconosci di nuovo' : 'Riconosci'"
+                            icon="pi pi-images"
+                            size="small"
+                            severity="secondary"
+                            outlined
+                            [loading]="starting"
+                            [disabled]="trackDirty"
+                            (onClick)="recognize(part)"
+                        />
+                    }
+                    @if (canManage) {
+                        @if (part.version) {
+                            <p-button
+                                label="Correggi"
+                                icon="pi pi-pencil"
+                                size="small"
+                                severity="secondary"
+                                outlined
+                                [disabled]="trackDirty"
+                                pTooltip="Corregge la versione ascoltata con lo spartito accanto alla pagina originale"
+                                (onClick)="correct(part)"
+                            />
+                        }
+                        <p-button [label]="playback.recognitionAvailable ? 'Carica MusicXML o MIDI' : 'Carica MusicXML'" icon="pi pi-upload" size="small" severity="secondary" outlined [disabled]="trackDirty" (onClick)="upload(part)" />
+                        <p-button label="Versioni e suono" icon="pi pi-history" size="small" severity="secondary" text [disabled]="trackDirty" (onClick)="versions(part)" />
+                        <p-button label="Segnalazioni" icon="pi pi-comment" size="small" severity="secondary" text [disabled]="trackDirty" (onClick)="reports(part)" />
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

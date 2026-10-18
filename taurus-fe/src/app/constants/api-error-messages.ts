@@ -59,6 +59,27 @@ const objects = (value: ApiErrorArgValue): ApiErrorArgs[] => (Array.isArray(valu
 const listOf = (value: ApiErrorArgValue): ApiErrorArgValue[] => (Array.isArray(value) ? value : []);
 const issueOf = (value: ApiErrorArgs): ApiErrorIssue => ({ code: formatApiErrorValue(value['code']), args: isArgs(value['args']) ? value['args'] : {} });
 
+/** Texts of the `reason` of `scorePlayback.upload.invalid`. */
+const MUSICXML_PROBLEMS: Readonly<Record<string, string>> = {
+    empty: 'Il file è vuoto',
+    malformed: 'Il file non è un MusicXML valido',
+    notMusicXml: 'Il file non contiene una partitura MusicXML',
+    timewise: 'La partitura è salvata nel formato MusicXML "timewise", non supportato: esportarla di nuovo da un programma di notazione',
+    archive: "L'archivio .mxl non contiene una partitura leggibile",
+    archiveTooLarge: "L'archivio .mxl è troppo grande",
+    noParts: 'La partitura non contiene parti',
+    unreadable: 'Impossibile leggere il file',
+    unreadableMidi: 'Il file MIDI non è leggibile o non contiene note'
+};
+
+/** Texts of the `reason` of `scorePlayback.correction.invalid`. */
+const CORRECTION_PROBLEMS: Readonly<Record<string, string>> = {
+    severalParts: 'La correzione deve contenere una sola parte',
+    noParts: 'La correzione non contiene la parte',
+    measureSources: "Le battute della correzione non corrispondono alla versione di partenza: riaprire l'editor",
+    empty: 'La correzione è vuota'
+};
+
 const LOAN_SETTINGS_PROBLEMS: Readonly<Record<string, string>> = {
     minAboveMax: 'la durata minima non può superare la durata massima',
     maxAboveTotal: 'la durata massima non può superare la durata complessiva massima',
@@ -107,6 +128,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'tenantFeature.notificationPreferences.disabled': 'La funzionalità Preferenze notifiche non è disponibile per questo tenant',
     'tenantFeature.webPushReminders.disabled': 'La funzionalità Promemoria eventi Web Push non è disponibile per questo tenant',
     'tenantFeature.eventPreparation.disabled': 'La funzionalità Preparazione evento non è disponibile per questo tenant',
+    'tenantFeature.scorePlayback.disabled': 'La funzionalità Ascolto delle parti non è disponibile per questo tenant',
 
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',
@@ -404,6 +426,28 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'media.category.invalid': 'Richiesta non valida: ricaricare la pagina e riprovare',
     'media.file.empty': 'Il file è vuoto',
     'media.file.storeFailed': 'Impossibile salvare il file: riprovare',
+
+    // Ascolto e correzione delle parti
+    'scorePlayback.track.notFound': 'Brano non trovato',
+    'scorePlayback.part.notFound': 'Parte non trovata',
+    'scorePlayback.version.notFound': 'Versione della parte non trovata',
+    'scorePlayback.version.conflict': "Un'altra versione della parte è stata appena salvata: riprovare",
+    'scorePlayback.playback.notAvailable': 'Ascolto non ancora disponibile',
+    'scorePlayback.upload.empty': 'Il file è vuoto',
+    'scorePlayback.upload.unsupportedFormat': 'Formato non supportato: caricare un file MusicXML (.musicxml, .xml, .mxl) o MIDI (.mid, .midi)',
+    'scorePlayback.upload.tooLarge': 'Il file supera {maxMegabytes} MB',
+    'scorePlayback.upload.invalid': (args) => MUSICXML_PROBLEMS[formatApiErrorValue(args['reason'])] ?? 'Il file non è un MusicXML valido',
+    'scorePlayback.upload.partRequired': 'Scegliere la parte da importare',
+    'scorePlayback.upload.partNotFound': 'La parte scelta non è presente nel file',
+    'scorePlayback.settings.invalid': 'Impostazioni di ascolto non valide',
+    'scorePlayback.settings.versionConflict': 'Il brano è stato modificato nel frattempo: ricaricare la pagina',
+    'scorePlayback.recognition.alreadyRunning': 'Riconoscimento già in corso',
+    'scorePlayback.recognition.noPages': 'Nessuna pagina da riconoscere',
+    'scorePlayback.omr.unavailable': 'Servizio di riconoscimento non disponibile: riprovare più tardi',
+    'scorePlayback.correction.invalid': (args) => CORRECTION_PROBLEMS[formatApiErrorValue(args['reason'])] ?? "La correzione non è un MusicXML valido: annullare l'ultima modifica e riprovare",
+    'scorePlayback.report.invalid': "Descrivere l'errore in al massimo 1000 caratteri",
+    'scorePlayback.report.limitReached': 'Hai già {maxOpen} segnalazioni aperte su questa parte: attendi che vengano esaminate',
+    'scorePlayback.report.notFound': 'Segnalazione non trovata',
 
     // Onboarding
     'onboarding.disabled': 'La configurazione iniziale non è disponibile',

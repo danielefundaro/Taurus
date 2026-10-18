@@ -6,8 +6,8 @@ import { delay, finalize, first, forkJoin } from 'rxjs';
 import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
 import { ImportsModule } from '../../imports';
 import { Instruments, InstrumentsCriteria, Page } from '../../module';
-import { StringFilter } from '../../module/criteria/filter';
-import { ConfirmService, InstrumentsService, ListLayout, ListLayoutService, ToastService } from '../../service';
+import { BooleanFilter, StringFilter } from '../../module/criteria/filter';
+import { ConfirmService, InstrumentsService, ListLayout, ListLayoutService, TenantFeatureService, ToastService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 
 @Component({
@@ -22,13 +22,16 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
     protected layout: ListLayout = 'list';
     protected instruments: Instruments[];
     protected selectedInstruments: Instruments[] = [];
+    /** Mostra solo gli strumenti senza suono e trasposizione per l'ascolto. */
+    protected onlyUnconfigured = false;
 
     constructor(
         private readonly instrumentsService: InstrumentsService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
         private readonly confirmService: ConfirmService,
-        private readonly listLayoutService: ListLayoutService
+        private readonly listLayoutService: ListLayoutService,
+        private readonly tenantFeatureService: TenantFeatureService
     ) {
         super();
         this.instruments = [];
@@ -41,6 +44,15 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
             { label: 'Nome Z-A', value: '!name' }
         ];
         this.listLayoutService.observe('instruments', (value) => (this.layout = value));
+    }
+
+    protected get scorePlaybackEnabled(): boolean {
+        return this.tenantFeatureService.scorePlaybackEnabled();
+    }
+
+    protected onUnconfiguredChange(): void {
+        this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
+        this.loadElements(this.searchTerm);
     }
 
     protected onLayoutChange(value: ListLayout): void {
@@ -150,6 +162,10 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
         if (search) {
             instrumentsCriteria.name = new StringFilter();
             instrumentsCriteria.name.contains = search;
+        }
+        if (this.onlyUnconfigured && this.scorePlaybackEnabled) {
+            instrumentsCriteria.playbackConfigured = new BooleanFilter();
+            instrumentsCriteria.playbackConfigured.equals = false;
         }
 
         this.instrumentsService

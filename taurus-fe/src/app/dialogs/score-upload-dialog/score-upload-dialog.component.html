@@ -1,0 +1,33 @@
+<app-dialog-shell #shell [heading]="data.midi ? 'Carica MusicXML o MIDI' : 'Carica MusicXML'" [subtitle]="data.partLabel" confirmLabel="Carica" [saving]="saving" [invalidCount]="invalidCount" [dirty]="!!file" (cancel)="cancel()" (confirm)="save()">
+    <app-inline-alert severity="info" heading="Nuova versione della parte" [detail]="intro" />
+    <div class="flex flex-col gap-4 mt-4">
+        <app-form-field [label]="data.midi ? 'File MusicXML o MIDI' : 'File MusicXML'" forId="scoreFile" required [error]="shell.validationAttempted && !file ? 'Scegli il file da caricare.' : undefined">
+            <input id="scoreFile" type="file" [accept]="data.midi ? '.musicxml,.xml,.mxl,.mid,.midi' : '.musicxml,.xml,.mxl'" class="score-upload__file" [disabled]="saving" (change)="onFileChange($event)" />
+        </app-form-field>
+        @if (inspecting) {
+            <span class="text-sm text-muted-color"><i class="pi pi-spin pi-spinner mr-2" aria-hidden="true"></i>Lettura del file…</span>
+        }
+        @if (parts.length > 1) {
+            <app-form-field
+                label="Parte da importare"
+                forId="scorePart"
+                required
+                hint="Il file contiene più parti o tracce: scegli quella che corrisponde a questa parte della traccia."
+                [error]="shell.validationAttempted && !partId ? 'Scegli la parte.' : undefined"
+            >
+                <p-select inputId="scorePart" [options]="parts" [(ngModel)]="partId" optionValue="id" [optionLabel]="'name'" placeholder="Scegli una parte" appendTo="body">
+                    <ng-template #selectedItem let-part>{{ partLabel(part) }}</ng-template>
+                    <ng-template #item let-part>{{ partLabel(part) }}</ng-template>
+                </p-select>
+            </app-form-field>
+        } @else if (parts.length === 1) {
+            <span class="text-sm"
+                >Parte trovata: <strong>{{ partLabel(parts[0]) }}</strong></span
+            >
+        }
+        <div class="flex items-center gap-2">
+            <p-checkbox inputId="scoreApprove" [binary]="true" [(ngModel)]="approve" />
+            <label for="scoreApprove">Carica come approvata: il file è già stato verificato</label>
+        </div>
+    </div>
+</app-dialog-shell>

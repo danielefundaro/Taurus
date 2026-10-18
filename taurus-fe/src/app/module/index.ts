@@ -23,6 +23,7 @@ export * from './onboarding.module';
 export * from './operational-dashboard';
 export * from './page.module';
 export * from './preferences.module';
+export * from './score-playback.module';
 export * from './sheets-music.module';
 export * from './tenant-features.module';
 export * from './tenants.module';
