@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taurus-omr"
+version = "1.0.0"
+description = "Riconoscimento ottico della musica per Taurus: Audiveris, homr e conversione MIDI dietro un'API HTTP interna."
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.143.3",
+    "uvicorn==0.54.0",
+    "python-multipart==0.0.32",
+    "pillow==12.3.0",
+    "music21==9.7.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-ra"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
