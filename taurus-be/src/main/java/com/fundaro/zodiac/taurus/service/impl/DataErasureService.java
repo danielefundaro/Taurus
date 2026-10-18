@@ -21,6 +21,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentReposit
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryErasureRequestRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationPushDeliveryRepository;
+import com.fundaro.zodiac.taurus.repository.scoreplayback.ScoreErrorReportRepository;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.service.MediaService;
 
@@ -66,6 +67,7 @@ public class DataErasureService {
     private NotificationPushDeliveryRepository notificationPushDeliveryRepository;
     private CalendarFeedTokenRegistryRepository calendarFeedTokenRegistryRepository;
     private TenantsRepository tenantsRepository;
+    private ScoreErrorReportRepository scoreErrorReportRepository;
 
     public DataErasureService(
         NoticesRepository noticesRepository,
@@ -116,6 +118,11 @@ public class DataErasureService {
     void setCalendarFeedErasureRepositories(CalendarFeedTokenRegistryRepository registry, TenantsRepository tenantsRepository) {
         this.calendarFeedTokenRegistryRepository = registry;
         this.tenantsRepository = tenantsRepository;
+    }
+
+    @Autowired
+    void setScoreErrorReportRepository(ScoreErrorReportRepository scoreErrorReportRepository) {
+        this.scoreErrorReportRepository = scoreErrorReportRepository;
     }
 
     public boolean requestInventoryAwareErasure(
@@ -232,6 +239,8 @@ public class DataErasureService {
             deleted += notificationPushDeliveryRepository.deleteAllByUserId(userId);
         if (notificationProfileRepository != null)
             deleted += notificationProfileRepository.deleteAllByKeycloakSubject(userId);
+        if (scoreErrorReportRepository != null)
+            deleted += scoreErrorReportRepository.deleteAllByReportedBy(userId);
         log.info("Physically deleted {} relational records for user {}", deleted, userId);
     }
 

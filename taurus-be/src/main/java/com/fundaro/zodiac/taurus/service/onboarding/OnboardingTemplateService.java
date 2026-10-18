@@ -35,6 +35,11 @@ public class OnboardingTemplateService {
             instructions.createRow(0).createCell(0).setCellValue("Taurus - configurazione iniziale tenant");
             instructions.createRow(2).createCell(0).setCellValue("Compilare solo i fogli necessari. Non rinominare fogli o colonne e non usare formule.");
             instructions.createRow(3).createCell(0).setCellValue("Date: YYYY-MM-DD. Ruoli e riferimenti multipli: separatore |. Importazione esclusivamente additiva.");
+            instructions.createRow(4).createCell(0).setCellValue(
+                "Strumenti, colonne facoltative per l'ascolto delle parti: suono = programma General MIDI da 0 a 127 oppure batteria:<nota>; " +
+                    "trasposizione e trasposizione_chiave_basso = semitoni dalla nota scritta al suono reale, es. -2 per gli strumenti in Si bemolle. " +
+                    "Se sono tutte vuote Taurus propone i valori dal nome dello strumento."
+            );
             instructions.setColumnWidth(0, 12000);
 
             Sheet metadata = workbook.createSheet("_taurus");

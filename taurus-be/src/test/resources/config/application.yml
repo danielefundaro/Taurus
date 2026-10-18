@@ -94,6 +94,9 @@ application:
   base-path: target/test-storage
   onboarding:
     recovery-enabled: false
+  score-playback:
+    omr:
+      recovery-enabled: false
 management:
   health:
     mail:

@@ -75,4 +75,7 @@
            relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20260928000001_inventory_loan_sheet.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261010000000_drop_inventory_report_export.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261016000000_track_score_playback.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261017000000_score_recognition_job.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261018000000_score_error_report.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

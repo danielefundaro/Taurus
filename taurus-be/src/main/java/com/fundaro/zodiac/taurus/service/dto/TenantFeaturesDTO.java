@@ -11,6 +11,7 @@ public record TenantFeaturesDTO(
     boolean inventoryQrEnabled,
     boolean notificationPreferencesEnabled,
     boolean webPushRemindersEnabled,
-    boolean eventPreparationEnabled
+    boolean eventPreparationEnabled,
+    boolean scorePlaybackEnabled
 ) {
 }

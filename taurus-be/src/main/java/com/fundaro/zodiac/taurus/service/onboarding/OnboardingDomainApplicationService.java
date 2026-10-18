@@ -64,6 +64,12 @@ public class OnboardingDomainApplicationService {
                 audit(entity, actor, now);
                 entity.setName(value(row, "nome"));
                 entity.setDescription(blankToNull(value(row, "descrizione")));
+                OnboardingInstrumentPlayback.resolve(
+                    entity.getName(),
+                    value(row, OnboardingInstrumentPlayback.SOUND),
+                    value(row, OnboardingInstrumentPlayback.TRANSPOSITION),
+                    value(row, OnboardingInstrumentPlayback.BASS_CLEF_TRANSPOSITION)
+                ).values().applyTo(entity);
                 entity = instruments.save(entity);
                 instrumentNames.put(key(entity.getName()), entity);
             }

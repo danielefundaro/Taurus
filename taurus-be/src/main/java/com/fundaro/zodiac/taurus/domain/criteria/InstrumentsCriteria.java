@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.domain.criteria;
 
 import org.springdoc.core.annotations.ParameterObject;
+import tech.jhipster.service.filter.BooleanFilter;
 import tech.jhipster.service.filter.Filter;
 
 import java.util.Objects;
@@ -18,16 +19,28 @@ import java.util.Objects;
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class InstrumentsCriteria extends CommonOpenSearchCriteria {
 
+    /** Instruments with ({@code true}) or without ({@code false}) their playback settings. */
+    private BooleanFilter playbackConfigured;
+
     public InstrumentsCriteria() {
     }
 
     public InstrumentsCriteria(InstrumentsCriteria other) {
         super(other);
+        this.playbackConfigured = other.playbackConfigured == null ? null : other.playbackConfigured.copy();
     }
 
     @Override
     public InstrumentsCriteria copy() {
         return new InstrumentsCriteria(this);
+    }
+
+    public BooleanFilter getPlaybackConfigured() {
+        return playbackConfigured;
+    }
+
+    public void setPlaybackConfigured(BooleanFilter playbackConfigured) {
+        this.playbackConfigured = playbackConfigured;
     }
 
     @Override
@@ -40,13 +53,14 @@ public class InstrumentsCriteria extends CommonOpenSearchCriteria {
         }
         final InstrumentsCriteria that = (InstrumentsCriteria) o;
         return (
-            super.equals(o)
+            super.equals(o) &&
+            Objects.equals(playbackConfigured, that.playbackConfigured)
         );
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode());
+        return Objects.hash(super.hashCode(), playbackConfigured);
     }
 
     // prettier-ignore
@@ -56,6 +70,7 @@ public class InstrumentsCriteria extends CommonOpenSearchCriteria {
             optionalId().map(f -> "id=" + f + ", ").orElse("") +
             optionalName().map(f -> "name=" + f + ", ").orElse("") +
             optionalDescription().map(f -> "description=" + f + ", ").orElse("") +
+            (playbackConfigured != null ? "playbackConfigured=" + playbackConfigured + ", " : "") +
             "}";
     }
 }

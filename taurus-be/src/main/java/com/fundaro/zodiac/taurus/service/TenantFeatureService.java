@@ -41,7 +41,8 @@ public class TenantFeatureService {
             enabled(tenant, TenantFeature.INVENTORY_QR),
             enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES),
             enabled(tenant, TenantFeature.WEB_PUSH_REMINDERS),
-            enabled(tenant, TenantFeature.EVENT_PREPARATION)
+            enabled(tenant, TenantFeature.EVENT_PREPARATION),
+            enabled(tenant, TenantFeature.SCORE_PLAYBACK)
         );
     }
 
@@ -100,6 +101,7 @@ public class TenantFeatureService {
             case WEB_PUSH_REMINDERS -> Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())
                 && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES);
             case EVENT_PREPARATION -> Boolean.TRUE.equals(tenant.getEventPreparationEnabled());
+            case SCORE_PLAYBACK -> Boolean.TRUE.equals(tenant.getScorePlaybackEnabled());
         };
     }
 
@@ -113,6 +115,7 @@ public class TenantFeatureService {
             case NOTIFICATION_PREFERENCES -> properties.getNotificationPreferences().isEnabled();
             case WEB_PUSH_REMINDERS -> vapidConfigured();
             case EVENT_PREPARATION -> properties.getEventPreparation().isEnabled();
+            case SCORE_PLAYBACK -> properties.getScorePlayback().isEnabled();
         };
     }
 

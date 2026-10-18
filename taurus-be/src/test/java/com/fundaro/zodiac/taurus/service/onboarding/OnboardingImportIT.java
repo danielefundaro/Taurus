@@ -50,6 +50,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -68,6 +69,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.hikari.minimum-idle=1",
         "spring.security.oauth2.client.registration.oidc.client-id=test",
         "spring.security.oauth2.client.registration.oidc.client-secret=test",
+        "application.score-playback.enabled=true",
     }
 )
 class OnboardingImportIT {
@@ -110,25 +112,30 @@ class OnboardingImportIT {
 
     private final String tenantOne = "onboarding-a-" + UUID.randomUUID();
     private final String tenantTwo = "onboarding-b-" + UUID.randomUUID();
+    private final String playbackTenant = "onboarding-c-" + UUID.randomUUID();
 
     @BeforeAll
     void provisionTenants() {
         createTenant(tenantOne);
         createTenant(tenantTwo);
-        provisioningService.provision(tenantOne);
-        provisioningService.provision(tenantTwo);
-        provisioningService.linkTenant(tenantsRepository.findByCodeAndDeletedFalse(tenantOne).orElseThrow().getId(), tenantOne);
-        provisioningService.linkTenant(tenantsRepository.findByCodeAndDeletedFalse(tenantTwo).orElseThrow().getId(), tenantTwo);
+        createTenant(playbackTenant);
+        Tenants withPlayback = tenantsRepository.findByCodeAndDeletedFalse(playbackTenant).orElseThrow();
+        withPlayback.setScorePlaybackEnabled(true);
+        tenantsRepository.save(withPlayback);
+        for (String tenant : new String[] { tenantOne, tenantTwo, playbackTenant }) {
+            provisioningService.provision(tenant);
+            provisioningService.linkTenant(tenantsRepository.findByCodeAndDeletedFalse(tenant).orElseThrow().getId(), tenant);
+        }
         when(keycloakService.getGroupIdByName(tenantOne)).thenReturn("group-a");
     }
 
     @AfterAll
     void cleanup() throws Exception {
-        storageService.deleteTenantDirectory(tenantOne);
-        storageService.deleteTenantDirectory(tenantTwo);
-        provisioningService.dropSchema(tenantOne);
-        provisioningService.dropSchema(tenantTwo);
-        jdbcTemplate.update("DELETE FROM public.tenant WHERE code IN (?, ?)", tenantOne, tenantTwo);
+        for (String tenant : new String[] { tenantOne, tenantTwo, playbackTenant }) {
+            storageService.deleteTenantDirectory(tenant);
+            provisioningService.dropSchema(tenant);
+        }
+        jdbcTemplate.update("DELETE FROM public.tenant WHERE code IN (?, ?, ?)", tenantOne, tenantTwo, playbackTenant);
     }
 
     @Test
@@ -191,6 +198,45 @@ class OnboardingImportIT {
         });
     }
 
+    @Test
+    void appliesTheSoundAndTranspositionOfNewInstrumentsAndReportsTheProposals() throws Exception {
+        String csv = """
+            riferimento,nome,descrizione,suono,trasposizione,trasposizione_chiave_basso
+            PLAY-1,Corno in Mib IT,,,,
+            PLAY-2,Flicorno tenore IT,,58,-14,-2
+            PLAY-3,Rullante IT,,batteria:40,,
+            PLAY-4,Zampogna IT,,,,
+            """;
+        long jobId = upload(playbackTenant, UUID.randomUUID(), csv, "playback.csv");
+        awaitStatus(playbackTenant, jobId, OnboardingJobStatus.READY);
+        transactionExecutor.execute(playbackTenant, () ->
+            assertThat(issues.findAllByJob_Id(jobId, Pageable.unpaged()).getContent())
+                .extracting(issue -> issue.getRowNumber() + ":" + issue.getCode())
+                .containsExactlyInAnyOrder("2:PLAYBACK_PROPOSED", "5:PLAYBACK_NOT_CONFIGURED")
+        );
+
+        apply(playbackTenant, jobId, UUID.randomUUID(), true);
+        awaitStatus(playbackTenant, jobId, OnboardingJobStatus.COMPLETED);
+
+        transactionExecutor.execute(playbackTenant, () -> {
+            assertThat(instruments.findAll())
+                .filteredOn(instrument -> instrument.getName().endsWith(" IT"))
+                .extracting(
+                    instrument -> instrument.getName(),
+                    instrument -> instrument.getTranspositionSemitones(),
+                    instrument -> instrument.getBassClefTranspositionSemitones(),
+                    instrument -> instrument.getSoundProgram(),
+                    instrument -> instrument.getPercussionKey()
+                )
+                .containsExactlyInAnyOrder(
+                    tuple("Corno in Mib IT", -9, null, 60, null),
+                    tuple("Flicorno tenore IT", -14, -2, 58, null),
+                    tuple("Rullante IT", null, null, null, 40),
+                    tuple("Zampogna IT", null, null, null, null)
+                );
+        });
+    }
+
     private long upload(String tenant, UUID key, String csv, String fileName) throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", fileName, "text/csv", csv.getBytes(StandardCharsets.UTF_8));
         String response = mockMvc
@@ -211,10 +257,14 @@ class OnboardingImportIT {
     }
 
     private void apply(String tenant, long jobId, UUID key) throws Exception {
+        apply(tenant, jobId, key, false);
+    }
+
+    private void apply(String tenant, long jobId, UUID key, boolean warningsAccepted) throws Exception {
         mockMvc.perform(
             post("/api/onboarding/imports/{id}/apply", jobId)
                 .contentType("application/json")
-                .content("{\"warningsAccepted\":false,\"sendSetupEmails\":false}")
+                .content("{\"warningsAccepted\":" + warningsAccepted + ",\"sendSetupEmails\":false}")
                 .header("Idempotency-Key", key)
                 .with(authentication(tenant, "ROLE_ADMIN"))
                 .with(csrf())
