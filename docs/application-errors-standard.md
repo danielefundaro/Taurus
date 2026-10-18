@@ -503,6 +503,7 @@ Le chiavi sono riportate senza il prefisso `error.` che il backend aggiunge nel 
 | `tenantFeature.notificationPreferences.disabled` | 403 | Le preferenze di notifica sono disattivate | — | «La funzionalità Preferenze notifiche non è disponibile per questo tenant» |
 | `tenantFeature.webPushReminders.disabled` | 403 | I promemoria Web Push sono disattivati | — | «La funzionalità Promemoria eventi Web Push non è disponibile per questo tenant» |
 | `tenantFeature.eventPreparation.disabled` | 403 | La preparazione evento è disattivata | — | «La funzionalità Preparazione evento non è disponibile per questo tenant» |
+| `tenantFeature.scorePlayback.disabled` | 403 | L'ascolto e la correzione delle parti sono disattivati | — | «La funzionalità Ascolto delle parti non è disponibile per questo tenant» |
 
 ### Utenti e tenant
 
@@ -837,6 +838,31 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `media.category.invalid` | 400 | Categoria del media non conforme al formato ammesso | — | «Richiesta non valida: ricaricare la pagina e riprovare» |
 | `media.file.empty` | 400 | Salvataggio di un file vuoto | — | «Il file è vuoto» |
 | `media.file.storeFailed` | 500 | Scrittura del file nell'archivio non riuscita | — | «Impossibile salvare il file: riprovare» |
+
+### Ascolto e correzione delle parti
+
+| Chiave | HTTP | Quando si verifica | Parametri | Messaggio |
+| --- | --- | --- | --- | --- |
+| `scorePlayback.track.notFound` | 404 | Brano inesistente o non visibile all'utente | — | «Brano non trovato» |
+| `scorePlayback.part.notFound` | 404 | La parte non appartiene al brano | — | «Parte non trovata» |
+| `scorePlayback.version.notFound` | 404 | Versione inesistente o di un'altra parte | — | «Versione della parte non trovata» |
+| `scorePlayback.version.conflict` | 409 | Un'altra versione della stessa parte è stata salvata nello stesso momento | — | «Un'altra versione della parte è stata appena salvata: riprovare» |
+| `scorePlayback.playback.notAvailable` | 404 | La parte non ha una versione ascoltabile dall'utente | — | «Ascolto non ancora disponibile» |
+| `scorePlayback.upload.empty` | 400 | Caricamento di un file vuoto | — | «Il file è vuoto» |
+| `scorePlayback.upload.unsupportedFormat` | 415 | Il file non è MusicXML (`.musicxml`, `.xml`, `.mxl`) né, con il servizio OMR configurato, MIDI (`.mid`, `.midi`) | — | «Formato non supportato: caricare un file MusicXML (.musicxml, .xml, .mxl) o MIDI (.mid, .midi)» |
+| `scorePlayback.upload.tooLarge` | 413 | Il file, o la correzione scritta nell'editor, supera la dimensione massima | `maxMegabytes` | «Il file supera {maxMegabytes} MB» |
+| `scorePlayback.upload.invalid` | 422 | Il file non è una partitura MusicXML leggibile, o un MIDI convertibile | `reason`: `empty`, `malformed`, `notMusicXml`, `timewise`, `archive`, `archiveTooLarge`, `noParts`, `unreadable`, `unreadableMidi` | Testo per motivo, per esempio «Il file non è un MusicXML valido» |
+| `scorePlayback.upload.partRequired` | 422 | Il file contiene più parti e non è indicata quella da importare | — | «Scegliere la parte da importare» |
+| `scorePlayback.upload.partNotFound` | 422 | La parte indicata non è nel file | — | «La parte scelta non è presente nel file» |
+| `scorePlayback.settings.invalid` | 422 | Trasposizione, suono o tempo fuori intervallo, anche nel dettaglio dello strumento; banco senza programma | — | «Impostazioni di ascolto non valide» |
+| `scorePlayback.settings.versionConflict` | 409 | Le impostazioni di ascolto del brano sono state modificate da un'altra richiesta | — | «Il brano è stato modificato nel frattempo: ricaricare la pagina» |
+| `scorePlayback.recognition.alreadyRunning` | 409 | Il riconoscimento della parte, o di tutte le parti con pagine, è già in coda o in corso | — | «Riconoscimento già in corso» |
+| `scorePlayback.recognition.noPages` | 422 | La parte, o nessuna parte del brano, ha pagine da riconoscere | — | «Nessuna pagina da riconoscere» |
+| `scorePlayback.omr.unavailable` | 503 | Il servizio di riconoscimento non è configurato o non risponde, per il riconoscimento o la conversione di un MIDI | — | «Servizio di riconoscimento non disponibile: riprovare più tardi» |
+| `scorePlayback.correction.invalid` | 422 | La correzione scritta nell'editor non è un MusicXML con una sola parte, oppure l'origine delle battute non corrisponde alla versione di partenza | `reason`: `empty`, `malformed`, `notMusicXml`, `timewise`, `noParts`, `severalParts`, `measureSources` | Testo per motivo, per esempio «La correzione deve contenere una sola parte» |
+| `scorePlayback.report.invalid` | 422 | Segnalazione senza descrizione, con una descrizione oltre 1000 caratteri o un numero di battuta oltre 16 caratteri | — | «Descrivere l'errore in al massimo 1000 caratteri» |
+| `scorePlayback.report.limitReached` | 409 | L'utente ha già il numero massimo di segnalazioni aperte sulla parte | `maxOpen` | «Hai già {maxOpen} segnalazioni aperte su questa parte: attendi che vengano esaminate» |
+| `scorePlayback.report.notFound` | 404 | Segnalazione inesistente o di un'altra traccia | — | «Segnalazione non trovata» |
 
 ### Onboarding
 

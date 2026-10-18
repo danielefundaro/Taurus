@@ -7,7 +7,7 @@ Questo runbook descrive come installare, configurare, avviare, verificare, rilas
 ID catalogo: `operational-runbook`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Il documento riflette lo stato del repository alla data **7 settembre 2026**. Le procedure marcate **baseline da definire** non sono ancora automatizzate o completamente rappresentate nel repository e devono essere validate nell'ambiente di destinazione prima di essere usate in produzione.
+Il documento riflette lo stato del repository alla data **18 ottobre 2026**. Le procedure marcate **baseline da definire** non sono ancora automatizzate o completamente rappresentate nel repository e devono essere validate nell'ambiente di destinazione prima di essere usate in produzione.
 
 Principi operativi:
 
@@ -46,7 +46,8 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 | `taurus-be` | Java 17, Spring Boot 3.3, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.5.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
-| RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Coda di elaborazione file/PDF `upload.files` | `5672`, console `15672` | Code e messaggi in transito |
+| RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti) | `5672`, console `15672` | Code e messaggi in transito |
+| `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
 | `keycloak-authenticator` | Java 17, provider Keycloak | Selezione tenant/ruolo e protocol mapper | n/a | JAR e temi distribuiti in Keycloak |
 | `taurus-info` | Astro, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
 | Prometheus/Grafana | Compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
@@ -60,7 +61,8 @@ Browser
   `-- SPA Angular -------> Taurus API --> PostgreSQL/public
                                     |--> PostgreSQL/tenant_<hash>
                                     |--> filesystem media per tenant
-                                    `--> RabbitMQ/upload.files --> worker nello stesso backend
+                                    |--> RabbitMQ/upload.files --> worker nello stesso backend
+                                    `--> RabbitMQ/score.recognition --> worker --> taurus-omr (HTTP interno)
 ```
 
 Il claim JWT `tenant` determina lo schema PostgreSQL. Le entità globali restano in `public`; le entità operative risiedono in uno schema fisico `tenant_<hash>`. Una richiesta senza un tenant valido non deve poter leggere uno schema di un altro tenant.
@@ -72,10 +74,11 @@ L'ordine di avvio raccomandato è:
 1. PostgreSQL;
 2. Keycloak e relativo provider;
 3. RabbitMQ;
-4. backend, incluse migration globali e tenant;
-5. frontend;
-6. sito informativo;
-7. monitoraggio.
+4. servizio OMR `taurus-omr`, se l'ascolto delle parti usa il riconoscimento: il backend si avvia anche senza, ma i riconoscimenti terminano con `serviceUnavailable`;
+5. backend, incluse migration globali e tenant;
+6. frontend;
+7. sito informativo;
+8. monitoraggio.
 
 L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'ingresso di nuovo traffico e attendere la conclusione delle richieste e dei job in corso.
 
@@ -87,8 +90,10 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 - Java 17;
 - Node.js 22 e npm;
 - pnpm 11 per `taurus-info`;
-- Docker Engine con Docker Compose;
+- Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
 - Chrome/Chromium per i test Karma;
+- accesso a Internet verso `ftp.osuosl.org` per `npm start` e `npm run build`, che scaricano il SoundFont del lettore (circa 38 MB, verificato con SHA-256; `TAURUS_SKIP_SOUNDFONT=1` salta lo scaricamento quando il lettore non serve);
+- facoltativo: Python 3.12 per i test di `taurus-omr` fuori da Docker;
 - facoltativo: Tesseract OCR con dati `ita+eng`.
 
 Verifica rapida:
@@ -152,8 +157,13 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 | URL pubblico QR | `INVENTORY_QR_PUBLIC_BASE_URL` | HTTPS pubblico della SPA |
 | Kill switch QR | `INVENTORY_QR_ENABLED` | Un flag tenant non supera un kill switch globale spento |
 | Kill switch feed | `CALENDAR_FEED_ENABLED` | Come sopra |
+| Ascolto delle parti | `SCORE_PLAYBACK_ENABLED` | Capacità di installazione; il tenant la attiva con il proprio flag |
+| URL servizio OMR | `SCORE_PLAYBACK_OMR_URL` | Indirizzo interno di `taurus-omr`; vuoto nasconde riconoscimento e caricamento MIDI |
+| Chiave servizio OMR | `SCORE_PLAYBACK_OMR_API_KEY` | Segreto condiviso, uguale a `TAURUS_OMR_API_KEY` del servizio, almeno 16 caratteri |
 
-Le proprietà RabbitMQ standard Spring, per esempio `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`, devono essere impostate nell'ambiente distribuito. La coda applicativa è `upload.files` e l'exchange è `taurus.rabbitmq`.
+Le altre proprietà dell'ascolto (dimensione dei caricamenti, tempi e concorrenza del servizio OMR, recupero dei job, versioni conservate e orario della pulizia) hanno valori predefiniti adatti alla produzione e sono elencate nella [specifica](track-score-playback-spec.md#configurazione-del-backend).
+
+Le proprietà RabbitMQ standard Spring, per esempio `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`, devono essere impostate nell'ambiente distribuito. Le code applicative sono `upload.files` e `score.recognition`, l'exchange è `taurus.rabbitmq`. I messaggi di `score.recognition` sono JSON `{ tenant, jobId }`: la tabella dei job resta la fonte di verità e un messaggio perso viene ripubblicato dal recupero pianificato.
 
 ### 4.2 Frontend Angular
 
@@ -170,6 +180,8 @@ Prima della build di produzione verificare:
 - la chiave VAPID pubblica corrisponda alla privata del backend;
 - redirect URI, web origin e post-logout URI siano autorizzati in Keycloak;
 - il service worker possa essere servito via HTTPS.
+
+La build (`npm run build` e il `Dockerfile` del frontend) scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta SHA-256: l'ambiente di build deve raggiungere quell'indirizzo, altrimenti la build fallisce. Verovio e il SoundFont sono serviti come asset statici e messi in cache dal service worker al primo ascolto, non precaricati.
 
 Stato attuale da correggere prima della produzione: `environment.prod.ts` usa `http://backend:8080/api`, `http://keycloak:8081` e client `web-app`, mentre lo sviluppo e il backend usano il client `web_app`. Questi valori non costituiscono una configurazione di produzione valida per un browser esterno.
 
@@ -188,13 +200,31 @@ Per cambiarle occorre ricostruire l'immagine. Il TLS termina sul reverse proxy o
 
 ### 4.4 Feature flag
 
-Otto funzioni sono configurabili per tenant: economia, inventario, onboarding/import, feed calendario esterno, QR inventario, preferenze notifiche, Web Push e preparazione evento.
+Nove funzioni sono configurabili per tenant: economia, inventario, onboarding/import, feed calendario esterno, QR inventario, preferenze notifiche, Web Push, preparazione evento e ascolto delle parti.
 
 ```text
 funzione effettiva = capacità installazione AND flag tenant AND dipendenze effettive
 ```
 
 Disabilitare un flag nasconde e blocca la funzione, ma non cancella i dati. Dopo una modifica verificare `GET /api/tenant-features/current` come utente del tenant e, come super amministratore, le capability esposte da `GET /api/tenant-features/capabilities`.
+
+### 4.5 Servizio OMR
+
+- Avvio locale: fa parte di `services.yml` e si avvia con le altre dipendenze (§5.1). L'immagine è `fundanie/taurus-omr`, pubblicata su Docker Hub dal workflow `docker-publish.yml` a ogni tag `v*.*.*` come quelle di backend e frontend; `TAURUS_OMR_VERSION` nel file `.env` del compose sceglie la versione, `latest` per default. Se l'immagine non è pubblicata, Compose la costruisce da `taurus-omr` (pochi minuti la prima volta); dopo una modifica del servizio si ricostruisce con `docker compose -f taurus-be/src/main/docker/services.yml up -d --build omr`.
+- Chiave e indirizzo in sviluppo: il file `.env` del compose e il profilo `dev` del backend usano la stessa chiave di sviluppo e `http://localhost:8090`; `SCORE_PLAYBACK_OMR_API_KEY` e `SCORE_PLAYBACK_OMR_URL` li sostituiscono. Negli ambienti distribuiti la chiave va sempre impostata, diversa da quella di sviluppo.
+- In produzione il servizio non pubblica porte: sta su una rete interna raggiungibile solo dal backend, con file system in sola lettura, `/tmp` in memoria, utente non privilegiato e limiti di CPU e memoria come in `omr.yml`.
+- Stato: `GET /v1/health` restituisce stato e versioni dei motori senza chiave. Un riconoscimento di una pagina richiede circa 40 secondi con 4 CPU, con i due motori in parallelo; la concorrenza predefinita è un job alla volta.
+- Rotazione della chiave: aggiornare insieme `TAURUS_OMR_API_KEY` del servizio e `SCORE_PLAYBACK_OMR_API_KEY` del backend (§15.4); con chiavi diverse i job terminano con `serviceUnavailable` e il backend registra un errore.
+- Aggiornamento dei motori: nuova immagine con le versioni e le impronte aggiornate in `Dockerfile`, `requirements.txt` e `models.sha256`. La CI (`verify.yml`) costruisce l'immagine, la avvia e misura l'accuratezza sul corpus di riferimento: il job fallisce se un motore legge meno battute del minimo fissato in `taurus-omr/tests/test_accuracy.py` e la tabella dei risultati è nel riepilogo del job. Se i risultati migliorano si alza il minimo. Prima del rilascio si ripete la misura su parti reali (§4.6).
+
+### 4.6 Accuratezza dei motori
+
+Il modulo `taurus-omr` contiene gli strumenti di misura (`accuracy/`), da eseguire nella cartella del modulo con le dipendenze di `requirements-test.txt`:
+
+- corpus di riferimento: `python -m accuracy run --url http://localhost:8090 --key <chiave>` riconosce le sei parti del corpus con il servizio indicato e stampa, per motore, le battute corrette, le indicazioni di struttura lette e i tempi; `--save <cartella>` conserva ciò che ha letto ogni motore;
+- parti reali: dopo che un archivista ha corretto e approvato una parte riconosciuta, si scaricano dal dialogo delle versioni la versione approvata e quella del motore, e `python -m accuracy compare approvata.mxl audiveris.mxl` elenca le battute diverse e la quota di battute corrette;
+- una battuta è corretta se si ascolta uguale: stessa durata, stesse note per inizio, durata, altezza e legatura di valore; non contano grafia degli accidenti, voci, travature e pause. Le battute sono allineate, quindi una battuta persa o letta due volte conta una volta sola;
+- nuove parti di riferimento: si aggiungono a `accuracy/corpus.py` e si ridisegnano con `python -m accuracy render` (dipendenze di `requirements-accuracy.txt`, la libreria Cairo e un carattere compatibile con Times), per esempio in un container: `docker run --rm -v "${PWD}:/work" -w /work python:3.12-slim-bookworm sh -c "apt-get update && apt-get install -y libcairo2 fonts-liberation && pip install -r requirements-accuracy.txt && python -m accuracy render"`.
 
 ## 5. Avvio e arresto locale
 
@@ -205,6 +235,8 @@ Dalla root del repository:
 ```powershell
 docker compose -f taurus-be/src/main/docker/services.yml up --wait
 ```
+
+Il comando avvia PostgreSQL, Keycloak, RabbitMQ e il servizio OMR e attende che siano pronti. La prima volta scarica, o costruisce, l'immagine del servizio OMR (circa 1,5 GB).
 
 In terminali separati:
 
@@ -235,9 +267,10 @@ Endpoint locali attesi:
 | Backend health | `http://localhost:8080/management/health` |
 | Keycloak | `http://localhost:9080` |
 | RabbitMQ management | `http://localhost:15672` |
+| Servizio OMR | `http://localhost:8090/v1/health` |
 | Sito Astro dev | `http://localhost:4321` |
 
-Il backend abilita Spring Docker Compose e può tentare di avviare `services.yml` automaticamente. Per evitare due owner dello stesso stack, scegliere una sola modalità: avvio manuale del compose oppure lifecycle Spring.
+Il backend abilita Spring Docker Compose e può tentare di avviare `services.yml` automaticamente, servizio OMR compreso: se l'immagine OMR non è pubblicata, il primo avvio la costruisce e richiede alcuni minuti. Per evitare due owner dello stesso stack, scegliere una sola modalità: avvio manuale del compose oppure lifecycle Spring.
 
 ### 5.2 Primo accesso su ambiente vuoto
 
@@ -312,9 +345,10 @@ Invoke-RestMethod http://localhost:8080/management/health
 Test-NetConnection localhost -Port 5432
 Test-NetConnection localhost -Port 5672
 Test-NetConnection localhost -Port 9080
+Invoke-RestMethod http://localhost:8090/v1/health
 ```
 
-Health atteso del backend: HTTP `200` e stato `UP`. I dettagli completi richiedono autorizzazione amministrativa.
+Health atteso del backend: HTTP `200` e stato `UP`. I dettagli completi richiedono autorizzazione amministrativa. Nel compose PostgreSQL, Keycloak e servizio OMR devono risultare `healthy`; il servizio OMR risponde con stato `UP` e le versioni dei motori.
 
 ### 5.4 Arresto
 
@@ -354,6 +388,20 @@ npm test -- --watch=false --browsers=ChromeHeadless
 npm run build
 ```
 
+`npm run build` scarica il SoundFont la prima volta (§3.1).
+
+Servizio OMR:
+
+```powershell
+Set-Location taurus-omr
+python -m venv .venv
+.venv\Scripts\pip install -r requirements-test.txt
+.venv\Scripts\python -m pytest
+docker build -t taurus-omr:local .
+```
+
+I test usano motori finti; l'accuratezza dei motori reali si misura con il servizio in esecuzione (§4.6). La CI la misura a ogni modifica del modulo.
+
 Provider Keycloak:
 
 ```powershell
@@ -382,7 +430,7 @@ Set-Location taurus-be
 
 ### 7.1 Versionamento
 
-I tag seguono `vMAJOR.MINOR.PATCH`. Un push di tag conforme avvia `.github/workflows/docker-publish.yml`, valida il catalogo funzionale e pubblica le immagini backend e frontend su Docker Hub e GHCR, firmandole con Cosign.
+I tag seguono `vMAJOR.MINOR.PATCH`. Un push di tag conforme avvia `.github/workflows/docker-publish.yml`, valida il catalogo funzionale e pubblica le immagini backend, frontend e servizio OMR (`taurus-omr`) su Docker Hub e GHCR, firmandole con Cosign. Su Docker Hub devono esistere i repository delle tre immagini; quello di `taurus-omr` va creato prima del primo tag che lo include.
 
 Il workflow attuale **non** pubblica `taurus-info` né il provider Keycloak. Questi due artefatti richiedono una pipeline o procedura controllata aggiuntiva prima di poter dichiarare completa una release.
 
@@ -390,7 +438,8 @@ Il workflow attuale **non** pubblica `taurus-info` né il provider Keycloak. Que
 
 - [ ] Feature ID e stato release aggiornati in `docs/features.json`.
 - [ ] `docs/features.md` rigenerato e senza diff residuo.
-- [ ] Tutti i job del workflow `Verify` verdi.
+- [ ] Tutti i job del workflow `Verify` verdi, compresa la misura di accuratezza dei motori se `taurus-omr` è cambiato.
+- [ ] Se cambiano i motori OMR, accuratezza su parti reali misurata e registrata (§4.6).
 - [ ] Migration globali incluse in `master.xml`.
 - [ ] Migration tenant incluse in `tenant-master.xml`.
 - [ ] Compatibilità di rollback valutata.
@@ -427,7 +476,7 @@ Non procedere se uno dei seguenti punti è vero:
 - le immagini non sono fissate per digest/versione;
 - manca una strategia per eseguire una sola volta le migration in presenza di più repliche.
 
-Il file `taurus-be/src/main/docker/app.yml` non è una baseline di produzione: usa riferimenti JHipster obsoleti, configura R2DBC mentre l'applicazione corrente usa JDBC/JPA, non include RabbitMQ e non monta lo storage media. Va sostituito da un manifest validato.
+Il file `taurus-be/src/main/docker/app.yml` non è una baseline di produzione: usa riferimenti JHipster obsoleti, configura R2DBC mentre l'applicazione corrente usa JDBC/JPA, non include RabbitMQ né il servizio OMR e non monta lo storage media. Va sostituito da un manifest validato. Per il servizio OMR, `omr.yml` indica le restrizioni da riportare: rete interna senza porte pubblicate, file system in sola lettura, `/tmp` in memoria, nessuna capability, limiti di CPU e memoria.
 
 ### 8.2 Sequenza standard
 
@@ -436,14 +485,15 @@ Il file `taurus-be/src/main/docker/app.yml` non è una baseline di produzione: u
 3. Sospendere modifiche amministrative ai tenant durante la finestra.
 4. Eseguire backup coerente di PostgreSQL e storage media.
 5. Distribuire l'eventuale provider Keycloak compatibile; riavviare e verificare Keycloak.
-6. Avviare un'unica istanza backend target per applicare Liquibase.
-7. Verificare `public.databasechangelog` e il changelog di ogni schema attivo.
-8. Se le migration sono riuscite, distribuire tutte le repliche backend.
-9. Distribuire frontend e invalidare solo la cache HTML/service worker necessaria.
-10. Distribuire il sito informativo se incluso nella release.
-11. Eseguire gli smoke test.
-12. Osservare metriche e log per almeno una finestra operativa concordata.
-13. Chiudere la change riportando esito, anomalie e versione effettiva.
+6. Se la release cambia il servizio OMR, distribuire la nuova immagine e verificare `GET /v1/health` dalla rete del backend; il servizio non ha stato e si sostituisce senza migration.
+7. Avviare un'unica istanza backend target per applicare Liquibase.
+8. Verificare `public.databasechangelog` e il changelog di ogni schema attivo.
+9. Se le migration sono riuscite, distribuire tutte le repliche backend.
+10. Distribuire frontend e invalidare solo la cache HTML/service worker necessaria.
+11. Distribuire il sito informativo se incluso nella release.
+12. Eseguire gli smoke test.
+13. Osservare metriche e log per almeno una finestra operativa concordata.
+14. Chiudere la change riportando esito, anomalie e versione effettiva.
 
 ### 8.3 Verifica migration tenant
 
@@ -478,6 +528,7 @@ Non modificare manualmente `databasechangelog` o `databasechangeloglock` senza d
 - [ ] Le feature abilitate/disabilitate coincidono con la configurazione tenant.
 - [ ] Il feed calendario e il QR usano URL pubblici HTTPS corretti, se abilitati.
 - [ ] Registrazione Web Push e invio di prova riusciti, se abilitati.
+- [ ] Ascolto delle parti, se abilitato: il lettore di una parte di prova si apre e suona; con il servizio OMR configurato un riconoscimento di prova termina e la coda `score.recognition` resta vuota.
 - [ ] Il frontend non presenta errori di CORS, mixed content o service worker.
 - [ ] `/health` del sito informativo restituisce `200`, se rilasciato.
 
@@ -488,10 +539,12 @@ Usare dati di collaudo dedicati ed eliminarli secondo le regole applicative, evi
 ### 9.1 Solo applicazione, senza migration incompatibili
 
 1. Fermare il rollout.
-2. Riportare frontend e backend ai digest precedenti.
+2. Riportare frontend e backend ai digest precedenti, e il servizio OMR alla versione precedente se era cambiato.
 3. Ripristinare l'eventuale provider Keycloak precedente.
 4. Verificare health, login, tenant isolation, coda e storage.
 5. Lasciare aperto l'incidente e conservare log e artefatti.
+
+Per un problema limitato all'ascolto delle parti basta disattivare la funzionalità `SCORE_PLAYBACK` (§4.4), per il tenant o per l'installazione: tabelle, versioni e file restano disponibili per la riattivazione.
 
 ### 9.2 Con migration database
 
@@ -539,7 +592,8 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - esaurimento pool JDBC;
 - connessioni o storage PostgreSQL prossimi al limite;
 - spazio/inode del filesystem media;
-- backlog e messaggi non confermati sulla coda `upload.files`;
+- backlog e messaggi non confermati sulle code `upload.files` e `score.recognition`;
+- riconoscimenti terminati con errore (`taurus_score_recognition_jobs_total` con `outcome` diverso da `done`) e servizio OMR non `UP`;
 - consumer RabbitMQ assenti;
 - Keycloak non raggiungibile o incremento errori OIDC;
 - tenant in stato diverso da `ACTIVE` con `last_error` valorizzato;
@@ -571,6 +625,8 @@ Gli orari cron senza `zone` esplicita usano il timezone del processo JVM. Impost
 | Avvisi scadenza inventario | 08:00 Europe/Rome | Genera notifiche scadenze |
 | Rollover economia | 00:10 Europe/Rome | Aggiorna saldi/aperture annuali |
 | Scadenze preparazione evento | ogni minuto Europe/Rome | Genera notifiche operative |
+| Recupero riconoscimenti | ogni minuto | Rimette in coda i riconoscimenti interrotti da oltre 30 minuti (al massimo tre tentativi) e ripubblica quelli in coda da oltre 30 minuti |
+| Pulizia versioni delle parti | 04:15 giornaliero | Elimina le versioni oltre le ultime 20 di ogni parte che non sono correnti né approvate |
 
 In una distribuzione con più repliche, verificare il comportamento concorrente di ogni scheduler. Il repository non mostra un coordinatore distribuito generale: prima di scalare il backend oltre una replica, validare idempotenza e locking o assegnare i job a una sola replica.
 
@@ -582,7 +638,7 @@ Il backup completo comprende:
 
 - database PostgreSQL `taurus`, inclusi `public` e tutti gli schemi tenant;
 - database Keycloak `taurus_keycloak`;
-- filesystem configurato da `APPLICATION_BASE_PATH`;
+- filesystem configurato da `APPLICATION_BASE_PATH`, che contiene anche i file MusicXML delle versioni delle parti, salvati come media;
 - realm/configurazione Keycloak esportabile, provider JAR e temi;
 - manifest e configurazioni non segrete della release;
 - riferimenti ai segreti e alle relative versioni, non i segreti in chiaro nel repository;
@@ -666,6 +722,10 @@ Prima dell'azione:
 
 Dopo l'azione verificare stato `DELETED`, assenza dello schema e rimozione/anonimizzazione dei file previsti. Non ricreare manualmente lo stesso tenant per simulare un restore.
 
+### 13.4 Cancellazione dei dati di un utente
+
+Il completamento di una pratica di cancellazione dell'account e la retention pianificata eliminano i dati personali dell'utente nel tenant, comprese le sue segnalazioni d'errore sulle parti, perché il testo è scritto da lui. Le versioni delle parti che ha corretto restano, perché fanno parte dell'archivio musicale.
+
 ## 14. Procedure di incidente
 
 ### 14.1 Metodo comune
@@ -738,6 +798,8 @@ Non bypassare OIDC e non distribuire client secret nel frontend.
 - non eliminare o requeue massivamente i messaggi senza valutarne l'idempotenza;
 - sospendere nuovi upload se il backlog continua a crescere.
 
+Per la coda `score.recognition` seguire il §14.9.
+
 ### 14.7 Storage media pieno o non disponibile
 
 - mettere in pausa upload e operazioni che scrivono file;
@@ -756,7 +818,16 @@ Non bypassare OIDC e non distribuire client secret nel frontend.
 - usare la console amministrativa di delivery per retry/chiusura controllati;
 - evitare retry massivi finché la causa esterna persiste.
 
-### 14.9 Sospetta violazione tenant o sicurezza
+### 14.9 Riconoscimento delle parti lento o fallito
+
+- verificare `GET /v1/health` del servizio OMR dalla rete del backend e la corrispondenza tra `SCORE_PLAYBACK_OMR_API_KEY` e `TAURUS_OMR_API_KEY`: con chiavi diverse ogni job termina con `serviceUnavailable`;
+- leggere il codice d'errore dei job (`score_recognition_job.error_code`) e i log del backend per `jobId`, parte e tenant: `serviceUnavailable` indica servizio fermo o irraggiungibile, `engineFailed` ed `engineTimeout` un motore fallito su quelle pagine, che resta ripetibile con «Riprova»;
+- nei log del servizio ogni riconoscimento riporta pagine, esito e durata di ciascun motore; con la concorrenza predefinita le richieste attendono il proprio turno e oltre il tempo massimo rispondono `busy`, che il backend registra come `serviceUnavailable`;
+- verificare CPU, memoria e `/tmp` del container: Audiveris e homr insieme usano fino a 4 CPU e alcuni GB di memoria per pagina;
+- i job interrotti vengono rimessi in coda dal recupero pianificato (§11), al massimo tre volte, poi terminano con `interrupted`: non ripubblicare a mano i messaggi;
+- se un motore peggiora dopo un aggiornamento, tornare alla versione precedente dell'immagine con `TAURUS_OMR_VERSION` e misurare di nuovo l'accuratezza (§4.6).
+
+### 14.10 Sospetta violazione tenant o sicurezza
 
 Classificare come incidente critico:
 
@@ -781,7 +852,9 @@ Classificare come incidente critico:
 - privilegi DB e Keycloak minimi;
 - CSP e header del sito informativo verificati a ogni modifica;
 - limite upload da 500 MB rivalutato a livello reverse proxy e capacità;
-- dati OCR/PDF trattati come contenuto non fidato.
+- dati OCR/PDF trattati come contenuto non fidato;
+- file MusicXML e MIDI caricati trattati come contenuto non fidato: DTD ed entità esterne disattivate, `.mxl` al massimo 50 MB decompressi e 100 voci, MIDI al massimo 10 MB;
+- servizio OMR raggiungibile solo dal backend, con una chiave di almeno 16 caratteri diversa da quella di sviluppo.
 
 ### 15.2 Rotazione client secret OIDC
 
@@ -801,7 +874,14 @@ La chiave pubblica è incorporata nel frontend. La rotazione richiede coordiname
 4. Distribuire, verificare una nuova subscription e un invio.
 5. Eliminare la vecchia privata secondo policy.
 
-### 15.4 Rotazione certificati TLS
+### 15.4 Rotazione della chiave del servizio OMR
+
+1. Generare una nuova chiave di almeno 16 caratteri nel secret manager.
+2. Aggiornare insieme `TAURUS_OMR_API_KEY` del servizio e `SCORE_PLAYBACK_OMR_API_KEY` del backend e riavviarli.
+3. Verificare un riconoscimento di prova: con chiavi diverse i job terminano con `serviceUnavailable`.
+4. Riavviare con «Riprova» i riconoscimenti falliti durante la rotazione.
+
+### 15.5 Rotazione certificati TLS
 
 Monitorare scadenza con anticipo, aggiornare reverse proxy/ingress, verificare catena completa e hostname, quindi provare login OIDC, API, service worker e feed calendario da una rete esterna.
 
@@ -813,7 +893,8 @@ Monitorare scadenza con anticipo, aggiornare reverse proxy/ingress, verificare c
 - esito backup;
 - spazio DB/storage;
 - backlog RabbitMQ;
-- errori scheduler, notification delivery e provisioning tenant.
+- errori scheduler, notification delivery e provisioning tenant;
+- riconoscimenti delle parti terminati con errore, se l'ascolto è attivo.
 
 ### Settimanale
 
@@ -827,7 +908,7 @@ Monitorare scadenza con anticipo, aggiornare reverse proxy/ingress, verificare c
 
 - restore di prova secondo policy;
 - revisione accessi privilegiati;
-- patching immagini base e dipendenze;
+- patching immagini base e dipendenze, compresa l'immagine del servizio OMR, seguito dalla misura di accuratezza dei motori (§4.6);
 - revisione RPO/RTO misurati;
 - audit configurazione e drift dei manifest;
 - prova della procedura di rollback in collaudo.
@@ -846,7 +927,7 @@ Attivare il DR quando l'ambiente primario non può rispettare l'RTO o quando il 
 4. Ripristinare media e provider/temi Keycloak.
 5. Avviare Keycloak.
 6. Avviare una sola istanza backend e verificare migration/schema.
-7. Avviare RabbitMQ vuoto o ripristinato secondo la policy approvata.
+7. Avviare RabbitMQ vuoto o ripristinato secondo la policy approvata, e il servizio OMR se l'ascolto lo usa: non ha dati da ripristinare e il recupero pianificato rimette in coda i riconoscimenti interrotti.
 8. Avviare backend completo, frontend e sito.
 9. Eseguire smoke test multi-tenant e media.
 10. Aprire il traffico gradualmente e monitorare.
@@ -873,6 +954,8 @@ I seguenti punti emergono direttamente dal repository e devono diventare attivit
 | Media | Actuator espone endpoint sensibili | Restringere rete e autorizzazioni, verificare sanitizzazione |
 | Media | Compose RabbitMQ espone porte su tutte le interfacce | Limitare al loopback in dev e usare rete privata/TLS/credenziali in prod |
 | Media | Nessuna procedura automatica di smoke test | Creare test sintetici non distruttivi per release |
+| Media | Servizio OMR assente da ogni manifest di produzione | Aggiungerlo su rete interna con le restrizioni di `omr.yml`, chiave dal secret manager e immagine per digest |
+| Media | Build del frontend dipendente da `ftp.osuosl.org` per il SoundFont | Valutare una copia del file in un archivio controllato; l'impronta SHA-256 resta verificata |
 
 ## 19. Scheda rapida di change
 
@@ -881,6 +964,7 @@ Change ID:
 Ambiente:
 Versione attuale / digest:
 Versione target / digest:
+Immagine servizio OMR / digest:
 Feature ID interessati:
 Migration globali:
 Migration tenant:
@@ -910,10 +994,12 @@ Note/link incidente:
 - `docs/notification-delivery-generalization-spec.md`: outbox e consegna;
 - `docs/web-push-reminders-spec.md`: Web Push e VAPID;
 - `docs/tenant-onboarding-import-spec.md`: import e recovery;
+- `docs/track-score-playback-spec.md`: ascolto, riconoscimento, correzione delle parti e accuratezza dei motori;
+- `taurus-omr/README.md`: API, configurazione e strumenti di accuratezza del servizio OMR;
 - `taurus-be/src/main/resources/config/application*.yml`: configurazione backend;
-- `taurus-be/src/main/docker/*.yml`: stack esclusivamente locale;
-- `.github/workflows/verify.yml`: verifiche CI;
-- `.github/workflows/docker-publish.yml`: pubblicazione immagini BE/FE.
+- `taurus-be/src/main/docker/*.yml`: stack esclusivamente locale; `omr.yml` documenta le restrizioni del servizio OMR;
+- `.github/workflows/verify.yml`: verifiche CI, compresa l'accuratezza dei motori OMR;
+- `.github/workflows/docker-publish.yml`: pubblicazione immagini BE/FE/OMR.
 
 ## 21. Criterio di “servizio ripristinato”
 
@@ -924,7 +1010,8 @@ Un componente che risponde al solo health check non basta. Taurus è ripristinat
 - almeno due tenant di verifica risultano isolati;
 - DB globale e schemi tenant hanno migration coerenti;
 - lettura/scrittura core e media funzionano;
-- RabbitMQ consuma i job senza backlog crescente;
+- RabbitMQ consuma i job senza backlog crescente, compresi i riconoscimenti delle parti;
+- il servizio OMR risponde `UP`, se l'ascolto con riconoscimento è attivo;
 - scheduler e notification delivery non producono errori ripetuti;
 - frontend, QR, feed e Web Push usano URL e certificati corretti;
 - metriche restano entro le soglie concordate per la finestra di osservazione;

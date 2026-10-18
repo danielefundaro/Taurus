@@ -9,15 +9,16 @@ Questo runbook definisce la strategia, le suite, i dati, le procedure e le evide
 
 Il documento è una checklist eseguibile e una matrice di copertura. Non sostituisce i test automatici: un caso marcato come manuale o non ancora automatizzato resta un rischio esplicito. Nessuna quantità di test garantisce l'assenza assoluta di difetti; il criterio adottato è produrre evidenze ripetibili, proporzionate al rischio, sufficienti per una decisione di rilascio consapevole.
 
-Stato rilevato all'8 settembre 2026:
+Stato rilevato al 18 ottobre 2026:
 
-- backend: 109 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
-- frontend: 18 specifiche Jasmine/Karma;
+- backend: 142 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
+- frontend: 54 specifiche Jasmine/Karma;
+- servizio OMR: 7 file pytest, con 53 test sui motori finti e 5 test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
 - provider Keycloak: 1 classe con 2 test di packaging/metadata;
 - sito informativo: type-check e build, senza suite funzionale dedicata;
 - nessun framework E2E browser configurato;
 - JaCoCo produce report backend, ma non applica una soglia minima;
-- la CI esegue test/build dei moduli modificati, ma non test full-stack, performance, sicurezza dinamica o restore.
+- la CI esegue test/build dei moduli modificati e, per `taurus-omr`, la misura di accuratezza sull'immagine appena costruita, ma non test full-stack, performance, sicurezza dinamica o restore.
 
 Il runbook resta `in-progress` finché i gap indicati nella sezione 19 non sono risolti o formalmente accettati.
 
@@ -89,22 +90,23 @@ Un gate non ancora misurabile è un punto aperto, non un successo implicito.
 
 ### 5.1 Locale
 
-Usare per sviluppo rapido e diagnosi. Il compose in `taurus-be/src/main/docker` è esclusivamente di sviluppo e il database non ha un volume persistente attivo.
+Usare per sviluppo rapido e diagnosi. Il compose in `taurus-be/src/main/docker` è esclusivamente di sviluppo e il database non ha un volume persistente attivo. `docker compose -f taurus-be/src/main/docker/services.yml up --wait` avvia anche il servizio OMR, con la chiave di sviluppo già condivisa con il profilo `dev` del backend, e attende che tutti i servizi siano `healthy`.
 
 ### 5.2 CI effimera
 
 Caratteristiche richieste:
 
 - checkout pulito;
-- versioni Java/Node/pnpm fissate;
-- Docker disponibile per Testcontainers;
+- versioni Java/Node/pnpm/Python fissate;
+- Docker disponibile per Testcontainers e per l'immagine del servizio OMR;
+- accesso in uscita a `ftp.osuosl.org` per il SoundFont della build frontend e alle sorgenti fissate dell'immagine OMR;
 - database e container nuovi per ogni job;
 - nessun segreto di produzione;
 - report e log pubblicati anche in caso di fallimento.
 
 ### 5.3 Integrazione full-stack
 
-Deve contenere PostgreSQL 17, Keycloak 26.5.2 con provider e temi, RabbitMQ 4, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
+Deve contenere PostgreSQL 17, Keycloak 26.5.2 con provider e temi, RabbitMQ 4, servizio OMR, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
 
 ### 5.4 Staging production-like
 
@@ -156,7 +158,9 @@ Includere:
 - CSV onboarding vuoto, 1 riga, 5.000 righe, colonne extra/mancanti e celle al limite;
 - ricorrenze fino al limite di 500 occorrenze;
 - importi positivi, negativi, zero, arrotondamenti e cambio esercizio;
-- subscription push valide, scadute e respinte dal provider.
+- subscription push valide, scadute e respinte dal provider;
+- file MusicXML (`.musicxml`, `.xml`, `.mxl`) e MIDI con una e più parti, malformati, con DTD o entità esterne, `.mxl` oltre 50 MB decompressi o 100 voci, MIDI oltre 10 MB;
+- pagine di parti da riconoscere: digitali, scansioni e foto, a 300 DPI e a risoluzione più bassa. Le parti reali della banda restano negli ambienti di prova e non entrano nel repository; il corpus versionato di `taurus-omr/accuracy` è scritto per il test.
 
 Ogni suite deve creare e ripulire i propri dati. La pulizia non deve mascherare un fallimento.
 
@@ -170,7 +174,7 @@ Commit SHA:
 Tag/digest immagini:
 Ambiente:
 Browser e versione:
-Java/Node/pnpm/Docker:
+Java/Node/pnpm/Python/Docker:
 Schema/migration version:
 Configurazione feature non segreta:
 Dataset/versione fixture:
@@ -184,6 +188,7 @@ Conservare:
 - log applicativi e container relativi al run;
 - screenshot/video solo per fallimenti UI o evidenze richieste;
 - risultati scanner e performance;
+- tabella di accuratezza dei motori OMR, quando misurata;
 - query di verifica prive di segreti/dati personali;
 - elenco test saltati con motivazione;
 - ticket per ogni fallimento non risolto.
@@ -247,7 +252,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-Controllare sia l'exit code sia il report coverage. Attualmente non esiste una soglia configurata: il report non costituisce da solo un gate.
+Controllare sia l'exit code sia il report coverage. Attualmente non esiste una soglia configurata: il report non costituisce da solo un gate. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 ### 8.4 Provider Keycloak
 
@@ -258,7 +263,29 @@ Set-Location keycloak-authenticator
 
 La suite esistente verifica solo metadata del factory e service descriptor. La qualificazione richiede anche i casi reali della sezione 12.
 
-### 8.5 Sito informativo
+### 8.5 Servizio OMR
+
+```powershell
+Set-Location taurus-omr
+python -m venv .venv
+.venv\Scripts\pip install -r requirements-test.txt
+.venv\Scripts\python -m pytest
+docker build -t taurus-omr:test .
+```
+
+I test sostituiscono Audiveris e homr con programmi finti. La build dell'immagine verifica di nuovo le impronte di pacchetti, modelli e dati.
+
+L'accuratezza dei motori reali si misura con il servizio in esecuzione, per esempio quello avviato da `services.yml`:
+
+```powershell
+$env:TAURUS_OMR_ACCURACY_URL = 'http://localhost:8090'
+$env:TAURUS_OMR_ACCURACY_KEY = 'taurus-omr-development-key'
+.venv\Scripts\python -m pytest tests\test_accuracy.py -v -s
+```
+
+Il test riconosce le sei parti del corpus di riferimento (circa 5 minuti con 4 CPU), stampa la tabella dei risultati e fallisce se un motore legge meno battute del minimo fissato. La CI lo esegue sull'immagine appena costruita. Lo stesso confronto si applica alle parti reali con `python -m accuracy compare` ([Runbook operativo](runbook-operativo.md), §4.6).
+
+### 8.6 Sito informativo
 
 ```powershell
 Set-Location taurus-info
@@ -283,6 +310,8 @@ In un secondo terminale verificare `http://localhost:8088/health` e le pagine pr
 | RabbitMQ | Pubblicazione, consumo, redelivery, poison message, outage e recupero |
 | Frontend condiviso/layout | Tutti i ruoli, responsive, tastiera, temi, build e smoke browser |
 | Anteprima e stampa spartiti | Casi `PRV-*`, con stampa reale su almeno due browser e un documento per orientamento |
+| Ascolto, riconoscimento e correzione delle parti | Casi `PLY-*` interessati, `ScorePlaybackIT` e `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, prova nel browser anche a larghezza di telefono |
+| Servizio OMR, motori o modelli | `pytest`, build dell'immagine, test di accuratezza sul corpus e, se cambiano i motori, `PLY-018` |
 | Keycloak provider/theme | Build JAR, avvio Keycloak reale, login, selezione tenant/ruolo e rendering temi |
 | Configurazione/manifest | Deploy staging, probe, secret, rete, restart, rollback e smoke |
 | Sito informativo | Link, metadata, sitemap, 404, cache, CSP, responsive e health |
@@ -361,8 +390,9 @@ Automatizzare questi casi con Keycloak reale; i soli unit test attuali non basta
 | `DB-010` | Soft delete e cascade | P0 | Record nascosti/cascati secondo specifica |
 | `DB-011` | Cancellazione GDPR tenant | P0 | Commit, drop schema e registry `DELETED` coerenti |
 | `DB-012` | Restore DB più media | P0 | Referenze e file coerenti allo stesso punto |
-| `DB-014` | Upgrade di un tenant con proforma inventario già generati | P1 | Tabella `inventory_report_export` eliminata; media dei PDF marcati come eliminati, salvo quelli usati da altre tabelle; file rimossi dalla pulizia dei media dopo il periodo di attesa |
 | `DB-013` | Primo accesso con tenant senza schema (gruppo di bootstrap `temp`) | P0 | `GET /api/tenant-status` con `provisioned: false`; `409` con `error.tenant.notProvisioned` sulle API dello schema tenant e nessun errore di relazione inesistente; gestione tenant disponibile al super amministratore; altri ruoli sulla pagina «Tenant non configurato»; dopo creazione del tenant e nuovo login nessun errore |
+| `DB-014` | Upgrade di un tenant con proforma inventario già generati | P1 | Tabella `inventory_report_export` eliminata; media dei PDF marcati come eliminati, salvo quelli usati da altre tabelle; file rimossi dalla pulizia dei media dopo il periodo di attesa |
+| `DB-015` | Upgrade di un tenant con strumenti, tracce e parti esistenti all'ascolto delle parti | P1 | Tabelle di versioni, job e segnalazioni create; gli strumenti senza suono ricevono la proposta del catalogo, quelli già configurati restano invariati; un nuovo avvio non cambia nulla; flag `scorePlayback` spento |
 
 Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alterare changeset applicati: aggiungere un nuovo changeset correttivo.
 
@@ -376,7 +406,7 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `TEN-004 P0`: disattivazione tenant e accesso successivo negato.
 - `USR-001 P0`: creazione, modifica ruoli e appartenenza tenant.
 - `USR-002 P0`: utente globale con profili distinti in due tenant.
-- `USR-003 P0`: cancellazione `/me`, GDPR e amministrativa.
+- `USR-003 P0`: cancellazione `/me`, GDPR e amministrativa; la cancellazione dei dati di un utente elimina anche le sue segnalazioni d'errore sulle parti.
 - `USR-004 P1`: preferenze e ultime ricerche isolate e persistenti.
 - `USR-005 P1`: accettazioni legali versionate e non riutilizzate impropriamente.
 
@@ -507,13 +537,14 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `ONB-008 P1`: cancellazione job prima/durante applicazione secondo stato.
 - `ONB-009 P0`: sezioni Economia/Inventario filtrate dai feature flag.
 - `ONB-010 P1`: retention sorgente e audit applicata correttamente.
+- `ONB-011 P1`: il foglio `Strumenti` accetta il formato precedente e quello con le colonne di suono e trasposizione; valori non validi sono errori di validazione; per uno strumento già esistente suono e trasposizione indicati non vengono applicati e la validazione lo avvisa.
 
 ### 14.11 Dashboard e feature flag
 
 - `DASH-001 P1`: operazioni aggregate per ruolo senza duplicati.
 - `DASH-002 P1`: blocker, warning e follow-up ordinati e conteggiati.
 - `DASH-003 P0`: nessun dato di moduli/tenant non autorizzati.
-- `FLAG-001 P0`: tutti gli otto flag default `false` per nuovo tenant.
+- `FLAG-001 P0`: tutti i nove flag default `false` per nuovo tenant.
 - `FLAG-002 P0`: capacità globale spenta prevale sul flag tenant acceso.
 - `FLAG-003 P0`: dipendenza spenta rende inefficace l'estensione.
 - `FLAG-004 P0`: cambio flag diventa effettivo senza nuovo login.
@@ -539,7 +570,32 @@ Unità e componente sono automatizzati in `taurus-fe/src/app/pages/preview/previ
 - `PRV-012 P1`: la presentazione parte dalla pagina corrente, `Escape` chiude prima la presentazione e alla chiusura l'anteprima resta sull'ultima pagina mostrata.
 - `PRV-013 P1`: tema chiaro/scuro, viewport fino a 320 px, nomi lunghi e comandi a sola icona con area attiva di almeno 44 × 44 px.
 
-### 14.13 Errori applicativi
+### 14.13 Ascolto, riconoscimento e correzione delle parti
+
+Riferimento: [Ascolto e correzione delle parti](track-score-playback-spec.md). Backend, frontend e servizio OMR sono automatizzati (`ScorePlaybackIT`, `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, test pytest e di accuratezza di `taurus-omr`, §8.5); i casi seguenti richiedono il servizio OMR reale, un browser e un tenant di prova.
+
+- `PLY-001 P0`: con la funzionalità del tenant disattivata nessuna azione di ascolto o riconoscimento è visibile e le API rispondono `403`.
+- `PLY-002 P0`: un utente vede «Ascolto non ancora disponibile» sulle parti senza versione utilizzabile, ascolta tutte le parti disponibili e vede lo spartito solo delle proprie; un esterno solo sulle tracce `PUBLIC`.
+- `PLY-003 P1`: un archivista avvia «Riconosci» su una parte con pagine a 300 DPI; lo stato passa da «in coda» a «in corso» senza ricaricare la pagina e al termine arriva la notifica; la versione proposta si ascolta con l'etichetta «Non verificata».
+- `PLY-004 P1`: «Riconosci tutte le parti» produce un riconoscimento per parte e una sola notifica finale.
+- `PLY-005 P1`: con il servizio OMR fermo il riconoscimento termina con «servizio non raggiungibile» e «Riprova» lo riavvia a servizio ripristinato.
+- `PLY-006 P1`: un MusicXML con più parti chiede quale importare; un MIDI viene convertito e si ascolta.
+- `PLY-007 P1`: ritornelli, volte, D.C. al Fine e D.S. al Coda si eseguono correttamente; «Senza ritornelli» li salta; la battuta evidenziata segue l'ascolto anche sulle pause di più battute.
+- `PLY-008 P1`: le parti di strumenti traspositori suonano in suoni reali, anche in chiave di basso; «Prova» nel dettaglio dello strumento rispetta suono e trasposizione.
+- `PLY-009 P1`: ascolto su un telefono Android di fascia media con Chrome, collegato con il debug remoto (`chrome://inspect`), prima con la cache vuota e poi di nuovo: il messaggio di caricamento indica i circa 40 MB del primo scaricamento, i suoni si caricano e la parte si ascolta senza interruzioni; in Gestione attività di Chrome la memoria della scheda resta entro quella misurata in [Copertura della fase 4](track-score-playback-spec.md#copertura-della-fase-4) più il margine del dispositivo; lettore e partitura restano usabili in verticale, con le righe del mixer chiuse dietro «Mostra le parti» e i tocchi nella parte alta della pagina che non portano alla pagina iniziale.
+- `PLY-010 P0`: nessun dato di ascolto, riconoscimento, correzione o segnalazione di un tenant è accessibile da un altro tenant.
+- `PLY-011 P1`: «Correggi» su una versione di Audiveris apre l'editor a schermo intero; un clic su una nota la seleziona e la pagina originale mostra il riquadro della sua battuta, tratteggiato se approssimato; senza posizioni un avviso lo spiega.
+- `PLY-012 P1`: nell'editor si correggono altezza, alterazione, figura e punto con mouse e tastiera; le battute di durata errata si colorano e si elencano, e «Annulla» e «Ripristina» ripercorrono le modifiche.
+- `PLY-013 P1`: correggere la chiave lascia le note sulla stessa riga e correggere l'armatura cambia le note senza accidente; inserire ed eliminare battute mantiene il riquadro sulle battute originali.
+- `PLY-014 P1`: ritornelli, volte, salti, tempo e pause di più battute scritti nell'editor si ascoltano come previsto nel lettore; «Ascolta» nell'editor suona la battuta o l'intervallo scelto con Maiusc+clic.
+- `PLY-015 P1`: «Salva» crea una versione non verificata e «Salva e approva» una approvata; chiudere con modifiche non salvate chiede conferma; il file scaricato si apre in MuseScore senza avvisi.
+- `PLY-016 P1`: un utente e un esterno inviano «Segnala un errore» dal lettore con e senza battuta; archivisti e amministratori ricevono la notifica, vedono l'etichetta sulla parte e chiudono la segnalazione, che si chiude anche approvando una correzione; all'undicesima segnalazione aperta sulla stessa parte l'utente riceve il messaggio del limite.
+- `PLY-017 P2`: tempo di disegno nell'editor dopo una modifica su una parte di oltre 150 battute.
+- `PLY-018 P1`: parti reali della banda, almeno tre digitali, tre scansioni e due foto: si riconoscono, si correggono e si approvano, poi `python -m accuracy compare` confronta la versione approvata con quella di ciascun motore; si registrano battute corrette, battute lette, struttura e tempo di riconoscimento, e la versione proposta è la migliore delle due nella maggior parte delle parti.
+- `PLY-019 P1`: la CI di una modifica a `taurus-omr` costruisce l'immagine, misura l'accuratezza sul corpus e pubblica la tabella nel riepilogo del job; alzando il minimo di un motore oltre il risultato misurato il job fallisce.
+- `PLY-020 P1`: creando lo strumento «Corno in Mib» Taurus propone suono French Horn e trasposizione −9, che l'archivista prova con «Prova» e conferma; uno strumento senza proposta resta non configurato, le sue parti si ascoltano con l'avviso e compare nel filtro «Da configurare per l'ascolto».
+
+### 14.14 Errori applicativi
 
 Riferimento: [Standard degli errori applicativi](application-errors-standard.md).
 
@@ -570,6 +626,7 @@ Eseguire i flussi principali almeno su Chrome, Edge, Firefox e Safari nelle vers
 | `UI-010` | Update service worker | Nuova versione applicata senza bundle incompatibili |
 | `UI-011` | Offline/rete lenta | Errore controllato; nessuna falsa conferma di salvataggio |
 | `UI-012` | Doppio click/reinvio | Nessuna duplicazione di operazioni non idempotenti |
+| `UI-013` | Tocchi sotto la barra in alto, a larghezza di telefono | Arrivano al contenuto della pagina; solo logo e pulsanti della barra sono attivi |
 
 Integrare uno scanner automatico di accessibilità e conservare un controllo manuale per tastiera, screen reader e contenuti dinamici.
 
@@ -602,6 +659,8 @@ Misurare p50/p95/p99, throughput, errori, CPU, memoria, GC, pool JDBC, query len
 
 I limiti di accettazione sono `TBD` finché SLO e volumi non vengono approvati.
 
+Per l'ascolto delle parti la [specifica](track-score-playback-spec.md#copertura-della-fase-4) riporta i tempi misurati nel browser (disegno nell'editor e nel lettore, partitura di 30 parti, caricamento del SoundFont), la memoria della pagina del lettore e la durata del riconoscimento di una pagina: usarli come riferimento per accorgersi di un peggioramento, ripetendo le misure con lo stesso metodo.
+
 ### 17.2 Concorrenza
 
 Verificare almeno:
@@ -623,6 +682,7 @@ In staging, introdurre una dipendenza alla volta:
 - RabbitMQ interrotto durante publish/consume;
 - filesystem read-only, pieno o smontato;
 - provider push con timeout/4xx/5xx;
+- servizio OMR fermo, lento, occupato o con chiave diversa da quella del backend;
 - kill/restart backend durante onboarding o migration controllata;
 - DNS e latenza di rete degradati.
 
@@ -643,6 +703,8 @@ La suite deve includere:
 - rate limit feed/QR e abuso upload;
 - token leak in URL/log/APM;
 - PDF/immagini malevoli e decompression/resource exhaustion;
+- MusicXML con DTD o entità esterne, `.mxl` compressi oltre i limiti e MIDI malformati;
+- servizio OMR non raggiungibile da Internet e senza la chiave condivisa;
 - esposizione Actuator e messaggi di errore;
 - verifica firma e provenienza immagini.
 
@@ -668,7 +730,8 @@ Usare la procedura del [runbook operativo](runbook-operativo.md). La prova deve 
 - L3 mirati per DB, Keycloak o integrazioni modificate;
 - test di regressione del difetto corretto;
 - catalogo/spec aggiornati nella stessa PR;
-- build produzione dei moduli toccati.
+- build produzione dei moduli toccati;
+- per `taurus-omr`, build dell'immagine e misura di accuratezza sui motori reali.
 
 ### 18.2 Nightly
 
@@ -700,7 +763,8 @@ Eseguire solo test sintetici non distruttivi:
 - login/logout con account sintetico;
 - lettura isolata su due tenant sintetici;
 - query core in sola lettura;
-- presenza consumer RabbitMQ e assenza backlog anomalo;
+- presenza consumer RabbitMQ e assenza backlog anomalo, comprese le code `upload.files` e `score.recognition`;
+- `GET /v1/health` del servizio OMR dalla rete del backend, se l'ascolto con riconoscimento è attivo;
 - controllo error rate, latency e scheduler;
 - health e link principale del sito informativo.
 
@@ -717,7 +781,8 @@ Eseguire solo test sintetici non distruttivi:
 | Alta | Nessun security scan completo in CI | Aggiungere SAST, SCA, secret e container scan; DAST su staging |
 | Alta | Nessuna automazione backup/restore | Programmare restore test e misurare RPO/RTO |
 | Alta | Scheduler multi-replica non qualificati | Testare concorrenza o introdurre locking/worker dedicato |
-| Media | Solo 18 specifiche frontend | Estendere componenti, form, pagine e casi errore/ruolo |
+| Media | Specifiche frontend (54) ancora limitate rispetto a pagine e dialoghi | Estendere componenti, form, pagine e casi errore/ruolo |
+| Media | Accuratezza OMR misurata su un corpus scritto per il test; parti reali e telefono solo manuali | Eseguire e registrare `PLY-009` e `PLY-018`; aggiungere al corpus i casi difficili trovati nelle parti reali |
 | Media | Sito informativo senza test | Aggiungere link/header/SEO/accessibilità e smoke container |
 | Media | Nessuna browser/device matrix automatica | Definire browser supportati e pipeline |
 | Media | Nessun gate accessibilità | Integrare scanner più verifica manuale periodica |
@@ -801,5 +866,6 @@ Revisionare il runbook almeno a ogni release maggiore e dopo incidenti, restore 
 - [Notifiche](notification-delivery-generalization-spec.md);
 - [Media](media-asset-spec.md);
 - [Elaborazione PDF tracce](track-pdf-processing-spec.md);
+- [Ascolto e correzione delle parti](track-score-playback-spec.md) e `taurus-omr/README.md`;
 - [Feed calendario](external-calendar-feed-spec.md);
-- `.github/workflows/verify.yml` per la CI corrente.
+- `.github/workflows/verify.yml` per la CI corrente, compresa la misura di accuratezza dei motori OMR.
