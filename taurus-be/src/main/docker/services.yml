@@ -22,6 +22,13 @@ services:
     networks:
       taurus-network:
         ipv4_address: 172.28.0.4
+  omr:
+    extends:
+      file: ./omr.yml
+      service: omr
+    networks:
+      taurus-network:
+        ipv4_address: 172.28.0.7
 #  backend:
 #    image: fundanie/taurus-backend:1.0.0
 #    container_name: backend-container

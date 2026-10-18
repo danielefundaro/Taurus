@@ -105,5 +105,11 @@ application:
       public-base-url: http://localhost:4200
   event-preparation:
     enabled: true
+  score-playback:
+    enabled: true
+    omr:
+      # OMR service of src/main/docker/services.yml, with the development key of its .env file.
+      url: ${SCORE_PLAYBACK_OMR_URL:http://localhost:8090}
+      api-key: ${SCORE_PLAYBACK_OMR_API_KEY:taurus-omr-development-key}
   dashboard:
     enabled: true
