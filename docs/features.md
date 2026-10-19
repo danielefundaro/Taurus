@@ -15,6 +15,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `inventory-management` | [Gestione inventario tenant](inventory-management-spec.md) | feature | approved | implemented | BE, FE | [1](#inventory-management-evidenze) | [1](#inventory-management-evidenze) | non rilasciata | 2026-10-10 |
 | `inventory-qr-code` | [QR code ed etichette per l'inventario](inventory-qr-code-spec.md) | feature | approved | implemented | BE, FE | [1](#inventory-qr-code-evidenze) | [3](#inventory-qr-code-evidenze) | non rilasciata | 2026-10-10 |
 | `media-asset` | [Gestione centralizzata dei media](media-asset-spec.md) | platform | approved | implemented | BE, FE | [1](#media-asset-evidenze) | [2](#media-asset-evidenze) | non rilasciata | 2026-10-15 |
+| `music-writing-editor` | [Editor di scrittura musicale](music-writing-editor-spec.md) | feature | approved | not-planned | BE, FE, OMR | 0 | 0 | non rilasciata | 2026-10-18 |
 | `notification-delivery-generalization` | [Generalizzazione della consegna delle notifiche interne](notification-delivery-generalization-spec.md) | platform | approved | implemented | BE, FE | [1](#notification-delivery-generalization-evidenze) | [2](#notification-delivery-generalization-evidenze) | non rilasciata | 2026-09-06 |
 | `notification-editorial-style` | [Stile editoriale delle notifiche interne](notification-editorial-style.md) | standard | approved | implemented | BE, FE | 0 | [2](#notification-editorial-style-evidenze) | non rilasciata | 2026-09-04 |
 | `notification-preferences` | [Preferenze notifiche granulari](notification-preferences-spec.md) | feature | approved | implemented | BE, FE | [2](#notification-preferences-evidenze) | [9](#notification-preferences-evidenze) | non rilasciata | 2026-09-06 |
@@ -116,6 +117,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260831000000_media_asset.xml)
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/MediaServiceImplIT.java)
 - Note: La migration è verificata dal plugin Liquibase e il test del servizio copre il flusso di compatibilità dei media. Il 2026-10-10 la tabella inventory_report_export del proforma rimosso è stata eliminata e i suoi media marcati come eliminati, verificato da InventoryLoanSheetMigrationIT. Il 2026-10-15 la lettura tramite /api/media per i ruoli senza privilegi è stata allineata alla visibilità delle tracce (stato e strumenti), verificato da MediaServiceImplIT.
+
+<a id="music-writing-editor-evidenze"></a>
+### Editor di scrittura musicale
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Specifica approvata il 2026-10-18, sviluppo non pianificato: scrittura di parti da zero, parti ricavate per un altro strumento con la trasposizione degli strumenti, partitura con estrazione delle parti, bozze automatiche e blocco per autore, impaginazione in pagine e PDF con Verovio nel servizio musicale. Estende l'editor di correzione di track-score-playback. Rivista il 2026-10-18 con tutte le questioni decise: ruoli esistenti, impaginazione nel servizio taurus-omr, formato marcia 18 x 13 cm, estensione degli strumenti, arrangiatore della traccia, tastiera MIDI dalla prima fase, approvazione da parte di chi scrive senza una seconda persona, notifiche ai soci.
 
 <a id="notification-delivery-generalization-evidenze"></a>
 ### Generalizzazione della consegna delle notifiche interne
