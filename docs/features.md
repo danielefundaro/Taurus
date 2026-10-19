@@ -7,6 +7,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
 | `application-errors-standard` | [Standard degli errori applicativi](application-errors-standard.md) | standard | approved | implemented | BE, FE, Repository | 0 | [5](#application-errors-standard-evidenze) | non rilasciata | 2026-10-11 |
 | `documentation-implementation-alignment` | [Governance e allineamento tra documentazione e implementazione](documentation-implementation-alignment-spec.md) | standard | approved | implemented | Repository | 0 | [1](#documentation-implementation-alignment-evidenze) | non rilasciata | 2026-09-06 |
+| `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-19 |
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | implemented | BE, FE | [1](#event-preparation-evidenze) | [5](#event-preparation-evidenze) | non rilasciata | 2026-09-06 |
 | `external-calendar-feed` | [Feed calendario esterno in sola lettura](external-calendar-feed-spec.md) | feature | approved | in-progress | BE, FE | [3](#external-calendar-feed-evidenze) | [8](#external-calendar-feed-evidenze) | non rilasciata | 2026-09-06 |
 | `financial-management` | [Gestione economica, cassa e conti correnti](financial-management-spec.md) | feature | approved | implemented | BE, FE | [1](#financial-management-evidenze) | [1](#financial-management-evidenze) | non rilasciata | 2026-09-12 |
@@ -24,6 +25,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `operational-runbook` | [Runbook operativo dell'applicativo Taurus](runbook-operativo.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-10-18 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE, FE | [1](#postgres-tenant-schemas-evidenze) | [8](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-10-09 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [1](#recurring-calendar-events-evidenze) | [1](#recurring-calendar-events-evidenze) | non rilasciata | 2026-09-04 |
+| `report-exclusion` | [Esclusione delle voci dal rendiconto](report-exclusion-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-19 |
 | `score-preview-printing` | [Anteprima e stampa degli spartiti](score-preview-printing-spec.md) | feature | approved | implemented | FE | 0 | [1](#score-preview-printing-evidenze) | non rilasciata | 2026-09-12 |
 | `support-requests` | [Segnalazioni e richieste di supporto](support-requests-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-09-09 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [6](#taurus-layout-standard-evidenze) | non rilasciata | 2026-10-09 |
@@ -53,6 +55,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Implementazione: [`scripts/docs/feature-catalog-lib.mjs`](../scripts/docs/feature-catalog-lib.mjs), [`scripts/docs/validate-feature-catalog.mjs`](../scripts/docs/validate-feature-catalog.mjs), [`scripts/docs/generate-feature-index.mjs`](../scripts/docs/generate-feature-index.mjs)
 - Migrazioni: nessuna
 - Test: [`scripts/docs/feature-catalog.test.mjs`](../scripts/docs/feature-catalog.test.mjs)
+
+<a id="event-payout-shares-evidenze"></a>
+### Ripartizione dei compensi ai presenti
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Implementazione non ancora pianificata.
 
 <a id="event-preparation-evidenze"></a>
 ### Preparazione operativa dell'evento
@@ -186,6 +196,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260831000003_recurring_calendar_events.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260831000003_recurring_calendar_events.xml)
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java)
 - Note: La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze.
+
+<a id="report-exclusion-evidenze"></a>
+### Esclusione delle voci dal rendiconto
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Decisioni approvate il 2026-10-19: flag reversibile e motivato sulle sole scritture ordinarie, che toglie la voce dalla classificazione dei rendiconti lasciandola nei saldi, nei registri contrassegnati e nel consuntivo evento; riga di raccordo a garanzia della quadratura; card in dashboard quando il periodo contiene voci escluse; nessuna vista di verifica separata; motivo a testo libero; autorizzazione come il resto del modulo economico.
 
 <a id="score-preview-printing-evidenze"></a>
 ### Anteprima e stampa degli spartiti
