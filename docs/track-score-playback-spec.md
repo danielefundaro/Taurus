@@ -74,7 +74,7 @@ Scelte fatte durante la fase 4:
 
 ## Fuori scope
 
-- Arrangiamento, composizione e scrittura di parti da zero: richiedono un editor completo, previsto in un'evolutiva successiva.
+- Arrangiamento, composizione e scrittura di parti da zero: richiedono un editor completo, progettato nell'[Editor di scrittura musicale](music-writing-editor-spec.md).
 - Riconoscimento di manoscritti.
 - Esportazione audio (MP3, WAV) e nuova impaginazione PDF delle parti riconosciute.
 - Ascolto senza connessione oltre alla cache del service worker già presente.
