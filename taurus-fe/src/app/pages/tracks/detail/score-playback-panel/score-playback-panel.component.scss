@@ -1,0 +1,11 @@
+// On the settings row the button stands level with the inputs: above it goes the space of a field label, because the
+// hints under the fields have different lengths.
+@media (min-width: 768px) {
+    .score-playback-panel__save::before {
+        content: '\00a0';
+        display: block;
+        margin-bottom: 0.4rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+}

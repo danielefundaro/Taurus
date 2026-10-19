@@ -25,6 +25,7 @@ export const RECOGNITION_POLL_MILLIS = 5000;
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './score-playback-panel.component.html',
+    styleUrl: './score-playback-panel.component.scss',
     providers: [DialogService]
 })
 export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {

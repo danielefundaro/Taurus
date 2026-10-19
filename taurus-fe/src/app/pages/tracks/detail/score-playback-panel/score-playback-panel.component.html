@@ -25,8 +25,8 @@
             @if (trackDirty) {
                 <app-inline-alert severity="info" heading="Modifiche da salvare" detail="Salva la traccia prima di gestire l'ascolto delle parti nuove o modificate." />
             }
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <app-form-field label="Tempo della partitura (♩/min)" forId="playbackTempo" hint="Vuoto: si usa l'indicazione dello spartito o 100.">
+            <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-start">
+                <app-form-field label="Tempo della partitura" forId="playbackTempo" hint="Semiminime al minuto. Vuoto: si usa l'indicazione dello spartito o 100.">
                     <p-inputnumber inputId="playbackTempo" [(ngModel)]="tempoBpm" [min]="20" [max]="300" [showButtons]="true" [step]="5" />
                 </app-form-field>
                 <app-form-field label="Parte di riferimento" forId="playbackReference" hint="Ritornelli e salti della partitura seguono questa parte; se vuota, la prima parte approvata o, in mancanza, la prima disponibile.">
@@ -35,7 +35,7 @@
                         <ng-template #item let-part>{{ label(part) }}</ng-template>
                     </p-select>
                 </app-form-field>
-                <div>
+                <div class="score-playback-panel__save">
                     <p-button label="Salva impostazioni" icon="pi pi-check" severity="secondary" [loading]="savingSettings" (onClick)="saveSettings()" />
                 </div>
             </div>

@@ -166,7 +166,7 @@
                             }
                         </div>
                         <div class="score-editor__group" role="group" aria-label="Tempo">
-                            <span class="score-editor__label">Tempo (♩/min)</span>
+                            <span class="score-editor__label">Tempo (semiminime al minuto)</span>
                             <p-inputnumber [(ngModel)]="tempo" [min]="20" [max]="400" [showButtons]="true" inputStyleClass="w-16" size="small" ariaLabel="Tempo" [disabled]="!measure" />
                             <p-button label="Applica" size="small" severity="secondary" [disabled]="!measure || !tempo" (onClick)="applyTempo(tempo)" />
                             <p-button label="Togli" size="small" severity="secondary" text [disabled]="!measure?.tempo" (onClick)="applyTempo(null)" />
