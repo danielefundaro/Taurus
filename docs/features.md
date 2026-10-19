@@ -20,6 +20,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `notification-delivery-generalization` | [Generalizzazione della consegna delle notifiche interne](notification-delivery-generalization-spec.md) | platform | approved | implemented | BE, FE | [1](#notification-delivery-generalization-evidenze) | [2](#notification-delivery-generalization-evidenze) | non rilasciata | 2026-09-06 |
 | `notification-editorial-style` | [Stile editoriale delle notifiche interne](notification-editorial-style.md) | standard | approved | implemented | BE, FE | 0 | [2](#notification-editorial-style-evidenze) | non rilasciata | 2026-09-04 |
 | `notification-preferences` | [Preferenze notifiche granulari](notification-preferences-spec.md) | feature | approved | implemented | BE, FE | [2](#notification-preferences-evidenze) | [9](#notification-preferences-evidenze) | non rilasciata | 2026-09-06 |
+| `omr-text-recognition` | [Lettura del testo nel servizio OMR](omr-text-recognition-spec.md) | platform | approved | not-planned | BE, OMR, Repository | 0 | 0 | non rilasciata | 2026-10-20 |
 | `opensearch-postgresql-migration` | [Migrazione strutturale da OpenSearch a PostgreSQL](migrazione-opensearch-postgresql.md) | migration | approved | implemented | BE | [1](#opensearch-postgresql-migration-evidenze) | [1](#opensearch-postgresql-migration-evidenze) | non rilasciata | 2026-09-04 |
 | `operational-dashboard` | [Dashboard operativa trasversale](operational-dashboard-spec.md) | feature | approved | implemented | BE, FE | 0 | [3](#operational-dashboard-evidenze) | non rilasciata | 2026-09-04 |
 | `operational-runbook` | [Runbook operativo dell'applicativo Taurus](runbook-operativo.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-10-18 |
@@ -32,6 +33,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE | [3](#tenant-feature-flags-evidenze) | [9](#tenant-feature-flags-evidenze) | non rilasciata | 2026-09-07 |
 | `tenant-onboarding-import` | [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md) | feature | approved | implemented | BE, FE | [2](#tenant-onboarding-import-evidenze) | [10](#tenant-onboarding-import-evidenze) | non rilasciata | 2026-10-16 |
 | `test-runbook` | [Runbook di test e qualificazione Taurus](runbook-test.md) | standard | approved | in-progress | Repository | 0 | 0 | non rilasciata | 2026-10-18 |
+| `track-instrument-suggestions` | [Strumenti da aggiungere dai PDF delle tracce](track-instrument-suggestions-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-20 |
 | `track-page-image-editing` | [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md) | feature | approved | implemented | BE, FE | [2](#track-page-image-editing-evidenze) | [8](#track-page-image-editing-evidenze) | non rilasciata | 2026-09-12 |
 | `track-parts-workspace` | [Workspace per la gestione delle parti di una traccia](track-parts-workspace-spec.md) | feature | approved | in-progress | BE, FE | 0 | [5](#track-parts-workspace-evidenze) | non rilasciata | 2026-09-12 |
 | `track-pdf-manual-editing` | [Editor manuale delle pagine PDF](track-pdf-manual-editing-spec.md) | feature | approved | implemented | BE, FE | 0 | [4](#track-pdf-manual-editing-evidenze) | non rilasciata | 2026-09-12 |
@@ -159,6 +161,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferenceResolverTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferenceResolverTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPushDeliveryServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPushDeliveryServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationTimingTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationTimingTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationPreferencesIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationPreferencesIT.java), [`taurus-fe/src/app/service/notification-presentation.service.spec.ts`](../taurus-fe/src/app/service/notification-presentation.service.spec.ts), [`taurus-fe/src/app/service/notification-delivery-admin.service.spec.ts`](../taurus-fe/src/app/service/notification-delivery-admin.service.spec.ts), [`taurus-fe/src/app/pages/dashboard/components/notifications-widget/notification-widget.component.spec.ts`](../taurus-fe/src/app/pages/dashboard/components/notifications-widget/notification-widget.component.spec.ts)
 - Note: Completate le fasi 1-5: profilo tipizzato, categorie e snooze, push immediati, silenzioso e digest, console amministrativa con retry, chiusura tecnica e presentazione esplicita dello stato SKIPPED. Restano attive per scelta le compatibilità della fase contract: doppia lettura della chiave legacy defaultReminderMinutes e booleano push_reminders.sent, da rimuovere dopo un rilascio compatibile.
 
+<a id="omr-text-recognition-evidenze"></a>
+### Lettura del testo nel servizio OMR
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Decisioni approvate il 2026-10-20: l'OCR delle pagine scansionate, usato per suggerire gli strumenti, passa da Tesseract nel backend (tess4j) al servizio taurus-omr con RapidOCR e i modelli già presenti nell'immagine, tramite l'endpoint interno POST /v1/text-recognitions; motore in un processo separato con slot propri; righe nel 20% sinistro o nel 15% superiore con affidabilità di almeno 0,5; lettura solo senza testo selezionabile, attiva per default, senza funzionalità per tenant né nuovi tentativi; collegamento al servizio rinominato in application.omr.* con TAURUS_OMR_URL e TAURUS_OMR_API_KEY. Il suggerimento degli strumenti che il tenant non ha è separato in track-instrument-suggestions. Implementazione non ancora pianificata, preceduta da una prova preliminare con parti reali.
+
 <a id="opensearch-postgresql-migration-evidenze"></a>
 ### Migrazione strutturale da OpenSearch a PostgreSQL
 
@@ -252,6 +262,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: nessuna
 - Test: nessuna
 - Note: Il runbook definisce suite, matrici di rischio, dati, ambienti, test funzionali e non funzionali e gate di rilascio. Resta in-progress finché E2E full-stack, copertura sistematica tenant/ruoli, test Keycloak e RabbitMQ reali, soglie coverage, sicurezza, performance e restore non sono automatizzati o formalmente accettati. Dal 2026-09-12 annota il limite di connessioni del container PostgreSQL dei test e le convenzioni degli integration test a tenant. Il 2026-10-18 allineato all'ascolto delle parti: stato delle suite con il servizio OMR, ambienti e dati limite per MusicXML, MIDI e pagine da riconoscere, test di accuratezza dei motori, selezione delle suite, casi DB-015, ONB-011, PLY-020 e UI-013, nove flag, prove di resilienza, sicurezza e post-deploy del servizio OMR.
+
+<a id="track-instrument-suggestions-evidenze"></a>
+### Strumenti da aggiungere dai PDF delle tracce
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Decisioni approvate il 2026-10-20, separate da omr-text-recognition: nomi letti sulle parti riconosciuti con il catalogo di riferimento arricchito, nome esatto poi parola chiave più lunga e tonalità rispettata; gli strumenti assenti dal tenant diventano suggerimenti salvati sulle parti, senza scadenza, da creare, associare o ignorare nel workspace Parti in un'unica transazione; nome proposto senza numeri d'ordine; unicità del nome controllata anche per la creazione manuale; proposta di suono applicata; notifica a chi ha caricato il PDF. Non dipende dalla lettura del testo nel servizio OMR. Implementazione non ancora pianificata.
 
 <a id="track-page-image-editing-evidenze"></a>
 ### Modifica e analisi delle immagini delle parti
