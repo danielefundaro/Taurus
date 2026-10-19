@@ -59,6 +59,29 @@
       "lastVerifiedOn": "2026-09-06"
     },
     {
+      "id": "event-payout-shares",
+      "title": "Ripartizione dei compensi ai presenti",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/event-payout-shares-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/financial-management-spec.md",
+        "docs/notification-editorial-style.md",
+        "docs/taurus-layout-standard.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-19",
+      "notes": "Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Implementazione non ancora pianificata."
+    },
+    {
       "id": "event-preparation",
       "title": "Preparazione operativa dell'evento",
       "kind": "feature",
@@ -555,6 +578,29 @@
       "release": null,
       "lastVerifiedOn": "2026-09-04",
       "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze."
+    },
+    {
+      "id": "report-exclusion",
+      "title": "Esclusione delle voci dal rendiconto",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/report-exclusion-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/financial-management-spec.md",
+        "docs/notification-editorial-style.md",
+        "docs/taurus-layout-standard.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-19",
+      "notes": "Decisioni approvate il 2026-10-19: flag reversibile e motivato sulle sole scritture ordinarie, che toglie la voce dalla classificazione dei rendiconti lasciandola nei saldi, nei registri contrassegnati e nel consuntivo evento; riga di raccordo a garanzia della quadratura; card in dashboard quando il periodo contiene voci escluse; nessuna vista di verifica separata; motivo a testo libero; autorizzazione come il resto del modulo economico."
     },
     {
       "id": "score-preview-printing",
