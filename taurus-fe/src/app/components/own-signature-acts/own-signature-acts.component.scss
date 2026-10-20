@@ -1,0 +1,32 @@
+:host {
+    display: block;
+    /* La `.card` interna è figlio unico dell'host: il ritmo fra le sezioni sta qui, come in `app-own-loan-sheets`. */
+    margin-bottom: 2rem;
+}
+
+:host(:last-child) {
+    margin-bottom: 0;
+}
+
+/* Senza atti il template non rende nulla: l'host non deve occupare spazio. */
+:host(:empty) {
+    display: none;
+}
+
+.signature-act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+}
+
+.signature-act__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1 1 16rem;
+    min-width: 0;
+}

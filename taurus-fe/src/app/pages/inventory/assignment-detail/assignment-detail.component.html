@@ -106,6 +106,9 @@
         }
         } @else {
         <p class="text-muted-color mt-0">Conferma di aver preso visione delle informazioni relative a questa consegna.
+            @if (signatureEnabled) {
+            La scelta si firma con un codice inviato al tuo indirizzo e-mail.
+            }
         </p>
         <div class="flex flex-wrap gap-5 mb-3">
             <label class="flex items-center gap-2"> <p-checkbox [binary]="true" [ngModel]="decision === 'ACCEPTED'"
@@ -119,8 +122,8 @@
             <textarea pTextarea id="rejectionReason" rows="3" [(ngModel)]="rejectionReason"></textarea>
         </app-form-field>
         }
-        <p-button label="Conferma scelta" icon="pi pi-check" class="mt-3 block" [disabled]="!canConfirmDecision"
-            (onClick)="confirmDecision()" />
+        <p-button [label]="signatureEnabled ? 'Firma la scelta' : 'Conferma scelta'" [icon]="signatureEnabled ? 'pi pi-pen-to-square' : 'pi pi-check'"
+            class="mt-3 block" [disabled]="!canConfirmDecision" (onClick)="confirmDecision()" />
         }
     </app-detail-section>
 

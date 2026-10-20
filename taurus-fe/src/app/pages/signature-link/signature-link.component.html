@@ -1,0 +1,126 @@
+<main class="signature-page">
+    <section class="signature-card" aria-labelledby="signature-title">
+        <div class="signature-icon" aria-hidden="true"><i class="pi pi-pen-to-square"></i></div>
+        @switch (state) {
+            @case ('loading') {
+                <h1 id="signature-title">Firma elettronica</h1>
+                <div class="flex flex-col gap-3 mt-4" role="status" aria-live="polite">
+                    <p-skeleton height="3rem" />
+                    <p-skeleton height="6rem" />
+                    <span class="text-sm text-muted-color">Apertura dell’atto…</span>
+                </div>
+            }
+            @case ('unavailable') {
+                <h1 id="signature-title">Firma elettronica</h1>
+                @switch (problem) {
+                    @case ('tooManyRequests') {
+                        <app-inline-alert severity="warn" heading="Troppe richieste" detail="Questa pagina è stata aperta troppe volte nell’ultima ora: riprova più tardi." />
+                    }
+                    @case ('network') {
+                        <app-inline-alert severity="error" heading="Connessione non riuscita" detail="Non è stato possibile raggiungere Taurus: controlla la connessione e riprova." actionLabel="Riprova" (action)="load()" />
+                    }
+                    @default {
+                        <app-inline-alert
+                            severity="warn"
+                            heading="Collegamento non valido"
+                            detail="Il collegamento è scaduto, è stato sostituito da uno più recente o non serve più. Usa l’ultimo collegamento ricevuto via e-mail o chiedi all’associazione di inviartene uno nuovo."
+                        />
+                    }
+                }
+            }
+            @case ('completed') {
+                <h1 id="signature-title">Atto firmato</h1>
+                <app-inline-alert
+                    severity="success"
+                    heading="Firmato da tutte le parti"
+                    detail="Ti abbiamo inviato via e-mail un nuovo collegamento per scaricare i documenti firmati e l’attestazione: conservane una copia. Questa pagina non serve più."
+                />
+            }
+            @case ('ready') {
+                @if (link && act) {
+                    <p class="tenant-name">{{ link.tenantName }}</p>
+                    <h1 id="signature-title">{{ actLabel(act.type) }} del foglio di affidamento n. {{ act.sheetNumber }}</h1>
+                    <dl class="signature-facts">
+                        <div>
+                            <dt>Atto</dt>
+                            <dd>{{ act.operation }}</dd>
+                        </div>
+                        <div>
+                            <dt>Socio minorenne</dt>
+                            <dd>{{ link.minorName }}</dd>
+                        </div>
+                        <div>
+                            <dt>Stato</dt>
+                            <dd><p-tag [value]="statusLabel(act.status)" [severity]="statusSeverity(act.status)" /></dd>
+                        </div>
+                        <div>
+                            <dt>Collegamento valido fino al</dt>
+                            <dd>{{ link.linkExpiresAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                        </div>
+                    </dl>
+
+                    @if (toSign) {
+                        <app-inline-alert
+                            severity="info"
+                            heading="Firma come genitore o tutore"
+                            [detail]="
+                                (act.dataRequired ? 'Inserisci i dati che sul foglio di carta scriveresti a mano, poi leggi i documenti. ' : 'Leggi i documenti da firmare. ') +
+                                'Ogni firma si conferma con un codice di 6 cifre inviato a ' +
+                                (link.maskedEmail ?? 'questo indirizzo') +
+                                (act.cieSignAvailable ? ' oppure, metodo consigliato, con CieSign e la tua Carta d’Identità Elettronica' : '') +
+                                (act.type === 'LOAN_SHEET_ISSUE' ? '; il foglio e l’approvazione delle clausole si firmano separatamente.' : '.')
+                            "
+                        />
+                        <div class="actions">
+                            <p-button [label]="signLabel" icon="pi pi-pen-to-square" [loading]="signing" (onClick)="sign()" />
+                        </div>
+                    } @else if (waitingForOthers) {
+                        <app-inline-alert severity="success" heading="Firma registrata" detail="La tua firma è registrata; l’atto attende le altre firme. Riceverai un’e-mail quando sarà firmato da tutte le parti." />
+                    } @else if (act.status === 'SIGNED') {
+                        <app-inline-alert severity="success" heading="Atto firmato da tutte le parti" detail="Scarica i documenti firmati e l’attestazione e conservane una copia: dopo la scadenza del collegamento puoi chiederli all’associazione." />
+                    }
+
+                    @if (documents.length || act.attestationAvailable) {
+                        <section class="signature-documents" aria-labelledby="signature-documents-title">
+                            <h2 id="signature-documents-title">Documenti</h2>
+                            @for (file of documents; track file.role) {
+                                <div class="document-row">
+                                    <span class="flex flex-col gap-1">
+                                        <strong>{{ documentLabel(file.role) }}{{ file.sealedHash ? ' – firmato' : '' }}</strong>
+                                        <span class="text-xs text-muted-color"
+                                            >Impronta SHA-256 <span class="font-mono">{{ shortHash(file.sealedHash ?? file.frozenHash) }}</span></span
+                                        >
+                                    </span>
+                                    <p-button label="Scarica" icon="pi pi-download" severity="secondary" [outlined]="true" [loading]="downloading === file.role" (onClick)="download(file)" />
+                                </div>
+                            }
+                            @if (act.attestationAvailable) {
+                                <div class="document-row">
+                                    <span class="flex flex-col gap-1">
+                                        <strong>Attestazione delle firme</strong>
+                                        <span class="text-xs text-muted-color">Riepiloga le firme e spiega come verificare i documenti senza Taurus.</span>
+                                    </span>
+                                    <p-button label="Scarica" icon="pi pi-download" severity="secondary" [outlined]="true" [loading]="downloading === 'ATTESTATION'" (onClick)="downloadAttestation()" />
+                                </div>
+                            }
+                        </section>
+                    }
+
+                    <section class="signature-signers" aria-labelledby="signature-signers-title">
+                        <h2 id="signature-signers-title">Firmatari</h2>
+                        <ul>
+                            @for (signer of act.signers; track signer.id) {
+                                <li>
+                                    <span>{{ roleLabel(signer.role) }}: {{ signer.displayName }}</span>
+                                    <p-tag [value]="signerStatusLabel(signer.status)" [severity]="signer.status === 'PENDING' ? 'warn' : 'success'" />
+                                </li>
+                            }
+                        </ul>
+                    </section>
+
+                    <p class="note">La firma elettronica con codice prova il controllo di questa casella di posta, la firma con CieSign la tua identità: non inoltrare il collegamento. Per dubbi sull’atto rivolgiti all’associazione.</p>
+                }
+            }
+        }
+    </section>
+</main>

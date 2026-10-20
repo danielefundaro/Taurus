@@ -26,7 +26,11 @@ import {
     InventoryRenewalRequest,
     InventoryReturn,
     InventorySubstitutionRequest,
-    Page
+    Page,
+    SignatureAct,
+    SignatureAssociationSignerOption,
+    SignatureDocumentRole,
+    SignatureEvidence
 } from '../module';
 
 @Injectable({ providedIn: 'root' })
@@ -169,6 +173,34 @@ export class InventoryService {
     settleLoanSheet(id: number): Observable<InventoryLoanSheetDetail> {
         return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}/settle`, null);
     }
+    getSignatureActs(sheetId: number): Observable<SignatureAct[]> {
+        return this.http.get<SignatureAct[]>(`${this.baseUrl}/loan-sheets/${sheetId}/signature-acts`);
+    }
+    downloadSignatureDossier(sheetId: number, context?: HttpContext): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/loan-sheets/${sheetId}/signature-dossier`, { responseType: 'blob', context });
+    }
+    getSignatureEvidence(actId: number): Observable<SignatureEvidence[]> {
+        return this.http.get<SignatureEvidence[]>(`${this.baseUrl}/signature-acts/${actId}/evidence`);
+    }
+    downloadSignatureDocument(actId: number, role: SignatureDocumentRole): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/signature-acts/${actId}/documents/${role}`, { responseType: 'blob' });
+    }
+    downloadSignatureAttestation(actId: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/signature-acts/${actId}/attestation`, { responseType: 'blob' });
+    }
+    getAssociationSigners(userIndex: number): Observable<SignatureAssociationSignerOption[]> {
+        return this.http.get<SignatureAssociationSignerOption[]>(`${this.baseUrl}/users/${userIndex}/association-signers`);
+    }
+    changeAssociationSigner(actId: number, userId: string, entityVersion: number, context?: HttpContext): Observable<SignatureAct> {
+        return this.http.put<SignatureAct>(`${this.baseUrl}/signature-acts/${actId}/association-signer`, { userId, entityVersion }, { context });
+    }
+    /** Invia un nuovo link al genitore o tutore e revoca il precedente. */
+    resendSignatureLink(actId: number, signerId: number, context?: HttpContext): Observable<SignatureAct> {
+        return this.http.post<SignatureAct>(`${this.baseUrl}/signature-acts/${actId}/links/${signerId}/resend`, null, { context });
+    }
+    revokeSignatureLink(actId: number, signerId: number, context?: HttpContext): Observable<SignatureAct> {
+        return this.http.delete<SignatureAct>(`${this.baseUrl}/signature-acts/${actId}/links/${signerId}`, { context });
+    }
     cancelLoanSheet(id: number, reason: string): Observable<InventoryLoanSheetDetail> {
         return this.http.post<InventoryLoanSheetDetail>(`${this.baseUrl}/loan-sheets/${id}/cancel`, { reason });
     }
@@ -184,6 +216,10 @@ export class InventoryService {
     }
     updateLoanDurations(durations: InventoryLoanDurations, entityVersion: number): Observable<InventoryLoanTemplateOverview> {
         return this.http.put<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template/durations`, { durations, entityVersion });
+    }
+
+    updateLoanTemplateSignature(enabled: boolean, entityVersion: number, context?: HttpContext): Observable<InventoryLoanTemplateOverview> {
+        return this.http.put<InventoryLoanTemplateOverview>(`${this.baseUrl}/loan-template/signature`, { enabled, entityVersion }, { context });
     }
     checkLoanTemplate(file: InventoryLoanTemplateFile): Observable<InventoryLoanTemplateCheck> {
         return this.http.post<InventoryLoanTemplateCheck>(`${this.baseUrl}/loan-template/check`, file);

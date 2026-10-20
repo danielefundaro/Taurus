@@ -1,0 +1,27 @@
+<app-dialog-shell
+    #shell
+    heading="Cambia chi firma per l’Associazione"
+    [subtitle]="'Foglio n. ' + (data.act.sheetNumber ?? '') + ' · ' + data.act.operation"
+    confirmLabel="Cambia firmatario"
+    [invalidCount]="userId && userId !== current ? 0 : 1"
+    (cancel)="dialogRef.close()"
+    (confirm)="dialogRef.close(userId)"
+>
+    @if (data.act.type === 'LOAN_SHEET_ISSUE' && data.act.status === 'AWAITING_SIGNATURES') {
+        <app-inline-alert
+            class="block mb-4"
+            severity="warn"
+            heading="Il socio dovrà reinserire i dati"
+            detail="Il nome di chi firma per l’Associazione è stampato nel foglio: i documenti già pronti vengono scartati e il socio inserisce di nuovo i propri dati, che Taurus non conserva fuori dai documenti."
+        />
+    }
+    <app-form-field
+        label="Firma per l’Associazione"
+        forId="associationSigner"
+        required
+        hint="Amministratori attivi, escluso il socio del foglio."
+        [error]="shell.validationAttempted && (!userId || userId === current) ? 'Scegli un amministratore diverso da quello attuale.' : undefined"
+    >
+        <p-select inputId="associationSigner" [options]="data.options" optionLabel="displayName" optionValue="userId" [(ngModel)]="userId" placeholder="Scegli un amministratore" appendTo="body" />
+    </app-form-field>
+</app-dialog-shell>

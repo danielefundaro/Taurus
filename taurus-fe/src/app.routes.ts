@@ -6,6 +6,8 @@ import { LayoutComponent } from './app/pages/layout/layout.component';
 
 export const appRoutes: Routes = [
     { path: 'legal/accept', loadComponent: () => import('./app/pages/legal-acceptance/legal-acceptance.component').then((module) => module.LegalAcceptanceComponent) },
+    // Public signature page of a parent or guardian without an account: no layout, guards or login.
+    { path: 'firma/:token', loadComponent: () => import('./app/pages/signature-link/signature-link.component').then((module) => module.SignatureLinkComponent) },
     {
         path: '',
         component: LayoutComponent,

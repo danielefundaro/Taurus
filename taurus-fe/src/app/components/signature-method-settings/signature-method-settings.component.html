@@ -1,0 +1,28 @@
+@if (methods?.enabled && methods; as value) {
+    <app-detail-section heading="Firma elettronica" description="Scegli come confermare con un codice le firme dei fogli di affidamento e delle prese visione.">
+        <div class="flex flex-col gap-4">
+            <app-form-field label="Metodo preferito" forId="signatureMethod" hint="Nella finestra di firma puoi sempre usare l’altro metodo.">
+                <p-selectbutton id="signatureMethod" [options]="options" optionLabel="label" optionValue="value" [allowEmpty]="false" [disabled]="saving" [ngModel]="preference" (ngModelChange)="save($event)" />
+            </app-form-field>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="font-medium">App di autenticazione</span>
+                @if (!value.totpAvailable) {
+                    <p-tag severity="secondary" value="Non disponibile" />
+                } @else if (value.totpConfigured) {
+                    <p-tag severity="success" icon="pi pi-check" value="Configurata" />
+                } @else {
+                    <p-tag severity="warn" value="Non configurata" />
+                    <p-button label="Configura app" icon="pi pi-mobile" severity="secondary" size="small" (onClick)="configureApp.emit()" />
+                }
+            </div>
+
+            @if (!value.totpAvailable) {
+                <app-inline-alert severity="info" heading="App di autenticazione non disponibile" detail="In questo momento l’app di autenticazione non si può usare: le firme si confermano con il codice via e-mail." />
+            } @else if (fallsBackToEmail) {
+                <app-inline-alert severity="warn" heading="Le firme useranno il codice via e-mail" detail="Configura l’app di autenticazione per usarla nelle firme." />
+            }
+            <p class="m-0 text-sm text-muted-color">Una volta configurata, l’app di autenticazione ti sarà chiesta anche a ogni accesso a Taurus, dopo la password.</p>
+        </div>
+    </app-detail-section>
+}

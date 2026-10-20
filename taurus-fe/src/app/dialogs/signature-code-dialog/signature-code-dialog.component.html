@@ -1,0 +1,76 @@
+<app-dialog-shell #shell [heading]="data.heading" [subtitle]="data.subtitle" confirmLabel="Firma" [saving]="confirming" [invalidCount]="challenge && codeComplete && !restartNeeded ? 0 : 1" (cancel)="cancel()" (confirm)="confirm()">
+    @if (sending && !challenge) {
+        <div class="flex flex-col gap-3" aria-live="polite">
+            <p-skeleton height="4rem" />
+            <p-skeleton height="3rem" />
+            <span class="text-sm text-muted-color">{{ method === 'TOTP' ? 'Preparazione della firma…' : 'Invio del codice in corso…' }}</span>
+        </div>
+    }
+    @if (methodProblem && !challenge) {
+        <app-inline-alert severity="warn" heading="Metodo non disponibile" [detail]="problem ?? ''" />
+    }
+    @if (challenge; as value) {
+        @if (value.method === 'TOTP') {
+            <app-inline-alert
+                severity="info"
+                heading="Codice dell’app di autenticazione"
+                [detail]="
+                    'Apri l’app di autenticazione configurata per Taurus e inserisci il codice di 6 cifre che mostra. Un codice già usato, anche per l’accesso, non vale: attendi il successivo. La firma va confermata entro le ' +
+                    (value.expiresAt | date: 'HH:mm') +
+                    '.'
+                "
+            />
+        } @else {
+            <app-inline-alert
+                severity="info"
+                heading="Codice inviato via e-mail"
+                [detail]="
+                    'Abbiamo inviato un codice di 6 cifre a ' +
+                    (value.maskedEmail ?? 'il tuo indirizzo e-mail') +
+                    '. Il codice scade alle ' +
+                    (value.expiresAt | date: 'HH:mm') +
+                    ' e vale solo per questa firma. Nel messaggio il riferimento del documento è ' +
+                    value.reference +
+                    '.'
+                "
+            />
+        }
+
+        <section class="signature-declarations" aria-labelledby="signatureDeclarationsHeading">
+            <h3 id="signatureDeclarationsHeading">{{ value.declarations.length === 1 ? 'Dichiarazione che firmi' : 'Dichiarazioni che firmi' }}</h3>
+            <ul>
+                @for (declaration of value.declarations; track $index) {
+                    <li>{{ declaration }}</li>
+                }
+            </ul>
+        </section>
+
+        <app-form-field
+            label="Codice di conferma"
+            forId="signatureCode"
+            required
+            [error]="problem ?? (shell.validationAttempted && !codeComplete && !restartNeeded ? 'Inserisci le 6 cifre del codice.' : undefined)"
+            [hint]="restartNeeded ? undefined : value.method === 'TOTP' ? 'Inserisci le 6 cifre mostrate dall’app.' : 'Inserisci le 6 cifre ricevute via e-mail.'"
+        >
+            <p-inputotp id="signatureCode" [(ngModel)]="code" [length]="6" [integerOnly]="true" [autofocus]="true" [disabled]="confirming || restartNeeded" [invalid]="!!problem" (keydown.enter)="shell.submit()" />
+        </app-form-field>
+
+        <div class="flex flex-wrap items-center gap-3 mt-3">
+            @if (restartNeeded) {
+                <p-button [label]="value.method === 'TOTP' ? 'Ricomincia la firma' : 'Richiedi un nuovo codice'" icon="pi pi-refresh" severity="secondary" [loading]="sending" (onClick)="requestCode()" />
+            } @else if (value.method === 'EMAIL_OTP') {
+                <p-button label="Invia un nuovo codice" icon="pi pi-envelope" severity="secondary" [text]="true" [disabled]="!canResend" [loading]="sending" (onClick)="resend()" />
+                @if (resendWait > 0) {
+                    <span class="text-sm text-muted-color">Puoi chiederne un altro tra {{ resendWait }} {{ resendWait === 1 ? 'secondo' : 'secondi' }}</span>
+                } @else if (value.remainingSends === 0) {
+                    <span class="text-sm text-muted-color">Non si possono inviare altri codici per questa firma</span>
+                }
+            }
+        </div>
+    }
+    @if (otherMethod && (challenge || methodProblem)) {
+        <div class="mt-3">
+            <p-button [label]="otherMethodLabel" [icon]="otherMethod === 'TOTP' ? 'pi pi-mobile' : 'pi pi-envelope'" severity="secondary" [text]="true" [disabled]="sending || confirming" (onClick)="switchMethod()" />
+        </div>
+    }
+</app-dialog-shell>

@@ -5,6 +5,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { first, switchMap } from 'rxjs';
 import { LoadingSpinnerComponent } from './app/components/loading-spinner/loading-spinner.component';
+import { publicSignaturePage } from './app/constants';
 import { Page, Preferences, PreferencesCriteria } from './app/module';
 import { AppUpdateService, LayoutService, ListLayoutService, LocalStorageService, NoticesService, PreferencesService, PushNotificationService, TenantStatusService } from './app/service';
 
@@ -32,6 +33,8 @@ export class AppComponent implements OnInit {
 
     ngOnInit(): void {
         this.appUpdateService.init();
+        // The public signature page has no session: no tenant, notices or preferences to read.
+        if (publicSignaturePage()) return;
         this.tenantStatusService.load().subscribe((status) => {
             // In modalità bootstrap il tenant non ha schema: niente notifiche, push né preferenze da leggere.
             if (status.provisioned) {

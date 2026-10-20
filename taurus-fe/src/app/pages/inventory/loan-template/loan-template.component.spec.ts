@@ -1,5 +1,5 @@
 import { HttpContext } from '@angular/common/http';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { InventoryLoanTemplateOverview, InventoryLoanTemplateVersion } from '../../../module';
 import { ConfirmService, InventoryService, ToastService } from '../../../service';
 import { InventoryLoanTemplateComponent } from './loan-template.component';
@@ -12,7 +12,8 @@ describe('InventoryLoanTemplateComponent', () => {
         settingsVersion: 3,
         versions: [version],
         variables: [],
-        limits: { maxFileBytes: 2 * 1024 * 1024 }
+        limits: { maxFileBytes: 2 * 1024 * 1024 },
+        signature: { enabled: false, requirements: { mail: true, codes: true, seal: true }, templateIssues: [] }
     };
 
     function create(): {
@@ -28,6 +29,7 @@ describe('InventoryLoanTemplateComponent', () => {
             'activateLoanTemplate',
             'useDefaultLoanTemplate',
             'updateLoanDurations',
+            'updateLoanTemplateSignature',
             'downloadLoanTemplateVersion',
             'downloadDefaultLoanTemplate',
             'previewDefaultLoanTemplate'
@@ -121,6 +123,48 @@ describe('InventoryLoanTemplateComponent', () => {
         component['downloadActive']();
 
         expect(anchors.map((anchor) => anchor.download)).toEqual(['modello banda.html', 'foglio-affidamento-modello-predefinito.html']);
+    });
+
+    it('enables the electronic signature after confirmation with the version of the settings', () => {
+        const { component, inventoryService, confirmService, toastService } = create();
+        inventoryService.updateLoanTemplateSignature.and.returnValue(of({ ...overview, settingsVersion: 4, signature: { ...overview.signature, enabled: true } }));
+
+        component['signatureDraft'] = true;
+        component['changeSignature'](true);
+
+        expect(confirmService.confirmReversible).toHaveBeenCalledWith(jasmine.objectContaining({ title: 'Attiva la firma elettronica' }));
+        expect(inventoryService.updateLoanTemplateSignature).toHaveBeenCalledWith(true, 3, jasmine.any(HttpContext));
+        expect(toastService.success).toHaveBeenCalled();
+        expect(component['overview']?.signature.enabled).toBeTrue();
+        expect(component['signatureDraft']).toBeTrue();
+    });
+
+    it('restores the switch when the change is cancelled or refused', () => {
+        const { component, inventoryService, confirmService } = create();
+        confirmService.confirmReversible.and.callFake((request) => request.reject?.());
+
+        component['signatureDraft'] = true;
+        component['changeSignature'](true);
+
+        expect(inventoryService.updateLoanTemplateSignature).not.toHaveBeenCalled();
+        expect(component['signatureDraft']).toBeFalse();
+
+        confirmService.confirmReversible.and.callFake((request) => request.accept());
+        inventoryService.updateLoanTemplateSignature.and.returnValue(throwError(() => new Error('requirementsMissing')));
+        component['signatureDraft'] = true;
+        component['changeSignature'](true);
+
+        expect(component['signatureDraft']).toBeFalse();
+        expect(component['busy']).toBeUndefined();
+    });
+
+    it('lists the missing installation requirements', () => {
+        const { component, inventoryService } = create();
+        inventoryService.getLoanTemplate.and.returnValue(of({ ...overview, signature: { enabled: false, requirements: { mail: false, codes: true, seal: false }, templateIssues: [] } }));
+        component.ngOnInit();
+
+        expect(component['signatureReady']).toBeFalse();
+        expect(component['signatureRequirements'].filter((requirement) => !requirement.ready).map((requirement) => requirement.label)).toEqual(['Server di posta', 'Certificato del sigillo']);
     });
 
     it('shows the variables with their Mustache syntax', () => {

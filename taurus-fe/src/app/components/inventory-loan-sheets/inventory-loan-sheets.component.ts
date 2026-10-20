@@ -5,6 +5,7 @@ import { inventoryConditionLabel, inventoryLoanHolderRoleLabel, inventoryLoanRet
 import { InventoryLoanSheetCancelDialogComponent } from '../../dialogs/inventory-loan-sheet-cancel-dialog/inventory-loan-sheet-cancel-dialog.component';
 import { InventoryLoanSheetCloseDialogComponent } from '../../dialogs/inventory-loan-sheet-close-dialog/inventory-loan-sheet-close-dialog.component';
 import { InventoryLoanSheetIssueDialogComponent } from '../../dialogs/inventory-loan-sheet-issue-dialog/inventory-loan-sheet-issue-dialog.component';
+import { LoanSheetSignaturesComponent } from '../loan-sheet-signatures/loan-sheet-signatures.component';
 import { ImportsModule } from '../../imports';
 import { InventoryLoanSheetCloseRequest, InventoryLoanSheetDetail, InventoryLoanSheetIssueRequest, InventoryLoanSheetProposal, InventoryLoanSheetSummary } from '../../module';
 import { ConfirmService, InventoryService, ToastService, withErrorSummary } from '../../service';
@@ -12,7 +13,7 @@ import { ConfirmService, InventoryService, ToastService, withErrorSummary } from
 @Component({
     selector: 'app-inventory-loan-sheets',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, LoanSheetSignaturesComponent],
     templateUrl: './inventory-loan-sheets.component.html',
     styleUrl: './inventory-loan-sheets.component.scss',
     providers: [DialogService]
@@ -74,7 +75,12 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                     .issueLoanSheet(this.userIndex, request, withErrorSummary('Emissione non riuscita'))
                     .pipe(first())
                     .subscribe((detail) => {
-                        this.toastService.success('Foglio emesso', `Il foglio n. ${detail.summary.sheetNumber} è pronto da stampare e far firmare.`);
+                        this.toastService.success(
+                            'Foglio emesso',
+                            detail.summary.signatureMode === 'ELECTRONIC'
+                                ? `Il socio riceve la richiesta di inserire i propri dati e firmare il foglio n. ${detail.summary.sheetNumber}.`
+                                : `Il foglio n. ${detail.summary.sheetNumber} è pronto da stampare e far firmare.`
+                        );
                         this.detail = detail;
                         this.load();
                     });
@@ -129,7 +135,10 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                     .closeLoanSheet(sheet.id, request)
                     .pipe(first())
                     .subscribe((detail) => {
-                        this.toastService.success('Foglio chiuso', 'Scarica il foglio e fai firmare il verbale di riconsegna.');
+                        this.toastService.success(
+                            'Foglio chiuso',
+                            detail.summary.signatureMode === 'ELECTRONIC' ? 'Il verbale di riconsegna è da firmare in Taurus: firmato senza addebiti, il foglio si definisce da solo.' : 'Scarica il foglio e fai firmare il verbale di riconsegna.'
+                        );
                         this.detail = detail;
                         this.load();
                     });
@@ -137,12 +146,14 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
     }
 
     protected settle(sheet: InventoryLoanSheetSummary): void {
+        const signedActs =
+            sheet.signatureMode === 'ELECTRONIC' ? ' Gli atti firmati elettronicamente restano scaricabili nel fascicolo per un periodo limitato, poi Taurus li elimina: scarica il fascicolo e conservalo negli archivi dell’associazione.' : '';
         this.confirmService.confirmDestructive({
             title: 'Definisci foglio',
             consequence:
-                sheet.returnOutcome === 'CHARGES'
+                (sheet.returnOutcome === 'CHARGES'
                     ? `Confermi che l’addebito del foglio n. ${sheet.sheetNumber} è stato definito? I dati personali del foglio e i PDF generati verranno rimossi.`
-                    : `Confermi che il verbale di riconsegna del foglio n. ${sheet.sheetNumber} è stato firmato? I dati personali del foglio e i PDF generati verranno rimossi.`,
+                    : `Confermi che il verbale di riconsegna del foglio n. ${sheet.sheetNumber} è stato firmato? I dati personali del foglio e i PDF generati verranno rimossi.`) + signedActs,
             actionLabel: 'Definisci',
             accept: () =>
                 this.inventoryService
@@ -178,6 +189,17 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                         this.load();
                     });
             });
+    }
+
+    /** An act of the sheet changed: the sheet may have been settled by its signed return report. */
+    protected refreshDetail(): void {
+        const id = this.detail?.summary.id;
+        if (!id) return;
+        this.inventoryService
+            .getLoanSheet(id)
+            .pipe(first())
+            .subscribe((detail) => (this.detail = detail));
+        this.load();
     }
 
     private load(): void {

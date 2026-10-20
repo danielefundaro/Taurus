@@ -6,12 +6,13 @@ import { DetailPageBase } from '../_shared/detail-page.base';
 import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
+import { SignatureMethodSettingsComponent } from '../../components/signature-method-settings/signature-method-settings.component';
 import { NotificationCategoryPreference, NotificationPreferences, NotificationPushMode, NotificationSource } from '../../module';
 
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent],
+    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent, SignatureMethodSettingsComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [UsersService],
@@ -57,6 +58,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected readonly reminderUnit = 'notifiche';
     protected readonly notificationPreferencesEnabled;
     protected readonly webPushRemindersEnabled;
+    /** La firma elettronica appartiene all'inventario: le sue impostazioni compaiono solo con l'inventario attivo. */
+    protected readonly inventoryEnabled;
 
     constructor(
         private readonly keycloakService: KeycloakService,
@@ -70,6 +73,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         super();
         this.notificationPreferencesEnabled = tenantFeatureService.notificationPreferencesEnabled;
         this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
+        this.inventoryEnabled = tenantFeatureService.inventoryEnabled;
     }
 
     ngOnInit(): void {

@@ -199,6 +199,10 @@
     </app-detail-section>
     }
 
+    @if (inventoryEnabled()) {
+    <app-signature-method-settings (configureApp)="configureOTP()" />
+    }
+
     <app-detail-section heading="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />
