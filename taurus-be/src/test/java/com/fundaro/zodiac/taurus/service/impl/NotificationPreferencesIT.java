@@ -76,10 +76,6 @@ class NotificationPreferencesIT {
     @MockBean
     JwtDecoder jwtDecoder;
     @MockBean
-    NotificationScheduler notificationScheduler;
-    @MockBean
-    NotificationPushScheduler notificationPushScheduler;
-    @MockBean
     TenantFeatureService tenantFeatureService;
     @Autowired
     TenantSchemaProvisioningService provisioningService;
