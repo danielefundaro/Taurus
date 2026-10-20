@@ -223,8 +223,9 @@ public class DataErasureService {
             user.setEmail(null);
             user.setBirthDate(null);
             user.setDescription(null);
-            user.setRoles(java.util.Set.of());
-            user.setInstruments(List.of());
+            // The managed collections are emptied: replacing them with immutable ones fails when the user is saved.
+            user.getRoles().clear();
+            user.getInstruments().clear();
             usersRepository.save(user);
         }
 
