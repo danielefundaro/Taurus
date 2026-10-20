@@ -254,6 +254,7 @@ application:
     min-snooze-minutes: 5
     max-snooze-days: 30
   notification-push-delivery:
+    scheduler-enabled: true
     batch-size: 100
     poll-delay: 5000
     max-attempts: 8
@@ -270,6 +271,7 @@ application:
     inventory-warning-days: 7
     finance-unreconciled-warning-days: 30
   notifications:
+    scheduler-enabled: true
     dispatch-delay: 5000
     batch-size: 100
     cleanup-cron: "0 30 3 * * *"

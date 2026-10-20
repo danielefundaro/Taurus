@@ -9,10 +9,12 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "application.notifications", name = "scheduler-enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(NotificationScheduler.class);

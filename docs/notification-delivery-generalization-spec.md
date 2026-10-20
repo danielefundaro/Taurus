@@ -462,6 +462,7 @@ Configurazione proposta:
 ```yaml
 application:
   notifications:
+    scheduler-enabled: true # false nei test: i contesti condividono il database
     dispatch-delay: 5000
     batch-size: 100
     retry:

@@ -45,8 +45,6 @@ class NotificationOutboxPublisherIT {
     ClientRegistrationRepository clientRegistrationRepository;
     @MockBean
     JwtDecoder jwtDecoder;
-    @MockBean
-    NotificationScheduler notificationScheduler;
     @Autowired
     TenantSchemaProvisioningService provisioningService;
     @Autowired
