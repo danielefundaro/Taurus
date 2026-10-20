@@ -96,6 +96,56 @@
             </div>
         </app-detail-section>
 
+        <app-detail-section
+            heading="Firma elettronica"
+            description="Con la firma attiva, fogli di affidamento e prese visione si firmano con un codice di 6 cifre, inviato via e-mail o mostrato dall’app di autenticazione, o con CieSign per l’Affidatario; ogni firma viene registrata con le sue prove. Conservare i documenti firmati per il tempo richiesto dalla legge resta compito dell’associazione, che scarica il fascicolo di ogni foglio."
+        >
+            <div class="flex items-center gap-3">
+                <p-toggleswitch inputId="signatureEnabled" [(ngModel)]="signatureDraft" [disabled]="!!busy || (!overview.signature.enabled && !signatureReady)" (ngModelChange)="changeSignature($event)" />
+                <label for="signatureEnabled" class="font-medium">{{ overview.signature.enabled ? 'Firma elettronica attiva' : 'Firma elettronica non attiva' }}</label>
+            </div>
+            @if (!signatureReady) {
+                <app-inline-alert
+                    class="block mt-4"
+                    severity="warn"
+                    [heading]="overview.signature.enabled ? 'La firma è attiva ma l’installazione non è pronta' : 'L’installazione non è pronta per la firma'"
+                    detail="Chiedi a chi gestisce l’installazione di Taurus di completare i requisiti mancanti: finché mancano, i codici non possono essere inviati o i documenti non possono essere sigillati."
+                />
+            }
+            <ul class="list-none m-0 mt-4 p-0 flex flex-col gap-3" aria-label="Requisiti dell’installazione">
+                @for (requirement of signatureRequirements; track requirement.label) {
+                    <li class="flex items-start gap-3">
+                        <p-tag [value]="requirement.ready ? 'Pronto' : 'Mancante'" [severity]="requirement.ready ? 'success' : 'danger'" [rounded]="true" />
+                        <p class="m-0 text-sm">
+                            <strong>{{ requirement.label }}</strong> · {{ requirement.detail }}
+                        </p>
+                    </li>
+                }
+                <li class="flex items-start gap-3">
+                    <p-tag [value]="overview.signature.templateIssues.length ? 'Da correggere' : 'Pronto'" [severity]="overview.signature.templateIssues.length ? 'warn' : 'success'" [rounded]="true" />
+                    <p class="m-0 text-sm">
+                        <strong>Modello in uso</strong> ·
+                        {{
+                            overview.signature.templateIssues.length
+                                ? 'Senza marcatori validi i fogli si emettono solo su carta: correggi le segnalazioni qui sotto.'
+                                : 'Il modello indica le parti di ogni atto con data-taurus-act e il blocco delle clausole con data-taurus-sign.'
+                        }}
+                    </p>
+                </li>
+            </ul>
+            @if (overview.signature.templateIssues.length) {
+                <div class="flex flex-col gap-2 mt-4">
+                    @for (issue of overview.signature.templateIssues; track $index) {
+                        <app-inline-alert severity="warn" [heading]="'Da verificare' + (issue.line ? ' · riga ' + issue.line : '')" [detail]="issueMessage(issue)" />
+                    }
+                    <p class="m-0 text-sm text-muted-color">
+                        Ogni figlio diretto di &lt;body&gt; dichiara con data-taurus-act gli atti a cui appartiene: issue (emissione), variation (variazione del registro), return (verbale di riconsegna) o all. Il modello predefinito è l’esempio di
+                        riferimento; ricordati di adeguare anche l’informativa sulla conservazione degli atti firmati.
+                    </p>
+                </div>
+            }
+        </app-detail-section>
+
         <app-detail-section heading="Guida alle variabili" description="Il modello è un file HTML: i dati del foglio si inseriscono con le variabili, scritte con la sintassi Mustache.">
             <h3 class="text-base font-semibold mt-0 mb-2">Sintassi</h3>
             <p-table [value]="syntax">

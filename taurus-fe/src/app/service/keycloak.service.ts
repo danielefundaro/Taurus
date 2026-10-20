@@ -51,7 +51,8 @@ export class KeycloakService {
     }
 
     constructor() {
-        this.$isUserLoggedIn = new BehaviorSubject(!this.keycloak.isTokenExpired());
+        // On the public signature page Keycloak is not initialized: nobody is logged in.
+        this.$isUserLoggedIn = new BehaviorSubject(!!this.keycloak.authenticated && !this.keycloak.isTokenExpired());
     }
 
     public accountManagement(): Promise<void> {

@@ -1,0 +1,128 @@
+<app-dialog-shell #shell [heading]="heading" [subtitle]="subtitle" [confirmLabel]="confirmLabel" [saving]="saving" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="confirm()">
+    @if (dataStep) {
+        <app-inline-alert
+            severity="info"
+            heading="Dati del foglio"
+            [detail]="
+                guardian
+                    ? 'Inserisci i tuoi dati di genitore o tutore e quelli che sul foglio di carta scriveresti a mano: entrano nel documento che firmi. Taurus conserva solo il tuo nome e il codice fiscale, per le verifiche delle firme successive.'
+                    : 'Inserisci i dati che sul foglio di carta scriveresti a mano: entrano nel documento che firmi. Taurus conserva solo il codice fiscale, per le verifiche delle firme successive.'
+            "
+        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            @if (guardian) {
+                <app-form-field label="Nome" forId="holderFirstName" required [error]="fieldError('holderFirstName', shell.validationAttempted)">
+                    <input pInputText id="holderFirstName" maxlength="100" autocomplete="given-name" [(ngModel)]="form.holderFirstName" />
+                </app-form-field>
+                <app-form-field label="Cognome" forId="holderLastName" required [error]="fieldError('holderLastName', shell.validationAttempted)">
+                    <input pInputText id="holderLastName" maxlength="100" autocomplete="family-name" [(ngModel)]="form.holderLastName" />
+                </app-form-field>
+                <app-form-field label="Data di nascita" forId="holderBirthDate" required [error]="fieldError('holderBirthDate', shell.validationAttempted)">
+                    <p-datepicker inputId="holderBirthDate" [(ngModel)]="form.holderBirthDate" [maxDate]="adultBirthDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+                </app-form-field>
+            }
+            <app-form-field label="Luogo di nascita" forId="holderBirthPlace" required [error]="fieldError('birthPlace', shell.validationAttempted)">
+                <input pInputText id="holderBirthPlace" maxlength="255" autocomplete="off" [(ngModel)]="form.birthPlace" />
+            </app-form-field>
+            <app-form-field label="Residenza (via o piazza e numero)" forId="holderResidence" required [error]="fieldError('residence', shell.validationAttempted)">
+                <input pInputText id="holderResidence" maxlength="255" autocomplete="street-address" [(ngModel)]="form.residence" />
+            </app-form-field>
+            <app-form-field label="CAP" forId="holderPostalCode" required [error]="fieldError('postalCode', shell.validationAttempted)">
+                <input pInputText id="holderPostalCode" maxlength="5" inputmode="numeric" autocomplete="postal-code" [(ngModel)]="form.postalCode" />
+            </app-form-field>
+            <app-form-field label="Città e provincia" forId="holderCity" required [error]="fieldError('cityProvince', shell.validationAttempted)">
+                <input pInputText id="holderCity" maxlength="255" placeholder="Roma (RM)" [(ngModel)]="form.cityProvince" />
+            </app-form-field>
+            <app-form-field class="md:col-span-2" label="Codice fiscale" forId="holderTaxCode" [required]="!form.noTaxCode" [error]="fieldError('taxCode', shell.validationAttempted)">
+                <input pInputText id="holderTaxCode" maxlength="16" autocomplete="off" class="uppercase" [disabled]="form.noTaxCode" [(ngModel)]="form.taxCode" />
+            </app-form-field>
+            <div class="md:col-span-2 flex items-center gap-2 -mt-2">
+                <p-checkbox inputId="holderNoTaxCode" [binary]="true" [(ngModel)]="form.noTaxCode" />
+                <label for="holderNoTaxCode" class="text-sm">Non ho un codice fiscale italiano</label>
+            </div>
+            <app-form-field label="Documento (tipo e numero)" forId="holderDocument" required [error]="fieldError('document', shell.validationAttempted)">
+                <input pInputText id="holderDocument" maxlength="255" placeholder="Carta d’identità CA00000AA" [(ngModel)]="form.document" />
+            </app-form-field>
+            <app-form-field label="Rilasciato da" forId="holderIssuedBy" required [error]="fieldError('documentIssuedBy', shell.validationAttempted)">
+                <input pInputText id="holderIssuedBy" maxlength="255" [(ngModel)]="form.documentIssuedBy" />
+            </app-form-field>
+            <app-form-field label="Rilasciato il" forId="holderIssuedOn" required [error]="fieldError('documentIssuedOn', shell.validationAttempted)">
+                <p-datepicker inputId="holderIssuedOn" [(ngModel)]="form.documentIssuedOn" [maxDate]="today" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+            </app-form-field>
+            <app-form-field label="Telefono" forId="holderPhone" hint="Facoltativo.">
+                <input pInputText id="holderPhone" maxlength="32" inputmode="tel" autocomplete="tel" [(ngModel)]="form.phone" />
+            </app-form-field>
+            @if (guardian) {
+                <app-form-field label="Luogo di nascita del socio minorenne" forId="minorBirthPlace" required [error]="fieldError('minorBirthPlace', shell.validationAttempted)">
+                    <input pInputText id="minorBirthPlace" maxlength="255" autocomplete="off" [(ngModel)]="form.minorBirthPlace" />
+                </app-form-field>
+            }
+        </div>
+    } @else if (purpose && document) {
+        <div class="flex flex-col gap-4">
+            <p class="m-0 text-sm">
+                @switch (purpose) {
+                    @case ('CLAUSE_APPROVAL') {
+                        Leggi il documento con le clausole che approvi specificamente ai sensi degli artt. 1341 e 1342 c.c.: è una firma distinta da quella del foglio.
+                    }
+                    @case ('ASSOCIATION_SIGNATURE') {
+                        Leggi il documento che firmi per l’Associazione.
+                    }
+                    @case ('MINOR_ACKNOWLEDGMENT') {
+                        Leggi il foglio che il tuo genitore o tutore firma come Affidatario: con il codice confermi di averne preso visione.
+                    }
+                    @default {
+                        Leggi il documento che firmi: dopo la firma non può più cambiare.
+                    }
+                }
+            </p>
+            <div class="flex flex-wrap items-center justify-between gap-3 p-3 border border-surface rounded-lg">
+                <span class="flex flex-col gap-1">
+                    <strong>{{ documentLabel(document.role) }}</strong>
+                    <span class="text-xs text-muted-color"
+                        >Impronta SHA-256 <span class="font-mono" [pTooltip]="document.frozenHash">{{ shortHash(document.frozenHash) }}</span></span
+                    >
+                </span>
+                <p-button label="Apri il documento" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" [loading]="opening" (onClick)="openDocument()" />
+            </div>
+            <div class="flex items-start gap-2">
+                <p-checkbox inputId="signatureRead" [binary]="true" [(ngModel)]="read" />
+                <label for="signatureRead" class="text-sm">{{ readLabel }}</label>
+            </div>
+            @if (shell.validationAttempted && !read) {
+                <small class="text-red-600 dark:text-red-400">Conferma di aver letto il documento prima di firmare.</small>
+            }
+            @if (cieSignOffered) {
+                <div class="flex flex-col gap-2">
+                    <span id="signatureWayLabel" class="text-sm font-medium">Come firmi</span>
+                    <p-selectbutton [options]="wayOptions" [(ngModel)]="way" optionLabel="label" optionValue="value" [allowEmpty]="false" ariaLabelledBy="signatureWayLabel" [disabled]="saving" (onChange)="changeWay()" />
+                </div>
+            }
+            @if (cieSign) {
+                <ol class="m-0 pl-5 flex flex-col gap-3 text-sm">
+                    <li>
+                        <span class="flex flex-wrap items-center gap-2"
+                            >Scarica il documento da firmare. <p-button label="Scarica il PDF" icon="pi pi-download" size="small" severity="secondary" [outlined]="true" [loading]="downloading" (onClick)="downloadForCieSign()"
+                        /></span>
+                    </li>
+                    <li>Firmalo con l’app CieSign o con il Software CIE, in formato PAdES, senza modificarlo: Taurus accetta solo il documento scaricato con una sola firma aggiunta.</li>
+                    <li>
+                        <app-form-field label="File firmato (PDF, al massimo 25 MB)" forId="cieSignFile" required [error]="cieSignFileError(shell.validationAttempted)">
+                            <input id="cieSignFile" type="file" accept="application/pdf,.pdf" class="text-sm" [disabled]="saving" (change)="onCieSignFile($event)" />
+                        </app-form-field>
+                    </li>
+                </ol>
+                @if (cieSignError) {
+                    <app-inline-alert severity="error" heading="Firma non registrata" [detail]="cieSignError" />
+                }
+                <p class="m-0 text-xs text-muted-color">
+                    La firma con CieSign usa la Carta d’Identità Elettronica: nome, cognome e codice fiscale della carta devono essere quelli dell’Affidatario. Taurus verifica la firma e la registra al posto del codice.
+                </p>
+            } @else {
+                <p class="m-0 text-xs text-muted-color">Con «Firma con codice» ricevi via e-mail un codice di 6 cifre valido solo per questa firma.</p>
+            }
+        </div>
+    } @else {
+        <app-inline-alert severity="success" heading="Nessuna firma in attesa" detail="Le tue firme di questo atto sono già registrate." />
+    }
+</app-dialog-shell>

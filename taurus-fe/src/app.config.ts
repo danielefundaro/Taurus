@@ -9,7 +9,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { PRIMENG_TRANSLATION_IT } from './app/constants';
+import { PRIMENG_TRANSLATION_IT, publicSignaturePage } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
@@ -24,10 +24,13 @@ export const appConfig: ApplicationConfig = {
                 realm: environment.keycloak.realm,
                 clientId: environment.keycloak.clientId,
             },
-            initOptions: {
-                onLoad: 'login-required',
-                // scope: 'openid profile email offline_access'
-            },
+            // The public signature page of a parent works without login: Keycloak is not initialized there.
+            initOptions: publicSignaturePage()
+                ? undefined
+                : {
+                      onLoad: 'login-required',
+                      // scope: 'openid profile email offline_access'
+                  },
             features: [
                 withAutoRefreshToken({
                     sessionTimeout: 15 * 60 * 1000, // 15 minutes

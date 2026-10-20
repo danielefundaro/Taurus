@@ -1,3 +1,4 @@
+import type { SignatureIssueOptions, SignatureSettings } from './signature.module';
 import { ApiErrorIssue } from './api-error.module';
 
 export type InventoryCondition = 'NEW' | 'EXCELLENT' | 'GOOD' | 'FAIR' | 'TO_REPAIR' | 'OUT_OF_SERVICE';
@@ -8,6 +9,8 @@ export type InventoryAssignmentScope = 'POSSESSED' | 'RETURNED';
 export type InventoryLoanType = 'FIXED_TERM' | 'PRECARIOUS';
 export type InventoryLoanSheetStatus = 'ISSUED' | 'CLOSED' | 'SETTLED' | 'CANCELLED';
 export type InventoryLoanHolderRole = 'MEMBER' | 'GUARDIAN';
+/** How the acts of a sheet are signed: on the printed sheet or electronically in Taurus. */
+export type InventoryLoanSignatureMode = 'PAPER' | 'ELECTRONIC';
 export type InventoryLoanReturnOutcome = 'COMPLIANT' | 'CHARGES';
 export type InventoryLoanTemplateOrigin = 'DEFAULT' | 'CUSTOM';
 export type InventoryLoanTemplateVariableType = 'TEXT' | 'FLAG' | 'LIST';
@@ -90,6 +93,7 @@ export interface InventoryAssignmentSummary {
     assignedAt: string;
     status: InventoryAssignmentStatus;
     revision: number;
+    revisionHash: string;
     revisionDate: string;
     decision?: InventoryDecision;
     photo?: InventoryPhoto;
@@ -162,6 +166,7 @@ export interface InventoryLoanSheetSummary {
     personalDataPurged: boolean;
     closable: boolean;
     entityVersion: number;
+    signatureMode: InventoryLoanSignatureMode;
 }
 
 export interface InventoryLoanSheetLine {
@@ -251,6 +256,7 @@ export interface InventoryLoanSheetProposal {
     openSheetNumber?: string;
     terms: InventoryLoanSheetTerms;
     assignments: InventoryLoanSheetProposalAssignment[];
+    signature: SignatureIssueOptions;
 }
 
 export interface InventoryLoanSheetIssueRequest {
@@ -261,6 +267,10 @@ export interface InventoryLoanSheetIssueRequest {
     authorizationReference?: string;
     authorizationDate?: string;
     associationSignatoryName?: string;
+    signatureMode?: InventoryLoanSignatureMode;
+    associationSignerId?: string;
+    /** Indirizzo del genitore o tutore che firma elettronicamente dal link. */
+    holderEmail?: string;
 }
 
 export interface InventoryLoanSheetCloseRequest {
@@ -344,6 +354,8 @@ export interface InventoryLoanTemplateOverview {
     versions: InventoryLoanTemplateVersion[];
     variables: InventoryLoanTemplateVariableGroup[];
     limits: { maxFileBytes: number };
+    /** Firma elettronica del foglio e della presa visione, con i requisiti dell'installazione. */
+    signature: SignatureSettings;
 }
 
 export interface InventoryErasureRequest {

@@ -4,9 +4,10 @@ import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueDialogComponent } from '../../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
+import { SignatureCodeDialogComponent, SignatureCodeDialogData, SignatureCodeDialogResult } from '../../../dialogs/signature-code-dialog/signature-code-dialog.component';
 import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
-import { TenantFeatureService, ToastService, UserInventoryService } from '../../../service';
+import { SignatureService, TenantFeatureService, ToastService, UserInventoryService } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
 
 @Component({
@@ -24,6 +25,8 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     protected rejectionReason = '';
     protected returnQuantity = 1;
     protected returnNotes = '';
+    /** L'associazione richiede la firma con codice per la presa visione. */
+    protected signatureEnabled = false;
     protected readonly inventoryQrEnabled;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
@@ -42,6 +45,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
         private readonly inventoryService: UserInventoryService,
         private readonly toastService: ToastService,
         private readonly dialogService: DialogService,
+        private readonly signatureService: SignatureService,
         tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
@@ -70,6 +74,10 @@ export class InventoryAssignmentDetailComponent implements OnInit {
             }
             this.load(id);
         });
+        this.signatureService
+            .getMethods()
+            .pipe(first())
+            .subscribe((methods) => (this.signatureEnabled = methods.enabled));
     }
 
     protected choose(choice: InventoryDecisionType, selected: boolean): void {
@@ -78,6 +86,10 @@ export class InventoryAssignmentDetailComponent implements OnInit {
 
     protected confirmDecision(): void {
         if (!this.assignment || !this.decision || !this.canConfirmDecision) return;
+        if (this.signatureEnabled) {
+            this.signDecision(this.assignment, this.decision);
+            return;
+        }
         this.inventoryService
             .decide(this.assignment.id, this.decision, this.assignment.revisionHash, this.rejectionReason)
             .pipe(first())
@@ -86,6 +98,37 @@ export class InventoryAssignmentDetailComponent implements OnInit {
                 this.decision = undefined;
                 this.rejectionReason = '';
                 this.toastService.success('Presa visione registrata', 'La scelta è definitiva per questa revisione.');
+            });
+    }
+
+    /** Presa visione confermata con un codice, via e-mail o dall’app di autenticazione. */
+    private signDecision(assignment: InventoryAssignment, decision: InventoryDecisionType): void {
+        const data: SignatureCodeDialogData = {
+            heading: 'Firma la presa visione',
+            subtitle: assignment.inventoryNumber + ' – ' + assignment.itemName,
+            request: {
+                purpose: 'ASSIGNMENT_DECISION',
+                items: [{ assignmentId: assignment.id, revisionHash: assignment.revisionHash, decision, rejectionReason: decision === 'REJECTED' ? this.rejectionReason.trim() : undefined }]
+            }
+        };
+        this.dialogService
+            .open(SignatureCodeDialogComponent, {
+                header: data.heading,
+                showHeader: false,
+                modal: true,
+                width: '34rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                data
+            })
+            .onClose.pipe(first())
+            .subscribe((result?: SignatureCodeDialogResult) => {
+                if (!result) return;
+                if (result.confirmation) {
+                    this.decision = undefined;
+                    this.rejectionReason = '';
+                    this.toastService.success('Presa visione firmata', 'La scelta è stata firmata con il codice ed è definitiva per questa revisione.');
+                }
+                this.load(assignment.id);
             });
     }
 

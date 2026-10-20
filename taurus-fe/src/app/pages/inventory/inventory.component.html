@@ -69,12 +69,20 @@
     }
 
     @if (personalView) {
+    <app-own-signature-acts />
     <app-own-loan-sheets />
     }
 
     <app-list-toolbar [search]="searchTerm" searchPlaceholder="Nome o numero inventariale" [sortOptions]="sortOptions"
         [layout]="layout" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
         (layoutChange)="onLayoutChange($event)" />
+
+    @if (personalView && signatureEnabled) {
+    <app-selection-bar [count]="selectedAssignments.length" [allSelected]="allAssignmentsSelected"
+        singularLabel="consegna selezionata" pluralLabel="consegne selezionate" actionLabel="Accetta e firma"
+        actionIcon="pi pi-pen-to-square" actionSeverity="success" (toggleAll)="toggleAllAssignments()"
+        (clear)="clearAssignmentSelection()" (action)="signSelectedDecisions()" />
+    }
 
     @if (canSelect) {
     <app-selection-bar [count]="selectedItems.length" [allSelected]="isAllSelected(items)"
@@ -95,6 +103,11 @@
                     @for (entry of listValues; track entry.id) {
                     @if (personalView) {
                     <app-list-row>
+                        @if (canSignDecision(entry)) {
+                        <p-checkbox rowSelection [binary]="true" [ngModel]="isAssignmentSelected(entry)"
+                            (ngModelChange)="toggleAssignment(entry)"
+                            [attr.aria-label]="'Seleziona per accettare ' + entry.itemName" />
+                        }
                         <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
                             [attr.aria-label]="entry.itemName">
                             @if (assignmentPhotoUrl(entry); as url) {
@@ -183,7 +196,12 @@
                     @for (entry of gridValues; track entry.id) {
                     <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
                         @if (personalView) {
-                        <app-entity-card>
+                        <app-entity-card [selected]="isAssignmentSelected(entry)">
+                            @if (canSignDecision(entry)) {
+                            <p-checkbox cardSelection [binary]="true" [ngModel]="isAssignmentSelected(entry)"
+                                (ngModelChange)="toggleAssignment(entry)"
+                                [attr.aria-label]="'Seleziona per accettare ' + entry.itemName" />
+                            }
                             <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
                                 [attr.aria-label]="entry.itemName">
                                 @if (assignmentPhotoUrl(entry); as url) {

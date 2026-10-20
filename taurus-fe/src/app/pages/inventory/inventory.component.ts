@@ -7,18 +7,23 @@ import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/
 import { InventoryLabelDialogComponent } from '../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
 import { InventoryExpirationBadgeComponent } from '../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { OwnLoanSheetsComponent } from '../../components/own-loan-sheets/own-loan-sheets.component';
+import { OwnSignatureActsComponent } from '../../components/own-signature-acts/own-signature-acts.component';
+import { SignatureCodeDialogComponent, SignatureCodeDialogData, SignatureCodeDialogResult } from '../../dialogs/signature-code-dialog/signature-code-dialog.component';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { InventoryAssignmentScope, InventoryAssignmentSummary, InventoryCondition, InventoryErasureRequest, InventoryItem, InventoryLabelRequest, Page } from '../../module';
-import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, TenantFeatureService, ToastService, UserInventoryService } from '../../service';
+import { ConfirmService, InventoryService, KeycloakService, ListLayout, ListLayoutService, SignatureService, TenantFeatureService, ToastService, UserInventoryService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 
 type InventoryViewMode = 'TENANT' | 'MINE';
 
+/** Prese visione firmabili con un solo codice, come il limite predefinito del backend. */
+const MAX_SIGNED_DECISIONS = 50;
+
 @Component({
     selector: 'app-inventory',
     standalone: true,
-    imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent, OwnLoanSheetsComponent],
+    imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent, OwnLoanSheetsComponent, OwnSignatureActsComponent],
     templateUrl: './inventory.component.html',
     providers: [DialogService]
 })
@@ -26,6 +31,9 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected items: InventoryItem[] = [];
     protected selectedItems: InventoryItem[] = [];
     protected assignments: InventoryAssignmentSummary[] = [];
+    protected selectedAssignments: InventoryAssignmentSummary[] = [];
+    protected signatureEnabled = false;
+    protected readonly maxSignedDecisions = MAX_SIGNED_DECISIONS;
     protected erasureRequests: InventoryErasureRequest[] = [];
     protected layout: ListLayout = 'list';
     protected readonly viewOptions = [
@@ -61,6 +69,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly listLayoutService: ListLayoutService,
         private readonly dialogService: DialogService,
+        private readonly signatureService: SignatureService,
         tenantFeatureService: TenantFeatureService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
@@ -97,6 +106,10 @@ export class InventoryComponent extends ListPageBase implements OnInit {
             this.attention = attention as typeof this.attention;
         }
         this.configureSortOptions();
+        this.signatureService
+            .getMethods()
+            .pipe(first())
+            .subscribe((methods) => (this.signatureEnabled = methods.enabled));
         if (this.isAdmin) this.loadErasureRequests();
         if (this.isAdmin && this.route.snapshot.queryParamMap.get('action') === 'new') {
             this.router.navigate([], {
@@ -125,6 +138,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
         this.searchTerm = '';
         this.attention = undefined;
         this.selectedItems = [];
+        this.selectedAssignments = [];
         this.totalRecords = 0;
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
         this.configureSortOptions();
@@ -133,6 +147,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
 
     protected onScopeChange(scope: InventoryAssignmentScope): void {
         this.scope = scope;
+        this.selectedAssignments = [];
         this.dataViewLazyLoadEvent = { ...this.dataViewLazyLoadEvent, first: 0 };
         this.loadElements(this.searchTerm);
     }
@@ -188,6 +203,75 @@ export class InventoryComponent extends ListPageBase implements OnInit {
 
     protected clearSelection(): void {
         this.selectedItems = [];
+    }
+
+    /** Consegne in possesso senza presa visione, accettabili insieme con un solo codice. */
+    protected canSignDecision(assignment: InventoryAssignmentSummary): boolean {
+        return this.personalView && this.signatureEnabled && this.scope === 'POSSESSED' && !assignment.decision;
+    }
+
+    protected get signableAssignments(): InventoryAssignmentSummary[] {
+        return this.assignments.filter((assignment) => this.canSignDecision(assignment));
+    }
+
+    protected isAssignmentSelected(assignment: InventoryAssignmentSummary): boolean {
+        return this.selectedAssignments.some((selected) => selected.id === assignment.id);
+    }
+
+    protected get allAssignmentsSelected(): boolean {
+        const signable = this.signableAssignments;
+        return signable.length > 0 && signable.every((assignment) => this.isAssignmentSelected(assignment));
+    }
+
+    protected toggleAssignment(assignment: InventoryAssignmentSummary): void {
+        this.selectedAssignments = this.isAssignmentSelected(assignment) ? this.selectedAssignments.filter((selected) => selected.id !== assignment.id) : [...this.selectedAssignments, assignment];
+    }
+
+    protected toggleAllAssignments(): void {
+        const signable = this.signableAssignments;
+        if (this.allAssignmentsSelected) {
+            this.selectedAssignments = this.selectedAssignments.filter((selected) => !signable.some((assignment) => assignment.id === selected.id));
+            return;
+        }
+        this.selectedAssignments = [...this.selectedAssignments, ...signable.filter((assignment) => !this.isAssignmentSelected(assignment))];
+    }
+
+    protected clearAssignmentSelection(): void {
+        this.selectedAssignments = [];
+    }
+
+    /** Accetta le consegne selezionate con un solo codice; il rifiuto resta nel dettaglio, con la motivazione. */
+    protected signSelectedDecisions(): void {
+        const selected = this.selectedAssignments;
+        if (selected.length === 0 || selected.length > MAX_SIGNED_DECISIONS) return;
+        const data: SignatureCodeDialogData = {
+            heading: selected.length === 1 ? 'Firma la presa visione' : 'Firma le prese visione',
+            subtitle: selected.length === 1 ? selected[0].inventoryNumber + ' – ' + selected[0].itemName : 'Accetti ' + selected.length + ' consegne con un solo codice',
+            request: {
+                purpose: 'ASSIGNMENT_DECISION',
+                items: selected.map((assignment) => ({ assignmentId: assignment.id, revisionHash: assignment.revisionHash, decision: 'ACCEPTED' }))
+            }
+        };
+        this.dialogService
+            .open(SignatureCodeDialogComponent, {
+                header: data.heading,
+                showHeader: false,
+                modal: true,
+                width: '34rem',
+                breakpoints: { '767px': 'calc(100vw - 1rem)' },
+                data
+            })
+            .onClose.pipe(first())
+            .subscribe((result?: SignatureCodeDialogResult) => {
+                if (!result) return;
+                if (result.confirmation) {
+                    this.toastService.success(
+                        selected.length === 1 ? 'Presa visione firmata' : 'Prese visione firmate',
+                        selected.length === 1 ? 'La consegna è stata accettata con il codice.' : 'Le ' + selected.length + ' consegne sono state accettate con il codice.'
+                    );
+                }
+                this.loadElements(this.searchTerm);
+            });
     }
 
     protected generateLabels(): void {
@@ -324,6 +408,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     }
 
     private loadAssignments(): void {
+        this.selectedAssignments = [];
         const rows = this.dataViewLazyLoadEvent.rows || 10;
         const page = Math.floor((this.dataViewLazyLoadEvent.first || 0) / rows);
         const sortField = this.dataViewLazyLoadEvent.sortField || 'assignedAt';
