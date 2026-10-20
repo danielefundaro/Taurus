@@ -21,6 +21,19 @@ public class InventoryAssignmentDecision extends AuditedEntity {
     private String decidedBy;
     @Column(name = "authenticated_hash", nullable = false, length = 64)
     private String authenticatedHash;
+    /**
+     * Evidence of the electronic signature that confirmed the decision; {@code null} for decisions taken without it.
+     */
+    @Column(name = "signature_evidence_id")
+    private Long signatureEvidenceId;
+
+    public Long getSignatureEvidenceId() {
+        return signatureEvidenceId;
+    }
+
+    public void setSignatureEvidenceId(Long signatureEvidenceId) {
+        this.signatureEvidenceId = signatureEvidenceId;
+    }
 
     public InventoryAssignmentRevision getRevision() {
         return revision;

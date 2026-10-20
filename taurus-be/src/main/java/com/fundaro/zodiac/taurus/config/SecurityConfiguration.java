@@ -107,6 +107,24 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/calendar-subscriptions/v1/*/calendar.ics").permitAll()
                     .requestMatchers(HttpMethod.HEAD, "/api/calendar-subscriptions/v1/*/calendar.ics").permitAll()
                     .requestMatchers("/api/calendar-subscriptions/**").denyAll()
+                    // Public signature page of the parents without an account: the token of the link is the credential.
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/signature-links/v1/*",
+                        "/api/signature-links/v1/*/documents/*",
+                        "/api/signature-links/v1/*/attestation"
+                    )
+                    .permitAll()
+                    .requestMatchers(HttpMethod.PUT, "/api/signature-links/v1/*/holder-data").permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/signature-links/v1/*/documents/*/ciesign",
+                        "/api/signature-links/v1/*/challenges",
+                        "/api/signature-links/v1/*/challenges/*/resend",
+                        "/api/signature-links/v1/*/challenges/*/confirm"
+                    )
+                    .permitAll()
+                    .requestMatchers("/api/signature-links/**").denyAll()
 
                     // Endpoints available to every authenticated user.
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
@@ -144,6 +162,26 @@ public class SecurityConfiguration {
                     )
                     .authenticated()
                     .requestMatchers("/api/user/inventory/**").denyAll()
+                    // Electronic signature of the authenticated user.
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/user/signatures/methods",
+                        "/api/user/signatures/acts",
+                        "/api/user/signatures/acts/{id}",
+                        "/api/user/signatures/acts/{id}/documents/{role}",
+                        "/api/user/signatures/acts/{id}/attestation"
+                    )
+                    .authenticated()
+                    .requestMatchers(HttpMethod.PUT, "/api/user/signatures/methods", "/api/user/signatures/acts/{id}/holder-data").authenticated()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/user/signatures/acts/{id}/documents/{role}/ciesign",
+                        "/api/user/signatures/challenges",
+                        "/api/user/signatures/challenges/{id}/resend",
+                        "/api/user/signatures/challenges/{id}/confirm"
+                    )
+                    .authenticated()
+                    .requestMatchers("/api/user/signatures/**").denyAll()
 
                     // Tenant inventory administration. Personal inventory endpoints are matched above.
                     .requestMatchers("/api/inventory/**")

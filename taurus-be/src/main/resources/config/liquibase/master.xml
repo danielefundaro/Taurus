@@ -28,4 +28,5 @@
            relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20260928000000_tenant_contacts.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261016000001_tenant_score_playback_flag.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261020100000_signature_link_registry.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

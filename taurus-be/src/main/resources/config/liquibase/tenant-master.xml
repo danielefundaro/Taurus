@@ -78,4 +78,7 @@
   <include file="config/liquibase/changelog/20261016000000_track_score_playback.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261017000000_score_recognition_job.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261018000000_score_error_report.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261018100000_inventory_electronic_signature.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261019100000_inventory_loan_sheet_signature.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261020100001_inventory_signature_links.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

@@ -36,8 +36,14 @@ public class LoanSheetTenantData {
      * Returns the tenant data for a template; the logo is downloaded only when the template prints it.
      */
     public Tenant forTemplate(String template, AbstractAuthenticationToken token) {
-        String code = tenant(token);
-        TenantsDTO tenant = dto(token).orElse(null);
+        return forTemplate(template, tenant(token));
+    }
+
+    /**
+     * Returns the data of the tenant with the given code, also for a request without authentication.
+     */
+    public Tenant forTemplate(String template, String code) {
+        TenantsDTO tenant = tenantsService.findByCode(code, null).orElse(null);
         if (tenant == null) return new Tenant(code, null, null, null, null, null, null, null, null, null, null);
         boolean withLogo = template != null && template.contains(LoanSheetVariables.LOGO);
         String logo = withLogo

@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.domain.inventory.*;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationPreferencePolicy;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSeverity;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
@@ -20,7 +21,11 @@ import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.NamedNoti
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.AssignmentNotice;
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.ItemNotice;
 import com.fundaro.zodiac.taurus.service.impl.InventoryNoticeDataService.PhotoNotice;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos.Act;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos.ActSigner;
 import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
+import com.fundaro.zodiac.taurus.service.signature.LoanSheetActChange;
+import com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.ExpiredLink;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.service.notification.NotificationEventKey;
 import org.apache.commons.io.FilenameUtils;
@@ -406,6 +411,7 @@ public class NoticesAspect {
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.deleteAssignment(..)) || " +
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.reissue(..)) || " +
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.decide(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.decideSigned(..)) || " +
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.requestReturn(..)) || " +
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.completeReturn(..)) || " +
             "execution(public * com.fundaro.zodiac.taurus.service.impl.InventoryService.addPhoto(..)) || " +
@@ -489,7 +495,7 @@ public class NoticesAspect {
                 " per ",
                 token
             );
-            case "decide" -> notifyInventoryDecision(joinPoint, result, token);
+            case "decide", "decideSigned" -> notifyInventoryDecision(joinPoint, result, token);
             case "requestReturn" -> notifyReturnRequested(assignmentBefore, result, token);
             case "completeReturn" -> notifyReturnCompleted(assignmentBefore, result, actor, token);
             case "addPhoto" -> {
@@ -545,6 +551,164 @@ public class NoticesAspect {
         }
 
         return result;
+    }
+
+    @Around(
+        "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.createIssueAct(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.createVariationAct(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.createReturnAct(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.submitHolderData(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.submitLinkHolderData(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.expiredLinks(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.changeAssociationSigner(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService.sheetEnded(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetActCompletion.completeIfSigned(..)) || " +
+            "execution(public * com.fundaro.zodiac.taurus.service.signature.LoanSheetActCompletion.completeOnPaper(..))"
+    )
+    private Object onLoanSheetSignature(ProceedingJoinPoint joinPoint) throws Throwable {
+        Object result = joinPoint.proceed();
+        String method = joinPoint.getSignature().getName();
+        String actor = signatureActor(joinPoint);
+        if (result instanceof LoanSheetActChange change) {
+            switch (method) {
+                case "createIssueAct" -> change.recipients().forEach(userId -> publishSignature(
+                    userId,
+                    SIGNATURE_REQUESTED,
+                    "È stato emesso il foglio di affidamento n. " + change.sheetNumber() + ": inserisci i tuoi dati e firmalo con il codice inviato via e-mail.",
+                    actor,
+                    change.actId()
+                ));
+                case "createVariationAct", "createReturnAct" -> change.recipients().forEach(userId -> publishSignature(
+                    userId,
+                    SIGNATURE_REQUESTED,
+                    "È da firmare l'atto «" + change.operation() + "» del foglio di affidamento n. " + change.sheetNumber() + ".",
+                    actor,
+                    change.actId()
+                ));
+                case "completeIfSigned", "completeOnPaper" -> {
+                    String message = "L'atto «" + change.operation() + "» del foglio di affidamento n. " + change.sheetNumber()
+                        + ("completeOnPaper".equals(method) ? " è stato dichiarato firmato su carta." : " è stato firmato da tutte le parti.");
+                    change.recipients().forEach(userId -> publishSignature(userId, "Inventario: atto firmato", message, actor, change.actId()));
+                    // The last signature can come from the link of a parent, without a token.
+                    AbstractAuthenticationToken token = signatureToken(joinPoint);
+                    if (token != null) {
+                        publishAdmins("Inventario: atto firmato", message, token);
+                    } else {
+                        publishSystemAdmins("Inventario: atto firmato", message, actor);
+                    }
+                }
+                case "sheetEnded" -> {
+                    if (change.purgeAfter() != null) {
+                        publishSystemAdmins(
+                            "Inventario: fascicolo da conservare",
+                            "Gli atti firmati del foglio di affidamento n. " + change.sheetNumber() + " saranno eliminati da Taurus il "
+                                + formatDate(change.purgeAfter().toLocalDate()) + ": scarica il fascicolo e conservalo negli archivi dell'associazione.",
+                            actor
+                        );
+                    }
+                }
+                default -> {
+                }
+            }
+        } else if (result instanceof Act act) {
+            if ("submitHolderData".equals(method) || "submitLinkHolderData".equals(method)) {
+                pendingSigners(act, "ASSOCIATION").forEach(userId -> publishSignature(
+                    userId,
+                    SIGNATURE_REQUESTED,
+                    "Il foglio di affidamento n. " + act.sheetNumber() + " è pronto per la firma per l'Associazione.",
+                    actor,
+                    act.id()
+                ));
+                pendingSigners(act, "MINOR").forEach(userId -> publishSignature(
+                    userId,
+                    SIGNATURE_REQUESTED,
+                    "Il tuo genitore o tutore ha completato i dati del foglio di affidamento n. " + act.sheetNumber() + ": leggilo e firmane la presa visione.",
+                    actor,
+                    act.id()
+                ));
+            } else if ("changeAssociationSigner".equals(method)) {
+                pendingSigners(act, "ASSOCIATION").forEach(userId -> publishSignature(
+                    userId,
+                    SIGNATURE_REQUESTED,
+                    "Ti è stata assegnata la firma per l'Associazione dell'atto «" + act.operation() + "» del foglio di affidamento n. " + act.sheetNumber() + ".",
+                    actor,
+                    act.id()
+                ));
+                if (act.status() == com.fundaro.zodiac.taurus.domain.signature.SignatureActStatus.AWAITING_DATA) {
+                    pendingSigners(act, "HOLDER").forEach(userId -> publishSignature(
+                        userId,
+                        SIGNATURE_REQUESTED,
+                        "È cambiato chi firma per l'Associazione il foglio di affidamento n. " + act.sheetNumber() + ": inserisci di nuovo i tuoi dati e firmalo.",
+                        actor,
+                        act.id()
+                    ));
+                }
+            }
+        } else if (result instanceof List<?> expired && "expiredLinks".equals(method)) {
+            for (Object value : expired) {
+                if (!(value instanceof ExpiredLink link)) continue;
+                publishSystemAdmins(
+                    "Inventario: link di firma scaduto",
+                    "Il link inviato a " + link.signerName() + " per l'atto «" + link.operation() + "» del foglio n. " + link.sheetNumber()
+                        + " è scaduto senza firma: invia un nuovo link o dichiara l'atto firmato su carta.",
+                    actor
+                );
+            }
+        }
+        return result;
+    }
+
+    private static final String SIGNATURE_REQUESTED = "Inventario: firma richiesta";
+
+    /**
+     * A notice about an act to sign, addressed to one signer and opening the own inventory, where the acts to sign are
+     * listed. Requests cannot be disabled in the preferences: the signer has to act.
+     */
+    private void publishSignature(String userId, String title, String message, String actorId, Long actId) {
+        if (userId == null) return;
+        boolean request = SIGNATURE_REQUESTED.equals(title);
+        notificationPublisher.enqueue(new NotificationCommand(
+            NotificationEventKey.random(NotificationSource.INVENTORY, "SIGNATURE_ACT", operationOf(title)),
+            NotificationSource.INVENTORY,
+            "SIGNATURE_ACT",
+            actId == null ? null : actId.toString(),
+            operationOf(title),
+            limitText(title),
+            limitMessage(message),
+            request ? NotificationSeverity.INFO : NotificationSeverity.SUCCESS,
+            request ? NotificationPreferencePolicy.REQUIRED : NotificationPreferencePolicy.CONFIGURABLE,
+            "/inventory?view=mine",
+            Objects.requireNonNullElse(trimToNull(actorId), "system"),
+            "Sistema",
+            Set.of(NotificationAudience.user(userId)),
+            null
+        ));
+    }
+
+    private static List<String> pendingSigners(Act act, String role) {
+        return act.signers().stream()
+            .filter(signer -> signer.role().name().equals(role) && signer.status() == com.fundaro.zodiac.taurus.domain.signature.SignerStatus.PENDING)
+            .map(ActSigner::userId)
+            .filter(Objects::nonNull)
+            .toList();
+    }
+
+    /**
+     * The user who caused a change of the acts: the token of the request, or the actor passed to the service.
+     */
+    private static String signatureActor(ProceedingJoinPoint joinPoint) {
+        AbstractAuthenticationToken token = signatureToken(joinPoint);
+        if (token != null) return SecurityUtils.getUserIdFromAuthentication(token);
+        Object[] args = joinPoint.getArgs();
+        return args.length > 0 && args[args.length - 1] instanceof String actor ? actor : null;
+    }
+
+    private static AbstractAuthenticationToken signatureToken(ProceedingJoinPoint joinPoint) {
+        for (Object argument : joinPoint.getArgs()) {
+            if (argument instanceof AbstractAuthenticationToken token) return token;
+            if (argument instanceof com.fundaro.zodiac.taurus.service.loansheet.LoanSheetVariationRecorded event) return event.token();
+        }
+        return null;
     }
 
     @Around("this(com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository) && execution(* save(..))")

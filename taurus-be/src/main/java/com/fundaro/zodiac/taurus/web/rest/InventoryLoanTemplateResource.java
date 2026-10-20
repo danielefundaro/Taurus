@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.*;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos;
 import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanTemplateService;
 import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
@@ -35,6 +36,11 @@ public class InventoryLoanTemplateResource {
     @PutMapping("/durations")
     public Overview updateDurations(@Valid @RequestBody DurationsUpdate request, AbstractAuthenticationToken token) {
         return templateService.updateDurations(request, token);
+    }
+
+    @PutMapping("/signature")
+    public Overview updateSignature(@Valid @RequestBody SignatureDtos.SettingsUpdate request, AbstractAuthenticationToken token) {
+        return templateService.updateSignature(request, token);
     }
 
     @PostMapping("/check")
