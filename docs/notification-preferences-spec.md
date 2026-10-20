@@ -722,6 +722,7 @@ application:
     min-snooze-minutes: 5
     max-snooze-days: 30
   notification-push-delivery:
+    scheduler-enabled: true # false nei test: i contesti condividono il database
     batch-size: 100
     poll-delay: 5000
     max-attempts: 8
