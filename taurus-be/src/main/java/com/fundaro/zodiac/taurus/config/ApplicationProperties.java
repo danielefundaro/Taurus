@@ -552,11 +552,20 @@ public class ApplicationProperties {
     }
 
     public static class NotificationProperties {
+        private boolean schedulerEnabled = true;
         private long dispatchDelay = 5000;
         private int batchSize = 100;
         private String cleanupCron = "0 30 3 * * *";
         private int outboxRetentionDays = 30;
         private RetryProperties retry = new RetryProperties();
+
+        public boolean isSchedulerEnabled() {
+            return schedulerEnabled;
+        }
+
+        public void setSchedulerEnabled(boolean schedulerEnabled) {
+            this.schedulerEnabled = schedulerEnabled;
+        }
 
         public long getDispatchDelay() {
             return dispatchDelay;
@@ -696,6 +705,7 @@ public class ApplicationProperties {
     }
 
     public static class NotificationPushDeliveryProperties {
+        private boolean schedulerEnabled = true;
         private int batchSize = 100;
         private long pollDelay = 5000;
         private int maxAttempts = 8;
@@ -705,6 +715,14 @@ public class ApplicationProperties {
         private int deliveredRetentionDays = 30;
         private int skippedRetentionDays = 30;
         private int failedRetentionDays = 90;
+
+        public boolean isSchedulerEnabled() {
+            return schedulerEnabled;
+        }
+
+        public void setSchedulerEnabled(boolean value) {
+            schedulerEnabled = value;
+        }
 
         public int getBatchSize() {
             return batchSize;

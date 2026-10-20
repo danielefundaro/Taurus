@@ -92,6 +92,12 @@ jhipster:
 
 application:
   base-path: target/test-storage
+  # The test contexts cached by Spring share one database: a background dispatch from
+  # one context races the tests of another, which dispatch by hand and drop schemas.
+  notifications:
+    scheduler-enabled: false
+  notification-push-delivery:
+    scheduler-enabled: false
   onboarding:
     recovery-enabled: false
   score-playback:
