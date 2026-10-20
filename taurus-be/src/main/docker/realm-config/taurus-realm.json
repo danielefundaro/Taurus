@@ -373,6 +373,17 @@
         }
       ],
       "taurus-control-center": [],
+      "taurus-signature": [
+        {
+          "id": "f3a9c1d2-4b5e-4f60-8a71-9c2d3e4f5a61",
+          "name": "otp-verifier",
+          "description": "Verifies the authentication app codes of the electronic signature",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "c8e2b7a4-1d3f-4e5a-9b6c-7d8e9f0a1b2c",
+          "attributes": {}
+        }
+      ],
       "account": [
         {
           "id": "a88c56b8-6bc9-418a-92bc-7a17e7707f60",
@@ -990,6 +1001,52 @@
         "offline_access",
         "microprofile-jwt"
       ]
+    },
+    {
+      "id": "c8e2b7a4-1d3f-4e5a-9b6c-7d8e9f0a1b2c",
+      "clientId": "taurus-signature",
+      "name": "Taurus electronic signature",
+      "description": "Service account of the backend that verifies the authentication app codes of the electronic signature",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "taurus-signature",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "display.on.consent.screen": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-taurus-signature",
+      "enabled": true,
+      "serviceAccountClientId": "taurus-signature",
+      "clientRoles": {
+        "taurus-signature": [
+          "otp-verifier"
+        ]
+      }
     }
   ],
   "clientScopes": [

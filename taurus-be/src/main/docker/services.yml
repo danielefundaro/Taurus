@@ -29,6 +29,13 @@ services:
     networks:
       taurus-network:
         ipv4_address: 172.28.0.7
+  mailpit:
+    extends:
+      file: ./mailpit.yml
+      service: mailpit
+    networks:
+      taurus-network:
+        ipv4_address: 172.28.0.8
 #  backend:
 #    image: fundanie/taurus-backend:1.0.0
 #    container_name: backend-container
