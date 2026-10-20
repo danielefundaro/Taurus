@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.keycloakauthenticator;
 
 import com.fundaro.zodiac.keycloakauthenticator.authentication.TenantRoleSelectorAuthenticatorFactory;
+import com.fundaro.zodiac.keycloakauthenticator.otp.TaurusOtpResourceProviderFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +24,12 @@ class KeycloakAuthenticatorApplicationTests {
 
         assertThat(classLoader.getResource("META-INF/services/org.keycloak.authentication.AuthenticatorFactory")).isNotNull();
         assertThat(classLoader.getResource("META-INF/services/org.keycloak.protocol.ProtocolMapper")).isNotNull();
+        assertThat(classLoader.getResource("META-INF/services/org.keycloak.services.resource.RealmResourceProviderFactory")).isNotNull();
+    }
+
+    @Test
+    void otpResourceKeepsItsPath() {
+        assertThat(new TaurusOtpResourceProviderFactory().getId()).isEqualTo("taurus-otp");
     }
 
 }
