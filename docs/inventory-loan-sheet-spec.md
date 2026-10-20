@@ -31,6 +31,8 @@ Obiettivi specifici:
 - rendere le regole di durata del comodato parametri del tenant, coerenti tra testo contrattuale e controlli applicativi;
 - tracciare il ciclo di vita del foglio: emissione, consegne successive, sostituzioni, rinnovi, restituzioni, chiusura e definizione.
 
+Quando il tenant attiva la [firma elettronica](inventory-electronic-signature-spec.md), il foglio può essere emesso in modalità `ELECTRONIC`: emissione, variazioni e verbale di riconsegna diventano atti firmati in Taurus con un codice inviato via e-mail, l'Affidatario inserisce i dati delle sezioni 1 e 2 prima di firmare e il PDF del foglio resta una copia di consultazione. Il genitore o tutore, che non ha un account, firma da un link ricevuto via e-mail e il socio minorenne prende visione del foglio dal proprio account. Questa specifica descrive il foglio su carta; le differenze della modalità elettronica sono nella specifica della firma.
+
 ## Fuori scope
 
 - firma elettronica o firma grafometrica: il foglio si firma su carta;
@@ -196,7 +198,7 @@ Inizia a pagina nuova. Titolo `10. INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONAL
 
 ### Modello predefinito
 
-Il modello predefinito è il file [`loan-sheet.html`](../taurus-be/src/main/resources/templates/inventory/loan-sheet.html), con un'etichetta di versione (per esempio `2026-10-09`) nel file `loan-sheet.properties` accanto al modello, che contiene anche le regole di durata iniziali dei tenant. Contiene impaginazione, testi del modello Word del 28/09/2026 e variabili, ed è scritto con la stessa sintassi ammessa per i modelli caricati: il file scaricato è quindi un punto di partenza funzionante per un modello del tenant. Ogni modifica del file richiede di aggiornare l'etichetta.
+Il modello predefinito è il file [`loan-sheet.html`](../taurus-be/src/main/resources/templates/inventory/loan-sheet.html), con un'etichetta di versione (per esempio `2026-10-19`) nel file `loan-sheet.properties` accanto al modello, che contiene anche le regole di durata iniziali dei tenant. Contiene impaginazione, testi del modello Word del 28/09/2026 e variabili, ed è scritto con la stessa sintassi ammessa per i modelli caricati: il file scaricato è quindi un punto di partenza funzionante per un modello del tenant. Ogni modifica del file richiede di aggiornare l'etichetta.
 
 ### Formato del file
 
@@ -423,7 +425,8 @@ L'amministratore apre dalla pagina utente la finestra **Emetti foglio di affidam
 - luogo, predefinito alla città del tenant;
 - ruolo dell'Affidatario, predefinito in base all'età;
 - estremi della delibera o provvedimento (numero e data), facoltativi;
-- nome e cognome del firmatario per l'Associazione, facoltativo, proposto con l'ultimo valore usato nel tenant.
+- nome e cognome del firmatario per l'Associazione, facoltativo, proposto con l'ultimo valore usato nel tenant;
+- con la firma elettronica attiva, la modalità di firma e, in modalità elettronica, l'amministratore che firma per l'Associazione al posto del nome libero e, se l'Affidatario è il genitore o tutore, la sua e-mail (vedi [Firma elettronica](inventory-electronic-signature-spec.md#modalità-del-foglio)).
 
 L'emissione è rifiutata se:
 
@@ -648,7 +651,7 @@ Componenti principali, nel package `service.loansheet`:
 - `LoanSheetTenantData`: dati del tenant stampati sul foglio; il logo viene scaricato con `TenantLogoLoader` solo se il modello usa `associazione.logo`;
 - `LoanSheetText`: formattazione di date e importi e normalizzazione dei caratteri.
 
-`InventoryService` delega a `InventoryLoanSheetPolicy` i controlli sulle assegnazioni collegate ed espone le operazioni atomiche di rinnovo (`applyRenewal`) e sostituzione (`substitute`), orchestrate da `InventoryLoanSheetService`. `InventoryErasureService` invoca `InventoryLoanSheetService.purgeForUser` nel completamento della cancellazione GDPR.
+`InventoryService` delega a `InventoryLoanSheetPolicy` i controlli sulle assegnazioni collegate ed espone le operazioni atomiche di rinnovo (`applyRenewal`) e sostituzione (`substitute`), orchestrate da `InventoryLoanSheetService`. `InventoryErasureService` invoca `InventoryLoanSheetService.purgeForUser` nel completamento della cancellazione GDPR e, per un socio senza materiale in carico, alla cancellazione stessa, con l'evento `UserErasureCompleted` di `DataErasureService`.
 
 Le date sono calcolate nel fuso orario del tenant (`TenantTimeZoneService`). L'aggiunta dei mesi usa `LocalDate.plusMonths`, che porta al 28/29 febbraio le consegne del 31 gennaio.
 
@@ -734,7 +737,7 @@ In coerenza con la lettera f) dell'informativa del modello predefinito:
 
 - alla **definizione** del foglio nome e cognome del socio sono sostituiti da «Dati personali rimossi», data di nascita ed e-mail vengono cancellate e tutti i PDF del foglio vengono rimossi: per ogni esportazione si azzera `media_asset_id` e si invoca `MediaService.deleteIfUnreferenced`, che marca il media `DELETED` e cancella il file dallo storage dopo il commit. `MediaRepository` considera `inventory_loan_sheet_export` tra i riferimenti inventario, così la pulizia dei media non rimuove i PDF ancora referenziati;
 - restano numero, date, righe dei beni, esito e versione del modello, senza dati personali dell'Affidatario;
-- il flusso GDPR esistente (`InventoryErasureService.complete`) rimuove i dati personali di tutti i fogli del socio, sostituisce l'identificativo Keycloak con lo pseudonimo già usato per le assegnazioni e ne rimuove i PDF;
+- il flusso GDPR esistente rimuove i dati personali di tutti i fogli del socio, al completamento della pratica (`InventoryErasureService.complete`) o subito se non ha materiale in carico, sostituisce l'identificativo Keycloak con lo pseudonimo già usato per le assegnazioni e ne rimuove i PDF;
 - all'annullamento di un foglio i relativi PDF vengono rimossi.
 
 Il modello caricato non contiene dati personali dei soci, che vengono inseriti solo al momento della generazione del PDF.

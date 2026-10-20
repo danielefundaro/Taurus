@@ -45,10 +45,10 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 | `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push | `4200` in sviluppo, `80` nel container | Nessuno; configurazione incorporata in build |
 | `taurus-be` | Java 17, Spring Boot 3.3, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
-| Keycloak | Keycloak 26.5.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
+| Keycloak | Keycloak 26.6.4 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
 | RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti) | `5672`, console `15672` | Code e messaggi in transito |
 | `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
-| `keycloak-authenticator` | Java 17, provider Keycloak | Selezione tenant/ruolo e protocol mapper | n/a | JAR e temi distribuiti in Keycloak |
+| `keycloak-authenticator` | Java 17, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
 | `taurus-info` | Astro, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
 | Prometheus/Grafana | Compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
 
@@ -126,7 +126,7 @@ Gli accessi amministrativi devono essere personali, sottoposti a MFA e registrat
 
 ### 4.1 Regole
 
-- Usare secret manager o secret nativi dell'orchestratore per password DB, client secret OIDC, credenziali amministrative Keycloak e chiave privata VAPID.
+- Usare secret manager o secret nativi dell'orchestratore per password DB, client secret OIDC, credenziali amministrative Keycloak, chiave privata VAPID, password SMTP, chiave dei codici di firma e keystore del sigillo con la sua password.
 - Usare configurazione non segreta per URL, feature kill switch, limiti e pianificazioni.
 - Separare rigorosamente sviluppo, collaudo e produzione.
 - Conservare una matrice delle configurazioni per ambiente senza valori segreti.
@@ -160,6 +160,18 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 | Ascolto delle parti | `SCORE_PLAYBACK_ENABLED` | Capacità di installazione; il tenant la attiva con il proprio flag |
 | URL servizio OMR | `SCORE_PLAYBACK_OMR_URL` | Indirizzo interno di `taurus-omr`; vuoto nasconde riconoscimento e caricamento MIDI |
 | Chiave servizio OMR | `SCORE_PLAYBACK_OMR_API_KEY` | Segreto condiviso, uguale a `TAURUS_OMR_API_KEY` del servizio, almeno 16 caratteri |
+| Server SMTP | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME` | Senza host il backend non invia e-mail e la firma elettronica non è attivabile (§4.7) |
+| Password SMTP | `SPRING_MAIL_PASSWORD` | Segreto |
+| TLS SMTP | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true` o `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=true` | Secondo la porta del provider (587 STARTTLS, 465 SSL) |
+| Mittente e-mail | `JHIPSTER_MAIL_FROM` | Indirizzo che il server SMTP accetta come mittente |
+| Chiave dei codici di firma | `SIGNATURE_OTP_SECRET` | Segreto di almeno 32 byte casuali (§4.7) |
+| Keystore del sigillo | `SIGNATURE_SEAL_KEYSTORE_PATH`, `SIGNATURE_SEAL_KEY_ALIAS` | File PKCS#12 montato in sola lettura (§4.7) |
+| Password del keystore | `SIGNATURE_SEAL_KEYSTORE_PASSWORD` | Segreto |
+| Marca temporale del sigillo | `SIGNATURE_SEAL_TSA_URL` | Facoltativa: vuota produce sigilli senza marca temporale |
+| Segreto del client della firma | `SIGNATURE_KEYCLOAK_CLIENT_SECRET` | Segreto del client Keycloak `taurus-signature`; vuoto non offre l'app di autenticazione (§4.7) |
+| Realm per la verifica dell'app | `SIGNATURE_KEYCLOAK_REALM_URI` | Facoltativo: per default l'issuer OIDC del backend; indirizzo del realm raggiungibile dal backend |
+| Indirizzo dei link di firma | `SIGNATURE_PUBLIC_BASE_URL` | HTTPS pubblico dell'applicazione Angular, da cui si costruiscono i link `/firma/{token}` inviati ai genitori; per default `TAURUS_PUBLIC_BASE_URL` (§4.7) |
+| Certificati della CIE per CieSign | `SIGNATURE_CIE_TRUST_ANCHORS` | Facoltativo: file PEM o DER delle CA della Carta d'Identità Elettronica, separati da virgola; vuoto non offre CieSign (§4.7) |
 
 Le altre proprietà dell'ascolto (dimensione dei caricamenti, tempi e concorrenza del servizio OMR, recupero dei job, versioni conservate e orario della pulizia) hanno valori predefiniti adatti alla produzione e sono elencate nella [specifica](track-score-playback-spec.md#configurazione-del-backend).
 
@@ -226,6 +238,57 @@ Il modulo `taurus-omr` contiene gli strumenti di misura (`accuracy/`), da esegui
 - una battuta è corretta se si ascolta uguale: stessa durata, stesse note per inizio, durata, altezza e legatura di valore; non contano grafia degli accidenti, voci, travature e pause. Le battute sono allineate, quindi una battuta persa o letta due volte conta una volta sola;
 - nuove parti di riferimento: si aggiungono a `accuracy/corpus.py` e si ridisegnano con `python -m accuracy render` (dipendenze di `requirements-accuracy.txt`, la libreria Cairo e un carattere compatibile con Times), per esempio in un container: `docker run --rm -v "${PWD}:/work" -w /work python:3.12-slim-bookworm sh -c "apt-get update && apt-get install -y libcairo2 fonts-liberation && pip install -r requirements-accuracy.txt && python -m accuracy render"`.
 
+### 4.7 Firma elettronica
+
+La firma elettronica di fogli e prese visione ([specifica](inventory-electronic-signature-spec.md)) è attivata da ogni tenant nella pagina **Modello del foglio di affidamento**, ma solo se l'installazione fornisce tre requisiti, che la pagina mostra come «Pronto» o «Mancante»:
+
+- **Server di posta**: `SPRING_MAIL_*` e `JHIPSTER_MAIL_FROM`. Il server è unico per l'installazione e ogni messaggio riporta il nome del tenant. Per restare a costo zero si usa la casella dell'associazione o un provider con piano gratuito, verificandone il limite di invii giornalieri: ogni firma invia almeno un codice e un utente può chiedere al massimo 20 conferme all'ora. Se il server rifiuta un messaggio la conferma è annullata, l'utente vede «Non è stato possibile inviare il codice via e-mail» e il log registra `signature_mail_failed`.
+- **Chiave dei codici**: `SIGNATURE_OTP_SECRET`, con cui il backend calcola l'HMAC dei codici salvati. Si genera una volta per ambiente, per esempio con `openssl rand -base64 48`, e si conserva nel secret manager.
+- **Certificato del sigillo**: keystore PKCS#12 con chiave privata e certificato, con cui il backend sigilla documenti e attestazioni. Un certificato autoemesso non costa nulla e basta a rendere evidente ogni modifica; l'impronta del certificato compare nelle attestazioni. Esempio di creazione, da eseguire fuori dal server su una macchina fidata:
+
+  ```powershell
+  keytool -genkeypair -storetype PKCS12 -keystore taurus-seal.p12 -alias taurus-seal -keyalg RSA -keysize 3072 -sigalg SHA256withRSA -validity 3650 -dname "CN=Taurus sigillo elettronico, O=<gestore dell'installazione>, C=IT" -ext KeyUsage:critical=digitalSignature,nonRepudiation
+  ```
+
+  Il file va montato in sola lettura nel container del backend (`SIGNATURE_SEAL_KEYSTORE_PATH`), con `SIGNATURE_SEAL_KEY_ALIAS=taurus-seal` e la password in `SIGNATURE_SEAL_KEYSTORE_PASSWORD`. All'avvio il log registra `signature_seal_loaded` con soggetto, impronta SHA-256 e scadenza del certificato, oppure `signature_seal_not_configured`; un keystore illeggibile produce `signature_seal_unavailable` e il requisito resta «Mancante». Il keystore entra nel backup dei segreti, non in quello dei dati.
+
+Facoltativamente `SIGNATURE_SEAL_TSA_URL` indica un servizio di marca temporale RFC 3161 gratuito: i sigilli diventano PAdES B-T. Se il servizio non risponde il sigillo fallisce, quindi va scelto un servizio affidabile o lasciato vuoto.
+
+**App di autenticazione** (facoltativa, non è un requisito): chi ha configurato in Keycloak l'app OTP può confermare le firme con il suo codice invece che via e-mail. Servono:
+
+1. il provider `taurus-otp`, compreso nel JAR di `keycloak-authenticator` (§7.3), installato sulla stessa versione di Keycloak con cui è compilato (26.6.4);
+2. nel realm un client confidenziale `taurus-signature` con solo **Service accounts roles** attivo (nessun flusso browser né direct access grant), un ruolo del client `otp-verifier` assegnato al suo service account e lo scope client `basic`. Il realm di sviluppo `taurus-realm.json` lo contiene già; un realm esistente lo riceve dalla console di amministrazione (**Clients › Create client**, poi **Roles › Create role** `otp-verifier`, poi **Service accounts roles › Assign role**), oppure, in sviluppo, ricreando il realm;
+3. il segreto del client, dalla scheda **Credentials**, in `SIGNATURE_KEYCLOAK_CLIENT_SECRET`; il backend raggiunge il realm all'indirizzo dell'issuer OIDC o a `SIGNATURE_KEYCLOAK_REALM_URI`.
+
+In sviluppo `keycloak.yml` monta il JAR da `taurus-be/src/main/docker/realm-config/keycloak-authenticator.jar`, file non versionato: dopo `.\mvnw.cmd verify` in `keycloak-authenticator` si copia lì `target/keycloak-authenticator.jar` e si riavvia Keycloak. `--import-realm` non sovrascrive un realm già presente, quindi un database Keycloak esistente riceve il client solo a mano o ricreando il realm.
+
+Senza segreto il profilo mostra l'app come non disponibile e le firme usano il codice via e-mail. Se Keycloak non risponde entro 5 secondi la firma con l'app fallisce senza consumare tentativi, l'utente può passare all'e-mail e il log registra `signature_totp_unavailable`: più errori consecutivi indicano Keycloak irraggiungibile o il ruolo `otp-verifier` mancante. La policy OTP del realm deve restare con codici non riutilizzabili. Chi configura l'app la usa anche al login, come già previsto dal flusso del realm. Nel profilo `dev` il backend usa il segreto di sviluppo `taurus-signature`.
+
+**Firma del genitore o tutore** (nessun requisito aggiuntivo): quando l'Affidatario è il genitore o tutore del socio minorenne, che non ha un account, l'amministratore inserisce all'emissione la sua e-mail e Taurus gli invia per ogni atto un link alla pagina pubblica `/firma/{token}`, valido 7 giorni (`application.signature.link-validity`). Il link si costruisce solo da `SIGNATURE_PUBLIC_BASE_URL`, che deve essere l'indirizzo pubblico in HTTPS dell'applicazione Angular, mai dall'header `Host`: un valore sbagliato produce link che non si aprono. Il reverse proxy deve servire `/firma/*` con l'applicazione Angular, come ogni altra rotta, e inoltrare al backend `/api/signature-links/v1/*`, che risponde senza autenticazione; nessun'altra configurazione di Keycloak è necessaria, perché la pagina non avvia il login.
+
+- Un'e-mail del link rifiutata dal server SMTP non blocca l'operazione: il log registra `signature_link_mail_failed`, la metrica `taurus_signature_links_total{outcome="mailFailed"}` cresce e la sezione **Firme** del foglio mostra il link «non inviato», da reinviare.
+- Le richieste alla pagina pubblica sono limitate a 120 l'ora per link e 600 l'ora per indirizzo (`application.signature.link-rate-limit-per-token-hour`, `link-rate-limit-per-ip-hour`); oltre rispondono `429`. Dietro un proxy il backend deve ricevere l'indirizzo reale del client (`server.forward-headers-strategy`), altrimenti il limite per indirizzo vale per tutti.
+- Ogni ora (`application.signature.link-expiry-cron`) Taurus notifica agli amministratori i link scaduti senza firma e rimuove dal registro pubblico `public.signature_link_registry` le righe dei link revocati o scaduti (§11). Il registro non contiene dati personali.
+- Il token del link compare solo nell'e-mail e nell'indirizzo della pagina: non va mai incollato in ticket o log. Un link inoltrato per errore si revoca dalla sezione **Firme** e se ne invia uno nuovo.
+
+**CieSign** (facoltativo, non è un requisito): l'Affidatario con codice fiscale italiano, socio maggiorenne o genitore, può firmare i documenti con l'app CieSign o con il Software CIE e caricarli in Taurus, che verifica firma, certificato e integrità. Serve solo che il backend riconosca le CA della CIE:
+
+1. procurarsi i certificati della CA radice della Carta d'Identità Elettronica e delle sue CA intermedie (sub CA e issuing sub CA che emettono i certificati delle carte) da una fonte ufficiale, per esempio la lista di fiducia italiana pubblicata da AgID (`https://eidas.agid.gov.it/TL/TSL-IT.xml`), che contiene i certificati in base64: ognuno si salva in un file `.pem` racchiuso tra `-----BEGIN CERTIFICATE-----` e `-----END CERTIFICATE-----`;
+2. verificare soggetto, scadenza e impronta di ogni file con `keytool -printcert -file <file>.pem` o `openssl x509 -in <file>.pem -noout -subject -enddate -fingerprint -sha256`, confrontando l'impronta con la fonte;
+3. montare i file in sola lettura nel container del backend e indicarli in `SIGNATURE_CIE_TRUST_ANCHORS`, separati da virgola (anche più certificati in un solo file PEM); tutti i certificati indicati sono considerati attendibili.
+
+All'avvio il log registra `signature_ciesign_trust_anchor` con soggetto e scadenza di ogni certificato caricato, oppure `signature_ciesign_not_configured`; un file illeggibile produce `signature_ciesign_trust_anchor_invalid` ed è ignorato. Senza certificati la finestra di firma non propone CieSign e una richiesta diretta risponde `signature.cieSign.notConfigured`. Quando una CA della CIE viene rinnovata, il nuovo certificato si aggiunge all'elenco e si riavvia il backend: le carte emesse dalla nuova CA sono rifiutate finché manca.
+
+- La revoca si controlla con la CRL indicata nel certificato della carta: il backend deve poter raggiungere in uscita, in HTTP, l'indirizzo della CRL. La lista della CIE può essere grande: si scarica al massimo 20 MB entro `application.signature.cie.revocation-timeout` (10 secondi) e si tiene in memoria fino al suo aggiornamento, al massimo un giorno. Se non arriva in tempo la firma è accettata senza controllo di revoca: il log registra `signature_ciesign_revocation_unavailable` con il motivo e la metrica `taurus_signature_ciesign_total{outcome="acceptedRevocationUnavailable"}` cresce, mentre la prova e l'attestazione riportano «elenco di revoca non raggiungibile».
+- Un file rifiutato non viene salvato: il log registra `signature_ciesign_rejected` con la chiave, la metrica conta l'esito (`documentMismatch`, `invalidSignature`, `untrustedCertificate`, `signerMismatch`, …) e l'utente vede il motivo nella finestra. Molti `untrustedCertificate` dopo l'avvio indicano un certificato della CIE mancante o scaduto nell'elenco.
+- Il file firmato con CieSign, al massimo 25 MB, si salva nello storage dei media con i documenti dell'atto ed è eliminato con loro; a firme complete il sigillo si aggiunge a quel file.
+
+Nel profilo `dev` il backend invia le e-mail a Mailpit, avviato da `services.yml`, usa una chiave dei codici di sviluppo e sigilla con un certificato temporaneo generato all'avvio: i messaggi si leggono su `http://localhost:8025` e non sono mai consegnati. Il certificato temporaneo cambia a ogni riavvio e il log lo segnala con `signature_seal_ephemeral`; non va mai usato fuori dallo sviluppo.
+
+Taurus non conserva i documenti firmati a lungo termine: la conservazione per il tempo richiesto dalla legge spetta all'associazione, che scarica il fascicolo di ogni foglio dalla sezione **Firme** del dettaglio. Documenti degli atti e attestazioni stanno nello storage dei media (categoria `signature-acts`) finché il foglio non è definito o annullato e poi per `application.signature.download-grace-days` giorni (30 per default); la pulizia notturna li elimina insieme ai dati personali delle prove (§11). Le conferme con codice chiuse sono eliminate dopo 30 giorni; le prove delle firme restano, senza dati personali, per la verifica della catena. Il PDF di un foglio firmato elettronicamente porta la filigrana «COPIA DI CONSULTAZIONE – NON FIRMATA».
+
+Il modello predefinito (versione `2026-10-19`) contiene già i marcatori degli atti. Un tenant con un modello caricato deve aggiungerli, insieme all'informativa sulla conservazione degli atti firmati: finché la pagina del modello segnala problemi nella sezione **Firma elettronica**, i fogli si emettono solo su carta.
+
 ## 5. Avvio e arresto locale
 
 ### 5.1 Primo avvio
@@ -236,7 +299,7 @@ Dalla root del repository:
 docker compose -f taurus-be/src/main/docker/services.yml up --wait
 ```
 
-Il comando avvia PostgreSQL, Keycloak, RabbitMQ e il servizio OMR e attende che siano pronti. La prima volta scarica, o costruisce, l'immagine del servizio OMR (circa 1,5 GB).
+Il comando avvia PostgreSQL, Keycloak, RabbitMQ, Mailpit e il servizio OMR e attende che siano pronti. La prima volta scarica, o costruisce, l'immagine del servizio OMR (circa 1,5 GB).
 
 In terminali separati:
 
@@ -267,6 +330,7 @@ Endpoint locali attesi:
 | Backend health | `http://localhost:8080/management/health` |
 | Keycloak | `http://localhost:9080` |
 | RabbitMQ management | `http://localhost:15672` |
+| Mailpit (e-mail di sviluppo) | `http://localhost:8025` |
 | Servizio OMR | `http://localhost:8090/v1/health` |
 | Sito Astro dev | `http://localhost:4321` |
 
@@ -594,6 +658,8 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - spazio/inode del filesystem media;
 - backlog e messaggi non confermati sulle code `upload.files` e `score.recognition`;
 - riconoscimenti terminati con errore (`taurus_score_recognition_jobs_total` con `outcome` diverso da `done`) e servizio OMR non `UP`;
+- invii falliti dei codici e dei link di firma (`taurus_signature_mail_total` con `outcome` diverso da `sent`, `taurus_signature_links_total{outcome="mailFailed"}`) e catene delle prove non coerenti (`signature_chain_inconsistent` nel log);
+- firme CieSign rifiutate per certificato non attendibile (`taurus_signature_ciesign_total{outcome="untrustedCertificate"}`) o accettate senza controllo di revoca (`outcome="acceptedRevocationUnavailable"`) in crescita costante: certificati della CIE da aggiornare o CRL non raggiungibile;
 - consumer RabbitMQ assenti;
 - Keycloak non raggiungibile o incremento errori OIDC;
 - tenant in stato diverso da `ACTIVE` con `last_error` valorizzato;
@@ -627,6 +693,9 @@ Gli orari cron senza `zone` esplicita usano il timezone del processo JVM. Impost
 | Scadenze preparazione evento | ogni minuto Europe/Rome | Genera notifiche operative |
 | Recupero riconoscimenti | ogni minuto | Rimette in coda i riconoscimenti interrotti da oltre 30 minuti (al massimo tre tentativi) e ripubblica quelli in coda da oltre 30 minuti |
 | Pulizia versioni delle parti | 04:15 giornaliero | Elimina le versioni oltre le ultime 20 di ogni parte che non sono correnti né approvate |
+| Pulizia conferme di firma | 03:45 giornaliero | Elimina per tenant le conferme con codice chiuse da oltre 30 giorni (`application.signature.cleanup-cron`, `challenge-retention-days`) |
+| Eliminazione atti firmati | 03:50 giornaliero | Elimina per tenant documenti, attestazioni e dati personali delle prove degli atti dei fogli definiti o annullati da oltre il periodo di grazia (`application.signature.purge-cron`, `download-grace-days`) |
+| Link di firma scaduti | ogni ora al minuto 20 | Notifica una volta agli amministratori i link dei genitori scaduti senza firma e rimuove dal registro pubblico le righe dei link revocati o scaduti (`application.signature.link-expiry-cron`) |
 
 In una distribuzione con più repliche, verificare il comportamento concorrente di ogni scheduler. Il repository non mostra un coordinatore distribuito generale: prima di scalare il backend oltre una replica, validare idempotenza e locking o assegnare i job a una sola replica.
 
@@ -724,7 +793,7 @@ Dopo l'azione verificare stato `DELETED`, assenza dello schema e rimozione/anoni
 
 ### 13.4 Cancellazione dei dati di un utente
 
-Il completamento di una pratica di cancellazione dell'account e la retention pianificata eliminano i dati personali dell'utente nel tenant, comprese le sue segnalazioni d'errore sulle parti, perché il testo è scritto da lui. Le versioni delle parti che ha corretto restano, perché fanno parte dell'archivio musicale.
+Il completamento di una pratica di cancellazione dell'account e la retention pianificata eliminano i dati personali dell'utente nel tenant, comprese le sue segnalazioni d'errore sulle parti, perché il testo è scritto da lui. I fogli di affidamento e gli atti firmati elettronicamente del socio sono eliminati al completamento della pratica oppure, se non ha materiale in carico, subito con la cancellazione: prima di confermarla conviene scaricare i fascicoli dei suoi fogli. Le versioni delle parti che ha corretto restano, perché fanno parte dell'archivio musicale.
 
 ## 14. Procedure di incidente
 
@@ -881,7 +950,19 @@ La chiave pubblica è incorporata nel frontend. La rotazione richiede coordiname
 3. Verificare un riconoscimento di prova: con chiavi diverse i job terminano con `serviceUnavailable`.
 4. Riavviare con «Riprova» i riconoscimenti falliti durante la rotazione.
 
-### 15.5 Rotazione certificati TLS
+### 15.5 Rotazione della chiave dei codici di firma
+
+1. Generare una nuova chiave nel secret manager e aggiornare `SIGNATURE_OTP_SECRET`.
+2. Riavviare il backend: i codici già inviati e non ancora confermati smettono di valere e gli utenti ne chiedono uno nuovo. Firme e prove registrate non dipendono dalla chiave.
+
+### 15.6 Rinnovo del certificato del sigillo
+
+1. Creare il nuovo keystore come in §4.7, almeno un mese prima della scadenza del certificato in uso.
+2. Aggiornare il file montato, l'alias e la password e riavviare il backend; verificare nel log la nuova impronta (`signature_seal_loaded`).
+3. Comunicare ai tenant la nuova impronta: i documenti già sigillati restano verificabili con il certificato incorporato nel loro sigillo.
+4. Conservare il vecchio keystore solo finché serve per eventuali verifiche, poi distruggerlo secondo policy.
+
+### 15.7 Rotazione certificati TLS
 
 Monitorare scadenza con anticipo, aggiornare reverse proxy/ingress, verificare catena completa e hostname, quindi provare login OIDC, API, service worker e feed calendario da una rete esterna.
 
