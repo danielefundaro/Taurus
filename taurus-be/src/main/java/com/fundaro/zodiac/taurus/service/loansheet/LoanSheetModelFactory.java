@@ -8,6 +8,8 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.Re
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.Durations;
 import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.FinalReturn;
 import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.FinalReturnRow;
+import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.HolderData;
+import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.Signature;
 import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.Tenant;
 import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 
@@ -46,9 +48,32 @@ public final class LoanSheetModelFactory {
         model.put("durata", duration(content.lines(), content.durations()));
         List<Map<String, Object>> register = content.register().stream().map(LoanSheetModelFactory::registerRow).toList();
         model.put("registro", register);
-        model.put("registroRigheVuote", blankRows(register.size(), MIN_REGISTER_ROWS));
-        model.put("riconsegna", finalReturn(content.finalReturn()));
+        // An act signed electronically prints only its own rows, without the blank rows of the paper form.
+        boolean signedAct = content.signature() != null;
+        model.put("registroRigheVuote", signedAct ? List.of() : blankRows(register.size(), MIN_REGISTER_ROWS));
+        Map<String, Object> finalReturn = finalReturn(content.finalReturn());
+        if (signedAct) finalReturn.put("righeVuote", List.of());
+        model.put("riconsegna", finalReturn);
+        model.put("firma", signature(content.signature()));
+        model.put("atto", act(content.signature()));
         return model;
+    }
+
+    private static Map<String, Object> signature(Signature signature) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("elettronica", signature != null);
+        values.put("dicitura", LoanSheetVariables.SIGNED_NOTE);
+        values.put("giorniDisponibilita", signature == null ? "" : Integer.toString(signature.graceDays()));
+        return values;
+    }
+
+    private static Map<String, Object> act(Signature signature) {
+        String act = signature == null ? null : signature.act();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("emissione", LoanSheetActs.ISSUE.equals(act));
+        values.put("variazione", LoanSheetActs.VARIATION.equals(act));
+        values.put("riconsegna", LoanSheetActs.RETURN.equals(act));
+        return values;
     }
 
     private static Map<String, Object> association(Tenant tenant) {
@@ -103,17 +128,31 @@ public final class LoanSheetModelFactory {
         socio.put("email", email);
         model.put("socio", socio);
 
+        // The data entered by the holder are printed only in the issue signed electronically.
+        HolderData data = content.signature() != null && LoanSheetActs.ISSUE.equals(content.signature().act()) ? content.signature().holder() : null;
+        // A parent or guardian signing electronically enters the own name and date of birth with the other data.
+        boolean parentData = guardian && data != null && data.holderName() != null;
         Map<String, Object> holder = new LinkedHashMap<>();
         holder.put("socioMaggiorenne", member);
         holder.put("genitoreTutore", guardian);
-        holder.put("nomeCognome", member ? fullName : "");
-        holder.put("dataNascita", member ? birthDate : "");
-        holder.put("email", member ? email : "");
+        holder.put("nomeCognome", member ? fullName : parentData ? text(data.holderName()) : "");
+        holder.put("dataNascita", member ? birthDate : parentData ? text(date(data.holderBirthDate())) : "");
+        holder.put("email", member ? email : parentData ? text(data.holderEmail()) : "");
+        holder.put("luogoNascita", data == null ? "" : text(data.birthPlace()));
+        holder.put("residenza", data == null ? "" : text(data.residence()));
+        holder.put("cap", data == null ? "" : text(data.postalCode()));
+        holder.put("cittaProvincia", data == null ? "" : text(data.cityProvince()));
+        holder.put("codiceFiscale", data == null ? "" : text(data.taxCode()));
+        holder.put("documento", data == null ? "" : text(data.document()));
+        holder.put("documentoRilasciatoDa", data == null ? "" : text(data.documentIssuedBy()));
+        holder.put("documentoRilasciatoIl", data == null ? "" : text(date(data.documentIssuedOn())));
+        holder.put("telefono", data == null ? "" : text(data.phone()));
         model.put("affidatario", holder);
 
         Map<String, Object> minor = new LinkedHashMap<>();
         minor.put("nomeCognome", guardian ? fullName : "");
         minor.put("dataNascita", guardian ? birthDate : "");
+        minor.put("luogoNascita", data == null || !guardian ? "" : text(data.minorBirthPlace()));
         model.put("minore", minor);
     }
 

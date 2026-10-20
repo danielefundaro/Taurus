@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.service.loansheet;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.inventory.*;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.*;
@@ -15,16 +13,15 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.*;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.Durations;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
+import com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService;
 import com.fundaro.zodiac.taurus.web.rest.errors.ErrorArgs;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,6 +32,8 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -67,8 +66,6 @@ public class InventoryLoanSheetService {
     private final InventoryAssignmentRenewalRepository renewalRepository;
     private final InventoryLoanSheetExportRepository exportRepository;
     private final InventoryAssignmentRepository assignmentRepository;
-    private final InventoryAssignmentRevisionRepository revisionRepository;
-    private final InventoryReturnRepository returnRepository;
     private final InventoryItemRepository itemRepository;
     private final InventoryLoanTemplateService templateService;
     private final InventoryLoanSheetPolicy policy;
@@ -79,7 +76,9 @@ public class InventoryLoanSheetService {
     private final MediaService mediaService;
     private final MediaRepository mediaRepository;
     private final LoanSheetPdfRenderer renderer;
-    private final ObjectMapper objectMapper;
+    private final LoanSheetContentFactory contentFactory;
+    private final LoanSheetSignatureService signatureService;
+    private final ApplicationEventPublisher events;
 
     public InventoryLoanSheetService(
         InventoryLoanSheetRepository sheetRepository,
@@ -88,8 +87,6 @@ public class InventoryLoanSheetService {
         InventoryAssignmentRenewalRepository renewalRepository,
         InventoryLoanSheetExportRepository exportRepository,
         InventoryAssignmentRepository assignmentRepository,
-        InventoryAssignmentRevisionRepository revisionRepository,
-        InventoryReturnRepository returnRepository,
         InventoryItemRepository itemRepository,
         InventoryLoanTemplateService templateService,
         InventoryLoanSheetPolicy policy,
@@ -100,7 +97,9 @@ public class InventoryLoanSheetService {
         MediaService mediaService,
         MediaRepository mediaRepository,
         LoanSheetPdfRenderer renderer,
-        ObjectMapper objectMapper
+        LoanSheetContentFactory contentFactory,
+        LoanSheetSignatureService signatureService,
+        ApplicationEventPublisher events
     ) {
         this.sheetRepository = sheetRepository;
         this.lineRepository = lineRepository;
@@ -108,8 +107,6 @@ public class InventoryLoanSheetService {
         this.renewalRepository = renewalRepository;
         this.exportRepository = exportRepository;
         this.assignmentRepository = assignmentRepository;
-        this.revisionRepository = revisionRepository;
-        this.returnRepository = returnRepository;
         this.itemRepository = itemRepository;
         this.templateService = templateService;
         this.policy = policy;
@@ -120,7 +117,9 @@ public class InventoryLoanSheetService {
         this.mediaService = mediaService;
         this.mediaRepository = mediaRepository;
         this.renderer = renderer;
-        this.objectMapper = objectMapper;
+        this.contentFactory = contentFactory;
+        this.signatureService = signatureService;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -184,7 +183,8 @@ public class InventoryLoanSheetService {
             openSheet.map(InventoryLoanSheet::getId).orElse(null),
             openSheet.map(InventoryLoanSheet::getSheetNumber).orElse(null),
             new Terms(null, templateService.currentLabel(settings), parameters.minMonths(), parameters.maxMonths(), parameters.renewalMaxMonths(), parameters.totalMaxMonths()),
-            assignments
+            assignments,
+            signatureService.issueOptions(user.getKeycloakId(), templateService.currentContent(settings), actor(token))
         );
     }
 
@@ -198,7 +198,7 @@ public class InventoryLoanSheetService {
         LocalDate birthDate = localDate(user.getBirthDate(), zone);
         InventoryLoanHolderRole role = request.holderRole() != null ? request.holderRole() : suggestedRole(birthDate, request.issuedOn());
         List<Line> lines = new ArrayList<>();
-        for (InventoryAssignment assignment : assignments) lines.add(toLine(snapshotLine(assignment, lines.size() + 1)));
+        for (InventoryAssignment assignment : assignments) lines.add(LoanSheetContentFactory.toLine(contentFactory.snapshotLine(assignment, lines.size() + 1)));
         LoanSheetContent content = new LoanSheetContent(
             true,
             tenantData.forTemplate(template, token),
@@ -238,6 +238,12 @@ public class InventoryLoanSheetService {
         List<InventoryAssignment> assignments = requestedAssignments(userIndex, request.assignmentIds(), true);
         InventoryLoanSettings settings = templateService.settings(actor);
         Durations parameters = InventoryLoanTemplateService.durations(settings);
+        boolean electronic = request.signatureMode() == InventoryLoanSignatureMode.ELECTRONIC;
+        // A parent or guardian has no account: the administrator enters the address of the links and the codes.
+        String holderEmail = role == InventoryLoanHolderRole.GUARDIAN ? trimToNull(request.holderEmail()) : trimToNull(user.getEmail());
+        LoanSheetSignatureService.AssociationSigner associationSigner = electronic
+            ? signatureService.checkIssue(role, assignments.get(0).getUserKeycloakId(), holderEmail, request.associationSignerId(), templateService.currentContent(settings))
+            : null;
         List<ErrorArgs> problems = new ArrayList<>();
         for (InventoryAssignment assignment : assignments) {
             deliveryIssues(assignment, parameters, zone).forEach(issue -> problems.add(
@@ -284,7 +290,9 @@ public class InventoryLoanSheetService {
         sheet.setPlace(trimToNull(request.place()));
         sheet.setAuthorizationReference(trimToNull(request.authorizationReference()));
         sheet.setAuthorizationDate(request.authorizationDate());
-        sheet.setAssociationSignatoryName(trimToNull(request.associationSignatoryName()));
+        sheet.setAssociationSignatoryName(electronic ? associationSigner.displayName() : trimToNull(request.associationSignatoryName()));
+        sheet.setSignatureMode(electronic ? InventoryLoanSignatureMode.ELECTRONIC : InventoryLoanSignatureMode.PAPER);
+        if (electronic && role == InventoryLoanHolderRole.GUARDIAN) sheet.setHolderEmail(holderEmail);
         InventoryLoanTemplate template = templateService.templateForIssue(settings, actor);
         sheet.setTemplate(template);
         sheet.setTemplateHash(template.getContentHash());
@@ -296,7 +304,7 @@ public class InventoryLoanSheetService {
 
         int lineNumber = 0;
         for (InventoryAssignment assignment : assignments) {
-            InventoryLoanSheetLine line = snapshotLine(assignment, ++lineNumber);
+            InventoryLoanSheetLine line = contentFactory.snapshotLine(assignment, ++lineNumber);
             line.initializeAudit(actor);
             line.setSheet(sheet);
             lineRepository.save(line);
@@ -304,7 +312,15 @@ public class InventoryLoanSheetService {
             assignment.touchAudit(actor);
             assignmentRepository.save(assignment);
         }
-        LOG.info("inventory_loan_sheet_issued sheetId={} number={} lines={} templateId={}", sheet.getId(), sheet.getSheetNumber(), assignments.size(), template.getId());
+        if (electronic) signatureService.createIssueAct(sheet, associationSigner, actor);
+        LOG.info(
+            "inventory_loan_sheet_issued sheetId={} number={} lines={} templateId={} signatureMode={}",
+            sheet.getId(),
+            sheet.getSheetNumber(),
+            assignments.size(),
+            template.getId(),
+            sheet.getSignatureMode()
+        );
         return toDetail(sheet);
     }
 
@@ -325,7 +341,8 @@ public class InventoryLoanSheetService {
         policy.checkDelivery(sheet, assignment.getItem().getLoanType(), localDate(assignment.getAssignedAt(), tenantTimeZoneService.currentZoneId()), assignment.getExpirationDate());
         assignment.setLoanSheetId(sheet.getId());
         assignment.touchAudit(actor);
-        assignmentRepository.save(assignment);
+        assignmentRepository.saveAndFlush(assignment);
+        events.publishEvent(LoanSheetVariationRecorded.delivery(sheet.getId(), assignment.getId(), token));
         return toDetail(sheet);
     }
 
@@ -364,7 +381,8 @@ public class InventoryLoanSheetService {
         renewal.setNewExpirationDate(request.newExpirationDate());
         renewal.setAuthorizationReference(request.authorizationReference().trim());
         renewal.setAuthorizationDate(request.authorizationDate());
-        renewalRepository.save(renewal);
+        renewalRepository.saveAndFlush(renewal);
+        events.publishEvent(LoanSheetVariationRecorded.renewal(sheet.getId(), renewal.getId(), token));
         LOG.info("inventory_loan_sheet_renewal sheetId={} assignmentId={} newExpiration={}", sheet.getId(), assignmentId, request.newExpirationDate());
         return renewed;
     }
@@ -405,7 +423,8 @@ public class InventoryLoanSheetService {
         sheet.setChargeDueDate(charges ? request.chargeDueDate() : null);
         sheet.setReceivedByName(receivedBy);
         sheet.touchAudit(actor);
-        sheetRepository.save(sheet);
+        sheetRepository.saveAndFlush(sheet);
+        signatureService.createReturnAct(sheet, token);
         LOG.info("inventory_loan_sheet_closed sheetId={} outcome={}", sheet.getId(), request.outcome());
         return toDetail(sheet);
     }
@@ -437,6 +456,7 @@ public class InventoryLoanSheetService {
         sheet.touchAudit(actor);
         sheetRepository.save(sheet);
         deletePdfs(sheet, tenant, actor);
+        signatureService.sheetEnded(sheet, tenant, actor);
         LOG.info("inventory_loan_sheet_cancelled sheetId={}", sheet.getId());
         return toDetail(sheet);
     }
@@ -475,11 +495,23 @@ public class InventoryLoanSheetService {
      */
     public void purgeForUser(String userKeycloakId, String pseudonym, String tenantCode, String actor) {
         for (InventoryLoanSheet sheet : sheetRepository.findAllByUserKeycloakIdAndDeletedFalse(userKeycloakId)) {
+            signatureService.purgeSheet(sheet, tenantCode, actor);
             purgePersonalData(sheet, actor);
             sheet.setUserKeycloakId(pseudonym);
             sheetRepository.save(sheet);
             deletePdfs(sheet, tenantCode, actor);
         }
+    }
+
+    /**
+     * The return report of a sheet signed electronically was signed, or declared signed on paper: a return without
+     * charges settles the sheet at once.
+     */
+    @EventListener
+    public void returnSigned(LoanSheetReturnSigned event) {
+        sheetRepository.findForUpdate(event.sheetId())
+            .filter(sheet -> sheet.getStatus() == InventoryLoanSheetStatus.CLOSED && sheet.getReturnOutcome() == InventoryLoanReturnOutcome.COMPLIANT)
+            .ifPresent(sheet -> settleSheet(sheet, event.tenantCode(), event.actor()));
     }
 
     private PdfContent generate(InventoryLoanSheet sheet, AbstractAuthenticationToken token) {
@@ -491,7 +523,11 @@ public class InventoryLoanSheetService {
         }
         String actor = actor(token);
         String template = sheet.getTemplate().getContent();
-        byte[] bytes = renderer.render(template, LoanSheetModelFactory.build(content(sheet, template, token)), false);
+        Map<String, Object> model = LoanSheetModelFactory.build(contentFactory.content(sheet, template, token));
+        // The evidential documents of a sheet signed electronically are its signed acts.
+        byte[] bytes = sheet.getSignatureMode() == InventoryLoanSignatureMode.ELECTRONIC
+            ? renderer.renderWithWatermark(template, model, LoanSheetPdfRenderer.COPY_WATERMARK)
+            : renderer.render(template, model, false);
         if (bytes.length > LoanSheetPdfRenderer.MAX_PDF_BYTES) {
             throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Il foglio di affidamento generato supera 20 MB", "inventory.loanSheet.tooLarge").with("maxMegabytes", (int) (LoanSheetPdfRenderer.MAX_PDF_BYTES / (1024 * 1024)));
         }
@@ -508,54 +544,6 @@ public class InventoryLoanSheetService {
         return new PdfContent(fileName, bytes);
     }
 
-    private LoanSheetContent content(InventoryLoanSheet sheet, String template, AbstractAuthenticationToken token) {
-        ZoneId zone = tenantTimeZoneService.currentZoneId();
-        List<InventoryLoanSheetLine> lines = lineRepository.findAllBySheet_IdAndDeletedFalseOrderByLineNumberAsc(sheet.getId());
-        LoanSheetRegisterBuilder.Result register = register(sheet, lines, zone);
-        return new LoanSheetContent(
-            false,
-            tenantData.forTemplate(template, token),
-            sheet.getSheetNumber(),
-            InventoryLoanTemplateService.durations(sheet),
-            sheet.getHolderRole(),
-            sheet.getMemberName(),
-            sheet.getMemberLastName(),
-            sheet.getMemberBirthDate(),
-            sheet.getMemberEmail(),
-            lines.stream().map(InventoryLoanSheetService::toLine).toList(),
-            sheet.getIssuedOn(),
-            sheet.getPlace(),
-            sheet.getAuthorizationReference(),
-            sheet.getAuthorizationDate(),
-            sheet.getAssociationSignatoryName(),
-            register.register(),
-            LoanSheetRegisterBuilder.finalReturn(sheet, register)
-        );
-    }
-
-    private LoanSheetRegisterBuilder.Result register(InventoryLoanSheet sheet, List<InventoryLoanSheetLine> lines, ZoneId zone) {
-        List<InventoryAssignment> assignments = assignmentRepository.findAllByLoanSheetIdAndDeletedFalseOrderByAssignedAtAscIdAsc(sheet.getId());
-        List<Long> ids = assignments.stream().map(InventoryAssignment::getId).toList();
-        List<InventoryReturn> returns = ids.isEmpty()
-            ? List.of()
-            : returnRepository.findAllByAssignment_IdInAndStatusAndDeletedFalseOrderByCompletedAtAscIdAsc(ids, InventoryReturnStatus.COMPLETED);
-        Map<Long, LocalDate> deliveryExpirations = new HashMap<>();
-        for (InventoryAssignment assignment : assignments) {
-            if (assignment.getItem().getLoanType() != InventoryLoanType.FIXED_TERM) continue;
-            LocalDate atDelivery = initialSnapshot(assignment).expirationDate();
-            deliveryExpirations.put(assignment.getId(), atDelivery == null ? assignment.getExpirationDate() : atDelivery);
-        }
-        return LoanSheetRegisterBuilder.build(
-            sheet,
-            lines,
-            assignments,
-            returns,
-            renewalRepository.findAllBySheetIdAndDeletedFalseOrderByRenewedOnAscIdAsc(sheet.getId()),
-            deliveryExpirations,
-            zone
-        );
-    }
-
     private void settleSheet(InventoryLoanSheet sheet, String tenantCode, String actor) {
         sheet.setStatus(InventoryLoanSheetStatus.SETTLED);
         sheet.setSettledAt(ZonedDateTime.now());
@@ -563,6 +551,7 @@ public class InventoryLoanSheetService {
         purgePersonalData(sheet, actor);
         sheetRepository.save(sheet);
         deletePdfs(sheet, tenantCode, actor);
+        signatureService.sheetEnded(sheet, tenantCode, actor);
         LOG.info("inventory_loan_sheet_settled sheetId={}", sheet.getId());
     }
 
@@ -621,55 +610,6 @@ public class InventoryLoanSheetService {
             assignment.getExpirationDate(),
             parameters
         ).map(violation -> List.of(new Issue(assignment.getId(), violation.code(), violation.args().values()))).orElse(List.of());
-    }
-
-    private InventoryLoanSheetLine snapshotLine(InventoryAssignment assignment, int lineNumber) {
-        InventoryItem item = assignment.getItem();
-        DeliverySnapshot snapshot = initialSnapshot(assignment);
-        InventoryLoanSheetLine line = new InventoryLoanSheetLine();
-        line.setLineNumber(lineNumber);
-        line.setAssignmentId(assignment.getId());
-        line.setItemName(item.getName());
-        line.setBrandModel(item.getBrandModel());
-        line.setSerialNumber(item.getSerialNumber());
-        line.setInventoryNumber(item.getInventoryNumber());
-        line.setAccessories(assignment.getAccessories());
-        line.setQuantity(assignment.getOutstandingQuantity());
-        line.setAgreedUnitValue(LoanSheetText.euroUnitValue(item.getEstimatedUnitValue(), item.getCurrency()));
-        line.setConditionStatus(snapshot.conditionStatus() == null ? item.getConditionStatus() : snapshot.conditionStatus());
-        line.setConditionNotes(snapshot.conditionStatus() == null ? item.getConditionNotes() : snapshot.conditionNotes());
-        line.setLoanType(item.getLoanType());
-        line.setExpirationDate(assignment.getExpirationDate());
-        return line;
-    }
-
-    private record DeliverySnapshot(InventoryCondition conditionStatus, String conditionNotes, LocalDate expirationDate) {
-    }
-
-    /**
-     * State at delivery, read from the first revision acknowledged by the member.
-     */
-    private DeliverySnapshot initialSnapshot(InventoryAssignment assignment) {
-        return revisionRepository.findByAssignment_IdAndRevisionNumber(assignment.getId(), 1).map(revision -> {
-            try {
-                JsonNode root = objectMapper.readTree(revision.getSnapshotJson());
-                String condition = text(root, "conditionStatus");
-                String expiration = text(root, "expirationDate");
-                return new DeliverySnapshot(
-                    condition == null ? null : InventoryCondition.valueOf(condition),
-                    text(root, "conditionNotes"),
-                    expiration == null ? null : LocalDate.parse(expiration)
-                );
-            } catch (IOException | IllegalArgumentException | java.time.format.DateTimeParseException exception) {
-                LOG.warn("inventory_loan_sheet_snapshot_unreadable assignmentId={}", assignment.getId());
-                return new DeliverySnapshot(null, null, null);
-            }
-        }).orElse(new DeliverySnapshot(null, null, null));
-    }
-
-    private static String text(JsonNode root, String field) {
-        JsonNode value = root.get(field);
-        return value == null || value.isNull() ? null : value.asText();
     }
 
     private LocalDate firstDelivery(InventoryLoanSheet sheet, InventoryAssignment assignment, ZoneId zone) {
@@ -733,7 +673,8 @@ public class InventoryLoanSheetService {
             sheet.getCancelledAt(),
             sheet.getPersonalDataPurgedAt() != null,
             closable(sheet),
-            sheet.getEntityVersion()
+            sheet.getEntityVersion(),
+            sheet.getSignatureMode()
         );
     }
 
@@ -757,7 +698,7 @@ public class InventoryLoanSheetService {
                 assignment.getReplacesAssignmentId()
             ))
             .toList();
-        List<RegisterEntry> register = sheet.getStatus() == InventoryLoanSheetStatus.CANCELLED ? List.of() : register(sheet, lines, zone).register();
+        List<RegisterEntry> register = sheet.getStatus() == InventoryLoanSheetStatus.CANCELLED ? List.of() : contentFactory.register(sheet, lines, zone).register();
         return new Detail(
             toSummary(sheet),
             sheet.getPlace(),
@@ -769,7 +710,7 @@ public class InventoryLoanSheetService {
             sheet.getReceivedByName(),
             sheet.getCancellationReason(),
             terms(sheet),
-            lines.stream().map(InventoryLoanSheetService::toLine).toList(),
+            lines.stream().map(LoanSheetContentFactory::toLine).toList(),
             register,
             linked
         );
@@ -783,24 +724,6 @@ public class InventoryLoanSheetService {
             sheet.getMaxMonths(),
             sheet.getRenewalMaxMonths(),
             sheet.getTotalMaxMonths()
-        );
-    }
-
-    private static Line toLine(InventoryLoanSheetLine line) {
-        return new Line(
-            line.getLineNumber(),
-            line.getAssignmentId(),
-            line.getItemName(),
-            line.getBrandModel(),
-            line.getSerialNumber(),
-            line.getInventoryNumber(),
-            line.getAccessories(),
-            line.getQuantity(),
-            line.getAgreedUnitValue(),
-            line.getConditionStatus(),
-            line.getConditionNotes(),
-            line.getLoanType(),
-            line.getExpirationDate()
         );
     }
 }

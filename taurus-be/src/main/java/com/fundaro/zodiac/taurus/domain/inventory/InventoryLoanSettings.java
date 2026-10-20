@@ -28,6 +28,20 @@ public class InventoryLoanSettings extends TenantAuditedEntity {
     @Column(name = "total_max_months", nullable = false)
     private int totalMaxMonths;
 
+    /**
+     * Electronic signature of new loan sheets and of assignment acknowledgments, disabled by default.
+     */
+    @Column(name = "electronic_signature_enabled", nullable = false)
+    private boolean electronicSignatureEnabled;
+
+    public boolean isElectronicSignatureEnabled() {
+        return electronicSignatureEnabled;
+    }
+
+    public void setElectronicSignatureEnabled(boolean electronicSignatureEnabled) {
+        this.electronicSignatureEnabled = electronicSignatureEnabled;
+    }
+
     public InventoryLoanTemplate getActiveTemplate() {
         return activeTemplate;
     }

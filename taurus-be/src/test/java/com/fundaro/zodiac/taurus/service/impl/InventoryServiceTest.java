@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.springframework.data.domain.Page;
@@ -42,11 +43,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
+
+    @Mock
+    ApplicationEventPublisher events;
 
     @Mock
     InventoryItemRepository itemRepository;
@@ -90,6 +95,8 @@ class InventoryServiceTest {
     KeycloakService keycloakService;
     @Mock
     com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetPolicy loanSheetPolicy;
+    @Mock
+    com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanSettingsRepository loanSettingsRepository;
 
     private InventoryService service;
 
@@ -132,7 +139,9 @@ class InventoryServiceTest {
             new ObjectMapper(),
             qrCodeService,
             issueRepository,
-            loanSheetPolicy
+            loanSheetPolicy,
+            loanSettingsRepository,
+            events
         );
         AspectJProxyFactory serviceProxyFactory = new AspectJProxyFactory(target);
         serviceProxyFactory.addAspect(noticesAspect);
@@ -449,6 +458,44 @@ class InventoryServiceTest {
     }
 
     @Test
+    void shouldRequireTheElectronicSignatureForDecisionsWhenTheTenantEnablesIt() {
+        com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSettings settings = new com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSettings();
+        settings.setElectronicSignatureEnabled(true);
+        when(loanSettingsRepository.findFirstByDeletedFalse()).thenReturn(Optional.of(settings));
+
+        assertThatThrownBy(() -> service.decide(
+            2L,
+            new InventoryDecisionRequest(InventoryDecisionType.ACCEPTED, null, "a".repeat(64)),
+            authentication()
+        )).hasFieldOrPropertyWithValue("errorKey", "inventory.decision.signatureRequired");
+        verify(decisionRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRecordASignedDecisionWithItsSignatureAndNotifyAdmins() {
+        InventoryAssignment assignment = decisionAssignment();
+        InventoryAssignmentRevision revision = revision(1);
+        when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
+        when(revisionRepository.findByAssignment_IdAndRevisionNumber(2L, 1)).thenReturn(Optional.of(revision));
+        when(decisionRepository.findByRevision_Id(3L)).thenReturn(Optional.empty());
+        when(decisionRepository.save(any(InventoryAssignmentDecision.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        java.util.List<InventoryAssignmentDecision> signed = new java.util.ArrayList<>();
+
+        service.decideSigned(
+            2L,
+            new InventoryDecisionRequest(InventoryDecisionType.ACCEPTED, null, "a".repeat(64)),
+            authentication(),
+            (check, decision) -> signed.add(decision)
+        );
+
+        assertThat(signed).singleElement().satisfies(decision -> {
+            assertThat(decision.getDecision()).isEqualTo(InventoryDecisionType.ACCEPTED);
+            assertThat(decision.getAuthenticatedHash()).hasSize(64);
+        });
+        verifyNotification("Inventario: presa visione accettata", "Mario Rossi ha accettato la revisione 1 dell'assegnazione dell'oggetto “INV-1 — Leggio”");
+    }
+
+    @Test
     void shouldNotifyAdminsWhenTheUserRejectsTheAcknowledgement() {
         InventoryAssignment assignment = decisionAssignment();
         InventoryAssignmentRevision revision = revision(1);
@@ -595,7 +642,7 @@ class InventoryServiceTest {
         when(returnRepository.findNoticeTargetById(3L)).thenReturn(Optional.of(inventoryReturn));
         when(returnRepository.findByIdAndDeletedFalse(3L)).thenReturn(Optional.of(inventoryReturn));
         when(returnRepository.findForUpdate(3L)).thenReturn(Optional.of(inventoryReturn));
-        when(returnRepository.save(inventoryReturn)).thenReturn(inventoryReturn);
+        when(returnRepository.saveAndFlush(inventoryReturn)).thenReturn(inventoryReturn);
         when(assignmentRepository.findForUpdate(2L)).thenReturn(Optional.of(assignment));
 
         service.completeReturn(3L, new com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest(

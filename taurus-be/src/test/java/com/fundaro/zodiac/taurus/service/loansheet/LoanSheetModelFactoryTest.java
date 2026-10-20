@@ -193,6 +193,62 @@ class LoanSheetModelFactoryTest {
         );
     }
 
+    @Test
+    void printsTheHolderDataOnlyInTheIssueSignedElectronically() {
+        LoanSheetContent paper = content(InventoryLoanHolderRole.MEMBER, List.of(), finalReturn(InventoryLoanReturnOutcome.COMPLIANT));
+        LoanSheetContent.HolderData data = new LoanSheetContent.HolderData(
+            "Roma", "Via Garibaldi 5", "00100", "Roma (RM)", "RSSMRA85T10A562S", "Carta d'identità CA00000AA", "Comune di Roma", LocalDate.of(2024, 5, 2), null, null
+        );
+        Map<String, Object> issue = LoanSheetModelFactory.build(signed(paper, new LoanSheetContent.Signature(LoanSheetActs.ISSUE, data, 30)));
+        Map<String, Object> variation = LoanSheetModelFactory.build(signed(paper, new LoanSheetContent.Signature(LoanSheetActs.VARIATION, null, 30)));
+        Map<String, Object> onPaper = LoanSheetModelFactory.build(paper);
+
+        assertThat(map(issue, "firma")).containsEntry("elettronica", true).containsEntry("giorniDisponibilita", "30");
+        assertThat(map(issue, "atto")).containsEntry("emissione", true).containsEntry("variazione", false);
+        assertThat(map(issue, "affidatario"))
+            .containsEntry("codiceFiscale", "RSSMRA85T10A562S")
+            .containsEntry("documentoRilasciatoIl", "02/05/2024")
+            .containsEntry("telefono", "");
+        assertThat(map(variation, "affidatario")).containsEntry("codiceFiscale", "");
+        assertThat(map(variation, "atto")).containsEntry("variazione", true);
+        assertThat((List<?>) variation.get("registroRigheVuote")).isEmpty();
+        assertThat((List<?>) map(variation, "riconsegna").get("righeVuote")).isEmpty();
+        assertThat(map(onPaper, "firma")).containsEntry("elettronica", false).containsEntry("giorniDisponibilita", "");
+        assertThat((List<?>) onPaper.get("registroRigheVuote")).hasSize(LoanSheetModelFactory.MIN_REGISTER_ROWS);
+    }
+
+    @Test
+    void printsTheDataOfTheParentInTheIssueSignedFromTheLink() {
+        LoanSheetContent paper = content(InventoryLoanHolderRole.GUARDIAN, List.of(), null);
+        LoanSheetContent.HolderData data = new LoanSheetContent.HolderData(
+            "Napoli", "Via Toledo 1", "80100", "Napoli (NA)", null, "Patente NA0000000", "MCTC Napoli", LocalDate.of(2023, 1, 9), "3330000000", "Roma",
+            "Giulia Bianchi", LocalDate.of(1980, 3, 4), "giulia@example.org"
+        );
+
+        Map<String, Object> issue = LoanSheetModelFactory.build(signed(paper, new LoanSheetContent.Signature(LoanSheetActs.ISSUE, data, 30)));
+        Map<String, Object> variation = LoanSheetModelFactory.build(signed(paper, new LoanSheetContent.Signature(LoanSheetActs.VARIATION, null, 30)));
+
+        assertThat(map(issue, "affidatario"))
+            .containsEntry("genitoreTutore", true)
+            .containsEntry("nomeCognome", "Giulia Bianchi")
+            .containsEntry("dataNascita", "04/03/1980")
+            .containsEntry("email", "giulia@example.org")
+            .containsEntry("luogoNascita", "Napoli")
+            .containsEntry("codiceFiscale", "");
+        assertThat(map(issue, "minore")).containsEntry("nomeCognome", "Mario Rossi").containsEntry("luogoNascita", "Roma");
+        assertThat(map(variation, "affidatario")).containsEntry("nomeCognome", "").containsEntry("email", "");
+        assertThat(map(LoanSheetModelFactory.build(paper), "affidatario")).containsEntry("nomeCognome", "");
+    }
+
+    private static LoanSheetContent signed(LoanSheetContent content, LoanSheetContent.Signature signature) {
+        return new LoanSheetContent(
+            content.preview(), content.tenant(), content.sheetNumber(), content.durations(), content.holderRole(), content.memberName(),
+            content.memberLastName(), content.memberBirthDate(), content.memberEmail(), content.lines(), content.issuedOn(), content.place(),
+            content.authorizationReference(), content.authorizationDate(), content.associationSignatoryName(), content.register(),
+            content.finalReturn(), signature
+        );
+    }
+
     private static LoanSheetContent content(InventoryLoanHolderRole role, List<Line> lines, FinalReturn finalReturn) {
         return new LoanSheetContent(
             false,

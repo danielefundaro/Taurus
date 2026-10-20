@@ -85,6 +85,46 @@ public final class LoanTemplateValidator {
         return issues.size() > MAX_ISSUES ? new ArrayList<>(issues.subList(0, MAX_ISSUES)) : issues;
     }
 
+    /**
+     * Issues of the markers of the electronic signature (see {@link LoanSheetActs}): they make the template not
+     * signable but never block it, because it stays usable on paper.
+     */
+    public static List<Issue> signatureIssues(String content) {
+        List<Issue> issues = new ArrayList<>();
+        if (content == null || content.isBlank()) return issues;
+        Document document = Jsoup.parse(content, "", Parser.htmlParser().setTrackPosition(true));
+        Set<String> declared = new HashSet<>();
+        for (Element child : document.body().children()) {
+            if (!child.hasAttr(LoanSheetActs.ACT_ATTRIBUTE)) {
+                issues.add(warning("signatureActMissing", ErrorArgs.of("tag", child.normalName()), lineOf(child)));
+                continue;
+            }
+            for (String value : LoanSheetActs.rawValues(child)) {
+                if (LoanSheetActs.VALUES.contains(value)) declared.add(value);
+                else issues.add(warning("signatureActUnknown", ErrorArgs.of("value", value), lineOf(child)));
+            }
+        }
+        for (String act : LoanSheetActs.ACTS) {
+            if (!declared.contains(act)) issues.add(warning("signatureActEmpty", ErrorArgs.of("act", act), null));
+        }
+        List<Element> clauses = document.select(LoanSheetActs.CLAUSES_SELECTOR);
+        if (clauses.isEmpty()) {
+            issues.add(warning("signatureClausesMissing", null, null));
+        } else if (clauses.size() > 1) {
+            issues.add(warning("signatureClausesDuplicate", null, lineOf(clauses.get(1))));
+        } else {
+            Element block = clauses.get(0);
+            Element top = block;
+            while (top.parent() != null && top.parent() != document.body()) top = top.parent();
+            if (top.parent() != document.body() || !LoanSheetActs.values(top).contains(LoanSheetActs.ISSUE)) {
+                issues.add(warning("signatureClausesOutsideIssue", null, lineOf(block)));
+            } else if (block.text().strip().isEmpty()) {
+                issues.add(warning("signatureClausesEmpty", null, lineOf(block)));
+            }
+        }
+        return issues;
+    }
+
     private record Section(String name, int line, Set<String> fields) {
     }
 

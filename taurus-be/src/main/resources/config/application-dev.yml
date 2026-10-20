@@ -61,6 +61,10 @@ spring:
       hibernate.connection.provider_disables_autocommit: true
   thymeleaf:
     cache: false
+  mail:
+    # Mailpit of src/main/docker/services.yml: messages are collected and shown at http://localhost:8025.
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
 
 server:
   port: 8080
@@ -113,3 +117,13 @@ application:
       api-key: ${SCORE_PLAYBACK_OMR_API_KEY:taurus-omr-development-key}
   dashboard:
     enabled: true
+  signature:
+    otp-secret: ${SIGNATURE_OTP_SECRET:taurus-signature-development-secret}
+    # The links sent to the parents open the Angular development server.
+    public-base-url: ${SIGNATURE_PUBLIC_BASE_URL:http://localhost:4200}
+    seal:
+      # Without a keystore, a temporary self-signed certificate seals the documents.
+      ephemeral: true
+    keycloak:
+      # Secret of the taurus-signature client of the development realm.
+      client-secret: ${SIGNATURE_KEYCLOAK_CLIENT_SECRET:taurus-signature}

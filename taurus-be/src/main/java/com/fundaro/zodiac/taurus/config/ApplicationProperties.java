@@ -59,6 +59,9 @@ public class ApplicationProperties {
     @Valid
     private InventoryProperties inventory = new InventoryProperties();
 
+    @Valid
+    private SignatureProperties signature = new SignatureProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -177,6 +180,14 @@ public class ApplicationProperties {
 
     public void setInventory(InventoryProperties value) {
         inventory = value;
+    }
+
+    public SignatureProperties getSignature() {
+        return signature;
+    }
+
+    public void setSignature(SignatureProperties value) {
+        signature = value;
     }
 
     private TesseractProperties tesseract = new TesseractProperties();
@@ -1125,6 +1136,411 @@ public class ApplicationProperties {
             } catch (IllegalArgumentException exception) {
                 return false;
             }
+        }
+    }
+
+    /**
+     * Electronic signature of loan sheets and assignment acknowledgments: confirmation codes and seal of the documents.
+     */
+    public static class SignatureProperties {
+        /**
+         * Key of the HMAC that protects the stored confirmation codes; electronic signature cannot be enabled without it.
+         */
+        private String otpSecret;
+
+        private Duration codeValidity = Duration.ofMinutes(10);
+
+        @Min(1)
+        @Max(10)
+        private int maxAttempts = 5;
+
+        private Duration resendInterval = Duration.ofSeconds(60);
+
+        @Min(1)
+        @Max(10)
+        private int maxSends = 5;
+
+        @Min(1)
+        @Max(50)
+        private int maxBatchItems = 50;
+
+        /**
+         * Codes a user can request in an hour, to protect the mailbox of the association.
+         */
+        @Min(1)
+        @Max(1000)
+        private int maxChallengesPerHour = 20;
+
+        @Min(1)
+        @Max(366)
+        private int challengeRetentionDays = 30;
+
+        private String cleanupCron = "0 45 3 * * *";
+
+        /**
+         * Days the signed acts of a settled or cancelled loan sheet stay downloadable before Taurus removes them: the
+         * tenant keeps them for the legal retention period.
+         */
+        @Min(1)
+        @Max(366)
+        private int downloadGraceDays = 30;
+
+        private String purgeCron = "0 50 3 * * *";
+
+        /**
+         * Address of the application, from which the links sent to the parents are built; never taken from the
+         * {@code Host} header of a request.
+         */
+        private String publicBaseUrl = "http://localhost:8080";
+
+        /**
+         * Validity of a link sent to a parent or guardian without an account.
+         */
+        private Duration linkValidity = Duration.ofDays(7);
+
+        @Min(1)
+        @Max(10000)
+        private int linkRateLimitPerTokenHour = 120;
+
+        @Min(1)
+        @Max(100000)
+        private int linkRateLimitPerIpHour = 600;
+
+        /**
+         * When the links expired without a signature are notified to the administrators.
+         */
+        private String linkExpiryCron = "0 20 * * * *";
+
+        @Valid
+        private SealProperties seal = new SealProperties();
+
+        @Valid
+        private SignatureKeycloakProperties keycloak = new SignatureKeycloakProperties();
+
+        @Valid
+        private CieProperties cie = new CieProperties();
+
+        public String getOtpSecret() {
+            return otpSecret;
+        }
+
+        public void setOtpSecret(String value) {
+            otpSecret = value;
+        }
+
+        public Duration getCodeValidity() {
+            return codeValidity;
+        }
+
+        public void setCodeValidity(Duration value) {
+            codeValidity = value;
+        }
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int value) {
+            maxAttempts = value;
+        }
+
+        public Duration getResendInterval() {
+            return resendInterval;
+        }
+
+        public void setResendInterval(Duration value) {
+            resendInterval = value;
+        }
+
+        public int getMaxSends() {
+            return maxSends;
+        }
+
+        public void setMaxSends(int value) {
+            maxSends = value;
+        }
+
+        public int getMaxBatchItems() {
+            return maxBatchItems;
+        }
+
+        public void setMaxBatchItems(int value) {
+            maxBatchItems = value;
+        }
+
+        public int getMaxChallengesPerHour() {
+            return maxChallengesPerHour;
+        }
+
+        public void setMaxChallengesPerHour(int value) {
+            maxChallengesPerHour = value;
+        }
+
+        public int getChallengeRetentionDays() {
+            return challengeRetentionDays;
+        }
+
+        public void setChallengeRetentionDays(int value) {
+            challengeRetentionDays = value;
+        }
+
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
+
+        public void setCleanupCron(String value) {
+            cleanupCron = value;
+        }
+
+        public int getDownloadGraceDays() {
+            return downloadGraceDays;
+        }
+
+        public void setDownloadGraceDays(int value) {
+            downloadGraceDays = value;
+        }
+
+        public String getPurgeCron() {
+            return purgeCron;
+        }
+
+        public void setPurgeCron(String value) {
+            purgeCron = value;
+        }
+
+        public String getPublicBaseUrl() {
+            return publicBaseUrl;
+        }
+
+        public void setPublicBaseUrl(String value) {
+            publicBaseUrl = value;
+        }
+
+        public Duration getLinkValidity() {
+            return linkValidity;
+        }
+
+        public void setLinkValidity(Duration value) {
+            linkValidity = value;
+        }
+
+        public int getLinkRateLimitPerTokenHour() {
+            return linkRateLimitPerTokenHour;
+        }
+
+        public void setLinkRateLimitPerTokenHour(int value) {
+            linkRateLimitPerTokenHour = value;
+        }
+
+        public int getLinkRateLimitPerIpHour() {
+            return linkRateLimitPerIpHour;
+        }
+
+        public void setLinkRateLimitPerIpHour(int value) {
+            linkRateLimitPerIpHour = value;
+        }
+
+        public String getLinkExpiryCron() {
+            return linkExpiryCron;
+        }
+
+        public void setLinkExpiryCron(String value) {
+            linkExpiryCron = value;
+        }
+
+        public SealProperties getSeal() {
+            return seal;
+        }
+
+        public void setSeal(SealProperties value) {
+            seal = value;
+        }
+
+        public SignatureKeycloakProperties getKeycloak() {
+            return keycloak;
+        }
+
+        public void setKeycloak(SignatureKeycloakProperties value) {
+            keycloak = value;
+        }
+
+        public CieProperties getCie() {
+            return cie;
+        }
+
+        public void setCie(CieProperties value) {
+            cie = value;
+        }
+
+        @AssertTrue(message = "signature.code-validity, signature.resend-interval and signature.link-validity must be positive")
+        public boolean isDurationsValid() {
+            return codeValidity != null && !codeValidity.isNegative() && !codeValidity.isZero()
+                && resendInterval != null && !resendInterval.isNegative()
+                && linkValidity != null && !linkValidity.isNegative() && !linkValidity.isZero();
+        }
+    }
+
+    /**
+     * Verification of the documents signed with CieSign: CieSign is offered only when the certificates of the CIE
+     * certification authorities are configured.
+     */
+    public static class CieProperties {
+        /**
+         * PEM or DER files with the root and intermediate certificates of the CIE, trusted as anchors; a location can
+         * start with {@code file:} or {@code classpath:}.
+         */
+        private List<String> trustAnchors = List.of();
+
+        /**
+         * Time allowed to download the revocation list named in the certificate; past it the signature is accepted
+         * and the evidence records that revocation could not be checked.
+         */
+        private Duration revocationTimeout = Duration.ofSeconds(10);
+
+        public List<String> getTrustAnchors() {
+            return trustAnchors;
+        }
+
+        public void setTrustAnchors(List<String> value) {
+            trustAnchors = value == null ? List.of() : value;
+        }
+
+        public Duration getRevocationTimeout() {
+            return revocationTimeout;
+        }
+
+        public void setRevocationTimeout(Duration value) {
+            revocationTimeout = value;
+        }
+
+        @AssertTrue(message = "signature.cie.revocation-timeout must be positive")
+        public boolean isRevocationTimeoutValid() {
+            return revocationTimeout != null && !revocationTimeout.isNegative() && !revocationTimeout.isZero();
+        }
+    }
+
+    /**
+     * Confidential client that verifies the codes of the authentication app with the {@code taurus-otp} resource of
+     * Keycloak. The authentication app is offered only when the client secret is set.
+     */
+    public static class SignatureKeycloakProperties {
+        /**
+         * Realm URL, for example {@code http://localhost:9080/realms/taurus}.
+         */
+        private String realmUri;
+
+        private String clientId = "taurus-signature";
+
+        private String clientSecret;
+
+        private Duration timeout = Duration.ofSeconds(5);
+
+        public boolean isConfigured() {
+            return realmUri != null && !realmUri.isBlank() && clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
+        }
+
+        public String getRealmUri() {
+            return realmUri;
+        }
+
+        public void setRealmUri(String value) {
+            realmUri = value;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String value) {
+            clientId = value;
+        }
+
+        public String getClientSecret() {
+            return clientSecret;
+        }
+
+        public void setClientSecret(String value) {
+            clientSecret = value;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration value) {
+            timeout = value;
+        }
+
+        @AssertTrue(message = "signature.keycloak.timeout must be positive")
+        public boolean isTimeoutValid() {
+            return timeout != null && !timeout.isNegative() && !timeout.isZero();
+        }
+    }
+
+    /**
+     * Certificate of the installation that seals the signed documents and the attestations.
+     */
+    public static class SealProperties {
+        /**
+         * PKCS#12 keystore with the private key and the certificate chain of the seal.
+         */
+        private String keystorePath;
+
+        private String keystorePassword;
+
+        /**
+         * Alias of the key in the keystore; the first key entry when empty.
+         */
+        private String keyAlias;
+
+        /**
+         * Generates a temporary self-signed certificate at startup when no keystore is configured. Development only.
+         */
+        private boolean ephemeral;
+
+        /**
+         * RFC 3161 time-stamping service: signatures are PAdES B-T when set, B-B otherwise.
+         */
+        private String tsaUrl;
+
+        public String getKeystorePath() {
+            return keystorePath;
+        }
+
+        public void setKeystorePath(String value) {
+            keystorePath = value;
+        }
+
+        public String getKeystorePassword() {
+            return keystorePassword;
+        }
+
+        public void setKeystorePassword(String value) {
+            keystorePassword = value;
+        }
+
+        public String getKeyAlias() {
+            return keyAlias;
+        }
+
+        public void setKeyAlias(String value) {
+            keyAlias = value;
+        }
+
+        public boolean isEphemeral() {
+            return ephemeral;
+        }
+
+        public void setEphemeral(boolean value) {
+            ephemeral = value;
+        }
+
+        public String getTsaUrl() {
+            return tsaUrl;
+        }
+
+        public void setTsaUrl(String value) {
+            tsaUrl = value;
         }
     }
 

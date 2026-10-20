@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
+import com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -83,6 +85,10 @@ class InventoryLoanSheetServiceTest {
     MediaService mediaService;
     @Mock
     MediaRepository mediaRepository;
+    @Mock
+    LoanSheetSignatureService signatureService;
+    @Mock
+    ApplicationEventPublisher events;
 
     private InventoryLoanSheetService service;
     private final LoanTemplateDefaults defaults = new LoanTemplateDefaults();
@@ -98,8 +104,6 @@ class InventoryLoanSheetServiceTest {
             renewalRepository,
             exportRepository,
             assignmentRepository,
-            revisionRepository,
-            returnRepository,
             itemRepository,
             templateService,
             policy,
@@ -110,7 +114,9 @@ class InventoryLoanSheetServiceTest {
             mediaService,
             mediaRepository,
             new LoanSheetPdfRenderer(),
-            new ObjectMapper()
+            new LoanSheetContentFactory(lineRepository, assignmentRepository, revisionRepository, returnRepository, renewalRepository, tenantData, tenantTimeZoneService, new ObjectMapper()),
+            signatureService,
+            events
         );
         settings = new InventoryLoanSettings();
         settings.setMinMonths(12);
@@ -129,7 +135,7 @@ class InventoryLoanSheetServiceTest {
         when(templateService.currentContent(any())).thenReturn(defaults.content());
         when(templateService.currentLabel(any())).thenReturn("predefinito " + defaults.label());
         when(tenantData.dto(any())).thenReturn(Optional.empty());
-        when(tenantData.forTemplate(anyString(), any())).thenReturn(LoanSheetPdfRendererTest.TENANT);
+        when(tenantData.forTemplate(anyString(), any(org.springframework.security.authentication.AbstractAuthenticationToken.class))).thenReturn(LoanSheetPdfRendererTest.TENANT);
         when(sheetRepository.save(any(InventoryLoanSheet.class))).thenAnswer(invocation -> {
             InventoryLoanSheet sheet = invocation.getArgument(0);
             if (sheet.getId() == null) sheet.setId(100L);
@@ -376,7 +382,7 @@ class InventoryLoanSheetServiceTest {
 
         verify(inventoryService).applyRenewal(eq(1L), eq(TODAY.plusMonths(30)), any());
         ArgumentCaptor<InventoryAssignmentRenewal> renewal = ArgumentCaptor.forClass(InventoryAssignmentRenewal.class);
-        verify(renewalRepository).save(renewal.capture());
+        verify(renewalRepository).saveAndFlush(renewal.capture());
         assertThat(renewal.getValue().getPreviousExpirationDate()).isEqualTo(TODAY.plusMonths(12));
         assertThat(renewal.getValue().getSheetId()).isEqualTo(100L);
     }
