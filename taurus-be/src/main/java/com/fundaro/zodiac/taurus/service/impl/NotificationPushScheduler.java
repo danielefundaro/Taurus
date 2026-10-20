@@ -6,10 +6,12 @@ import com.fundaro.zodiac.taurus.service.NotificationPushDeliveryService;
 import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "application.notification-push-delivery", name = "scheduler-enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationPushScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(NotificationPushScheduler.class);

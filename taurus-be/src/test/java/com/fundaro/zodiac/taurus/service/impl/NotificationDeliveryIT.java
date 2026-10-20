@@ -56,8 +56,6 @@ class NotificationDeliveryIT {
     @MockBean
     JwtDecoder jwtDecoder;
     @MockBean
-    NotificationScheduler notificationScheduler;
-    @MockBean
     TenantFeatureService tenantFeatureService;
     @Autowired
     TenantSchemaProvisioningService provisioningService;
