@@ -33,6 +33,7 @@ Ogni voce e una proiezione dello stato autorevole del relativo dominio. Per esem
 
 - una disponibilita scompare quando viene registrata la risposta all'evento;
 - una presa visione scompare quando l'utente accetta o rifiuta la revisione;
+- una firma richiesta scompare quando l'utente ha inserito i dati e dato tutte le conferme che l'atto attende da lui, o quando l'atto viene annullato o dichiarato firmato su carta;
 - una riconsegna scompare quando l'amministratore la chiude;
 - un movimento scompare dal conteggio quando viene riconciliato;
 - un errore di consegna scompare quando l'evento tecnico viene riprocessato con successo.
@@ -212,6 +213,18 @@ Severita: `WARNING`.
 
 Collegamento: `/inventory?attention=pending-decisions`.
 
+### Firma personale: `INVENTORY_SIGNATURE_REQUIRED`
+
+Destinatari: ogni utente autenticato firmatario di un atto di un foglio di affidamento firmato elettronicamente, amministratori compresi quando firmano per l'Associazione.
+
+Regola: atti non annullati e non eliminati, in attesa dei dati o delle firme, per cui l'utente deve ancora inserire i dati dell'emissione o dare una conferma: accettazione o approvazione delle clausole come Affidatario, presa visione come socio minorenne, firma per l'Associazione. È la stessa regola del gruppo «In attesa della tua firma» del riquadro **Firme** (`LoanSheetSignatureService.countAwaitingUser`). Gli atti che l'Affidatario non può ancora firmare per prese visione in attesa sono contati: la voce di presa visione compare accanto.
+
+Conteggio principale: atti che attendono l'utente.
+
+Severita: `WARNING`.
+
+Collegamento: `/inventory?view=mine`, la vista personale che si apre con il riquadro **Firme**.
+
 ### Riconsegne: `INVENTORY_RETURNS_PENDING`
 
 Destinatari: Super Admin e Admin del tenant attivo.
@@ -306,6 +319,7 @@ Le attivita sono l'unione delle autorita presenti nel token, non il risultato di
 | Risposte evento mancanti | si | si | no | no | no | no |
 | Presa visione personale | se assegnatario | se assegnatario | se assegnatario | se assegnatario | si | se assegnatario |
 | Prese visione amministrative | si | si | no | no | no | no |
+| Firma personale dei fogli di affidamento | se firmatario | se firmatario | se firmatario | se firmatario | se firmatario | se firmatario |
 | Riconsegne da chiudere | si | si | no | no | no | no |
 | Scadenze inventario globali | si | si | no | no | no | no |
 | Scadenze inventario personali | se assegnatario | se assegnatario | se assegnatario | se assegnatario | si | se assegnatario |
@@ -552,6 +566,7 @@ Le pagine di destinazione devono interpretare i parametri senza eseguire automat
 | `/calendar?attention=missing-availability` | eventi futuri con almeno una risposta attesa mancante |
 | `/inventory?view=mine&attention=pending-decisions` | assegnazioni personali da confermare |
 | `/inventory?attention=pending-decisions` | assegnazioni amministrative senza presa visione |
+| `/inventory?view=mine` | vista personale con il riquadro **Firme** degli atti da firmare |
 | `/inventory?attention=pending-returns` | riconsegne aperte |
 | `/inventory?attention=expiring` | assegnazioni scadute o in scadenza |
 | `/finance?section=movements&reconciled=false` | movimenti ordinari non riconciliati |
