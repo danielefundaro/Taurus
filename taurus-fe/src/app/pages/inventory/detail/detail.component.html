@@ -131,7 +131,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             @for (photo of item.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
             <div class="inventory-photo relative" [class.inventory-photo-preview]="photo.preview">
-                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" />
+                <p-image class="block" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                    [preview]="true" appendTo="body" styleClass="w-full" imageClass="block w-full h-40 object-cover" />
                 @if (photo.preview) {
                 <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
                 }
@@ -319,8 +320,9 @@
                             @if (itemReturn.photos.length) {
                             <div class="flex flex-wrap gap-2 mt-2">
                                 @for (photo of itemReturn.photos; track photo.id) {
-                                <img [src]="returnPhotoUrl(photo.id) | secure | async" [alt]="photo.fileName"
-                                    class="w-12 h-12 object-cover rounded border border-surface" />
+                                <p-image [src]="(returnPhotoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                                    [preview]="true" appendTo="body"
+                                    imageClass="w-12 h-12 object-cover rounded border border-surface" />
                                 }
                             </div>
                             }

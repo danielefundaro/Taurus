@@ -24,17 +24,11 @@
     font-size: 0.75rem;
 }
 
+/* La fotografia è un p-image con anteprima ingrandita: dimensioni e ritaglio stanno nel suo imageClass. */
 .inventory-photo {
     overflow: hidden;
     border: 1px solid var(--surface-border);
     border-radius: var(--content-border-radius);
-
-    >img {
-        width: 100%;
-        height: 10rem;
-        object-fit: cover;
-        display: block;
-    }
 }
 
 .photo-name {
