@@ -23,6 +23,10 @@ export class TenantFeatureService {
     readonly webPushRemindersEnabled = computed(() => this.features()?.webPushRemindersEnabled === true);
     readonly eventPreparationEnabled = computed(() => this.features()?.eventPreparationEnabled === true);
     readonly scorePlaybackEnabled = computed(() => this.features()?.scorePlaybackEnabled === true);
+    /** Fogli di affidamento dell'inventario: richiede l'Inventario. */
+    readonly inventoryLoanSheetEnabled = computed(() => this.features()?.inventoryLoanSheetEnabled === true);
+    /** Firma elettronica dei fogli e delle prese visione: richiede i fogli di affidamento. */
+    readonly inventorySignatureEnabled = computed(() => this.features()?.inventorySignatureEnabled === true);
     readonly current = this.features.asReadonly();
     readonly capabilities = this.capabilityState.asReadonly();
 
@@ -76,6 +80,10 @@ export class TenantFeatureService {
                 return this.eventPreparationEnabled();
             case TenantFeature.SCORE_PLAYBACK:
                 return this.scorePlaybackEnabled();
+            case TenantFeature.INVENTORY_LOAN_SHEET:
+                return this.inventoryLoanSheetEnabled();
+            case TenantFeature.INVENTORY_SIGNATURE:
+                return this.inventorySignatureEnabled();
         }
     }
 
@@ -92,7 +100,9 @@ export class TenantFeatureService {
             notificationPreferencesEnabled: false,
             webPushRemindersEnabled: false,
             eventPreparationEnabled: false,
-            scorePlaybackEnabled: false
+            scorePlaybackEnabled: false,
+            inventoryLoanSheetEnabled: false,
+            inventorySignatureEnabled: false
         };
     }
 

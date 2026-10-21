@@ -36,6 +36,7 @@
     <run.addResources>false</run.addResources>
     <spring-boot.version>${project.parent.version}</spring-boot.version>
     <archunit-junit5.version>1.3.0</archunit-junit5.version>
+    <bouncycastle.version>1.86</bouncycastle.version>
 <checkstyle.version>10.19.0</checkstyle.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <git-commit-id-maven-plugin.version>9.0.1</git-commit-id-maven-plugin.version>
@@ -358,10 +359,16 @@
       <artifactId>web-push</artifactId>
       <version>5.1.1</version>
     </dependency>
+    <!-- Security provider of Web Push; bcpkix creates the CMS signatures of the electronic signature seal. -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.70</version>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>${bouncycastle.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>${bouncycastle.version}</version>
     </dependency>
 
   </dependencies>

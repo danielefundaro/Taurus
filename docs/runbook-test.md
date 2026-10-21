@@ -90,7 +90,7 @@ Un gate non ancora misurabile è un punto aperto, non un successo implicito.
 
 ### 5.1 Locale
 
-Usare per sviluppo rapido e diagnosi. Il compose in `taurus-be/src/main/docker` è esclusivamente di sviluppo e il database non ha un volume persistente attivo. `docker compose -f taurus-be/src/main/docker/services.yml up --wait` avvia anche il servizio OMR, con la chiave di sviluppo già condivisa con il profilo `dev` del backend, e attende che tutti i servizi siano `healthy`.
+Usare per sviluppo rapido e diagnosi. Il compose in `taurus-be/src/main/docker` è esclusivamente di sviluppo e il database non ha un volume persistente attivo. Il profilo `dev` usa il supporto Docker Compose di Spring Boot, che collega il backend al PostgreSQL del compose ignorando `SPRING_DATASOURCE_URL`: per una seconda istanza su un altro database, per esempio la copia di un altro checkout, serve anche `SPRING_DOCKER_COMPOSE_ENABLED=false`, altrimenti le migrazioni degli schemi tenant finiscono sul database `taurus`. `docker compose -f taurus-be/src/main/docker/services.yml up --wait` avvia anche il servizio OMR, con la chiave di sviluppo già condivisa con il profilo `dev` del backend, e attende che tutti i servizi siano `healthy`.
 
 ### 5.2 CI effimera
 
@@ -106,7 +106,7 @@ Caratteristiche richieste:
 
 ### 5.3 Integrazione full-stack
 
-Deve contenere PostgreSQL 17, Keycloak 26.5.2 con provider e temi, RabbitMQ 4, servizio OMR, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
+Deve contenere PostgreSQL 17, Keycloak 26.6.4 con provider e temi, RabbitMQ 4, servizio OMR, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
 
 ### 5.4 Staging production-like
 
@@ -261,7 +261,7 @@ Set-Location keycloak-authenticator
 .\mvnw.cmd clean verify
 ```
 
-La suite esistente verifica solo metadata del factory e service descriptor. La qualificazione richiede anche i casi reali della sezione 12.
+La suite verifica metadata del factory e service descriptor e, per il provider `taurus-otp` della firma, l'autorizzazione e la verifica dei codici (`TaurusOtpTest`). Dopo il pacchetto `TaurusOtpResourceIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo e un realm di prova, e verifica stato dell'app, codice valido accettato una sola volta, codice errato e chiamanti non autorizzati: serve Docker. La qualificazione richiede anche i casi reali della sezione 12.
 
 ### 8.5 Servizio OMR
 
@@ -310,6 +310,7 @@ In un secondo terminale verificare `http://localhost:8088/health` e le pagine pr
 | RabbitMQ | Pubblicazione, consumo, redelivery, poison message, outage e recupero |
 | Frontend condiviso/layout | Tutti i ruoli, responsive, tastiera, temi, build e smoke browser |
 | Anteprima e stampa spartiti | Casi `PRV-*`, con stampa reale su almeno due browser e un documento per orientamento |
+| Firma elettronica | Casi `SIG-*` interessati, `SignatureIT`, `LoanSheetSignatureIT` e test di `service/signature`, specifiche delle finestre di firma e del codice, invio reale con Mailpit e con il server SMTP dell'ambiente, stampa del modello predefinito; per l'app di autenticazione anche `mvnw verify` di `keycloak-authenticator` |
 | Ascolto, riconoscimento e correzione delle parti | Casi `PLY-*` interessati, `ScorePlaybackIT` e `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, prova nel browser anche a larghezza di telefono |
 | Servizio OMR, motori o modelli | `pytest`, build dell'immagine, test di accuratezza sul corpus e, se cambiano i motori, `PLY-018` |
 | Keycloak provider/theme | Build JAR, avvio Keycloak reale, login, selezione tenant/ruolo e rendering temi |
@@ -361,7 +362,7 @@ Controllare la matrice ruolo × funzione almeno per super admin, admin, tesorier
 
 | ID | Caso | Risultato atteso |
 | --- | --- | --- |
-| `KC-001` | Installazione JAR su Keycloak 26.5.2 pulito | Provider rilevato senza errori SPI |
+| `KC-001` | Installazione JAR su Keycloak 26.6.4 pulito | Provider rilevato senza errori SPI |
 | `KC-002` | Import realm Taurus | Client, ruoli, flow e temi presenti |
 | `KC-003` | Utente con un tenant/un ruolo | Selezione automatica o flow previsto |
 | `KC-004` | Utente con più tenant/ruoli | Selettore completo, valori non manipolabili |
@@ -595,7 +596,70 @@ Riferimento: [Ascolto e correzione delle parti](track-score-playback-spec.md). B
 - `PLY-019 P1`: la CI di una modifica a `taurus-omr` costruisce l'immagine, misura l'accuratezza sul corpus e pubblica la tabella nel riepilogo del job; alzando il minimo di un motore oltre il risultato misurato il job fallisce.
 - `PLY-020 P1`: creando lo strumento «Corno in Mib» Taurus propone suono French Horn e trasposizione −9, che l'archivista prova con «Prova» e conferma; uno strumento senza proposta resta non configurato, le sue parti si ascoltano con l'avviso e compare nel filtro «Da configurare per l'ascolto».
 
-### 14.14 Errori applicativi
+### 14.14 Firma elettronica
+
+Riferimento: [Firma elettronica del foglio di affidamento e della presa visione](inventory-electronic-signature-spec.md). Backend e frontend sono automatizzati (`SignatureIT`, `LoanSheetSignatureIT`, `InventoryElectronicSignatureMigrationIT`, test unitari di `service/signature`, compresi `KeycloakOtpClientTest`, `LoanSheetSigningTest`, `CieSignVerifierTest` con una CA di prova e `CieSignServiceTest`, e `LoanSheetActsTest`, `SignatureSecurityConfigurationTest`, `TaurusOtpTest` e `TaurusOtpResourceIT` del provider Keycloak, specifiche di `signature-code-dialog/`, `signature-act-dialog/`, `own-signature-acts/`, `signature-method-settings/`, `signature.service`, della finestra di emissione e del modello del foglio); i casi seguenti richiedono un browser, Mailpit (`http://localhost:8025`) o una casella reale e un tenant di prova; quelli di CieSign anche una Carta d'Identità Elettronica reale con il PIN, l'app CieSign su Android e iOS o il Software CIE su PC con un lettore NFC, e i certificati della CIE configurati in `SIGNATURE_CIE_TRUST_ANCHORS`.
+
+- `SIG-001 P0`: con la firma disattivata la presa visione si conferma senza codice come prima; con la firma attiva l'endpoint diretto risponde `409` con `inventory.decision.signatureRequired` e le decisioni già registrate non cambiano.
+- `SIG-002 P0`: nella pagina del modello l'interruttore non attiva la firma finché un requisito dell'installazione è «Mancante»; con server di posta, chiave dei codici e sigillo configurati l'attivazione chiede conferma e riesce; due amministratori che cambiano l'impostazione insieme ricevono `signature.settings.versionConflict`.
+- `SIG-003 P0`: «Firma la scelta» nel dettaglio dell'assegnazione invia un codice di 6 cifre all'e-mail dell'utente; il messaggio riporta associazione, operazione, riferimento e scadenza e non contiene link; il codice corretto registra la scelta, il toast conferma la firma e la decisione mostra la firma.
+- `SIG-004 P0`: un codice errato mostra nella finestra i tentativi rimasti; al quinto errore la conferma si blocca; un codice scaduto, già usato o di un'altra conferma è rifiutato; dopo blocco, scadenza o chiusura la finestra propone «Richiedi un nuovo codice».
+- `SIG-005 P1`: «Invia un nuovo codice» resta disabilitato per 60 secondi con il conto alla rovescia, il nuovo codice sostituisce il precedente e dopo 5 invii la finestra lo segnala; la ventunesima conferma aperta in un'ora risponde con il tempo d'attesa.
+- `SIG-006 P1`: in «I miei oggetti» le consegne in possesso senza presa visione hanno la casella di selezione; «Accetta e firma» accetta tutte le selezionate con un solo codice e le dichiarazioni le elencano tutte; il rifiuto si conferma solo dal dettaglio, con la motivazione.
+- `SIG-007 P0`: se un amministratore modifica l'assegnazione dopo l'invio del codice, la conferma fallisce con `inventory.revision.versionConflict`, la finestra si chiude e i dati si ricaricano.
+- `SIG-008 P1`: con il server SMTP fermo la richiesta del codice risponde «Non è stato possibile inviare il codice via e-mail», la conferma è annullata e il log registra `signature_mail_failed` senza indirizzo né codice.
+- `SIG-009 P0`: `POST /api/inventory/signatures/verify-chain` conferma la catena del tenant; una prova modificata direttamente nel database, con il trigger disattivato, viene rilevata con la sequenza e il problema.
+- `SIG-010 P0`: la cancellazione GDPR di un utente rimuove dichiarazione, nome, e-mail, sessione, IP e user agent dalle sue prove, pseudonimizza i suoi firmatari ed elimina le sue conferme; la catena resta verificabile.
+- `SIG-011 P0`: conferme, atti e prove di un tenant non sono accessibili da un altro tenant; la conferma di un altro utente risponde `404`.
+- `SIG-012 P0`: nei log non compaiono codici, e-mail complete, token o hash dei codici.
+- `SIG-013 P0`: con la firma attiva e il modello predefinito, la finestra di emissione propone la firma elettronica per un socio maggiorenne con l'amministratore corrente come firmatario per l'Associazione; per il genitore o tutore, o con un modello senza marcatori, la modalità resta su carta con il motivo.
+- `SIG-014 P0`: il socio riceve la notifica, inserisce i dati (codice fiscale errato rifiutato, casella «Non ho un codice fiscale italiano» accettata), apre il documento, spunta la lettura e firma con il codice; la finestra si riapre per l'approvazione delle clausole con un nuovo codice.
+- `SIG-015 P0`: l'amministratore designato riceve la notifica e firma per l'Associazione; l'atto diventa «Firmato», documento, clausole e attestazione si scaricano e in Acrobat il sigillo risulta presente e il documento non modificato dopo la firma.
+- `SIG-016 P1`: consegna successiva, sostituzione, rinnovo e restituzione parziale creano ciascuna un atto di variazione con la sola riga dell'operazione; più variazioni si firmano insieme con un codice; la restituzione che lascia il foglio vuoto non crea un atto.
+- `SIG-017 P0`: alla chiusura nasce il verbale di riconsegna; firmato da entrambe le parti con esito senza addebiti, il foglio si definisce da solo e le variazioni non firmate vengono annullate.
+- `SIG-018 P1`: «Cambia firmatario» prima di ogni firma: sull'emissione con documenti pronti il socio deve reinserire i dati; dopo la prima firma il cambio è rifiutato; «Firmato su carta» con nota e codice dell'amministratore chiude l'atto.
+- `SIG-019 P0`: il fascicolo ZIP contiene una cartella per atto firmato con documenti sigillati e attestazione e un indice con le impronte SHA-256 corrispondenti ai file; gli atti su carta compaiono solo nell'indice; dopo il periodo di grazia (anticipato nel database) la pulizia elimina file e dati personali e il fascicolo risponde «eliminati da Taurus».
+- `SIG-020 P0`: la cancellazione GDPR di un socio con fogli elettronici e senza materiale in carico elimina subito documenti, attestazioni e dati personali delle prove dei suoi atti e il fascicolo risponde «eliminati da Taurus»; con materiale in carico l'eliminazione avviene al completamento della pratica, dopo la riconsegna. La catena resta verificabile.
+- `SIG-021 P0`: nel profilo, sezione **Firma elettronica**: con l'app non configurata «Configura app» porta alla configurazione di Keycloak e al ritorno lo stato è «Configurata»; scegliendo «App di autenticazione» prima di configurarla compare l'avviso che le firme useranno il codice via e-mail; al login successivo Keycloak chiede il codice dell'app.
+- `SIG-022 P0`: con l'app preferita e configurata la finestra del codice chiede il codice dell'app senza inviare e-mail (Mailpit vuoto); il codice corrente firma, lo stesso codice usato per una seconda firma è rifiutato come errato, un codice errato consuma un tentativo; nelle prove il metodo è «Codice dell'app di autenticazione».
+- `SIG-023 P1`: dalla finestra del codice «Ricevi il codice via e-mail» invia il codice e «Usa l'app di autenticazione» torna all'app; per un utente senza app configurata l'opzione dell'app non compare.
+- `SIG-024 P1`: con Keycloak fermo durante una firma con l'app la finestra spiega che l'app non si può verificare e propone l'e-mail, il log registra `signature_totp_unavailable` e la firma via e-mail riesce; senza `SIGNATURE_KEYCLOAK_CLIENT_SECRET` il profilo mostra l'app come non disponibile.
+- `SIG-025 P0`: emissione elettronica con Affidatario «Genitore o tutore»: senza e-mail del genitore l'emissione è bloccata; con l'e-mail Mailpit riceve «Firma richiesta» con il link `/firma/…` e la sezione **Firme** mostra il link inviato, con scadenza a 7 giorni.
+- `SIG-026 P0`: il link aperto in una finestra anonima mostra la pagina senza menu e senza login di Keycloak; il genitore inserisce i propri dati (un genitore minorenne è rifiutato) e il luogo di nascita del socio, legge i documenti e firma foglio e clausole con due codici ricevuti allo stesso indirizzo; il PDF dell'emissione riporta nome, data di nascita ed e-mail del genitore nella sezione 1.
+- `SIG-027 P0`: il socio minorenne riceve la notifica, vede l'emissione nel riquadro **Firme** con «Prendi visione» e la conferma con il proprio codice; dopo la firma per l'Associazione il link usato per firmare non si apre più («Collegamento non valido») e Mailpit riceve «Atto firmato» con un nuovo link da cui si scaricano documenti firmati e attestazione.
+- `SIG-028 P1`: dalla sezione **Firme** «Reinvia link» manda un nuovo link e quello precedente smette di funzionare; «Revoca link» lo disattiva; una consegna successiva invia al genitore il link della variazione; annullando il foglio il link della variazione non si apre più.
+- `SIG-029 P1`: un link scaduto senza firma (scadenza anticipata nel database) produce al passaggio orario dello scheduler una sola notifica «Link di firma scaduto» agli amministratori; più di 120 aperture in un'ora dello stesso link rispondono «Troppe richieste».
+- `SIG-030 P0`: all'avvio con i certificati della CIE il log elenca ogni certificato caricato (`signature_ciesign_trust_anchor`); senza `SIGNATURE_CIE_TRUST_ANCHORS` registra `signature_ciesign_not_configured` e la finestra di firma non propone CieSign; non la propone nemmeno a chi ha dichiarato di non avere un codice fiscale italiano, né all'amministratore che firma per l'Associazione o al socio minorenne.
+- `SIG-031 P0`: il socio maggiorenne, con il codice fiscale della propria CIE, sceglie «CieSign» nella finestra di firma, scarica il PDF, lo firma con l'app CieSign su Android e lo carica: la firma è registrata senza codice e la finestra si riapre per le clausole; le clausole si firmano con CieSign su iOS, oppure con il codice. Nelle prove il metodo è «CieSign» con certificato, emittente ed esito della revoca.
+- `SIG-032 P0`: lo stesso con il Software CIE su PC per un genitore dalla pagina pubblica, dove CieSign è indicato come consigliato; a firme complete il documento scaricato contiene la firma CieSign e il sigillo.
+- `SIG-033 P0`: in Acrobat Reader il documento sigillato mostra due firme: quella CieSign, valida se le CA della CIE sono tra le identità attendibili, e il sigillo; entrambe risultano senza modifiche dopo la firma. L'attestazione riporta soggetto, emittente, numero di serie e codice fiscale del certificato e l'esito del controllo di revoca.
+- `SIG-034 P0`: sono rifiutati nella finestra, con il motivo e senza registrare la firma: un PDF diverso firmato con CieSign («non è il documento scaricato»), il documento firmato e poi modificato o firmato due volte, il documento scaricato e ricaricato senza firma («non contiene una sola firma valida»), il documento firmato con la CIE di un'altra persona («La firma è di un'altra persona») e un file oltre 25 MB; dopo un rifiuto si può caricare un altro file o passare al codice.
+- `SIG-035 P1`: con l'indirizzo della CRL della CIE bloccato in uscita la firma CieSign riesce dopo al massimo 10 secondi, il log registra `signature_ciesign_revocation_unavailable`, la metrica `taurus_signature_ciesign_total{outcome="acceptedRevocationUnavailable"}` cresce e l'attestazione riporta «elenco di revoca non raggiungibile»; con la CRL raggiungibile la prova registra il certificato non revocato. Nei log non compaiono nomi, codici fiscali o dati del certificato.
+- `SIG-036 P0`: con un socio senza data di nascita nel profilo, «Inserisci i dati e firma» apre la finestra con l'avviso «Aggiungi la tua data di nascita» al posto dei campi e il pulsante «Vai al profilo»; dalla pagina **Profilo** il socio inserisce la data e salva; riaperta la firma, la data compare in sola lettura, i dati si salvano e il documento congelato riporta la data. Il genitore di un socio minorenne senza data di nascita vede nella pagina pubblica l'avviso di rivolgersi all'associazione; `PUT /holder-data` risponde `422 signature.holderData.birthDateMissing` finché la data manca.
+- `SIG-037 P0`: con un foglio emesso per un bene di cui il socio non ha preso visione, la riga dell'atto nel riquadro **Firme** indica la presa visione in attesa e la finestra di firma mostra l'avviso con «Chiudi» al posto di dati e documento; l'invio dei dati (`PUT /holder-data`), la richiesta del codice e il caricamento CieSign rispondono `409 signature.act.acknowledgmentsPending`, anche chiamati direttamente. Dopo «Accetta e firma» nell'elenco delle consegne la firma riesce. La firma per l'Associazione e la dichiarazione su carta non sono bloccate; una presa visione rifiutata non blocca la firma.
+- `SIG-038 P1`: nella dashboard, in «Da fare», il socio con un atto da firmare vede «Firma richiesta» con il numero degli atti e «Firma» apre «Il mio inventario» con il riquadro **Firme**; dopo le sue firme la voce scompare e compare all'amministratore che firma per l'Associazione, finché non firma anche lui.
+- `SIG-039 P0`: nella pagina del tenant «Fogli di affidamento» e «Firma elettronica» compaiono tra le estensioni con la loro dipendenza; dopo la migration i tenant con l'Inventario hanno i fogli attivi e la firma spenta. Spegnendo «Fogli di affidamento» la conferma elenca «Firma elettronica (per dipendenza)»; per gli utenti del tenant spariscono sezione dei fogli nel dettaglio utente, pulsante e pagina del modello, riquadri **Fogli di affidamento** e **Firme**, e le API dei fogli rispondono `403 tenantFeature.inventoryLoanSheet.disabled`, mentre rinnovo e sostituzione delle assegnazioni restano disponibili.
+- `SIG-040 P0`: con i fogli attivi e «Firma elettronica» spenta per il tenant, anche se l'interruttore della pagina del modello era acceso: l'emissione propone solo la carta, la presa visione si conferma senza codice, il riquadro **Firme**, la sezione **Firme** del foglio, le impostazioni della firma nel profilo e la voce **Firma richiesta** della dashboard non compaiono, le API della firma rispondono `403 tenantFeature.inventorySignature.disabled`, il link di un genitore risulta non valido e non arrivano notifiche degli atti. Riaccendendo la funzionalità tornano atti, documenti e fascicoli.
+
+Esecuzione del 2026-10-20, commit di base `f6bddebd` con le modifiche non ancora registrate del branch `feature/inventory-electronic-signature`. Stack locale separato dai servizi del checkout principale: copie dei database di sviluppo (`taurus_sig`, `taurus_keycloak_sig`), Keycloak 26.6.4 con il provider `taurus-otp` e il client `taurus-signature` aggiunto al realm esistente come descritto nel runbook operativo, Mailpit, backend del branch con `SPRING_DOCKER_COMPOSE_ENABLED=false`, frontend `npm start`. I flussi sono eseguiti con login reali di Keycloak (PKCE) verso le API e controllati nel browser per finestra di firma, pagina pubblica, sezione **Firme** e pagina del modello. Al posto delle CA della CIE è configurata come trust anchor una CA di prova, con certificati dei titolari nel formato della CIE e una CRL locale; il sigillo è quello temporaneo di sviluppo.
+
+| Caso | Esito | Note |
+| --- | --- | --- |
+| SIG-001…009 | `PASS` | SIG-006 attraverso le API, la selezione in «I miei oggetti» è coperta dai test frontend |
+| SIG-010 | `PASS` dopo correzione | ogni cancellazione GDPR di un utente del tenant rispondeva `500` |
+| SIG-011 | `PASS` | un solo tenant di sviluppo: verificata la conferma di un altro utente (`404`); l'isolamento tra tenant è coperto dai test di integrazione |
+| SIG-012 | `PASS` | ai livelli di log di produzione; il profilo `dev` stampa in debug gli argomenti dei metodi e i destinatari SMTP |
+| SIG-013…019 | `PASS` | sigillo, attestazione e fascicolo verificati con PDFBox e con le istruzioni dell'attestazione, senza Acrobat |
+| SIG-020 | `PASS` dopo correzione | senza materiale in carico i dati restavano fino al termine del periodo di grazia |
+| SIG-021…030 | `PASS` | SIG-029 con lo scheduler anticipato a ogni minuto |
+| SIG-031, SIG-032 | `PASS` con la CA di prova | da ripetere con una CIE reale, l'app CieSign e il Software CIE; la finestra di firma della pagina pubblica si bloccava ed è corretta |
+| SIG-033 | `NOT RUN` in Acrobat | integrità della firma CieSign e del sigillo verificata con PDFBox; attestazione con i dati del certificato |
+| SIG-034 | `PASS` dopo correzione | il documento senza firma rispondeva `documentMismatch`, il file oltre 25 MB non era contato nella metrica |
+| SIG-035 | `PASS` | CRL non raggiungibile: firma accettata in 10,2 secondi con `UNAVAILABLE` |
+
+Le correzioni sono descritte nelle decisioni della fase 6 della [specifica](inventory-electronic-signature-spec.md). Fuori dalla firma elettronica resta un log `ERROR` di `KeycloakServiceImpl` che riporta l'e-mail di un utente alla sua creazione.
+
+### 14.15 Errori applicativi
 
 Riferimento: [Standard degli errori applicativi](application-errors-standard.md).
 

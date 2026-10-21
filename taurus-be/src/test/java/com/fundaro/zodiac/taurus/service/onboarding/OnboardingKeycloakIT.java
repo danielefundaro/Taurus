@@ -40,7 +40,7 @@ class OnboardingKeycloakIT {
     private static final String PASSWORD = "onboarding-test-password";
 
     @Container
-    private static final GenericContainer<?> keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.5.2")
+    private static final GenericContainer<?> keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.6.4")
         .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
         .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD)
         .withCommand("start-dev")

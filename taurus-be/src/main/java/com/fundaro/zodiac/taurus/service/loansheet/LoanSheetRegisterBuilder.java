@@ -38,10 +38,26 @@ public final class LoanSheetRegisterBuilder {
     private LoanSheetRegisterBuilder() {
     }
 
-    public record Result(List<RegisterEntry> register, List<FinalReturnRow> finalRows, LocalDate finalDate) {
+    /**
+     * The register with, at the same positions, the origin of each row: {@link #assignmentKey}, {@link #renewalKey}
+     * or {@link #returnKey}.
+     */
+    public record Result(List<RegisterEntry> register, List<String> keys, List<FinalReturnRow> finalRows, LocalDate finalDate) {
     }
 
-    private record Timed(ZonedDateTime at, int order, RegisterEntry entry) {
+    private record Timed(ZonedDateTime at, int order, String key, RegisterEntry entry) {
+    }
+
+    public static String assignmentKey(Long assignmentId) {
+        return "assignment:" + assignmentId;
+    }
+
+    public static String renewalKey(Long renewalId) {
+        return "renewal:" + renewalId;
+    }
+
+    public static String returnKey(Long returnId) {
+        return "return:" + returnId;
     }
 
     public static Result build(
@@ -73,7 +89,7 @@ public final class LoanSheetRegisterBuilder {
             boolean substitution = assignment.getReplacesAssignmentId() != null;
             String label = itemLabel(item.getName(), assignment.getAssignedQuantity());
             if (substitution) label = label + " (sostituisce " + replacedLabel(assignment.getReplacesAssignmentId(), linesByAssignment, assignmentsById) + ")";
-            timed.add(new Timed(assignment.getAssignedAt(), 0, new RegisterEntry(
+            timed.add(new Timed(assignment.getAssignedAt(), 0, assignmentKey(assignment.getId()), new RegisterEntry(
                 LoanSheetSupport.localDate(assignment.getAssignedAt(), zone),
                 substitution ? "S" : "C",
                 label,
@@ -89,7 +105,7 @@ public final class LoanSheetRegisterBuilder {
             InventoryAssignment assignment = assignmentsById.get(renewal.getAssignment().getId());
             if (assignment == null) continue;
             InventoryItem item = assignment.getItem();
-            timed.add(new Timed(renewal.getInsertDate(), 1, new RegisterEntry(
+            timed.add(new Timed(renewal.getInsertDate(), 1, renewalKey(renewal.getId()), new RegisterEntry(
                 renewal.getRenewedOn(),
                 "N",
                 item.getName(),
@@ -109,7 +125,7 @@ public final class LoanSheetRegisterBuilder {
                 continue;
             }
             InventoryItem item = assignment.getItem();
-            timed.add(new Timed(inventoryReturn.getCompletedAt(), 2, new RegisterEntry(
+            timed.add(new Timed(inventoryReturn.getCompletedAt(), 2, returnKey(inventoryReturn.getId()), new RegisterEntry(
                 completedOn,
                 "R",
                 itemLabel(item.getName(), inventoryReturn.getQuantity()),
@@ -136,7 +152,7 @@ public final class LoanSheetRegisterBuilder {
                 notes.isEmpty() ? null : notes
             ));
         });
-        return new Result(timed.stream().map(Timed::entry).toList(), finalRows, finalDate);
+        return new Result(timed.stream().map(Timed::entry).toList(), timed.stream().map(Timed::key).toList(), finalRows, finalDate);
     }
 
     public static FinalReturn finalReturn(InventoryLoanSheet sheet, Result result) {

@@ -8,6 +8,8 @@ export interface UsersMeDTO {
     name?: string;
     lastName?: string;
     email?: string;
+    /** Data locale `yyyy-MM-dd`. */
+    birthDate?: string;
 }
 
 @Injectable({

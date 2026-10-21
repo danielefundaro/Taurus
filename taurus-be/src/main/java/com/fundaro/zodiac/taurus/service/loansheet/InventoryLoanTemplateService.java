@@ -7,9 +7,13 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanTemplate;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanTemplateOrigin;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanSettingsRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanTemplateRepository;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.PdfContent;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.*;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos;
+import com.fundaro.zodiac.taurus.service.signature.SignatureRequirementsService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
 import java.nio.charset.StandardCharsets;
@@ -20,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -44,6 +49,7 @@ public class InventoryLoanTemplateService {
     private final LoanSheetPdfRenderer renderer;
     private final LoanSheetTenantData tenantData;
     private final TenantTimeZoneService tenantTimeZoneService;
+    private final SignatureRequirementsService signatureRequirements;
 
     public InventoryLoanTemplateService(
         InventoryLoanTemplateRepository templateRepository,
@@ -51,7 +57,8 @@ public class InventoryLoanTemplateService {
         LoanTemplateDefaults defaults,
         LoanSheetPdfRenderer renderer,
         LoanSheetTenantData tenantData,
-        TenantTimeZoneService tenantTimeZoneService
+        TenantTimeZoneService tenantTimeZoneService,
+        SignatureRequirementsService signatureRequirements
     ) {
         this.templateRepository = templateRepository;
         this.settingsRepository = settingsRepository;
@@ -59,6 +66,7 @@ public class InventoryLoanTemplateService {
         this.renderer = renderer;
         this.tenantData = tenantData;
         this.tenantTimeZoneService = tenantTimeZoneService;
+        this.signatureRequirements = signatureRequirements;
     }
 
     public Overview overview(AbstractAuthenticationToken token) {
@@ -90,6 +98,32 @@ public class InventoryLoanTemplateService {
         settingsRepository.saveAndFlush(settings);
         LOG.info("inventory_loan_template_durations_updated min={} max={} renewal={} total={}",
             durations.minMonths(), durations.maxMonths(), durations.renewalMaxMonths(), durations.totalMaxMonths());
+        return toOverview(settings);
+    }
+
+    /**
+     * Enables or disables the electronic signature of the tenant. Enabling requires the SMTP server, the secret of the
+     * codes and the seal of the installation; disabling applies to new sheets and acknowledgments only.
+     */
+    public Overview updateSignature(SignatureDtos.SettingsUpdate request, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        InventoryLoanSettings settings = settings(actor);
+        if (settings.getEntityVersion() != request.entityVersion()) {
+            throw error(HttpStatus.CONFLICT, "Le impostazioni della firma sono state modificate da un'altra richiesta: ricaricare", "signature.settings.versionConflict");
+        }
+        boolean enabled = Boolean.TRUE.equals(request.enabled());
+        if (enabled && !settings.isElectronicSignatureEnabled()) {
+            SignatureDtos.Requirements requirements = signatureRequirements.requirements();
+            if (!requirements.satisfied()) {
+                throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
+                    .with("missing", requirements.missing());
+            }
+        }
+        settings.setElectronicSignatureEnabled(enabled);
+        settings.touchAudit(actor);
+        settingsRepository.saveAndFlush(settings);
+        LOG.info("inventory_electronic_signature_updated enabled={}", enabled);
         return toOverview(settings);
     }
 
@@ -259,6 +293,8 @@ public class InventoryLoanTemplateService {
             throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Il modello supera 2 MB", "inventory.loanTemplate.tooLarge").with("maxMegabytes", (int) (MAX_FILE_BYTES / (1024 * 1024)));
         }
         List<Issue> issues = new ArrayList<>(LoanTemplateValidator.validate(file.content(), renderer));
+        // The markers of the electronic signature matter only to the tenants that use it, and never block the template.
+        if (signatureFeature() && settings(actor(token)).isElectronicSignatureEnabled()) issues.addAll(LoanSheetActs.issues(file.content()));
         if (LoanTemplateValidator.hasBlockingIssues(issues)) {
             LOG.info("inventory_loan_template_rejected blockingIssues={}", issues.stream().filter(Issue::blocking).count());
             return new Verification(issues, null);
@@ -318,8 +354,21 @@ public class InventoryLoanTemplateService {
             settings.getEntityVersion(),
             versions,
             LoanSheetVariables.GROUPS,
-            new Limits(MAX_FILE_BYTES)
+            new Limits(MAX_FILE_BYTES),
+            new SignatureDtos.Settings(signatureFeature() && settings.isElectronicSignatureEnabled(), signatureRequirements.requirements(), LoanSheetActs.issues(currentContent(settings)))
         );
+    }
+
+    private TenantFeatureService tenantFeatureService;
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** The super administrator grants the electronic signature to the tenant, whose administrator then turns it on. */
+    private boolean signatureFeature() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE);
     }
 
     private static VersionSummary toSummary(InventoryLoanTemplate template, boolean active) {

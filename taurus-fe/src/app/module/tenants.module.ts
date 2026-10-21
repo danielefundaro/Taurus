@@ -27,5 +27,7 @@ export class Tenants extends CommonFieldsOpenSearch {
     webPushRemindersEnabled: boolean = false;
     eventPreparationEnabled: boolean = false;
     scorePlaybackEnabled: boolean = false;
+    inventoryLoanSheetEnabled: boolean = false;
+    inventorySignatureEnabled: boolean = false;
     entityVersion?: number;
 }

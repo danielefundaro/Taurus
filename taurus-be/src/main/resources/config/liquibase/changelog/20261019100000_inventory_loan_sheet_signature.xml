@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261019100000-1" author="taurus">
+    <comment>Signature mode of the loan sheet and the holder data kept for the verification of later signatures.</comment>
+    <addColumn tableName="inventory_loan_sheet">
+      <column name="signature_mode" type="varchar(16)" defaultValue="PAPER">
+        <constraints nullable="false"/>
+      </column>
+      <column name="holder_email" type="varchar(255)"/>
+      <column name="holder_name" type="varchar(255)"/>
+      <column name="holder_tax_code" type="varchar(16)"/>
+      <column name="holder_no_tax_code" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <sql>
+      ALTER TABLE inventory_loan_sheet
+        ADD CONSTRAINT ck_inventory_loan_sheet_signature_mode CHECK (signature_mode IN ('PAPER', 'ELECTRONIC'));
+    </sql>
+  </changeSet>
+
+  <changeSet id="20261019100000-2" author="taurus">
+    <comment>
+      A declaration of paper signature can close an act still waiting for its data, without documents, and is made by an
+      administrator who is not necessarily a signer of the act.
+    </comment>
+    <dropNotNullConstraint tableName="signature_evidence" columnName="document_id" columnDataType="bigint"/>
+    <dropNotNullConstraint tableName="signature_evidence" columnName="signer_id" columnDataType="bigint"/>
+    <dropNotNullConstraint tableName="signature_evidence" columnName="document_hash" columnDataType="varchar(64)"/>
+  </changeSet>
+</databaseChangeLog>

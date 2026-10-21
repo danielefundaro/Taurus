@@ -30,8 +30,80 @@ public record LoanSheetContent(
     LocalDate authorizationDate,
     String associationSignatoryName,
     List<RegisterEntry> register,
-    FinalReturn finalReturn
+    FinalReturn finalReturn,
+    Signature signature
 ) {
+
+    /**
+     * Content of a sheet printed on paper, or of a copy for consultation.
+     */
+    public LoanSheetContent(
+        boolean preview,
+        Tenant tenant,
+        String sheetNumber,
+        Durations durations,
+        InventoryLoanHolderRole holderRole,
+        String memberName,
+        String memberLastName,
+        LocalDate memberBirthDate,
+        String memberEmail,
+        List<Line> lines,
+        LocalDate issuedOn,
+        String place,
+        String authorizationReference,
+        LocalDate authorizationDate,
+        String associationSignatoryName,
+        List<RegisterEntry> register,
+        FinalReturn finalReturn
+    ) {
+        this(preview, tenant, sheetNumber, durations, holderRole, memberName, memberLastName, memberBirthDate, memberEmail, lines, issuedOn, place,
+            authorizationReference, authorizationDate, associationSignatoryName, register, finalReturn, null);
+    }
+
+    /**
+     * An act signed electronically: {@code act} is one of the values of {@link LoanSheetActs}, {@code holder} the data
+     * entered by the holder before signing the issue, {@code graceDays} the days the signed acts stay downloadable.
+     */
+    public record Signature(String act, HolderData holder, int graceDays) {
+    }
+
+    /**
+     * Data of sections 1 and 2 entered by the holder instead of filling in the paper form. A parent or guardian enters
+     * also the own name and date of birth; {@code holderEmail} is the address registered at issue.
+     */
+    public record HolderData(
+        String birthPlace,
+        String residence,
+        String postalCode,
+        String cityProvince,
+        String taxCode,
+        String document,
+        String documentIssuedBy,
+        LocalDate documentIssuedOn,
+        String phone,
+        String minorBirthPlace,
+        String holderName,
+        LocalDate holderBirthDate,
+        String holderEmail
+    ) {
+        /**
+         * The data entered by the adult member.
+         */
+        public HolderData(
+            String birthPlace,
+            String residence,
+            String postalCode,
+            String cityProvince,
+            String taxCode,
+            String document,
+            String documentIssuedBy,
+            LocalDate documentIssuedOn,
+            String phone,
+            String minorBirthPlace
+        ) {
+            this(birthPlace, residence, postalCode, cityProvince, taxCode, document, documentIssuedBy, documentIssuedOn, phone, minorBirthPlace, null, null, null);
+        }
+    }
 
     /**
      * Data of the tenant; {@code logo} is a {@code data:} URI, or {@code null} when it is missing or not needed.

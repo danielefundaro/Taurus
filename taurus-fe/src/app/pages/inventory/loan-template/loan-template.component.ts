@@ -1,19 +1,36 @@
 import { Component, OnInit } from '@angular/core';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { finalize, first, Observable } from 'rxjs';
 import { loanTemplateIssueMessage } from '../../../constants';
 import { ImportsModule } from '../../../imports';
-import { InventoryLoanDurations, InventoryLoanTemplateCheck, InventoryLoanTemplateFile, InventoryLoanTemplateOverview, InventoryLoanTemplateVariable, InventoryLoanTemplateVariableType, InventoryLoanTemplateVersion } from '../../../module';
-import { ConfirmService, InventoryService, ToastService, withErrorSummary } from '../../../service';
+import {
+    InventoryLoanDurations,
+    InventoryLoanTemplateCheck,
+    InventoryLoanTemplateFile,
+    InventoryLoanTemplateOverview,
+    InventoryLoanTemplateVariable,
+    InventoryLoanTemplateVariableType,
+    InventoryLoanTemplateVersion,
+    SignatureRequirements
+} from '../../../module';
+import { ConfirmService, InventoryService, TenantFeatureService, ToastService, withErrorSummary } from '../../../service';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 
 const DEFAULT_FILE_NAME = 'foglio-affidamento-modello-predefinito.html';
 const PREVIEW_FAILED = 'Anteprima non disponibile';
 const ACTIVATION_FAILED = 'Attivazione non riuscita';
 
+/** Requisiti della firma elettronica che dipendono dall'installazione, non dall'associazione. */
+const SIGNATURE_REQUIREMENTS: { key: keyof SignatureRequirements; label: string; ready: string; missing: string }[] = [
+    { key: 'mail', label: 'Server di posta', ready: 'I codici vengono inviati via e-mail.', missing: 'L’installazione non ha un server di posta configurato.' },
+    { key: 'codes', label: 'Chiave dei codici', ready: 'I codici sono protetti dalla chiave dell’installazione.', missing: 'Manca la chiave segreta con cui l’installazione protegge i codici.' },
+    { key: 'seal', label: 'Certificato del sigillo', ready: 'I documenti firmati vengono sigillati dall’installazione.', missing: 'Manca il certificato con cui l’installazione sigilla i documenti firmati.' }
+];
+
 @Component({
     selector: 'app-inventory-loan-template',
     standalone: true,
-    imports: [ImportsModule],
+    imports: [ImportsModule, ToggleSwitchModule],
     templateUrl: './loan-template.component.html'
 })
 export class InventoryLoanTemplateComponent extends DetailPageBase implements OnInit {
@@ -23,6 +40,8 @@ export class InventoryLoanTemplateComponent extends DetailPageBase implements On
     protected fileSize = 0;
     protected check?: InventoryLoanTemplateCheck;
     protected checking = false;
+    /** Valore dell'interruttore della firma, riportato a quello salvato se l'utente annulla o il salvataggio fallisce. */
+    protected signatureDraft = false;
     /** Azione in corso, per mostrare l'avanzamento sul pulsante che l'ha avviata. */
     protected busy?: string;
     protected override readonly formUnitLabel = 'regole di durata';
@@ -44,12 +63,17 @@ export class InventoryLoanTemplateComponent extends DetailPageBase implements On
         'Non sono ammessi l’inserimento senza conversione ({{{…}}} o {{&…}}), l’inclusione di altri modelli ({{>…}}) e il cambio dei delimitatori.'
     ];
 
+    /** La sezione della firma elettronica compare solo se il tenant ha la funzionalità. */
+    protected readonly inventorySignatureEnabled;
+
     constructor(
         private readonly inventoryService: InventoryService,
         private readonly toastService: ToastService,
-        private readonly confirmService: ConfirmService
+        private readonly confirmService: ConfirmService,
+        tenantFeatureService: TenantFeatureService
     ) {
         super();
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 
     ngOnInit(): void {
@@ -159,6 +183,52 @@ export class InventoryLoanTemplateComponent extends DetailPageBase implements On
         });
     }
 
+    protected get signatureRequirements(): { label: string; detail: string; ready: boolean }[] {
+        const requirements = this.overview?.signature.requirements;
+        return SIGNATURE_REQUIREMENTS.map((requirement) => {
+            const ready = !!requirements?.[requirement.key];
+            return { label: requirement.label, detail: ready ? requirement.ready : requirement.missing, ready };
+        });
+    }
+
+    protected get signatureReady(): boolean {
+        return this.signatureRequirements.every((requirement) => requirement.ready);
+    }
+
+    /** Attiva o disattiva la firma elettronica delle prese visione dopo la conferma dell'amministratore. */
+    protected changeSignature(enabled: boolean): void {
+        const overview = this.overview;
+        if (!overview || enabled === overview.signature.enabled) return;
+        const revert = () => (this.signatureDraft = this.overview?.signature.enabled ?? false);
+        this.confirmService.confirmReversible({
+            title: enabled ? 'Attiva la firma elettronica' : 'Disattiva la firma elettronica',
+            consequence: enabled
+                ? 'Da ora gli utenti confermano le prese visione con un codice di 6 cifre inviato al loro indirizzo e-mail. Le scelte già registrate non cambiano.'
+                : 'Le prese visione torneranno a essere confermate senza codice. Le firme già registrate restano valide e verificabili.',
+            actionLabel: enabled ? 'Attiva' : 'Disattiva',
+            accept: () => {
+                this.busy = 'signature';
+                this.inventoryService
+                    .updateLoanTemplateSignature(enabled, overview.settingsVersion, withErrorSummary(enabled ? 'Firma elettronica non attivata' : 'Firma elettronica non disattivata'))
+                    .pipe(
+                        first(),
+                        finalize(() => (this.busy = undefined))
+                    )
+                    .subscribe({
+                        next: (updated) => {
+                            this.toastService.success(
+                                enabled ? 'Firma elettronica attivata' : 'Firma elettronica disattivata',
+                                enabled ? 'Le prese visione si confermano con un codice, via e-mail o dall’app di autenticazione.' : 'Le prese visione si confermano senza codice.'
+                            );
+                            this.apply(updated);
+                        },
+                        error: revert
+                    });
+            },
+            reject: revert
+        });
+    }
+
     protected saveDurations(): void {
         if (!this.overview || !this.isDirty) return;
         this.saving = true;
@@ -205,6 +275,7 @@ export class InventoryLoanTemplateComponent extends DetailPageBase implements On
 
     private apply(overview: InventoryLoanTemplateOverview): void {
         this.overview = overview;
+        this.signatureDraft = overview.signature.enabled;
         if (!this.isDirty) this.durations = { ...overview.durations };
     }
 

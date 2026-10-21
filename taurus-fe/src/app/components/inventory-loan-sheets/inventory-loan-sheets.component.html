@@ -1,4 +1,4 @@
-<app-detail-section heading="Fogli di affidamento" [count]="loading ? undefined : sheets.length" description="Contratti di comodato da stampare e far firmare. Residenza, codice fiscale e documento si compilano a mano sulla copia stampata.">
+<app-detail-section heading="Fogli di affidamento" [count]="loading ? undefined : sheets.length" description="Contratti di comodato, firmati su carta oppure elettronicamente in Taurus con un codice o con CieSign.">
     <div sectionActions>
         <p-button
             label="Emetti foglio"
@@ -49,6 +49,9 @@
                 </td>
                 <td>
                     <p-tag [value]="statusLabel(sheet.status)" [severity]="statusSeverity(sheet.status)" />
+                    @if (sheet.signatureMode === 'ELECTRONIC') {
+                        <p-tag class="ml-1" value="Firma elettronica" severity="info" />
+                    }
                     @if (sheet.personalDataPurged) {
                         <div class="text-xs text-surface-500 mt-1">Dati personali rimossi</div>
                     }
@@ -59,7 +62,14 @@
                     <div class="flex flex-wrap justify-end gap-1">
                         <p-button icon="pi pi-list" [label]="detail?.summary?.id === sheet.id ? 'Nascondi' : 'Dettaglio'" size="small" [text]="true" (onClick)="showDetail(sheet)" />
                         @if (!sheet.personalDataPurged && sheet.status !== 'CANCELLED') {
-                            <p-button icon="pi pi-file-pdf" label="PDF" size="small" [text]="true" (onClick)="download(sheet)" />
+                            <p-button
+                                icon="pi pi-file-pdf"
+                                [label]="sheet.signatureMode === 'ELECTRONIC' ? 'Copia' : 'PDF'"
+                                [pTooltip]="sheet.signatureMode === 'ELECTRONIC' ? 'Copia di consultazione non firmata: i documenti firmati sono nella sezione Firme del dettaglio' : undefined"
+                                size="small"
+                                [text]="true"
+                                (onClick)="download(sheet)"
+                            />
                         }
                         @if (sheet.status === 'ISSUED') {
                             <p-button
@@ -91,6 +101,9 @@
 
     @if (detail) {
         <div class="mt-6 flex flex-col gap-6">
+            @if (detail.summary.signatureMode === 'ELECTRONIC' && inventorySignatureEnabled()) {
+                <app-loan-sheet-signatures [sheetId]="detail.summary.id" [userIndex]="userIndex" [sheetNumber]="detail.summary.sheetNumber" (changed)="refreshDetail()" />
+            }
             <div>
                 <h3 class="text-base font-semibold mb-2">Beni consegnati (sezione 3)</h3>
                 <p-table [value]="detail.lines" responsiveLayout="scroll">

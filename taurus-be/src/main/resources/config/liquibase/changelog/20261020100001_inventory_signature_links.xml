@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261020100001-1" author="taurus">
+    <comment>
+      Links sent by e-mail to a parent or guardian without an account, one signer of one act each. Only a fingerprint of
+      the token is kept here; its digest is in the public registry.
+    </comment>
+    <createTable tableName="signature_link">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="signer_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="token_fingerprint" type="varchar(8)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="expires_at" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="revoked_at" type="timestamp with time zone"/>
+      <column name="sent_at" type="timestamp with time zone"/>
+      <column name="last_used_at" type="timestamp with time zone"/>
+      <column name="expiry_notified_at" type="timestamp with time zone"/>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="signature_link" baseColumnNames="signer_id"
+                             referencedTableName="signature_act_signer" referencedColumnNames="id"
+                             constraintName="fk_signature_link_signer" onDelete="RESTRICT"/>
+    <createIndex tableName="signature_link" indexName="idx_signature_link_signer">
+      <column name="signer_id"/>
+    </createIndex>
+
+    <addColumn tableName="signature_challenge">
+      <column name="link_id" type="bigint"/>
+    </addColumn>
+    <addForeignKeyConstraint baseTableName="signature_challenge" baseColumnNames="link_id"
+                             referencedTableName="signature_link" referencedColumnNames="id"
+                             constraintName="fk_signature_challenge_link" onDelete="RESTRICT"/>
+  </changeSet>
+
+  <changeSet id="20261020100001-2" author="taurus" dbms="postgresql">
+    <comment>A challenge belongs to an authenticated user or to a link; links still to be notified when they expire.</comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER TABLE signature_challenge
+        ADD CONSTRAINT ck_signature_challenge_owner CHECK (user_keycloak_id IS NOT NULL OR link_id IS NOT NULL);
+      CREATE INDEX idx_signature_challenge_link ON signature_challenge (link_id) WHERE link_id IS NOT NULL;
+      CREATE INDEX idx_signature_link_expiry ON signature_link (expires_at)
+        WHERE revoked_at IS NULL AND expiry_notified_at IS NULL AND deleted = false;
+      ]]></sql>
+  </changeSet>
+</databaseChangeLog>

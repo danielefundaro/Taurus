@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { TenantFeature } from '../module';
 import { TenantFeatureService } from './tenant-feature.service';
 import { TenantStatusService } from './tenant-status.service';
 
@@ -74,6 +75,23 @@ describe('TenantFeatureService', () => {
         expect(service.financeEnabled()).toBeFalse();
     });
 
+    it('exposes the loan sheets and the electronic signature as computed by the backend', async () => {
+        const result = firstValueFrom(service.refresh());
+        http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({
+            tenantCode: 'A',
+            version: 3,
+            inventoryEnabled: true,
+            inventoryLoanSheetEnabled: true,
+            inventorySignatureEnabled: false
+        });
+        await result;
+
+        expect(service.inventoryLoanSheetEnabled()).toBeTrue();
+        expect(service.inventorySignatureEnabled()).toBeFalse();
+        expect(service.isEnabled(TenantFeature.INVENTORY_LOAN_SHEET)).toBeTrue();
+        expect(service.isEnabled(TenantFeature.INVENTORY_SIGNATURE)).toBeFalse();
+    });
+
     it('turns every feature off without calling the backend while the tenant has no schema', async () => {
         const status = firstValueFrom(TestBed.inject(TenantStatusService).load());
         http.expectOne(`${environment.baseUrl}/tenant-status`).flush({ tenantCode: 'temp', provisioned: false });
@@ -85,6 +103,8 @@ describe('TenantFeatureService', () => {
         expect(features.tenantCode).toBe('temp');
         expect(features.financeEnabled).toBeFalse();
         expect(features.inventoryEnabled).toBeFalse();
+        expect(features.inventoryLoanSheetEnabled).toBeFalse();
+        expect(features.inventorySignatureEnabled).toBeFalse();
         expect(service.loaded()).toBeFalse();
     });
 });

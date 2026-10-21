@@ -1,0 +1,88 @@
+{
+  "realm": "otp-test",
+  "enabled": true,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpPolicyCodeReusable": false,
+  "roles": {
+    "client": {
+      "taurus-signature": [
+        {
+          "name": "otp-verifier",
+          "description": "Verifies the authentication app codes of the electronic signature"
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "taurus-signature",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "signature-test-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "other-service",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "other-test-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-taurus-signature",
+      "enabled": true,
+      "serviceAccountClientId": "taurus-signature",
+      "clientRoles": {
+        "taurus-signature": ["otp-verifier"]
+      }
+    },
+    {
+      "username": "service-account-other-service",
+      "enabled": true,
+      "serviceAccountClientId": "other-service"
+    },
+    {
+      "id": "6f1d3c0e-8b9a-4a51-9a51-0b2c6d7e8f01",
+      "username": "mario",
+      "email": "mario@example.org",
+      "firstName": "Mario",
+      "lastName": "Rossi",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "otp",
+          "userLabel": "Telefono",
+          "secretData": "{\"value\":\"taurus-otp-test-secret-0001\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "id": "6f1d3c0e-8b9a-4a51-9a51-0b2c6d7e8f02",
+      "username": "luigi",
+      "email": "luigi@example.org",
+      "firstName": "Luigi",
+      "lastName": "Verdi",
+      "enabled": true,
+      "emailVerified": true
+    }
+  ]
+}

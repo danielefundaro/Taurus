@@ -100,6 +100,7 @@ Categorie iniziali:
 - `inventory-returns` per le fotografie delle riconsegne;
 - `inventory-reports` per i PDF del proforma inventario, rimosso: i media esistenti sono marcati come eliminati;
 - `inventory-loan-sheets` per i fogli di affidamento generati;
+- `signature-acts` per i documenti degli atti firmati elettronicamente (congelati, sigillati, firmati con CieSign) e le loro attestazioni, referenziati da `signature_document` e `signature_act`; restano finché il foglio non è definito o annullato e poi per il periodo di grazia della [firma elettronica](inventory-electronic-signature-spec.md#ciclo-di-vita-del-foglio);
 - `financial-attachments` per gli allegati dei movimenti finanziari.
 
 Il nome originale non viene usato per determinare directory o nome fisico. L'estensione deriva dal contenuto riconosciuto dal server. La chiave non può essere fornita o modificata dal client e deve essere normalizzata e verificata prima di ogni accesso al filesystem.

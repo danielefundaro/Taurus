@@ -18,6 +18,7 @@ describe('InventoryLoanSheetIssueDialogComponent', () => {
             { assignmentId: 3, itemId: 30, itemName: 'Clarinetto', inventoryNumber: 'INV-3', loanType: 'FIXED_TERM', outstandingQuantity: 1, assignedOn: '2026-09-28', expirationDate: '2028-09-28', issues: [] },
             { assignmentId: 4, itemId: 40, itemName: 'Leggio', inventoryNumber: 'INV-4', outstandingQuantity: 1, assignedOn: '2026-09-28', issues: [{ assignmentId: 4, code: 'missingLoanType', args: {} }] }
         ],
+        signature: { enabled: false, templateSignable: true, associationSigners: [] },
         ...overrides
     });
 
@@ -45,8 +46,57 @@ describe('InventoryLoanSheetIssueDialogComponent', () => {
             holderRole: 'MEMBER',
             authorizationReference: undefined,
             authorizationDate: undefined,
-            associationSignatoryName: 'Anna Verdi'
+            associationSignatoryName: 'Anna Verdi',
+            signatureMode: 'PAPER',
+            associationSignerId: undefined,
+            holderEmail: undefined
         });
+    });
+
+    it('proposes the electronic signature with the current administrator signing for the association', () => {
+        const signature = { enabled: true, templateSignable: true, associationSigners: [{ userId: 'admin-1', displayName: 'Anna Verdi' }], defaultAssociationSignerId: 'admin-1' };
+        const { component, close } = create(proposal({ signature }));
+        component['selected'][4] = false;
+
+        expect(component['electronic']).toBeTrue();
+        component['save']();
+        expect(close).toHaveBeenCalledWith(jasmine.objectContaining({ signatureMode: 'ELECTRONIC', associationSignerId: 'admin-1', associationSignatoryName: undefined }));
+
+        component['associationSignerId'] = undefined;
+        expect(component['invalidCount']).toBe(1);
+    });
+
+    it('asks the address of a parent or guardian who signs from the link', () => {
+        const signature = { enabled: true, templateSignable: true, associationSigners: [{ userId: 'admin-1', displayName: 'Anna Verdi' }], defaultAssociationSignerId: 'admin-1' };
+        const { component, close } = create(proposal({ signature }));
+        component['selected'][4] = false;
+        component['holderRole'] = 'GUARDIAN';
+        component['onRoleChange']();
+
+        expect(component['electronic']).toBeTrue();
+        expect(component['guardianLink']).toBeTrue();
+        expect(component['invalidCount']).toBe(1);
+        expect(component['holderEmailError']).toContain('genitore o tutore');
+
+        component['holderEmail'] = 'genitore@';
+        expect(component['holderEmailError']).toContain('valido');
+        component['save']();
+        expect(close).not.toHaveBeenCalled();
+
+        component['holderEmail'] = ' genitore@example.org ';
+        expect(component['invalidCount']).toBe(0);
+        component['save']();
+        expect(close).toHaveBeenCalledWith(jasmine.objectContaining({ holderRole: 'GUARDIAN', signatureMode: 'ELECTRONIC', holderEmail: 'genitore@example.org' }));
+    });
+
+    it('keeps on paper the sheets of templates that cannot be signed', () => {
+        const signature = { enabled: true, templateSignable: false, associationSigners: [], defaultAssociationSignerId: undefined };
+        const { component } = create(proposal({ signature }));
+
+        expect(component['electronic']).toBeFalse();
+        expect(component['signatureMode']).toBe('PAPER');
+        expect(component['electronicUnavailableReason']).toContain('non è firmabile');
+        expect(component['request']().holderEmail).toBeUndefined();
     });
 
     it('requires the holder role when the birth date is unknown', () => {

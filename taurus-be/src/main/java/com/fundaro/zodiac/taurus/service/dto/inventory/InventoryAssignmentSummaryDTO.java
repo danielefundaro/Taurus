@@ -23,6 +23,7 @@ public record InventoryAssignmentSummaryDTO(
     ZonedDateTime assignedAt,
     InventoryAssignmentStatus status,
     int revision,
+    String revisionHash,
     ZonedDateTime revisionDate,
     InventoryDecisionDTO decision,
     InventoryPhotoDTO photo

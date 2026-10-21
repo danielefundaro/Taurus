@@ -1,0 +1,29 @@
+.signature-declarations {
+    margin: 1.25rem 0;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-hover-background);
+
+    h3 {
+        margin: 0 0 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    ul {
+        margin: 0;
+        padding-left: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        max-height: 14rem;
+        overflow-y: auto;
+    }
+}
+
+:host ::ng-deep .p-inputotp {
+    flex-wrap: wrap;
+}

@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { ApiErrorService, KeycloakService, LoadingService, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
+import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -31,6 +31,20 @@ export class HttpInterceptorService implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         if (this._isFreeRoute(req.url)) {
             return next.handle(req);
+        }
+
+        if (req.url.includes(PUBLIC_SIGNATURE_API)) {
+            // Public signature page of a parent: no token and no login, errors are shown as elsewhere.
+            return next.handle(req).pipe(
+                catchError((error: HttpErrorResponse) =>
+                    this.apiErrorService.readBody(error).pipe(
+                        switchMap((readable) => {
+                            this.notify(this.apiErrorService.resolve(readable, req));
+                            return throwError(() => readable);
+                        })
+                    )
+                )
+            );
         }
 
         if (!this.keycloakService.isUserLoggedIn) {

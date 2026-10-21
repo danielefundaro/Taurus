@@ -99,4 +99,16 @@ describe('OperationsWidgetComponent', () => {
 
         expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/calendar?attention=event-preparation');
     });
+
+    it('opens the personal inventory, with the signatures box, for a required signature', () => {
+        component['navigate']({
+            ...item,
+            key: 'INVENTORY_SIGNATURE_REQUIRED',
+            type: 'INVENTORY_SIGNATURE_REQUIRED',
+            domain: 'INVENTORY',
+            targetPath: '/inventory?view=mine'
+        });
+
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/inventory?view=mine');
+    });
 });

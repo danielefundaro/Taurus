@@ -17,17 +17,11 @@
     }
 }
 
+/* La fotografia è un p-image con anteprima ingrandita: dimensioni e ritaglio stanno nel suo imageClass. */
 .inventory-photo {
     overflow: hidden;
     border: 1px solid var(--surface-border);
     border-radius: var(--content-border-radius);
-
-    >img {
-        width: 100%;
-        height: 10rem;
-        object-fit: cover;
-        display: block;
-    }
 }
 
 .inventory-photo-preview {
@@ -79,6 +73,21 @@
 
     i {
         font-size: 2rem;
+    }
+}
+
+.assign-action {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    // Occupa il posto dell’etichetta dei campi accanto: il pulsante resta allineato alle caselle anche con i suggerimenti sotto.
+    @media (min-width: 768px) {
+        &::before {
+            content: '\00a0';
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
     }
 }
 

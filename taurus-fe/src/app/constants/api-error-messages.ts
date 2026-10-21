@@ -59,6 +59,46 @@ const objects = (value: ApiErrorArgValue): ApiErrorArgs[] => (Array.isArray(valu
 const listOf = (value: ApiErrorArgValue): ApiErrorArgValue[] => (Array.isArray(value) ? value : []);
 const issueOf = (value: ApiErrorArgs): ApiErrorIssue => ({ code: formatApiErrorValue(value['code']), args: isArgs(value['args']) ? value['args'] : {} });
 
+/** Requirements of the installation missing for the electronic signature (`signature.settings.requirementsMissing`). */
+const SIGNATURE_REQUIREMENTS: Readonly<Record<string, string>> = {
+    mail: 'il server di posta',
+    codes: 'la chiave dei codici di conferma',
+    seal: 'il certificato del sigillo'
+};
+
+/** Fields of the holder data (`signature.holderData.invalid`). */
+export const SIGNATURE_HOLDER_FIELDS: Readonly<Record<string, string>> = {
+    birthPlace: 'luogo di nascita',
+    residence: 'residenza',
+    postalCode: 'CAP',
+    cityProvince: 'città e provincia',
+    taxCode: 'codice fiscale',
+    document: 'documento',
+    documentIssuedBy: 'ente di rilascio del documento',
+    documentIssuedOn: 'data di rilascio del documento',
+    minorBirthPlace: 'luogo di nascita del socio minorenne',
+    holderFirstName: 'nome del genitore o tutore',
+    holderLastName: 'cognome del genitore o tutore',
+    holderBirthDate: 'data di nascita del genitore o tutore, maggiorenne'
+};
+
+/** Acts of a sheet named by the signature markers (`signatureActEmpty`). */
+const SIGNATURE_ACTS: Readonly<Record<string, string>> = {
+    issue: 'emissione',
+    variation: 'variazione',
+    return: 'riconsegna'
+};
+
+/** Waiting time in seconds, or in minutes when longer than two minutes. */
+const waitingTime = (value: ApiErrorArgValue): string => {
+    const seconds = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(seconds) || seconds <= 0) return 'qualche secondo';
+    return seconds > 120 ? `${Math.ceil(seconds / 60)} minuti` : `${seconds} secondi`;
+};
+
+/** Joins the items of a list as «a, b e c». */
+const sentenceList = (values: string[]): string => (values.length <= 1 ? values.join('') : `${values.slice(0, -1).join(', ')} e ${values[values.length - 1]}`);
+
 /** Texts of the `reason` of `scorePlayback.upload.invalid`. */
 const MUSICXML_PROBLEMS: Readonly<Record<string, string>> = {
     empty: 'Il file è vuoto',
@@ -129,6 +169,8 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'tenantFeature.webPushReminders.disabled': 'La funzionalità Promemoria eventi Web Push non è disponibile per questo tenant',
     'tenantFeature.eventPreparation.disabled': 'La funzionalità Preparazione evento non è disponibile per questo tenant',
     'tenantFeature.scorePlayback.disabled': 'La funzionalità Ascolto delle parti non è disponibile per questo tenant',
+    'tenantFeature.inventoryLoanSheet.disabled': 'La funzionalità Fogli di affidamento non è disponibile per questo tenant',
+    'tenantFeature.inventorySignature.disabled': 'La funzionalità Firma elettronica non è disponibile per questo tenant',
 
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',
@@ -187,6 +229,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'inventory.revision.versionConflict': "I dati dell'assegnazione sono cambiati: ricaricare prima di confermare",
     'inventory.decision.immutable': 'La scelta per questa revisione è già definitiva',
     'inventory.decision.reasonRequired': 'La motivazione del rifiuto è obbligatoria',
+    'inventory.decision.signatureRequired': 'La presa visione ora richiede la conferma con codice: ricaricare la pagina',
     'inventory.revision.missing': SERVER_ERROR_TEXT.detail,
     'inventory.revision.createFailed': SERVER_ERROR_TEXT.detail,
     'inventory.return.notFound': 'Riconsegna non trovata',
@@ -248,6 +291,9 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'inventory.loanSheet.cancelled': 'Il foglio di affidamento è stato annullato',
     'inventory.loanSheet.purged': 'I dati personali del foglio sono stati rimossi: il PDF non è più disponibile',
     'inventory.loanSheet.tooLarge': 'Il foglio di affidamento generato supera {maxMegabytes} MB',
+    'inventory.loanSheet.signatureDisabled': "La firma elettronica non è attiva nell'associazione: emettere il foglio su carta",
+    'inventory.loanSheet.holderEmailRequired': "Per la firma elettronica serve l'indirizzo e-mail dell'Affidatario",
+    'inventory.loanSheet.templateNotSignable': 'Il modello in uso non è firmabile elettronicamente: correggere i marcatori nella pagina del modello o emettere il foglio su carta',
     'inventory.loanDuration.missingLoanType': "L'oggetto non ha il regime di comodato: indicarlo nella scheda dell'oggetto",
     'inventory.loanDuration.precariousExpiration': 'Un bene in comodato precario non può avere una data di scadenza',
     'inventory.loanDuration.missingExpiration': 'La data di scadenza è obbligatoria per gli strumenti in comodato con scadenza',
@@ -271,6 +317,52 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
             .map((problem) => LOAN_SETTINGS_PROBLEMS[formatApiErrorValue(problem)] ?? formatApiErrorValue(problem))
             .join('; ')}`,
     'inventory.loanSettings.versionConflict': "Le regole di durata sono state modificate da un'altra richiesta: ricaricare la pagina",
+
+    // Electronic signature
+    'signature.disabled': "La firma elettronica non è attiva nell'associazione",
+    'signature.challenge.invalid': 'La richiesta di firma non è valida: ricaricare la pagina e riprovare',
+    'signature.challenge.notFound': 'Richiesta di firma non trovata',
+    'signature.challenge.closed': 'La richiesta di firma è già chiusa: ricominciare la firma',
+    'signature.challenge.expired': 'Il codice è scaduto: richiederne uno nuovo',
+    'signature.challenge.locked': 'Troppi codici errati: ricominciare la firma',
+    'signature.challenge.invalidCode': (args) => (args['remainingAttempts'] === 1 ? 'Codice errato: resta un solo tentativo' : `Codice errato: restano ${formatApiErrorValue(args['remainingAttempts'])} tentativi`),
+    'signature.challenge.limit': 'Raggiunto il numero massimo di {maxSends} codici per questa firma: ricominciare la firma',
+    'signature.challenge.resendTooSoon': (args) => `Nuovo codice richiesto troppo presto: riprovare tra ${waitingTime(args['retryAfterSeconds'])}`,
+    'signature.method.totpNotConfigured': "L'app di autenticazione non è configurata: usare il codice via e-mail",
+    'signature.method.unavailable': "L'app di autenticazione non si può verificare in questo momento: usare il codice via e-mail",
+    'signature.mail.addressMissing': "Non è registrato un indirizzo e-mail a cui inviare il codice: chiedere all'amministratore di aggiungerlo",
+    'signature.mail.sendFailed': 'Non è stato possibile inviare il codice via e-mail: riprovare tra qualche minuto',
+    'signature.link.sendFailed': 'Non è stato possibile inviare il link via e-mail: riprovare tra qualche minuto',
+    'signature.cieSign.documentMismatch': 'Il file non è il documento scaricato da Taurus o è stato modificato dopo la firma: scaricare di nuovo il documento e firmarlo senza modificarlo',
+    'signature.cieSign.invalidSignature': 'Il file non contiene una sola firma valida: firmare il documento una volta con CieSign e caricare il file ottenuto',
+    'signature.cieSign.untrustedCertificate': "La firma non è fatta con una Carta d'Identità Elettronica valida",
+    'signature.cieSign.signerMismatch': "La firma è di un'altra persona: nome, cognome e codice fiscale della carta devono essere quelli dell'Affidatario",
+    'signature.cieSign.tooLarge': 'Il file firmato supera {maxMegabytes} MB',
+    'signature.cieSign.notAvailable': 'CieSign non è disponibile senza un codice fiscale italiano: firmare con il codice',
+    'signature.cieSign.notConfigured': 'CieSign non è disponibile in questa installazione: firmare con il codice',
+    'signature.settings.requirementsMissing': (args) =>
+        `La firma elettronica non è attivabile: mancano ${sentenceList(
+            listOf(args['missing']).map((value) => SIGNATURE_REQUIREMENTS[formatApiErrorValue(value)] ?? formatApiErrorValue(value))
+        )}: chiedere a chi gestisce l'installazione di configurarli`,
+    'signature.settings.versionConflict': "Le impostazioni della firma sono state modificate da un'altra richiesta: ricaricare la pagina",
+    'signature.act.notFound': 'Atto da firmare non trovato',
+    'signature.act.notAwaitingData': "L'atto non attende più i dati dell'Affidatario: ricaricare la pagina",
+    'signature.act.notAwaitingSignatures': "L'atto non è in attesa di firme: ricaricare la pagina",
+    'signature.act.documentChanged': 'Il documento è cambiato: ricaricare la pagina e rileggerlo prima di firmare',
+    'signature.act.alreadySigned': 'Questa firma è già registrata',
+    'signature.act.acknowledgmentsPending': (args) =>
+        Number(args['count']) === 1
+            ? "C'è una presa visione in attesa: confermarla dall'elenco delle consegne, poi firmare"
+            : `Ci sono ${formatApiErrorValue(args['count'])} prese visione in attesa: confermarle dall'elenco delle consegne, poi firmare`,
+    'signature.act.purged': "I documenti dell'atto sono stati eliminati da Taurus: la conservazione spetta all'associazione",
+    'signature.act.batchNotAllowed': 'Solo le variazioni si possono firmare insieme: firmare gli altri atti uno alla volta',
+    'signature.act.versionConflict': "L'atto è stato modificato da un'altra richiesta: ricaricare la pagina",
+    'signature.holderData.invalid': (args) => `Dati mancanti o non validi: ${sentenceList(listOf(args['fields']).map((value) => SIGNATURE_HOLDER_FIELDS[formatApiErrorValue(value)] ?? formatApiErrorValue(value)))}`,
+    'signature.holderData.birthDateMissing': (args) =>
+        args['holderRole'] === 'GUARDIAN' ? "Manca la data di nascita del socio minorenne: chiedere all'associazione di inserirla, poi completare i dati" : 'Manca la data di nascita: aggiungerla nella pagina Profilo, poi completare i dati',
+    'signature.associationSigner.sameAsHolder': "Chi firma per l'Associazione non può essere l'Affidatario",
+    'signature.associationSigner.notAdmin': "Chi firma per l'Associazione deve essere un amministratore attivo: designare un altro firmatario",
+    'signature.associationSigner.locked': "Dopo la prima firma il firmatario per l'Associazione non cambia più: se non può firmare, dichiarare l'atto firmato su carta",
 
     // Outcomes of the loan template check
     'inventory.loanTemplate.issue.empty': 'Il file è vuoto',
@@ -297,6 +389,13 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'inventory.loanTemplate.issue.missingSheetNumber': 'Il modello non stampa il numero del foglio',
     'inventory.loanTemplate.issue.missingGoods': 'Il modello non stampa i beni consegnati',
     'inventory.loanTemplate.issue.missingDurations': 'Il modello non usa le variabili delle regole di durata: verificare che il testo sulla durata del comodato corrisponda alle regole applicate dai controlli',
+    'inventory.loanTemplate.issue.signatureActMissing': "L'elemento <{tag}> non indica con data-taurus-act a quale atto appartiene",
+    'inventory.loanTemplate.issue.signatureActUnknown': 'Valore «{value}» non ammesso in data-taurus-act: usare issue, variation, return o all',
+    'inventory.loanTemplate.issue.signatureActEmpty': (args) => `Nessuna parte del modello appartiene all'atto di ${SIGNATURE_ACTS[formatApiErrorValue(args['act'])] ?? formatApiErrorValue(args['act'])}`,
+    'inventory.loanTemplate.issue.signatureClausesMissing': 'Manca il blocco dell\'approvazione specifica delle clausole (data-taurus-sign="clauses")',
+    'inventory.loanTemplate.issue.signatureClausesDuplicate': 'Il blocco delle clausole (data-taurus-sign="clauses") deve essere uno solo',
+    'inventory.loanTemplate.issue.signatureClausesOutsideIssue': 'Il blocco delle clausole deve stare in una parte dell\'emissione (data-taurus-act="issue")',
+    'inventory.loanTemplate.issue.signatureClausesEmpty': 'Il blocco delle clausole è vuoto',
 
     // Finance
     'finance.account.notFound': 'Conto non trovato',

@@ -1,0 +1,166 @@
+<div class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="text-base font-semibold m-0">Firme</h3>
+        <p-button
+            label="Scarica fascicolo"
+            icon="pi pi-download"
+            size="small"
+            severity="secondary"
+            [outlined]="true"
+            [loading]="downloading"
+            [disabled]="!dossierAvailable"
+            [pTooltip]="dossierAvailable ? 'Documenti firmati, attestazioni e indice con le impronte, da conservare negli archivi dell’associazione' : 'Disponibile dal primo atto firmato'"
+            (onClick)="downloadDossier()"
+        />
+    </div>
+    @if (purgeAfter) {
+        <app-inline-alert
+            severity="warn"
+            heading="Fascicolo da conservare"
+            [detail]="'Taurus elimina gli atti firmati di questo foglio il ' + (purgeAfter | date: 'dd/MM/yyyy') + '. La conservazione per i termini di legge spetta all’associazione: scarica il fascicolo prima di quella data.'"
+        />
+    }
+    @if (loading && !acts.length) {
+        <p-skeleton height="5rem" />
+    }
+    @for (act of acts; track act.id) {
+        <div class="flex flex-col gap-2 p-3 border border-surface rounded-lg">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="flex flex-wrap items-center gap-2">
+                    <p-tag [value]="typeLabel(act.type)" severity="secondary" [rounded]="true" />
+                    <strong>{{ act.operation }}</strong>
+                    <p-tag [value]="statusLabel(act.status)" [severity]="statusSeverity(act.status)" [rounded]="true" />
+                    @if (act.purgedAt) {
+                        <span class="text-xs text-muted-color">Eliminato da Taurus il {{ act.purgedAt | date: 'dd/MM/yyyy' }}</span>
+                    }
+                </span>
+                <span class="flex flex-wrap gap-1">
+                    @if (canSign(act)) {
+                        <p-button label="Firma per l’Associazione" icon="pi pi-pen-to-square" size="small" (onClick)="sign(act)" />
+                    }
+                    @if (act.associationSignerChangeable) {
+                        <p-button label="Cambia firmatario" icon="pi pi-user-edit" size="small" severity="secondary" [text]="true" (onClick)="changeSigner(act)" />
+                    }
+                    @if (awaiting(act)) {
+                        <p-button label="Firmato su carta" icon="pi pi-file" size="small" severity="secondary" [text]="true" (onClick)="declarePaper(act)" />
+                    }
+                    @if (act.status === 'SIGNED' && !act.purgedAt) {
+                        @for (document of act.documents; track document.role) {
+                            @if (document.available) {
+                                <p-button [label]="document.role === 'CLAUSES' ? 'Clausole firmate' : 'Atto firmato'" icon="pi pi-file-pdf" size="small" severity="secondary" [text]="true" (onClick)="openDocument(act, document.role)" />
+                            }
+                        }
+                        @if (act.attestationAvailable) {
+                            <p-button label="Attestazione" icon="pi pi-verified" size="small" severity="secondary" [text]="true" (onClick)="openAttestation(act)" />
+                        }
+                    }
+                    @if (act.status !== 'CANCELLED' && act.status !== 'AWAITING_DATA') {
+                        <p-button [label]="evidence[act.id] ? 'Nascondi prove' : 'Prove'" icon="pi pi-shield" size="small" severity="secondary" [text]="true" (onClick)="toggleEvidence(act)" />
+                    }
+                </span>
+            </div>
+            <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                @for (signer of act.signers; track signer.id) {
+                    <span>
+                        <span class="text-muted-color">{{ roleLabel(signer.role) }}:</span> {{ signer.displayName }} ·
+                        {{ signerStatusLabel(signer.status) }}
+                        @if (signer.signedAt) {
+                            il {{ signer.signedAt | date: 'dd/MM/yyyy HH:mm' }}
+                        }
+                    </span>
+                }
+            </div>
+            @for (signer of linkSigners(act); track signer.id) {
+                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span>
+                        <span class="text-muted-color">Link a {{ signer.maskedEmail }}:</span>
+                        @if (signer.link; as link) {
+                            @if (!link.sentAt) {
+                                <span class="text-red-600 dark:text-red-400">non inviato, invialo di nuovo</span>
+                            } @else if (link.active) {
+                                inviato il {{ link.sentAt | date: 'dd/MM/yyyy HH:mm' }}, valido fino al {{ link.expiresAt | date: 'dd/MM/yyyy HH:mm' }}
+                            } @else {
+                                non più valido
+                            }
+                            @if (link.lastUsedAt) {
+                                · aperto il {{ link.lastUsedAt | date: 'dd/MM/yyyy HH:mm' }}
+                            }
+                        } @else {
+                            nessun link inviato
+                        }
+                    </span>
+                    <span class="flex flex-wrap gap-1">
+                        @if (canResendLink(act, signer)) {
+                            <p-button
+                                [label]="act.status === 'SIGNED' ? 'Reinvia link ai documenti' : 'Reinvia link'"
+                                icon="pi pi-envelope"
+                                size="small"
+                                severity="secondary"
+                                [text]="true"
+                                [loading]="linkBusy === signer.id"
+                                (onClick)="resendLink(act, signer)"
+                            />
+                        }
+                        @if (signer.link?.active) {
+                            <p-button label="Revoca link" icon="pi pi-ban" size="small" severity="danger" [text]="true" [disabled]="linkBusy === signer.id" (onClick)="revokeLink(act, signer)" />
+                        }
+                    </span>
+                </div>
+            }
+            @if (act.status === 'AWAITING_DATA') {
+                <span class="text-sm text-muted-color">{{ act.holderRole === 'GUARDIAN' ? 'Il genitore o tutore deve inserire i propri dati dalla pagina di firma.' : 'Il socio deve inserire i propri dati prima delle firme.' }}</span>
+            }
+            @if (act.paperNote) {
+                <span class="text-sm"><span class="text-muted-color">Nota della firma su carta:</span> {{ act.paperNote }}</span>
+            }
+            @if (evidence[act.id]; as rows) {
+                @if (rows.length) {
+                    <p-table [value]="rows" responsiveLayout="scroll" styleClass="p-datatable-sm">
+                        <ng-template #header>
+                            <tr>
+                                <th scope="col">N.</th>
+                                <th scope="col">Firma</th>
+                                <th scope="col">Firmatario</th>
+                                <th scope="col">Metodo</th>
+                                <th scope="col">Data</th>
+                                <th scope="col">Impronta della prova</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-row>
+                            <tr>
+                                <td>{{ row.sequence }}</td>
+                                <td>
+                                    {{ purposeLabel(row.purpose) }}
+                                    @if (row.documentRole) {
+                                        <div class="text-xs text-muted-color">{{ documentLabel(row.documentRole) }} · {{ shortHash(row.documentHash) }}</div>
+                                    }
+                                </td>
+                                <td>
+                                    {{ row.purged ? 'Dati personali rimossi' : row.signerName }}
+                                    @if (row.maskedEmail) {
+                                        <div class="text-xs text-muted-color">{{ row.maskedEmail }}</div>
+                                    }
+                                </td>
+                                <td>
+                                    {{ methodLabel(row.method) }}
+                                    @if (row.certificateSubject) {
+                                        <div class="text-xs text-muted-color" [pTooltip]="row.certificateSubject">Certificato n. {{ row.certificateSerial }} · {{ row.certificateIssuer }}</div>
+                                        <div class="text-xs text-muted-color">{{ revocationLabel(row.revocationCheck) }}</div>
+                                    }
+                                </td>
+                                <td>{{ row.signedAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                                <td class="font-mono text-xs" [pTooltip]="row.evidenceHash">{{ shortHash(row.evidenceHash) }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                } @else {
+                    <span class="text-sm text-muted-color">Nessuna firma registrata.</span>
+                }
+            }
+        </div>
+    } @empty {
+        @if (!loading) {
+            <span class="text-sm text-muted-color">Nessun atto da firmare.</span>
+        }
+    }
+</div>

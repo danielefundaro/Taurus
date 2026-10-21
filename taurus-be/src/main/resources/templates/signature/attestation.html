@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Attestazione di firma elettronica</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+    body { font-family: Helvetica, sans-serif; font-size: 9pt; color: #1a1a1a; line-height: 1.35; }
+    h1 { font-size: 14pt; margin: 0 0 2mm 0; }
+    h2 { font-size: 11pt; margin: 6mm 0 2mm 0; border-bottom: 1pt solid #404040; padding-bottom: 1mm; }
+    p { margin: 0 0 2mm 0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+    th, td { border: 0.5pt solid #808080; padding: 1.2mm 1.5mm; text-align: left; vertical-align: top; }
+    th { background: #eeeeee; width: 32%; font-weight: bold; }
+    .hash { font-family: Courier, monospace; font-size: 7.5pt; word-wrap: break-word; }
+    .signature { page-break-inside: avoid; }
+    .note { font-size: 8pt; color: #404040; }
+  </style>
+</head>
+<body>
+  <h1>Attestazione di firma elettronica</h1>
+  <p>{{tenant.name}}</p>
+
+  <h2>Atto</h2>
+  <table>
+    <tr><th>Tipo</th><td>{{act.type}}</td></tr>
+    {{#act.sheetNumber}}<tr><th>Foglio di affidamento</th><td>n. {{act.sheetNumber}}</td></tr>{{/act.sheetNumber}}
+    <tr><th>Identificativo</th><td>{{act.id}}</td></tr>
+    <tr><th>Completato il</th><td>{{act.completedAtLocal}} ({{act.completedAtUtc}} UTC)</td></tr>
+  </table>
+
+  <h2>Documenti</h2>
+  {{#documents}}
+  <table>
+    <tr><th>Documento</th><td>{{role}}</td></tr>
+    <tr><th>SHA-256 del documento firmato</th><td class="hash">{{frozenHash}}</td></tr>
+    <tr><th>SHA-256 dopo il sigillo</th><td class="hash">{{sealedHash}}</td></tr>
+  </table>
+  {{/documents}}
+
+  <h2>Firme</h2>
+  {{#signatures}}
+  <table class="signature">
+    <tr><th>Firmatario</th><td>{{name}} ({{role}})</td></tr>
+    <tr><th>Atto di firma</th><td>{{purpose}} – {{document}}</td></tr>
+    <tr><th>Dichiarazione</th><td>{{declaration}}</td></tr>
+    <tr><th>Metodo</th><td>{{method}}</td></tr>
+    <tr><th>Data e ora</th><td>{{signedAtLocal}} ({{signedAtUtc}} UTC)</td></tr>
+    {{#maskedEmail}}<tr><th>Codice inviato a</th><td>{{maskedEmail}}</td></tr>{{/maskedEmail}}
+    {{#certificateSubject}}<tr><th>Certificato</th><td>{{certificateSubject}}<br/>Emittente: {{certificateIssuer}}<br/>Numero di serie: {{certificateSerial}}<br/>Codice fiscale: {{certificateTaxCode}}<br/>Controllo di revoca: {{revocationCheck}}</td></tr>{{/certificateSubject}}
+    {{#ipAddress}}<tr><th>Indirizzo IP</th><td>{{ipAddress}}</td></tr>{{/ipAddress}}
+    {{#userAgent}}<tr><th>Dispositivo</th><td>{{userAgent}}</td></tr>{{/userAgent}}
+    <tr><th>Prova n.</th><td>{{sequence}}</td></tr>
+    <tr><th>SHA-256 della prova</th><td class="hash">{{evidenceHash}}</td></tr>
+  </table>
+  {{/signatures}}
+
+  <h2>Come verificare</h2>
+  <p>1. Calcolare l'impronta SHA-256 di ogni file del fascicolo, per esempio con <span class="hash">sha256sum</span> su Linux, <span class="hash">shasum -a 256</span> su macOS o <span class="hash">certutil -hashfile nome-file SHA256</span> su Windows, e confrontarla con il valore «dopo il sigillo» riportato sopra.</p>
+  <p>2. Il documento firmato è contenuto per intero, byte per byte, all'inizio del file sigillato: il sigillo è aggiunto in coda come aggiornamento incrementale e non ne modifica il contenuto. In un lettore PDF il pannello delle firme consente di visualizzare la revisione firmata e di controllare che non sia stata modificata.</p>
+  <p>3. Il sigillo è una firma elettronica apposta dall'installazione di Taurus con il certificato la cui impronta SHA-256 è:</p>
+  <p class="hash">{{seal.fingerprint}}</p>
+  <p>Un lettore PDF può segnalare il sigillo come «identità sconosciuta» finché il certificato non viene aggiunto alle identità attendibili: l'integrità del file resta comunque verificabile.</p>
+  <p class="note">Questa attestazione è sigillata con lo stesso certificato. È la prova da conservare insieme ai documenti: la conservazione degli atti firmati è a cura dell'Associazione.</p>
+</body>
+</html>

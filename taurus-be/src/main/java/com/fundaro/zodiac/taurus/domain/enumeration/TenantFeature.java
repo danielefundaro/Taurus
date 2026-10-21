@@ -9,7 +9,9 @@ public enum TenantFeature {
     NOTIFICATION_PREFERENCES("notificationPreferences"),
     WEB_PUSH_REMINDERS("webPushReminders"),
     EVENT_PREPARATION("eventPreparation"),
-    SCORE_PLAYBACK("scorePlayback");
+    SCORE_PLAYBACK("scorePlayback"),
+    INVENTORY_LOAN_SHEET("inventoryLoanSheet"),
+    INVENTORY_SIGNATURE("inventorySignature");
 
     private final String errorKey;
 

@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/inventory")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
+@RequiresTenantFeature(TenantFeature.INVENTORY_LOAN_SHEET)
 public class InventoryLoanSheetResource {
 
     private final InventoryLoanSheetService loanSheetService;
@@ -32,7 +32,9 @@ public class InventoryLoanSheetResource {
         return loanSheetService.findForUser(userIndex, token);
     }
 
+    // Expiration range, renewal and substitution belong to the assignments of the inventory, with or without the sheets.
     @GetMapping("/users/{userIndex}/loan-expiration-range")
+    @RequiresTenantFeature(TenantFeature.INVENTORY)
     public ExpirationRange getExpirationRange(
         @PathVariable Long userIndex,
         @RequestParam(required = false) LocalDate deliveredOn,
@@ -87,11 +89,13 @@ public class InventoryLoanSheetResource {
     }
 
     @PostMapping("/assignments/{id}/renewals")
+    @RequiresTenantFeature(TenantFeature.INVENTORY)
     public InventoryAssignmentDTO renew(@PathVariable long id, @Valid @RequestBody RenewalRequest request, AbstractAuthenticationToken token) {
         return loanSheetService.renew(id, request, token);
     }
 
     @PostMapping("/assignments/{id}/substitution")
+    @RequiresTenantFeature(TenantFeature.INVENTORY)
     public ResponseEntity<InventoryAssignmentDTO> substitute(
         @PathVariable long id,
         @Valid @RequestBody SubstitutionRequest request,

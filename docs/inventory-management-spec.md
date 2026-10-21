@@ -115,7 +115,7 @@ La scelta è:
 - `ACCEPTED`, senza motivazione obbligatoria;
 - `REJECTED`, sempre accompagnata da una motivazione non vuota.
 
-La decisione è memorizzata in `inventory_assignment_decision` con data, identità autenticata e un hash autenticato derivato dalla revisione, dalla scelta e dall'utente. Non rappresenta una firma elettronica: è una presa visione autenticata.
+La decisione è memorizzata in `inventory_assignment_decision` con data, identità autenticata e un hash autenticato derivato dalla revisione, dalla scelta e dall'utente. Con la firma elettronica disattivata non rappresenta una firma elettronica: è una presa visione autenticata. Quando il tenant attiva la [firma elettronica](inventory-electronic-signature-spec.md#presa-visione-con-codice), la scelta si conferma con un codice inviato via e-mail, anche per più assegnazioni insieme, e `signature_evidence_id` collega la decisione alla prova della firma; l'endpoint diretto risponde `409 inventory.decision.signatureRequired`.
 
 Una modifica ai dati rilevanti dell'oggetto o alle fotografie crea automaticamente una nuova revisione per ogni assegnazione non interamente riconsegnata. La sola modifica della quantità totale non richiede una nuova presa visione.
 
@@ -191,6 +191,8 @@ Il flusso è:
 7. chiusura della richiesta GDPR.
 
 L'interfaccia amministrativa mostra le richieste sospese e consente di completarle solo quando non rimangono quantità in carico.
+
+Senza materiale in carico la richiesta non serve: fogli di affidamento e atti firmati elettronicamente del socio vengono eliminati subito, nella stessa operazione, come al completamento di una richiesta.
 
 ## API REST
 
