@@ -85,6 +85,12 @@ public class Tenants extends CommonFieldsOpenSearch {
     @Column(name = "score_playback_enabled", nullable = false)
     private Boolean scorePlaybackEnabled = false;
 
+    @Column(name = "inventory_loan_sheet_enabled", nullable = false)
+    private Boolean inventoryLoanSheetEnabled = false;
+
+    @Column(name = "inventory_signature_enabled", nullable = false)
+    private Boolean inventorySignatureEnabled = false;
+
     public String getCode() {
         return code;
     }
@@ -293,6 +299,22 @@ public class Tenants extends CommonFieldsOpenSearch {
         scorePlaybackEnabled = value;
     }
 
+    public Boolean getInventoryLoanSheetEnabled() {
+        return inventoryLoanSheetEnabled;
+    }
+
+    public void setInventoryLoanSheetEnabled(Boolean value) {
+        inventoryLoanSheetEnabled = value;
+    }
+
+    public Boolean getInventorySignatureEnabled() {
+        return inventorySignatureEnabled;
+    }
+
+    public void setInventorySignatureEnabled(Boolean value) {
+        inventorySignatureEnabled = value;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -327,12 +349,14 @@ public class Tenants extends CommonFieldsOpenSearch {
             Objects.equals(notificationPreferencesEnabled, tenants.notificationPreferencesEnabled) &&
             Objects.equals(webPushRemindersEnabled, tenants.webPushRemindersEnabled) &&
             Objects.equals(eventPreparationEnabled, tenants.eventPreparationEnabled) &&
-            Objects.equals(scorePlaybackEnabled, tenants.scorePlaybackEnabled);
+            Objects.equals(scorePlaybackEnabled, tenants.scorePlaybackEnabled) &&
+            Objects.equals(inventoryLoanSheetEnabled, tenants.inventoryLoanSheetEnabled) &&
+            Objects.equals(inventorySignatureEnabled, tenants.inventorySignatureEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, scorePlaybackEnabled);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, scorePlaybackEnabled, inventoryLoanSheetEnabled, inventorySignatureEnabled);
     }
 
     @Override
@@ -371,6 +395,8 @@ public class Tenants extends CommonFieldsOpenSearch {
             ", webPushRemindersEnabled=" + getWebPushRemindersEnabled() +
             ", eventPreparationEnabled=" + getEventPreparationEnabled() +
             ", scorePlaybackEnabled=" + getScorePlaybackEnabled() +
+            ", inventoryLoanSheetEnabled=" + getInventoryLoanSheetEnabled() +
+            ", inventorySignatureEnabled=" + getInventorySignatureEnabled() +
             ", description='" + getDescription() + "'" +
             '}';
     }

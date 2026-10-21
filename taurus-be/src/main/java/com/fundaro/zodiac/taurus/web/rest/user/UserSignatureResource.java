@@ -26,7 +26,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/user/signatures")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
+@RequiresTenantFeature(TenantFeature.INVENTORY_SIGNATURE)
 public class UserSignatureResource {
 
     private final SignatureChallengeService challengeService;

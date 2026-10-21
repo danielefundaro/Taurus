@@ -40,7 +40,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/inventory")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
+@RequiresTenantFeature(TenantFeature.INVENTORY_SIGNATURE)
 public class InventorySignatureResource {
 
     private static final MediaType ZIP = MediaType.parseMediaType("application/zip");

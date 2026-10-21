@@ -58,7 +58,7 @@ class SignatureLinkResolverTest {
         when(rateLimiter.allowRequest(anyString())).thenReturn(true);
         when(rateLimiter.allowToken(anyString())).thenReturn(true);
         when(registryRepository.resolveActive(eq(token.digest()), any())).thenReturn(Optional.of(route));
-        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY)).thenReturn(true);
+        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY_SIGNATURE)).thenReturn(true);
         when(tenantSchemaRegistry.findActiveTenantCode(4L)).thenReturn(Optional.of("tenant-a"));
         when(tenantTransactionExecutor.execute(eq("tenant-a"), any(Supplier.class))).thenAnswer(invocation -> invocation.<Supplier<?>>getArgument(1).get());
         when(linkService.open(eq(route), eq(token.digest()), eq("tenant-a"), any())).thenReturn(session);
@@ -78,10 +78,10 @@ class SignatureLinkResolverTest {
         assertThatThrownBy(() -> resolver.within("not-a-token", "192.0.2.10", value -> value)).isInstanceOf(SignatureLinkUnavailableException.class);
         assertThatThrownBy(() -> resolver.within(tokens.generate().value(), "192.0.2.10", value -> value)).isInstanceOf(SignatureLinkUnavailableException.class);
 
-        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY)).thenReturn(false);
+        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY_SIGNATURE)).thenReturn(false);
         assertThatThrownBy(() -> resolver.within(token.value(), "192.0.2.10", value -> value)).isInstanceOf(SignatureLinkUnavailableException.class);
 
-        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY)).thenReturn(true);
+        when(tenantFeatureService.isEnabledForTenant(4L, TenantFeature.INVENTORY_SIGNATURE)).thenReturn(true);
         when(tenantSchemaRegistry.findActiveTenantCode(4L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> resolver.within(token.value(), "192.0.2.10", value -> value)).isInstanceOf(SignatureLinkUnavailableException.class);
         verify(linkService, never()).open(any(), any(), any(), any());

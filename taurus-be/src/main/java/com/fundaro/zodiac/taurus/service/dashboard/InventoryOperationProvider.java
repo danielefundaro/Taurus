@@ -127,6 +127,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
      */
     private void addSignatures(DashboardRequestContext context, List<OperationalItemDTO> result) {
         if (signatureService == null) return;
+        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE)) return;
         long acts = signatureService.countAwaitingUser(context.subject());
         if (acts == 0) return;
         result.add(item(

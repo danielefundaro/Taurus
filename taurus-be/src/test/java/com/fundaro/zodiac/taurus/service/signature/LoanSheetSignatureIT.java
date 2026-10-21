@@ -161,7 +161,8 @@ class LoanSheetSignatureIT {
         tenantId = transactionExecutor.execute(
             TenantSchemaNameResolver.DEFAULT_SCHEMA,
             () -> jdbcTemplate.queryForObject(
-                "INSERT INTO public.tenant (deleted, name, code, active) VALUES (false, 'Banda musicale di prova', ?, true) RETURNING id",
+                "INSERT INTO public.tenant (deleted, name, code, active, inventory_enabled, inventory_loan_sheet_enabled, inventory_signature_enabled) "
+                    + "VALUES (false, 'Banda musicale di prova', ?, true, true, true, true) RETURNING id",
                 Long.class,
                 tenantCode
             )
@@ -495,6 +496,10 @@ class LoanSheetSignatureIT {
         transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_enabled = false WHERE id = ?", tenantId));
         assertThatThrownBy(() -> linkResolver.within(variationLink, "192.0.2.10", signatureService::linkAct)).isInstanceOf(SignatureLinkUnavailableException.class);
         transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_enabled = true WHERE id = ?", tenantId));
+        // The link opens only while the tenant has the electronic signature.
+        transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_signature_enabled = false WHERE id = ?", tenantId));
+        assertThatThrownBy(() -> linkResolver.within(variationLink, "192.0.2.10", signatureService::linkAct)).isInstanceOf(SignatureLinkUnavailableException.class);
+        transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_signature_enabled = true WHERE id = ?", tenantId));
 
         tx(() -> loanSheetService.cancel(sheetId, new com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.CancelRequest("Emesso per errore"), admin));
         assertThatThrownBy(() -> linkResolver.within(variationLink, "192.0.2.10", signatureService::linkAct)).isInstanceOf(SignatureLinkUnavailableException.class);
@@ -604,6 +609,33 @@ class LoanSheetSignatureIT {
 
     private static long parentId(Act act) {
         return act.signers().stream().filter(signer -> signer.userId() == null).findFirst().orElseThrow().id();
+    }
+
+    @Test
+    void signsElectronicallyOnlyWhileTheTenantHasTheFeatureAndTheLoanSheet() {
+        JwtAuthenticationToken admin = token(adminKey);
+        long version = tx(() -> templateService.overview(admin).settingsVersion());
+        tx(() -> templateService.updateSignature(new SettingsUpdate(true, version), admin));
+        InventoryAssignmentDTO clarinet = assign("INV-1", "Clarinetto", admin);
+        assertThat(tx(() -> loanSheetService.proposal(memberIndex, admin)).signature().enabled()).isTrue();
+        assertThat(tx(() -> inventoryService.electronicSignatureEnabled())).isTrue();
+
+        // The super administrator takes the electronic signature away: the switch of the tenant stays, but has no effect.
+        transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_signature_enabled = false WHERE id = ?", tenantId));
+        assertThat(tx(() -> loanSheetService.proposal(memberIndex, admin)).signature().enabled()).isFalse();
+        assertThat(tx(() -> inventoryService.electronicSignatureEnabled())).isFalse();
+        assertThat(tx(() -> templateService.overview(admin)).signature().enabled()).isFalse();
+        assertThatThrownBy(() -> tx(() -> loanSheetService.issue(memberIndex, new IssueRequest(
+            List.of(clarinet.id()), LocalDate.now(), "Roma", InventoryLoanHolderRole.MEMBER, null, null, null, InventoryLoanSignatureMode.ELECTRONIC, adminKey
+        ), admin))).hasFieldOrPropertyWithValue("errorKey", "inventory.loanSheet.signatureDisabled");
+
+        // Without the loan sheet the signature is off as well, whatever its own flag.
+        transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update(
+            "UPDATE public.tenant SET inventory_signature_enabled = true, inventory_loan_sheet_enabled = false WHERE id = ?", tenantId
+        ));
+        assertThat(tx(() -> inventoryService.electronicSignatureEnabled())).isFalse();
+        transactionExecutor.execute(TenantSchemaNameResolver.DEFAULT_SCHEMA, () -> jdbcTemplate.update("UPDATE public.tenant SET inventory_loan_sheet_enabled = true WHERE id = ?", tenantId));
+        assertThat(tx(() -> inventoryService.electronicSignatureEnabled())).isTrue();
     }
 
     @Test

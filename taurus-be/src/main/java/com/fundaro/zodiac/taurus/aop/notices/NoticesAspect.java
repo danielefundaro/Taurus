@@ -590,20 +590,17 @@ public class NoticesAspect {
                         + ("completeOnPaper".equals(method) ? " è stato dichiarato firmato su carta." : " è stato firmato da tutte le parti.");
                     change.recipients().forEach(userId -> publishSignature(userId, "Inventario: atto firmato", message, actor, change.actId()));
                     // The last signature can come from the link of a parent, without a token.
-                    AbstractAuthenticationToken token = signatureToken(joinPoint);
-                    if (token != null) {
-                        publishAdmins("Inventario: atto firmato", message, token);
-                    } else {
-                        publishSystemAdmins("Inventario: atto firmato", message, actor);
-                    }
+                    publishSignatureAdmins("Inventario: atto firmato", message, signatureToken(joinPoint), actor, change.actId());
                 }
                 case "sheetEnded" -> {
                     if (change.purgeAfter() != null) {
-                        publishSystemAdmins(
+                        publishSignatureAdmins(
                             "Inventario: fascicolo da conservare",
                             "Gli atti firmati del foglio di affidamento n. " + change.sheetNumber() + " saranno eliminati da Taurus il "
                                 + formatDate(change.purgeAfter().toLocalDate()) + ": scarica il fascicolo e conservalo negli archivi dell'associazione.",
-                            actor
+                            signatureToken(joinPoint),
+                            actor,
+                            null
                         );
                     }
                 }
@@ -647,11 +644,13 @@ public class NoticesAspect {
         } else if (result instanceof List<?> expired && "expiredLinks".equals(method)) {
             for (Object value : expired) {
                 if (!(value instanceof ExpiredLink link)) continue;
-                publishSystemAdmins(
+                publishSignatureAdmins(
                     "Inventario: link di firma scaduto",
                     "Il link inviato a " + link.signerName() + " per l'atto «" + link.operation() + "» del foglio n. " + link.sheetNumber()
                         + " è scaduto senza firma: invia un nuovo link o dichiara l'atto firmato su carta.",
-                    actor
+                    null,
+                    actor,
+                    link.actId()
                 );
             }
         }
@@ -659,6 +658,34 @@ public class NoticesAspect {
     }
 
     private static final String SIGNATURE_REQUESTED = "Inventario: firma richiesta";
+    /** Aggregate of every notice about the acts of the loan sheets: the feature policy ties it to the electronic signature. */
+    private static final String SIGNATURE_ACT = "SIGNATURE_ACT";
+
+    /**
+     * A notice about the acts of the loan sheets for the administrators, with the actor of the request when there is a
+     * token, otherwise the system.
+     */
+    private void publishSignatureAdmins(String title, String message, AbstractAuthenticationToken token, String actorId, Long actId) {
+        String actor = token == null ? actorId : SecurityUtils.getUserIdFromAuthentication(token);
+        notificationPublisher.enqueue(new NotificationCommand(
+            notificationKey(NotificationSource.INVENTORY, SIGNATURE_ACT, operationOf(title)),
+            NotificationSource.INVENTORY,
+            SIGNATURE_ACT,
+            actId == null ? null : actId.toString(),
+            operationOf(title),
+            limitText(title),
+            limitMessage(message),
+            severityOf(title),
+            targetPathOf(NotificationSource.INVENTORY, SIGNATURE_ACT),
+            Objects.requireNonNullElse(trimToNull(actor), "system"),
+            token == null ? "Sistema" : getActorDisplayName(token),
+            Set.of(
+                NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+            ),
+            null
+        ));
+    }
 
     /**
      * A notice about an act to sign, addressed to one signer and opening the own inventory, where the acts to sign are
@@ -668,9 +695,9 @@ public class NoticesAspect {
         if (userId == null) return;
         boolean request = SIGNATURE_REQUESTED.equals(title);
         notificationPublisher.enqueue(new NotificationCommand(
-            NotificationEventKey.random(NotificationSource.INVENTORY, "SIGNATURE_ACT", operationOf(title)),
+            NotificationEventKey.random(NotificationSource.INVENTORY, SIGNATURE_ACT, operationOf(title)),
             NotificationSource.INVENTORY,
-            "SIGNATURE_ACT",
+            SIGNATURE_ACT,
             actId == null ? null : actId.toString(),
             operationOf(title),
             limitText(title),

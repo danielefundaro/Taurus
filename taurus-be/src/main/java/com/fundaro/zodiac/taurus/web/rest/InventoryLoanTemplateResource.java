@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/inventory/loan-template")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
+@RequiresTenantFeature(TenantFeature.INVENTORY_LOAN_SHEET)
 public class InventoryLoanTemplateResource {
 
     private static final MediaType HTML = new MediaType("text", "html", StandardCharsets.UTF_8);
@@ -39,6 +39,7 @@ public class InventoryLoanTemplateResource {
     }
 
     @PutMapping("/signature")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_SIGNATURE)
     public Overview updateSignature(@Valid @RequestBody SignatureDtos.SettingsUpdate request, AbstractAuthenticationToken token) {
         return templateService.updateSignature(request, token);
     }

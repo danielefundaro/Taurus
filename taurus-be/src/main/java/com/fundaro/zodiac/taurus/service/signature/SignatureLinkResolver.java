@@ -58,7 +58,7 @@ public class SignatureLinkResolver {
         ZonedDateTime now = ZonedDateTime.now();
         SignatureLinkRegistry route = TenantContext.call(null, () -> registryRepository.resolveActive(digest, now))
             .orElseThrow(SignatureLinkUnavailableException::new);
-        if (!tenantFeatureService.isEnabledForTenant(route.getTenantId(), TenantFeature.INVENTORY)) throw new SignatureLinkUnavailableException();
+        if (!tenantFeatureService.isEnabledForTenant(route.getTenantId(), TenantFeature.INVENTORY_SIGNATURE)) throw new SignatureLinkUnavailableException();
         String tenantCode = tenantSchemaRegistry.findActiveTenantCode(route.getTenantId()).orElseThrow(SignatureLinkUnavailableException::new);
         SignatureLinkSession session = tenantTransactionExecutor.execute(tenantCode, () -> linkService.open(route, digest, tenantCode, now));
         return TenantContext.call(tenantCode, () -> action.apply(session));

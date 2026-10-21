@@ -117,7 +117,8 @@ class SignatureIT {
         tenantId = transactionExecutor.execute(
             TenantSchemaNameResolver.DEFAULT_SCHEMA,
             () -> jdbcTemplate.queryForObject(
-                "INSERT INTO public.tenant (deleted, name, code, active) VALUES (false, 'Banda musicale di prova', ?, true) RETURNING id",
+                "INSERT INTO public.tenant (deleted, name, code, active, inventory_enabled, inventory_loan_sheet_enabled, inventory_signature_enabled) "
+                    + "VALUES (false, 'Banda musicale di prova', ?, true, true, true, true) RETURNING id",
                 Long.class,
                 tenantCode
             )

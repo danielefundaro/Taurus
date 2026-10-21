@@ -48,6 +48,8 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderReques
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetPolicy;
 import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetVariationRecorded;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -71,6 +73,7 @@ import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -475,12 +478,26 @@ public class InventoryService {
     }
 
     /**
-     * Whether the tenant confirms assignment acknowledgments with the electronic signature.
+     * Whether the tenant confirms assignment acknowledgments with the electronic signature: the feature of the tenant
+     * and the switch of its administrator.
      */
     @Transactional(readOnly = true)
     public boolean electronicSignatureEnabled() {
-        return loanSettingsRepository.findFirstByDeletedFalse().map(InventoryLoanSettings::isElectronicSignatureEnabled).orElse(false);
+        return signatureFeature() && loanSettingsRepository.findFirstByDeletedFalse().map(InventoryLoanSettings::isElectronicSignatureEnabled).orElse(false);
     }
+
+    private TenantFeatureService tenantFeatureService;
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** The super administrator grants the electronic signature to the tenant, whose administrator then turns it on. */
+    private boolean signatureFeature() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE);
+    }
+
 
     /**
      * Checks a decision of the user on the current revision of their assignment: the revision must be the one shown to
