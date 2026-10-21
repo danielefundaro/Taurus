@@ -63,6 +63,7 @@ Quando il tenant attiva la [firma elettronica](inventory-electronic-signature-sp
 15. **Definizione automatica senza addebiti.** Un foglio chiuso senza addebiti viene definito automaticamente 30 giorni dopo la chiusura, se l'amministratore non lo ha già fatto.
 16. **Nessuna scadenza per il comodato precario.** Un bene in comodato precario collegato a un foglio non può avere data di scadenza.
 17. **Download personale.** Il socio può scaricare il PDF dei propri fogli emessi o chiusi.
+18. **Funzionalità per tenant.** I fogli sono la funzionalità `INVENTORY_LOAN_SHEET`, figlia dell'Inventario, che il super amministratore attiva per ogni tenant; i tenant con l'Inventario attivo l'hanno ricevuta attiva con la migration che l'ha introdotta. Senza la funzionalità pagine, sezioni ed endpoint dei fogli e del modello non sono disponibili, mentre i fogli esistenti restano coerenti (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#fogli-di-affidamento-e-firma-elettronica)).
 
 ## Struttura del modello predefinito e fonte dei dati
 

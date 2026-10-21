@@ -504,6 +504,8 @@ Le chiavi sono riportate senza il prefisso `error.` che il backend aggiunge nel 
 | `tenantFeature.webPushReminders.disabled` | 403 | I promemoria Web Push sono disattivati | — | «La funzionalità Promemoria eventi Web Push non è disponibile per questo tenant» |
 | `tenantFeature.eventPreparation.disabled` | 403 | La preparazione evento è disattivata | — | «La funzionalità Preparazione evento non è disponibile per questo tenant» |
 | `tenantFeature.scorePlayback.disabled` | 403 | L'ascolto e la correzione delle parti sono disattivati | — | «La funzionalità Ascolto delle parti non è disponibile per questo tenant» |
+| `tenantFeature.inventoryLoanSheet.disabled` | 403 | I fogli di affidamento sono disattivati, direttamente o perché lo è l'Inventario | — | «La funzionalità Fogli di affidamento non è disponibile per questo tenant» |
+| `tenantFeature.inventorySignature.disabled` | 403 | La firma elettronica è disattivata, direttamente o perché lo sono i Fogli di affidamento | — | «La funzionalità Firma elettronica non è disponibile per questo tenant» |
 
 ### Utenti e tenant
 

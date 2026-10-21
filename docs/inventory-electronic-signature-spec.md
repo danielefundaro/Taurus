@@ -147,6 +147,8 @@ Finché nessuno ha firmato, l'Affidatario può correggere i propri dati: Taurus 
 
 ### Attivazione per tenant
 
+La firma è la funzionalità per tenant `INVENTORY_SIGNATURE`, figlia dei Fogli di affidamento (`INVENTORY_LOAN_SHEET`), che il super amministratore concede dalla pagina del tenant (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#fogli-di-affidamento-e-firma-elettronica)). Senza la funzionalità l'interruttore seguente resta salvato ma non ha effetto, la sezione della firma non compare nel modello e gli endpoint della firma rispondono `403 tenantFeature.inventorySignature.disabled`.
+
 Nuovo campo `electronic_signature_enabled` di `inventory_loan_settings`, falso per default, modificabile da admin e super admin. L'attivazione è rifiutata con `signature.settings.requirementsMissing` se l'installazione non ha server SMTP, chiave dei codici (`application.signature.otp-secret`) e certificato del sigillo configurati; `args.missing` elenca i requisiti mancanti (`mail`, `codes`, `seal`).
 
 Con la firma elettronica attiva:

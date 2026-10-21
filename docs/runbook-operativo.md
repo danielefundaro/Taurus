@@ -212,7 +212,7 @@ Per cambiarle occorre ricostruire l'immagine. Il TLS termina sul reverse proxy o
 
 ### 4.4 Feature flag
 
-Nove funzioni sono configurabili per tenant: economia, inventario, onboarding/import, feed calendario esterno, QR inventario, preferenze notifiche, Web Push, preparazione evento e ascolto delle parti.
+Undici funzioni sono configurabili per tenant: economia, inventario, onboarding/import, feed calendario esterno, QR inventario, fogli di affidamento, firma elettronica, preferenze notifiche, Web Push, preparazione evento e ascolto delle parti. I fogli di affidamento dipendono dall'inventario e la firma elettronica dai fogli; al rilascio della migration `20261021100000_tenant_loan_sheet_signature_flags.xml` i fogli risultano attivi per i tenant con l'inventario e la firma resta spenta finché il super amministratore non la concede. Prima di spegnere la firma a un tenant scaricare i fascicoli da conservare: l'eliminazione degli atti al termine del periodo di grazia continua anche con la funzione spenta.
 
 ```text
 funzione effettiva = capacità installazione AND flag tenant AND dipendenze effettive
