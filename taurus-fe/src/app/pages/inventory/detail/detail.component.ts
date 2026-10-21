@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize, first } from 'rxjs';
+import { concatMap, finalize, first, from } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryLoanTypeLabel, inventoryLoanTypeOptions, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueListComponent } from '../../../components/inventory-issue-list/inventory-issue-list.component';
@@ -459,28 +459,33 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             });
     }
 
+    /** Le fotografie scelte insieme si caricano una alla volta, nell'ordine di selezione; al primo errore le restanti non partono. */
     protected upload(event: Event): void {
         const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
-        if (!file || !this.item.id) return;
-        if (!this.isValidPhoto(file)) {
+        const itemId = this.item.id;
+        const files = Array.from(input.files ?? []);
+        if (!files.length || !itemId) return;
+        const photos = this.acceptedPhotos(files);
+        if (!photos.length) {
             input.value = '';
             return;
         }
-        this.inventoryService
-            .uploadPhoto(this.item.id, file)
-            .pipe(first())
-            .subscribe(() => {
-                input.value = '';
-                this.loadItem(this.item.id!);
-            });
+        from(photos)
+            .pipe(
+                concatMap((file) => this.inventoryService.uploadPhoto(itemId, file)),
+                finalize(() => {
+                    input.value = '';
+                    this.loadItem(itemId);
+                })
+            )
+            .subscribe({ error: () => undefined });
     }
 
     protected uploadReturnPhoto(value: InventoryReturn, event: Event): void {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
         if (!file) return;
-        if (!this.isValidPhoto(file)) {
+        if (!this.acceptedPhotos([file]).length) {
             input.value = '';
             return;
         }
@@ -588,12 +593,17 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             .subscribe((page) => (this.users = page.content));
     }
 
-    private isValidPhoto(file: File): boolean {
-        const valid = file.size <= 10 * 1024 * 1024 && ['image/jpeg', 'image/png'].includes(file.type);
-        if (!valid) {
-            this.toastService.error('Fotografia non valida', 'Sono ammessi JPEG/PNG fino a 10 MB. WebP non è supportato.');
+    /** Tiene i file ammessi e segnala in un solo messaggio quelli esclusi. */
+    private acceptedPhotos(files: File[]): File[] {
+        const accepted = files.filter((file) => file.size <= 10 * 1024 * 1024 && ['image/jpeg', 'image/png'].includes(file.type));
+        const rejected = files.filter((file) => !accepted.includes(file)).map((file) => file.name);
+        if (rejected.length) {
+            this.toastService.error(
+                rejected.length === 1 ? 'Fotografia non valida' : 'Fotografie non valide',
+                `${rejected.length === 1 ? 'File escluso' : 'File esclusi'}: ${rejected.join(', ')}. Sono ammessi JPEG/PNG fino a 10 MB. WebP non è supportato.`
+            );
         }
-        return valid;
+        return accepted;
     }
 
     /** Le assegnazioni a scadenza ancora libere da un foglio si correggono entro le regole che si applicherebbero alla consegna. */

@@ -117,14 +117,14 @@
     }
 
     <app-detail-section heading="Fotografie" [count]="item.photos?.length"
-        description="JPEG o PNG, massimo 10 MB. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
+        description="JPEG o PNG, massimo 10 MB ciascuna: puoi sceglierne più di una alla volta. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
         [dirty]="photoOrderDirty">
         <div sectionActions class="flex flex-wrap gap-2">
             <p-button label="Salva ordine" icon="pi pi-save" severity="secondary" [disabled]="!photoOrderDirty"
                 (onClick)="savePhotoOrder()" />
             <label class="p-button p-component p-button-secondary cursor-pointer">
-                <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografia</span>
-                <input type="file" accept="image/jpeg,image/png" class="hidden" (change)="upload($event)" />
+                <i class="pi pi-upload mr-2"></i><span>Aggiungi fotografie</span>
+                <input type="file" accept="image/jpeg,image/png" multiple class="hidden" (change)="upload($event)" />
             </label>
         </div>
         @if (item.photos?.length) {
