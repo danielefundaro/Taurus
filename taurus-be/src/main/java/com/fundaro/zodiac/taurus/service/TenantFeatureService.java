@@ -42,7 +42,9 @@ public class TenantFeatureService {
             enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES),
             enabled(tenant, TenantFeature.WEB_PUSH_REMINDERS),
             enabled(tenant, TenantFeature.EVENT_PREPARATION),
-            enabled(tenant, TenantFeature.SCORE_PLAYBACK)
+            enabled(tenant, TenantFeature.SCORE_PLAYBACK),
+            enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET),
+            enabled(tenant, TenantFeature.INVENTORY_SIGNATURE)
         );
     }
 
@@ -102,12 +104,18 @@ public class TenantFeatureService {
                 && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES);
             case EVENT_PREPARATION -> Boolean.TRUE.equals(tenant.getEventPreparationEnabled());
             case SCORE_PLAYBACK -> Boolean.TRUE.equals(tenant.getScorePlaybackEnabled());
+            case INVENTORY_LOAN_SHEET ->
+                Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
+            case INVENTORY_SIGNATURE ->
+                Boolean.TRUE.equals(tenant.getInventorySignatureEnabled()) && enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET);
         };
     }
 
     private boolean applicationAvailable(TenantFeature feature) {
         return switch (feature) {
-            case FINANCE, INVENTORY -> true;
+            case FINANCE, INVENTORY, INVENTORY_LOAN_SHEET -> true;
+            // The tenant administrator turns the signature on only when mail, codes and seal are configured.
+            case INVENTORY_SIGNATURE -> true;
             case ONBOARDING_IMPORT -> properties.getOnboarding().isEnabled();
             case EXTERNAL_CALENDAR_FEED -> properties.getCalendarFeed().isEnabled();
             case INVENTORY_QR -> properties.getInventory().getQr().isEnabled()
@@ -121,7 +129,8 @@ public class TenantFeatureService {
 
     private List<TenantFeature> dependencies(TenantFeature feature) {
         return switch (feature) {
-            case INVENTORY_QR -> List.of(TenantFeature.INVENTORY);
+            case INVENTORY_QR, INVENTORY_LOAN_SHEET -> List.of(TenantFeature.INVENTORY);
+            case INVENTORY_SIGNATURE -> List.of(TenantFeature.INVENTORY_LOAN_SHEET);
             case WEB_PUSH_REMINDERS -> List.of(TenantFeature.NOTIFICATION_PREFERENCES);
             default -> List.of();
         };

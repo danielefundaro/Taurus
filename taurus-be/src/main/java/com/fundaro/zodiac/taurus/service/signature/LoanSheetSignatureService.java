@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.signature;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
@@ -31,6 +32,7 @@ import com.fundaro.zodiac.taurus.repository.signature.SignatureActSignerReposito
 import com.fundaro.zodiac.taurus.repository.signature.SignatureDocumentRepository;
 import com.fundaro.zodiac.taurus.repository.signature.SignatureEvidenceRepository;
 import com.fundaro.zodiac.taurus.repository.signature.SignatureLinkRepository;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos.Act;
@@ -76,6 +78,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -177,10 +180,24 @@ public class LoanSheetSignatureService {
     public record ExpiredLink(Long actId, String sheetNumber, String operation, String signerName) {
     }
 
+    /** New sheets and acknowledgments are signed electronically: the feature of the tenant and the switch of its administrator. */
     @Transactional(readOnly = true)
     public boolean enabled() {
-        return settingsRepository.findFirstByDeletedFalse().map(settings -> settings.isElectronicSignatureEnabled()).orElse(false);
+        return signatureFeature() && settingsRepository.findFirstByDeletedFalse().map(settings -> settings.isElectronicSignatureEnabled()).orElse(false);
     }
+
+    private TenantFeatureService tenantFeatureService;
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** The super administrator grants the electronic signature to the tenant, whose administrator then turns it on. */
+    private boolean signatureFeature() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE);
+    }
+
 
     /**
      * Signature options of the issue of a sheet: the current administrator signs for the association by default.

@@ -7,6 +7,8 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanTemplate;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanTemplateOrigin;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanSettingsRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanTemplateRepository;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.PdfContent;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.*;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -291,7 +294,7 @@ public class InventoryLoanTemplateService {
         }
         List<Issue> issues = new ArrayList<>(LoanTemplateValidator.validate(file.content(), renderer));
         // The markers of the electronic signature matter only to the tenants that use it, and never block the template.
-        if (settings(actor(token)).isElectronicSignatureEnabled()) issues.addAll(LoanSheetActs.issues(file.content()));
+        if (signatureFeature() && settings(actor(token)).isElectronicSignatureEnabled()) issues.addAll(LoanSheetActs.issues(file.content()));
         if (LoanTemplateValidator.hasBlockingIssues(issues)) {
             LOG.info("inventory_loan_template_rejected blockingIssues={}", issues.stream().filter(Issue::blocking).count());
             return new Verification(issues, null);
@@ -352,8 +355,20 @@ public class InventoryLoanTemplateService {
             versions,
             LoanSheetVariables.GROUPS,
             new Limits(MAX_FILE_BYTES),
-            new SignatureDtos.Settings(settings.isElectronicSignatureEnabled(), signatureRequirements.requirements(), LoanSheetActs.issues(currentContent(settings)))
+            new SignatureDtos.Settings(signatureFeature() && settings.isElectronicSignatureEnabled(), signatureRequirements.requirements(), LoanSheetActs.issues(currentContent(settings)))
         );
+    }
+
+    private TenantFeatureService tenantFeatureService;
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** The super administrator grants the electronic signature to the tenant, whose administrator then turns it on. */
+    private boolean signatureFeature() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE);
     }
 
     private static VersionSummary toSummary(InventoryLoanTemplate template, boolean active) {

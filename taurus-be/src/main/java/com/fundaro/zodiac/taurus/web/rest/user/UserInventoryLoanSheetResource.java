@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user/inventory/loan-sheets")
-@RequiresTenantFeature(TenantFeature.INVENTORY)
+@RequiresTenantFeature(TenantFeature.INVENTORY_LOAN_SHEET)
 public class UserInventoryLoanSheetResource {
 
     private final InventoryLoanSheetService loanSheetService;

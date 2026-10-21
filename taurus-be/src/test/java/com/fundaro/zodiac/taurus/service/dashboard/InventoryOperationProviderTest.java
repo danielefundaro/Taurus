@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.service.dashboard;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentDecisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
@@ -50,6 +52,17 @@ class InventoryOperationProviderTest {
             .extracting(OperationalItemDTO::description)
             .containsExactly("Un atto dei fogli di affidamento attende la tua firma.");
         assertThat(provider().getOperations(context("member", AuthoritiesConstants.USER))).isEmpty();
+    }
+
+    @Test
+    void asksNoSignatureWhenTheTenantHasNotTheElectronicSignature() {
+        when(signatureService.countAwaitingUser("member")).thenReturn(2L);
+        TenantFeatureService features = mock(TenantFeatureService.class);
+        when(features.isEnabled(TenantFeature.INVENTORY_SIGNATURE)).thenReturn(false);
+        InventoryOperationProvider provider = provider();
+        provider.setTenantFeatureService(features);
+
+        assertThat(provider.getOperations(context("member", AuthoritiesConstants.USER))).isEmpty();
     }
 
     private InventoryOperationProvider provider() {

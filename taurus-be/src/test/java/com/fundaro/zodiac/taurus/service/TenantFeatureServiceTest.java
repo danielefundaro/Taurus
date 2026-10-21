@@ -108,6 +108,40 @@ class TenantFeatureServiceTest {
     }
 
     @Test
+    void chainsTheElectronicSignatureToTheLoanSheetAndTheLoanSheetToTheInventory() {
+        Tenants tenant = tenant("A", false, true);
+        tenant.setInventoryLoanSheetEnabled(true);
+        tenant.setInventorySignatureEnabled(true);
+        when(repository.findByCodeAndDeletedFalse("A")).thenReturn(Optional.of(tenant));
+
+        TenantContext.run("A", () -> {
+            assertThat(service.current())
+                .returns(true, result -> result.inventoryLoanSheetEnabled())
+                .returns(true, result -> result.inventorySignatureEnabled());
+
+            tenant.setInventoryLoanSheetEnabled(false);
+            assertThat(service.isEnabled(TenantFeature.INVENTORY_SIGNATURE)).isFalse();
+            assertThatThrownBy(() -> service.requireEnabled(TenantFeature.INVENTORY_SIGNATURE))
+                .extracting(error -> ((RequestAlertException) error).getErrorKey())
+                .isEqualTo("tenantFeature.inventorySignature.disabled");
+
+            tenant.setInventoryLoanSheetEnabled(true);
+            tenant.setInventoryEnabled(false);
+            assertThat(service.isEnabled(TenantFeature.INVENTORY_LOAN_SHEET)).isFalse();
+            assertThat(service.isEnabled(TenantFeature.INVENTORY_SIGNATURE)).isFalse();
+            assertThatThrownBy(() -> service.requireEnabled(TenantFeature.INVENTORY_LOAN_SHEET))
+                .extracting(error -> ((RequestAlertException) error).getErrorKey())
+                .isEqualTo("tenantFeature.inventoryLoanSheet.disabled");
+        });
+
+        assertThat(service.capabilities().get(TenantFeature.INVENTORY_LOAN_SHEET).dependencies())
+            .containsExactly(TenantFeature.INVENTORY);
+        assertThat(service.capabilities().get(TenantFeature.INVENTORY_SIGNATURE).dependencies())
+            .containsExactly(TenantFeature.INVENTORY_LOAN_SHEET);
+        assertThat(service.capabilities().get(TenantFeature.INVENTORY_SIGNATURE).available()).isTrue();
+    }
+
+    @Test
     void defaultsEveryTenantFeatureToDisabled() {
         Tenants tenant = new Tenants();
         assertThat(tenant.getFinanceEnabled()).isFalse();
@@ -118,6 +152,8 @@ class TenantFeatureServiceTest {
         assertThat(tenant.getNotificationPreferencesEnabled()).isFalse();
         assertThat(tenant.getWebPushRemindersEnabled()).isFalse();
         assertThat(tenant.getEventPreparationEnabled()).isFalse();
+        assertThat(tenant.getInventoryLoanSheetEnabled()).isFalse();
+        assertThat(tenant.getInventorySignatureEnabled()).isFalse();
     }
 
     private static Tenants tenant(String code, boolean finance, boolean inventory) {

@@ -15,6 +15,8 @@ public class NotificationFeaturePolicy {
         if (source == NotificationSource.FINANCE) result.add(TenantFeature.FINANCE);
         if (source == NotificationSource.INVENTORY) result.add(TenantFeature.INVENTORY);
         if ("INVENTORY_ISSUE".equals(aggregateType)) result.add(TenantFeature.INVENTORY_QR);
+        // Requests, outcomes and reminders of the acts of the loan sheets, for the signers and the administrators.
+        if ("SIGNATURE_ACT".equals(aggregateType)) result.add(TenantFeature.INVENTORY_SIGNATURE);
         if ("EVENT_PREPARATION".equals(aggregateType)) {
             result.add(TenantFeature.EVENT_PREPARATION);
             if ("FINANCE_FOLLOW_UP".equals(operation)) result.add(TenantFeature.FINANCE);
