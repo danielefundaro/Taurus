@@ -82,6 +82,21 @@
     }
 }
 
+.assign-action {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    // Occupa il posto dell’etichetta dei campi accanto: il pulsante resta allineato alle caselle anche con i suggerimenti sotto.
+    @media (min-width: 768px) {
+        &::before {
+            content: '\00a0';
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    }
+}
+
 .return-entry {
     padding: 0.75rem;
     border: 1px solid var(--surface-border);

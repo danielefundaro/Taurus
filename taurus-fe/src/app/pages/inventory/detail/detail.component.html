@@ -187,7 +187,7 @@
                         appendTo="body" (ngModelChange)="assignmentExpirationProblem = undefined" />
                 </app-form-field>
             </div>
-            <div class="md:col-span-3 flex items-end">
+            <div class="md:col-span-3 assign-action">
                 <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full"
                     [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity"
                     (onClick)="assign()" />
