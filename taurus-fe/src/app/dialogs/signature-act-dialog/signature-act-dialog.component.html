@@ -1,5 +1,22 @@
 <app-dialog-shell #shell [heading]="heading" [subtitle]="subtitle" [confirmLabel]="confirmLabel" [saving]="saving" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="confirm()">
-    @if (dataStep) {
+    @if (blocked) {
+        <div class="flex flex-col gap-3">
+            @if (acknowledgmentsPending) {
+                <app-inline-alert severity="warn" [heading]="acknowledgmentsHeading" [detail]="acknowledgmentsDetail" />
+            }
+            @if (birthDateMissing) {
+                <app-inline-alert
+                    severity="warn"
+                    [heading]="guardian ? 'Manca la data di nascita del socio minorenne' : 'Aggiungi la tua data di nascita'"
+                    [detail]="
+                        guardian
+                            ? 'Il foglio riporta la data di nascita del socio minorenne, che non è ancora registrata. Chiedi all’associazione di inserirla, poi riapri questo collegamento per completare i dati e firmare.'
+                            : 'Il foglio riporta la tua data di nascita, che Taurus prende dal tuo profilo come nome e cognome. Aggiungila nella pagina Profilo e salva, poi torna qui per completare i dati e firmare.'
+                    "
+                />
+            }
+        </div>
+    } @else if (dataStep) {
         <app-inline-alert
             severity="info"
             heading="Dati del foglio"
@@ -19,6 +36,10 @@
                 </app-form-field>
                 <app-form-field label="Data di nascita" forId="holderBirthDate" required [error]="fieldError('holderBirthDate', shell.validationAttempted)">
                     <p-datepicker inputId="holderBirthDate" [(ngModel)]="form.holderBirthDate" [maxDate]="adultBirthDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" appendTo="body" />
+                </app-form-field>
+            } @else {
+                <app-form-field label="Data di nascita" forId="memberBirthDate" hint="Dal tuo profilo: la modifichi nella pagina Profilo.">
+                    <input pInputText id="memberBirthDate" [value]="act.memberBirthDate | date: 'dd/MM/yyyy'" disabled />
                 </app-form-field>
             }
             <app-form-field label="Luogo di nascita" forId="holderBirthPlace" required [error]="fieldError('birthPlace', shell.validationAttempted)">
@@ -53,6 +74,9 @@
                 <input pInputText id="holderPhone" maxlength="32" inputmode="tel" autocomplete="tel" [(ngModel)]="form.phone" />
             </app-form-field>
             @if (guardian) {
+                <app-form-field label="Data di nascita del socio minorenne" forId="minorBirthDate" hint="Registrata dall’associazione.">
+                    <input pInputText id="minorBirthDate" [value]="act.memberBirthDate | date: 'dd/MM/yyyy'" disabled />
+                </app-form-field>
                 <app-form-field label="Luogo di nascita del socio minorenne" forId="minorBirthPlace" required [error]="fieldError('minorBirthPlace', shell.validationAttempted)">
                     <input pInputText id="minorBirthPlace" maxlength="255" autocomplete="off" [(ngModel)]="form.minorBirthPlace" />
                 </app-form-field>

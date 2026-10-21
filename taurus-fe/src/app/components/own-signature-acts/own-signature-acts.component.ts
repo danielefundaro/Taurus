@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { first } from 'rxjs';
-import { signatureActStatusLabel, signatureActStatusSeverity, signatureActTypeLabel, signaturePurposeLabel } from '../../constants';
+import { signatureActStatusLabel, signatureActStatusSeverity, signatureActTypeLabel, signaturePurposeLabel, signerRoleLabel } from '../../constants';
 import { SignatureActFlow } from '../../dialogs/signature-act-dialog/signature-act-flow';
 import { ImportsModule } from '../../imports';
 import { SignatureAct, SignatureDocumentRole, SignaturePurpose } from '../../module';
@@ -9,7 +9,8 @@ import { SignatureService } from '../../service';
 
 /**
  * Acts of the loan sheets the signed-in user signs, as holder or for the association: the ones waiting for the user,
- * with the signature window, and the signed ones with their documents and attestation.
+ * with the signature window, the ones the user signed that wait for the other parties, and the signed ones with their
+ * documents and attestation.
  */
 @Component({
     selector: 'app-own-signature-acts',
@@ -40,13 +41,35 @@ export class OwnSignatureActsComponent implements OnInit {
         return this.acts.filter((act) => act.dataRequired || act.pendingPurposes.length > 0);
     }
 
+    /** Atti ancora da completare in cui l'utente non ha più nulla da fare: attendono le firme delle altre parti. */
+    protected get waiting(): SignatureAct[] {
+        return this.acts.filter((act) => (act.status === 'AWAITING_DATA' || act.status === 'AWAITING_SIGNATURES') && !this.pending.includes(act));
+    }
+
     protected get completed(): SignatureAct[] {
         return this.acts.filter((act) => act.status === 'SIGNED' || act.status === 'SIGNED_ON_PAPER');
     }
 
-    /** Variazioni che attendono dall'utente una sola firma: si possono firmare insieme con un codice. */
+    /** Firmatari obbligatori che non hanno ancora firmato, per esempio «Per l’Associazione (Mario Rossi)». */
+    protected missingSigners(act: SignatureAct): string {
+        return act.signers
+            .filter((signer) => signer.required && signer.status === 'PENDING')
+            .map((signer) => `${signerRoleLabel(signer.role)} (${signer.displayName})`)
+            .join(', ');
+    }
+
+    /**
+     * Variazioni che attendono dall'utente una sola firma: si possono firmare insieme con un codice, se non ci sono
+     * prese visione da confermare prima.
+     */
     protected batchable(act: SignatureAct): boolean {
-        return act.type === 'LOAN_SHEET_VARIATION' && act.pendingPurposes.length === 1 && !act.dataRequired;
+        return act.type === 'LOAN_SHEET_VARIATION' && act.pendingPurposes.length === 1 && !act.dataRequired && !act.pendingAcknowledgments;
+    }
+
+    /** L'Affidatario firma solo dopo la presa visione delle consegne del foglio. */
+    protected acknowledgmentsText(act: SignatureAct): string {
+        const count = act.pendingAcknowledgments ?? 0;
+        return count === 1 ? 'Prima della firma prendi visione della consegna in attesa' : `Prima della firma prendi visione delle ${count} consegne in attesa`;
     }
 
     protected get batchPurpose(): SignaturePurpose | undefined {

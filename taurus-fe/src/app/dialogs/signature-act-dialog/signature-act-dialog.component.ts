@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { SIGNATURE_HOLDER_FIELDS, shortHash, signatureActTypeLabel, signatureDocumentLabel, signaturePurposeLabel, toLocalDate } from '../../constants';
@@ -40,7 +41,7 @@ interface HolderForm {
     phone: string;
 }
 
-const HOLDER_DATA_ERRORS = ['signature.holderData.invalid'];
+const HOLDER_DATA_ERRORS = ['signature.holderData.invalid', 'signature.holderData.birthDateMissing', 'signature.act.acknowledgmentsPending'];
 /** Errori del caricamento CieSign mostrati nella finestra, che resta aperta per caricare un altro file o usare il codice. */
 const CIESIGN_ERRORS = [
     'signature.cieSign.documentMismatch',
@@ -49,7 +50,8 @@ const CIESIGN_ERRORS = [
     'signature.cieSign.signerMismatch',
     'signature.cieSign.tooLarge',
     'signature.cieSign.notAvailable',
-    'signature.cieSign.notConfigured'
+    'signature.cieSign.notConfigured',
+    'signature.act.acknowledgmentsPending'
 ];
 /** Dimensione massima del file firmato con CieSign. */
 const CIESIGN_MAX_BYTES = 25 * 1024 * 1024;
@@ -60,7 +62,8 @@ const TAX_CODE = /^[A-Za-z]{6}[0-9LMNPQRSTUVlmnpqrstuv]{2}[A-Za-z][0-9LMNPQRSTUV
  * poi per ogni firma attesa legge il documento e conferma di averlo letto. La firma si conferma con il codice nella
  * finestra successiva oppure, per l'Affidatario con codice fiscale italiano, caricando il documento firmato con CieSign.
  * Il genitore o tutore, dalla pagina pubblica, inserisce anche i propri dati anagrafici e il luogo di nascita del socio
- * minorenne, che prende visione del foglio dal proprio account.
+ * minorenne, che prende visione del foglio dal proprio account. La data di nascita del socio viene dal suo profilo, come
+ * nome e cognome: finché manca, i dati non si possono inserire e la finestra rimanda al profilo.
  */
 @Component({
     selector: 'app-signature-act-dialog',
@@ -92,6 +95,10 @@ export class SignatureActDialogComponent {
     protected cieSignFile?: File;
     protected cieSignError?: string;
     protected downloading = false;
+    /** Il server ha rifiutato i dati perché nel profilo manca la data di nascita del socio. */
+    private birthDateRefused = false;
+    /** Prese visione in attesa secondo il server, che ha rifiutato i dati: prevalgono su quelle note all'apertura. */
+    private acknowledgmentsRefused?: number;
     protected readonly today = new Date();
     /** Ultima data di nascita di un genitore o tutore maggiorenne. */
     protected readonly adultBirthDate = new Date(this.today.getFullYear() - 18, this.today.getMonth(), this.today.getDate());
@@ -110,7 +117,8 @@ export class SignatureActDialogComponent {
         private readonly dialogRef: DynamicDialogRef<SignatureActDialogComponent>,
         private readonly signatureService: SignatureService,
         private readonly apiErrorService: ApiErrorService,
-        config: DynamicDialogConfig<SignatureActDialogData>
+        config: DynamicDialogConfig<SignatureActDialogData>,
+        private readonly router: Router
     ) {
         this.act = config.data!.act;
         this.wayOptions = [
@@ -126,6 +134,34 @@ export class SignatureActDialogComponent {
     /** L'Affidatario è il genitore o tutore del socio minorenne. */
     protected get guardian(): boolean {
         return this.act.holderRole === 'GUARDIAN';
+    }
+
+    /** Il documento riporta la data di nascita del socio, presa dal profilo: senza, i dati non si possono salvare. */
+    protected get birthDateMissing(): boolean {
+        return this.dataStep && (!this.act.memberBirthDate || this.birthDateRefused);
+    }
+
+    /** Consegne del foglio di cui il socio deve ancora prendere visione: fino ad allora l'Affidatario non firma. */
+    protected get acknowledgmentsPending(): number {
+        const holderStep = this.dataStep || this.purpose === 'ACCEPTANCE' || this.purpose === 'CLAUSE_APPROVAL';
+        return holderStep ? (this.acknowledgmentsRefused ?? this.act.pendingAcknowledgments ?? 0) : 0;
+    }
+
+    protected get acknowledgmentsHeading(): string {
+        if (this.guardian) return 'Il socio deve prima prendere visione delle consegne';
+        const count = this.acknowledgmentsPending;
+        return count === 1 ? 'Prendi prima visione della consegna in attesa' : `Prendi prima visione delle ${count} consegne in attesa`;
+    }
+
+    protected get acknowledgmentsDetail(): string {
+        return this.guardian
+            ? 'Il socio minorenne conferma dal proprio account di aver preso visione dei dati e delle fotografie dei beni del foglio. Quando lo ha fatto, riapri questo collegamento per firmare.'
+            : 'Prima di firmare conferma di aver preso visione dei dati e delle fotografie dei beni del foglio: nell’elenco delle consegne «In possesso» di questa pagina selezionale e scegli «Accetta e firma». Poi torna qui per firmare.';
+    }
+
+    /** Manca qualcosa prima della firma: la finestra lo spiega e si chiude, o porta al profilo per la data di nascita. */
+    protected get blocked(): boolean {
+        return this.birthDateMissing || this.acknowledgmentsPending > 0;
     }
 
     protected get purpose(): SignaturePurpose | undefined {
@@ -150,6 +186,7 @@ export class SignatureActDialogComponent {
     }
 
     protected get confirmLabel(): string {
+        if (this.blocked) return this.birthDateMissing && !this.guardian ? 'Vai al profilo' : 'Chiudi';
         if (this.dataStep) return 'Salva e continua';
         return this.cieSign ? 'Carica e firma' : 'Firma con codice';
     }
@@ -172,6 +209,7 @@ export class SignatureActDialogComponent {
     }
 
     protected get invalidCount(): number {
+        if (this.blocked) return 0;
         if (!this.dataStep) return (this.read && this.document ? 0 : 1) + (this.cieSign && !this.validCieSignFile ? 1 : 0);
         return this.missingFields().length;
     }
@@ -249,6 +287,13 @@ export class SignatureActDialogComponent {
     }
 
     protected confirm(): void {
+        if (this.blocked) {
+            // Il genitore non ha un profilo: la data la inseriscono l'associazione o il socio.
+            const toProfile = this.birthDateMissing && !this.guardian;
+            this.cancel();
+            if (toProfile) this.router.navigate(['/profile']);
+            return;
+        }
         if (this.dataStep) {
             this.saveData();
             return;
@@ -339,7 +384,16 @@ export class SignatureActDialogComponent {
                         this.dialogRef.close({ act: this.act } satisfies SignatureActDialogResult);
                         return;
                     }
-                    const fields = this.apiErrorService.resolve(error).args['fields'];
+                    const resolved = this.apiErrorService.resolve(error);
+                    if (resolved.key === 'signature.holderData.birthDateMissing') {
+                        this.birthDateRefused = true;
+                        return;
+                    }
+                    if (resolved.key === 'signature.act.acknowledgmentsPending') {
+                        this.acknowledgmentsRefused = Math.max(1, Number(resolved.args['count']) || 1);
+                        return;
+                    }
+                    const fields = resolved.args['fields'];
                     this.invalidFields = new Set(Array.isArray(fields) ? fields.map(String) : []);
                 }
             });

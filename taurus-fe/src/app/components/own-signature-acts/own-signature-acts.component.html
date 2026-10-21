@@ -24,6 +24,9 @@
                                 · da confermare: {{ pendingText(act) }}
                             }
                         </span>
+                        @if (act.pendingAcknowledgments) {
+                            <span class="text-sm text-orange-600 dark:text-orange-400">{{ acknowledgmentsText(act) }}</span>
+                        }
                     </span>
                     <p-button [label]="actionLabel(act)" icon="pi pi-pen-to-square" size="small" (onClick)="sign(act)" />
                 </div>
@@ -34,6 +37,30 @@
                         <small class="text-muted-color">Seleziona variazioni con la stessa firma da confermare.</small>
                     }
                     <p-button [label]="'Firma ' + selected.length + ' variazioni con un codice'" icon="pi pi-pen-to-square" severity="success" [disabled]="!batchPurpose" (onClick)="signSelected()" />
+                </div>
+            }
+        }
+
+        @if (waiting.length) {
+            <div>
+                <h3 class="text-base font-semibold m-0">In attesa delle altre firme</h3>
+                <p class="text-sm text-muted-color m-0">Hai fatto la tua parte: i documenti firmati e l’attestazione si scaricano qui quando tutte le parti hanno firmato.</p>
+            </div>
+            @for (act of waiting; track act.id) {
+                <div class="signature-act">
+                    <span class="signature-act__identity">
+                        <span class="flex flex-wrap items-center gap-2">
+                            <strong>Foglio n. {{ act.sheetNumber }}</strong>
+                            <p-tag [value]="typeLabel(act.type)" severity="secondary" [rounded]="true" />
+                            <p-tag value="In attesa delle altre firme" severity="info" [rounded]="true" />
+                        </span>
+                        <span class="text-sm text-muted-color">
+                            {{ act.operation }}
+                            @if (missingSigners(act); as missing) {
+                                · manca la firma di: {{ missing }}
+                            }
+                        </span>
+                    </span>
                 </div>
             }
         }
@@ -54,6 +81,9 @@
                                 · {{ act.completedAt | date: 'dd/MM/yyyy HH:mm' }}
                             }
                         </span>
+                        @if (act.status === 'SIGNED' && act.purgeAfter) {
+                            <span class="text-sm text-muted-color">Scaricabile fino al {{ act.purgeAfter | date: 'dd/MM/yyyy' }}, poi Taurus elimina i documenti: conservane una copia.</span>
+                        }
                     </span>
                     @if (act.status === 'SIGNED') {
                         <span class="flex flex-wrap gap-1">

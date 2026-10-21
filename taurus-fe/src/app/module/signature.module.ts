@@ -170,6 +170,10 @@ export interface SignatureAct {
     attestationAvailable: boolean;
     associationSignerChangeable: boolean;
     dataRequired: boolean;
+    /** Data di nascita del socio nel profilo (`yyyy-MM-dd`), solo finché servono i dati: senza, i dati non si salvano. */
+    memberBirthDate?: string;
+    /** Per l'Affidatario che deve ancora firmare: consegne del foglio di cui il socio non ha preso visione. */
+    pendingAcknowledgments?: number;
     pendingPurposes: SignaturePurpose[];
     cieSignAvailable: boolean;
     entityVersion: number;

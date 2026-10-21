@@ -348,10 +348,16 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'signature.act.notAwaitingSignatures': "L'atto non è in attesa di firme: ricaricare la pagina",
     'signature.act.documentChanged': 'Il documento è cambiato: ricaricare la pagina e rileggerlo prima di firmare',
     'signature.act.alreadySigned': 'Questa firma è già registrata',
+    'signature.act.acknowledgmentsPending': (args) =>
+        Number(args['count']) === 1
+            ? "C'è una presa visione in attesa: confermarla dall'elenco delle consegne, poi firmare"
+            : `Ci sono ${formatApiErrorValue(args['count'])} prese visione in attesa: confermarle dall'elenco delle consegne, poi firmare`,
     'signature.act.purged': "I documenti dell'atto sono stati eliminati da Taurus: la conservazione spetta all'associazione",
     'signature.act.batchNotAllowed': 'Solo le variazioni si possono firmare insieme: firmare gli altri atti uno alla volta',
     'signature.act.versionConflict': "L'atto è stato modificato da un'altra richiesta: ricaricare la pagina",
     'signature.holderData.invalid': (args) => `Dati mancanti o non validi: ${sentenceList(listOf(args['fields']).map((value) => SIGNATURE_HOLDER_FIELDS[formatApiErrorValue(value)] ?? formatApiErrorValue(value)))}`,
+    'signature.holderData.birthDateMissing': (args) =>
+        args['holderRole'] === 'GUARDIAN' ? "Manca la data di nascita del socio minorenne: chiedere all'associazione di inserirla, poi completare i dati" : 'Manca la data di nascita: aggiungerla nella pagina Profilo, poi completare i dati',
     'signature.associationSigner.sameAsHolder': "Chi firma per l'Associazione non può essere l'Affidatario",
     'signature.associationSigner.notAdmin': "Chi firma per l'Associazione deve essere un amministratore attivo: designare un altro firmatario",
     'signature.associationSigner.locked': "Dopo la prima firma il firmatario per l'Associazione non cambia più: se non può firmare, dichiarare l'atto firmato su carta",

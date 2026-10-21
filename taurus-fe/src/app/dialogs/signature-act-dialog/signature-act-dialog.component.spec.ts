@@ -1,5 +1,6 @@
 import { HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { of, throwError } from 'rxjs';
 import { SignatureAct } from '../../module';
@@ -20,6 +21,7 @@ describe('SignatureActDialogComponent', () => {
         attestationAvailable: false,
         associationSignerChangeable: true,
         dataRequired: true,
+        memberBirthDate: '1990-03-04',
         pendingPurposes: [],
         cieSignAvailable: false,
         entityVersion: 1,
@@ -37,13 +39,15 @@ describe('SignatureActDialogComponent', () => {
     });
     let close: jasmine.Spy;
     let signatureService: jasmine.SpyObj<SignatureService>;
+    let router: jasmine.SpyObj<Router>;
 
     function create(act: SignatureAct): SignatureActDialogComponent {
         close = jasmine.createSpy('close');
         signatureService = jasmine.createSpyObj<SignatureService>('SignatureService', ['submitHolderData', 'downloadDocument', 'signWithCieSign']);
+        router = jasmine.createSpyObj<Router>('Router', ['navigate']);
         const config = new DynamicDialogConfig<SignatureActDialogData>();
         config.data = { act };
-        return new SignatureActDialogComponent({ close } as unknown as DynamicDialogRef<SignatureActDialogComponent>, signatureService, TestBed.inject(ApiErrorService), config);
+        return new SignatureActDialogComponent({ close } as unknown as DynamicDialogRef<SignatureActDialogComponent>, signatureService, TestBed.inject(ApiErrorService), config, router);
     }
 
     function fill(component: SignatureActDialogComponent): void {
@@ -117,6 +121,74 @@ describe('SignatureActDialogComponent', () => {
 
         expect(component['missing']('taxCode')).toBeTrue();
         expect(component['fieldError']('taxCode', false)).toContain('codice fiscale');
+        expect(close).not.toHaveBeenCalled();
+    });
+
+    it('sends the member to the profile while the date of birth is missing', () => {
+        const component = create(issue({ memberBirthDate: undefined }));
+        fill(component);
+
+        expect(component['birthDateMissing']).toBeTrue();
+        expect(component['confirmLabel']).toBe('Vai al profilo');
+        expect(component['invalidCount']).toBe(0);
+        component['confirm']();
+
+        expect(signatureService.submitHolderData).not.toHaveBeenCalled();
+        expect(close).toHaveBeenCalledWith({ act: jasmine.objectContaining({ id: 5 }) });
+        expect(router.navigate).toHaveBeenCalledWith(['/profile']);
+    });
+
+    it('asks the parent to turn to the association for the date of birth of the minor', () => {
+        const component = create(issue({ holderRole: 'GUARDIAN', memberBirthDate: undefined }));
+
+        expect(component['confirmLabel']).toBe('Chiudi');
+        component['confirm']();
+
+        expect(close).toHaveBeenCalled();
+        expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('lets the holder sign only after the acknowledgments of the items of the sheet', () => {
+        const data = create(issue({ pendingAcknowledgments: 2 }));
+        fill(data);
+        expect(data['blocked']).toBeTrue();
+        expect(data['acknowledgmentsHeading']).toBe('Prendi prima visione delle 2 consegne in attesa');
+        expect(data['confirmLabel']).toBe('Chiudi');
+        data['confirm']();
+        expect(signatureService.submitHolderData).not.toHaveBeenCalled();
+        expect(close).toHaveBeenCalled();
+        expect(router.navigate).not.toHaveBeenCalled();
+
+        const signature = create({ ...withDocuments, pendingAcknowledgments: 1 });
+        signature['read'] = true;
+        expect(signature['acknowledgmentsHeading']).toBe('Prendi prima visione della consegna in attesa');
+        signature['confirm']();
+        expect(close).toHaveBeenCalledWith({ act: jasmine.objectContaining({ id: 5 }) });
+
+        expect(create({ ...withDocuments, holderRole: 'GUARDIAN', pendingAcknowledgments: 1 })['acknowledgmentsHeading']).toContain('Il socio deve prima');
+        expect(create({ ...withDocuments, pendingPurposes: ['ASSOCIATION_SIGNATURE'], pendingAcknowledgments: 1 })['blocked']).toBeFalse();
+    });
+
+    it('stops at the acknowledgments when the server refuses the data for them', () => {
+        const component = create(issue());
+        fill(component);
+        signatureService.submitHolderData.and.returnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'error.signature.act.acknowledgmentsPending', args: { count: 3 } } })));
+
+        component['confirm']();
+
+        expect(component['blocked']).toBeTrue();
+        expect(component['acknowledgmentsHeading']).toBe('Prendi prima visione delle 3 consegne in attesa');
+        expect(close).not.toHaveBeenCalled();
+    });
+
+    it('stops at the date of birth when the server finds it missing', () => {
+        const component = create(issue());
+        fill(component);
+        signatureService.submitHolderData.and.returnValue(throwError(() => new HttpErrorResponse({ status: 422, error: { message: 'error.signature.holderData.birthDateMissing', args: { holderRole: 'MEMBER' } } })));
+
+        component['confirm']();
+
+        expect(component['birthDateMissing']).toBeTrue();
         expect(close).not.toHaveBeenCalled();
     });
 
