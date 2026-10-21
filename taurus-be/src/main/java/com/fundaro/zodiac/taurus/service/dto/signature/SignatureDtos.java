@@ -234,7 +234,11 @@ public final class SignatureDtos {
      * An act of a loan sheet. {@code pendingPurposes} are the confirmations still expected from the authenticated user
      * and {@code dataRequired} tells that the holder has to enter the data of the issue first. {@code holderRole} tells
      * whether the holder is the adult member or a parent or guardian. {@code cieSignAvailable} tells that the user, as
-     * holder with an Italian tax code, can sign the pending documents with CieSign.
+     * holder with an Italian tax code, can sign the pending documents with CieSign. While the data are required,
+     * {@code memberBirthDate} is the date of birth of the member in the user profile, which goes in the documents: when
+     * it is empty the data cannot be recorded. For the holder still to sign, {@code pendingAcknowledgments} counts the
+     * outstanding assignments of the sheet the member has not acknowledged yet: until they are acknowledged the holder
+     * cannot sign.
      */
     public record Act(
         Long id,
@@ -254,6 +258,8 @@ public final class SignatureDtos {
         boolean attestationAvailable,
         boolean associationSignerChangeable,
         boolean dataRequired,
+        LocalDate memberBirthDate,
+        long pendingAcknowledgments,
         List<SignaturePurpose> pendingPurposes,
         boolean cieSignAvailable,
         long entityVersion

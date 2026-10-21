@@ -137,6 +137,22 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
         @Param("userId") String userId
     );
 
+    /**
+     * Assignments of a loan sheet in the given states whose current revision waits for the acknowledgment of the member.
+     */
+    @Query("""
+        select count(a) from InventoryAssignment a
+        where a.loanSheetId = :sheetId
+          and a.deleted = false
+          and a.status in :statuses
+          and not exists (
+            select decision.id from InventoryAssignmentDecision decision
+            where decision.revision.assignment = a
+              and decision.revision.revisionNumber = a.currentRevision
+          )
+        """)
+    long countPendingDecisionsOfSheet(@Param("sheetId") Long sheetId, @Param("statuses") Collection<InventoryAssignmentStatus> statuses);
+
     @Query("""
         select a from InventoryAssignment a
         where a.userKeycloakId = :userId
