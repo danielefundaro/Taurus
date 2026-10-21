@@ -787,6 +787,32 @@ public class LoanSheetSignatureService {
         return signer.getSignerRole() == SignerRole.HOLDER && act.getActType() == SignatureActType.LOAN_SHEET_ISSUE && act.getStatus() == SignatureActStatus.AWAITING_DATA;
     }
 
+    /**
+     * Acts of loan sheets waiting for the user, as the box of the signatures lists them: data to enter or confirmations
+     * to give as holder, minor member or signer for the association.
+     */
+    @Transactional(readOnly = true)
+    public long countAwaitingUser(String userId) {
+        if (userId == null) return 0;
+        return actRepository.findAllForSigner(userId, SHEET_ACTS).stream()
+            .filter(act -> act.getPurgedAt() == null && AWAITING.contains(act.getStatus()))
+            .filter(act -> awaitsUser(act, userId))
+            .count();
+    }
+
+    private boolean awaitsUser(SignatureAct act, String userId) {
+        List<SignatureEvidence> evidence = evidenceRepository.findAllByActIdOrderBySequenceAsc(act.getId());
+        return signerRepository.findAllByActIdAndDeletedFalseOrderByIdAsc(act.getId()).stream()
+            .filter(signer -> userId.equals(signer.getUserKeycloakId()))
+            .anyMatch(signer -> {
+                Set<SignaturePurpose> signed = evidence.stream()
+                    .filter(value -> signer.getId().equals(value.getSignerId()))
+                    .map(SignatureEvidence::getPurpose)
+                    .collect(Collectors.toCollection(() -> EnumSet.noneOf(SignaturePurpose.class)));
+                return dataRequired(act, signer) || !pendingPurposes(act, signer, signed).isEmpty();
+            });
+    }
+
     static List<SignaturePurpose> pendingPurposes(SignatureAct act, SignatureActSigner signer, Set<SignaturePurpose> signed) {
         if (act.getStatus() != SignatureActStatus.AWAITING_SIGNATURES) return List.of();
         List<SignaturePurpose> expected = switch (signer.getSignerRole()) {
