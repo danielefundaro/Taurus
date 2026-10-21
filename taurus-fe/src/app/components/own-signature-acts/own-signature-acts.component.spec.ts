@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { SignatureAct } from '../../module';
+import { SignatureAct, SignatureActSigner } from '../../module';
 import { SignatureActFlow } from '../../dialogs/signature-act-dialog/signature-act-flow';
 import { SignatureService } from '../../service';
 import { OwnSignatureActsComponent } from './own-signature-acts.component';
@@ -32,16 +32,37 @@ describe('OwnSignatureActsComponent', () => {
         return { component, flow, signatureService };
     }
 
-    it('separates the acts waiting for the user from the signed ones', () => {
+    it('separates the acts waiting for the user, the ones waiting for the other parties and the signed ones', () => {
         const issue = act(1, { type: 'LOAN_SHEET_ISSUE', status: 'AWAITING_DATA', dataRequired: true, pendingPurposes: [] });
         const signed = act(2, { status: 'SIGNED', pendingPurposes: [], attestationAvailable: true });
         const waitingForOthers = act(3, { pendingPurposes: [] });
         const { component } = create([issue, signed, waitingForOthers]);
 
         expect(component['pending']).toEqual([issue]);
+        expect(component['waiting']).toEqual([waitingForOthers]);
         expect(component['completed']).toEqual([signed]);
         expect(component['actionLabel'](issue)).toBe('Inserisci i dati e firma');
         expect(component['actionLabel'](act(4, { pendingPurposes: ['ASSOCIATION_SIGNATURE'] }))).toBe('Firma per l’Associazione');
+    });
+
+    it('names the required signers still missing once the user has signed', () => {
+        const signer = (id: number, role: SignatureActSigner['role'], status: SignatureActSigner['status'], required = true): SignatureActSigner => ({
+            id,
+            role,
+            displayName: `Firmatario ${id}`,
+            required,
+            status,
+            signedPurposes: []
+        });
+        const issue = act(1, {
+            type: 'LOAN_SHEET_ISSUE',
+            pendingPurposes: [],
+            signers: [signer(1, 'HOLDER', 'SIGNED'), signer(2, 'ASSOCIATION', 'PENDING'), signer(3, 'MINOR', 'PENDING', false)]
+        });
+        const { component } = create([issue]);
+
+        expect(component['waiting']).toEqual([issue]);
+        expect(component['missingSigners'](issue)).toBe('Per l’Associazione (Firmatario 2)');
     });
 
     it('signs several variations with one code and reloads the acts', () => {
@@ -64,6 +85,15 @@ describe('OwnSignatureActsComponent', () => {
         });
         expect(signatureService.getActs).toHaveBeenCalledTimes(2);
         expect(component['selected']).toEqual([]);
+    });
+
+    it('keeps out of the signature with one code the variations waiting for acknowledgments', () => {
+        const waiting = act(1, { pendingAcknowledgments: 2 });
+        const { component } = create([waiting]);
+
+        expect(component['batchable'](waiting)).toBeFalse();
+        expect(component['acknowledgmentsText'](waiting)).toBe('Prima della firma prendi visione delle 2 consegne in attesa');
+        expect(component['acknowledgmentsText'](act(2, { pendingAcknowledgments: 1 }))).toBe('Prima della firma prendi visione della consegna in attesa');
     });
 
     it('does not mix different signatures in one code', () => {
