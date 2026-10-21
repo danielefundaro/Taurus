@@ -14,6 +14,17 @@ export const fromLocalDate = (value?: string | null): Date | undefined => {
     return new Date(year, month - 1, day);
 };
 
+/**
+ * Reads a date-only value of the API, sent as `yyyy-MM-dd` or as an instant, as a local midnight date: the calendar day
+ * does not move with the time zone of the browser.
+ */
+export const fromApiDate = (value?: string | number | Date | null): Date | undefined => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fromLocalDate(value);
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
 /** Adds calendar months to a date, clamping to the last day of the target month as the backend does. */
 export const addMonths = (value: Date, months: number): Date => {
     const target = new Date(value.getFullYear(), value.getMonth() + months, 1);

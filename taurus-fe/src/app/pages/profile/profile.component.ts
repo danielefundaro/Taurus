@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { first } from 'rxjs';
+import { fromApiDate, toLocalDate } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
 import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
@@ -25,6 +26,9 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected lastName: string = '';
     protected email: string = '';
     protected username: string = '';
+    /** Data di nascita, conservata solo in Taurus: serve nei fogli di affidamento che il socio firma. */
+    protected birthDate?: Date;
+    protected readonly today = new Date();
 
     /** Notifiche: consenso del browser e promemoria predefinito degli eventi. */
     protected pushEnabled = false;
@@ -83,6 +87,13 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             this.email = profile.email ?? '';
             this.username = profile.username ?? '';
         });
+        this.usersService
+            .getOwn()
+            .pipe(first())
+            .subscribe({
+                next: (user) => (this.birthDate = fromApiDate(user.birthDate)),
+                error: () => undefined
+            });
 
         this.tenantFeatureService.refresh().subscribe({
             next: () => {
@@ -213,7 +224,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             .partialUpdateOwn({
                 name: this.firstName,
                 lastName: this.lastName,
-                email: this.email
+                email: this.email,
+                birthDate: toLocalDate(this.birthDate)
             })
             .pipe(first())
             .subscribe({

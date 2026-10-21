@@ -1,5 +1,5 @@
 import { inventoryLoanHolderRoleLabel, inventoryLoanReturnOutcomeLabel, inventoryLoanSheetStatusLabel, inventoryLoanSheetStatusSeverity, inventoryLoanTypeLabel } from './inventory-labels';
-import { addMonths, fromLocalDate, toLocalDate } from './local-date';
+import { addMonths, fromApiDate, fromLocalDate, toLocalDate } from './local-date';
 
 describe('local dates', () => {
     it('round-trips ISO local dates without time zone shifts', () => {
@@ -10,6 +10,15 @@ describe('local dates', () => {
         expect(toLocalDate(date)).toBe('2026-09-28');
         expect(toLocalDate(null)).toBeUndefined();
         expect(fromLocalDate(undefined)).toBeUndefined();
+    });
+
+    it('reads the date-only values of the API as local dates, whatever their format', () => {
+        expect(toLocalDate(fromApiDate('1990-03-04'))).toBe('1990-03-04');
+        expect(toLocalDate(fromApiDate(new Date(1990, 2, 4, 15, 30)))).toBe('1990-03-04');
+        expect(toLocalDate(fromApiDate(new Date(1990, 2, 4).getTime()))).toBe('1990-03-04');
+        expect(fromApiDate(null)).toBeUndefined();
+        expect(fromApiDate('')).toBeUndefined();
+        expect(fromApiDate('non una data')).toBeUndefined();
     });
 
     it('adds months clamping to the end of the month like the backend', () => {
