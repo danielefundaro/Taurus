@@ -28,6 +28,8 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     /** L'associazione richiede la firma con codice per la presa visione. */
     protected signatureEnabled = false;
     protected readonly inventoryQrEnabled;
+    /** Senza la funzionalità del tenant la presa visione si conferma senza codice. */
+    private readonly inventorySignatureEnabled;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
     protected readonly returnStatusLabel = inventoryReturnStatusLabel;
@@ -51,6 +53,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
         private readonly router: Router
     ) {
         this.inventoryQrEnabled = tenantFeatureService.inventoryQrEnabled;
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 
     protected get canConfirmDecision(): boolean {
@@ -74,10 +77,11 @@ export class InventoryAssignmentDetailComponent implements OnInit {
             }
             this.load(id);
         });
-        this.signatureService
-            .getMethods()
-            .pipe(first())
-            .subscribe((methods) => (this.signatureEnabled = methods.enabled));
+        if (this.inventorySignatureEnabled())
+            this.signatureService
+                .getMethods()
+                .pipe(first())
+                .subscribe((methods) => (this.signatureEnabled = methods.enabled));
     }
 
     protected choose(choice: InventoryDecisionType, selected: boolean): void {

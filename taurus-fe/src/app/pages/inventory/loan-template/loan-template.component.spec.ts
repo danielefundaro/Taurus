@@ -1,7 +1,7 @@
 import { HttpContext } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { InventoryLoanTemplateOverview, InventoryLoanTemplateVersion } from '../../../module';
-import { ConfirmService, InventoryService, ToastService } from '../../../service';
+import { ConfirmService, InventoryService, TenantFeatureService, ToastService } from '../../../service';
 import { InventoryLoanTemplateComponent } from './loan-template.component';
 
 describe('InventoryLoanTemplateComponent', () => {
@@ -38,7 +38,7 @@ describe('InventoryLoanTemplateComponent', () => {
         const toastService = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error']);
         const confirmService = jasmine.createSpyObj<ConfirmService>('ConfirmService', ['confirmReversible']);
         confirmService.confirmReversible.and.callFake((request) => request.accept());
-        const component = new InventoryLoanTemplateComponent(inventoryService, toastService, confirmService);
+        const component = new InventoryLoanTemplateComponent(inventoryService, toastService, confirmService, { inventorySignatureEnabled: () => true } as unknown as TenantFeatureService);
         component.ngOnInit();
         return { component, inventoryService, toastService, confirmService };
     }

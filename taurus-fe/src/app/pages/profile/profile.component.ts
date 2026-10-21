@@ -62,8 +62,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected readonly reminderUnit = 'notifiche';
     protected readonly notificationPreferencesEnabled;
     protected readonly webPushRemindersEnabled;
-    /** La firma elettronica appartiene all'inventario: le sue impostazioni compaiono solo con l'inventario attivo. */
-    protected readonly inventoryEnabled;
+    /** Le impostazioni della firma elettronica compaiono solo se il tenant ha la funzionalità. */
+    protected readonly inventorySignatureEnabled;
 
     constructor(
         private readonly keycloakService: KeycloakService,
@@ -77,7 +77,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         super();
         this.notificationPreferencesEnabled = tenantFeatureService.notificationPreferencesEnabled;
         this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
-        this.inventoryEnabled = tenantFeatureService.inventoryEnabled;
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 
     ngOnInit(): void {

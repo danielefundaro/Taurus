@@ -5,8 +5,10 @@
         <div pageActions class="flex flex-wrap gap-2">
             @if (!personalView) {
             <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
+            @if (inventoryLoanSheetEnabled()) {
             <p-button label="Modello del foglio di affidamento" icon="pi pi-file-edit" severity="secondary"
                 [outlined]="true" routerLink="/inventory/loan-template" />
+            }
             @if (inventoryQrEnabled()) {
             <p-button label="Genera etichette" icon="pi pi-print" severity="secondary"
                 [disabled]="!selectedItems.length" (onClick)="generateLabels()" />
@@ -68,8 +70,10 @@
     </div>
     }
 
-    @if (personalView) {
+    @if (personalView && inventorySignatureEnabled()) {
     <app-own-signature-acts />
+    }
+    @if (personalView && inventoryLoanSheetEnabled()) {
     <app-own-loan-sheets />
     }
 

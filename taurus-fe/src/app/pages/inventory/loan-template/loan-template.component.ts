@@ -13,7 +13,7 @@ import {
     InventoryLoanTemplateVersion,
     SignatureRequirements
 } from '../../../module';
-import { ConfirmService, InventoryService, ToastService, withErrorSummary } from '../../../service';
+import { ConfirmService, InventoryService, TenantFeatureService, ToastService, withErrorSummary } from '../../../service';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 
 const DEFAULT_FILE_NAME = 'foglio-affidamento-modello-predefinito.html';
@@ -63,12 +63,17 @@ export class InventoryLoanTemplateComponent extends DetailPageBase implements On
         'Non sono ammessi l’inserimento senza conversione ({{{…}}} o {{&…}}), l’inclusione di altri modelli ({{>…}}) e il cambio dei delimitatori.'
     ];
 
+    /** La sezione della firma elettronica compare solo se il tenant ha la funzionalità. */
+    protected readonly inventorySignatureEnabled;
+
     constructor(
         private readonly inventoryService: InventoryService,
         private readonly toastService: ToastService,
-        private readonly confirmService: ConfirmService
+        private readonly confirmService: ConfirmService,
+        tenantFeatureService: TenantFeatureService
     ) {
         super();
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 
     ngOnInit(): void {

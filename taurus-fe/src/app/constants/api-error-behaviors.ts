@@ -28,6 +28,8 @@ export const API_ERROR_BEHAVIORS: Readonly<Record<string, ApiErrorBehavior>> = {
     'tenantFeature.notificationPreferences.disabled': 'tenantFeatureDisabled',
     'tenantFeature.webPushReminders.disabled': 'tenantFeatureDisabled',
     'tenantFeature.eventPreparation.disabled': 'tenantFeatureDisabled',
+    'tenantFeature.inventoryLoanSheet.disabled': 'tenantFeatureDisabled',
+    'tenantFeature.inventorySignature.disabled': 'tenantFeatureDisabled',
     'version.conflict': 'versionConflict',
     concurrencyFailure: 'versionConflict',
     'id.notFound': 'notFoundPage'

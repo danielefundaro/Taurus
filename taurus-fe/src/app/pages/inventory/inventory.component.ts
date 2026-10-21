@@ -49,6 +49,8 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     protected sortOptions: SelectItem[] = [];
     protected attention?: 'pending-decisions' | 'pending-returns' | 'expiring' | 'issues-unsafe' | 'issues-limiting';
     protected readonly inventoryQrEnabled;
+    protected readonly inventoryLoanSheetEnabled;
+    protected readonly inventorySignatureEnabled;
     protected readonly assignmentStatusLabel = inventoryAssignmentStatusLabel;
     protected readonly decisionLabel = inventoryDecisionLabel;
 
@@ -76,6 +78,8 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     ) {
         super();
         this.inventoryQrEnabled = tenantFeatureService.inventoryQrEnabled;
+        this.inventoryLoanSheetEnabled = tenantFeatureService.inventoryLoanSheetEnabled;
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
         this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'name', sortOrder: 1 };
     }
 
@@ -106,10 +110,12 @@ export class InventoryComponent extends ListPageBase implements OnInit {
             this.attention = attention as typeof this.attention;
         }
         this.configureSortOptions();
-        this.signatureService
-            .getMethods()
-            .pipe(first())
-            .subscribe((methods) => (this.signatureEnabled = methods.enabled));
+        // Senza la funzionalità del tenant le API della firma rispondono 403: le prese visione si confermano senza codice.
+        if (this.inventorySignatureEnabled())
+            this.signatureService
+                .getMethods()
+                .pipe(first())
+                .subscribe((methods) => (this.signatureEnabled = methods.enabled));
         if (this.isAdmin) this.loadErasureRequests();
         if (this.isAdmin && this.route.snapshot.queryParamMap.get('action') === 'new') {
             this.router.navigate([], {

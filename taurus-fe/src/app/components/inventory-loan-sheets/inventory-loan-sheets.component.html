@@ -101,7 +101,7 @@
 
     @if (detail) {
         <div class="mt-6 flex flex-col gap-6">
-            @if (detail.summary.signatureMode === 'ELECTRONIC') {
+            @if (detail.summary.signatureMode === 'ELECTRONIC' && inventorySignatureEnabled()) {
                 <app-loan-sheet-signatures [sheetId]="detail.summary.id" [userIndex]="userIndex" [sheetNumber]="detail.summary.sheetNumber" (changed)="refreshDetail()" />
             }
             <div>
