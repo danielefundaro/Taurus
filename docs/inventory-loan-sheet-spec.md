@@ -715,7 +715,7 @@ Le altezze sono minime: una riga con testo più lungo cresce in altezza.
   - **Guida alle variabili**: sintassi, regole del file e tabelle delle variabili per gruppo con tipo, descrizione ed esempio, lette dal catalogo del backend;
   - **Storico dei modelli caricati**: versione, data di attivazione, nome del file e stato, con **Scarica**, **Anteprima PDF** e **Usa questa versione**.
   La vista segue il [Taurus Layout Standard](taurus-layout-standard.md) e la documentazione PrimeNG in `docs/llms-full.md`.
-- **I miei oggetti**: riquadro **Fogli di affidamento** con i propri fogli e il download del PDF finché il foglio conserva i dati personali.
+- **I miei oggetti**: riquadro **Fogli di affidamento** con i propri fogli e il download del PDF finché il foglio conserva i dati personali. Per un foglio con firma elettronica il pulsante è **Copia di consultazione** e un testo rimanda al riquadro **Firme** per i documenti firmati.
 - **Tenant**: campi telefono e PEC nella pagina di dettaglio.
 
 ## Autorizzazioni e isolamento tenant

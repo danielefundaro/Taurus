@@ -139,7 +139,9 @@ Variazioni e riconsegna nascono in `AWAITING_SIGNATURES`. La presa visione nasce
 
 Lo stato non cambia quando Taurus elimina documenti e prove al termine del periodo di grazia: l'atto riceve `purged_at` e i download rispondono `410 signature.act.purged`.
 
-Le firme possono arrivare in qualsiasi ordine. Finché nessuno ha firmato, l'Affidatario può correggere i propri dati: Taurus genera nuovi documenti congelati e marca come eliminati i precedenti. Dopo la prima firma i documenti non cambiano più; un errore si corregge annullando il foglio ed emettendone uno nuovo, come per i fogli su carta.
+Le firme possono arrivare in qualsiasi ordine, con un vincolo per l'Affidatario: firma gli atti del foglio (accettazione e approvazione delle clausole, con il codice o con CieSign) solo quando il socio ha preso visione di tutte le assegnazioni del foglio non ancora riconsegnate, cioè quando nessuna ha la revisione corrente senza decisione. Altrimenti la firma, e prima ancora l'invio dei dati dell'emissione, risponde `409 signature.act.acknowledgmentsPending` con il numero delle prese visione in attesa (`args.count`); la vista dell'atto riporta lo stesso numero in `pendingAcknowledgments`. Una presa visione rifiutata non blocca la firma. Il vincolo non vale per la firma per l'Associazione, la presa visione del minore e la dichiarazione di firma su carta.
+
+Finché nessuno ha firmato, l'Affidatario può correggere i propri dati: Taurus genera nuovi documenti congelati e marca come eliminati i precedenti. Dopo la prima firma i documenti non cambiano più; un errore si corregge annullando il foglio ed emettendone uno nuovo, come per i fogli su carta.
 
 ## Modalità di firma
 
@@ -255,6 +257,7 @@ La verifica usa PDFBox e `bcpkix`, introdotto con il sigillo (vedi [Sigillo](#si
 All'emissione di un foglio `ELECTRONIC` l'Affidatario inserisce, al posto della compilazione a mano, i dati delle sezioni 1 e 2 elencati in [Variabili](#variabili).
 
 - Sono tutti obbligatori tranne il telefono.
+- La data di nascita del socio, come nome e cognome, viene dal profilo dell'utente, dove il socio la inserisce e la modifica dalla pagina **Profilo**. È obbligatoria: finché manca, la finestra dei dati non mostra i campi e rimanda al profilo, o per il genitore all'associazione, e il salvataggio dei dati risponde `422 signature.holderData.birthDateMissing`. Al salvataggio Taurus la copia sul foglio (`member_birth_date`), così i documenti congelati riportano la data in vigore in quel momento anche se all'emissione mancava.
 - Il codice fiscale è validato nel formato e nel carattere di controllo. Chi non ha un codice fiscale italiano lo dichiara con una casella esplicita: il campo resta vuoto nel documento e CieSign non è disponibile.
 - I dati entrano nel documento congelato dell'emissione. Sul foglio Taurus salva solo ciò che serve a verificare CieSign negli atti successivi: il codice fiscale (`holder_tax_code`) e, per il ruolo `GUARDIAN`, nome e cognome del genitore (`holder_name`), oltre all'e-mail del genitore (`holder_email`).
 - Questi campi sono rimossi alla definizione, all'annullamento e alla cancellazione GDPR, anche se la regola generale dell'annullamento non rimuove i dati personali del foglio.
@@ -544,6 +547,8 @@ Gli errori seguono lo [Standard degli errori applicativi](application-errors-sta
 | `signature.act.purged` | 410 | documenti, attestazioni o fascicolo già eliminati al termine del periodo di grazia o con la cancellazione GDPR |
 | `signature.act.batchNotAllowed` | 422 | conferma multipla non ammessa per il tipo di atto o lo scopo |
 | `signature.holderData.invalid` | 422 | dati dell'Affidatario mancanti o non validi, campi in `args.fields` |
+| `signature.act.acknowledgmentsPending` | 409 | firma o invio dei dati dell'Affidatario con prese visione in attesa sulle assegnazioni del foglio, numero in `args.count` |
+| `signature.holderData.birthDateMissing` | 422 | dati dell'Affidatario inviati senza la data di nascita del socio nel suo profilo; `args.holderRole` distingue il socio maggiorenne dal genitore |
 | `signature.disabled` | 422 | conferma di una presa visione con la firma elettronica non attiva nel tenant |
 | `signature.challenge.invalid` | 400 | elementi mancanti, duplicati, oltre il massimo o scopo non supportato |
 | `signature.challenge.notFound` | 404 | conferma inesistente o di un altro utente |
@@ -584,11 +589,13 @@ Un atto o una conferma non accessibili all'utente rispondono `404`, come le riso
 La vista segue il [Taurus Layout Standard](taurus-layout-standard.md) e la documentazione PrimeNG in `docs/llms-full.md`, in particolare Dialog, Stepper, InputOtp e FileUpload.
 
 - **Profilo**: sezione **Firma elettronica**, solo con l'inventario attivo e la firma elettronica attiva nel tenant, con il metodo preferito (**Codice via e-mail** o **App di autenticazione**, salvato alla scelta), lo stato dell'app (configurata, non configurata o non disponibile) e il pulsante **Configura app**, che avvia l'azione `CONFIGURE_TOTP` già presente. Un avviso segnala quando l'app è preferita ma le firme useranno ancora il codice via e-mail; un testo avvisa che l'app sarà chiesta anche al login.
-- **I miei oggetti**: riquadro **Firme**, prima dei fogli di affidamento, con gli atti in attesa della firma dell'utente, come Affidatario, come socio minorenne che prende visione (**Prendi visione**) o per l'Associazione, e gli atti firmati con i download di documenti e attestazione. Le variazioni che attendono la stessa firma si selezionano e si firmano insieme con un solo codice. Una notifica interna segnala ogni nuovo atto. Le prese visione restano nell'elenco delle consegne.
+- **I miei oggetti**: riquadro **Firme**, prima dei fogli di affidamento, con gli atti in attesa della firma dell'utente, come Affidatario, come socio minorenne che prende visione (**Prendi visione**) o per l'Associazione, gli atti che l'utente ha già firmato e che attendono le altre parti, con i firmatari obbligatori mancanti, e gli atti firmati con i download di documenti e attestazione e, dopo la definizione o l'annullamento del foglio, la data fino a cui restano scaricabili. Le variazioni che attendono la stessa firma si selezionano e si firmano insieme con un solo codice, tranne quelle con prese visione in attesa. Un atto che l'Affidatario non può ancora firmare per le prese visione in attesa lo indica sotto l'operazione. Una notifica interna segnala ogni nuovo atto e la dashboard mostra in «Da fare» la voce **Firma richiesta** con il numero di atti in attesa dell'utente (vedi la [dashboard operativa](operational-dashboard-spec.md#firma-personale-inventory_signature_required)). Le prese visione restano nell'elenco delle consegne.
 - **Finestra di firma**, ripetuta per ogni firma attesa dall'utente:
-  1. **Dati**, solo all'emissione: campi delle sezioni 1 e 2, con codice fiscale validato nel formato e nel carattere di controllo e casella **Non ho un codice fiscale italiano**; tutti obbligatori tranne il telefono. Il genitore o tutore inserisce anche nome, cognome e data di nascita propri e il luogo di nascita del socio minorenne.
+  1. **Dati**, solo all'emissione: campi delle sezioni 1 e 2, con codice fiscale validato nel formato e nel carattere di controllo e casella **Non ho un codice fiscale italiano**; tutti obbligatori tranne il telefono. La data di nascita del socio compare in sola lettura, presa dal profilo; se manca, al posto dei campi un avviso chiede al socio di aggiungerla nel **Profilo**, con il pulsante **Vai al profilo**, o al genitore di chiederla all'associazione. Il genitore o tutore inserisce anche nome, cognome e data di nascita propri e il luogo di nascita del socio minorenne.
   2. **Documento**: apertura del PDF, impronta abbreviata, casella non preselezionata **Ho letto il documento**, **Approvo specificamente le clausole elencate nel documento** per le clausole o **Ho letto il documento e firmo per l'Associazione**.
   3. **Firma con codice**: la finestra del codice con la dichiarazione.
+
+  Con prese visione in attesa sulle assegnazioni del foglio, la finestra dell'Affidatario mostra, al posto dei dati e del documento, l'avviso di prendere prima visione delle consegne, con «Accetta e firma» nell'elenco delle consegne, e il pulsante **Chiudi**; al genitore chiede di attendere la presa visione del socio minorenne.
 
   Dopo l'accettazione del foglio la finestra si riapre per l'approvazione delle clausole, con un nuovo codice; a firme completate un avviso indica se l'atto è firmato da tutte le parti. La finestra del codice offre l'altro metodo (vedi [Preferenza dell'utente](#preferenza-dellutente)).
 
