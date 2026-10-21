@@ -216,6 +216,9 @@ class LoanSheetSignatureIT {
         Act issue = single(tx(() -> signatureService.ownActs(member)));
         assertThat(issue.type()).isEqualTo(SignatureActType.LOAN_SHEET_ISSUE);
         assertThat(issue.dataRequired()).isTrue();
+        // The dashboard asks the signatures of the acts waiting for each user, as the box of the signatures lists them.
+        assertThat(tx(() -> signatureService.countAwaitingUser(memberKey))).isEqualTo(1);
+        assertThat(tx(() -> signatureService.countAwaitingUser(adminKey))).isZero();
         assertThatThrownBy(() -> tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562X"), member)))
             .isInstanceOfSatisfying(RequestAlertException.class, exception -> {
                 assertThat(exception.getErrorKey()).isEqualTo("signature.holderData.invalid");
@@ -237,11 +240,14 @@ class LoanSheetSignatureIT {
 
         Act awaitingAssociation = tx(() -> signatureService.ownAct(issue.id(), admin));
         assertThat(awaitingAssociation.pendingPurposes()).containsExactly(SignaturePurpose.ASSOCIATION_SIGNATURE);
+        assertThat(tx(() -> signatureService.countAwaitingUser(memberKey))).isZero();
+        assertThat(tx(() -> signatureService.countAwaitingUser(adminKey))).isEqualTo(1);
         assertThat(awaitingAssociation.associationSignerChangeable()).isFalse();
         confirm(challenge(SignaturePurpose.ASSOCIATION_SIGNATURE, awaitingAssociation, SignatureDocumentRole.MAIN, admin), admin);
 
         Act signed = tx(() -> signatureService.ownAct(issue.id(), member));
         assertThat(signed.status()).isEqualTo(SignatureActStatus.SIGNED);
+        assertThat(tx(() -> signatureService.countAwaitingUser(adminKey))).isZero();
         assertThat(signed.attestationAvailable()).isTrue();
         assertThat(signed.documents()).allSatisfy(document -> assertThat(document.sealedHash()).hasSize(64).isNotEqualTo(document.frozenHash()));
         ActFile sealed = tx(() -> signatureService.document(issue.id(), SignatureDocumentRole.MAIN, false, member));
