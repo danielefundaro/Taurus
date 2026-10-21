@@ -19,7 +19,7 @@
     </div>
 
     <app-detail-section heading="Informazioni personali"
-        description="Nome, cognome ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
+        description="Nome, cognome, data di nascita ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="firstName">
                 <input pInputText id="firstName" [(ngModel)]="firstName" (ngModelChange)="isDirty = true"
@@ -28,6 +28,11 @@
             <app-form-field label="Cognome" forId="lastName">
                 <input pInputText id="lastName" [(ngModel)]="lastName" (ngModelChange)="isDirty = true"
                     placeholder="Cognome" />
+            </app-form-field>
+            <app-form-field label="Data di nascita" forId="birthDate">
+                <p-datepicker inputId="birthDate" [(ngModel)]="birthDate" (ngModelChange)="isDirty = true"
+                    [maxDate]="today" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input"
+                    placeholder="gg/mm/aaaa" />
             </app-form-field>
             <app-form-field label="Email" forId="email">
                 <input pInputText id="email" type="email" [(ngModel)]="email" (ngModelChange)="isDirty = true"
