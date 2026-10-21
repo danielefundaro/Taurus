@@ -187,6 +187,20 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Finestre costruite con app-dialog-shell: scorre solo il corpo della shell. Il contenuto della
+   finestra PrimeNG le cede l'altezza disponibile invece di aggiungere una seconda barra di scorrimento. */
+.p-dialog-content:has(> * > app-dialog-shell) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.p-dialog-content > :has(> app-dialog-shell) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 /* Immagine dentro p-galleria a schermo intero: condivisa da preview e
    tracks/detail, che ne sovrascrive le altezze nel proprio foglio di stile. */
 .image-galleria {
