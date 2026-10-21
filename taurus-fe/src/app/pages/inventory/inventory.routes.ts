@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { RoleEnums } from '../../constants';
+import { tenantFeatureGuard } from '../../guard/tenant-feature.guard';
+import { TenantFeature } from '../../module';
 import { canActivateAuthRole } from '../../guard/auth-role.guard';
 import { canDeactivateUnsavedChanges } from '../../guard/unsaved-changes.guard';
 import { InventoryComponent } from './inventory.component';
@@ -24,9 +26,9 @@ export default [
     {
         path: 'loan-template',
         component: InventoryLoanTemplateComponent,
-        canActivate: [canActivateAuthRole],
+        canActivate: [canActivateAuthRole, tenantFeatureGuard],
         canDeactivate: [canDeactivateUnsavedChanges],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN], feature: TenantFeature.INVENTORY_LOAN_SHEET }
     },
     {
         path: 'items/:id',

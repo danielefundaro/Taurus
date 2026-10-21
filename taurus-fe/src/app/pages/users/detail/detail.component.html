@@ -65,7 +65,9 @@
 
     @if (user.id && tenantFeatureService.inventoryEnabled()) {
     <app-inventory-assignments [userIndex]="user.id" />
+    @if (tenantFeatureService.inventoryLoanSheetEnabled()) {
     <app-inventory-loan-sheets [userIndex]="user.id" />
+    }
     }
 
     <app-danger-zone [operations]="[

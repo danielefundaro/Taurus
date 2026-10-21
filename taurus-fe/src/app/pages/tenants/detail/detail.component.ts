@@ -29,6 +29,20 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         { key: 'eventPreparationEnabled', feature: TenantFeature.EVENT_PREPARATION, label: 'Preparazione evento', description: 'Workspace operativo, indicatori, materiali e follow-up.' },
         { key: 'scorePlaybackEnabled', feature: TenantFeature.SCORE_PLAYBACK, label: 'Ascolto delle parti', description: 'Ascolto di parti e partiture, caricamento MusicXML e versioni delle parti.' },
         { key: 'inventoryQrEnabled', feature: TenantFeature.INVENTORY_QR, label: 'QR code inventario', description: 'Etichette, scansione, azioni rapide e segnalazioni.', dependency: 'inventoryEnabled' },
+        {
+            key: 'inventoryLoanSheetEnabled',
+            feature: TenantFeature.INVENTORY_LOAN_SHEET,
+            label: 'Fogli di affidamento',
+            description: 'Emissione, registro delle variazioni, chiusura e modello dei fogli di consegna e affidamento in comodato.',
+            dependency: 'inventoryEnabled'
+        },
+        {
+            key: 'inventorySignatureEnabled',
+            feature: TenantFeature.INVENTORY_SIGNATURE,
+            label: 'Firma elettronica',
+            description: 'Firma con un codice o con CieSign dei fogli di affidamento e delle prese visione, con sigillo, attestazioni e fascicolo.',
+            dependency: 'inventoryLoanSheetEnabled'
+        },
         { key: 'notificationPreferencesEnabled', feature: TenantFeature.NOTIFICATION_PREFERENCES, label: 'Preferenze notifiche', description: 'Categorie, canali, digest, pausa e ore silenziose.' },
         { key: 'webPushRemindersEnabled', feature: TenantFeature.WEB_PUSH_REMINDERS, label: 'Promemoria eventi Web Push', description: 'Pianificazione e invio dei promemoria prima degli eventi.', dependency: 'notificationPreferencesEnabled' }
     ];
@@ -97,10 +111,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     public save(): void {
-        const disabled = this.tenantFeatures.filter((item) => this.originalFeatureValues[item.key] === true && this.tenant[item.key] !== true).map((item) => item.label);
-        if (this.originalFeatureValues.inventoryEnabled && this.tenant.inventoryEnabled !== true && this.tenant.inventoryQrEnabled === true && !disabled.includes('QR code inventario')) disabled.push('QR code inventario (per dipendenza)');
-        if (this.originalFeatureValues.notificationPreferencesEnabled && this.tenant.notificationPreferencesEnabled !== true && this.tenant.webPushRemindersEnabled === true && !disabled.includes('Promemoria eventi Web Push'))
-            disabled.push('Promemoria eventi Web Push (per dipendenza)');
+        // Funzionalità che erano effettive e non lo saranno più: spente direttamente o per una dipendenza, anche indiretta.
+        const disabled = this.tenantFeatures
+            .filter((item) => this.effective(item.key, this.originalFeatureValues) && !this.effective(item.key, this.tenant))
+            .map((item) => (this.tenant[item.key] === true ? `${item.label} (per dipendenza)` : item.label));
         if (disabled.length) {
             this.confirmService.confirmReversible({
                 title: 'Disattiva funzionalità',
@@ -173,8 +187,14 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected featureStatus(item: { feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
         const capability = this.tenantFeatureService.capabilities()?.[item.feature];
         if (capability && !capability.available) return 'Non disponibile nell’installazione';
-        if (item.dependency && this.tenant[item.dependency] !== true) return 'Richiede un’altra funzionalità';
+        if (item.dependency && !this.effective(item.dependency, this.tenant)) return 'Richiede un’altra funzionalità';
         return 'Disponibile';
+    }
+
+    /** Una funzionalità è effettiva quando è attiva insieme a tutte quelle da cui dipende. */
+    private effective(key: TenantFeatureField, values: Partial<Record<TenantFeatureField, boolean>>): boolean {
+        const dependency = this.tenantFeatures.find((item) => item.key === key)?.dependency;
+        return values[key] === true && (!dependency || this.effective(dependency, values));
     }
 
     private loadElement(id: number | string) {
@@ -197,4 +217,4 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 }
 
-type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled' | 'scorePlaybackEnabled';
+type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled' | 'scorePlaybackEnabled' | 'inventoryLoanSheetEnabled' | 'inventorySignatureEnabled';

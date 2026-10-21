@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { finalize, first, forkJoin } from 'rxjs';
 import { inventoryConditionLabel, inventoryLoanHolderRoleLabel, inventoryLoanReturnOutcomeLabel, inventoryLoanSheetStatusLabel, inventoryLoanSheetStatusSeverity, inventoryLoanTypeLabel, loanDurationIssueMessage } from '../../constants';
@@ -8,7 +8,7 @@ import { InventoryLoanSheetIssueDialogComponent } from '../../dialogs/inventory-
 import { LoanSheetSignaturesComponent } from '../loan-sheet-signatures/loan-sheet-signatures.component';
 import { ImportsModule } from '../../imports';
 import { InventoryLoanSheetCloseRequest, InventoryLoanSheetDetail, InventoryLoanSheetIssueRequest, InventoryLoanSheetProposal, InventoryLoanSheetSummary } from '../../module';
-import { ConfirmService, InventoryService, ToastService, withErrorSummary } from '../../service';
+import { ConfirmService, InventoryService, TenantFeatureService, ToastService, withErrorSummary } from '../../service';
 
 @Component({
     selector: 'app-inventory-loan-sheets',
@@ -25,6 +25,8 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
     protected proposal?: InventoryLoanSheetProposal;
     protected detail?: InventoryLoanSheetDetail;
     protected loading = false;
+    /** Gli atti dei fogli firmati elettronicamente si gestiscono solo con la firma elettronica attiva per il tenant. */
+    protected readonly inventorySignatureEnabled = inject(TenantFeatureService).inventorySignatureEnabled;
     protected readonly statusLabel = inventoryLoanSheetStatusLabel;
     protected readonly statusSeverity = inventoryLoanSheetStatusSeverity;
     protected readonly roleLabel = inventoryLoanHolderRoleLabel;

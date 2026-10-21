@@ -204,7 +204,7 @@
     </app-detail-section>
     }
 
-    @if (inventoryEnabled()) {
+    @if (inventorySignatureEnabled()) {
     <app-signature-method-settings (configureApp)="configureOTP()" />
     }
 
