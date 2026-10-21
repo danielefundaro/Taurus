@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.signature;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanReturnOutcome;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheetStatus;
@@ -599,6 +600,84 @@ class LoanSheetSignatureIT {
         return act.signers().stream().filter(signer -> signer.userId() == null).findFirst().orElseThrow().id();
     }
 
+    @Test
+    void refusesTheDataOfTheHolderUntilTheProfileHasTheDateOfBirth() {
+        JwtAuthenticationToken admin = token(adminKey);
+        JwtAuthenticationToken member = token(memberKey);
+        long version = tx(() -> templateService.overview(admin).settingsVersion());
+        tx(() -> templateService.updateSignature(new SettingsUpdate(true, version), admin));
+        InventoryAssignmentDTO clarinet = assign("INV-1", "Clarinetto", admin);
+        jdbcTemplate.update("UPDATE " + schema() + ".app_user SET birth_date = NULL WHERE keycloak_id = ?", memberKey);
+        long sheetId = tx(() -> loanSheetService.issue(memberIndex, new IssueRequest(
+            List.of(clarinet.id()), LocalDate.now(), "Roma", InventoryLoanHolderRole.MEMBER, null, null, null, InventoryLoanSignatureMode.ELECTRONIC, adminKey
+        ), admin)).summary().id();
+
+        Act issue = single(tx(() -> signatureService.ownActs(member)));
+        assertThat(issue.dataRequired()).isTrue();
+        assertThat(issue.memberBirthDate()).isNull();
+        assertThatThrownBy(() -> tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562S"), member)))
+            .isInstanceOfSatisfying(RequestAlertException.class, exception -> {
+                assertThat(exception.getErrorKey()).isEqualTo("signature.holderData.birthDateMissing");
+                assertThat(exception.getArgs().values()).containsEntry("holderRole", "MEMBER");
+            });
+        assertThat(tx(() -> signatureService.ownAct(issue.id(), member)).status()).isEqualTo(SignatureActStatus.AWAITING_DATA);
+
+        // The member adds the date of birth in the profile: it goes in the frozen documents.
+        LocalDate birthDate = LocalDate.of(1990, 3, 4);
+        jdbcTemplate.update("UPDATE " + schema() + ".app_user SET birth_date = ? WHERE keycloak_id = ?", java.sql.Date.valueOf(birthDate), memberKey);
+        assertThat(single(tx(() -> signatureService.ownActs(member))).memberBirthDate()).isEqualTo(birthDate);
+        Act withData = tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562S"), member));
+        assertThat(withData.status()).isEqualTo(SignatureActStatus.AWAITING_SIGNATURES);
+        assertThat(withData.memberBirthDate()).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT member_birth_date FROM " + schema() + ".inventory_loan_sheet WHERE id = ?", LocalDate.class, sheetId))
+            .isEqualTo(birthDate);
+    }
+
+    @Test
+    void theHolderSignsTheSheetOnlyAfterAcknowledgingItsItems() {
+        JwtAuthenticationToken admin = token(adminKey);
+        JwtAuthenticationToken member = token(memberKey);
+        long version = tx(() -> templateService.overview(admin).settingsVersion());
+        tx(() -> templateService.updateSignature(new SettingsUpdate(true, version), admin));
+        InventoryAssignmentDTO clarinet = assign("INV-1", "Clarinetto", admin);
+        InventoryAssignmentDTO uniform = assignToAcknowledge("INV-2", "Divisa", admin);
+        long sheetId = tx(() -> loanSheetService.issue(memberIndex, new IssueRequest(
+            List.of(clarinet.id(), uniform.id()), LocalDate.now(), "Roma", InventoryLoanHolderRole.MEMBER, null, null, null, InventoryLoanSignatureMode.ELECTRONIC, adminKey
+        ), admin)).summary().id();
+
+        Act issue = single(tx(() -> signatureService.ownActs(member)));
+        assertThat(issue.pendingAcknowledgments()).isEqualTo(1);
+        assertThat(tx(() -> signatureService.ownAct(issue.id(), admin)).pendingAcknowledgments()).isZero();
+        assertThatThrownBy(() -> tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562S"), member)))
+            .isInstanceOfSatisfying(RequestAlertException.class, exception -> {
+                assertThat(exception.getErrorKey()).isEqualTo("signature.act.acknowledgmentsPending");
+                assertThat(exception.getArgs().values()).containsEntry("count", 1L);
+            });
+        assertThat(tx(() -> signatureService.ownAct(issue.id(), member)).status()).isEqualTo(SignatureActStatus.AWAITING_DATA);
+
+        // The member acknowledges the uniform with a code: the holder can enter the data.
+        Challenge acknowledgment = inTenant(() -> challengeService.create(new ChallengeRequest(
+            SignaturePurpose.ASSIGNMENT_DECISION,
+            SignatureMethod.EMAIL_OTP,
+            List.of(new ChallengeItem(uniform.id(), uniform.revisionHash(), InventoryDecisionType.ACCEPTED, null))
+        ), http(), member));
+        confirm(acknowledgment, member);
+        Act withData = tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562S"), member));
+        assertThat(withData.pendingAcknowledgments()).isZero();
+
+        // A further item joins the sheet before the signature: the holder signs once the member has acknowledged it.
+        InventoryAssignmentDTO stand = assignToAcknowledge("INV-3", "Leggio", admin);
+        jdbcTemplate.update("UPDATE " + schema() + ".inventory_assignment SET loan_sheet_id = ? WHERE id = ?", sheetId, stand.id());
+        assertThat(tx(() -> signatureService.ownAct(issue.id(), member)).pendingAcknowledgments()).isEqualTo(1);
+        assertThatThrownBy(() -> challenge(SignaturePurpose.ACCEPTANCE, withData, SignatureDocumentRole.MAIN, member))
+            .hasFieldOrPropertyWithValue("errorKey", "signature.act.acknowledgmentsPending");
+        acknowledgedWithoutSignature(stand);
+        Act ready = tx(() -> signatureService.ownAct(issue.id(), member));
+        assertThat(ready.pendingAcknowledgments()).isZero();
+        confirm(challenge(SignaturePurpose.ACCEPTANCE, ready, SignatureDocumentRole.MAIN, member), member);
+        assertThat(tx(() -> signatureService.ownAct(issue.id(), member)).pendingPurposes()).containsExactly(SignaturePurpose.CLAUSE_APPROVAL);
+    }
+
     private SimpleMailMessage lastMailTo(String address) {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender, atLeastOnce()).send(captor.capture());
@@ -652,11 +731,39 @@ class LoanSheetSignatureIT {
         return names;
     }
 
+    /**
+     * Assigns an item to the member, who has already acknowledged it: the holder signs the sheet only after the
+     * acknowledgments.
+     */
     private InventoryAssignmentDTO assign(String number, String name, JwtAuthenticationToken admin) {
+        InventoryAssignmentDTO assignment = assignToAcknowledge(number, name, admin);
+        acknowledgedWithoutSignature(assignment);
+        return assignment;
+    }
+
+    private InventoryAssignmentDTO assignToAcknowledge(String number, String name, JwtAuthenticationToken admin) {
         long itemId = tx(() -> inventoryService.createItem(new InventoryItemRequest(
             number, name, null, 1, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null, null, null, InventoryLoanType.PRECARIOUS
         ), admin).id());
         return tx(() -> inventoryService.assign(itemId, new InventoryAssignmentRequest(memberIndex, 0, 1, null, null, null), admin));
+    }
+
+    /**
+     * An acknowledgment recorded before the electronic signature, without evidence: it keeps the evidence chain of the
+     * tests on the acts of the sheet.
+     */
+    private void acknowledgedWithoutSignature(InventoryAssignmentDTO assignment) {
+        jdbcTemplate.update(
+            "INSERT INTO " + schema() + ".inventory_assignment_decision "
+                + "(deleted, insert_date, insert_by, edit_date, edit_by, revision_id, decision, decided_at, decided_by, authenticated_hash) "
+                + "SELECT false, now(), ?, now(), ?, r.id, 'ACCEPTED', now(), ?, ? FROM " + schema() + ".inventory_assignment_revision r "
+                + "JOIN " + schema() + ".inventory_assignment a ON a.id = r.assignment_id AND r.revision_number = a.current_revision WHERE a.id = ?",
+            memberKey,
+            memberKey,
+            memberKey,
+            "0".repeat(64),
+            assignment.id()
+        );
     }
 
     private String sentCode() {

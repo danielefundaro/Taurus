@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentStatus;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheetStatus;
@@ -96,6 +97,7 @@ public class LoanSheetSignatureService {
         SignatureActType.LOAN_SHEET_RETURN
     );
     static final Set<SignatureActStatus> AWAITING = EnumSet.of(SignatureActStatus.AWAITING_DATA, SignatureActStatus.AWAITING_SIGNATURES);
+    private static final List<InventoryAssignmentStatus> OUTSTANDING_ASSIGNMENTS = List.of(InventoryAssignmentStatus.ACTIVE, InventoryAssignmentStatus.PARTIALLY_RETURNED);
     static final List<RoleEnum> ADMIN_ROLES = List.of(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_SUPER_ADMIN);
     static final String REMOVED_NAME = SignatureErasureService.REMOVED_NAME;
     private static final Pattern POSTAL_CODE = Pattern.compile("^\\d{5}$");
@@ -281,7 +283,15 @@ public class LoanSheetSignatureService {
         if (sheet.getStatus() != InventoryLoanSheetStatus.ISSUED) {
             throw SignatureSupport.error(HttpStatus.CONFLICT, "The sheet is no longer issued", "signature.act.notAwaitingData");
         }
+        // The date of birth of the member comes from the user profile, as name and surname: the documents need it.
+        LocalDate birthDate = memberBirthDate(sheet);
+        if (birthDate == null) {
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The date of birth of the member is missing in the user profile", "signature.holderData.birthDateMissing")
+                .with("holderRole", sheet.getHolderRole().name());
+        }
+        requireNoPendingAcknowledgments(sheet.getId());
         HolderData data = holderData(request, sheet.getHolderRole(), sheet.getHolderEmail());
+        sheet.setMemberBirthDate(birthDate);
         documents.discard(documentRepository.findAllByActIdAndDeletedFalseOrderByIdAsc(act.getId()), tenant, actor);
         documents.freeze(act, sheet, data, tenant, actor);
         sheet.setHolderTaxCode(data.taxCode());
@@ -586,6 +596,8 @@ public class LoanSheetSignatureService {
             full.attestationAvailable(),
             false,
             full.dataRequired(),
+            full.memberBirthDate(),
+            full.pendingAcknowledgments(),
             full.pendingPurposes(),
             full.cieSignAvailable(),
             full.entityVersion()
@@ -770,6 +782,11 @@ public class LoanSheetSignatureService {
     /**
      * Confirmations expected from a signer of an act in the given status, without those already recorded.
      */
+    /** Only the holder enters data, for the issue, instead of filling in the paper form. */
+    static boolean dataRequired(SignatureAct act, SignatureActSigner signer) {
+        return signer.getSignerRole() == SignerRole.HOLDER && act.getActType() == SignatureActType.LOAN_SHEET_ISSUE && act.getStatus() == SignatureActStatus.AWAITING_DATA;
+    }
+
     static List<SignaturePurpose> pendingPurposes(SignatureAct act, SignatureActSigner signer, Set<SignaturePurpose> signed) {
         if (act.getStatus() != SignatureActStatus.AWAITING_SIGNATURES) return List.of();
         List<SignaturePurpose> expected = switch (signer.getSignerRole()) {
@@ -849,9 +866,7 @@ public class LoanSheetSignatureService {
             if (current.test(signer)) {
                 pending.addAll(pendingPurposes(act, signer, signed));
                 holder |= signer.getSignerRole() == SignerRole.HOLDER;
-                if (signer.getSignerRole() == SignerRole.HOLDER && act.getActType() == SignatureActType.LOAN_SHEET_ISSUE && act.getStatus() == SignatureActStatus.AWAITING_DATA) {
-                    dataRequired = true;
-                }
+                dataRequired |= dataRequired(act, signer);
             }
         }
         return new Act(
@@ -872,6 +887,8 @@ public class LoanSheetSignatureService {
             !purged && act.getAttestationMediaAssetId() != null,
             AWAITING.contains(act.getStatus()) && evidence.isEmpty(),
             dataRequired,
+            dataRequired && sheet != null ? memberBirthDate(sheet) : null,
+            holder && (dataRequired || !pending.isEmpty()) ? pendingAcknowledgments(act.getSheetId()) : 0,
             pending,
             holder && sheet != null && sheet.getHolderTaxCode() != null && cieSignVerifier.available(),
             act.getEntityVersion()
@@ -1067,6 +1084,41 @@ public class LoanSheetSignatureService {
 
     private static boolean guardian(InventoryLoanSheet sheet) {
         return sheet.getHolderRole() == InventoryLoanHolderRole.GUARDIAN;
+    }
+
+    /**
+     * Acknowledgments the member still owes on the outstanding assignments of the sheet: the holder signs the acts of
+     * the sheet only once the member has acknowledged every item.
+     */
+    long pendingAcknowledgments(Long sheetId) {
+        return sheetId == null ? 0 : assignmentRepository.countPendingDecisionsOfSheet(sheetId, OUTSTANDING_ASSIGNMENTS);
+    }
+
+    /**
+     * Refuses the data and the signatures of the holder while the member has acknowledgments to confirm on the sheet.
+     */
+    void requireNoPendingAcknowledgments(Long sheetId) {
+        long acknowledgments = pendingAcknowledgments(sheetId);
+        if (acknowledgments > 0) {
+            throw SignatureSupport.error(HttpStatus.CONFLICT, "The member has acknowledgments to confirm before the signature", "signature.act.acknowledgmentsPending")
+                .with("count", acknowledgments);
+        }
+    }
+
+    /**
+     * Date of birth of the member in the user profile, where the member enters it: the documents of the issue report it
+     * for the adult holder or for the minor.
+     */
+    private LocalDate memberBirthDate(InventoryLoanSheet sheet) {
+        return usersRepository.findByKeycloakIdAndDeletedFalse(sheet.getUserKeycloakId())
+            .map(Users::getBirthDate)
+            .map(LoanSheetSignatureService::localDate)
+            .orElse(null);
+    }
+
+    /** The column is a date: Hibernate loads it as {@link java.sql.Date}, at midnight in the default time zone. */
+    static LocalDate localDate(java.util.Date value) {
+        return value instanceof java.sql.Date date ? date.toLocalDate() : LocalDate.ofInstant(value.toInstant(), java.time.ZoneId.systemDefault());
     }
 
     static String displayName(Users user) {

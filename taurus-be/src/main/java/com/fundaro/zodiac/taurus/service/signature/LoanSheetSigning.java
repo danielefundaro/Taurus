@@ -47,7 +47,8 @@ import org.springframework.stereotype.Component;
  * signature for the association and acknowledgment of the issue by the minor member. Several variations of the same
  * signer can be confirmed with one code; the issue and the return are confirmed alone, and the acceptance and the
  * approval of the clauses are always distinct. A parent or guardian without an account signs through a link. The holder
- * can also sign a document with CieSign: the signed file replaces the code.
+ * can also sign a document with CieSign: the signed file replaces the code. The holder signs only when the member has
+ * no acknowledgment pending on the outstanding assignments of the sheet.
  */
 @Component
 public class LoanSheetSigning {
@@ -257,6 +258,8 @@ public class LoanSheetSigning {
         boolean already = evidenceRepository.findAllByActIdOrderBySequenceAsc(act.getId()).stream()
             .anyMatch(evidence -> signer.getId().equals(evidence.getSignerId()) && evidence.getPurpose() == purpose);
         if (already) throw SignatureSupport.error(HttpStatus.CONFLICT, "The signer already signed", "signature.act.alreadySigned");
+        // The holder signs for the items of the sheet only after the member has acknowledged their data and photos.
+        if (role == SignerRole.HOLDER) signatureService.requireNoPendingAcknowledgments(act.getSheetId());
         if (role == SignerRole.ASSOCIATION && !signatureService.activeAdministrator(who.userId())) {
             throw SignatureSupport.error(
                 HttpStatus.UNPROCESSABLE_ENTITY,
