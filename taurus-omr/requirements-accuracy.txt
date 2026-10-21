@@ -1,6 +1,6 @@
 # Pinned environment to render the accuracy corpus again (python -m accuracy render), besides the Cairo library and
 # a Times-compatible font. Not needed to run the checks, which read the committed pages.
-brotli==1.1.0
+brotli==1.2.0
 cairocffi==1.7.1
 CairoSVG==2.9.1
 cffi==2.1.1
