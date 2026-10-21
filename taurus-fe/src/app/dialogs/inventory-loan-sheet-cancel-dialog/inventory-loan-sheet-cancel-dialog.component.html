@@ -1,10 +1,18 @@
 <app-dialog-shell #shell heading="Annulla foglio di affidamento" [subtitle]="'Foglio n. ' + sheet.sheetNumber" confirmLabel="Annulla foglio" [invalidCount]="(reason.trim() ? 0 : 1) + (confirmed ? 0 : 1)" (cancel)="cancel()" (confirm)="save()">
     <app-inline-alert severity="warn" heading="Il numero non verrà riutilizzato" detail="I beni tornano disponibili per un nuovo foglio e i PDF generati vengono cancellati. Usa l’annullamento solo per correggere un foglio emesso per errore." />
+    @if (sheet.signatureMode === 'ELECTRONIC') {
+        <app-inline-alert
+            class="block mt-3"
+            severity="info"
+            heading="Atti firmati elettronicamente"
+            detail="Gli atti ancora da firmare vengono annullati. Quelli già firmati restano scaricabili nel fascicolo per un periodo limitato, poi Taurus li elimina: scarica il fascicolo dalla sezione Firme e conservalo."
+        />
+    }
     <app-form-field class="block mt-4" label="Motivazione" forId="loanCancelReason" required [error]="shell.validationAttempted && !reason.trim() ? 'Inserisci la motivazione.' : undefined">
         <textarea pTextarea id="loanCancelReason" rows="3" maxlength="1000" [(ngModel)]="reason"></textarea>
     </app-form-field>
     <label class="flex items-start gap-2 mt-4" for="loanCancelConfirm">
         <p-checkbox inputId="loanCancelConfirm" [(ngModel)]="confirmed" [binary]="true" />
-        <span>Confermo che la copia cartacea del foglio n. {{ sheet.sheetNumber }} non deve essere usata.</span>
+        <span>{{ sheet.signatureMode === 'ELECTRONIC' ? 'Confermo che il foglio n. ' + sheet.sheetNumber + ' non deve essere usato.' : 'Confermo che la copia cartacea del foglio n. ' + sheet.sheetNumber + ' non deve essere usata.' }}</span>
     </label>
 </app-dialog-shell>

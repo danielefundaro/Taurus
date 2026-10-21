@@ -216,6 +216,43 @@ application:
       enabled: ${INVENTORY_QR_ENABLED:false}
       public-base-url: ${INVENTORY_QR_PUBLIC_BASE_URL:https://app.example.org}
       resolution-limit-per-minute: ${INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE:60}
+  signature:
+    # Electronic signature can be enabled by a tenant only with this secret, an SMTP server (spring.mail) and a seal.
+    otp-secret: ${SIGNATURE_OTP_SECRET:}
+    code-validity: PT10M
+    max-attempts: 5
+    resend-interval: PT60S
+    max-sends: 5
+    max-batch-items: 50
+    max-challenges-per-hour: 20
+    challenge-retention-days: 30
+    cleanup-cron: '0 45 3 * * *'
+    # Signed acts of settled or cancelled sheets stay downloadable for these days, then they are removed.
+    download-grace-days: 30
+    purge-cron: '0 50 3 * * *'
+    # Links to the public signature page sent to the parents without an account: built from this address only.
+    public-base-url: ${SIGNATURE_PUBLIC_BASE_URL:${TAURUS_PUBLIC_BASE_URL:http://localhost:8080}}
+    link-validity: P7D
+    link-rate-limit-per-token-hour: 120
+    link-rate-limit-per-ip-hour: 600
+    link-expiry-cron: '0 20 * * * *'
+    seal:
+      keystore-path: ${SIGNATURE_SEAL_KEYSTORE_PATH:}
+      keystore-password: ${SIGNATURE_SEAL_KEYSTORE_PASSWORD:}
+      key-alias: ${SIGNATURE_SEAL_KEY_ALIAS:}
+      ephemeral: false
+      # Empty: seals are PAdES B-B, without a time stamp.
+      tsa-url: ${SIGNATURE_SEAL_TSA_URL:}
+    keycloak:
+      # Codes of the authentication app, checked by the taurus-otp provider. Empty secret: the app is not offered.
+      realm-uri: ${SIGNATURE_KEYCLOAK_REALM_URI:${spring.security.oauth2.client.provider.oidc.issuer-uri}}
+      client-id: taurus-signature
+      client-secret: ${SIGNATURE_KEYCLOAK_CLIENT_SECRET:}
+      timeout: PT5S
+    cie:
+      # Certificates of the CIE certification authorities, comma separated. Empty: CieSign is not offered.
+      trust-anchors: ${SIGNATURE_CIE_TRUST_ANCHORS:}
+      revocation-timeout: PT10S
   event-preparation:
     enabled: false
   score-playback:

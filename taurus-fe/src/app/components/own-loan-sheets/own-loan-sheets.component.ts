@@ -6,7 +6,8 @@ import { InventoryLoanSheetSummary } from '../../module';
 import { UserInventoryService } from '../../service';
 
 /**
- * Loan sheets of the signed-in member, with the download of the PDF while the sheet keeps its personal data.
+ * Loan sheets of the signed-in member, with the download of the PDF while the sheet keeps its personal data. For a
+ * sheet signed electronically the PDF is the copy for consultation: the signed documents are in the signatures box.
  */
 @Component({
     selector: 'app-own-loan-sheets',
@@ -27,6 +28,10 @@ export class OwnLoanSheetsComponent implements OnInit {
             .getLoanSheets()
             .pipe(first())
             .subscribe((sheets) => (this.sheets = sheets));
+    }
+
+    protected get hasElectronic(): boolean {
+        return this.sheets.some((sheet) => sheet.signatureMode === 'ELECTRONIC' && !sheet.personalDataPurged);
     }
 
     protected download(sheet: InventoryLoanSheetSummary): void {

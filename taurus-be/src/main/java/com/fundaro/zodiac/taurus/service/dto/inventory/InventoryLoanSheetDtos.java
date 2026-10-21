@@ -5,8 +5,11 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanReturnOutcome;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheetStatus;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSignatureMode;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanType;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -40,7 +43,8 @@ public final class InventoryLoanSheetDtos {
         ZonedDateTime cancelledAt,
         boolean personalDataPurged,
         boolean closable,
-        long entityVersion
+        long entityVersion,
+        InventoryLoanSignatureMode signatureMode
     ) {
     }
 
@@ -149,7 +153,8 @@ public final class InventoryLoanSheetDtos {
         Long openSheetId,
         String openSheetNumber,
         Terms terms,
-        List<ProposalAssignment> assignments
+        List<ProposalAssignment> assignments,
+        SignatureDtos.IssueOptions signature
     ) {
     }
 
@@ -160,8 +165,42 @@ public final class InventoryLoanSheetDtos {
         InventoryLoanHolderRole holderRole,
         @Size(max = 128) String authorizationReference,
         LocalDate authorizationDate,
-        @Size(max = 255) String associationSignatoryName
+        @Size(max = 255) String associationSignatoryName,
+        InventoryLoanSignatureMode signatureMode,
+        @Size(max = 255) String associationSignerId,
+        @Email @Size(max = 255) String holderEmail
     ) {
+        /**
+         * A sheet printed on paper.
+         */
+        public IssueRequest(
+            List<Long> assignmentIds,
+            LocalDate issuedOn,
+            String place,
+            InventoryLoanHolderRole holderRole,
+            String authorizationReference,
+            LocalDate authorizationDate,
+            String associationSignatoryName
+        ) {
+            this(assignmentIds, issuedOn, place, holderRole, authorizationReference, authorizationDate, associationSignatoryName, null, null, null);
+        }
+
+        /**
+         * A sheet whose holder has an account: the adult member, who receives the codes at the own address.
+         */
+        public IssueRequest(
+            List<Long> assignmentIds,
+            LocalDate issuedOn,
+            String place,
+            InventoryLoanHolderRole holderRole,
+            String authorizationReference,
+            LocalDate authorizationDate,
+            String associationSignatoryName,
+            InventoryLoanSignatureMode signatureMode,
+            String associationSignerId
+        ) {
+            this(assignmentIds, issuedOn, place, holderRole, authorizationReference, authorizationDate, associationSignatoryName, signatureMode, associationSignerId, null);
+        }
     }
 
     public record CloseRequest(

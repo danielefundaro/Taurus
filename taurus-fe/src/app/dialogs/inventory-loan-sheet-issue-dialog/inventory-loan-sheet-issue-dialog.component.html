@@ -7,11 +7,25 @@
     (cancel)="cancel()"
     (confirm)="save()"
 >
-    <app-inline-alert
-        severity="info"
-        heading="Dati anagrafici da compilare a mano"
-        detail="Il foglio riporta nome, data di nascita ed e-mail del socio. Residenza, codice fiscale, documento e dati del genitore o tutore si compilano sulla copia stampata."
-    />
+    @if (guardianLink) {
+        <app-inline-alert
+            severity="info"
+            heading="Firma elettronica del genitore o tutore"
+            detail="Il genitore o tutore riceve via e-mail un collegamento alla pagina di firma, valido 7 giorni: inserisce i propri dati e quelli del foglio e firma il foglio e l’approvazione delle clausole con un codice inviato allo stesso indirizzo o con CieSign. Il socio ne prende visione dal proprio account; poi firma chi rappresenta l’Associazione."
+        />
+    } @else if (electronic) {
+        <app-inline-alert
+            severity="info"
+            heading="Firma elettronica"
+            detail="Il socio riceve una notifica, inserisce in Taurus residenza, codice fiscale, documento e firma il foglio e l’approvazione delle clausole con un codice, via e-mail o dall’app di autenticazione, oppure con CieSign; poi firma chi rappresenta l’Associazione."
+        />
+    } @else {
+        <app-inline-alert
+            severity="info"
+            heading="Dati anagrafici da compilare a mano"
+            detail="Il foglio riporta nome, data di nascita ed e-mail del socio. Residenza, codice fiscale, documento e dati del genitore o tutore si compilano sulla copia stampata."
+        />
+    }
 
     <h3 class="text-base font-semibold mt-4 mb-2">Beni da consegnare</h3>
     @if (proposal.assignments.length) {
@@ -59,17 +73,47 @@
             [hint]="proposal.roleRequired ? 'La data di nascita del socio non è registrata: indica chi firma il foglio.' : 'Proposto in base all’età del socio alla data del foglio.'"
             [error]="shell.validationAttempted && !holderRole ? 'Indica chi firma il foglio.' : undefined"
         >
-            <p-selectbutton ariaLabelledBy="loanHolderRole" [options]="roles" optionLabel="label" optionValue="value" [(ngModel)]="holderRole" [allowEmpty]="false" />
+            <p-selectbutton ariaLabelledBy="loanHolderRole" [options]="roles" optionLabel="label" optionValue="value" [(ngModel)]="holderRole" [allowEmpty]="false" (ngModelChange)="onRoleChange()" />
         </app-form-field>
+        @if (electronicOffered) {
+            <app-form-field class="md:col-span-2" label="Modalità di firma" forId="loanSignatureMode" [hint]="electronicUnavailableReason ?? 'Scelta all’emissione e non modificabile.'">
+                <p-selectbutton ariaLabelledBy="loanSignatureMode" [options]="signatureModes" optionLabel="label" optionValue="value" [(ngModel)]="signatureMode" [allowEmpty]="false" [disabled]="!electronicAvailable" />
+            </app-form-field>
+        }
         <app-form-field label="Delibera o provvedimento n." forId="loanAuthorizationReference" hint="Facoltativo: se vuoto si compila a mano.">
             <input pInputText id="loanAuthorizationReference" maxlength="128" [(ngModel)]="authorizationReference" />
         </app-form-field>
         <app-form-field label="Data della delibera" forId="loanAuthorizationDate">
             <p-datepicker inputId="loanAuthorizationDate" [(ngModel)]="authorizationDate" dateFormat="dd/mm/yy" [showIcon]="true" iconDisplay="input" [showButtonBar]="true" appendTo="body" />
         </app-form-field>
-        <app-form-field class="md:col-span-2" label="Firmatario per l’Associazione" forId="loanSignatory" hint="Presidente o consigliere delegato: nome e cognome.">
-            <input pInputText id="loanSignatory" maxlength="255" [(ngModel)]="associationSignatoryName" />
-        </app-form-field>
+        @if (guardianLink) {
+            <app-form-field
+                class="md:col-span-2"
+                label="E-mail del genitore o tutore"
+                forId="loanHolderEmail"
+                required
+                hint="Riceve il collegamento alla pagina di firma e i codici di conferma."
+                [error]="shell.validationAttempted ? holderEmailError : undefined"
+            >
+                <input pInputText id="loanHolderEmail" type="email" maxlength="255" autocomplete="off" [(ngModel)]="holderEmail" />
+            </app-form-field>
+        }
+        @if (electronic) {
+            <app-form-field
+                class="md:col-span-2"
+                label="Firma per l’Associazione"
+                forId="loanAssociationSigner"
+                required
+                hint="Amministratore che firma il foglio con il proprio codice; non può essere il socio. Si può cambiare finché nessuno ha firmato."
+                [error]="shell.validationAttempted && !associationSignerId ? 'Scegli chi firma per l’Associazione.' : undefined"
+            >
+                <p-select inputId="loanAssociationSigner" [options]="proposal.signature.associationSigners" optionLabel="displayName" optionValue="userId" [(ngModel)]="associationSignerId" placeholder="Scegli un amministratore" appendTo="body" />
+            </app-form-field>
+        } @else {
+            <app-form-field class="md:col-span-2" label="Firmatario per l’Associazione" forId="loanSignatory" hint="Presidente o consigliere delegato: nome e cognome.">
+                <input pInputText id="loanSignatory" maxlength="255" [(ngModel)]="associationSignatoryName" />
+            </app-form-field>
+        }
     </div>
 
     <div class="flex justify-end mt-4">

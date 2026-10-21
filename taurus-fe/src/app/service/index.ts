@@ -33,6 +33,8 @@ export * from './push-subscription.service';
 export * from './score-audio.service';
 export * from './score-playback.service';
 export * from './score-renderer.service';
+export * from './signature.service';
+export * from './public-signature.service';
 export * from './tenant-feature.service';
 export * from './tenant-status.service';
 export * from './tenants.service';

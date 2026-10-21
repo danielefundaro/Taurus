@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.service.TenantsService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
+import com.fundaro.zodiac.taurus.service.dto.UsersMeDTO;
 import com.fundaro.zodiac.taurus.service.mapper.UsersMapper;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Role;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
@@ -21,17 +22,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -117,6 +124,41 @@ class UsersServiceImplTest {
         assertThat(entity.getInstruments()).isSameAs(managedInstruments).containsExactly(resolvedInstrument);
         entity.getInstruments().clear();
         assertThat(entity.getInstruments()).isEmpty();
+    }
+
+    @Test
+    void shouldUpdateTheOwnProfileWithTheDateOfBirthWithoutTouchingTheRoles() {
+        Users entity = new Users();
+        entity.setId(2L);
+        UsersDTO current = new UsersDTO();
+        current.setId(2L);
+        current.setKeycloakId("actor");
+        User keycloakUser = new User();
+        UsersDTO saved = new UsersDTO();
+        JwtAuthenticationToken authentication = authentication();
+
+        when(usersRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Users>>any(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        when(usersMapper.toDto(entity)).thenReturn(current, saved);
+        when(keycloakService.getUser("actor")).thenReturn(keycloakUser);
+        when(usersRepository.findByIdAndDeletedFalse(2L)).thenReturn(Optional.of(entity));
+        when(usersRepository.save(entity)).thenReturn(entity);
+
+        UsersMeDTO request = new UsersMeDTO();
+        request.setName("Mario");
+        request.setLastName("Rossi");
+        request.setEmail("mario.rossi@example.org");
+        request.setBirthDate(LocalDate.of(1990, 3, 4));
+
+        assertThat(service.partialUpdateOwn(request, authentication)).isSameAs(saved);
+
+        ArgumentCaptor<UsersDTO> changes = ArgumentCaptor.forClass(UsersDTO.class);
+        verify(usersMapper).partialUpdate(org.mockito.ArgumentMatchers.eq(entity), changes.capture());
+        assertThat(changes.getValue().getRoles()).isNull();
+        assertThat(changes.getValue().getBirthDate()).isEqualTo(java.sql.Date.valueOf(LocalDate.of(1990, 3, 4)));
+        assertThat(keycloakUser.getFirstName()).isEqualTo("Mario");
+        assertThat(entity.getEditBy()).isEqualTo("actor");
+        verify(keycloakService).updateUser(keycloakUser);
+        verify(keycloakService, never()).getClientRoles();
     }
 
     @ParameterizedTest

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261021100000-1" author="taurus">
+    <comment>Per-tenant switches for the loan sheets of the inventory and for their electronic signature.</comment>
+    <addColumn schemaName="public" tableName="tenant">
+      <column name="inventory_loan_sheet_enabled" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="inventory_signature_enabled" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <rollback>
+      <dropColumn schemaName="public" tableName="tenant" columnName="inventory_signature_enabled"/>
+      <dropColumn schemaName="public" tableName="tenant" columnName="inventory_loan_sheet_enabled"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261021100000-2" author="taurus">
+    <comment>The loan sheets were part of the inventory: the tenants that use the inventory keep them.</comment>
+    <update schemaName="public" tableName="tenant">
+      <column name="inventory_loan_sheet_enabled" valueBoolean="true"/>
+      <where>inventory_enabled = true</where>
+    </update>
+    <rollback/>
+  </changeSet>
+</databaseChangeLog>

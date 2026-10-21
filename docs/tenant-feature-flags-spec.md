@@ -18,7 +18,8 @@ Consentire a un super amministratore di attivare o disattivare dalla pagina di d
 - **QR code inventario**;
 - **Preferenze notifiche**;
 - **Promemoria eventi Web Push**;
-- **Preparazione evento**.
+- **Preparazione evento**;
+- **Fogli di affidamento** e **Firma elettronica**, aggiunti dopo la prima versione (vedi [Fogli di affidamento e firma elettronica](#fogli-di-affidamento-e-firma-elettronica)).
 
 `notification-delivery-generalization` è esclusa da questa evolutiva: è un'infrastruttura trasversale autorevole e non una funzionalità tenant disattivabile.
 
@@ -68,6 +69,8 @@ inventory_qr_enabled               BOOLEAN NOT NULL DEFAULT FALSE
 notification_preferences_enabled   BOOLEAN NOT NULL DEFAULT FALSE
 web_push_reminders_enabled         BOOLEAN NOT NULL DEFAULT FALSE
 event_preparation_enabled          BOOLEAN NOT NULL DEFAULT FALSE
+inventory_loan_sheet_enabled       BOOLEAN NOT NULL DEFAULT FALSE
+inventory_signature_enabled        BOOLEAN NOT NULL DEFAULT FALSE
 ```
 
 Il valore predefinito è `FALSE`: nessuna funzionalità opzionale viene concessa implicitamente a un nuovo tenant. La creazione richiede quindi un'abilitazione esplicita da parte del super amministratore, oltre alla disponibilità applicativa e alle eventuali dipendenze.
@@ -109,7 +112,7 @@ I nuovi tenant nascono con tutti i flag configurati a `false`. La pagina di crea
 Nella pagina di dettaglio aggiungere una sezione **Funzionalità disponibili** contenente checkbox PrimeNG binarie per tutti i flag tenant. Le checkbox sono raggruppate in:
 
 - **Moduli principali**: Economia, Inventario, Onboarding e importazione iniziale, Feed calendario esterno e Preparazione evento;
-- **Estensioni**: QR code inventario, Preferenze notifiche e Promemoria eventi Web Push.
+- **Estensioni**: QR code inventario, Fogli di affidamento, Firma elettronica, Preferenze notifiche e Promemoria eventi Web Push.
 
 Ogni checkbox usa `[binary]="true"`, un `inputId` stabile e una `label` semanticamente associata. Accanto al controllo viene mostrato lo stato della capacità applicativa: **Disponibile**, **Non disponibile nell'installazione** oppure **Richiede un'altra funzionalità**.
 
@@ -245,6 +248,8 @@ Non deve utilizzare uno stato statico condiviso tra tenant. Può leggere la conf
 | `ONBOARDING_IMPORT` | `application.onboarding.enabled` | nessuna per il wizard; Economia e Inventario per le relative sezioni | globale AND `onboarding_import_enabled` |
 | `EXTERNAL_CALENDAR_FEED` | `application.calendar-feed.enabled` | Calendario base | globale AND `external_calendar_feed_enabled` |
 | `INVENTORY_QR` | `application.inventory.qr.enabled` e URL pubblico valido | `INVENTORY` | globale AND `inventory_qr_enabled` AND `inventory_enabled` |
+| `INVENTORY_LOAN_SHEET` | sempre disponibile dopo il deploy | `INVENTORY` | `inventory_loan_sheet_enabled` AND `inventory_enabled` |
+| `INVENTORY_SIGNATURE` | sempre disponibile dopo il deploy; posta, chiave dei codici e sigillo li verifica l'attivazione dell'amministratore del tenant | `INVENTORY_LOAN_SHEET` | `inventory_signature_enabled` AND fogli di affidamento effettivi |
 | `NOTIFICATION_PREFERENCES` | `application.notification-preferences.enabled` | outbox generalizzata disponibile | globale AND `notification_preferences_enabled` |
 | `WEB_PUSH_REMINDERS` | VAPID valido, Service Worker e dispatcher push disponibili | `NOTIFICATION_PREFERENCES` | capacità push AND `web_push_reminders_enabled` AND preferenze effettive |
 | `EVENT_PREPARATION` | `application.event-preparation.enabled` | Calendario base | globale AND `event_preparation_enabled` |
@@ -274,6 +279,8 @@ Applicazioni:
 | `/api/calendar-feeds/**` | `EXTERNAL_CALENDAR_FEED` |
 | `/api/admin/calendar-feeds/**` | `EXTERNAL_CALENDAR_FEED` |
 | endpoint QR, etichette, scansione e guasti | `INVENTORY_QR` |
+| fogli di affidamento amministrativi e personali e modello del foglio, tranne intervallo di scadenza, rinnovo e sostituzione delle assegnazioni | `INVENTORY_LOAN_SHEET` |
+| atti, prove, fascicolo e link di firma amministrativi, firme personali e attivazione della firma nel modello | `INVENTORY_SIGNATURE` |
 | `/api/notification-preferences/**` | `NOTIFICATION_PREFERENCES` |
 | configurazione e pianificazione promemoria calendario | `WEB_PUSH_REMINDERS` |
 | endpoint di preparazione amministrativi, personali, esterni ed economici | `EVENT_PREPARATION` |
@@ -409,6 +416,28 @@ Il resolver pubblico legge il tenant dal registro globale del digest e verifica 
 La disattivazione non rende disponibile per riuso alcun codice e non altera le normali operazioni Inventario. Alla riattivazione le vecchie etichette valide tornano risolvibili; i codici revocati rimangono revocati.
 
 Il kill switch applicativo continua a proteggere l'intera installazione e la validazione dell'URL pubblico. Un tenant non può superare una configurazione applicativa QR non valida o disabilitata.
+
+## Fogli di affidamento e firma elettronica
+
+`inventoryLoanSheetEnabled` è una funzionalità figlia di Inventario e `inventorySignatureEnabled` è figlia dei Fogli di affidamento: la firma è effettiva solo con fogli e Inventario effettivi. La migration `20261021100000_tenant_loan_sheet_signature_flags.xml` attiva i fogli per i tenant che hanno già l'Inventario, perché i fogli ne facevano parte; la firma parte disattivata.
+
+La firma elettronica ha due livelli: il super amministratore concede la funzionalità al tenant, l'amministratore del tenant la accende dalla pagina del modello del foglio, quando l'installazione ha posta, chiave dei codici e sigillo. Il valore usato da emissione, prese visione e pagina del modello è l'AND dei due.
+
+Quando i Fogli di affidamento non sono effettivi:
+
+- la sezione dei fogli nel dettaglio utente, il riquadro **Fogli di affidamento** de **I miei oggetti**, il pulsante e la rotta del modello del foglio non compaiono;
+- gli endpoint dei fogli e del modello rispondono `403 tenantFeature.inventoryLoanSheet.disabled`; intervallo di scadenza, rinnovo e sostituzione delle assegnazioni restano operazioni dell'Inventario;
+- i fogli esistenti restano coerenti: le nuove consegne a un foglio emesso entrano nel registro delle variazioni e le regole sulle assegnazioni collegate continuano a valere.
+
+Quando la Firma elettronica non è effettiva:
+
+- emissione e prese visione tornano al flusso senza codice, come con l'interruttore del tenant spento;
+- il riquadro **Firme**, la sezione **Firme** del foglio, le impostazioni della firma nel profilo, la sezione della firma nel modello e la voce **Firma richiesta** della dashboard non compaiono;
+- gli endpoint amministrativi e personali della firma rispondono `403 tenantFeature.inventorySignature.disabled` e i link dei genitori rispondono come non validi;
+- le notifiche degli atti (`SIGNATURE_ACT`) non vengono prodotte o consegnate;
+- atti, documenti, prove e fascicoli restano conservati e tornano disponibili alla riattivazione.
+
+Retention dei fogli, eliminazione degli atti al termine del periodo di grazia, scadenza dei link e pulizia delle conferme continuano su tutti i tenant attivi: chi disattiva la firma deve scaricare prima i fascicoli da conservare.
 
 ## Comportamento delle Preferenze notifiche
 
@@ -558,7 +587,7 @@ Quando una funzionalità è disabilitata:
 
 Per i nuovi flag valgono inoltre queste regole:
 
-- le notifiche di Onboarding, QR inventario e Preparazione evento sono soppresse quando la funzionalità origine non è effettiva;
+- le notifiche di Onboarding, QR inventario, Preparazione evento e atti della firma elettronica sono soppresse quando la funzionalità origine non è effettiva;
 - disabilitare Preferenze notifiche non sopprime le notifiche: applica il profilo di compatibilità e conserva quelle obbligatorie;
 - disabilitare Promemoria Web Push chiude come `SKIPPED` soltanto i job reminder interessati;
 - la generalizzazione della consegna e il relativo scheduler restano attivi per tutti i tenant.

@@ -8,6 +8,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportReposi
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryErasureRequestDTO;
 import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetService;
+import com.fundaro.zodiac.taurus.service.signature.SignatureErasureService;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
@@ -15,6 +16,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class InventoryErasureService {
     private final KeycloakService keycloakService;
     private final InventoryIssueReportRepository issueRepository;
     private final InventoryLoanSheetService loanSheetService;
+    private final SignatureErasureService signatureErasureService;
 
     public InventoryErasureService(
         InventoryErasureRequestRepository requestRepository,
@@ -36,7 +39,8 @@ public class InventoryErasureService {
         DataErasureService dataErasureService,
         KeycloakService keycloakService,
         InventoryIssueReportRepository issueRepository,
-        InventoryLoanSheetService loanSheetService
+        InventoryLoanSheetService loanSheetService,
+        SignatureErasureService signatureErasureService
     ) {
         this.requestRepository = requestRepository;
         this.assignmentRepository = assignmentRepository;
@@ -44,6 +48,7 @@ public class InventoryErasureService {
         this.keycloakService = keycloakService;
         this.issueRepository = issueRepository;
         this.loanSheetService = loanSheetService;
+        this.signatureErasureService = signatureErasureService;
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +74,7 @@ public class InventoryErasureService {
         assignmentRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
         issueRepository.pseudonymizeUser(request.getUserKeycloakId(), pseudonym);
         loanSheetService.purgeForUser(request.getUserKeycloakId(), pseudonym, tenant, actor);
+        signatureErasureService.purgeForUser(request.getUserKeycloakId(), pseudonym, actor);
         dataErasureService.eraseUserData(request.getUserKeycloakId(), tenant);
         var groups = keycloakService.getUserGroups(request.getUserKeycloakId());
         if (groups.size() <= 1) {
@@ -81,6 +87,17 @@ public class InventoryErasureService {
         request.setResolvedBy(actor);
         request.touchAudit(actor);
         return toDto(requestRepository.save(request));
+    }
+
+    /**
+     * A GDPR erasure without material to return needs no request: loan sheets and signed acts of the user are removed
+     * at once, as on completion of a request.
+     */
+    @EventListener
+    public void erasureCompleted(UserErasureCompleted event) {
+        String pseudonym = "erased:" + UUID.randomUUID();
+        loanSheetService.purgeForUser(event.userKeycloakId(), pseudonym, event.tenantCode(), event.actor());
+        signatureErasureService.purgeForUser(event.userKeycloakId(), pseudonym, event.actor());
     }
 
     private InventoryErasureRequestDTO toDto(InventoryErasureRequest value) {

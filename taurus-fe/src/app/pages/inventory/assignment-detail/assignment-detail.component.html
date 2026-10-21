@@ -83,7 +83,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             @for (photo of value.photos; track photo.id) {
             <div class="inventory-photo">
-                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName" />
+                <p-image class="block" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                    [preview]="true" appendTo="body" styleClass="w-full" imageClass="block w-full h-40 object-cover" />
                 <span class="photo-name">{{ photo.fileName }}</span>
             </div>
             }
@@ -106,6 +107,9 @@
         }
         } @else {
         <p class="text-muted-color mt-0">Conferma di aver preso visione delle informazioni relative a questa consegna.
+            @if (signatureEnabled) {
+            La scelta si firma con un codice inviato al tuo indirizzo e-mail.
+            }
         </p>
         <div class="flex flex-wrap gap-5 mb-3">
             <label class="flex items-center gap-2"> <p-checkbox [binary]="true" [ngModel]="decision === 'ACCEPTED'"
@@ -119,8 +123,8 @@
             <textarea pTextarea id="rejectionReason" rows="3" [(ngModel)]="rejectionReason"></textarea>
         </app-form-field>
         }
-        <p-button label="Conferma scelta" icon="pi pi-check" class="mt-3 block" [disabled]="!canConfirmDecision"
-            (onClick)="confirmDecision()" />
+        <p-button [label]="signatureEnabled ? 'Firma la scelta' : 'Conferma scelta'" [icon]="signatureEnabled ? 'pi pi-pen-to-square' : 'pi pi-check'"
+            class="mt-3 block" [disabled]="!canConfirmDecision" (onClick)="confirmDecision()" />
         }
     </app-detail-section>
 
@@ -172,8 +176,9 @@
                 @if (itemReturn.photos.length) {
                 <div class="flex flex-wrap gap-2 mt-2">
                     @for (photo of itemReturn.photos; track photo.id) {
-                    <img [src]="returnPhotoUrl(photo.id) | secure | async" [alt]="photo.fileName"
-                        class="w-16 h-16 object-cover rounded border border-surface" />
+                    <p-image [src]="(returnPhotoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                        [preview]="true" appendTo="body"
+                        imageClass="w-16 h-16 object-cover rounded border border-surface" />
                     }
                 </div>
                 }

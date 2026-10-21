@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueStatus;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSettings;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturn;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryReturnReason;
@@ -22,6 +23,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentReposit
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentRevisionRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
+import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanSettingsRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnPhotoRepository;
@@ -46,7 +48,10 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryPhotoOrderReques
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryReturnRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryUserSummaryDTO;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.loansheet.InventoryLoanSheetPolicy;
+import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetVariationRecorded;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
 import java.awt.image.BufferedImage;
@@ -68,6 +73,8 @@ import java.util.Map;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -103,6 +110,8 @@ public class InventoryService {
     private final InventoryQrCodeService qrCodeService;
     private final InventoryIssueReportRepository issueRepository;
     private final InventoryLoanSheetPolicy loanSheetPolicy;
+    private final InventoryLoanSettingsRepository loanSettingsRepository;
+    private final ApplicationEventPublisher events;
 
     public InventoryService(
         InventoryItemRepository itemRepository,
@@ -118,7 +127,9 @@ public class InventoryService {
         ObjectMapper objectMapper,
         InventoryQrCodeService qrCodeService,
         InventoryIssueReportRepository issueRepository,
-        InventoryLoanSheetPolicy loanSheetPolicy
+        InventoryLoanSheetPolicy loanSheetPolicy,
+        InventoryLoanSettingsRepository loanSettingsRepository,
+        ApplicationEventPublisher events
     ) {
         this.itemRepository = itemRepository;
         this.photoRepository = photoRepository;
@@ -134,6 +145,8 @@ public class InventoryService {
         this.qrCodeService = qrCodeService;
         this.issueRepository = issueRepository;
         this.loanSheetPolicy = loanSheetPolicy;
+        this.loanSettingsRepository = loanSettingsRepository;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -307,6 +320,10 @@ public class InventoryService {
         assignment.setReplacesAssignmentId(replacesAssignmentId);
         assignmentRepository.save(assignment);
         createRevision(assignment, InventoryRevisionReason.INITIAL_ASSIGNMENT, actor);
+        if (loanSheet != null) {
+            assignmentRepository.flush();
+            events.publishEvent(LoanSheetVariationRecorded.delivery(loanSheet.getId(), assignment.getId(), token));
+        }
         return assignment;
     }
 
@@ -452,13 +469,49 @@ public class InventoryService {
     public InventoryAssignmentDTO decide(long assignmentId, InventoryDecisionRequest request, AbstractAuthenticationToken token) {
         String userId = actor(token);
         tenant(token);
-        InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId)
+        if (electronicSignatureEnabled()) {
+            throw error(HttpStatus.CONFLICT, "La presa visione richiede la firma elettronica", "inventory.decision.signatureRequired");
+        }
+        DecisionCheck check = checkDecision(assignmentId, request, userId, true);
+        recordDecision(check, userId);
+        return toAssignmentDto(check.assignment());
+    }
+
+    /**
+     * Whether the tenant confirms assignment acknowledgments with the electronic signature: the feature of the tenant
+     * and the switch of its administrator.
+     */
+    @Transactional(readOnly = true)
+    public boolean electronicSignatureEnabled() {
+        return signatureFeature() && loanSettingsRepository.findFirstByDeletedFalse().map(InventoryLoanSettings::isElectronicSignatureEnabled).orElse(false);
+    }
+
+    private TenantFeatureService tenantFeatureService;
+
+    @Autowired
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** The super administrator grants the electronic signature to the tenant, whose administrator then turns it on. */
+    private boolean signatureFeature() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE);
+    }
+
+
+    /**
+     * Checks a decision of the user on the current revision of their assignment: the revision must be the one shown to
+     * the user, not yet decided, and a rejection needs a reason. With {@code lock} the assignment is locked until the
+     * end of the transaction.
+     */
+    public DecisionCheck checkDecision(long assignmentId, InventoryDecisionRequest request, String userId, boolean lock) {
+        InventoryAssignment assignment = (lock ? assignmentRepository.findForUpdate(assignmentId) : assignmentRepository.findById(assignmentId).filter(value -> !value.isDeleted()))
             .orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         if (!assignment.getUserKeycloakId().equals(userId)) {
             throw error(HttpStatus.NOT_FOUND, "L'assegnazione non appartiene all'utente autenticato", "inventory.assignment.notFound");
         }
         InventoryAssignmentRevision revision = currentRevision(assignment);
-        if (!MessageDigest.isEqual(revision.getSnapshotHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII), request.revisionHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII))) {
+        if (request.revisionHash() == null || !MessageDigest.isEqual(revision.getSnapshotHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII), request.revisionHash().getBytes(java.nio.charset.StandardCharsets.US_ASCII))) {
             throw error(HttpStatus.CONFLICT, "I dati dell'assegnazione sono cambiati: ricaricare prima di confermare", "inventory.revision.versionConflict");
         }
         if (decisionRepository.findByRevision_Id(revision.getId()).isPresent()) {
@@ -468,17 +521,41 @@ public class InventoryService {
         if (request.decision() == InventoryDecisionType.REJECTED && rejectionReason == null) {
             throw error(HttpStatus.BAD_REQUEST, "La motivazione del rifiuto è obbligatoria", "inventory.decision.reasonRequired");
         }
+        return new DecisionCheck(assignment, revision, request.decision(), request.decision() == InventoryDecisionType.REJECTED ? rejectionReason : null);
+    }
+
+    /**
+     * Records a decision confirmed by an electronic signature: the checks are repeated with the assignment locked, and
+     * {@code recorder} adds the act and the evidence in the same transaction. Notified to the administrators like
+     * {@link #decide}.
+     */
+    public InventoryAssignmentDTO decideSigned(
+        long assignmentId,
+        InventoryDecisionRequest request,
+        AbstractAuthenticationToken token,
+        SignedDecisionRecorder recorder
+    ) {
+        String userId = actor(token);
+        tenant(token);
+        DecisionCheck check = checkDecision(assignmentId, request, userId, true);
+        recorder.record(check, recordDecision(check, userId));
+        return toAssignmentDto(check.assignment());
+    }
+
+    /**
+     * Records a checked decision with its authenticated hash.
+     */
+    private InventoryAssignmentDecision recordDecision(DecisionCheck check, String userId) {
         InventoryAssignmentDecision decision = new InventoryAssignmentDecision();
         decision.initializeAudit(userId);
-        decision.setRevision(revision);
-        decision.setDecision(request.decision());
-        decision.setRejectionReason(request.decision() == InventoryDecisionType.REJECTED ? rejectionReason : null);
+        decision.setRevision(check.revision());
+        decision.setDecision(check.decision());
+        decision.setRejectionReason(check.rejectionReason());
         decision.setDecidedAt(ZonedDateTime.now());
         decision.setDecidedBy(userId);
-        String authenticatedValue = revision.getSnapshotHash() + "|" + userId + "|" + request.decision().name() + "|" + Objects.requireNonNullElse(rejectionReason, "");
+        String authenticatedValue = check.revision().getSnapshotHash() + "|" + userId + "|" + check.decision().name() + "|" + Objects.requireNonNullElse(check.rejectionReason(), "");
         decision.setAuthenticatedHash(sha256(authenticatedValue.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        decisionRepository.save(decision);
-        return toAssignmentDto(assignment);
+        return decisionRepository.save(decision);
     }
 
     public InventoryReturnDTO requestReturn(long assignmentId, InventoryReturnRequest request, boolean ownerRequired, AbstractAuthenticationToken token) {
@@ -534,7 +611,11 @@ public class InventoryService {
         refreshAssignmentStatus(assignment);
         touch(assignment, actor);
         assignmentRepository.save(assignment);
-        return toReturnDto(returnRepository.save(inventoryReturn));
+        InventoryReturn saved = returnRepository.saveAndFlush(inventoryReturn);
+        if (assignment.getLoanSheetId() != null && saved.getReason() != InventoryReturnReason.SUBSTITUTION) {
+            events.publishEvent(LoanSheetVariationRecorded.partialReturn(assignment.getLoanSheetId(), saved.getId(), token));
+        }
+        return toReturnDto(saved);
     }
 
     public InventoryReturnDTO cancelReturn(long returnId, AbstractAuthenticationToken token) {
@@ -853,6 +934,7 @@ public class InventoryService {
             assignment.getAssignedAt(),
             assignment.getStatus(),
             revision.getRevisionNumber(),
+            revision.getSnapshotHash(),
             revision.getCreatedAt(),
             decision == null ? null : toDecisionDto(decision),
             photo
@@ -1104,5 +1186,24 @@ public class InventoryService {
     }
 
     public record PhotoContent(String fileName, String contentType, byte[] bytes) {
+    }
+
+    /**
+     * Adds the signature of a decision just recorded.
+     */
+    @FunctionalInterface
+    public interface SignedDecisionRecorder {
+        void record(DecisionCheck check, InventoryAssignmentDecision decision);
+    }
+
+    /**
+     * A decision that passed the checks, on the current revision of the assignment.
+     */
+    public record DecisionCheck(
+        InventoryAssignment assignment,
+        InventoryAssignmentRevision revision,
+        InventoryDecisionType decision,
+        String rejectionReason
+    ) {
     }
 }

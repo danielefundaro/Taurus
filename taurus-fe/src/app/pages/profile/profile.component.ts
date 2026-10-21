@@ -1,17 +1,19 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
 import { first } from 'rxjs';
+import { fromApiDate, toLocalDate } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
 import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
+import { SignatureMethodSettingsComponent } from '../../components/signature-method-settings/signature-method-settings.component';
 import { NotificationCategoryPreference, NotificationPreferences, NotificationPushMode, NotificationSource } from '../../module';
 
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent],
+    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent, SignatureMethodSettingsComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [UsersService],
@@ -24,6 +26,9 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected lastName: string = '';
     protected email: string = '';
     protected username: string = '';
+    /** Data di nascita, conservata solo in Taurus: serve nei fogli di affidamento che il socio firma. */
+    protected birthDate?: Date;
+    protected readonly today = new Date();
 
     /** Notifiche: consenso del browser e promemoria predefinito degli eventi. */
     protected pushEnabled = false;
@@ -57,6 +62,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected readonly reminderUnit = 'notifiche';
     protected readonly notificationPreferencesEnabled;
     protected readonly webPushRemindersEnabled;
+    /** Le impostazioni della firma elettronica compaiono solo se il tenant ha la funzionalità. */
+    protected readonly inventorySignatureEnabled;
 
     constructor(
         private readonly keycloakService: KeycloakService,
@@ -70,6 +77,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         super();
         this.notificationPreferencesEnabled = tenantFeatureService.notificationPreferencesEnabled;
         this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
+        this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 
     ngOnInit(): void {
@@ -79,6 +87,13 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             this.email = profile.email ?? '';
             this.username = profile.username ?? '';
         });
+        this.usersService
+            .getOwn()
+            .pipe(first())
+            .subscribe({
+                next: (user) => (this.birthDate = fromApiDate(user.birthDate)),
+                error: () => undefined
+            });
 
         this.tenantFeatureService.refresh().subscribe({
             next: () => {
@@ -209,7 +224,8 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             .partialUpdateOwn({
                 name: this.firstName,
                 lastName: this.lastName,
-                email: this.email
+                email: this.email,
+                birthDate: toLocalDate(this.birthDate)
             })
             .pipe(first())
             .subscribe({

@@ -1,0 +1,104 @@
+@if (acts.length) {
+    <div class="card flex flex-col gap-3">
+        <div>
+            <h2 class="text-lg font-semibold m-0">Firme</h2>
+            <p class="text-sm text-muted-color m-0">Atti dei fogli di affidamento da firmare, con un codice o con CieSign, e quelli già firmati.</p>
+        </div>
+
+        @if (pending.length) {
+            <h3 class="text-base font-semibold m-0">In attesa della tua firma</h3>
+            @for (act of pending; track act.id) {
+                <div class="signature-act">
+                    @if (batchable(act)) {
+                        <p-checkbox [inputId]="'signatureAct' + act.id" [value]="act.id" [(ngModel)]="selected" [ariaLabel]="'Seleziona ' + act.operation" />
+                    }
+                    <span class="signature-act__identity">
+                        <span class="flex flex-wrap items-center gap-2">
+                            <strong>Foglio n. {{ act.sheetNumber }}</strong>
+                            <p-tag [value]="typeLabel(act.type)" severity="secondary" [rounded]="true" />
+                            <p-tag [value]="statusLabel(act.status)" [severity]="statusSeverity(act.status)" [rounded]="true" />
+                        </span>
+                        <span class="text-sm text-muted-color">
+                            {{ act.operation }}
+                            @if (act.pendingPurposes.length) {
+                                · da confermare: {{ pendingText(act) }}
+                            }
+                        </span>
+                        @if (act.pendingAcknowledgments) {
+                            <span class="text-sm text-orange-600 dark:text-orange-400">{{ acknowledgmentsText(act) }}</span>
+                        }
+                    </span>
+                    <p-button [label]="actionLabel(act)" icon="pi pi-pen-to-square" size="small" (onClick)="sign(act)" />
+                </div>
+            }
+            @if (selected.length > 1) {
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                    @if (!batchPurpose) {
+                        <small class="text-muted-color">Seleziona variazioni con la stessa firma da confermare.</small>
+                    }
+                    <p-button [label]="'Firma ' + selected.length + ' variazioni con un codice'" icon="pi pi-pen-to-square" severity="success" [disabled]="!batchPurpose" (onClick)="signSelected()" />
+                </div>
+            }
+        }
+
+        @if (waiting.length) {
+            <div>
+                <h3 class="text-base font-semibold m-0">In attesa delle altre firme</h3>
+                <p class="text-sm text-muted-color m-0">Hai fatto la tua parte: i documenti firmati e l’attestazione si scaricano qui quando tutte le parti hanno firmato.</p>
+            </div>
+            @for (act of waiting; track act.id) {
+                <div class="signature-act">
+                    <span class="signature-act__identity">
+                        <span class="flex flex-wrap items-center gap-2">
+                            <strong>Foglio n. {{ act.sheetNumber }}</strong>
+                            <p-tag [value]="typeLabel(act.type)" severity="secondary" [rounded]="true" />
+                            <p-tag value="In attesa delle altre firme" severity="info" [rounded]="true" />
+                        </span>
+                        <span class="text-sm text-muted-color">
+                            {{ act.operation }}
+                            @if (missingSigners(act); as missing) {
+                                · manca la firma di: {{ missing }}
+                            }
+                        </span>
+                    </span>
+                </div>
+            }
+        }
+
+        @if (completed.length) {
+            <h3 class="text-base font-semibold m-0">Firmati</h3>
+            @for (act of completed; track act.id) {
+                <div class="signature-act">
+                    <span class="signature-act__identity">
+                        <span class="flex flex-wrap items-center gap-2">
+                            <strong>Foglio n. {{ act.sheetNumber }}</strong>
+                            <p-tag [value]="typeLabel(act.type)" severity="secondary" [rounded]="true" />
+                            <p-tag [value]="statusLabel(act.status)" [severity]="statusSeverity(act.status)" [rounded]="true" />
+                        </span>
+                        <span class="text-sm text-muted-color">
+                            {{ act.operation }}
+                            @if (act.completedAt) {
+                                · {{ act.completedAt | date: 'dd/MM/yyyy HH:mm' }}
+                            }
+                        </span>
+                        @if (act.status === 'SIGNED' && act.purgeAfter) {
+                            <span class="text-sm text-muted-color">Scaricabile fino al {{ act.purgeAfter | date: 'dd/MM/yyyy' }}, poi Taurus elimina i documenti: conservane una copia.</span>
+                        }
+                    </span>
+                    @if (act.status === 'SIGNED') {
+                        <span class="flex flex-wrap gap-1">
+                            @for (document of act.documents; track document.role) {
+                                @if (document.available) {
+                                    <p-button [label]="document.role === 'CLAUSES' ? 'Clausole' : 'Documento'" icon="pi pi-file-pdf" size="small" severity="secondary" [text]="true" (onClick)="openDocument(act, document.role)" />
+                                }
+                            }
+                            @if (act.attestationAvailable) {
+                                <p-button label="Attestazione" icon="pi pi-verified" size="small" severity="secondary" [text]="true" (onClick)="openAttestation(act)" />
+                            }
+                        </span>
+                    }
+                </div>
+            }
+        }
+    </div>
+}

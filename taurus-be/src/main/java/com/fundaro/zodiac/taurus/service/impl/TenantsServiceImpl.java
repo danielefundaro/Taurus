@@ -176,6 +176,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         if (dto.getWebPushRemindersEnabled() == null) dto.setWebPushRemindersEnabled(false);
         if (dto.getEventPreparationEnabled() == null) dto.setEventPreparationEnabled(false);
         if (dto.getScorePlaybackEnabled() == null) dto.setScorePlaybackEnabled(false);
+        if (dto.getInventoryLoanSheetEnabled() == null) dto.setInventoryLoanSheetEnabled(false);
+        if (dto.getInventorySignatureEnabled() == null) dto.setInventorySignatureEnabled(false);
     }
 
     private void preserveOmittedFeatureFlags(TenantsDTO dto, Tenants previous) {
@@ -193,33 +195,41 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         if (dto.getEventPreparationEnabled() == null)
             dto.setEventPreparationEnabled(previous.getEventPreparationEnabled());
         if (dto.getScorePlaybackEnabled() == null) dto.setScorePlaybackEnabled(previous.getScorePlaybackEnabled());
+        if (dto.getInventoryLoanSheetEnabled() == null)
+            dto.setInventoryLoanSheetEnabled(previous.getInventoryLoanSheetEnabled());
+        if (dto.getInventorySignatureEnabled() == null)
+            dto.setInventorySignatureEnabled(previous.getInventorySignatureEnabled());
     }
 
     private Map<String, Boolean> featureFlags(Tenants tenant) {
-        return Map.of(
-            "finance", Boolean.TRUE.equals(tenant.getFinanceEnabled()),
-            "inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled()),
-            "onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled()),
-            "externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled()),
-            "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
-            "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
-            "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
-            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled()),
-            "scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())
+        return Map.ofEntries(
+            Map.entry("finance", Boolean.TRUE.equals(tenant.getFinanceEnabled())),
+            Map.entry("inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled())),
+            Map.entry("onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled())),
+            Map.entry("externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled())),
+            Map.entry("inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled())),
+            Map.entry("notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled())),
+            Map.entry("webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())),
+            Map.entry("eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())),
+            Map.entry("scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())),
+            Map.entry("inventoryLoanSheet", Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled())),
+            Map.entry("inventorySignature", Boolean.TRUE.equals(tenant.getInventorySignatureEnabled()))
         );
     }
 
     private Map<String, Boolean> featureFlags(TenantsDTO tenant) {
-        return Map.of(
-            "finance", Boolean.TRUE.equals(tenant.getFinanceEnabled()),
-            "inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled()),
-            "onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled()),
-            "externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled()),
-            "inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled()),
-            "notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled()),
-            "webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled()),
-            "eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled()),
-            "scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())
+        return Map.ofEntries(
+            Map.entry("finance", Boolean.TRUE.equals(tenant.getFinanceEnabled())),
+            Map.entry("inventory", Boolean.TRUE.equals(tenant.getInventoryEnabled())),
+            Map.entry("onboardingImport", Boolean.TRUE.equals(tenant.getOnboardingImportEnabled())),
+            Map.entry("externalCalendarFeed", Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled())),
+            Map.entry("inventoryQr", Boolean.TRUE.equals(tenant.getInventoryQrEnabled())),
+            Map.entry("notificationPreferences", Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled())),
+            Map.entry("webPushReminders", Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())),
+            Map.entry("eventPreparation", Boolean.TRUE.equals(tenant.getEventPreparationEnabled())),
+            Map.entry("scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())),
+            Map.entry("inventoryLoanSheet", Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled())),
+            Map.entry("inventorySignature", Boolean.TRUE.equals(tenant.getInventorySignatureEnabled()))
         );
     }
 }

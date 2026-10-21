@@ -51,7 +51,8 @@ export class KeycloakService {
     }
 
     constructor() {
-        this.$isUserLoggedIn = new BehaviorSubject(!this.keycloak.isTokenExpired());
+        // On the public signature page Keycloak is not initialized: nobody is logged in.
+        this.$isUserLoggedIn = new BehaviorSubject(!!this.keycloak.authenticated && !this.keycloak.isTokenExpired());
     }
 
     public accountManagement(): Promise<void> {
@@ -70,10 +71,12 @@ export class KeycloakService {
         return this.keycloak.refreshToken;
     }
 
-    public logout() {
-        return this.keycloak.logout().then(() => {
-            this.$isUserLoggedIn.next(false);
-            this.keycloak.clearToken();
-        });
+    /**
+     * Ends the Keycloak session: keycloak-js leaves the page for the end-session endpoint. The token is not cleared
+     * here: with `onLoad: 'login-required'` clearing it starts a new login, whose redirect replaces the logout one
+     * and leaves the session open.
+     */
+    public logout(): Promise<void> {
+        return this.keycloak.logout().then(() => this.$isUserLoggedIn.next(false));
     }
 }

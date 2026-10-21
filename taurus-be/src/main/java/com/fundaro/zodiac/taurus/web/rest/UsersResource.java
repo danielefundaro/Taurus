@@ -70,7 +70,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
     }
 
     /**
-     * {@code PATCH /me} : Update the current user's own profile (name, lastName, email only).
+     * {@code PATCH /me} : Update the current user's own profile (name, lastName, email and birthDate only).
      */
     @PatchMapping(value = "/me", consumes = {"application/json", "application/merge-patch+json"})
     public ResponseEntity<UsersDTO> partialUpdateOwnEntity(@Valid @RequestBody UsersMeDTO dto,

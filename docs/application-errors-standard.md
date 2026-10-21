@@ -154,7 +154,7 @@ Gli errori che non nascono da `RequestAlertException` ricevono comunque una chia
 ### La chiave
 
 - Formato `{area}.{oggetto}.{condizione}`, in camelCase, con l'oggetto omesso quando coincide con l'area: `inventory.photo.tooLarge`, `onboarding.disabled`.
-- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `tenant`, `tenantFeature`, `track`, `user`.
+- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `signature`, `tenant`, `tenantFeature`, `track`, `user`.
 - Fanno eccezione le chiavi trasversali dei servizi CRUD comuni: `id.notFound`, `id.exists`, `id.invalid`, `id.null` e `version.conflict`.
 - Una chiave produce un solo messaggio e ha un solo stato HTTP. La stessa condizione usa la stessa chiave in tutti i punti in cui si verifica.
 - Le nuove chiavi usano un vocabolario chiuso per la condizione. Le chiavi esistenti già conformi ad area e significato restano invariate: si rinominano solo per i motivi elencati in [Corrispondenza con le chiavi attuali](#corrispondenza-con-le-chiavi-attuali).
@@ -504,6 +504,8 @@ Le chiavi sono riportate senza il prefisso `error.` che il backend aggiunge nel 
 | `tenantFeature.webPushReminders.disabled` | 403 | I promemoria Web Push sono disattivati | — | «La funzionalità Promemoria eventi Web Push non è disponibile per questo tenant» |
 | `tenantFeature.eventPreparation.disabled` | 403 | La preparazione evento è disattivata | — | «La funzionalità Preparazione evento non è disponibile per questo tenant» |
 | `tenantFeature.scorePlayback.disabled` | 403 | L'ascolto e la correzione delle parti sono disattivati | — | «La funzionalità Ascolto delle parti non è disponibile per questo tenant» |
+| `tenantFeature.inventoryLoanSheet.disabled` | 403 | I fogli di affidamento sono disattivati, direttamente o perché lo è l'Inventario | — | «La funzionalità Fogli di affidamento non è disponibile per questo tenant» |
+| `tenantFeature.inventorySignature.disabled` | 403 | La firma elettronica è disattivata, direttamente o perché lo sono i Fogli di affidamento | — | «La funzionalità Firma elettronica non è disponibile per questo tenant» |
 
 ### Utenti e tenant
 
@@ -576,6 +578,7 @@ Il messaggio di Keycloak e lo stato della sua risposta finiscono solo nel log.
 | `inventory.revision.versionConflict` | 409 | Il socio conferma o rifiuta una versione superata dell'assegnazione | — | «I dati dell'assegnazione sono cambiati: ricaricare prima di confermare» |
 | `inventory.decision.immutable` | 409 | La scelta del socio per questa revisione è già registrata | — | «La scelta per questa revisione è già definitiva» |
 | `inventory.decision.reasonRequired` | 400 | Rifiuto della presa visione senza motivazione | — | «La motivazione del rifiuto è obbligatoria» |
+| `inventory.decision.signatureRequired` | 409 | Decisione diretta di presa visione mentre il tenant richiede la firma elettronica | — | «La presa visione ora richiede la conferma con codice: ricaricare la pagina» |
 | `inventory.revision.missing` | 500 | Manca la revisione corrente dell'assegnazione: dato incoerente | — | [Testo generico](#testi-generici) per stato |
 | `inventory.revision.createFailed` | 500 | Impossibile creare l'istantanea della revisione | — | [Testo generico](#testi-generici) per stato |
 | `inventory.return.notFound` | 404 | Procedura di riconsegna inesistente; sugli endpoint del socio, anche una riconsegna di un altro socio | — | «Riconsegna non trovata» |
@@ -640,6 +643,9 @@ Il messaggio di Keycloak e lo stato della sua risposta finiscono solo nel log.
 | `inventory.loanSheet.cancelled` | 409 | Download del PDF di un foglio annullato | — | «Il foglio di affidamento è stato annullato» |
 | `inventory.loanSheet.purged` | 410 | Download del PDF di un foglio i cui dati personali sono stati rimossi alla scadenza della conservazione | — | «I dati personali del foglio sono stati rimossi: il PDF non è più disponibile» |
 | `inventory.loanSheet.tooLarge` | 413 | Il PDF generato supera la dimensione massima | `maxMegabytes` | «Il foglio di affidamento generato supera {maxMegabytes} MB» |
+| `inventory.loanSheet.signatureDisabled` | 422 | Emissione con firma elettronica mentre il tenant non la usa | — | «La firma elettronica non è attiva nell'associazione: emettere il foglio su carta» |
+| `inventory.loanSheet.holderEmailRequired` | 422 | Emissione con firma elettronica per un Affidatario senza indirizzo e-mail: socio maggiorenne senza e-mail o genitore senza l'e-mail inserita all'emissione | — | «Per la firma elettronica serve l'indirizzo e-mail dell'Affidatario» |
+| `inventory.loanSheet.templateNotSignable` | 422 | Emissione con firma elettronica mentre il modello in uso non ha marcatori validi | — | «Il modello in uso non è firmabile elettronicamente: correggere i marcatori nella pagina del modello o emettere il foglio su carta» |
 | `inventory.loanDuration.missingLoanType` | 422 | Oggetto senza regime di comodato. Compare negli elenchi `issues` dell'emissione e dell'anteprima | — | «L'oggetto non ha il regime di comodato: indicarlo nella scheda dell'oggetto» |
 | `inventory.loanDuration.precariousExpiration` | 422 | Bene in comodato precario con data di scadenza. Compare negli elenchi `issues` dell'emissione e dell'anteprima | — | «Un bene in comodato precario non può avere una data di scadenza» |
 | `inventory.loanDuration.missingExpiration` | 422 | Assegnazione, o modifica della scadenza, di uno strumento in comodato con scadenza senza data, a un socio senza foglio emesso: valgono le regole correnti del tenant | — | «La data di scadenza è obbligatoria per gli strumenti in comodato con scadenza» |
@@ -688,6 +694,55 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `missingSheetNumber` | No | Il modello non stampa il numero del foglio | — | «Il modello non stampa il numero del foglio» |
 | `missingGoods` | No | Il modello non stampa i beni consegnati | — | «Il modello non stampa i beni consegnati» |
 | `missingDurations` | No | Il modello non usa le variabili delle regole di durata | — | «Il modello non usa le variabili delle regole di durata: verificare che il testo sulla durata del comodato corrisponda alle regole applicate dai controlli» |
+| `signatureActMissing` | No | Un figlio diretto di `<body>` non ha `data-taurus-act`; solo con la firma elettronica attiva e nella firmabilità del modello in uso | `tag` | «L'elemento <{tag}> non indica con data-taurus-act a quale atto appartiene» |
+| `signatureActUnknown` | No | Valore di `data-taurus-act` diverso da `issue`, `variation`, `return` e `all` | `value` | «Valore «{value}» non ammesso in data-taurus-act: usare issue, variation, return o all» |
+| `signatureActEmpty` | No | Nessuna parte del modello per uno dei tipi di atto | `act`: `issue`, `variation` o `return` | «Nessuna parte del modello appartiene all'atto di {act}», con il tipo di atto tradotto |
+| `signatureClausesMissing` | No | Manca il blocco `data-taurus-sign="clauses"` | — | «Manca il blocco dell'approvazione specifica delle clausole (data-taurus-sign="clauses")» |
+| `signatureClausesDuplicate` | No | Più blocchi `data-taurus-sign="clauses"` | — | «Il blocco delle clausole (data-taurus-sign="clauses") deve essere uno solo» |
+| `signatureClausesOutsideIssue` | No | Il blocco delle clausole non sta in una parte dell'emissione | — | «Il blocco delle clausole deve stare in una parte dell'emissione (data-taurus-act="issue")» |
+| `signatureClausesEmpty` | No | Il blocco delle clausole non ha testo | — | «Il blocco delle clausole è vuoto» |
+
+### Firma elettronica
+
+| Chiave | HTTP | Quando si verifica | Parametri | Messaggio |
+| --- | --- | --- | --- | --- |
+| `signature.disabled` | 422 | Richiesta di un codice per la presa visione mentre il tenant non usa la firma elettronica | — | «La firma elettronica non è attiva nell'associazione» |
+| `signature.challenge.invalid` | 400 | Elementi della conferma mancanti, duplicati, oltre il massimo o di uno scopo non supportato; nuovo invio chiesto per una conferma con l'app di autenticazione | — | «La richiesta di firma non è valida: ricaricare la pagina e riprovare» |
+| `signature.challenge.notFound` | 404 | Conferma inesistente o di un altro utente | — | «Richiesta di firma non trovata» |
+| `signature.challenge.closed` | 409 | Codice o nuovo invio per una conferma già confermata o annullata | — | «La richiesta di firma è già chiusa: ricominciare la firma» |
+| `signature.challenge.expired` | 410 | Codice confermato o reinviato dopo la scadenza | — | «Il codice è scaduto: richiederne uno nuovo» |
+| `signature.challenge.locked` | 409 | Tentativi esauriti | — | «Troppi codici errati: ricominciare la firma» |
+| `signature.challenge.invalidCode` | 422 | Codice errato; il tentativo è consumato | `remainingAttempts` | «Codice errato: restano {remainingAttempts} tentativi» |
+| `signature.challenge.limit` | 409 | Nuovo invio oltre il numero massimo di codici della conferma | `maxSends` | «Raggiunto il numero massimo di {maxSends} codici per questa firma: ricominciare la firma» |
+| `signature.challenge.resendTooSoon` | 429 | Nuovo codice chiesto prima dell'intervallo minimo, o troppi codici chiesti dall'utente nell'ultima ora | `retryAfterSeconds` | «Nuovo codice richiesto troppo presto: riprovare tra {retryAfterSeconds} secondi», in minuti oltre i due minuti |
+| `signature.method.totpNotConfigured` | 422 | Conferma con l'app di autenticazione non configurata dall'utente o non offerta dall'installazione | — | «L'app di autenticazione non è configurata: usare il codice via e-mail» |
+| `signature.method.unavailable` | 502 | Keycloak non risponde alla verifica dell'app di autenticazione; nessun tentativo consumato | — | «L'app di autenticazione non si può verificare in questo momento: usare il codice via e-mail» |
+| `signature.mail.addressMissing` | 422 | Il firmatario non ha un indirizzo e-mail | — | «Non è registrato un indirizzo e-mail a cui inviare il codice: chiedere all'amministratore di aggiungerlo» |
+| `signature.mail.sendFailed` | 502 | Il server SMTP non ha accettato l'e-mail del codice; la conferma è annullata | — | «Non è stato possibile inviare il codice via e-mail: riprovare tra qualche minuto» |
+| `signature.link.sendFailed` | 502 | Il server SMTP non ha accettato l'e-mail del nuovo link al genitore o tutore; il link è creato ma non inviato | — | «Non è stato possibile inviare il link via e-mail: riprovare tra qualche minuto» |
+| `signature.cieSign.documentMismatch` | 422 | Il file caricato con CieSign non inizia con il documento congelato, l'aggiornamento della firma cambia il documento o il file è stato modificato dopo la firma | — | «Il file non è il documento scaricato da Taurus o è stato modificato dopo la firma: scaricare di nuovo il documento e firmarlo senza modificarlo» |
+| `signature.cieSign.invalidSignature` | 422 | File CieSign vuoto o illeggibile, senza firma, con più firme o con una firma non valida | — | «Il file non contiene una sola firma valida: firmare il documento una volta con CieSign e caricare il file ottenuto» |
+| `signature.cieSign.untrustedCertificate` | 422 | Certificato della firma CieSign non emesso dalle CA della CIE configurate, scaduto, revocato o non adatto alla firma | — | «La firma non è fatta con una Carta d'Identità Elettronica valida» |
+| `signature.cieSign.signerMismatch` | 422 | Nome, cognome o codice fiscale del certificato diversi da quelli dell'Affidatario | — | «La firma è di un'altra persona: nome, cognome e codice fiscale della carta devono essere quelli dell'Affidatario» |
+| `signature.cieSign.tooLarge` | 413 | File CieSign oltre 25 MB | `maxMegabytes` | «Il file firmato supera {maxMegabytes} MB» |
+| `signature.cieSign.notAvailable` | 422 | CieSign richiesto da un Affidatario che ha dichiarato di non avere un codice fiscale italiano | — | «CieSign non è disponibile senza un codice fiscale italiano: firmare con il codice» |
+| `signature.cieSign.notConfigured` | 422 | CieSign richiesto in un'installazione senza i certificati delle CA della CIE | — | «CieSign non è disponibile in questa installazione: firmare con il codice» |
+| `signature.settings.requirementsMissing` | 422 | Attivazione della firma, o richiesta di un codice, senza server SMTP, chiave dei codici o sigillo | `missing` | «La firma elettronica non è attivabile: mancano {missing}: chiedere a chi gestisce l'installazione di configurarli» |
+| `signature.settings.versionConflict` | 409 | Impostazione della firma modificata da un'altra richiesta | — | «Le impostazioni della firma sono state modificate da un'altra richiesta: ricaricare la pagina» |
+| `signature.act.notFound` | 404 | Atto inesistente, oppure di cui l'utente non è firmatario | — | «Atto da firmare non trovato» |
+| `signature.act.notAwaitingData` | 409 | Dati dell'Affidatario inviati per un atto che non li attende, già firmato da qualcuno o di un foglio non più emesso | — | «L'atto non attende più i dati dell'Affidatario: ricaricare la pagina» |
+| `signature.act.notAwaitingSignatures` | 409 | Firma, cambio del firmatario o dichiarazione su carta di un atto completato, annullato o ancora in attesa dei dati | — | «L'atto non è in attesa di firme: ricaricare la pagina» |
+| `signature.act.documentChanged` | 409 | L'impronta confermata non corrisponde al documento congelato | — | «Il documento è cambiato: ricaricare la pagina e rileggerlo prima di firmare» |
+| `signature.act.alreadySigned` | 409 | Il firmatario ha già dato questa conferma | — | «Questa firma è già registrata» |
+| `signature.act.acknowledgmentsPending` | 409 | Firma o invio dei dati dell'Affidatario mentre il socio ha prese visione in attesa sulle assegnazioni del foglio | `count`: numero delle prese visione in attesa | «C'è una presa visione in attesa: confermarla dall'elenco delle consegne, poi firmare»; con più prese visione «Ci sono {count} prese visione in attesa: confermarle dall'elenco delle consegne, poi firmare» |
+| `signature.act.purged` | 410 | Download di documenti, attestazione o fascicolo già eliminati alla fine del periodo di grazia o con la cancellazione GDPR | — | «I documenti dell'atto sono stati eliminati da Taurus: la conservazione spetta all'associazione» |
+| `signature.act.batchNotAllowed` | 422 | Conferma multipla con atti diversi dalle variazioni, o per l'approvazione delle clausole | — | «Solo le variazioni si possono firmare insieme: firmare gli altri atti uno alla volta» |
+| `signature.act.versionConflict` | 409 | Atto modificato da un'altra richiesta durante il cambio del firmatario | — | «L'atto è stato modificato da un'altra richiesta: ricaricare la pagina» |
+| `signature.holderData.invalid` | 422 | Dati dell'Affidatario mancanti o non validi | `fields`: nomi tra `birthPlace`, `residence`, `postalCode`, `cityProvince`, `taxCode`, `document`, `documentIssuedBy`, `documentIssuedOn`, `minorBirthPlace` | «Dati mancanti o non validi: {fields}», con i nomi dei campi tradotti |
+| `signature.holderData.birthDateMissing` | 422 | Dati dell'Affidatario inviati quando il profilo del socio non ha la data di nascita | `holderRole`: `MEMBER` o `GUARDIAN` | «Manca la data di nascita: aggiungerla nella pagina Profilo, poi completare i dati»; con `GUARDIAN` «Manca la data di nascita del socio minorenne: chiedere all'associazione di inserirla, poi completare i dati» |
+| `signature.associationSigner.sameAsHolder` | 422 | Firmatario per l'Associazione coincidente con l'Affidatario | — | «Chi firma per l'Associazione non può essere l'Affidatario» |
+| `signature.associationSigner.notAdmin` | 422 | Firmatario per l'Associazione mancante o non più amministratore attivo | — | «Chi firma per l'Associazione deve essere un amministratore attivo: designare un altro firmatario» |
+| `signature.associationSigner.locked` | 409 | Cambio del firmatario per l'Associazione dopo la prima firma dell'atto | — | «Dopo la prima firma il firmatario per l'Associazione non cambia più: se non può firmare, dichiarare l'atto firmato su carta» |
 
 ### Economia
 

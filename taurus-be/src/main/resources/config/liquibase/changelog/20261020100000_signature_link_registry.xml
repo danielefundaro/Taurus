@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20261020100000-1" author="taurus">
+    <comment>
+      Tenant of the signature links sent to the parents without an account: the token carries neither tenant nor act.
+      No personal data.
+    </comment>
+    <createTable schemaName="public" tableName="signature_link_registry">
+      <column name="token_digest" type="varchar(64)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="tenant_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="link_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="expires_at" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="revoked_at" type="timestamp with time zone"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableSchemaName="public" baseTableName="signature_link_registry"
+                             baseColumnNames="tenant_id"
+                             referencedTableSchemaName="public" referencedTableName="tenant" referencedColumnNames="id"
+                             constraintName="fk_signature_link_registry_tenant" onDelete="CASCADE"/>
+    <createIndex schemaName="public" tableName="signature_link_registry" indexName="idx_signature_link_registry_link">
+      <column name="tenant_id"/>
+      <column name="link_id"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

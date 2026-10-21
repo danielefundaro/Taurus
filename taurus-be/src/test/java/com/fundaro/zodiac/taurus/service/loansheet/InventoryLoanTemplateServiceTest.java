@@ -7,6 +7,8 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanSettingsRepos
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryLoanTemplateRepository;
 import com.fundaro.zodiac.taurus.service.TenantTimeZoneService;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanTemplateDtos.*;
+import com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos;
+import com.fundaro.zodiac.taurus.service.signature.SignatureRequirementsService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,8 @@ class InventoryLoanTemplateServiceTest {
     LoanSheetTenantData tenantData;
     @Mock
     TenantTimeZoneService tenantTimeZoneService;
+    @Mock
+    SignatureRequirementsService signatureRequirements;
 
     private final LoanTemplateDefaults defaults = new LoanTemplateDefaults();
     private InventoryLoanTemplateService service;
@@ -50,7 +54,7 @@ class InventoryLoanTemplateServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new InventoryLoanTemplateService(templateRepository, settingsRepository, defaults, new LoanSheetPdfRenderer(), tenantData, tenantTimeZoneService);
+        service = new InventoryLoanTemplateService(templateRepository, settingsRepository, defaults, new LoanSheetPdfRenderer(), tenantData, tenantTimeZoneService, signatureRequirements);
         settings = new InventoryLoanSettings();
         settings.setId(1L);
         settings.setMinMonths(12);
@@ -66,8 +70,9 @@ class InventoryLoanTemplateServiceTest {
         });
         when(templateRepository.findFirstByOriginAndContentHashAndDeletedFalse(any(), anyString())).thenReturn(Optional.empty());
         when(templateRepository.findAllByOriginAndDeletedFalseOrderByVersionNumberDesc(InventoryLoanTemplateOrigin.CUSTOM)).thenReturn(List.of());
-        when(tenantData.forTemplate(anyString(), any())).thenReturn(LoanSheetPdfRendererTest.TENANT);
+        when(tenantData.forTemplate(anyString(), any(org.springframework.security.authentication.AbstractAuthenticationToken.class))).thenReturn(LoanSheetPdfRendererTest.TENANT);
         when(tenantTimeZoneService.currentZoneId()).thenReturn(ZoneId.of("Europe/Rome"));
+        when(signatureRequirements.requirements()).thenReturn(new SignatureDtos.Requirements(true, true, true));
     }
 
     @Test
@@ -219,6 +224,39 @@ class InventoryLoanTemplateServiceTest {
 
         assertThat(overview.durations()).isEqualTo(new Durations(6, 12, 12, 24));
         assertThat(settings.getMinMonths()).isEqualTo(6);
+    }
+
+    @Test
+    void enablesTheElectronicSignatureOnlyWithTheRequirementsOfTheInstallation() {
+        when(signatureRequirements.requirements()).thenReturn(new SignatureDtos.Requirements(false, true, false));
+
+        assertThatThrownBy(() -> service.updateSignature(new SignatureDtos.SettingsUpdate(true, 0), token()))
+            .isInstanceOfSatisfying(RequestAlertException.class, exception -> {
+                assertThat(exception.getErrorKey()).isEqualTo("signature.settings.requirementsMissing");
+                assertThat(exception.getArgs().values()).containsEntry("missing", List.of("mail", "seal"));
+            });
+        assertThat(settings.isElectronicSignatureEnabled()).isFalse();
+
+        when(signatureRequirements.requirements()).thenReturn(new SignatureDtos.Requirements(true, true, true));
+        Overview overview = service.updateSignature(new SignatureDtos.SettingsUpdate(true, 0), token());
+
+        assertThat(settings.isElectronicSignatureEnabled()).isTrue();
+        assertThat(overview.signature().enabled()).isTrue();
+        assertThat(overview.signature().requirements().satisfied()).isTrue();
+    }
+
+    @Test
+    void disablesTheElectronicSignatureEvenWithoutTheRequirementsAndChecksTheVersion() {
+        settings.setElectronicSignatureEnabled(true);
+        when(signatureRequirements.requirements()).thenReturn(new SignatureDtos.Requirements(false, false, false));
+
+        assertThatThrownBy(() -> service.updateSignature(new SignatureDtos.SettingsUpdate(false, 4), token()))
+            .hasFieldOrPropertyWithValue("errorKey", "signature.settings.versionConflict");
+
+        Overview overview = service.updateSignature(new SignatureDtos.SettingsUpdate(false, 0), token());
+
+        assertThat(settings.isElectronicSignatureEnabled()).isFalse();
+        assertThat(overview.signature().requirements().missing()).containsExactly("mail", "codes", "seal");
     }
 
     @Test

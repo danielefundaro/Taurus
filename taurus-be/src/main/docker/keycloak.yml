@@ -3,7 +3,7 @@ name: taurus
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.2
+    image: quay.io/keycloak/keycloak:26.6.4
     container_name: keyclaok-container
     restart: unless-stopped
     command: 'start-dev --import-realm'

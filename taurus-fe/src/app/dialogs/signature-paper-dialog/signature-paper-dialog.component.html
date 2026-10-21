@@ -1,0 +1,19 @@
+<app-dialog-shell
+    #shell
+    heading="Dichiara firmato su carta"
+    [subtitle]="'Foglio n. ' + (data.act.sheetNumber ?? '') + ' · ' + data.act.operation"
+    confirmLabel="Continua"
+    [invalidCount]="note.trim() ? 0 : 1"
+    (cancel)="dialogRef.close()"
+    (confirm)="dialogRef.close(note.trim())"
+>
+    <app-inline-alert
+        class="block mb-4"
+        severity="info"
+        heading="Copia cartacea a cura dell’Associazione"
+        detail="Usalo quando una parte non può firmare elettronicamente o per problemi tecnici. L’atto diventa «Firmato su carta», i documenti preparati per la firma vengono eliminati e la dichiarazione si conferma con il tuo codice."
+    />
+    <app-form-field label="Nota" forId="paperNote" required hint="Per esempio quando e dove è stata firmata la copia cartacea." [error]="shell.validationAttempted && !note.trim() ? 'Scrivi una nota.' : undefined">
+        <textarea pTextarea id="paperNote" rows="4" maxlength="2000" [(ngModel)]="note"></textarea>
+    </app-form-field>
+</app-dialog-shell>

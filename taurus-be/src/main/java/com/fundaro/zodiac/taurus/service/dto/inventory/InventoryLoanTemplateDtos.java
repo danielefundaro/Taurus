@@ -83,7 +83,8 @@ public final class InventoryLoanTemplateDtos {
         long settingsVersion,
         List<VersionSummary> versions,
         List<VariableGroup> variables,
-        Limits limits
+        Limits limits,
+        com.fundaro.zodiac.taurus.service.dto.signature.SignatureDtos.Settings signature
     ) {
     }
 }

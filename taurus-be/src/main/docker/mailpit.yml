@@ -1,0 +1,20 @@
+# This configuration is intended for development purpose, it's **your** responsibility to harden it for production
+# Local SMTP server: it collects the e-mails sent by the backend without delivering them and shows them at
+# http://localhost:8025.
+name: taurus
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:1025:1025
+      - 127.0.0.1:8025:8025
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    labels:
+      org.springframework.boot.ignore: true

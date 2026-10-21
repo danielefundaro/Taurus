@@ -25,6 +25,7 @@ export * from './page.module';
 export * from './preferences.module';
 export * from './score-playback.module';
 export * from './sheets-music.module';
+export * from './signature.module';
 export * from './tenant-features.module';
 export * from './tenants.module';
 export * from './tracks.module';

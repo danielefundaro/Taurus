@@ -38,7 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.CalendarFeedTokenRegistryRepository;
+import com.fundaro.zodiac.taurus.repository.signature.SignatureLinkRegistryRepository;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 
 @Service
@@ -66,8 +68,10 @@ public class DataErasureService {
     private NotificationProfileRepository notificationProfileRepository;
     private NotificationPushDeliveryRepository notificationPushDeliveryRepository;
     private CalendarFeedTokenRegistryRepository calendarFeedTokenRegistryRepository;
+    private SignatureLinkRegistryRepository signatureLinkRegistryRepository;
     private TenantsRepository tenantsRepository;
     private ScoreErrorReportRepository scoreErrorReportRepository;
+    private ApplicationEventPublisher events;
 
     public DataErasureService(
         NoticesRepository noticesRepository,
@@ -121,6 +125,16 @@ public class DataErasureService {
     }
 
     @Autowired
+    void setSignatureLinkRegistryRepository(SignatureLinkRegistryRepository signatureLinkRegistryRepository) {
+        this.signatureLinkRegistryRepository = signatureLinkRegistryRepository;
+    }
+
+    @Autowired
+    void setEvents(ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    @Autowired
     void setScoreErrorReportRepository(ScoreErrorReportRepository scoreErrorReportRepository) {
         this.scoreErrorReportRepository = scoreErrorReportRepository;
     }
@@ -153,6 +167,9 @@ public class DataErasureService {
                 request.setRequestedBy(requestedBy);
                 inventoryErasureRequestRepository.save(request);
             }
+            // Without material to return the erasure is complete now: loan sheets and signed acts are removed at once,
+            // as when an administrator completes a pending request.
+            if (!outstanding && events != null) events.publishEvent(new UserErasureCompleted(userId, tenantCode, requestedBy));
             eraseUserDataInCurrentTenant(userId);
             return outstanding;
         });
@@ -177,6 +194,9 @@ public class DataErasureService {
     public void eraseTenantData(String tenantCode) {
         if (calendarFeedTokenRegistryRepository != null && tenantsRepository != null) {
             tenantsRepository.findByCodeAndDeletedFalse(tenantCode).ifPresent(tenant -> calendarFeedTokenRegistryRepository.deleteAllByTenantId(tenant.getId()));
+        }
+        if (signatureLinkRegistryRepository != null && tenantsRepository != null) {
+            tenantsRepository.findByCodeAndDeletedFalse(tenantCode).ifPresent(tenant -> signatureLinkRegistryRepository.deleteAllByTenantId(tenant.getId()));
         }
         try {
             tenantStorageService.deleteTenantDirectory(tenantCode);
@@ -223,8 +243,9 @@ public class DataErasureService {
             user.setEmail(null);
             user.setBirthDate(null);
             user.setDescription(null);
-            user.setRoles(java.util.Set.of());
-            user.setInstruments(List.of());
+            // The managed collections are emptied: replacing them with immutable ones fails when the user is saved.
+            user.getRoles().clear();
+            user.getInstruments().clear();
             usersRepository.save(user);
         }
 

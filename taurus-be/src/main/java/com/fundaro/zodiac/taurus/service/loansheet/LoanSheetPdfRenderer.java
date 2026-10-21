@@ -23,6 +23,7 @@ import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.util.Matrix;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
+import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,7 @@ public class LoanSheetPdfRenderer {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoanSheetPdfRenderer.class);
     static final String WATERMARK = "ANTEPRIMA";
+    public static final String COPY_WATERMARK = "COPIA DI CONSULTAZIONE – NON FIRMATA";
     public static final long MAX_PDF_BYTES = 20L * 1024 * 1024;
 
     private static final Mustache.Compiler COMPILER = Mustache.compiler()
@@ -66,11 +68,29 @@ public class LoanSheetPdfRenderer {
     }
 
     public byte[] render(String template, Map<String, Object> model, boolean preview) {
-        byte[] pdf = toPdf(html(template, model));
-        return preview ? watermark(pdf) : pdf;
+        byte[] pdf = toPdf(Jsoup.parse(html(template, model)));
+        return preview ? watermark(pdf, WATERMARK) : pdf;
     }
 
-    private static byte[] toPdf(String html) {
+    /**
+     * Renders only the parts of the template that belong to an act signed electronically, as marked by
+     * {@link LoanSheetActs}.
+     */
+    public byte[] renderAct(String template, Map<String, Object> model, String act) {
+        Document document = Jsoup.parse(html(template, model));
+        LoanSheetActs.filter(document, act);
+        return toPdf(document);
+    }
+
+    /**
+     * Renders the whole sheet with a watermark on every page, for example the copy for consultation of a sheet signed
+     * electronically, whose evidential documents are the signed acts.
+     */
+    public byte[] renderWithWatermark(String template, Map<String, Object> model, String watermark) {
+        return watermark(toPdf(Jsoup.parse(html(template, model))), watermark);
+    }
+
+    private static byte[] toPdf(Document document) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
@@ -78,7 +98,7 @@ public class LoanSheetPdfRenderer {
             builder.useExternalResourceAccessControl((uri, type) -> isEmbedded(uri), ExternalResourceControlPriority.RUN_BEFORE_RESOLVING_URI);
             builder.useExternalResourceAccessControl((uri, type) -> isEmbedded(uri), ExternalResourceControlPriority.RUN_AFTER_RESOLVING_URI);
             builder.withDiagnosticConsumer(diagnostic -> LOG.debug("loan_sheet_render {}", diagnostic.getFormattedMessage()));
-            builder.withW3cDocument(W3CDom.convert(Jsoup.parse(html)), null);
+            builder.withW3cDocument(W3CDom.convert(document), null);
             builder.toStream(output);
             builder.run();
             return output.toByteArray();
@@ -91,15 +111,17 @@ public class LoanSheetPdfRenderer {
         return uri != null && uri.strip().toLowerCase(Locale.ROOT).startsWith("data:");
     }
 
-    private static byte[] watermark(byte[] pdf) {
+    private static byte[] watermark(byte[] pdf, String text) {
         try (PDDocument document = Loader.loadPDF(pdf); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
             PDExtendedGraphicsState transparency = new PDExtendedGraphicsState();
             transparency.setNonStrokingAlphaConstant(0.15f);
-            float fontSize = 96;
-            float width = font.getStringWidth(WATERMARK) / 1000 * fontSize;
             for (PDPage page : document.getPages()) {
                 PDRectangle box = page.getMediaBox();
+                // The text runs along the diagonal: long texts get a smaller font so that they stay on the page.
+                float diagonal = (float) Math.hypot(box.getWidth(), box.getHeight());
+                float fontSize = Math.min(96, diagonal * 0.8f / (font.getStringWidth(text) / 1000));
+                float width = font.getStringWidth(text) / 1000 * fontSize;
                 try (PDPageContentStream stream = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
                     stream.setGraphicsStateParameters(transparency);
                     stream.setNonStrokingColor(0.45f, 0.45f, 0.45f);
@@ -108,7 +130,7 @@ public class LoanSheetPdfRenderer {
                     Matrix matrix = Matrix.getRotateInstance(Math.toRadians(55), box.getWidth() / 2, box.getHeight() / 2);
                     matrix.translate(-width / 2, -fontSize / 3);
                     stream.setTextMatrix(matrix);
-                    stream.showText(WATERMARK);
+                    stream.showText(text);
                     stream.endText();
                 }
             }

@@ -116,6 +116,22 @@ public class InventoryLoanSheet extends TenantAuditedEntity {
     @Column(name = "cancellation_reason", length = 1000)
     private String cancellationReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "signature_mode", nullable = false, length = 16)
+    private InventoryLoanSignatureMode signatureMode = InventoryLoanSignatureMode.PAPER;
+
+    @Column(name = "holder_email")
+    private String holderEmail;
+
+    @Column(name = "holder_name")
+    private String holderName;
+
+    @Column(name = "holder_tax_code", length = 16)
+    private String holderTaxCode;
+
+    @Column(name = "holder_no_tax_code", nullable = false)
+    private boolean holderNoTaxCode;
+
     public int getSheetYear() {
         return sheetYear;
     }
@@ -386,5 +402,45 @@ public class InventoryLoanSheet extends TenantAuditedEntity {
 
     public void setCancellationReason(String cancellationReason) {
         this.cancellationReason = cancellationReason;
+    }
+
+    public InventoryLoanSignatureMode getSignatureMode() {
+        return signatureMode;
+    }
+
+    public void setSignatureMode(InventoryLoanSignatureMode signatureMode) {
+        this.signatureMode = signatureMode;
+    }
+
+    public String getHolderEmail() {
+        return holderEmail;
+    }
+
+    public void setHolderEmail(String holderEmail) {
+        this.holderEmail = holderEmail;
+    }
+
+    public String getHolderName() {
+        return holderName;
+    }
+
+    public void setHolderName(String holderName) {
+        this.holderName = holderName;
+    }
+
+    public String getHolderTaxCode() {
+        return holderTaxCode;
+    }
+
+    public void setHolderTaxCode(String holderTaxCode) {
+        this.holderTaxCode = holderTaxCode;
+    }
+
+    public boolean isHolderNoTaxCode() {
+        return holderNoTaxCode;
+    }
+
+    public void setHolderNoTaxCode(boolean holderNoTaxCode) {
+        this.holderNoTaxCode = holderNoTaxCode;
     }
 }

@@ -222,7 +222,14 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         partialDto.setName(dto.getName());
         partialDto.setLastName(dto.getLastName());
         partialDto.setEmail(dto.getEmail());
-        return super.partialUpdate(currentUser.getId(), partialDto, abstractAuthenticationToken);
+        // A date column: java.sql.Date keeps the calendar day whatever the time zone.
+        if (dto.getBirthDate() != null) partialDto.setBirthDate(java.sql.Date.valueOf(dto.getBirthDate()));
+        // Only the personal fields change, the null ones are ignored: the update of the administrators would refuse a
+        // request without roles and would rewrite the roles in Keycloak.
+        Users entity = getRepository().findByIdAndDeletedFalse(currentUser.getId())
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
+        getMapper().partialUpdate(entity, partialDto);
+        return saveEntity(entity, abstractAuthenticationToken, false);
     }
 
     @Override

@@ -20,6 +20,8 @@ public final class LoanSheetVariables {
     public static final String SHEET_NUMBER = "foglio.numero";
     public static final String GOODS = "beni";
     public static final String LOGO = "associazione.logo";
+    public static final String ELECTRONIC = "firma.elettronica";
+    public static final String SIGNED_NOTE = "Firmato elettronicamente – vedi attestazione";
     public static final List<String> DURATIONS = List.of(
         "durata.mesiMinimi",
         "durata.mesiMassimi",
@@ -56,7 +58,7 @@ public final class LoanSheetVariables {
         ),
         group(
             "Socio, Affidatario e minore",
-            "Dati del socio già presenti in Taurus. Gli altri dati anagrafici restano da compilare a mano.",
+            "Dati del socio già presenti in Taurus. Gli altri dati anagrafici si compilano a mano sul foglio di carta; nel foglio firmato elettronicamente li inserisce l'Affidatario prima della firma.",
             text("socio.nome", "Nome del socio", "Giulia"),
             text("socio.cognome", "Cognome del socio", "Rossi"),
             text("socio.nomeCognome", "Nome e cognome del socio", "Giulia Rossi"),
@@ -67,8 +69,28 @@ public final class LoanSheetVariables {
             text("affidatario.nomeCognome", "Nome e cognome del socio se è l'Affidatario; vuoto se l'Affidatario è il genitore o tutore", "Giulia Rossi"),
             text("affidatario.dataNascita", "Data di nascita del socio se è l'Affidatario", "14/03/1990"),
             text("affidatario.email", "E-mail del socio se è l'Affidatario", "giulia.rossi@example.org"),
+            text("affidatario.luogoNascita", "Luogo di nascita, inserito dall'Affidatario prima della firma elettronica; vuoto su carta", "Roma"),
+            text("affidatario.residenza", "Indirizzo di residenza (via o piazza e numero), inserito prima della firma elettronica", "Via Garibaldi 5"),
+            text("affidatario.cap", "CAP di residenza, inserito prima della firma elettronica", "00100"),
+            text("affidatario.cittaProvincia", "Città e provincia di residenza, inserite prima della firma elettronica", "Roma (RM)"),
+            text("affidatario.codiceFiscale", "Codice fiscale, inserito prima della firma elettronica; vuoto se l'Affidatario dichiara di non averne uno italiano", "RSSGLI90C54H501X"),
+            text("affidatario.documento", "Tipo e numero del documento di identità, inseriti prima della firma elettronica", "Carta d'identità CA00000AA"),
+            text("affidatario.documentoRilasciatoDa", "Ente che ha rilasciato il documento, inserito prima della firma elettronica", "Comune di Roma"),
+            text("affidatario.documentoRilasciatoIl", "Data di rilascio del documento, inserita prima della firma elettronica", "02/05/2022"),
+            text("affidatario.telefono", "Telefono, facoltativo, inserito prima della firma elettronica", "333 1234567"),
             text("minore.nomeCognome", "Nome e cognome del socio se l'Affidatario è il genitore o tutore; vuoto altrimenti", "Luca Rossi"),
-            text("minore.dataNascita", "Data di nascita del socio se l'Affidatario è il genitore o tutore", "14/03/2014")
+            text("minore.dataNascita", "Data di nascita del socio se l'Affidatario è il genitore o tutore", "14/03/2014"),
+            text("minore.luogoNascita", "Luogo di nascita del socio minorenne, inserito dal genitore prima della firma elettronica", "Roma")
+        ),
+        group(
+            "Firma elettronica",
+            "Valori dei documenti firmati elettronicamente: ogni atto (emissione, variazione, riconsegna) è un documento a sé, con le sole parti del modello marcate con data-taurus-act.",
+            flag(ELECTRONIC, "Il documento è un atto da firmare elettronicamente; vale no su carta e nelle copie di consultazione"),
+            text("firma.dicitura", "Dicitura da stampare al posto delle righe per la firma", SIGNED_NOTE),
+            text("firma.giorniDisponibilita", "Giorni in cui gli atti firmati restano scaricabili dopo la definizione o l'annullamento del foglio", "30"),
+            flag("atto.emissione", "Il documento è l'emissione del foglio"),
+            flag("atto.variazione", "Il documento è una variazione del registro: registro contiene solo le sue righe"),
+            flag("atto.riconsegna", "Il documento è il verbale di riconsegna")
         ),
         group(
             "Beni consegnati",

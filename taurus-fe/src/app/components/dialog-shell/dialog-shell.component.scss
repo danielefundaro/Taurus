@@ -1,10 +1,13 @@
 :host {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .dialog-shell {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
     max-height: calc(100vh - 8rem);
 }
 

@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.signature.LoanSheetSignatureService;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -42,6 +43,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     private final InventoryIssueReportRepository issueRepository;
     private final ApplicationProperties.QrProperties qrProperties;
     private TenantFeatureService tenantFeatureService;
+    private LoanSheetSignatureService signatureService;
 
     public InventoryOperationProvider(
         InventoryAssignmentRepository assignmentRepository,
@@ -61,6 +63,11 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     @Autowired
     void setTenantFeatureService(TenantFeatureService value) {
         tenantFeatureService = value;
+    }
+
+    @Autowired
+    void setSignatureService(LoanSheetSignatureService value) {
+        signatureService = value;
     }
 
     @Override
@@ -94,6 +101,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
                 administrator ? "/inventory?attention=pending-decisions" : "/inventory?view=mine&attention=pending-decisions"
             ));
         }
+        addSignatures(context, result);
         if (administrator) {
             long pendingReturns = returnRepository.countByDeletedFalseAndStatus(InventoryReturnStatus.REQUESTED);
             if (pendingReturns > 0) {
@@ -111,6 +119,27 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
         }
         addExpiring(context, administrator, result);
         return result;
+    }
+
+    /**
+     * Acts of the loan sheets waiting for the user, administrators included when they sign for the association: they
+     * are signed from the box of the signatures in the personal inventory.
+     */
+    private void addSignatures(DashboardRequestContext context, List<OperationalItemDTO> result) {
+        if (signatureService == null) return;
+        if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.INVENTORY_SIGNATURE)) return;
+        long acts = signatureService.countAwaitingUser(context.subject());
+        if (acts == 0) return;
+        result.add(item(
+            DashboardOperationType.INVENTORY_SIGNATURE_REQUIRED,
+            DashboardSeverity.WARNING,
+            acts,
+            "Firma richiesta",
+            acts == 1 ? "Un atto dei fogli di affidamento attende la tua firma." : acts + " atti dei fogli di affidamento attendono la tua firma.",
+            null,
+            "Firma",
+            "/inventory?view=mine"
+        ));
     }
 
     private void addIssues(List<OperationalItemDTO> result) {
