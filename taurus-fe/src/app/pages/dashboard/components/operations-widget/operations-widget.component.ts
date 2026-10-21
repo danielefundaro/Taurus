@@ -29,6 +29,7 @@ export class OperationsWidgetComponent {
         EVENT_FOLLOW_UP_REQUIRED: ['/calendar?attention=event-follow-up'],
         INVENTORY_DECISION_REQUIRED: ['/inventory?view=mine&attention=pending-decisions'],
         INVENTORY_DECISIONS_PENDING: ['/inventory?attention=pending-decisions'],
+        INVENTORY_SIGNATURE_REQUIRED: ['/inventory?view=mine'],
         INVENTORY_RETURNS_PENDING: ['/inventory?attention=pending-returns'],
         INVENTORY_ASSIGNMENTS_EXPIRING: ['/inventory?attention=expiring', '/inventory?view=mine&attention=expiring'],
         INVENTORY_UNSAFE_ISSUES: ['/inventory?attention=issues-unsafe'],
