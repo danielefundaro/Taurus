@@ -40,7 +40,8 @@ public class SignaturePurgeScheduler {
     )
     public void purgeExpiredActs() {
         ZonedDateTime now = ZonedDateTime.now();
-        tenantSchemaRegistry.findInventoryEnabledTenantCodes().forEach(tenantCode -> {
+        // Every active tenant: turning off the inventory or its loan sheets and signature does not suspend the retention.
+        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
             try {
                 int purged = tenantTransactionExecutor.execute(tenantCode, () -> signatureService.purgeDue(now, tenantCode, SYSTEM_ACTOR));
                 if (purged > 0) LOG.info("signature_acts_purged tenant={} acts={}", tenantCode, purged);

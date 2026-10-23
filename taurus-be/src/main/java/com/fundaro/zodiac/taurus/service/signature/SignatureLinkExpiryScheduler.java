@@ -44,7 +44,8 @@ public class SignatureLinkExpiryScheduler {
     )
     public void notifyExpiredLinks() {
         ZonedDateTime now = ZonedDateTime.now();
-        tenantSchemaRegistry.findInventoryEnabledTenantCodes().forEach(tenantCode -> {
+        // Every active tenant: turning off the inventory or its loan sheets and signature does not suspend the retention.
+        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
             try {
                 List<LoanSheetSignatureService.ExpiredLink> expired = tenantTransactionExecutor.execute(
                     tenantCode,
