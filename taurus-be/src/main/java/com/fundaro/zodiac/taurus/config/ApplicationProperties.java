@@ -831,6 +831,8 @@ public class ApplicationProperties {
         private int auditRetentionDays = 365;
         @Min(1)
         private int workerBatchSize = 5;
+        /** Removes the source files, the staging and, later, the records of the concluded imports. */
+        private String cleanupCron = "0 30 4 * * *";
 
         public boolean isEnabled() {
             return enabled;
@@ -926,6 +928,14 @@ public class ApplicationProperties {
 
         public void setWorkerBatchSize(int value) {
             workerBatchSize = value;
+        }
+
+        public String getCleanupCron() {
+            return cleanupCron;
+        }
+
+        public void setCleanupCron(String value) {
+            cleanupCron = value;
         }
 
         @AssertTrue(message = "max-user-rows must not exceed max-total-rows")

@@ -13,4 +13,6 @@ public interface OnboardingIdentityOperationRepository extends JpaRepository<Onb
 
     @EntityGraph(attributePaths = {"job", "row"})
     Optional<OnboardingIdentityOperation> findByRow_Id(Long rowId);
+
+    List<OnboardingIdentityOperation> findAllByJob_Id(Long jobId);
 }

@@ -27,7 +27,8 @@ public final class OnboardingDtos {
     public record Job(
         Long id, String fileName, OnboardingImportFormat format, OnboardingSection csvSection, int templateVersion,
         OnboardingJobStatus status, String stage, int progressPercentage, Counts counts,
-        ZonedDateTime createdAt, ZonedDateTime completedAt, int setupEmailFailures, String lastErrorCode
+        ZonedDateTime createdAt, ZonedDateTime completedAt, int setupEmailFailures, String lastErrorCode,
+        ZonedDateTime sourceRemovedAt
     ) {
     }
 

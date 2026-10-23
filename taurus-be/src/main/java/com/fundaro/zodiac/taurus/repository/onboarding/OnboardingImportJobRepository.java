@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -33,4 +34,11 @@ public interface OnboardingImportJobRepository extends JpaRepository<OnboardingI
     List<OnboardingImportJob> findTop5ByStatusOrderByInsertDateAsc(OnboardingJobStatus status);
 
     List<OnboardingImportJob> findTop5ByStatusInOrderByInsertDateAsc(Collection<OnboardingJobStatus> statuses);
+
+    List<OnboardingImportJob> findAllByStatusInAndSourceRemovedAtIsNullAndCompletedAtBefore(
+        Collection<OnboardingJobStatus> statuses,
+        ZonedDateTime completedBefore
+    );
+
+    List<OnboardingImportJob> findAllBySourceRemovedAtIsNotNullAndCompletedAtBefore(ZonedDateTime completedBefore);
 }
