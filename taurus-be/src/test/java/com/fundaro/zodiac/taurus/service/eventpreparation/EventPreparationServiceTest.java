@@ -165,6 +165,7 @@ class EventPreparationServiceTest {
 
         assertThat(result.configuration().materialsRequired()).isFalse();
         assertThat(result.configuration().budgetRequired()).isFalse();
+        assertThat(result.evaluation()).isNull();
         assertThat(result.materials()).isEmpty();
         assertThat(result.availability()).isEqualTo(new Availability(1, 1, 0, 0, null, result.availability().deadline()));
     }
