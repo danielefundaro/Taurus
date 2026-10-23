@@ -22,4 +22,9 @@ public interface QueueUploadFilesService extends CommonOpenSearchService<QueueUp
         UploadFileStatusEnum target,
         AbstractAuthenticationToken abstractAuthenticationToken
     );
+
+    /**
+     * Fails, in a transaction of its own, a committed job whose message could not be published: the user can retry it.
+     */
+    void markUnpublished(Long id, AbstractAuthenticationToken abstractAuthenticationToken);
 }

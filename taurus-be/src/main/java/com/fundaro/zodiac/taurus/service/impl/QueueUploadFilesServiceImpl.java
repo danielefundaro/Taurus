@@ -26,6 +26,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -136,5 +137,11 @@ public class QueueUploadFilesServiceImpl
         AbstractAuthenticationToken token
     ) {
         return getRepository().transitionStatus(id, expected, target, SecurityUtils.getUserIdFromAuthentication(token)) == 1;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markUnpublished(Long id, AbstractAuthenticationToken token) {
+        transitionStatus(id, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.ERROR, token);
     }
 }
