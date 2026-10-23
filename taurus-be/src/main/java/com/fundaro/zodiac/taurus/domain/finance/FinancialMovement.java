@@ -82,6 +82,10 @@ public class FinancialMovement extends TenantAuditedEntity {
     @Column(name = "request_key", unique = true)
     private UUID requestKey;
 
+    /** An opening entered as the starting balance of an account, which the yearly carry-over leaves untouched. */
+    @Column(name = "initial_balance", nullable = false)
+    private boolean initialBalance;
+
     public AccountingYear getAccountingYear() {
         return accountingYear;
     }
@@ -248,5 +252,13 @@ public class FinancialMovement extends TenantAuditedEntity {
 
     public void setRequestKey(UUID requestKey) {
         this.requestKey = requestKey;
+    }
+
+    public boolean isInitialBalance() {
+        return initialBalance;
+    }
+
+    public void setInitialBalance(boolean initialBalance) {
+        this.initialBalance = initialBalance;
     }
 }
