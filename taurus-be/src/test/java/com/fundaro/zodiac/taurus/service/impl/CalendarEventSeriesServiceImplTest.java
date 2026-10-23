@@ -26,6 +26,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -113,6 +114,61 @@ class CalendarEventSeriesServiceImplTest {
         assertThat(occurrence.getSeriesException()).isFalse();
         assertThat(following.getName()).isEqualTo("Nuovo nome");
         assertThat(following.getState()).isEqualTo(StateEnum.COMPLETE);
+    }
+
+    @Test
+    void movesTheIdentityOfThePropagatedOccurrencesToTheirNewStart() {
+        CalendarEventSeriesRepository seriesRepository = mock(CalendarEventSeriesRepository.class);
+        CalendarEventsRepository eventRepository = mock(CalendarEventsRepository.class);
+        CalendarEventsMapper eventMapper = mock(CalendarEventsMapper.class);
+        TenantFeatureService tenantFeatureService = mock(TenantFeatureService.class);
+        when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
+
+        Instant start = Instant.now().plusSeconds(86_400).truncatedTo(ChronoUnit.MINUTES);
+        CalendarEventSeries series = new CalendarEventSeries();
+        series.setId(10L);
+        series.setTimeZone("UTC");
+        CalendarEvents preceding = occurrence(series, 19L, start, 1, false);
+        CalendarEvents source = occurrence(series, 20L, start.plusSeconds(86_400), 2, false);
+        CalendarEvents following = occurrence(series, 21L, start.plusSeconds(172_800), 3, false);
+        when(seriesRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(series));
+        when(eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(10L)).thenReturn(List.of(preceding, source, following));
+
+        CalendarEventSeriesServiceImpl service = new CalendarEventSeriesServiceImpl(
+            seriesRepository,
+            eventRepository,
+            eventMapper,
+            new RecurringEventGenerator(),
+            mock(TenantTimeZoneService.class),
+            mock(EventReminderProducer.class),
+            tenantFeatureService,
+            500
+        );
+
+        // The second occurrence moved one hour later: the rule of the series moves with it from there on.
+        Instant shifted = start.plusSeconds(3_600);
+        CalendarEventsDTO template = new CalendarEventsDTO();
+        template.setName("Prova");
+        template.setStartDate(Date.from(shifted));
+        template.setEndDate(Date.from(shifted.plusSeconds(7_200)));
+        RecurrenceEndDTO end = new RecurrenceEndDTO();
+        end.setType(RecurrenceEndType.COUNT);
+        end.setCount(3);
+        RecurrenceRuleDTO recurrence = new RecurrenceRuleDTO();
+        recurrence.setFrequency(RecurrenceFrequency.DAILY);
+        recurrence.setInterval(1);
+        recurrence.setEnd(end);
+        CalendarEventSeriesRequest request = new CalendarEventSeriesRequest();
+        request.setSourceOccurrenceId(source.getId());
+        request.setTemplate(template);
+        request.setRecurrence(recurrence);
+
+        service.update(series.getId(), request, authentication());
+
+        assertThat(preceding.getOriginalStartDate().toInstant()).isEqualTo(start);
+        assertThat(source.getStartDate().toInstant()).isEqualTo(shifted.plusSeconds(86_400));
+        assertThat(source.getOriginalStartDate().toInstant()).isEqualTo(shifted.plusSeconds(86_400));
+        assertThat(following.getOriginalStartDate().toInstant()).isEqualTo(shifted.plusSeconds(172_800));
     }
 
     @Test
