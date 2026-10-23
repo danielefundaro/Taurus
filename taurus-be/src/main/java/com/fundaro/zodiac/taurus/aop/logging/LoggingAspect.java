@@ -53,6 +53,26 @@ public class LoggingAspect {
     }
 
     /**
+     * Pointcut that matches the beans handling the secret links of the calendar feeds and of the signatures, the codes
+     * printed on the inventory labels, the confirmation codes and the personal data of the signers: their arguments and
+     * results never reach the log.
+     */
+    @Pointcut(
+        "within(com.fundaro.zodiac.taurus.service.calendarfeed..*)" +
+            " || within(com.fundaro.zodiac.taurus.service.signature..*)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.CalendarSubscriptionResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.CalendarFeedResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.AdminCalendarFeedResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.InventoryScanResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.SignatureLinkResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.InventorySignatureResource)" +
+            " || within(com.fundaro.zodiac.taurus.web.rest.user.UserSignatureResource)"
+    )
+    public void secretPointcut() {
+        // Method is empty as this is just a Pointcut, the implementations are in the advices.
+    }
+
+    /**
      * Retrieves the {@link Logger} associated to the given {@link JoinPoint}.
      *
      * @param joinPoint join point we want the logger for.
@@ -94,7 +114,7 @@ public class LoggingAspect {
      * @return result.
      * @throws Throwable throws {@link IllegalArgumentException}.
      */
-    @Around("applicationPackagePointcut() && springBeanPointcut()")
+    @Around("applicationPackagePointcut() && springBeanPointcut() && !secretPointcut()")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
         Logger log = logger(joinPoint);
         if (log.isDebugEnabled()) {
