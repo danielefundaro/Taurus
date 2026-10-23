@@ -1,17 +1,20 @@
 package com.fundaro.zodiac.taurus.rabbitmq;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fundaro.zodiac.taurus.domain.PushReminder;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushMode;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationPushPreview;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationSource;
+import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaRegistry;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
@@ -66,6 +69,74 @@ class PushReminderSchedulerTest {
 
         verify(pushService).sendToUserNow("user-1", "BMCDG", "Promemoria evento", "L'evento \"Prova\" sta per iniziare", "/calendar/42");
         verify(reminderRepository).save(reminder);
+    }
+
+    @Test
+    void closesAReminderRefusedForGoodSoThatItIsNotSentAgainEveryMinute() {
+        PushReminderRepository reminderRepository = mock(PushReminderRepository.class);
+        PushService pushService = mock(PushService.class);
+        TenantSchemaRegistry tenantSchemaRegistry = mock(TenantSchemaRegistry.class);
+        TenantTransactionExecutor tenantTransactionExecutor = mock(TenantTransactionExecutor.class);
+        NotificationPreferenceResolver preferenceResolver = mock(NotificationPreferenceResolver.class);
+        PushReminder reminder = reminder();
+
+        when(tenantSchemaRegistry.findActiveTenantCodes()).thenReturn(List.of("BMCDG"));
+        doAnswer(invocation -> {
+            TenantContext.run(invocation.getArgument(0), invocation.<Runnable>getArgument(1));
+            return null;
+        }).when(tenantTransactionExecutor).execute(eq("BMCDG"), any(Runnable.class));
+        when(reminderRepository.findByDeletedFalseAndSentFalseAndSendAtLessThanEqual(any(Instant.class)))
+            .thenReturn(List.of(reminder));
+        when(preferenceResolver.resolve(eq(NotificationSource.CALENDAR), any(), eq(java.util.Set.of("user-1"))))
+            .thenReturn(Map.of("user-1", enabledPreferences()));
+        when(pushService.sendToUserNow(eq("user-1"), eq("BMCDG"), anyString(), anyString(), eq("/calendar/42")))
+            .thenReturn(new PushDeliveryResult(0, 0, 0, 1, 1));
+
+        PushReminderScheduler scheduler = new PushReminderScheduler(
+            reminderRepository,
+            pushService,
+            tenantSchemaRegistry,
+            tenantTransactionExecutor
+        );
+        scheduler.setPreferenceResolver(preferenceResolver);
+
+        scheduler.processReminders();
+
+        assertThat(reminder.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        assertThat(reminder.isSent()).isTrue();
+    }
+
+    @Test
+    void skipsAReminderLateAfterTheStartOfTheEvent() {
+        PushReminderRepository reminderRepository = mock(PushReminderRepository.class);
+        PushService pushService = mock(PushService.class);
+        TenantSchemaRegistry tenantSchemaRegistry = mock(TenantSchemaRegistry.class);
+        TenantTransactionExecutor tenantTransactionExecutor = mock(TenantTransactionExecutor.class);
+        PushReminder reminder = reminder();
+        reminder.setSendAt(Instant.now().minusSeconds(7200));
+        reminder.setEventStartAt(Instant.now().minusSeconds(60));
+
+        when(tenantSchemaRegistry.findActiveTenantCodes()).thenReturn(List.of("BMCDG"));
+        doAnswer(invocation -> {
+            TenantContext.run(invocation.getArgument(0), invocation.<Runnable>getArgument(1));
+            return null;
+        }).when(tenantTransactionExecutor).execute(eq("BMCDG"), any(Runnable.class));
+        when(reminderRepository.findByDeletedFalseAndSentFalseAndSendAtLessThanEqual(any(Instant.class)))
+            .thenReturn(List.of(reminder));
+
+        PushReminderScheduler scheduler = new PushReminderScheduler(
+            reminderRepository,
+            pushService,
+            tenantSchemaRegistry,
+            tenantTransactionExecutor
+        );
+        scheduler.setPreferenceResolver(mock(NotificationPreferenceResolver.class));
+
+        scheduler.processReminders();
+
+        verifyNoInteractions(pushService);
+        assertThat(reminder.getStatus()).isEqualTo(NotificationStatus.SKIPPED);
+        assertThat(reminder.getSkipReason()).isEqualTo("EVENT_STARTED");
     }
 
     private static PushReminder reminder() {
