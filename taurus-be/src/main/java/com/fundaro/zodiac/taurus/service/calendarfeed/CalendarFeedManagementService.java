@@ -73,6 +73,7 @@ public class CalendarFeedManagementService {
         lock(requestDigest);
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
+        lockLimit("PERSONAL\u0000" + owner.getId());
         if (subscriptions.countByOwner_IdAndStatusAndDeletedFalse(owner.getId(), CalendarFeedStatus.ACTIVE) >= 3)
             throw conflict("Maximum active personal feeds reached").with("maximum", 3);
         return create(request, CalendarFeedType.PERSONAL, scope, owner, actor, requestDigest, fingerprint);
@@ -88,6 +89,7 @@ public class CalendarFeedManagementService {
         lock(requestDigest);
         SecretFeed replay = replay(requestDigest, fingerprint, request.idempotencyKey());
         if (replay != null) return replay;
+        lockLimit("TENANT");
         if (subscriptions.countByFeedTypeAndStatusAndDeletedFalse(CalendarFeedType.TENANT, CalendarFeedStatus.ACTIVE) >= 10)
             throw conflict("Maximum active tenant feeds reached").with("maximum", 10);
         return create(request, CalendarFeedType.TENANT, scope, null, actor, requestDigest, fingerprint);
@@ -224,6 +226,12 @@ public class CalendarFeedManagementService {
     private void lock(byte[] requestDigest) {
         entityManager.createNativeQuery("select 1 from pg_advisory_xact_lock(:lockKey)")
             .setParameter("lockKey", idempotencyCodec.lockKey(requestDigest)).getSingleResult();
+    }
+
+    /** Serializes the creations counted against the same limit, whatever their idempotency key. */
+    private void lockLimit(String limit) {
+        String tenantCode = com.fundaro.zodiac.taurus.multitenancy.TenantContext.getTenantCode().orElseThrow();
+        lock(idempotencyCodec.fingerprint("LIMIT\u0000" + tenantCode + "\u0000" + limit));
     }
 
     private void requireStrongIdempotencyKey(UUID key) {

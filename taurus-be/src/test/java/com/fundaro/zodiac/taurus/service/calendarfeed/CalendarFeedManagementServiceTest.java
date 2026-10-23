@@ -74,6 +74,8 @@ class CalendarFeedManagementServiceTest {
         verify(subscriptions, times(1)).save(any());
         verify(registry, times(1)).save(any());
         verify(idempotency, times(1)).save(any());
+        // The creation locks its request and the limit of the tenant feeds; the replay only its request.
+        verify(lockQuery, times(3)).getSingleResult();
     }
 
     @Test
