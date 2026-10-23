@@ -250,6 +250,8 @@ public class SecurityConfiguration {
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/series/{seriesId}/availability/cancel")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/reminder")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.GET, "/api/calendar-events/**")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(HttpMethod.POST, "/api/calendar-events")
@@ -275,6 +277,8 @@ public class SecurityConfiguration {
                     .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers(HttpMethod.PATCH, "/api/user/calendar-events/series/{seriesId}/availability/cancel")
                     .hasAuthority(AuthoritiesConstants.USER)
+                    .requestMatchers(HttpMethod.PATCH, "/api/user/calendar-events/{id}/reminder")
+                    .hasAuthority(AuthoritiesConstants.USER)
                     .requestMatchers("/api/user/calendar-events/**").denyAll()
 
                     .requestMatchers(HttpMethod.GET, "/api/external/calendar-events/**")
@@ -286,6 +290,8 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.PATCH, "/api/external/calendar-events/series/{seriesId}/availability")
                     .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers(HttpMethod.PATCH, "/api/external/calendar-events/series/{seriesId}/availability/cancel")
+                    .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
+                    .requestMatchers(HttpMethod.PATCH, "/api/external/calendar-events/{id}/reminder")
                     .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/calendar-events/**").denyAll()
 
