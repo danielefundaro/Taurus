@@ -33,7 +33,7 @@ La funzionalità deve permettere di modificare o cancellare una singola occorren
 | Giorno 29/30/31 | I mesi privi del giorno richiesto vengono saltati |
 | Timezone | Configurata per tenant; la serie conserva uno snapshot del valore risolto |
 | Eccezioni | Una modifica singola protegge l'intera occorrenza dagli aggiornamenti del template |
-| Ambiti di modifica | Singola occorrenza oppure tutte le future; "questa e successive" rinviato |
+| Ambiti di modifica | Singola occorrenza oppure da un'occorrenza in poi (azione dell'interfaccia); tutte le future solo via API |
 | Eccezioni fuori dalla nuova regola | Restano visibili nella serie fino a gestione esplicita |
 | Cancellazione serie | Cancella il futuro e conserva lo storico passato |
 | Disponibilità | È autonoma per ogni occorrenza e può essere diversa tra eventi della stessa serie |
@@ -51,19 +51,11 @@ La funzionalità deve permettere di modificare o cancellare una singola occorren
 - conversione automatica degli eventi singoli esistenti in serie;
 - modifica "questa e tutte le successive" tramite divisione della serie.
 
-## Situazione attuale
+## Modello di partenza
 
-Ogni record `calendar_event` rappresenta un evento autonomo e contiene una sola data/ora di inizio e una sola data/ora di fine. Disponibilità, presenze, costi e promemoria fanno riferimento all'identificativo del singolo evento.
+Ogni record `calendar_event` rappresenta un evento con una sola data/ora di inizio e una sola data/ora di fine. Disponibilità, presenze, costi e promemoria fanno riferimento all'identificativo del singolo evento.
 
-Il sistema attuale non contiene:
-
-- un'identità di serie;
-- una regola di ricorrenza;
-- una data originaria stabile dell'occorrenza;
-- il concetto di eccezione alla serie;
-- operazioni con ambito "singola occorrenza" o "serie".
-
-Questa struttura rende naturale mantenere `calendar_event` come entità della singola occorrenza e introdurre una nuova entità che descriva la serie.
+Per questo `calendar_event` resta l'entità della singola occorrenza. Una nuova entità descrive la serie e aggiunge identità di serie, regola di ricorrenza, data originaria dell'occorrenza, eccezioni e operazioni con ambito di serie.
 
 ## Terminologia
 
@@ -72,7 +64,7 @@ Questa struttura rende naturale mantenere `calendar_event` come entità della si
 - **Evento singolo**: `calendar_event` privo di serie, identico agli eventi attuali.
 - **Template di serie**: valori predefiniti copiati nelle occorrenze, per esempio nome, luogo, stato, compenso e costi.
 - **Eccezione**: occorrenza modificata autonomamente rispetto al template.
-- **Data originaria**: istante che identifica stabilmente la posizione dell'occorrenza nella regola, anche quando l'occorrenza viene successivamente spostata.
+- **Data originaria**: istante che identifica la posizione dell'occorrenza nella regola, anche quando l'occorrenza viene successivamente spostata. La modifica da un'occorrenza in poi la riallinea alla nuova regola (vedi [Da un'occorrenza in poi](#da-unoccorrenza-in-poi)).
 - **Evento futuro**: evento la cui data/ora di inizio non è precedente all'istante in cui viene eseguita l'operazione.
 
 ## Alternative architetturali
@@ -102,7 +94,7 @@ La prima versione propone:
 - mensile, nello stesso giorno del mese;
 - annuale, nello stesso giorno e mese.
 
-Ogni frequenza accetta un intervallo intero maggiore di zero. Esempi:
+Ogni frequenza accetta un intervallo intero compreso tra 1 e 366. Esempi:
 
 - ogni giorno;
 - ogni 2 settimane il lunedì e il giovedì;
@@ -138,7 +130,8 @@ La configurazione deve rispettare queste regole:
 
 - aggiungere `time_zone` al tenant nello schema `public`;
 - valorizzare i tenant esistenti con `Europe/Rome` durante la migrazione;
-- usare `Europe/Rome` come valore predefinito configurabile per i nuovi tenant;
+- usare `Europe/Rome` come valore fisso per i nuovi tenant creati senza fuso;
+- se il fuso del tenant è nullo o non valido, ripiegare su `application.notification-preferences.default-time-zone` (default `Europe/Rome`, `TenantTimeZoneService`);
 - non consentire la scelta di una timezone diversa per la singola serie;
 - copiare sulla serie il `time_zone` del tenant al momento della creazione, come snapshot;
 - continuare a salvare `calendar_event.start_date` ed `end_date` come `TIMESTAMPTZ`;
@@ -176,14 +169,14 @@ La serie è autorevole per la regola e per il template applicato alle nuove occo
 | `description` | `TEXT` | facoltativo |
 | `state` | `VARCHAR(32)` | stesso enum degli eventi |
 | `location` | `VARCHAR(1000)` | facoltativo |
-| `fee` | `NUMERIC(19,4)` | facoltativo |
-| `reminder_minutes` | `INTEGER` | stessa semantica dell'evento |
+| `fee` | `NUMERIC(19,4)` | facoltativo; scritto solo con la funzionalità tenant `FINANCE` |
+| `reminder_minutes` | `INTEGER` | stessa semantica dell'evento, da 0 a 1440 |
 | `time_zone` | `VARCHAR(64)` | snapshot obbligatorio della timezone IANA del tenant |
 | `first_start_local` | `TIMESTAMP WITHOUT TIME ZONE` | data/ora locale della prima occorrenza |
 | `duration_minutes` | `INTEGER` | maggiore di zero |
 | `frequency` | `VARCHAR(16)` | `DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY` |
 | `interval_value` | `INTEGER` | maggiore di zero |
-| `week_days` | `VARCHAR(32)` | codici canonici separati da virgola, solo per `WEEKLY` |
+| `week_days` | `VARCHAR(32)` | codici canonici separati da virgola; obbligatori per `WEEKLY`, salvati se presenti anche per le altre frequenze (il frontend li invia solo per `WEEKLY`) |
 | `end_type` | `VARCHAR(16)` | `COUNT` oppure `UNTIL` |
 | `occurrence_count` | `INTEGER` | valorizzato solo con `COUNT` |
 | `until_local_date` | `DATE` | valorizzato solo con `UNTIL`, inclusivo |
@@ -201,14 +194,14 @@ Contiene il template delle voci di costo della serie:
 - `display_order`;
 - campi audit e cancellazione logica coerenti con `calendar_event_cost`.
 
-Ogni occorrenza riceve copie indipendenti in `calendar_event_cost`, così la modifica economica di una singola data non altera le altre.
+Ogni occorrenza riceve copie indipendenti in `calendar_event_cost`, così la modifica economica di una singola data non altera le altre. Compenso e costi della serie e delle occorrenze vengono scritti solo con la funzionalità `FINANCE` attiva; senza di essa il template restituito non li contiene.
 
 ### Estensioni di `calendar_event`
 
 | Campo | Tipo indicativo | Significato |
 | --- | --- | --- |
 | `series_id` | `BIGINT`, nullable | FK alla serie; `NULL` per gli eventi singoli |
-| `original_start_date` | `TIMESTAMPTZ`, nullable | identità stabile dell'occorrenza nella regola |
+| `original_start_date` | `TIMESTAMPTZ`, nullable | posizione dell'occorrenza nella regola; riallineata dalla modifica da un'occorrenza in poi |
 | `series_sequence` | `INTEGER`, nullable | posizione a partire da 1 |
 | `series_exception` | `BOOLEAN NOT NULL DEFAULT FALSE` | indica una modifica autonoma dell'occorrenza |
 | `series_excluded` | `BOOLEAN NOT NULL DEFAULT FALSE` | tombstone esplicito che impedisce la rigenerazione dopo la cancellazione utente |
@@ -221,7 +214,7 @@ Vincoli:
 - indice di `(series_id, series_sequence)` per ordinamento e accesso efficiente;
 - indici su `(series_id, deleted, start_date)` e sull'indice temporale già esistente.
 
-Mantenere l'unicità anche sui record cancellati fa sì che una singola occorrenza cancellata operi come tombstone e non venga ricreata accidentalmente durante un riallineamento della serie.
+Mantenere l'unicità anche sui record cancellati fa sì che una singola occorrenza cancellata operi come tombstone e non venga ricreata accidentalmente durante un riallineamento della serie. Il ripristino esplicito via API (`POST .../occurrences/{eventId}/restore`) riattiva invece anche un'occorrenza cancellata o con `series_excluded = true`; l'interfaccia lo offre solo per le eccezioni visibili.
 
 ## Creazione di una serie
 
@@ -238,15 +231,9 @@ Non devono rimanere serie o occorrenze parziali se una singola generazione falli
 
 ### Anteprima
 
-È previsto un endpoint di anteprima non persistente. Il form può mostrare:
+L'endpoint di anteprima non persiste nulla e restituisce fuso usato, numero totale di occorrenze, prime 20 date generate e ultima occorrenza. Il dialog di creazione e il pannello della serie nel dettaglio mostrano numero di occorrenze, ultima data e fuso.
 
-- descrizione leggibile della regola;
-- numero totale di occorrenze;
-- prime occorrenze generate;
-- ultima occorrenza;
-- eventuali mesi saltati.
-
-L'anteprima e la creazione devono usare lo stesso generatore backend, evitando che frontend e backend interpretino diversamente la regola.
+L'anteprima e la creazione usano lo stesso generatore backend (`RecurringEventGenerator`), evitando che frontend e backend interpretino diversamente la regola.
 
 ## Modifica
 
@@ -260,41 +247,52 @@ La modifica agisce soltanto sul `calendar_event` selezionato e imposta `series_e
 
 Disponibilità e presenze esistenti restano associate allo stesso ID. Se cambiano data/ora o promemoria, tutti i promemoria pendenti dell'occorrenza devono essere ricalcolati.
 
-### Tutte le occorrenze future della serie
+### Regole comuni alla modifica della serie
 
-La modifica del template aggiorna la serie e le occorrenze future non cancellate che non sono eccezioni. Le occorrenze passate non vengono riscritte, per preservare lo storico.
+`PATCH /api/calendar-event-series/{id}` aggiorna template e regola della serie. Le due modalità, descritte sotto, condividono queste regole:
 
-Nella prima versione:
-
-- un'occorrenza marcata come eccezione non riceve automaticamente modifiche successive al template;
-- l'interfaccia deve segnalare quante eccezioni non verranno aggiornate;
-- deve essere disponibile un'azione esplicita "ripristina dalla serie" per rimuovere l'eccezione e riallineare l'occorrenza.
+- un'occorrenza marcata come eccezione non riceve le modifiche al template;
+- il pannello della serie nel dettaglio mostra il numero di eccezioni attive;
+- l'azione "Ripristina dalla serie" rimuove l'eccezione e riallinea l'occorrenza;
+- le occorrenze aggiornate ricalcolano i promemoria pendenti degli utenti disponibili;
+- le occorrenze non eccezionali non più generate vengono cancellate logicamente;
+- le occorrenze cancellate da un riallineamento precedente vengono riattivate se la regola torna a generarle;
+- un tombstone cancellato dall'utente (`series_excluded = true`) non viene riutilizzato.
 
 Questo comportamento è più semplice e prevedibile di un sistema di override diverso per ogni campo.
 
-### Modifica della regola
-
-La modifica della frequenza, dell'intervallo, dei giorni o del termine opera soltanto sulle occorrenze future.
-
-Il riallineamento deve:
-
-1. calcolare il nuovo insieme di `original_start_date`;
-2. conservare gli eventi futuri che hanno la stessa identità originaria;
-3. creare le nuove identità mancanti;
-4. cancellare logicamente le identità non più previste;
-5. conservare le eccezioni, segnalando quelle che non appartengono più alla nuova regola;
-6. non riutilizzare silenziosamente un tombstone cancellato dall'utente.
-
 Le eccezioni che restano fuori dalla nuova regola rimangono visibili come occorrenze eccezionali della serie fino a cancellazione esplicita.
 
-### "Questa e le successive"
+### Da un'occorrenza in poi
 
-Questa operazione richiede di dividere la serie in due, riassegnare le occorrenze future e preservare ID, disponibilità, eccezioni e costi. È utile ma sensibilmente più complessa.
+È l'unica modifica di serie offerta dall'interfaccia: l'azione "Salva da questo evento in poi" nel dettaglio di un'occorrenza. Il `PATCH` contiene `sourceOccurrenceId`, l'identificativo dell'occorrenza aperta.
 
-L'operazione è rinviata alla seconda versione. Nella prima versione l'utente può:
+Il frontend compone il template dai campi dell'evento. Calcola l'inizio della serie spostando l'inizio del template dello stesso scarto che l'occorrenza ha rispetto alla propria `originalStartDate` e conserva la durata (`propagatedSeriesDates`).
 
-- modificare solo l'occorrenza; oppure
-- modificare tutte le occorrenze future della serie.
+Il backend:
+
+1. abbina le occorrenze per `series_sequence`, dalla posizione della sorgente in poi;
+2. aggiorna le occorrenze non eccezionali di quelle posizioni, anche se passate;
+3. aggiorna sempre la sorgente, che perde il contrassegno di eccezione;
+4. crea le posizioni mancanti e cancella logicamente quelle oltre il nuovo termine;
+5. assegna a ogni posizione, dalla sorgente in poi, l'inizio dato dalla nuova regola come `original_start_date`;
+6. libera la data delle posizioni non più generate e delle righe duplicate di una posizione con un valore parcheggiato;
+7. risponde 409 `calendar.series.occurrence.conflict` se la nuova data coincide con quella di un'altra occorrenza della serie.
+
+L'aggiornamento delle occorrenze passate dalla sorgente in poi e la perdita del contrassegno di eccezione della sorgente sono scelte intenzionali. La serie non viene divisa: tutte le occorrenze restano collegate alla stessa serie.
+
+### Tutte le occorrenze future (solo API)
+
+Senza `sourceOccurrenceId` il `PATCH` opera sulle sole occorrenze con inizio non precedente all'istante della richiesta. Le occorrenze passate non vengono riscritte, per preservare lo storico.
+
+Il riallineamento:
+
+1. calcola il nuovo insieme di `original_start_date`;
+2. conserva gli eventi futuri che hanno la stessa identità originaria;
+3. crea le nuove identità mancanti;
+4. cancella logicamente le identità non più previste;
+5. conserva le eccezioni;
+6. non riutilizza un tombstone cancellato dall'utente.
 
 ## Cancellazione
 
@@ -325,7 +323,7 @@ Per evitare che un utente debba rispondere manualmente a decine di eventi, è di
 
 L'operazione bulk crea o aggiorna una risposta distinta su ciascun evento. È soltanto una compilazione iniziale multipla: dopo l'operazione ogni risposta resta indipendente e può essere modificata o annullata sulla singola occorrenza senza propagazione. Questo mantiene compatibili query, conteggi e promemoria attuali.
 
-Se una risposta bulk sovrascrive risposte già presenti, il frontend deve chiederne conferma e mostrare il numero di occorrenze coinvolte.
+Nel dettaglio la casella "Applica anche a tutte le occorrenze future della serie" invia l'operazione bulk senza conferma preventiva. Un messaggio finale riporta il numero di occorrenze coinvolte.
 
 ### Presenze
 
@@ -347,18 +345,20 @@ Il vincolo di unicità per il promemoria pendente deve essere garantito a livell
 
 ## Stato, visibilità e autorizzazioni
 
-| Operazione | Super Admin | Admin | Utente | Utente esterno | Tesoriere previsto |
+| Operazione | Super Admin | Admin | Utente | Utente esterno | Tesoriere |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Creare/modificare/cancellare serie | sì | sì | no | no | no |
-| Vedere occorrenze consentite dallo stato | sì | sì | sì | solo `PUBLIC` | sola lettura economica |
-| Modificare disponibilità propria | sì | sì | sì | sì | no, salvo altro ruolo |
-| Disponibilità bulk propria | sì | sì | sì | sì | no, salvo altro ruolo |
+| Vedere occorrenze consentite dallo stato | sì | sì | sì | solo `PUBLIC` | solo il riepilogo economico, tramite `/api/finance/events` |
+| Modificare disponibilità propria | sì | sì | sì | sì | no |
+| Disponibilità bulk propria | sì | sì | sì | sì | no |
 | Gestire presenze | sì | sì | no | no | no |
-| Modificare compenso/costi | sì | sì | no | no | tramite API economiche dedicate previste |
+| Modificare compenso/costi | sì | sì | no | no | sì, con `PATCH /api/finance/events/{id}/budget` |
+
+L'archivista non gestisce le serie, ma usa le API amministrative degli eventi: legge anche le occorrenze `DRAFT` e può usare la disponibilità bulk amministrativa per sé.
 
 La serie non deve diventare un modo per aggirare il mascheramento di compenso e costi applicato agli endpoint utente ed esterno.
 
-Ogni occorrenza conserva il proprio stato. Una modifica dello stato della serie aggiorna solo le occorrenze future non eccezionali; le query utente continuano a filtrare le occorrenze con le regole attuali.
+Ogni occorrenza conserva il proprio stato. Una modifica dello stato della serie aggiorna le occorrenze non eccezionali dell'ambito scelto: future nella modalità API, dalla sorgente in poi nella modalità dell'interfaccia. Le query utente continuano a filtrare le occorrenze con le regole attuali.
 
 ## API
 
@@ -373,7 +373,7 @@ Gli endpoint esistenti degli eventi singoli devono rimanere compatibili.
 - `DELETE /api/calendar-event-series/{id}`
 - `POST /api/calendar-event-series/{id}/occurrences/{eventId}/restore`
 
-Il `POST` riceve template, costi e regola strutturata. Il `PATCH` aggiorna il template e, se presenti, i campi della regola. La risposta deve includere conteggi di occorrenze create, aggiornate, cancellate, conservate come eccezioni e ignorate perché passate.
+Il `POST` riceve template, costi e regola strutturata. Il `PATCH` riceve template e regola completi, `entityVersion` (se diversa risponde 409 `version.conflict`) e, facoltativo, `sourceOccurrenceId` (400 `calendar.series.sourceOccurrence.invalid` se l'occorrenza non appartiene alla serie). La risposta contiene `createdCount`, `updatedCount`, `deletedCount`, il numero di occorrenze attive (`occurrenceCount`) e di eccezioni attive (`exceptionCount`).
 
 ### Operazioni sulla singola occorrenza
 
@@ -385,11 +385,11 @@ Le chiamate `PUT/PATCH /api/calendar-events/{id}` mantengono il significato di m
 
 Per Admin:
 
-- `PATCH /api/calendar-events/series/{seriesId}/availability?available=true|false`, imposta la disponibilità su tutta la serie;
-- `PATCH /api/calendar-events/series/{seriesId}/availability/cancel`, azzera la risposta riportando la serie a «nessuna risposta».
+- `PATCH /api/calendar-events/series/{seriesId}/availability?available=true|false`, imposta la disponibilità sulle occorrenze della serie;
+- `PATCH /api/calendar-events/series/{seriesId}/availability/cancel`, azzera la risposta riportando quelle occorrenze a «nessuna risposta».
 
-Gli equivalenti sono esposti sotto `/api/user/calendar-events/series/{seriesId}/availability` e
-`/api/external/calendar-events/series/{seriesId}/availability`, applicando gli stessi filtri di visibilità già presenti.
+Le operazioni toccano solo le occorrenze future (inizio non precedente all'istante della richiesta), non cancellate e visibili al ruolo. Le API amministrative sono aperte anche all'archivista e non filtrano per stato. Gli equivalenti sono esposti sotto `/api/user/calendar-events/series/{seriesId}/availability` e
+`/api/external/calendar-events/series/{seriesId}/availability`, applicando gli stessi filtri di visibilità già presenti. La risposta riporta il numero di occorrenze coinvolte (`affectedOccurrences`).
 
 Il verbo `DELETE` non è usato per queste operazioni: la disponibilità è un valore a tre stati — disponibile, non disponibile, nessuna risposta — e azzerarla è una transizione di stato, non una cancellazione. `DELETE` resta riservato alla cancellazione logica.
 
@@ -424,7 +424,7 @@ In alternativa, per ridurre la duplicazione dei controller, può essere introdot
 }
 ```
 
-La timezone non viene accettata dalla richiesta: il backend la ricava dal tenant corrente, la valida e la salva come snapshot sulla serie. Le risposte di anteprima e creazione espongono la timezone effettivamente utilizzata.
+La timezone non viene accettata dalla richiesta: il backend la ricava dal tenant corrente, con il ripiego sul fuso predefinito se nulla o non valida, e la salva come snapshot sulla serie. Le risposte di anteprima e creazione espongono la timezone effettivamente utilizzata.
 
 ### Estensione del DTO evento
 
@@ -450,15 +450,15 @@ Nel dialog di creazione:
 - frequenza;
 - intervallo;
 - giorni della settimana quando necessario;
-- termine per data o numero;
-- riepilogo testuale;
-- conteggio e anteprima delle date;
-- messaggio chiaro se il limite viene superato.
+- termine per data o numero (da 1 a 500 occorrenze);
+- anteprima con numero di occorrenze, ultima data e fuso.
+
+Oltre il limite il backend risponde con l'errore generico `calendar.series.recurrence.invalid`.
 
 ### Calendario e lista
 
 - icona di ricorrenza sulle occorrenze appartenenti a una serie;
-- indicatore distinto per un'eccezione;
+- la stessa icona per le eccezioni, con il tooltip «Eccezione della serie» al posto di «Evento ricorrente»;
 - nessun raggruppamento obbligatorio: la paginazione continua a operare sulle occorrenze;
 - eventuale filtro per `seriesId` in una fase successiva.
 
@@ -466,12 +466,14 @@ Nel dialog di creazione:
 
 Il dettaglio mostra:
 
-- appartenenza alla serie;
-- descrizione leggibile della ricorrenza;
-- numero progressivo, se utile;
-- azione per aprire la gestione della serie;
-- azione per ripristinare un'eccezione;
-- scelta esplicita dell'ambito prima di una cancellazione.
+- appartenenza alla serie, con il tag «Evento ricorrente» o «Eccezione della serie»;
+- descrizione della ricorrenza con fuso, occorrenze attive ed eccezioni;
+- sezione "Modifica pianificazione della serie" con regola e anteprima;
+- azioni "Salva solo questo evento" e "Salva da questo evento in poi";
+- azione "Ripristina dalla serie" per un'eccezione;
+- scelta esplicita dell'ambito prima di una cancellazione ("Elimina evento" o "Elimina serie futura").
+
+Il numero progressivo dell'occorrenza non viene mostrato.
 
 ## Compatibilità e migrazione
 
@@ -488,16 +490,17 @@ Il dettaglio mostra:
 - Creazione e riallineamento della serie sono transazionali.
 - `entity_version` applica optimistic locking alla serie.
 - La modifica della serie deve bloccare o versionare coerentemente le occorrenze future coinvolte.
-- I vincoli univoci impediscono duplicazioni in caso di retry.
-- Una richiesta ripetuta dopo timeout deve poter usare una chiave di idempotenza oppure restituire un conflitto riconoscibile senza creare una seconda serie.
-- Le operazioni massive devono restituire un riepilogo e non limitarsi a un generico `204`.
+- I vincoli univoci impediscono duplicazioni di occorrenze nella stessa serie.
+- La creazione non è idempotente: una richiesta ripetuta dopo timeout crea una seconda serie.
+- Le operazioni massive restituiscono un riepilogo e non un generico `204`.
 
 ## Validazioni
 
 - nome e inizio obbligatori;
 - fine successiva all'inizio;
-- timezone IANA del tenant valida;
-- intervallo compreso nei limiti configurati;
+- timezone IANA del tenant valida, altrimenti fuso predefinito;
+- intervallo tra 1 e 366;
+- promemoria tra 0 e 1440 minuti;
 - almeno un giorno per frequenza settimanale;
 - il giorno iniziale deve essere coerente con i giorni settimanali selezionati;
 - esattamente un termine tra numero e data;
@@ -510,14 +513,7 @@ Il dettaglio mostra:
 
 ## Osservabilità
 
-Registrare almeno:
-
-- serie create, modificate e cancellate;
-- numero di occorrenze generate o riallineate;
-- durata delle operazioni massive;
-- errori di generazione per timezone/regola;
-- conflitti di versione;
-- promemoria ripianificati o cancellati.
+Il servizio delle serie non registra log o metriche dedicati. Le misure da raccogliere sono tra i [Requisiti aperti](#requisiti-aperti).
 
 Evitare di registrare nei log descrizioni o altri contenuti non necessari.
 
@@ -548,8 +544,6 @@ Evitare di registrare nei log descrizioni o altri contenuti non necessari.
 
 ## Fasi di sviluppo ipotizzate
 
-Queste fasi sono informative e non autorizzano ancora lo sviluppo.
-
 1. Migrazione della timezone tenant e modello della serie.
 2. Generatore puro di ricorrenze con test timezone e calendario.
 3. Creazione e anteprima API.
@@ -560,10 +554,24 @@ Queste fasi sono informative e non autorizzano ancora lo sviluppo.
 8. Form frontend e indicatori nel calendario.
 9. Test di integrazione multi-tenant, autorizzativi e di concorrenza.
 
-## Punti di attenzione emersi dall'analisi del sistema attuale
+## Punti di attenzione
 
-- La modifica corrente di data/ora o `reminderMinutes` non ripianifica automaticamente i promemoria già creati: la ricorrenza rende necessario correggere questo comportamento anche per gli eventi singoli.
+- La modifica di un evento, anche singolo, ripianifica i promemoria pendenti degli utenti disponibili (`CalendarEventsServiceImpl.update`).
 - I controller Admin, Utente e Utente esterno espongono percorsi separati: le operazioni di disponibilità bulk devono mantenere questa separazione autorizzativa o centralizzarla senza allargare i permessi.
 - La cancellazione logica corrente propaga ai figli dell'evento; una serie cancellata deve invece preservare le occorrenze storiche secondo la semantica approvata.
 - Il calendario mensile carica un massimo fisso di eventi: serie numerose possono richiedere una paginazione completa o un endpoint temporale non paginato con limite controllato.
 - La gestione economica prevista considera compenso e costi a livello di evento: materializzare le occorrenze mantiene questa semantica, ma moltiplica correttamente il preventivo per ogni data.
+
+## Requisiti aperti
+
+- Conteggi delle occorrenze conservate come eccezioni e ignorate perché passate nella risposta del `PATCH` ([API](#gestione-amministrativa-della-serie)).
+- Segnalazione delle eccezioni che non appartengono più alla nuova regola ([Regole comuni alla modifica della serie](#regole-comuni-alla-modifica-della-serie)).
+- Avviso, prima del salvataggio, del numero di eccezioni che non verranno aggiornate ([Regole comuni alla modifica della serie](#regole-comuni-alla-modifica-della-serie)).
+- Conferma con il numero di occorrenze coinvolte prima di una disponibilità bulk che sovrascrive risposte esistenti ([Disponibilità](#disponibilità)).
+- Idempotenza della creazione: chiave di idempotenza o conflitto riconoscibile per una richiesta ripetuta dopo timeout ([Concorrenza e atomicità](#concorrenza-e-atomicità)).
+- Osservabilità: serie create, modificate e cancellate, occorrenze generate o riallineate, durata delle operazioni massive, errori di generazione, conflitti di versione, promemoria ripianificati o cancellati ([Osservabilità](#osservabilità)).
+- Riepilogo testuale della regola, anteprima delle date ed evidenza dei mesi saltati nel form ([Anteprima](#anteprima), [Creazione](#creazione)).
+- Messaggio specifico quando la regola supera il limite di occorrenze ([Creazione](#creazione)).
+- Indicatore visivo distinto per le eccezioni nel calendario e nella lista ([Calendario e lista](#calendario-e-lista)).
+- Compenso e costi modificati con `PATCH /api/finance/events/{id}/budget` non marcano l'occorrenza come eccezione: una modifica successiva della serie li sovrascrive ([Eccezioni](#decisioni-approvate)).
+- Test di integrazione multi-tenant, autorizzativi e di concorrenza ([Fasi di sviluppo ipotizzate](#fasi-di-sviluppo-ipotizzate), [Test di accettazione principali](#test-di-accettazione-principali)).

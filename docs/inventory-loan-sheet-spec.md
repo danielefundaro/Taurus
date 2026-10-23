@@ -35,13 +35,13 @@ Quando il tenant attiva la [firma elettronica](inventory-electronic-signature-sp
 
 ## Fuori scope
 
-- firma elettronica o firma grafometrica: il foglio si firma su carta;
-- raccolta e conservazione in Taurus di dati anagrafici sensibili dell'Affidatario (codice fiscale, documento di identità, residenza, telefono, luogo di nascita) e dei dati del genitore o tutore;
+- firma grafometrica; la firma elettronica, con modalità `ELECTRONIC`, è descritta nella [specifica dedicata](inventory-electronic-signature-spec.md);
+- con il foglio su carta, raccolta e conservazione in Taurus di dati anagrafici sensibili dell'Affidatario (codice fiscale, documento di identità, residenza, telefono, luogo di nascita) e dei dati del genitore o tutore; in modalità `ELECTRONIC` il foglio conserva nome, codice fiscale ed e-mail dell'Affidatario fino alla fine del rapporto (vedi [Conservazione e GDPR](#conservazione-e-gdpr));
 - modifica del modello nel browser: il modello si scarica, si modifica con un editor esterno e si ricarica;
 - modelli in formato Word o in formati diversi da HTML;
 - caricamento della copia firmata scansionata;
 - gestione di smarrimenti, furti e sinistri assicurativi oltre a quanto già previsto dall'inventario;
-- notifiche all'utente sull'emissione del foglio;
+- notifiche all'utente sull'emissione del foglio su carta; in modalità `ELECTRONIC` i firmatari con un account ricevono la notifica «Inventario: firma richiesta»;
 - archiviazione della copia cartacea, che resta responsabilità del tenant.
 
 ## Decisioni principali
@@ -207,7 +207,7 @@ Il modello predefinito è il file [`loan-sheet.html`](../taurus-be/src/main/reso
 - HTML5 o XHTML: il file è letto con un parser tollerante, quindi non deve essere XML ben formato;
 - CSS in elementi `<style>` o attributi `style`; non sono ammessi fogli di stile esterni;
 - impaginazione con il CSS paged media supportato da OpenHTMLtoPDF: `@page` per formato, margini e riquadri di pagina, `counter(page)` e `counter(pages)` per la numerazione, `position: running(...)` con `element(...)` per intestazioni e piè di pagina ricorrenti, `page-break-before` per i salti pagina, `-fs-table-paginate: paginate` per ripetere l'intestazione delle tabelle su più pagine. Il modello predefinito è l'esempio di riferimento di tutte queste tecniche;
-- immagini solo come `data:` URI PNG o JPEG; il logo del tenant è disponibile come variabile;
+- immagini solo come `data:` URI PNG, JPEG o GIF; il logo del tenant è disponibile come variabile;
 - font: solo i font standard PDF, `Helvetica` (o `sans-serif`), `Times` (o `serif`) e `Courier` (o `monospace`), con i caratteri della codifica WinAnsi;
 - nessun JavaScript: gli script non sono eseguiti.
 
@@ -398,7 +398,7 @@ Un oggetto in comodato con scadenza segue le regole di durata fin dall'assegnazi
 - **Modifica di un'assegnazione non collegata a un foglio:** una scadenza diversa da quella registrata segue la stessa regola, contando i mesi dal giorno dell'assegnazione. Una scadenza invariata non viene ricontrollata, così si possono modificare gli altri campi anche quando le regole sono cambiate dopo l'assegnazione.
 - **Comodato precario e regime non indicato:** la scadenza resta facoltativa e libera fino all'emissione.
 
-Le violazioni senza foglio emesso restituiscono `422` con chiave `inventory.loanDuration.<violazione>` e, per una data fuori intervallo, i parametri `minimum`, `maximum`, `minMonths`, `maxMonths` e `deliveredOn`. Il frontend ne ricava il messaggio, per esempio «La data di scadenza deve essere compresa tra il 09/10/2027 e il 09/10/2028, cioè tra 12 e 24 mesi dalla consegna del 09/10/2026». Con un foglio emesso la chiave è `inventory.loanSheet.<violazione>`, con il parametro aggiuntivo `sheetNumber`, e il messaggio aggiunge «(regole del foglio n. …)». Il frontend non limita il calendario: chiede a `GET /api/inventory/users/{userIndex}/loan-expiration-range` l'intervallo ammesso solo per indicarlo sotto il campo, e se il backend rifiuta la data mostra il messaggio sotto il campo, senza toast, così da poterne scegliere un'altra.
+Le violazioni senza foglio emesso restituiscono `422` con chiave `inventory.loanDuration.<violazione>` e, per una data fuori intervallo, i parametri `minimum`, `maximum`, `minMonths`, `maxMonths` e `deliveredOn`. Il frontend ne ricava il messaggio, per esempio «La data di scadenza deve essere compresa tra il 09/10/2027 e il 09/10/2028, cioè tra 12 e 24 mesi dalla consegna del 09/10/2026». Con un foglio emesso la nuova assegnazione è collegata al foglio e la chiave è `inventory.loanSheet.<violazione>`, con il parametro aggiuntivo `sheetNumber`, e il messaggio aggiunge «(regole del foglio n. …)». La modifica della scadenza di un'assegnazione non collegata usa le regole del foglio emesso, se esiste, ma risponde sempre con `inventory.loanDuration.<violazione>`, senza `sheetNumber`. Il frontend non limita il calendario: chiede a `GET /api/inventory/users/{userIndex}/loan-expiration-range` l'intervallo ammesso solo per indicarlo sotto il campo, e se il backend rifiuta la data mostra il messaggio sotto il campo, senza toast, così da poterne scegliere un'altra.
 
 ## Ciclo di vita del foglio
 
@@ -489,14 +489,14 @@ Il foglio passa a `CLOSED` e la sezione 9 viene precompilata.
 
 Il foglio passa a `SETTLED`:
 
-- con esito `COMPLIANT`, quando l'amministratore conferma la firma del verbale di riconsegna oppure, in assenza di conferma, automaticamente 30 giorni dopo la chiusura (valore configurabile con la proprietà applicativa `application.inventory.loan-sheet.auto-settle-days`; il job gira ogni notte secondo `application.inventory.loan-sheet.settle-cron`, predefinito `0 15 3 * * *`);
+- con esito `COMPLIANT`, quando l'amministratore conferma la firma del verbale di riconsegna oppure, in assenza di conferma, automaticamente 30 giorni dopo la chiusura (valore configurabile con la proprietà applicativa `application.inventory.loan-sheet.auto-settle-days`; il job `InventoryLoanSheetRetentionScheduler` gira ogni notte su tutti i tenant attivi secondo `application.inventory.loan-sheet.settle-cron`, predefinito `0 15 3 * * *`). Per un foglio `ELECTRONIC` la firma del verbale di riconsegna, o la sua dichiarazione di firma su carta, definisce subito il foglio (evento `LoanSheetReturnSigned`);
 - con esito `CHARGES`, quando l'amministratore conferma che l'addebito è stato definito. Non è prevista la definizione automatica.
 
-Alla definizione vengono rimossi i dati personali del foglio (vedi [Conservazione e GDPR](#conservazione-e-gdpr)). Il PDF non è più scaricabile.
+Alla definizione vengono rimossi i dati personali del foglio (vedi [Conservazione e GDPR](#conservazione-e-gdpr)). Il PDF non è più scaricabile. Gli atti di firma ancora in attesa vengono annullati e quelli firmati restano scaricabili fino a `purge_after`.
 
 ### Annullamento
 
-Un foglio `ISSUED` può essere annullato da un amministratore indicando una motivazione obbligatoria. Le assegnazioni vengono scollegate e tornano disponibili per un nuovo foglio; rinnovi e revisioni già registrati restano nello storico dell'assegnazione. I PDF già generati del foglio annullato vengono cancellati.
+Un foglio `ISSUED` può essere annullato da un amministratore indicando una motivazione obbligatoria. Le assegnazioni vengono scollegate e tornano disponibili per un nuovo foglio; rinnovi e revisioni già registrati restano nello storico dell'assegnazione. I PDF già generati del foglio annullato vengono cancellati. Come alla definizione, gli atti di firma in attesa vengono annullati, quelli firmati ricevono `purge_after` e i dati dell'Affidatario salvati sul foglio vengono cancellati.
 
 ## Modello dati e migrazioni
 
@@ -541,13 +541,14 @@ Nuove tabelle:
 - regole di durata copiate all'emissione: `min_months`, `max_months`, `renewal_max_months`, `total_max_months`;
 - chiusura: `closed_at`, `closed_by`, `return_outcome` (`COMPLIANT`, `CHARGES`), `charge_amount`, `charge_due_date`, `received_by_name`;
 - definizione e annullamento: `settled_at`, `settled_by`, `personal_data_purged_at`, `cancelled_at`, `cancelled_by`, `cancellation_reason`;
+- firma elettronica (`20261019100000_inventory_loan_sheet_signature.xml`): `signature_mode` (`PAPER`, predefinito, o `ELECTRONIC`), `holder_name`, `holder_tax_code`, `holder_no_tax_code`, `holder_email`;
 - audit ed `entity_version`.
 
 Indice univoco parziale su `user_index` per `status = 'ISSUED'` e `deleted = false`. Vincoli `CHECK` che richiedono importo e termine quando l'esito è `CHARGES` e regole di durata coerenti.
 
 **`inventory_loan_sheet_line`**: righe congelate della sezione 3: `id`, `sheet_id`, `line_number`, `assignment_id`, `item_name`, `brand_model`, `serial_number`, `inventory_number`, `accessories`, `quantity`, `agreed_unit_value` (valore stimato dell'oggetto all'emissione, se in euro), `condition_status`, `condition_notes`, `loan_type`, `expiration_date`, audit. Vincolo univoco `(sheet_id, line_number)`.
 
-**`inventory_loan_sheet_counter`**: `sheet_year` (PK), `last_sequence`, audit.
+**`inventory_loan_sheet_counter`**: `id` (PK autoincrementale), `sheet_year` (univoco), `last_sequence`, audit.
 
 **`inventory_assignment_renewal`**: `id`, `assignment_id`, `sheet_id`, `renewed_on`, `previous_expiration_date`, `new_expiration_date`, `authorization_reference`, `authorization_date`, audit.
 
@@ -567,7 +568,7 @@ Lo snapshot canonico della revisione include `brandModel`, `serialNumber` e `loa
 
 ## API REST
 
-Tutti gli endpoint sono protetti da `@RequiresTenantFeature(TenantFeature.INVENTORY)`. Gli identificativi sono sempre verificati nel contesto del tenant ricavato dal token.
+Gli endpoint dei fogli e del modello (`InventoryLoanSheetResource`, `InventoryLoanTemplateResource`, `UserInventoryLoanSheetResource`) sono protetti da `@RequiresTenantFeature(TenantFeature.INVENTORY_LOAN_SHEET)`: con la funzionalità spenta rispondono `403 tenantFeature.inventoryLoanSheet.disabled`. Intervallo di scadenza (`loan-expiration-range`), rinnovo e sostituzione sono annotati con il solo `INVENTORY`. `PUT /api/inventory/loan-template/signature`, che attiva o disattiva la firma elettronica, richiede `INVENTORY_SIGNATURE` (vedi [Firma elettronica](inventory-electronic-signature-spec.md)). Gli identificativi sono sempre verificati nel contesto del tenant ricavato dal token.
 
 ### Modello del foglio (admin e super admin)
 
@@ -612,6 +613,7 @@ Gli errori seguono lo [Standard degli errori applicativi](application-errors-sta
 
 | Chiave | HTTP | Caso |
 | --- | --- | --- |
+| `tenantFeature.inventoryLoanSheet.disabled` | 403 | funzionalità dei fogli non attiva per il tenant |
 | `inventory.loanSheet.alreadyIssued` | 409 | il socio ha già un foglio emesso |
 | `inventory.loanSheet.validation` | 422 | problemi di emissione, elencati tutti in `args.issues` con bene e codice della regola |
 | `inventory.loanSheet.roleRequired` | 422 | data di nascita assente e ruolo dell'Affidatario non indicato |
@@ -641,16 +643,21 @@ Componenti principali, nel package `service.loansheet`:
 - `LoanTemplateDefaults`: caricamento del modello predefinito e della sua etichetta dalle risorse;
 - `LoanSheetVariables`: catalogo delle variabili con tipo, descrizione ed esempio, usato da validazione, costruzione dei dati e guida della pagina;
 - `LoanTemplateValidator`: segnalazioni bloccanti e avvisi del file;
+- `LoanSheetContent` e `LoanSheetContentFactory`: dati del foglio prima dell'impaginazione, raccolti dalle righe congelate, dal registro delle variazioni e dal verbale di riconsegna;
 - `LoanSheetModelFactory`: costruzione dei dati del modello a partire dal contenuto del foglio, con formattazione di date e importi e normalizzazione dei caratteri;
+- `LoanSheetActs`: parti del modello che appartengono a ogni atto firmato elettronicamente, marcate con `data-taurus-act` e `data-taurus-sign="clauses"`;
 - `LoanDurationPolicy`: regole di scadenza all'emissione, alla consegna successiva e al rinnovo;
 - `InventoryLoanSheetPolicy`: regole che le operazioni ordinarie dell'inventario rispettano per i beni collegati a un foglio (collegamento delle consegne successive, blocco di scadenza, quantità, regime, eliminazioni);
 - `InventoryLoanSheetService`: emissione, collegamento, sostituzione, rinnovo, chiusura, definizione, annullamento, PDF;
 - `LoanSheetRegisterBuilder`: righe delle sezioni 8 e 9;
 - `LoanSheetPdfRenderer`: compilazione del modello con i dati, conversione in PDF e filigrana delle anteprime;
 - `LoanSheetSamples`: dati fittizi per le anteprime del modello;
-- `InventoryLoanSheetRetentionScheduler`: definizione automatica dei fogli `COMPLIANT`.
+- `InventoryLoanSheetRetentionScheduler`: definizione automatica dei fogli `COMPLIANT`, su tutti i tenant attivi;
 - `LoanSheetTenantData`: dati del tenant stampati sul foglio; il logo viene scaricato con `TenantLogoLoader` solo se il modello usa `associazione.logo`;
-- `LoanSheetText`: formattazione di date e importi e normalizzazione dei caratteri.
+- `LoanSheetText`: formattazione di date e importi e normalizzazione dei caratteri;
+- `LoanSheetSupport`: funzioni comuni del package (attore e tenant dal token, errori, hash, date locali);
+- `LoanSheetVariationRecorded`: evento pubblicato nella transazione di una consegna successiva, sostituzione, rinnovo o riconsegna parziale, da cui un foglio elettronico ricava l'atto della variazione;
+- `LoanSheetReturnSigned`: evento della firma del verbale di riconsegna di un foglio elettronico, che definisce subito un foglio senza addebiti.
 
 `InventoryService` delega a `InventoryLoanSheetPolicy` i controlli sulle assegnazioni collegate ed espone le operazioni atomiche di rinnovo (`applyRenewal`) e sostituzione (`substitute`), orchestrate da `InventoryLoanSheetService`. `InventoryErasureService` invoca `InventoryLoanSheetService.purgeForUser` nel completamento della cancellazione GDPR e, per un socio senza materiale in carico, alla cancellazione stessa, con l'evento `UserErasureCompleted` di `DataErasureService`.
 
@@ -732,13 +739,14 @@ Modelli, impostazioni, fogli, contatori ed esportazioni risiedono nello schema d
 
 ## Conservazione e GDPR
 
-Il foglio salva in Taurus soltanto dati già presenti nell'anagrafica del socio (nome, cognome, data di nascita, e-mail). I dati da compilare a mano restano sulla copia cartacea.
+Il foglio su carta salva in Taurus soltanto dati già presenti nell'anagrafica del socio (nome, cognome, data di nascita, e-mail). I dati da compilare a mano restano sulla copia cartacea. Un foglio `ELECTRONIC` salva anche i dati dell'Affidatario necessari alla firma: `holder_name`, `holder_tax_code` (o `holder_no_tax_code`) e `holder_email`, inseriti dall'Affidatario o, per l'e-mail del genitore o tutore, dall'amministratore all'emissione.
 
 In coerenza con la lettera f) dell'informativa del modello predefinito:
 
 - alla **definizione** del foglio nome e cognome del socio sono sostituiti da «Dati personali rimossi», data di nascita ed e-mail vengono cancellate e tutti i PDF del foglio vengono rimossi: per ogni esportazione si azzera `media_asset_id` e si invoca `MediaService.deleteIfUnreferenced`, che marca il media `DELETED` e cancella il file dallo storage dopo il commit. `MediaRepository` considera `inventory_loan_sheet_export` tra i riferimenti inventario, così la pulizia dei media non rimuove i PDF ancora referenziati;
 - restano numero, date, righe dei beni, esito e versione del modello, senza dati personali dell'Affidatario;
-- il flusso GDPR esistente rimuove i dati personali di tutti i fogli del socio, al completamento della pratica (`InventoryErasureService.complete`) o subito se non ha materiale in carico, sostituisce l'identificativo Keycloak con lo pseudonimo già usato per le assegnazioni e ne rimuove i PDF;
+- alla definizione e all'annullamento vengono cancellati i dati dell'Affidatario (`holder_*`), annullati gli atti di firma in attesa e fissato sugli atti firmati `purge_after`, pari alla data corrente più `application.signature.download-grace-days` (30 giorni): alla scadenza `SignaturePurgeScheduler`, che gira su tutti i tenant attivi, ne rimuove file e dati personali;
+- il flusso GDPR esistente rimuove i dati personali di tutti i fogli del socio, al completamento della pratica (`InventoryErasureService.complete`) o subito se non ha materiale in carico, sostituisce l'identificativo Keycloak con lo pseudonimo già usato per le assegnazioni, ne rimuove i PDF, annulla gli atti in attesa e rimuove subito quelli firmati;
 - all'annullamento di un foglio i relativi PDF vengono rimossi.
 
 Il modello caricato non contiene dati personali dei soci, che vengono inseriti solo al momento della generazione del PDF.
@@ -750,7 +758,7 @@ I log non contengono nomi, e-mail o contenuto dei modelli: solo identificativi d
 - log strutturati (`inventory_loan_sheet_*`, `inventory_loan_template_*`) per emissione, chiusura, definizione, annullamento, attivazione del modello, ritorno al predefinito, copia del predefinito, modifica delle regole di durata, rinnovo, sostituzione e generazione del PDF, con la dimensione del file;
 - le verifiche respinte registrano il numero di segnalazioni bloccanti, senza il contenuto del file;
 - i messaggi di diagnostica di OpenHTMLtoPDF sono registrati a livello debug;
-- l'esecuzione del job di conservazione registra il numero di fogli definiti per tenant e gli errori per tenant senza interrompere gli altri.
+- l'esecuzione del job di conservazione, su tutti i tenant attivi, registra il numero di fogli definiti per tenant e gli errori per tenant senza interrompere gli altri.
 
 ## Test
 
@@ -808,14 +816,11 @@ Stampa A4 del foglio generato con il modello predefinito e confronto con la stam
 - un utente non amministratore scarica solo i propri fogli;
 - il proforma PDF non è più disponibile, né per l'amministratore né per il socio.
 
-## Piano di implementazione
-
-1. **Fase 0 – Verifiche preliminari**: compatibilità di OpenHTMLtoPDF con PDFBox 3.0.3; JMustache con collettore senza riflessione; lettura con jsoup; blocco delle risorse con l'eccezione dei `data:` URI.
-2. **Fase 1 – Modello dati**: migrazioni, nuovi campi di oggetto, assegnazione, riconsegna e tenant, aggiornamento dello snapshot di revisione, form del frontend.
-3. **Fase 2 – Modello del foglio**: modello predefinito, catalogo delle variabili, validazione, versioni, regole di durata, API e pagina del modello.
-4. **Fase 3 – Emissione e PDF**: emissione, anteprima con filigrana, generazione, download amministrativo e personale.
-5. **Fase 4 – Variazioni**: collegamento automatico, rinnovo, sostituzione, registro delle variazioni.
-6. **Fase 5 – Chiusura e conservazione**: chiusura, verbale, definizione manuale e automatica, estensione del flusso GDPR.
-7. **Fase 6 – Documentazione**: aggiornamento di [Gestione inventario tenant](inventory-management-spec.md) (regime di comodato accanto all'assenza di tassonomia, deroga all'intestazione comune, nuovi endpoint), della categoria media `inventory-loan-sheets` in [Gestione centralizzata dei media](media-asset-spec.md), del [Runbook di test](runbook-test.md) e del catalogo.
+## Rollback
 
 Il rollback applicativo preserva le nuove tabelle, perché contengono lo storico contrattuale. Le colonne aggiunte sono tutte facoltative e compatibili con la versione precedente del backend.
+
+## Requisiti aperti
+
+- Verifica manuale dell'interfaccia con un tenant di prova: emissione, variazioni, chiusura, definizione e caricamento di un modello modificato ([Verifica manuale](#verifica-manuale)).
+- Stampa A4 del foglio generato con il modello predefinito, a confronto con la stampa del modello Word ([Verifica manuale](#verifica-manuale)).

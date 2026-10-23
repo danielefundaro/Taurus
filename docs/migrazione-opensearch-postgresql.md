@@ -24,7 +24,7 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 6. La cancellazione GDPR elimina o anonimizza record relazionali e file gestiti senza scansioni di indici.
 7. La ricerca inventario usa direttamente le query PostgreSQL; outbox e proiettore OpenSearch sono rimossi.
 8. Client, configurazione, changelog, risorse e container OpenSearch sono rimossi.
-9. I nomi Java `*OpenSearch*` ancora presenti sono alias interni di compatibilità e ora contengono esclusivamente implementazione JPA; non esiste una dipendenza runtime da OpenSearch.
+9. I nomi Java `*OpenSearch*` ancora presenti (`CommonFieldsOpenSearch`, `CommonOpenSearchServiceImpl`, `CommonOpenSearchResource` e simili) sono alias interni di compatibilità e contengono esclusivamente implementazione JPA. Resta codice inerte legato a OpenSearch: `TenantIndexAspect` intercetta ancora i servizi `CommonOpenSearchServiceImpl` per il contesto Reactor e `JpaPageableUtils` rimuove il suffisso `.keyword` dagli ordinamenti ricevuti. Non esiste una dipendenza runtime da OpenSearch.
 
 ## Modifiche frontend
 
@@ -32,6 +32,7 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 - Route e parametri HTTP convertono i valori testuali del router in numeri prima di invocare i servizi.
 - Le API di utenti, tenant, media, tracce ed eventi accettano ID numerici.
 - Gli ordinamenti `name.keyword` sono sostituiti da colonne PostgreSQL (`name`).
+- Restano nomi ereditati da OpenSearch, come il modello `CommonFieldsOpenSearch` (`common-fields-open-search.module.ts`) e `CommonOpenSearchService`, senza dipendenze da OpenSearch.
 - Il confronto disponibilità evento usa l'ID numerico del profilo utente restituito dal backend, non il subject Keycloak.
 - Non è previsto alcun campo `legacy_id` nei modelli FE.
 
@@ -44,7 +45,9 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 5. Gli strumenti musicali iniziali vengono caricati da CSV nello schema del tenant.
 6. Avviare il backend senza variabili o servizi OpenSearch.
 
-## Schema E/R completo
+## Schema E/R delle tabelle migrate
+
+Lo schema seguente rappresenta le tabelle nate dalla migrazione da OpenSearch. Non è lo schema completo: le funzionalità successive hanno aggiunto altre tabelle, in `public` (per esempio `calendar_feed_token_registry`, `signature_link_registry` e la tabella storica `user_legal_acceptance`) e soprattutto negli schemi dei tenant, descritte nelle rispettive specifiche.
 
 ### Schema globale `public`
 
@@ -67,8 +70,10 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 | Elaborazioni | `upload_job` |
 | Preferenze e comunicazioni | `last_research`, `notices`, `preferences`, `push_subscriptions`, `push_reminders` |
 | Legale | `user_legal_acceptance` |
-| Inventario | `inventory_item`, `inventory_item_photo`, `inventory_assignment`, `inventory_assignment_revision`, `inventory_assignment_decision`, `inventory_return`, `inventory_return_photo`, `inventory_erasure_request`, `inventory_report_export` |
+| Inventario | `inventory_item`, `inventory_item_photo`, `inventory_assignment`, `inventory_assignment_revision`, `inventory_assignment_decision`, `inventory_return`, `inventory_return_photo`, `inventory_erasure_request` |
 | Tecniche Liquibase | `databasechangelog`, `databasechangeloglock` |
+
+`inventory_report_export` faceva parte della migrazione ed è stata eliminata da `20261010000000_drop_inventory_report_export.xml`.
 
 ```mermaid
 erDiagram
@@ -110,15 +115,14 @@ erDiagram
     INVENTORY_ASSIGNMENT ||--o{ INVENTORY_RETURN : returned
     INVENTORY_RETURN ||--o{ INVENTORY_RETURN_PHOTO : documented
     APP_USER ||--o{ INVENTORY_ERASURE_REQUEST : requests
-    APP_USER ||--o{ INVENTORY_REPORT_EXPORT : reported
 ```
 
 ### Vincoli principali
 
 - Tutte le PK di dominio sono `BIGINT` identity.
-- Le tabelle ponte impediscono duplicati con PK o `UNIQUE` composte.
-- Le collezioni ordinate impongono `UNIQUE(parent_id, display_order)`.
+- Le tabelle ponte impediscono duplicati con indici univoci parziali sulle sole righe attive (`WHERE deleted = FALSE`), introdotti da `20260829000002_enable_relational_soft_delete.xml`.
+- Le collezioni ordinate impongono l'unicità di `(parent_id, display_order)` con indici univoci parziali `WHERE deleted = FALSE`.
 - `calendar_event_availability` e `calendar_event_presence` impongono un solo record per evento/utente.
-- `inventory_assignment.user_index`, `inventory_erasure_request.user_index` e `inventory_report_export.requested_user_index` sono FK numeriche verso `app_user.id`.
+- `inventory_assignment.user_index` e `inventory_erasure_request.user_index` sono FK numeriche verso `app_user.id`.
 - `push_reminders.event_id` è FK numerica verso `calendar_event.id`.
 - I campi `user_id` storici di preferenze/notifiche/push conservano il subject Keycloak per compatibilità con autenticazione e cancellazione; la relazione applicativa è risolta tramite `app_user.keycloak_id`, che è univoco.

@@ -9,18 +9,18 @@ Questo runbook definisce la strategia, le suite, i dati, le procedure e le evide
 
 Il documento è una checklist eseguibile e una matrice di copertura. Non sostituisce i test automatici: un caso marcato come manuale o non ancora automatizzato resta un rischio esplicito. Nessuna quantità di test garantisce l'assenza assoluta di difetti; il criterio adottato è produrre evidenze ripetibili, proporzionate al rischio, sufficienti per una decisione di rilascio consapevole.
 
-Stato rilevato al 18 ottobre 2026:
+Copertura presente nel repository (la data dell'ultima verifica è nel catalogo):
 
-- backend: 142 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
-- frontend: 54 specifiche Jasmine/Karma;
-- servizio OMR: 7 file pytest, con 53 test sui motori finti e 5 test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
-- provider Keycloak: 1 classe con 2 test di packaging/metadata;
+- backend: 170 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
+- frontend: 68 specifiche Jasmine/Karma;
+- servizio OMR: 7 file pytest, con test sui motori finti e test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
+- provider Keycloak: 3 classi di test, tra cui `TaurusOtpTest` e il test di integrazione `TaurusOtpResourceIT`;
 - sito informativo: type-check e build, senza suite funzionale dedicata;
 - nessun framework E2E browser configurato;
 - JaCoCo produce report backend, ma non applica una soglia minima;
 - la CI esegue test/build dei moduli modificati e, per `taurus-omr`, la misura di accuratezza sull'immagine appena costruita, ma non test full-stack, performance, sicurezza dinamica o restore.
 
-Il runbook resta `in-progress` finché i gap indicati nella sezione 19 non sono risolti o formalmente accettati.
+I gap indicati nella sezione 19 restano rischi espliciti finché non sono risolti o formalmente accettati.
 
 ## 2. Obiettivi di qualità
 
@@ -450,6 +450,7 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `REC-003 P1`: cancellazione e ripristino eccezione.
 - `REC-004 P0`: DST, fine mese/anno e ricorrenza senza data valida.
 - `REC-005 P0`: retry/idempotenza non duplica occorrenze o reminder.
+- `REC-006 P1`: «Salva da questo evento in poi» ripetuto due volte con uno spostamento non lo raddoppia; una regola che porta un'occorrenza sulla data di un'altra risponde `409 calendar.series.occurrence.conflict`.
 
 ### 14.5 Preparazione evento
 
@@ -496,6 +497,7 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `FIN-009 P1`: conto archiviato riattivabile; riattivazione negata se un altro conto attivo ha lo stesso nome.
 - `FIN-010 P0`: eliminazione conto negata su conto attivo o con movimenti attivi, consentita su conto archiviato i cui movimenti sono tutti eliminati.
 - `FIN-011 P1`: conto eliminato assente da elenchi, filtri e rendiconti, con i movimenti eliminati ancora integri a database.
+- `FIN-012 P0`: il saldo iniziale di un conto creato in un esercizio successivo resta invariato dopo il riporto automatico e dopo «Ricalcola», ed entra nel saldo d'apertura di estratto conto e rendiconto annuale.
 
 ### 14.8 Notifiche, preferenze e Web Push
 
@@ -537,7 +539,7 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `ONB-007 P0`: retry e-mail non reinvia quelle già riuscite.
 - `ONB-008 P1`: cancellazione job prima/durante applicazione secondo stato.
 - `ONB-009 P0`: sezioni Economia/Inventario filtrate dai feature flag.
-- `ONB-010 P1`: retention sorgente e audit applicata correttamente.
+- `ONB-010 P1`: retention: dopo 30 giorni dalla conclusione file, righe e problemi rimossi, journal ridotto agli esiti e `409 onboarding.job.sourceRemoved` su nuova validazione o nuovo invio delle e-mail; dopo 365 giorni il job è eliminato; i job `COMPENSATION_REQUIRED` e quelli non conclusi restano intatti.
 - `ONB-011 P1`: il foglio `Strumenti` accetta il formato precedente e quello con le colonne di suono e trasposizione; valori non validi sono errori di validazione; per uno strumento già esistente suono e trasposizione indicati non vengono applicati e la validazione lo avvisa.
 
 ### 14.11 Dashboard e feature flag

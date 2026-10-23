@@ -7,27 +7,23 @@ La funzionalità consente di ascoltare le parti di una traccia, singolarmente o 
 ID catalogo: `track-score-playback`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Le fasi 1, 2 e 3 del [piano di implementazione](#piano-di-implementazione) sono realizzate; della fase 4 sono realizzati il test di accuratezza dei motori e le misure dei prototipi tecnici, mentre le prove con parti reali e su telefono restano da eseguire: vedi [Stato di implementazione](#stato-di-implementazione).
-
 Documenti collegati: [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md), [Workspace per la gestione delle parti](track-parts-workspace-spec.md), [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md), [Anteprima e stampa degli spartiti](score-preview-printing-spec.md), [Gestione centralizzata dei media](media-asset-spec.md), [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md), [Standard degli errori applicativi](application-errors-standard.md).
 
-## Stato di implementazione
+## Scelte di sviluppo
 
-**Fase 1, ascolto da file caricati: realizzata il 16/10/2026**, da verificare a mano con un tenant di prova. Comprende modello dati, funzionalità per tenant, caricamento MusicXML con controlli, versioni e approvazione, campi di ascolto di strumenti, parti e tracce, catalogo di riferimento con proposta, migrazione degli strumenti esistenti, colonne facoltative dell'importazione iniziale, lettore della parte e della partitura.
+Scelte fatte durante lo sviluppo delle fasi del [piano di implementazione](#piano-di-implementazione), già riportate nelle sezioni seguenti.
 
-Scelte fatte durante lo sviluppo, già riportate nelle sezioni seguenti:
+### Ascolto da file caricati
 
 - il MIDI è generato da Taurus nel browser, non da Verovio: l'ordine delle battute, le trasposizioni e i canali restano sotto controllo diretto e non serve una copia "svolta" del MusicXML;
-- il caricamento di file MIDI è passato alla fase 2, perché la conversione richiede music21 nel servizio OMR;
-- i controlli e l'elenco delle parti di un MusicXML sono calcolati dal backend in Java, per i file caricati come per i risultati futuri dei motori;
+- il caricamento di file MIDI è passato alla fase di riconoscimento, perché la conversione richiede music21 nel servizio OMR;
+- i controlli e l'elenco delle parti di un MusicXML sono calcolati dal backend in Java, per i file caricati come per i risultati dei motori;
 - l'ascolto ha una scheda propria nel dettaglio della traccia invece di comparire nel workspace Parti, che si salva come un'unica unità con i dettagli: le azioni di ascolto si salvano da sole e restano disabilitate finché la traccia ha modifiche non salvate;
 - gli strumenti esistenti sono configurati da una migrazione Liquibase per tenant invece che da un'attività di avvio;
 - il suono si sceglie da un elenco statico dei programmi General MIDI, che coincide con il banco 0 di MuseScore General;
 - Verovio è servito come asset statico e caricato al primo uso, così il service worker non lo precarica per tutti gli utenti.
 
-**Fase 2, riconoscimento: realizzata il 17/10/2026**, da verificare a mano con un tenant di prova e il servizio in esecuzione. Comprende il modulo `taurus-omr`, la coda e i job di riconoscimento con recupero dei job interrotti, la scelta della versione proposta, le notifiche, il caricamento MIDI e l'eliminazione notturna delle versioni vecchie. Il servizio è stato provato nel container reale su tre parti della prova preliminare: una pagina di tuba letta da entrambi i motori in circa 17 secondi, due pagine in circa 76 secondi.
-
-Scelte fatte durante lo sviluppo della fase 2, già riportate nelle sezioni seguenti:
+### Riconoscimento
 
 - Audiveris legge ogni pagina come un libro a sé e il servizio unisce pagine e movimenti: le posizioni delle battute restano riferite alla pagina e un errore di lettura non sposta le battute delle pagine successive;
 - homr 0.7.0 non scrive posizioni nel MusicXML: le posizioni vengono solo da Audiveris. homr non ha un'opzione per disattivare la lettura del titolo: il titolo letto da entrambi i motori viene scartato;
@@ -35,11 +31,7 @@ Scelte fatte durante lo sviluppo della fase 2, già riportate nelle sezioni segu
 - un'unica chiave d'errore `scorePlayback.omr.unavailable` copre il servizio non configurato o non raggiungibile, sia per il riconoscimento sia per la conversione MIDI;
 - il risultato di un tentativo superato da un nuovo tentativo viene scartato, così un job ripreso dopo un'interruzione non produce versioni doppie.
 
-**Fase 3, correzione: realizzata il 18/10/2026** e provata nel browser lo stesso giorno con l'applicazione completa, il servizio OMR reale e un super amministratore (vedi [Copertura della fase 3](#copertura-della-fase-3)). Restano da provare a mano i ruoli utente ed esterno e le parti reali della banda. Comprende l'editor di correzione con la pagina originale affiancata, il salvataggio delle correzioni come nuove versioni, le segnalazioni d'errore dal lettore con notifica e chiusura, e la loro cancellazione con i dati dell'utente.
-
-La prova nel browser ha fatto emergere due difetti delle fasi precedenti, corretti: il lettore non si apriva, perché il contenitore dello spartito è in un blocco condizionale e veniva cercato prima che esistesse; il collegamento `?tab=playback` delle notifiche apriva la scheda Dettagli quando la pagina si caricava prima delle funzionalità del tenant.
-
-Scelte fatte durante lo sviluppo della fase 3, già riportate nelle sezioni seguenti:
+### Correzione
 
 - l'editor lavora sul MusicXML e non su MEI: Verovio 6.3.0 conserva gli `id` di `measure` e `note` del MusicXML negli elementi disegnati, e una pausa di più battute prende l'`id` della prima battuta del gruppo. L'editor assegna gli `id` all'apertura e li toglie dal file salvato;
 - nell'editor l'accidente scritto è ciò che si vede e l'alterazione è ciò che suona: dopo ogni modifica le alterazioni della battuta si ricavano da accidenti e armatura. All'apertura l'editor scrive gli accidenti che armatura e accidenti precedenti non spiegano, senza cambiare il suono;
@@ -49,9 +41,7 @@ Scelte fatte durante lo sviluppo della fase 3, già riportate nelle sezioni segu
 - la segnalazione si chiude all'approvazione di una versione diversa da quella segnalata; ogni utente può avere al massimo 10 segnalazioni aperte sulla stessa parte;
 - le segnalazioni di un utente si cancellano con la cancellazione dei suoi dati, perché il testo è scritto da lui.
 
-**Fase 4, qualificazione: avviata il 18/10/2026.** Realizzati il test di accuratezza dei motori con il corpus di riferimento, eseguito anche dalla CI sull'immagine appena costruita, il confronto delle parti reali con la versione corretta, le misure dei prototipi tecnici e le procedure dei runbook (vedi [Copertura della fase 4](#copertura-della-fase-4)). Restano da eseguire, con parti e dispositivi reali, le prove `PLY-009` e `PLY-018` del [Runbook di test](runbook-test.md).
-
-Scelte fatte durante la fase 4:
+### Qualificazione
 
 - il corpus è scritto per il test e disegnato con Verovio, così può stare nel repository senza problemi di diritti; le parti reali della banda non entrano nel repository e si misurano confrontando la versione approvata con quella di ciascun motore;
 - una battuta è corretta se si ascolta uguale, con le stesse regole di lettura del lettore: contano durata della battuta, inizio, durata, altezza e legatura di valore delle note, non la grafia, le voci, le travature e le pause. Le battute sono allineate prima del confronto, così una battuta persa non sposta le successive;
@@ -60,8 +50,7 @@ Scelte fatte durante la fase 4:
 - il primo scaricamento dei suoni sul telefono dipende dalla rete: il messaggio di caricamento del lettore ne indica la dimensione, circa 40 MB;
 - l'editor ridisegna la parte al fotogramma successivo a una modifica: le modifiche rapide, come un tasto tenuto premuto, producono un solo disegno invece di uno per modifica;
 - lettore ed editor disegnano la parte senza il nome a sinistra dei righi, già presente nel titolo: Verovio lo ripete su ogni rigo e sul telefono occupava metà della larghezza, con una sola battuta per rigo;
-- sul telefono, fino a 768 px, le righe del mixer della partitura partono chiuse dietro **Mostra le parti**, mentre le scorciatoie restano visibili: con molte parti lo spartito restava altrimenti in pochi pixel;
-- la prova a larghezza di telefono ha trovato un difetto dell'intestazione dell'applicazione, corretto: il logo, un SVG di 1000 × 1000 ridotto solo in larghezza, copriva con il suo collegamento alla pagina iniziale la parte alta di ogni pagina e ne intercettava i tocchi.
+- sul telefono, fino a 768 px, le righe del mixer della partitura partono chiuse dietro **Mostra le parti**, mentre le scorciatoie restano visibili: con molte parti lo spartito restava altrimenti in pochi pixel.
 
 ## Obiettivo
 
@@ -412,7 +401,7 @@ Disponibile a super amministratore, amministratore e archivista, a schermo inter
 - **Annulla e ripristina** nella sessione, fino a 100 modifiche.
 - **Ascolto** della battuta selezionata o dell'intervallo scelto con Maiusc+clic, senza ritornelli né salti e con il suono della parte.
 
-Le modifiche agiscono sul DOM MusicXML della versione (`src/app/score-editor/`) e producono a ogni salvataggio una nuova versione. Per riconoscere ciò che si seleziona, l'editor assegna un `id` a battute e note: Verovio lo conserva negli elementi disegnati. Accidenti e alterazioni seguono le regole descritte in [Stato di implementazione](#stato-di-implementazione).
+Le modifiche agiscono sul DOM MusicXML della versione (`src/app/score-editor/`) e producono a ogni salvataggio una nuova versione. Per riconoscere ciò che si seleziona, l'editor assegna un `id` a battute e note: Verovio lo conserva negli elementi disegnati. Accidenti e alterazioni seguono le regole descritte nelle [scelte di sviluppo della correzione](#correzione).
 
 ## Modello dati e migrazioni
 
@@ -609,7 +598,7 @@ Il nuovo modulo `taurus-omr` include i testi delle licenze e un riferimento ai s
 - Autorizzazioni, isolamento tenant e visibilità delle parti per `ROLE_USER` e `ROLE_USER_EXTERNAL`.
 - Migrazioni Liquibase e media non rimossi dalla pulizia finché referenziati.
 - Proposta per gli strumenti: normalizzazione del nome, parola chiave più lunga, parole intere, tonalità nel nome (corno in Mib −9, clarinetto piccolo in Lab +8, sax tenore in Do −12), assenza di proposta senza parole chiave.
-- Attività di avvio: compila solo i campi vuoti, non sovrascrive, è ripetibile senza effetti.
+- Migrazione degli strumenti esistenti: compila solo i campi vuoti, non sovrascrive, è ripetibile senza effetti.
 - Importazione iniziale con e senza le colonne di suono e trasposizione.
 - Correzioni: versione derivata, impronta delle pagine ereditata, posizioni delle battute seguite con `measureSources`, file con più parti rifiutati.
 - Segnalazioni: visibilità come per l'ascolto, validazione, limite per utente, chiusura manuale e all'approvazione, notifica, cancellazione con i dati dell'utente.
@@ -692,7 +681,7 @@ Il nuovo modulo `taurus-omr` include i testi delle licenze e un riferimento ai s
 - [ ] Un utente senza privilegi ascolta una versione non verificata e vede «Ascolto non ancora disponibile» sulle parti senza versione utilizzabile.
 - [ ] Il caricamento di un MusicXML con più parti chiede quale importare; un MIDI viene convertito e ascoltato.
 - [ ] Una correzione salvata crea una nuova versione; l'approvazione la marca come approvata senza modificarla.
-- [ ] La partitura suona tutte le parti disponibili, con mixer, **Solo la mia parte** e **Tutto tranne la mia parte**.
+- [ ] La partitura suona tutte le parti disponibili, con mixer, **Solo le mie parti** e **Tutto tranne le mie**.
 - [ ] Ritornelli, volte e salti sono eseguiti correttamente, e l'opzione senza ritornelli li salta.
 - [ ] Le parti di strumenti traspositori suonano in suoni reali, anche in chiave di basso.
 - [ ] Creando lo strumento «Corno in Mib» Taurus propone suono French Horn e trasposizione −9, che l'archivista può provare e confermare.
@@ -702,10 +691,10 @@ Il nuovo modulo `taurus-omr` include i testi delle licenze e un riferimento ai s
 
 ## Piano di implementazione
 
-1. **Ascolto da file caricati** (realizzata): modello dati, funzionalità per tenant, caricamento MusicXML con controlli, versioni e approvazione, scaricamento per MuseScore, campi di strumento, parte e traccia con catalogo di riferimento, proposta, migrazione degli strumenti esistenti e colonne dell'importazione iniziale, lettore della parte e della partitura con mixer, tempo, intervallo e ritornelli.
-2. **Riconoscimento** (realizzata): modulo `taurus-omr`, coda e job con recupero, scelta della versione, notifiche, conversione e caricamento MIDI, eliminazione notturna delle versioni vecchie.
-3. **Correzione** (realizzata): editor con pagina affiancata, segnalazioni d'errore.
-4. **Qualificazione** (in corso): test di accuratezza, misure dei prototipi tecnici e runbook realizzati; restano le prove con parti reali e su telefono.
+1. **Ascolto da file caricati**: modello dati, funzionalità per tenant, caricamento MusicXML con controlli, versioni e approvazione, scaricamento per MuseScore, campi di strumento, parte e traccia con catalogo di riferimento, proposta, migrazione degli strumenti esistenti e colonne dell'importazione iniziale, lettore della parte e della partitura con mixer, tempo, intervallo e ritornelli.
+2. **Riconoscimento**: modulo `taurus-omr`, coda e job con recupero, scelta della versione, notifiche, conversione e caricamento MIDI, eliminazione notturna delle versioni vecchie.
+3. **Correzione**: editor con pagina affiancata, segnalazioni d'errore.
+4. **Qualificazione**: test di accuratezza sul corpus di riferimento, misure dei prototipi tecnici, procedure dei runbook, prove con parti reali e su telefono.
 
 ## Compatibilità e adozione
 
@@ -718,9 +707,9 @@ Il nuovo modulo `taurus-omr` include i testi delle licenze e un riferimento ai s
 
 - Il servizio OMR è facoltativo: senza `SCORE_PLAYBACK_OMR_URL` riconoscimento e caricamento MIDI non vengono offerti. Per pubblicare l'immagine serve il repository `taurus-omr` su Docker Hub, come per backend e frontend.
 
-La fase 2 ha aggiornato anche `AGENTS.md`, i moduli ammessi dal catalogo (`taurus-omr`), i workflow `verify.yml` e `docker-publish.yml`, il [Runbook operativo](runbook-operativo.md) e il [Runbook di test](runbook-test.md).
+Il modulo `taurus-omr` è descritto anche in `AGENTS.md`, è tra i moduli ammessi dal catalogo, è verificato da `verify.yml` e pubblicato da `docker-publish.yml`; le procedure sono nel [Runbook operativo](runbook-operativo.md) e nel [Runbook di test](runbook-test.md).
 
-- La fase 3 aggiunge la tabella `score_error_report` con il changelog `20261018000000_score_error_report.xml` dello schema del tenant; non richiede nuove proprietà di configurazione.
+- La tabella `score_error_report` arriva con il changelog `20261018000000_score_error_report.xml` dello schema del tenant e non richiede proprietà di configurazione.
 
 ## Questioni aperte
 
@@ -728,5 +717,11 @@ La fase 2 ha aggiornato anche `AGENTS.md`, i moduli ammessi dal catalogo (`tauru
 2. **SoundFont specifico per banda**: valutare in futuro un SoundFont gratuito con suoni di flicorni ed euphonium; il salvataggio del suono come banco e programma lo consente senza modifiche al modello dati.
 3. **Prototipi tecnici**: resta da confermare su un telefono reale (`PLY-009`) la memoria usata dal lettore, misurata nella fase 4 in circa 190 MB per il SoundFont e 140 MB per Verovio; se il telefono chiude la scheda si valuterà un SoundFont più leggero.
 
-   Superati nella fase 1: la trasposizione è applicata dal generatore MIDI di Taurus; oltre 16 canali si usano più porte MIDI, che SpessaSynth gestisce con 16 canali ciascuna. Superato nella fase 3: la corrispondenza tra elementi di Verovio e nodi MusicXML è data dagli `id`, che Verovio conserva; MEI non serve. Superati nella fase 4 (vedi [Copertura della fase 4](#copertura-della-fase-4)): una partitura di 30 parti si prepara in meno di mezzo secondo, e l'editor ridisegna una parte di 300 battute in circa 0,2 secondi, unendo in un solo disegno le modifiche che arrivano prima del fotogramma successivo.
+   Risolti con la fase 1: la trasposizione è applicata dal generatore MIDI di Taurus; oltre 16 canali si usano più porte MIDI, che SpessaSynth gestisce con 16 canali ciascuna. Risolto con la fase 3: la corrispondenza tra elementi di Verovio e nodi MusicXML è data dagli `id`, che Verovio conserva; MEI non serve. Risolti con la fase 4 (vedi [Copertura della fase 4](#copertura-della-fase-4)): una partitura di 30 parti si prepara in meno di mezzo secondo, e l'editor ridisegna una parte di 300 battute in circa 0,2 secondi, unendo in un solo disegno le modifiche che arrivano prima del fotogramma successivo.
 4. **Licenza dei modelli di homr**: l'uso resta ammesso finché Taurus non è commerciale.
+
+## Requisiti aperti
+
+- Prova a mano del percorso completo con un tenant di prova, compresi i ruoli utente ed esterno: attivazione della funzionalità, configurazione di uno strumento con **Prova**, caricamento di un MusicXML con più parti, ascolto, correzione e segnalazione (Verifica manuale).
+- Prove `PLY-009` (ascolto su un telefono di fascia media, con la memoria usata dal SoundFont) e `PLY-018` (parti reali della banda: digitali, scansioni e foto) del [Runbook di test](runbook-test.md) (Verifica manuale; Questioni aperte, punto 3).
+- Verifica con un archivista dei valori del catalogo di riferimento (Catalogo di riferimento; Questioni aperte, punto 1).

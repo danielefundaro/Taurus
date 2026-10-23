@@ -107,7 +107,7 @@ Il client può allegare automaticamente solo:
 - versione applicativa pubblica;
 - famiglia del browser e sistema operativo ricavate dalla user agent, senza fingerprint;
 - timestamp client e fuso orario IANA;
-- eventuale correlation ID già restituito da una risposta di errore.
+- eventuale `errorId` già restituito da una risposta di errore, secondo lo [Standard degli errori applicativi](application-errors-standard.md#contratto-della-risposta).
 
 Tenant, autore e data autorevole provengono esclusivamente dal token e dal server. Non vengono acquisiti token, header di autenticazione, contenuto di form, URL completi, indirizzo IP nel corpo applicativo, log del browser o dati di altre entità. Prima dell'invio l'interfaccia mostra all'utente il riepilogo del contesto allegato.
 
@@ -331,11 +331,11 @@ Gli ID utente vengono restituiti solo quando utili al client e non sono usati pe
 
 ### Errori
 
-Gli errori seguono RFC 7807:
+Gli errori seguono lo [Standard degli errori applicativi](application-errors-standard.md): risposta Problem Details con una chiave della nuova area `support`, da aggiungere all'elenco delle aree, al catalogo delle chiavi e ai messaggi del frontend. Gli stati seguono la tabella dello standard:
 
 - `400` per enum, testo, allegato o transizione non validi;
-- `401` per identità o tenant mancanti;
-- `403` per un'azione amministrativa priva del ruolo necessario;
+- `401` per token assente, scaduto o privo dell'identità;
+- `403` per un'azione amministrativa priva del ruolo necessario o per un utente senza tenant;
 - `404` per risorsa inesistente o non visibile;
 - `409` per versione concorrente, idempotency key riutilizzata con payload diverso o stato non compatibile;
 - `413` per file o richiesta multipart oltre limite;
@@ -483,7 +483,7 @@ Metriche senza tag ad alta cardinalità:
 - rifiuti di autorizzazione e rate limit;
 - notifiche prodotte e fallite tramite le metriche outbox esistenti.
 
-Tenant, utente, riferimento e `public_id` non sono label metriche. I log usano un hash corto del riferimento tecnico e il correlation ID HTTP.
+Tenant, utente, riferimento e `public_id` non sono label metriche. I log usano un hash corto del riferimento tecnico e, per gli errori, l'`errorId` della risposta.
 
 ## Strategia di test
 

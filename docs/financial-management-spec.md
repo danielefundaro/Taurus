@@ -19,7 +19,7 @@ La funzionalità deve consentire di:
 - determinare i saldi al 31 dicembre e aprire il successivo esercizio al 1 gennaio riportandoli;
 - mantenere tracciabilità, isolamento tenant e coerenza dello storico gestionale.
 
-PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizzati in OpenSearch perché sono transazionali, sensibili e ricercabili efficacemente tramite query relazionali.
+PostgreSQL è il sistema autorevole. I dati economici sono transazionali e sensibili e si interrogano tramite query relazionali nello schema del tenant.
 
 ## Decisioni approvate
 
@@ -36,9 +36,10 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Ciclo di vita del conto | Archiviazione reversibile; eliminazione logica ammessa soltanto su un conto archiviato e privo di movimenti attivi |
 | Valuta iniziale | EUR, mantenendo un campo valuta ISO 4217 per evoluzioni future |
 | Associazione movimento-evento | Facoltativa in generale, automatica quando il movimento nasce dalla pagina dell'evento |
-| Stati movimento | Nessun ciclo di vita vincolante; ogni movimento resta modificabile |
+| Stati movimento | Nessun ciclo di vita vincolante; ogni movimento resta modificabile, purché conto e categoria indicati siano attivi |
 | Correzione di un movimento | Modifica diretta o eliminazione logica, senza obbligo di storno |
-| Saldo iniziale | Movimento tecnico di apertura |
+| Saldo iniziale | Movimento tecnico di apertura con `initial_balance = true`, che il riporto annuale non modifica |
+| Attivazione | Funzionalità tenant `FINANCE` (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md)) |
 | Categorie | Elenco iniziale predefinito, configurabile da Admin, Tesoriere e Super Admin |
 | Allegati | Supportati ma non obbligatori |
 | Trasferimenti | Due movimenti collegati e creati atomicamente |
@@ -46,7 +47,7 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Esercizio | Dal 1 gennaio al 31 dicembre |
 | Riporto saldi | Saldo finale al 31/12 riportato come apertura al 01/01 |
 | Rettifiche su anni precedenti | Sempre consentite; saldi di apertura successivi ricalcolati automaticamente |
-| Notifiche | In-app per Admin, Super Admin e Tesoriere su ogni operazione economica esplicita; nessuna notifica per letture passive |
+| Notifiche | Per Admin, Super Admin e Tesoriere su ogni operazione economica esplicita, in-app o push secondo le preferenze di notifica; nessuna notifica per letture passive |
 | Affidabilità notifiche | Outbox transazionale tenant-scoped, consegna idempotente con retry e deduplicazione per destinatario |
 
 ## Terminologia
@@ -83,6 +84,8 @@ PostgreSQL è il sistema autorevole. I dati economici non devono essere indicizz
 | Gestire utenti, catalogo e inventario | sì | sì | no | secondo permessi esistenti | no | no |
 
 Admin, Tesoriere e Super Admin hanno pari capacità sul modulo economico. Taurus è uno strumento gestionale di supporto, non un sistema di contabilità formale: qualunque movimento può essere corretto direttamente o eliminato logicamente anche dopo la riconciliazione e anche se appartiene a un anno precedente.
+
+La creazione e la modifica di un movimento richiedono che il conto e la categoria indicati siano attivi. Su un conto o una categoria archiviati `FinanceService.applyMovement` risponde `409` con `finance.account.archived` o `finance.category.archived`. La regola vale anche per i trasferimenti: la creazione richiede entrambi i conti attivi, la modifica il conto indicato. Eliminazione e riconciliazione restano sempre consentite.
 
 ### Isolamento del Tesoriere
 
@@ -187,7 +190,7 @@ Vincoli:
 - la generazione o il ricalcolo dei riporti deve essere atomico e idempotente;
 - lo stato annuale non impedisce mai la modifica dei movimenti.
 
-È utile una tabella `accounting_year_audit` che registri generazione e ricalcolo dei saldi di apertura, autore e istante, senza introdurre blocchi operativi.
+Non esiste una tabella di audit dedicata: generazione e ricalcolo dei riporti aggiornano sull'esercizio `rolled_over_at`, `rolled_over_by`, `last_recalculated_at` e i campi di audit, senza introdurre blocchi operativi.
 
 ### Conto finanziario: `financial_account`
 
@@ -214,7 +217,7 @@ Regole:
 - un conto archiviato e senza movimenti attivi può essere eliminato, perché non esiste storico consultabile da preservare;
 - l'eliminazione passa sempre per l'archiviazione: un conto attivo non è eliminabile finché resta operativo;
 - il saldo non è memorizzato come campo modificabile;
-- il saldo iniziale è rappresentato da un movimento tecnico di apertura;
+- il saldo iniziale è un movimento tecnico di apertura (`OPENING`) con `initial_balance = true`, creato con il conto o dall'onboarding;
 - il saldo corrente è calcolato dalle scritture effettive dell'esercizio corrente, inclusa l'apertura.
 
 #### Archiviazione, riattivazione ed eliminazione
@@ -268,7 +271,7 @@ Categorie iniziali e relativa direzione:
 
 Nessuna categoria iniziale usa `BOTH`. Admin, Tesoriere e Super Admin possono comunque creare categorie bidirezionali quando la stessa causale genera realmente sia entrate sia uscite, per esempio cauzioni o anticipi. Per i rimborsi si mantengono due categorie distinte per rendere più chiari filtri e rendiconti.
 
-Le categorie usate non vengono eliminate fisicamente ma archiviate. Il nome può essere modificato; lo storico delle modifiche rimane nei campi di audit.
+Le categorie usate non vengono eliminate fisicamente ma archiviate. Il nome può essere modificato; lo storico delle modifiche rimane nei campi di audit. Il nome è univoco tra le categorie attive, senza distinzione tra maiuscole e minuscole: un duplicato risponde `409` con `finance.category.nameExists`.
 
 ### Movimento: `financial_movement`
 
@@ -295,7 +298,8 @@ Campi proposti:
 - `reconciled BOOLEAN` con default `FALSE`;
 - `reconciled_at TIMESTAMPTZ` e `reconciled_by VARCHAR(255)`;
 - `reconciliation_reference VARCHAR(255)`;
-- `request_key UUID`, facoltativa e univoca, per rendere idempotenti le creazioni ripetute dal client.
+- `request_key UUID`, facoltativa e univoca: un `POST` di movimento con una chiave già usata restituisce il movimento esistente; `POST /api/finance/transfers` riceve la chiave ma non la usa, e il frontend non la invia;
+- `initial_balance BOOLEAN` con default `FALSE`: vale `TRUE` per il saldo iniziale di un conto, che il riporto annuale non ricalcola.
 
 Vincoli e indici principali:
 
@@ -310,6 +314,7 @@ Vincoli e indici principali:
 - indice su `(category_id, booking_date)`;
 - indice univoco su `request_key` quando valorizzata;
 - indice su `transfer_group`;
+- indice univoco parziale `uq_financial_opening` su `(accounting_year_id, account_id)` per le aperture non eliminate.
 
 Il campo `event_name_snapshot` preserva la denominazione mostrata nei rendiconti anche se l'evento viene rinominato o cancellato logicamente in seguito.
 
@@ -328,12 +333,11 @@ Nome originale, MIME type, dimensione, digest SHA-256 e chiave relativa dello st
 
 Gli allegati sono sempre facoltativi e possono essere più di uno per movimento.
 
-Politica iniziale consigliata:
+Politica applicata da `FinanceService.addAttachment`:
 
-- formati ammessi: PDF, JPEG e PNG;
-- massimo 10 MB per file;
-- massimo 20 allegati per movimento;
-- verifica server-side del tipo reale del contenuto;
+- formati ammessi: PDF, JPEG e PNG, verificati sul tipo MIME dichiarato dal client (altrimenti `415` `finance.attachment.unsupported`);
+- massimo 10 MB per file (`413` `finance.attachment.tooLarge`);
+- massimo 20 allegati per movimento (`409` `finance.attachment.limit`);
 - digest SHA-256 obbligatorio;
 - storage filesystem separato per tenant e gestito tramite `media_asset`;
 - nessun contenuto binario nel database;
@@ -378,7 +382,7 @@ Restano soltanto le validazioni necessarie al corretto funzionamento del softwar
 - riferimenti appartenenti allo stesso tenant;
 - coerenza delle due righe che rappresentano un trasferimento.
 
-Le normali informazioni `edit_by`, `edit_date` ed `entity_version` consentono di sapere chi ha effettuato l'ultima modifica e di evitare sovrascritture concorrenti involontarie, senza impedire la correzione.
+Le normali informazioni `edit_by` ed `edit_date` indicano chi ha effettuato l'ultima modifica. `entity_version` è gestito con `@Version` ed esposto nei DTO come `version`, ma le richieste di modifica non lo inviano: due correzioni concorrenti dello stesso movimento dal client si sovrascrivono e vale l'ultima.
 
 ## Trasferimenti tra conti
 
@@ -399,7 +403,7 @@ Regole:
 - l'eliminazione del trasferimento elimina logicamente entrambe le scritture;
 - il trasferimento non compare nei totali consolidati entrate/uscite, ma compare nei registri dei singoli conti.
 
-Non è imposto il blocco del saldo negativo, perché un conto bancario può essere tecnicamente scoperto. L'interfaccia deve tuttavia mostrare un avviso quando il salvataggio di un'uscita porta il conto sotto zero.
+Non è imposto il blocco del saldo negativo, perché un conto bancario può essere tecnicamente scoperto. L'interfaccia evidenzia saldi e risultati negativi, ma non avvisa quando il salvataggio di un'uscita porta il conto sotto zero.
 
 ## Preventivo e consuntivo degli eventi
 
@@ -477,14 +481,15 @@ L'apertura contribuisce al saldo del conto ma non è conteggiata come ricavo o c
 
 ### Automazione del cambio anno
 
-Un job idempotente eseguito al cambio anno deve:
+`FinanceRolloverScheduler` esegue ogni giorno (cron `application.finance.rollover-cron`, default `0 10 0 * * *`, zona `application.finance.rollover-zone`, default `Europe/Rome`) il riporto dell'anno precedente sui tenant con la funzionalità `FINANCE` attiva (`findFinanceEnabledTenantCodes`). Il riporto (`FinanceService.rolloverForActor`):
 
-- creare l'esercizio successivo se non esiste;
-- calcolare i saldi al 31/12;
-- creare una sola apertura per coppia esercizio/conto;
-- aggiornare l'apertura se il saldo precedente cambia;
-- registrare data e risultato dell'ultimo ricalcolo;
-- segnalare eventuali trasferimenti incoerenti senza impedire le correzioni.
+- crea l'esercizio successivo se non esiste;
+- calcola i saldi al 31/12;
+- crea o aggiorna una sola apertura per coppia esercizio/conto, eliminando logicamente l'apertura di un saldo nullo;
+- lascia invariato il saldo iniziale di un conto aperto nell'anno successivo (`initial_balance = true`);
+- registra `rolled_over_at`, `rolled_over_by` e `last_recalculated_at`.
+
+Su un esercizio già `ROLLED_OVER` il riporto non fa nulla: le aperture restano allineate grazie al ricalcolo eseguito a ogni modifica (vedi sotto). Un errore su un tenant viene registrato nel log senza fermare gli altri.
 
 Lo stato `ROLLED_OVER` indica soltanto che il riporto è stato generato almeno una volta. Non blocca inserimento, modifica o eliminazione dei movimenti.
 
@@ -498,15 +503,14 @@ Non esiste una procedura obbligatoria di riapertura. Se Admin, Tesoriere o Super
 4. propagare il ricalcolo alle aperture degli anni ancora successivi, se presenti;
 5. aggiornare dashboard e rendiconti derivati.
 
-Il ricalcolo può essere immediato nella stessa transazione per la prima versione. Se in futuro il volume dei dati lo rendesse costoso, potrà essere eseguito tramite job affidabile, mostrando temporaneamente che i saldi sono in aggiornamento.
+Il ricalcolo è immediato, nella stessa transazione della modifica: creazione, modifica ed eliminazione di movimenti e trasferimenti e creazione di un conto con saldo iniziale ricalcolano le aperture di tutti gli esercizi successivi già presenti. Le aperture con `initial_balance = true` non vengono toccate. Se il volume dei dati rendesse costoso il ricalcolo, potrà essere eseguito tramite job affidabile, mostrando temporaneamente che i saldi sono in aggiornamento.
 
 ### Verifica annuale facoltativa
 
-L'interfaccia può offrire un riepilogo di fine anno con:
+Il riepilogo annuale (`GET /api/finance/years/{year}/summary`, scheda Esercizi) mostra:
 
 - saldi per conto;
-- movimenti non riconciliati;
-- trasferimenti incoerenti;
+- movimenti non riconciliati, con numero e importo;
 - posizioni evento ancora aperte;
 - data dell'ultimo ricalcolo.
 
@@ -520,6 +524,8 @@ I report annuali usano soltanto:
 - movimenti attivi e non cancellati dello stesso anno.
 
 Non devono sommare tutte le aperture di tutti gli anni, altrimenti il riporto verrebbe contato più volte. Per il saldo storico a una data si usa l'apertura dell'esercizio contenente la data più i movimenti successivi dello stesso esercizio.
+
+Estratto conto e rendiconto annuale calcolano il saldo d'apertura del periodo come saldo al giorno precedente più i saldi iniziali (`initial_balance = true`) dei conti aperti nel periodo. Le righe del periodo non includono le aperture.
 
 I compensi e i costi di eventi non ancora saldati non vengono chiusi artificialmente al 31/12: restano posizioni economiche aperte e possono generare movimenti nell'anno successivo.
 
@@ -535,9 +541,11 @@ ROLE_ADMIN
 ROLE_TREASURER
 ```
 
+`FinanceResource` è annotata con `@RequiresTenantFeature(TenantFeature.FINANCE)`: con la funzionalità spenta per il tenant tutte le API economiche rispondono `403`.
+
 ### Conti
 
-- `GET /api/finance/accounts`;
+- `GET /api/finance/accounts`, con `includeArchived=true` per includere i conti archiviati (default `false`);
 - `POST /api/finance/accounts`;
 - `GET /api/finance/accounts/{id}`;
 - `PUT /api/finance/accounts/{id}`;
@@ -551,7 +559,7 @@ La rappresentazione del conto espone `movementCount`, il numero di movimenti att
 
 ### Categorie
 
-- `GET /api/finance/categories`;
+- `GET /api/finance/categories`, con `includeArchived=true` per includere le categorie archiviate (default `false`);
 - `POST /api/finance/categories`;
 - `PUT /api/finance/categories/{id}`;
 - `PATCH /api/finance/categories/{id}/archive`, imposta `active = false`; la categoria resta consultabile e viene riattivata salvandola di nuovo con `PUT`.
@@ -561,23 +569,24 @@ La rappresentazione del conto espone `movementCount`, il numero di movimenti att
 - `GET /api/finance/movements`, paginato e filtrabile;
 - `POST /api/finance/movements`, crea un movimento attivo;
 - `GET /api/finance/movements/{id}`;
-- `PUT /api/finance/movements/{id}`, corregge qualsiasi movimento;
+- `PUT /api/finance/movements/{id}`, corregge qualsiasi movimento con conto e categoria attivi; su un trasferimento aggiorna entrambe le scritture;
 - `DELETE /api/finance/movements/{id}`, cancellazione logica sempre consentita;
 - `PATCH /api/finance/movements/{id}/reconciliation`, imposta o rimuove la riconciliazione;
 - `POST /api/finance/transfers`.
 
-Filtri minimi:
+Creazione e modifica usano lo stesso `MovementRequest`.
 
-- intervallo data contabile;
-- esercizio;
-- conto;
-- direzione;
-- natura;
-- riconciliato/non riconciliato;
-- categoria;
-- evento;
-- controparte;
-- testo libero su descrizione e riferimento.
+Filtri disponibili su `GET /api/finance/movements`:
+
+- intervallo data contabile (`from`, `to`);
+- conto (`accountId`);
+- categoria (`categoryId`);
+- evento (`eventId`);
+- direzione (`direction`);
+- riconciliato/non riconciliato (`reconciled`);
+- testo libero (`query`) su descrizione, controparte e riferimento documento.
+
+L'interfaccia espone periodo, conto, direzione, categoria, riconciliazione e testo libero.
 
 ### Allegati
 
@@ -590,8 +599,8 @@ L'upload deve fallire atomicamente: un file non valido non deve lasciare metadat
 
 ### Eventi economici
 
-- `GET /api/finance/events`, con filtri economici;
-- `GET /api/finance/events/{id}`;
+- `GET /api/finance/events`, paginato e ordinabile, su tutti gli eventi non eliminati, senza filtri economici;
+- `GET /api/finance/events/{id}`, riepilogo economico con l'elenco dei movimenti;
 - `PATCH /api/finance/events/{id}/budget`, modifica soltanto compenso e costi previsti;
 - `GET /api/finance/events/{id}/movements`;
 - `POST /api/finance/events/{id}/movements`, crea un movimento con evento già associato.
@@ -602,8 +611,8 @@ Il DTO economico dell'evento deve esporre solo i dati operativi necessari alla l
 
 - `GET /api/finance/years`;
 - `GET /api/finance/years/{year}`;
-- `POST /api/finance/years/{year}/rollover`, genera o aggiorna il riporto all'anno successivo;
-- `POST /api/finance/years/{year}/recalculate`, ricalcola saldi e aperture successive;
+- `POST /api/finance/years/{year}/rollover`, genera il riporto all'anno successivo; su un esercizio già `ROLLED_OVER` restituisce l'esercizio senza modifiche;
+- `POST /api/finance/years/{year}/recalculate`, ricalcola le aperture degli esercizi successivi e aggiorna `last_recalculated_at`;
 - `GET /api/finance/years/{year}/summary`.
 
 ### Dashboard e rendiconti
@@ -634,7 +643,7 @@ La sicurezza Angular nasconde pagine e controlli, ma non sostituisce mai l'autor
 
 Ogni service economico deve essere eseguito nel tenant ricavato dal token. Gli identificativi ricevuti dal client devono essere risolti nello schema corrente e non accettare riferimenti provenienti da altri tenant.
 
-I download degli allegati devono verificare nuovamente movimento, tenant e autorità. Non devono esporre direttamente il percorso fisico dello storage.
+I download degli allegati verificano tenant e autorità e non espongono il percorso fisico dello storage. L'allegato è cercato per identificativo tra quelli attivi, senza ricontrollare il movimento proprietario: l'allegato di un movimento eliminato logicamente resta scaricabile.
 
 Le operazioni che modificano più dati devono essere transazionali:
 
@@ -643,30 +652,30 @@ Le operazioni che modificano più dati devono essere transazionali:
 - generazione o aggiornamento delle aperture annuali;
 - associazione o rimozione coordinata degli allegati.
 
-## Backend: struttura consigliata
+## Backend: struttura
 
 ### Domain ed enum
 
-Nuove classi suggerite:
+Classi in `domain/finance`:
 
 ```text
-domain/AccountingYear.java
-domain/AccountingYearAudit.java
-domain/FinancialAccount.java
-domain/FinancialCategory.java
-domain/FinancialMovement.java
-domain/FinancialMovementAttachment.java
-domain/enumeration/AccountingYearStatus.java
-domain/enumeration/FinancialAccountType.java
-domain/enumeration/FinancialDirection.java
-domain/enumeration/FinancialMovementNature.java
+domain/finance/AccountingYear.java
+domain/finance/AccountingYearStatus.java
+domain/finance/FinancialAccount.java
+domain/finance/FinancialAccountType.java
+domain/finance/FinancialCategory.java
+domain/finance/FinancialCategoryDirection.java
+domain/finance/FinancialDirection.java
+domain/finance/FinancialMovement.java
+domain/finance/FinancialMovementAttachment.java
+domain/finance/FinancialMovementNature.java
 ```
 
-Le entità possono riutilizzare i campi audit comuni. Il servizio movimenti offre un CRUD esplicito per applicare validazioni, ricalcoli e isolamento tenant senza introdurre transizioni di stato vincolanti.
+Le entità estendono `TenantAuditedEntity`, che fornisce i campi audit comuni e `@Version`. Il servizio offre un CRUD esplicito per applicare validazioni, ricalcoli e isolamento tenant senza introdurre transizioni di stato vincolanti.
 
 ### Repository
 
-Repository distinti per ogni aggregato, con query dedicate per:
+Repository distinti per ogni aggregato in `repository/finance` (`AccountingYearRepository`, `FinancialAccountRepository`, `FinancialCategoryRepository`, `FinancialMovementRepository`, `FinancialMovementAttachmentRepository`), con query dedicate per:
 
 - saldi per conto e data;
 - somme per evento;
@@ -676,38 +685,31 @@ Repository distinti per ogni aggregato, con query dedicate per:
 - ricalcolo dei saldi e dei riporti annuali;
 - verifica trasferimenti e aperture;
 - conteggio dei movimenti attivi collegati a un conto, per stabilire se il conto è eliminabile;
-- recupero allegati sempre attraverso il movimento proprietario.
+- riepilogo dei movimenti non riconciliati per la Home (`FinanceUnreconciledProjection`).
+
+Gli allegati sono recuperati per identificativo (`findByIdAndDeletedFalseAndActiveTrue`) o per movimento.
 
 ### Service
 
-Servizi suggeriti:
+Servizi in `service/impl`:
 
 ```text
-AccountingYearService
-FinancialAccountService
-FinancialCategoryService
-FinancialMovementService
-FinancialTransferService
-FinancialAttachmentService
-FinancialEventService
-FinancialReportService
+FinanceService               conti, categorie, movimenti, trasferimenti, allegati, eventi, esercizi e dashboard
+FinanceReportService         esportazioni CSV, XLSX e PDF
+FinanceRolloverScheduler     riporto annuale automatico
+FinanceNoticeDataService     snapshot per le notifiche
 ```
 
-Il servizio movimenti espone normali operazioni CRUD con validazione. La riconciliazione è un aggiornamento esplicito ma reversibile; non esistono transizioni che rendono il movimento immutabile.
+`FinanceService` espone normali operazioni CRUD con validazione. La riconciliazione è un aggiornamento esplicito ma reversibile; non esistono transizioni che rendono il movimento immutabile.
+
+In Home, `FinanceOperationProvider` (`service/dashboard`) mostra ad Admin, Super Admin e Tesoriere l'operazione `FINANCE_MOVEMENTS_UNRECONCILED`: numero e importo dei movimenti ordinari non riconciliati dell'anno corrente, con severità `WARNING` quando il più vecchio supera `application.dashboard.finance-unreconciled-warning-days`, e link a `/finance?section=movements&reconciled=false`.
 
 ### DTO
 
-Separare i DTO di comando dai DTO di lettura:
+I DTO sono record in `service/dto/finance/FinanceDtos.java`. I DTO di comando sono separati da quelli di lettura:
 
-- `CreateFinancialMovementDTO`;
-- `UpdateFinancialMovementDTO`;
-- `UpdateMovementReconciliationDTO`;
-- `CreateTransferDTO`;
-- `FinancialMovementDTO`;
-- `FinancialAccountDTO`;
-- `FinancialEventSummaryDTO`;
-- `RolloverAccountingYearDTO`;
-- `RecalculateAccountingYearDTO`.
+- comando: `AccountRequest`, `CategoryRequest`, `MovementRequest` (unico per creazione e modifica), `ReconciliationRequest`, `TransferRequest`, `EventBudgetRequest`;
+- lettura: `AccountDTO`, `CategoryDTO`, `MovementDTO`, `TransferDTO`, `AttachmentDTO`, `EventSummaryDTO`, `YearDTO`, `YearSummaryDTO`, `AccountStatementDTO`, `DashboardDTO`.
 
 La separazione impedisce overposting e distingue la normale correzione del movimento dall'aggiornamento rapido della riconciliazione.
 
@@ -715,10 +717,10 @@ La separazione impedisce overposting e distingue la normale correzione del movim
 
 - Bean Validation per campi obbligatori e formati;
 - vincoli PostgreSQL come seconda linea di difesa;
-- `@Version` per modifiche concorrenti di movimenti e conti;
-- ricalcolo idempotente degli esercizi senza bloccare la correzione dello storico;
-- lock o vincolo idempotente durante trasferimenti e aperture;
-- `request_key` per evitare doppie scritture dovute al retry HTTP;
+- `@Version` sulle entità, senza versione inviata dal client;
+- ricalcolo degli esercizi senza bloccare la correzione dello storico;
+- indice univoco `uq_financial_opening` contro le aperture duplicate;
+- `request_key` contro le doppie creazioni di movimenti dovute al retry HTTP;
 - calcoli monetari esclusivamente con `BigDecimal` e arrotondamento esplicito.
 
 ## Frontend
@@ -727,36 +729,31 @@ La separazione impedisce overposting e distingue la normale correzione del movim
 
 Aggiungere `RoleEnums.TREASURER = 'ROLE_TREASURER'` e l'etichetta `Tesoriere`.
 
-Per il Tesoriere sono visibili almeno:
+Per il Tesoriere sono visibili:
 
 - Home/Dashboard;
-- Calendario in lettura;
 - Economia;
 - Profilo.
 
-Non sono visibili gestione utenti, tenant, catalogo o inventario amministrativo, salvo eventuali permessi derivanti da un diverso ruolo selezionato in una nuova sessione.
+Non sono visibili calendario, gestione utenti, tenant, catalogo o inventario amministrativo, salvo eventuali permessi derivanti da un diverso ruolo selezionato in una nuova sessione.
 
-Il servizio calendario esistente instrada i ruoli non riconosciuti verso gli endpoint amministrativi. Prima di aggiungere il ruolo alle route del calendario è quindi necessario introdurre un percorso esplicito di sola lettura/economico per il Tesoriere; non si deve lasciare che `ROLE_TREASURER` ricada nel ramo amministrativo predefinito.
+Il Tesoriere non vede l'elenco del calendario né la relativa voce di menu. La rotta padre `calendar` lo ammette soltanto per aprire il dettaglio evento `/calendar/:id`, per esempio da una notifica. Il dettaglio carica i dati tramite `GET /api/finance/events/{id}` e non usa gli endpoint amministrativi del calendario.
 
 ### Sezione Economia
 
-Voce menu principale `Economia` con pagine:
+Voce menu principale `Economia`, con un riepilogo in testa, le azioni `Trasferimento` e `Nuovo movimento` e le schede Movimenti, Conti, Categorie, Eventi ed Esercizi. I rendiconti si esportano dalle schede che li riguardano.
 
-1. **Dashboard**
-   - saldo totale;
-   - saldo per cassa e conto corrente;
-   - entrate e uscite del periodo;
-   - posizioni evento da incassare/pagare;
-   - movimenti da riconciliare;
-   - stato dell'ultimo riporto annuale.
+1. **Riepilogo**
+   - disponibilità complessiva dei soli conti attivi;
+   - entrate, uscite e risultato dell'anno corrente;
+   - numero dei movimenti da verificare (non riconciliati).
 
 2. **Movimenti**
-   - tabella paginata;
-   - filtri completi;
-   - creazione movimento;
+   - tabella paginata e ordinabile;
+   - filtri per periodo, conto, direzione, categoria, riconciliazione e testo libero;
    - creazione, correzione, cancellazione e riconciliazione facoltativa;
    - gestione allegati;
-   - esportazione del risultato filtrato.
+   - esportazione del registro cassa per periodo, conto e categoria.
 
 3. **Conti**
    - elenco casse e conti correnti;
@@ -769,39 +766,35 @@ Voce menu principale `Economia` con pagine:
 4. **Categorie**
    - elenco configurabile;
    - direzione consentita;
-   - ordinamento e archiviazione.
+   - archiviazione;
+   - esportazione del riepilogo per categoria.
+
+   L'ordine segue `display_order` e il nome; il form non permette di modificarlo.
 
 5. **Eventi economici**
-   - elenco eventi con preventivo, consuntivo e residui;
-   - filtri per stato economico;
-   - dettaglio movimenti;
-   - azioni `Registra incasso` e `Registra spesa`.
+   - elenco eventi paginato con preventivo, consuntivo, residui e stato economico;
+   - modifica del preventivo;
+   - esportazione del rendiconto per evento.
 
-6. **Rendiconti**
-   - registro cassa;
-   - estratto conto interno;
-   - rendiconto mensile/annuale;
-   - risultato per evento;
-   - riepilogo per categoria.
+6. **Rendiconti**, esportati dalle schede:
+   - registro cassa (Movimenti);
+   - estratto conto interno (Conti);
+   - rendiconto annuale (Esercizi);
+   - risultato per evento (Eventi);
+   - riepilogo per categoria (Categorie).
 
 7. **Esercizi**
    - riepilogo annuale;
-   - anomalie informative;
-   - generazione e ricalcolo dei riporti;
+   - azione `Aggiorna riporto all’anno corrente` e ricalcolo dei riporti per esercizio;
    - data dell'ultimo aggiornamento delle aperture.
 
 ### Pagina evento
 
-Per Admin, Tesoriere e Super Admin mostrare una scheda economica con:
+Con la funzionalità `FINANCE` attiva, per Admin, Tesoriere e Super Admin il dettaglio evento mostra la sezione **Consuntivo economico** con:
 
-- compenso previsto;
-- costi previsti;
-- margine previsto;
 - incassato e pagato;
-- residui;
-- risultato effettivo;
-- elenco movimenti;
-- azioni rapide per incasso e spesa.
+- residui da incassare e da pagare;
+- azione `Registra movimento`, che apre Economia con l'evento preimpostato.
 
 L'Admin continua ad avere tutti i normali controlli dell'evento. Il Tesoriere usa componenti e chiamate economiche dedicate e non riceve controlli operativi editabili.
 
@@ -822,7 +815,7 @@ Campi minimi:
 - note;
 - allegati facoltativi.
 
-Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema propone direzione e categoria coerenti con l'azione scelta.
+Quando il form viene aperto da un evento, l'evento è preimpostato. Direzione e categoria restano da scegliere.
 
 ### Esperienza utente nella gestione
 
@@ -831,9 +824,6 @@ Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema p
 - conferma esplicita prima dell'eliminazione, indicando che il movimento non potrà essere ripristinato;
 - conferma prima della cancellazione logica;
 - controllo facoltativo `Riconciliato` che può essere attivato o rimosso;
-- warning per saldo negativo;
-- indicazione quando una modifica storica comporta il ricalcolo delle aperture successive;
-- indicatori per allegati mancanti senza considerarli errori;
 - sulla riga del conto l'azione di archiviazione è sostituita da `Riattiva` quando il conto è archiviato;
 - su un conto archiviato l'azione `Modifica` non è proposta: i dati di un conto non operativo si aggiornano dopo averlo riattivato;
 - l'azione `Elimina` compare soltanto su un conto archiviato e senza movimenti attivi, con conferma esplicita che indica l'irreversibilità; su un conto attivo non è proposta, perché l'eliminazione richiede prima l'archiviazione.
@@ -842,26 +832,30 @@ Quando il form viene aperto da un evento, l'evento è preimpostato. Il sistema p
 
 ### Registro cassa
 
+Elenco dei movimenti filtrati per periodo e, facoltativamente, conto, categoria ed evento, con data, conto, direzione, natura, categoria, evento, descrizione, controparte, riferimento documento, importo, valuta e riconciliazione. Non riporta saldi.
+
+### Estratto conto
+
 Per uno specifico conto e intervallo:
 
-- saldo iniziale;
-- movimenti ordinati per data e identificativo;
+- saldo iniziale del periodo, comprensivo del saldo iniziale di un conto aperto nel periodo;
+- movimenti ordinati per data e identificativo, senza aperture;
 - entrate, uscite e saldo progressivo;
-- saldo finale;
-- riferimenti a evento, categoria e documento.
+- saldo finale.
 
 ### Rendiconto per evento
 
-- dati identificativi evento;
-- preventivo entrate e costi;
-- movimenti effettivi;
+Una riga per evento del periodo o con movimenti nel periodo:
+
+- evento e data;
+- compenso e costi previsti, margine previsto;
+- incassato, pagato e risultato effettivo;
 - residui;
-- risultato previsto ed effettivo;
-- eventuali scostamenti.
+- stato economico.
 
 ### Rendiconto annuale
 
-- saldi iniziali e finali per conto;
+- saldi iniziali e finali per conto, con i saldi iniziali dei conti aperti nell'anno;
 - totale entrate e uscite ordinarie;
 - trasferimenti separati;
 - correzioni ed eliminazioni già riflesse nei totali correnti;
@@ -888,13 +882,11 @@ Gli eventi esistenti con compenso o costi compariranno subito nell'elenco econom
 
 ### Saldi iniziali
 
-Al primo avvio del modulo, per ciascun conto creato l'utente inserisce:
+Alla creazione di un conto l'utente può indicare un saldo iniziale; il frontend invia anche la data di riferimento (`initialBalanceDate`, default la data odierna).
 
-- data di riferimento;
-- saldo iniziale;
-- eventuale descrizione e allegato.
+Con un saldo diverso da zero il backend crea un movimento tecnico `OPENING` con `initial_balance = true` e descrizione "Saldo iniziale", poi ricalcola le aperture degli anni successivi. Lo stesso contrassegno vale per i saldi d'apertura importati dall'onboarding. Il riporto annuale (`recalculateOpening`) non modifica queste aperture. Il saldo iniziale può essere corretto o eliminato come gli altri movimenti. Non esiste un campo saldo iniziale separato sul conto.
 
-Il backend crea un movimento tecnico `OPENING`. Anche questo valore può essere corretto attraverso il normale flusso gestionale, pur mantenendo il ricalcolo automatico come modalità consigliata. Non deve esistere un campo saldo iniziale separato sul conto.
+La migrazione `20261022000000_financial_initial_balance.xml` aggiunge la colonna e la valorizza per le aperture esistenti con descrizione esattamente "Saldo iniziale".
 
 ### Rollback
 
@@ -910,9 +902,9 @@ Ogni operazione economica esplicita genera una notifica interna destinata agli u
 - `ROLE_SUPER_ADMIN`;
 - `ROLE_TREASURER`.
 
-Il destinatario non viene escluso quando coincide con l'autore dell'operazione. Un utente che possiede più ruoli riceve una sola notifica. Le notifiche economiche sono esclusivamente in-app: non generano e-mail o notifiche push.
+Il destinatario non viene escluso quando coincide con l'autore dell'operazione. Un utente che possiede più ruoli riceve una sola notifica. Le notifiche economiche (`publishFinance`, sorgente `FINANCE`) seguono le preferenze di notifica: `NotificationPreferenceResolver` decide per ciascun destinatario se creare la notifica in-app e se inviarla in push, e `NotificationDispatcher` applica la decisione. Non generano e-mail.
 
-Sono notificate creazione, modifica, riattivazione e archiviazione di conti e categorie, oltre all'eliminazione dei conti, che le categorie non prevedono; registrazione, modifica, rimozione e riconciliazione dei movimenti; registrazione, modifica e rimozione dei trasferimenti; aggiunta, download e rimozione degli allegati; aggiornamento del preventivo evento; riporto e ricalcolo annuale; esportazione dei rendiconti.
+Sono notificate creazione, modifica, riattivazione e archiviazione di conti e categorie, oltre all'eliminazione dei conti, che le categorie non prevedono; registrazione, modifica, rimozione e riconciliazione dei movimenti; registrazione, modifica e rimozione dei trasferimenti; aggiunta, download e rimozione degli allegati; aggiornamento del preventivo evento tramite `PATCH /api/finance/events/{id}/budget` (`EVENT_BUDGET_UPDATED`; la modifica di compenso e costi dal generico `PUT` dell'evento non la genera); riporto e ricalcolo annuale; esportazione dei rendiconti.
 
 Le consultazioni passive, i calcoli automatici eseguiti come conseguenza di un'altra operazione e le richieste già elaborate tramite chiave idempotente non generano notifiche aggiuntive. Un trasferimento produce un solo evento informativo, non uno per ciascuna scrittura collegata.
 
@@ -955,95 +947,13 @@ Taurus è uno strumento gestionale di supporto e non sostituisce la contabilità
 
 ## Osservabilità
 
-Registrare log applicativi strutturati per:
-
-- movimento creato, modificato, eliminato o riconciliato;
-- trasferimento creato o fallito;
-- allegato caricato o invalidato;
-- esercizio creato o riportato all'anno successivo;
-- apertura annuale generata o ricalcolata;
-- errore di quadratura;
-- tentativo di accesso non autorizzato.
+Il modulo non produce log strutturati né metriche dedicate. `FinanceRolloverScheduler` registra l'errore del riporto automatico per tenant.
 
 I log non devono contenere file allegati, token, IBAN completi o note potenzialmente sensibili. Per l'IBAN usare una versione mascherata.
 
-Metriche utili:
-
-- durata dei report;
-- numero di movimenti attivi, eliminati e riconciliati;
-- fallimenti upload;
-- fallimenti nel ricalcolo dei riporti;
-- movimenti non riconciliati;
-- spazio storage allegati per tenant.
-
-## Piano di implementazione
-
-### Fase 1 - Ruolo e sicurezza
-
-- aggiungere `ROLE_TREASURER` a backend, frontend e Keycloak;
-- provisioning idempotente sui realm esistenti;
-- aggiornare gestione utenti e selezione ruolo;
-- proteggere esplicitamente `/api/finance/**`;
-- aggiungere test autorizzativi per tutti i ruoli.
-
-### Fase 2 - Schema e servizi fondamentali
-
-- migration Liquibase tenant;
-- esercizi, conti e categorie;
-- CRUD completo dei movimenti;
-- correzione ed eliminazione logica con ricalcolo saldi;
-- audit e concorrenza ottimistica.
-
-### Fase 3 - Operazioni gestionali
-
-- riconciliazione facoltativa e reversibile;
-- trasferimenti atomici;
-- idempotenza;
-- gestione allegati.
-
-### Fase 4 - Integrazione eventi
-
-- endpoint economici dedicati;
-- riepilogo preventivo/consuntivo;
-- filtri economici;
-- azioni rapide incasso/spesa;
-- aggiornamento pagina evento per Admin, Tesoriere e Super Admin.
-
-### Fase 5 - Frontend Economia
-
-- menu e route;
-- dashboard;
-- conti, categorie e movimenti;
-- eventi economici;
-- esercizi e riporti annuali;
-- gestione allegati.
-
-### Fase 6 - Rendiconti
-
-- registro cassa e conto;
-- rendiconto eventi e categorie;
-- rendiconto annuale;
-- esportazioni CSV/XLSX/PDF.
-
-### Fase 7 - Riporto annuale
-
-- job cambio anno idempotente;
-- riepilogo di fine anno;
-- segnalazioni informative di incoerenza;
-- generazione e aggiornamento delle aperture;
-- propagazione automatica delle correzioni storiche.
-
-### Fase 8 - Hardening e rilascio
-
-- test end-to-end;
-- test multi-tenant;
-- test concorrenza e retry;
-- verifica storage;
-- backup e smoke test staging;
-- monitoraggio post-rilascio.
-- verifica outbox, retry, deduplicazione e navigazione delle notifiche economiche.
-
 ## Strategia di test
+
+Esistono unit test per `FinanceService`, `FinanceReportService`, `FinanceRolloverScheduler` e per `finance.service.ts`; le altre verifiche elencate qui sono tra i requisiti aperti.
 
 ### Unit test backend
 
@@ -1111,12 +1021,13 @@ Metriche utili:
 - il Tesoriere non acquisisce gestione utenti, catalogo, inventario o modifica operativa degli eventi;
 - nessuna API economica è accessibile agli altri ruoli;
 - ogni conto mostra un saldo riproducibile dai movimenti;
+- il saldo iniziale di un conto non viene modificato dal riporto annuale e rientra nel saldo d'apertura di estratto conto e rendiconto annuale;
 - ogni movimento attivo influenza immediatamente i saldi;
 - ogni movimento può essere modificato o cancellato logicamente;
 - un movimento cancellato logicamente non può essere ripristinato dall'applicazione e non partecipa ai calcoli;
 - una correzione aggiorna direttamente il movimento senza richiedere uno storno;
 - un trasferimento genera sempre due scritture coerenti oppure nessuna;
-- gli allegati sono facoltativi, protetti per tenant e verificati server-side;
+- gli allegati sono facoltativi, protetti per tenant e verificati server-side su tipo dichiarato, dimensione e numero;
 - preventivo e consuntivo evento rimangono separati;
 - ogni evento espone un solo stato economico, calcolato secondo la precedenza approvata;
 - un movimento creato dall'evento conserva automaticamente il collegamento;
@@ -1127,15 +1038,15 @@ Metriche utili:
 - una modifica storica ricalcola automaticamente tutti i riporti successivi interessati;
 - nessun dato economico attraversa il confine dello schema tenant;
 - CSV/XLSX e PDF restituiscono gli stessi totali delle API e della dashboard.
-- ogni operazione economica esplicita genera una sola notifica per ciascun Admin, Super Admin e Tesoriere;
+- ogni operazione economica esplicita genera una sola notifica per ciascun Admin, Super Admin e Tesoriere, in-app o push secondo le sue preferenze;
 - letture passive e retry idempotenti non generano notifiche duplicate;
 - un errore temporaneo di consegna non perde l'evento e attiva il retry;
 - titoli e descrizioni rispettano `docs/notification-editorial-style.md`;
 - il click su una notifica la segna come letta e apre la destinazione economica corretta.
 
-## File e aree previste
+## File e aree
 
-### Backend da modificare
+### Backend modificati
 
 ```text
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/security/AuthoritiesConstants.java
@@ -1145,24 +1056,25 @@ taurus-be/src/main/docker/realm-config/taurus-realm.json
 taurus-be/src/main/resources/config/liquibase/tenant-master.xml
 ```
 
-### Backend da creare
+### Backend del modulo
 
 ```text
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/*Financial*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/AccountingYear*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/*Financial*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/*Financial*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/*Financial*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/mapper/*Financial*.java
-taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/finance/*.java
-taurus-be/src/main/resources/config/liquibase/changelog/*_add_financial_management.xml
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/finance/*.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/finance/*.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/Finance*.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/finance/FinanceDtos.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/FinanceOperationProvider.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/FinanceResource.java
+taurus-be/src/main/resources/config/liquibase/changelog/20260901000002_add_finance.xml
+taurus-be/src/main/resources/config/liquibase/changelog/20260901000003_finance_notifications.xml
+taurus-be/src/main/resources/config/liquibase/changelog/20261022000000_financial_initial_balance.xml
 ```
 
-### Frontend da modificare
+### Frontend modificati
 
 ```text
 taurus-fe/src/app/constants/role.enums.ts
-taurus-fe/src/app/app.routes.ts o taurus-fe/src/app.routes.ts secondo struttura corrente
+taurus-fe/src/app.routes.ts
 taurus-fe/src/app/components/menu/menu.component.ts
 taurus-fe/src/app/service/keycloak.service.ts
 taurus-fe/src/app/pages/calendar-events/**
@@ -1170,16 +1082,14 @@ taurus-fe/src/app/dialogs/add-users-dialog/**
 taurus-fe/src/app/pages/users/detail/**
 ```
 
-### Frontend da creare
+### Frontend del modulo
 
 ```text
 taurus-fe/src/app/pages/finance/**
-taurus-fe/src/app/service/financial-*.service.ts
-taurus-fe/src/app/module/financial-*.module.ts
-taurus-fe/src/app/module/criteria/financial-*.ts
+taurus-fe/src/app/dialogs/finance-*-dialog/**
+taurus-fe/src/app/service/finance.service.ts
+taurus-fe/src/app/module/finance.module.ts
 ```
-
-I nomi precisi possono essere adattati alle convenzioni applicative osservate durante l'implementazione, mantenendo invariati confini, autorizzazioni e comportamenti descritti in questa specifica.
 
 ## Checklist prima del rilascio
 
@@ -1194,6 +1104,24 @@ I nomi precisi possono essere adattati alle convenzioni applicative osservate du
 9. prova evento con preventivo, incasso parziale, costo e saldo;
 10. simulazione cambio anno e riporto saldi;
 11. verifica esportazioni CSV/XLSX/PDF;
-12. verifica che OpenSearch non riceva dati economici;
+12. verifica che i dati economici restino nello schema del tenant;
 13. monitoraggio errori di quadratura, upload e report dopo il rilascio.
 14. verifica notifiche con Admin, Super Admin e Tesoriere, inclusi retry, deduplicazione e link di destinazione.
+
+## Requisiti aperti
+
+- Verifica del tipo reale del contenuto degli allegati, oltre al MIME dichiarato (Allegato: `financial_movement_attachment`).
+- Download di un allegato consentito solo se il movimento proprietario è attivo (Sicurezza backend).
+- Idempotenza con `requestKey` anche per i trasferimenti e invio della chiave dal frontend (Movimento: `financial_movement`; Validazione e concorrenza).
+- Controllo di concorrenza ottimistica dal client, con la versione inviata nelle modifiche (Gestione e correzione dei movimenti).
+- Filtri dei movimenti per esercizio, natura e controparte; filtro per evento nell'interfaccia; filtri economici, compreso lo stato, su `GET /api/finance/events` e nella scheda Eventi (API REST; Sezione Economia).
+- Segnalazione informativa dei trasferimenti incoerenti e delle anomalie annuali (Automazione del cambio anno; Verifica annuale facoltativa; Esercizi).
+- Dashboard Economia con posizioni evento da incassare o pagare, stato dell'ultimo riporto e scelta del periodo (Sezione Economia, Dashboard).
+- Scheda Eventi con dettaglio movimenti e azioni `Registra incasso` e `Registra spesa`; pagina evento con compenso e costi previsti, margine, risultato effettivo, elenco movimenti e azioni rapide; form che propone direzione e categoria coerenti con l'azione (Sezione Economia; Pagina evento; Form movimento).
+- Avviso quando un'uscita porta il conto sotto zero, indicazione del ricalcolo delle aperture successive e indicatori degli allegati mancanti (Trasferimenti tra conti; Esperienza utente nella gestione).
+- Ordinamento di conti e categorie modificabile dall'interfaccia (Sezione Economia, Categorie).
+- Saldo iniziale con descrizione e allegato propri alla creazione del conto (Saldi iniziali).
+- Registro cassa per conto con saldo iniziale, progressivo e finale; esportazione dell'intero risultato filtrato dei movimenti; rendiconto per evento con movimenti e scostamenti (Rendiconti ed esportazioni; Movimenti).
+- `Aggiorna riporto` efficace anche su un esercizio già `ROLLED_OVER` (API REST, Esercizi).
+- Log strutturati e metriche del modulo: operazioni su movimenti, trasferimenti, allegati ed esercizi, errori di quadratura, accessi negati, durata dei report, fallimenti di upload e ricalcolo, spazio degli allegati (Osservabilità).
+- Test di integrazione PostgreSQL, test di sicurezza, test frontend e test di riporto annuale non coperti dagli unit test esistenti, compresi multi-tenant, concorrenza e retry (Strategia di test).

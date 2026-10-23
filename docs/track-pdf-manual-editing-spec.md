@@ -5,8 +5,6 @@
 ID catalogo: `track-pdf-manual-editing`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Implementazione completata e verificata il **9 settembre 2026**.
-
 Questa specifica estende il flusso descritto in [Elaborazione asincrona dei PDF delle tracce](track-pdf-processing-spec.md) e riutilizza la pipeline definita in [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md).
 
 ## Obiettivo
@@ -49,7 +47,9 @@ La sidebar sinistra continua a mostrare tutte le pagine del documento. Per ogni 
 - indicatore del numero di zone di crop;
 - evidenziazione delle pagine che possiedono una ricetta di trasformazione.
 
-Il comando nell'intestazione della sidebar alterna «Escludi tutte le pagine» e «Includi tutte le pagine».
+Il comando nell'intestazione della sidebar alterna «Escludi tutte le pagine» e «Includi tutte le pagine». Quando esiste almeno una zona, l'intestazione mostra anche «Rimuovi tutti i crop»: elimina le zone di tutte le pagine e conserva le altre regolazioni.
+
+«Annulla» chiude il dialogo senza annotazioni. Se esistono esclusioni o ricette, chiede prima conferma con «Uscire senza salvare?».
 
 ### Editor della pagina
 
@@ -121,7 +121,7 @@ Il dialogo riceve anche le annotazioni già presenti. Chiudere e riaprire il man
 
 ## Pipeline di elaborazione
 
-Frontend e backend applicano le regolazioni nello stesso ordine:
+Il backend applica le regolazioni in quest'ordine:
 
 ```text
 render pagina PDF a colori
@@ -134,6 +134,8 @@ render pagina PDF a colori
     -> unione verticale degli N risultati
     -> PNG della pagina
 ```
+
+L'anteprima del dialogo applica rotazione e raddrizzamento, poi calcola contrasto automatico e toni sull'intera pagina e mostra i crop come sovrapposizioni. Il backend calcola invece i toni dopo il crop, zona per zona (`ImageTransformationService.transformRendered`). Con il contrasto automatico attivo e più zone, il risultato può quindi differire dall'anteprima.
 
 Se non esistono crop, l'intera pagina continua nella pipeline. Se una pagina è esclusa, la sua posizione nell'elenco intermedio viene conservata con un valore nullo; il raggruppamento delle parti può così continuare a riferirsi agli indici del PDF originale.
 
@@ -150,7 +152,9 @@ La conversione PDF vive in `utils`, mentre la pipeline appartiene al livello di 
 
 ## Validazione e sicurezza
 
-Il backend valida anche le ricette provenienti dalle annotazioni del PDF, che non attraversano la validazione HTTP dell'endpoint dell'editor immagini:
+L'upload non valida le annotazioni: le salva nel job così come arrivano. Il worker le interpreta durante l'elaborazione. Un JSON malformato viene scartato con un warning e il PDF è elaborato senza annotazioni. Una ricetta fuori dai limiti porta il job a `ERROR` in modo asincrono.
+
+Il worker valida le ricette provenienti dalle annotazioni del PDF, che non attraversano la validazione HTTP dell'endpoint dell'editor immagini:
 
 - `recipeVersion` uguale a 1;
 - rotazione compresa tra -3 e +3 quarti di giro;
@@ -212,18 +216,6 @@ Sono coperti:
 - mantenimento della posizione nulla di una pagina esclusa;
 - comportamento precedente del receiver dopo l'iniezione del motore.
 
-## Evidenze di verifica
-
-| Verifica                           | Esito       |
-| ---------------------------------- | ----------- |
-| Test frontend Karma/Jasmine        | 100 superati |
-| Test backend mirati                | 9 superati  |
-| Build Angular di produzione        | superata    |
-| Compilazione Java                  | superata    |
-| Formattazione e `git diff --check` | superati    |
-
-La build Angular segnala un warning non bloccante: lo stylesheet del manipolatore PDF supera il budget `anyComponentStyle` di 719 byte.
-
 ## Criteri di accettazione
 
 1. Ogni pagina PDF può avere una ricetta manuale indipendente.
@@ -247,3 +239,8 @@ La build Angular segnala un warning non bloccante: lo stylesheet del manipolator
 - modifica del PDF sorgente;
 - cronologia o undo dopo l'avvio dell'upload;
 - modifica simultanea di ricette diverse su una selezione parziale di pagine.
+
+## Requisiti aperti
+
+- Allineamento dell'anteprima al backend per contrasto automatico e toni calcolati per zona (Pipeline di elaborazione; criterio 2).
+- Validazione delle annotazioni all'upload, con errore sincrono per JSON malformato o ricetta fuori dai limiti (Validazione e sicurezza).

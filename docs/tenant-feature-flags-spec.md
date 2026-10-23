@@ -5,7 +5,7 @@
 ID catalogo: `tenant-feature-flags`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-L'evolutiva è implementata per tutti gli otto flag descritti in questo documento, con `notification-delivery-generalization` esplicitamente fuori perimetro.
+I flag tenant descritti in questo documento sono undici; `notification-delivery-generalization` resta esplicitamente fuori perimetro.
 
 ## Obiettivo
 
@@ -19,6 +19,7 @@ Consentire a un super amministratore di attivare o disattivare dalla pagina di d
 - **Preferenze notifiche**;
 - **Promemoria eventi Web Push**;
 - **Preparazione evento**;
+- **Ascolto delle parti**, aggiunto dopo la prima versione (vedi [Ascolto delle parti](#ascolto-delle-parti));
 - **Fogli di affidamento** e **Firma elettronica**, aggiunti dopo la prima versione (vedi [Fogli di affidamento e firma elettronica](#fogli-di-affidamento-e-firma-elettronica)).
 
 `notification-delivery-generalization` è esclusa da questa evolutiva: è un'infrastruttura trasversale autorevole e non una funzionalità tenant disattivabile.
@@ -69,13 +70,14 @@ inventory_qr_enabled               BOOLEAN NOT NULL DEFAULT FALSE
 notification_preferences_enabled   BOOLEAN NOT NULL DEFAULT FALSE
 web_push_reminders_enabled         BOOLEAN NOT NULL DEFAULT FALSE
 event_preparation_enabled          BOOLEAN NOT NULL DEFAULT FALSE
+score_playback_enabled             BOOLEAN NOT NULL DEFAULT FALSE
 inventory_loan_sheet_enabled       BOOLEAN NOT NULL DEFAULT FALSE
 inventory_signature_enabled        BOOLEAN NOT NULL DEFAULT FALSE
 ```
 
 Il valore predefinito è `FALSE`: nessuna funzionalità opzionale viene concessa implicitamente a un nuovo tenant. La creazione richiede quindi un'abilitazione esplicita da parte del super amministratore, oltre alla disponibilità applicativa e alle eventuali dipendenze.
 
-La migration non deve sovrascrivere i valori `finance_enabled` e `inventory_enabled` già persistiti dai tenant esistenti: per queste colonne modifica soltanto il default dello schema. Le sei nuove colonne vengono invece aggiunte con `DEFAULT FALSE`, quindi i tenant esistenti partono con le nuove funzionalità disabilitate finché non vengono inclusi esplicitamente nel rollout.
+La migration non deve sovrascrivere i valori `finance_enabled` e `inventory_enabled` già persistiti dai tenant esistenti: per queste colonne modifica soltanto il default dello schema. Le sei nuove colonne vengono invece aggiunte con `DEFAULT FALSE`, quindi i tenant esistenti partono con le nuove funzionalità disabilitate finché non vengono inclusi esplicitamente nel rollout. Allo stesso modo `20261016000001_tenant_score_playback_flag.xml` aggiunge `score_playback_enabled` con `DEFAULT FALSE`.
 
 Non è necessario modificare gli schemi tenant: la configurazione è globale rispetto all'istanza del tenant e risiede nel catalogo pubblico.
 
@@ -103,29 +105,32 @@ inventoryQrEnabled: boolean = false;
 notificationPreferencesEnabled: boolean = false;
 webPushRemindersEnabled: boolean = false;
 eventPreparationEnabled: boolean = false;
+scorePlaybackEnabled: boolean = false;
+inventoryLoanSheetEnabled: boolean = false;
+inventorySignatureEnabled: boolean = false;
 ```
 
 I nuovi tenant nascono con tutti i flag configurati a `false`. La pagina di creazione può consentire al super amministratore di abilitarli esplicitamente prima del salvataggio; in assenza di scelta rimangono disabilitati.
 
 ## Gestione nella pagina di dettaglio tenant
 
-Nella pagina di dettaglio aggiungere una sezione **Funzionalità disponibili** contenente checkbox PrimeNG binarie per tutti i flag tenant. Le checkbox sono raggruppate in:
-
-- **Moduli principali**: Economia, Inventario, Onboarding e importazione iniziale, Feed calendario esterno e Preparazione evento;
-- **Estensioni**: QR code inventario, Fogli di affidamento, Firma elettronica, Preferenze notifiche e Promemoria eventi Web Push.
+Nella pagina di dettaglio la sezione **Funzionalità disponibili** contiene checkbox PrimeNG binarie per tutti i flag tenant, in un'unica griglia senza raggruppamenti.
 
 Ogni checkbox usa `[binary]="true"`, un `inputId` stabile e una `label` semanticamente associata. Accanto al controllo viene mostrato lo stato della capacità applicativa: **Disponibile**, **Non disponibile nell'installazione** oppure **Richiede un'altra funzionalità**.
 
-I controlli sono:
+I controlli, nell'ordine della pagina, sono:
 
 - Economia;
 - Inventario;
 - Onboarding e importazione iniziale;
 - Feed calendario esterno;
+- Preparazione evento;
+- Ascolto delle parti;
 - QR code inventario;
+- Fogli di affidamento;
+- Firma elettronica;
 - Preferenze notifiche;
-- Promemoria eventi Web Push;
-- Preparazione evento.
+- Promemoria eventi Web Push.
 
 Ogni checkbox deve avere un `inputId`, una label associata e una breve descrizione. Esempio:
 
@@ -133,9 +138,9 @@ Ogni checkbox deve avere un `inputId`, una label associata e una breve descrizio
 
 Il cambiamento viene salvato insieme agli altri dati del tenant. Se una o più funzionalità passano da attive a disattive, prima del salvataggio viene mostrata un'unica conferma che elenca per nome gli effetti e le dipendenze che diventeranno inefficaci. La riattivazione non richiede conferma.
 
-Il valore tenant rimane modificabile anche se il kill switch globale è spento, permettendo di preparare un rollout. In questo caso la UI chiarisce che il flag salvato è un'abilitazione pianificata e che la funzionalità effettiva resta indisponibile.
+Il valore tenant rimane modificabile anche se il kill switch globale è spento, permettendo di preparare un rollout. In questo caso la UI mostra soltanto lo stato **Non disponibile nell'installazione**.
 
-Il salvataggio aggiorna atomicamente tutti i flag e sfrutta la versione dell'entità tenant per impedire sovrascritture concorrenti.
+Il salvataggio aggiorna atomicamente tutti i flag. Quando il client invia `entityVersion`, una versione diversa da quella persistita risponde `409` (`version.conflict`); senza `entityVersion` la versione non viene controllata.
 
 ## API delle funzionalità correnti
 
@@ -150,6 +155,7 @@ Esempio di risposta:
 ```json
 {
   "tenantCode": "ORCHESTRA_A",
+  "tenantName": "Orchestra A",
   "version": 12,
   "financeEnabled": true,
   "inventoryEnabled": true,
@@ -158,7 +164,10 @@ Esempio di risposta:
   "inventoryQrEnabled": true,
   "notificationPreferencesEnabled": true,
   "webPushRemindersEnabled": false,
-  "eventPreparationEnabled": true
+  "eventPreparationEnabled": true,
+  "scorePlaybackEnabled": false,
+  "inventoryLoanSheetEnabled": true,
+  "inventorySignatureEnabled": false
 }
 ```
 
@@ -166,7 +175,7 @@ Requisiti:
 
 - il codice tenant è ricavato esclusivamente dall'autenticazione e dal `TenantContext`;
 - il client non può indicare il tenant tramite parametro o header applicativo;
-- la risposta non espone il resto dell'anagrafica del tenant;
+- la risposta non espone il resto dell'anagrafica del tenant, a parte il nome (`tenantName`);
 - tenant inesistente, eliminato o non valido produce un errore e non abilita funzionalità per impostazione predefinita;
 - la risposta può essere mantenuta in memoria dal frontend, ma non deve essere incorporata nel token.
 
@@ -188,11 +197,12 @@ L'endpoint è riservato al super amministratore e restituisce, per ogni funziona
 
 Non vengono mai restituiti URL interni, chiavi VAPID, segreti, nomi di bean o altri dettagli di configurazione. Il frontend usa questi metadati solo per spiegare lo stato; il backend ricalcola comunque capacità e dipendenze su ogni richiesta protetta.
 
-DTO suggerito:
+DTO:
 
 ```java
 public record TenantFeaturesDTO(
     String tenantCode,
+    String tenantName,
     Long version,
     boolean financeEnabled,
     boolean inventoryEnabled,
@@ -201,13 +211,16 @@ public record TenantFeaturesDTO(
     boolean inventoryQrEnabled,
     boolean notificationPreferencesEnabled,
     boolean webPushRemindersEnabled,
-    boolean eventPreparationEnabled
+    boolean eventPreparationEnabled,
+    boolean scorePlaybackEnabled,
+    boolean inventoryLoanSheetEnabled,
+    boolean inventorySignatureEnabled
 ) {}
 ```
 
 ## Controllo centralizzato nel backend
 
-Introdurre:
+L'enum `TenantFeature` associa a ogni funzionalità la chiave usata nei codici d'errore:
 
 ```java
 public enum TenantFeature {
@@ -218,7 +231,10 @@ public enum TenantFeature {
     INVENTORY_QR,
     NOTIFICATION_PREFERENCES,
     WEB_PUSH_REMINDERS,
-    EVENT_PREPARATION
+    EVENT_PREPARATION,
+    SCORE_PLAYBACK,
+    INVENTORY_LOAN_SHEET,
+    INVENTORY_SIGNATURE
 }
 ```
 
@@ -233,8 +249,8 @@ void requireEnabled(TenantFeature feature);
 
 1. ottenere il codice dal `TenantContext`;
 2. cercare esattamente quel codice in `public.tenant`;
-3. verificare che il tenant non sia eliminato;
-4. leggere esclusivamente i flag necessari per la funzionalità richiesta e le sue dipendenze;
+3. verificare che il tenant non sia eliminato e sia attivo;
+4. valutare soltanto i flag della funzionalità richiesta e delle sue dipendenze;
 5. negare l'accesso in assenza di un contesto tenant valido.
 
 Non deve utilizzare uno stato statico condiviso tra tenant. Può leggere la configurazione applicativa immutabile per applicare il kill switch globale, ma questa non sostituisce il flag del tenant.
@@ -251,10 +267,11 @@ Non deve utilizzare uno stato statico condiviso tra tenant. Può leggere la conf
 | `INVENTORY_LOAN_SHEET` | sempre disponibile dopo il deploy | `INVENTORY` | `inventory_loan_sheet_enabled` AND `inventory_enabled` |
 | `INVENTORY_SIGNATURE` | sempre disponibile dopo il deploy; posta, chiave dei codici e sigillo li verifica l'attivazione dell'amministratore del tenant | `INVENTORY_LOAN_SHEET` | `inventory_signature_enabled` AND fogli di affidamento effettivi |
 | `NOTIFICATION_PREFERENCES` | `application.notification-preferences.enabled` | outbox generalizzata disponibile | globale AND `notification_preferences_enabled` |
-| `WEB_PUSH_REMINDERS` | VAPID valido, Service Worker e dispatcher push disponibili | `NOTIFICATION_PREFERENCES` | capacità push AND `web_push_reminders_enabled` AND preferenze effettive |
+| `WEB_PUSH_REMINDERS` | chiavi VAPID pubblica e privata non vuote e diverse da `CHANGE_ME` | `NOTIFICATION_PREFERENCES` | capacità push AND `web_push_reminders_enabled` AND preferenze effettive |
 | `EVENT_PREPARATION` | `application.event-preparation.enabled` | Calendario base | globale AND `event_preparation_enabled` |
+| `SCORE_PLAYBACK` | `application.score-playback.enabled` | nessuna | globale AND `score_playback_enabled` |
 
-Economia e Inventario non sono prerequisiti dell'intera Preparazione evento. Quando sono disabilitati, soltanto le aree dipendenti risultano non disponibili secondo il contratto `unavailableAreas` della specifica di preparazione.
+Economia e Inventario non sono prerequisiti dell'intera Preparazione evento. Quando sono disabilitati, soltanto le aree dipendenti escono dalla valutazione, come descritto nella [specifica di preparazione](event-preparation-spec.md#contratto-della-vista-completa).
 
 Il backend calcola la matrice in un solo punto. Controller, scheduler, dispatcher e frontend non devono ricostruire autonomamente le dipendenze.
 
@@ -275,17 +292,18 @@ Applicazioni:
 | `/api/finance/**` | `FINANCE` |
 | `/api/inventory/**` | `INVENTORY` |
 | `/api/user/inventory/**` | `INVENTORY` |
-| creazione, validazione, applicazione e retry sotto `/api/onboarding/**` | `ONBOARDING_IMPORT` |
+| sotto `/api/onboarding/**`: `GET /context`, template XLSX e CSV, creazione, nuova validazione e applicazione | `ONBOARDING_IMPORT` |
 | `/api/calendar-feeds/**` | `EXTERNAL_CALENDAR_FEED` |
 | `/api/admin/calendar-feeds/**` | `EXTERNAL_CALENDAR_FEED` |
 | endpoint QR, etichette, scansione e guasti | `INVENTORY_QR` |
 | fogli di affidamento amministrativi e personali e modello del foglio, tranne intervallo di scadenza, rinnovo e sostituzione delle assegnazioni | `INVENTORY_LOAN_SHEET` |
 | atti, prove, fascicolo e link di firma amministrativi, firme personali e attivazione della firma nel modello | `INVENTORY_SIGNATURE` |
-| `/api/notification-preferences/**` | `NOTIFICATION_PREFERENCES` |
+| `/api/notification-preferences/**` e `/api/push-subscriptions` | `NOTIFICATION_PREFERENCES` |
 | configurazione e pianificazione promemoria calendario | `WEB_PUSH_REMINDERS` |
 | endpoint di preparazione amministrativi, personali, esterni ed economici | `EVENT_PREPARATION` |
+| ascolto e correzione delle parti sotto `/api/tracks/{trackId}`, `/api/user/tracks/{trackId}` e `/api/external/tracks/{trackId}`; `GET /api/instruments/playback-suggestion` in `InstrumentsResource` | `SCORE_PLAYBACK` |
 
-I requisiti sono cumulativi: gli endpoint economici di Preparazione richiedono `EVENT_PREPARATION` e `FINANCE`; quelli QR richiedono `INVENTORY_QR`, che incorpora già la dipendenza da `INVENTORY`. Consultazione di esiti e rapporti Onboarding già esistenti, compensazione, retention e cleanup usano regole dedicate descritte più avanti e non vengono bloccati dall'annotazione generale.
+I requisiti sono cumulativi: gli endpoint economici di Preparazione richiedono `EVENT_PREPARATION` e `FINANCE`; quelli QR richiedono `INVENTORY_QR`, che incorpora già la dipendenza da `INVENTORY`. Consultazione di elenco, esiti, righe, problemi e rapporti Onboarding, eliminazione di un job, `retry-compensation`, `retry-setup-emails`, retention e cleanup non portano l'annotazione e non vengono bloccati dal flag.
 
 Le operazioni interne non raggiunte tramite controller, in particolare job schedulati e dispatcher, devono chiamare esplicitamente `isEnabled` o `requireEnabled`.
 
@@ -310,6 +328,9 @@ error.tenantFeature.inventoryQr.disabled
 error.tenantFeature.notificationPreferences.disabled
 error.tenantFeature.webPushReminders.disabled
 error.tenantFeature.eventPreparation.disabled
+error.tenantFeature.scorePlayback.disabled
+error.tenantFeature.inventoryLoanSheet.disabled
+error.tenantFeature.inventorySignature.disabled
 ```
 
 Il resolver anonimo del feed calendario e gli identificatori QR non restituiscono `403`: per non rivelare l'esistenza di token, tenant o oggetti rispondono `404` con lo stesso corpo usato per una credenziale inesistente. Gli endpoint autenticati di amministrazione e profilo usano invece il `403` applicativo distinguibile.
@@ -466,7 +487,7 @@ Quando il flag è `false` o Preferenze notifiche non è effettivamente disponibi
 - sottoscrizioni browser e credenziali del dispositivo restano conservate perché possono servire ad altri push;
 - cleanup degli endpoint scaduti, retention e GDPR continuano a essere eseguiti.
 
-La riattivazione ricalcola soltanto i promemoria futuri ancora utili e idempotenti, senza recuperare finestre già trascorse. La capacità effettiva resta falsa se VAPID, Service Worker o dispatcher push non sono disponibili nell'installazione.
+La riattivazione ricalcola soltanto i promemoria futuri ancora utili e idempotenti, senza recuperare finestre già trascorse. La capacità effettiva resta falsa se le chiavi VAPID pubblica e privata sono vuote o valgono `CHANGE_ME`.
 
 ## Comportamento della Preparazione evento
 
@@ -478,15 +499,27 @@ Quando `eventPreparationEnabled` è `false`:
 - lo scheduler non produce promemoria o follow-up di preparazione per il tenant;
 - programma, configurazione, materiali e conferme restano nelle relative tabelle.
 
-Calendario, disponibilità, presenze, tracce, spartiti, Inventario ed Economia continuano a funzionare secondo i rispettivi flag. Se Preparazione è attiva ma Economia o Inventario sono disabilitati, l'aggregatore usa `unavailableAreas`: un'area obbligatoria diventa `UNKNOWN`, mentre le altre aree restano utilizzabili. Non vengono eseguite chiamate ai moduli disabilitati.
+Calendario, disponibilità, presenze, tracce, spartiti, Inventario ed Economia continuano a funzionare secondo i rispettivi flag. Se Preparazione è attiva ma Economia o Inventario sono disabilitati, le aree che ne dipendono (materiali, preventivo, chiusura economica) escono dalla valutazione e i relativi requisiti sono restituiti come non richiesti; la valutazione non diventa `UNKNOWN` e le altre aree restano utilizzabili. Non vengono eseguite chiamate ai moduli disabilitati.
 
 Alla riattivazione gli hash di conferma vengono rivalutati sui dati correnti. Taurus non forza una conferma precedente a tornare valida e non genera retroattivamente notifiche la cui scadenza è trascorsa.
 
+## Ascolto delle parti
+
+`scorePlaybackEnabled` (checkbox **Ascolto delle parti**) governa l'ascolto e la correzione delle parti descritti in [Ascolto e correzione delle parti](track-score-playback-spec.md). La capacità applicativa è `application.score-playback.enabled`; non ha dipendenze tenant.
+
+Quando la funzionalità non è effettiva:
+
+- gli endpoint di ascolto sotto `/api/tracks/{trackId}`, `/api/user/tracks/{trackId}` e `/api/external/tracks/{trackId}` e `GET /api/instruments/playback-suggestion` rispondono `403 tenantFeature.scorePlayback.disabled`;
+- le pagine di traccia e strumento non mostrano i relativi controlli;
+- il recupero del riconoscimento (`ScoreRecognitionRecovery`) e la pulizia delle versioni (`ScoreVersionCleanup`) saltano il tenant;
+- la validazione dell'onboarding non propone suono e trasposizione degli strumenti;
+- parti, versioni e configurazioni degli strumenti restano conservate.
+
 ## Protezione dei file
 
-Gli endpoint specifici di fotografie e allegati sono coperti dal controllo del rispettivo modulo. Va tuttavia verificato anche l'accesso generico a `/api/media/**`, che oggi consente agli utenti privilegiati di leggere i media del tenant.
+Gli endpoint specifici di fotografie e allegati sono coperti dal controllo del rispettivo modulo. Anche l'accesso generico a `/api/media/**`, aperto agli utenti privilegiati del tenant, verifica le funzionalità.
 
-Prima di restituire un file, il backend deve determinare se il media è collegato a entità Economia o Inventario:
+Prima di restituire un file, il backend (`MediaServiceImpl`) determina se il media è collegato a entità Economia o Inventario:
 
 - se è collegato esclusivamente a un modulo disabilitato, l'accesso viene negato;
 - se è collegato anche a un modulo ancora accessibile, valgono le normali autorizzazioni di quel modulo;
@@ -507,6 +540,9 @@ inventoryQrEnabled: Signal<boolean>;
 notificationPreferencesEnabled: Signal<boolean>;
 webPushRemindersEnabled: Signal<boolean>;
 eventPreparationEnabled: Signal<boolean>;
+scorePlaybackEnabled: Signal<boolean>;
+inventoryLoanSheetEnabled: Signal<boolean>;
+inventorySignatureEnabled: Signal<boolean>;
 loaded: Signal<boolean>;
 refresh(force?: boolean): Observable<TenantFeatures>;
 ```
@@ -559,7 +595,7 @@ Se un utente si trova già in una funzionalità appena disabilitata:
 
 1. al successivo aggiornamento periodico il frontend aggiorna il menu e lo reindirizza alla dashboard;
 2. se prima dell'aggiornamento prova a eseguire un'operazione, il backend risponde immediatamente `403`;
-3. l'interceptor HTTP riconosce il codice `tenantFeature.*.disabled`, forza il refresh dei flag, mostra un messaggio specifico e torna alla dashboard.
+3. l'interceptor HTTP (`http-interceptor.service.ts`, comportamento `tenantFeatureDisabled` di `api-error-behaviors.ts`) riconosce il codice `tenantFeature.*.disabled`, mostra il toast, forza il refresh dei flag e naviga sempre a `/`.
 
 Messaggio suggerito:
 
@@ -567,7 +603,7 @@ Messaggio suggerito:
 
 Il normale `403` dovuto a un ruolo insufficiente continua invece a produrre il messaggio **Permesso negato**.
 
-Per le funzionalità incorporate in una pagina condivisa, come Preparazione evento, Preferenze notifiche o QR inventario, il frontend rimuove soltanto la sezione interessata e annulla polling e richieste future. Reindirizza alla dashboard solo quando l'intera route è dedicata alla funzionalità, come Onboarding.
+La navigazione a `/` avviene anche per le funzionalità incorporate in una pagina condivisa, come Preparazione evento, Preferenze notifiche o QR inventario: il frontend non distingue tra sezione e route dedicata.
 
 Una disattivazione dipendente produce lo stesso aggiornamento. Per esempio, spegnere Inventario rende immediatamente inefficace anche QR inventario pur conservando `inventoryQrEnabled = true` come configurazione pianificata.
 
@@ -587,7 +623,7 @@ Quando una funzionalità è disabilitata:
 
 Per i nuovi flag valgono inoltre queste regole:
 
-- le notifiche di Onboarding, QR inventario, Preparazione evento e atti della firma elettronica sono soppresse quando la funzionalità origine non è effettiva;
+- le notifiche di QR inventario (`INVENTORY_ISSUE`), Preparazione evento e atti della firma elettronica (`SIGNATURE_ACT`) sono soppresse quando la funzionalità origine non è effettiva; l'Onboarding non produce notifiche e `NotificationFeaturePolicy` non ha una regola per esso;
 - disabilitare Preferenze notifiche non sopprime le notifiche: applica il profilo di compatibilità e conserva quelle obbligatorie;
 - disabilitare Promemoria Web Push chiude come `SKIPPED` soltanto i job reminder interessati;
 - la generalizzazione della consegna e il relativo scheduler restano attivi per tutti i tenant.
@@ -600,18 +636,15 @@ Alla riattivazione possono ricomparire le notifiche già consegnate e conservate
 
 ## Processi schedulati
 
-`TenantSchemaRegistry` oggi restituisce tutti i tenant attivi. Per evitare query dinamiche sui nomi delle colonne, aggiungere metodi espliciti equivalenti a:
+`TenantSchemaRegistry.findActiveTenantCodes` restituisce tutti i tenant attivi. Per evitare query dinamiche sui nomi delle colonne, il registro offre metodi espliciti soltanto per tre funzionalità:
 
 ```java
 List<String> findFinanceEnabledTenantCodes();
 List<String> findInventoryEnabledTenantCodes();
-List<String> findOnboardingImportEnabledTenantCodes();
-List<String> findExternalCalendarFeedEnabledTenantCodes();
-List<String> findInventoryQrEnabledTenantCodes();
-List<String> findNotificationPreferencesEnabledTenantCodes();
-List<String> findWebPushRemindersEnabledTenantCodes();
 List<String> findEventPreparationEnabledTenantCodes();
 ```
+
+Le altre funzionalità iterano i tenant attivi e verificano il flag con `TenantFeatureService.isEnabledForTenant`, oppure con `isEnabled` nel contesto del tenant.
 
 Utilizzo:
 
@@ -623,6 +656,7 @@ Utilizzo:
 - dispatcher di preferenze e digest applicano il profilo di compatibilità ai tenant con Preferenze disabilitate;
 - lo scheduler Web Push non pianifica o consegna reminder evento per tenant con il flag disabilitato;
 - lo scheduler Preparazione evento usa soltanto i tenant con Preparazione effettiva;
+- recupero del riconoscimento e pulizia delle versioni delle parti saltano i tenant senza Ascolto delle parti effettivo;
 - scheduler generici, GDPR, retention e pulizia media continuano a usare tutti i tenant attivi.
 
 ## Isolamento tra tenant
@@ -645,7 +679,7 @@ Una richiesta Inventario di A riceve `403`; la stessa richiesta autenticata sul 
 
 ## Logging e audit
 
-Ogni modifica dei flag deve produrre un log strutturato contenente:
+Ogni modifica dei flag produce in `TenantsServiceImpl.update` il log strutturato `tenant_features_updated` contenente:
 
 - ID e codice del tenant modificato;
 - valore precedente e nuovo valore di ciascun flag;
@@ -653,7 +687,7 @@ Ogni modifica dei flag deve produrre un log strutturato contenente:
 - data e ora;
 - versione dell'entità.
 
-Il log include anche l'elenco delle funzionalità figlie il cui stato effettivo cambia per dipendenza, senza fingere che il relativo valore persistito sia stato modificato.
+Il log non elenca le funzionalità figlie il cui stato effettivo cambia per dipendenza.
 
 Non devono essere registrati token o altri dati sensibili. I normali campi di audit del tenant continuano a indicare autore e data dell'ultima modifica.
 
@@ -698,7 +732,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - aggiornamento periodico e al ritorno in primo piano;
 - gestione specifica del `403` per feature disabilitata;
 - conferma prima della disattivazione dal dettaglio tenant;
-- rendering delle otto checkbox, stato della capacità applicativa e dipendenze;
+- rendering delle undici checkbox, stato della capacità applicativa e dipendenze;
 - Onboarding nascosto e polling interrotto dopo la disattivazione;
 - gestione feed nascosta senza esporre URL o token conservati;
 - assenza di comandi QR e chiamate resolver quando QR o Inventario sono disabilitati;
@@ -741,7 +775,7 @@ Questo ordine mantiene compatibile il frontend precedente durante il rilascio. I
 
 La funzionalità è completata quando:
 
-- tutti gli otto flag sono modificabili dalla pagina di dettaglio tenant;
+- tutti gli undici flag sono modificabili dalla pagina di dettaglio tenant;
 - menu, route, card e azioni collegate rispettano i flag;
 - il backend impedisce ogni accesso diretto ai moduli disabilitati;
 - il Calendario resta utilizzabile senza mostrare o alterare dati economici nascosti;
@@ -757,3 +791,10 @@ La funzionalità è completata quando:
 - disabilitare Web Push reminder non spegne i push di altre categorie e non causa invii tardivi;
 - Preparazione evento conserva dati e conferme, degradando separatamente le aree Economia e Inventario;
 - `notification-delivery-generalization` non compare tra i controlli tenant e resta l'unico meccanismo di consegna.
+
+## Requisiti aperti
+
+- Raggruppamento delle checkbox in **Moduli principali** ed **Estensioni** (Gestione nella pagina di dettaglio tenant).
+- Spiegazione, con il kill switch globale spento, che il flag salvato è un'abilitazione pianificata (Gestione nella pagina di dettaglio tenant).
+- Rimozione della sola sezione interessata, senza navigare a `/`, quando una funzionalità di una pagina condivisa viene disattivata (Modifica mentre l'utente è collegato).
+- Elenco nel log delle funzionalità figlie il cui stato effettivo cambia per dipendenza (Logging e audit).

@@ -5,11 +5,11 @@
 ID catalogo: `operational-dashboard`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-## Stato dell'implementazione e rilascio
+## Attivazione e rilascio
 
-La prima versione è implementata nei moduli backend e frontend. Il contratto API, le soglie e il comportamento parziale descritti in questo documento sono quelli effettivamente esposti dall'applicazione. La console amministrativa delle consegne tecniche è disponibile in `/admin/notification-delivery` e non espone contenuti, payload o destinatari.
+La console amministrativa delle consegne tecniche è in `/admin/notification-delivery` e non espone contenuti, payload o destinatari.
 
-Il rollout iniziale mantiene `application.dashboard.enabled=false`: l'attivazione deve essere eseguita tramite configurazione esterna prima in staging e poi in produzione. Non sono richieste migrazioni del database; eventuali indici devono derivare dalla misurazione dei query plan PostgreSQL su dati realistici.
+`application.dashboard.enabled` vale `false` in `application.yml`. Con il flag spento il servizio risponde `COMPLETE` senza voci e il widget mostra lo stato positivo **Tutto sotto controllo**. L'attivazione avviene tramite configurazione esterna, prima in staging e poi in produzione. Non sono richieste migrazioni del database; eventuali indici devono derivare dalla misurazione dei query plan PostgreSQL su dati realistici.
 
 ## Obiettivo
 
@@ -40,13 +40,13 @@ Ogni voce e una proiezione dello stato autorevole del relativo dominio. Per esem
 
 Questa scelta evita divergenze, duplicazione di audit e attivita dichiarate concluse mentre il dato di dominio e ancora pendente.
 
-## Situazione attuale
+## Contesto
 
-La dashboard corrente carica in modo indipendente conteggi di tenant, utenti, album e tracce, gli ultimi inserimenti, i prossimi eventi, le notifiche e i riepiloghi inventario. Il ruolo effettivo selezionato dal frontend decide quali chiamate eseguire.
+Accanto alla sezione **Da fare**, la dashboard carica in modo indipendente conteggi di tenant, utenti, album e tracce, gli ultimi inserimenti, i prossimi eventi, le notifiche e i riepiloghi inventario. Per questi widget il ruolo effettivo selezionato dal frontend decide quali chiamate eseguire.
 
-La base visuale e gia valida: `DetailSectionComponent`, `ListRowComponent`, `EmptyStateComponent`, `InlineAlertComponent`, `p-skeleton`, `p-tag` e `p-button` costituiscono il vocabolario da riutilizzare. Non serve introdurre una seconda libreria di card.
+La base visuale riusa `DetailSectionComponent`, `ListRowComponent`, `EmptyStateComponent`, `InlineAlertComponent`, `p-skeleton`, `p-tag` e `p-button`, senza una seconda libreria di card.
 
-Le criticita da risolvere sono:
+La sezione **Da fare** risponde a questi limiti dei soli widget:
 
 - l'utente deve interpretare piu widget per capire se esiste qualcosa di urgente;
 - il frontend orchestra molte richieste e non ottiene uno snapshot operativo unico;
@@ -66,7 +66,18 @@ La prima versione comprende:
 6. movimenti economici ordinari non riconciliati;
 7. notifiche tecniche in stato `FAILED`;
 8. stato parziale della dashboard quando un dominio non e disponibile;
-9. collegamenti profondi verso viste gia filtrate.
+9. collegamenti profondi verso viste gia filtrate;
+10. firme richieste sui fogli di affidamento;
+11. guasti inventario non sicuri o limitanti;
+12. preparazione degli eventi bloccata, da verificare o da chiudere.
+
+Le voci dipendono dalle funzionalita del tenant:
+
+- i provider Inventario ed Economia vengono saltati senza `INVENTORY` o `FINANCE`;
+- la firma richiesta compare solo con `INVENTORY_SIGNATURE`;
+- i guasti compaiono solo con `INVENTORY_QR` e `application.inventory.qr.enabled`;
+- le voci di preparazione compaiono solo con `EVENT_PREPARATION`;
+- nel frontend il riquadro Inventario della dashboard compare solo con la funzionalita Inventario.
 
 L'accettazione dei documenti legali rimane governata da `legalDocumentsGuard`: un utente non conforme viene portato alla pagina di accettazione prima di poter aprire la dashboard. Il backend puo comunque restituire `LEGAL_ACCEPTANCE_REQUIRED` come protezione difensiva e per client futuri, ma nella web app corrente la voce non appare nel normale percorso.
 
@@ -126,14 +137,15 @@ Non e previsto polling a intervallo fisso nella prima versione. Durante il ricar
 
 ## Composizione della pagina
 
-L'ordine raccomandato e:
+L'ordine e:
 
 1. intestazione `Dashboard`, sottotitolo contestuale e istante dell'ultimo aggiornamento;
 2. sezione **Da fare**, a tutta larghezza;
 3. indicatori sintetici autorizzati per il ruolo;
-4. inventario e prossimi eventi;
-5. notifiche personali;
-6. contenuti recenti del catalogo.
+4. inventario, solo con la funzionalita attiva;
+5. contenuti recenti del catalogo;
+6. prossimi eventi;
+7. notifiche personali.
 
 La sezione **Da fare** non e nascosta quando e vuota: lo stato positivo rende esplicito che il caricamento e riuscito.
 
@@ -187,7 +199,25 @@ Severita:
 
 Collegamento: `/calendar?attention=missing-availability`.
 
+Con la funzionalita `EVENT_PREPARATION` attiva, un evento la cui preparazione ha la criticita `AVAILABILITY_INCOMPLETE` (avviso o blocco) non entra in questo conteggio, per non duplicare le voci di preparazione.
+
 Questa euristica deve essere sostituita da un pubblico invitato esplicito se in futuro gli eventi vengono indirizzati a sottoinsiemi di utenti. Fino ad allora non si devono inventare filtri per strumento o sezione musicale.
+
+### Preparazione eventi: `EVENT_PREPARATION_BLOCKED`, `EVENT_PREPARATION_ATTENTION`, `EVENT_FOLLOW_UP_REQUIRED`
+
+Destinatari: Super Admin e Admin, con la funzionalita `EVENT_PREPARATION`.
+
+Regole, sulla valutazione della [preparazione operativa](event-preparation-spec.md):
+
+- `EVENT_PREPARATION_BLOCKED`: eventi non ancora iniziati, entro `calendar-look-ahead-days`, con stato `BLOCKED`; severita `DANGER`;
+- `EVENT_PREPARATION_ATTENTION`: eventi non ancora iniziati entro sette giorni con stato `ATTENTION`; severita `WARNING`;
+- `EVENT_FOLLOW_UP_REQUIRED`: eventi terminati negli ultimi 30 giorni con chiusura `TO_CLOSE`; severita `WARNING`.
+
+Conteggio principale: eventi coinvolti. La descrizione nomina l'evento piu vicino.
+
+Collegamenti: `/calendar?attention=event-preparation` per le prime due voci, `/calendar?attention=event-follow-up` per il follow-up.
+
+Un evento tra sette e quattordici giorni con il solo avviso sulle disponibilita non compare ne in `EVENT_PREPARATION_ATTENTION` ne in `CALENDAR_RESPONSES_MISSING`.
 
 ### Inventario personale: `INVENTORY_DECISION_REQUIRED`
 
@@ -215,7 +245,7 @@ Collegamento: `/inventory?attention=pending-decisions`.
 
 ### Firma personale: `INVENTORY_SIGNATURE_REQUIRED`
 
-Destinatari: ogni utente autenticato firmatario di un atto di un foglio di affidamento firmato elettronicamente, amministratori compresi quando firmano per l'Associazione.
+Destinatari: ogni utente autenticato firmatario di un atto di un foglio di affidamento firmato elettronicamente, amministratori compresi quando firmano per l'Associazione. La voce richiede la funzionalita `INVENTORY_SIGNATURE`.
 
 Regola: atti non annullati e non eliminati, in attesa dei dati o delle firme, per cui l'utente deve ancora inserire i dati dell'emissione o dare una conferma: accettazione o approvazione delle clausole come Affidatario, presa visione come socio minorenne, firma per l'Associazione. È la stessa regola del gruppo «In attesa della tua firma» del riquadro **Firme** (`LoanSheetSignatureService.countAwaitingUser`). Gli atti che l'Affidatario non può ancora firmare per prese visione in attesa sono contati: la voce di presa visione compare accanto.
 
@@ -263,18 +293,29 @@ Collegamenti:
 - amministratore: `/inventory?attention=expiring`;
 - assegnatario: `/inventory?view=mine&attention=expiring`.
 
+### Guasti inventario: `INVENTORY_UNSAFE_ISSUES` e `INVENTORY_LIMITING_ISSUES`
+
+Destinatari: Super Admin e Admin, con la funzionalita `INVENTORY_QR` e `application.inventory.qr.enabled`.
+
+Regola: segnalazioni di guasto non cancellate in stato `OPEN` o `ACKNOWLEDGED`, rispettivamente con gravita `UNSAFE` o `LIMITING`.
+
+Conteggio principale: segnalazioni aperte.
+
+Severita: `DANGER` per `INVENTORY_UNSAFE_ISSUES`, `WARNING` per `INVENTORY_LIMITING_ISSUES`.
+
+Collegamenti: `/inventory?attention=issues-unsafe` e `/inventory?attention=issues-limiting`.
+
 ### Economia: `FINANCE_MOVEMENTS_UNRECONCILED`
 
 Destinatari: Super Admin, Admin e Tesoriere.
 
 Regola:
 
-- movimento ordinario, attivo e non cancellato;
-- esercizio corrente oppure data compresa dall'inizio dell'anno a oggi;
-- `reconciled = false`;
-- le due gambe tecniche dei trasferimenti non sono conteggiate come movimenti ordinari da riconciliare.
+- movimento non cancellato di natura `ORDINARY`: aperture (`OPENING`) e le due gambe dei trasferimenti (`TRANSFER`) non sono conteggiate;
+- movimento di un qualsiasi esercizio `OPEN` oppure con data compresa dall'inizio dell'anno a oggi;
+- `reconciled = false`.
 
-Conteggio principale: movimenti non riconciliati. La descrizione mostra l'importo complessivo nella valuta del tenant; se fossero introdotte piu valute, deve mostrare un totale distinto per valuta e non sommarle.
+Conteggio principale: movimenti non riconciliati. La descrizione mostra l'importo complessivo con un totale distinto per valuta, separati da punto e virgola, senza sommare valute diverse.
 
 Severita:
 
@@ -287,15 +328,15 @@ Collegamento: `/finance?section=movements&reconciled=false`.
 
 Destinatari: Super Admin e Admin del tenant attivo.
 
-Regola: righe `notification_outbox` in stato `FAILED`.
+Regola: righe in stato `FAILED` dell'unione di `notification_outbox`, `notification_push_delivery` e `push_reminders`.
 
-Conteggio principale: eventi tecnici falliti. Titolo e descrizione non espongono destinatari, payload o testo della notifica.
+Conteggio principale: consegne tecniche fallite. Titolo e descrizione non espongono destinatari, payload o testo della notifica.
 
 Severita: sempre `DANGER`.
 
 Collegamento: `/admin/notification-delivery?status=FAILED`.
 
-La pagina di destinazione e parte della stessa evolutiva. Deve mostrare soltanto metadati operativi, consentire il riprocessamento idempotente e richiedere conferma. L'errore completo resta nei log; all'utente si espongono classe normalizzata, numero di tentativi, sorgente, operazione e istanti tecnici.
+La pagina di destinazione mostra soltanto metadati operativi e consente il riprocessamento idempotente con conferma e, per le code push, la chiusura tecnica. L'errore completo resta nei log; all'utente si espongono classe normalizzata, numero di tentativi, sorgente, operazione e istanti tecnici.
 
 ### Conformita: `LEGAL_ACCEPTANCE_REQUIRED`
 
@@ -317,15 +358,20 @@ Le attivita sono l'unione delle autorita presenti nel token, non il risultato di
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Disponibilita personale | si | si | solo con altro ruolo | si | si | solo `PUBLIC` |
 | Risposte evento mancanti | si | si | no | no | no | no |
+| Preparazione eventi bloccata o da verificare | si | si | no | no | no | no |
+| Eventi da chiudere | si | si | no | no | no | no |
 | Presa visione personale | se assegnatario | se assegnatario | se assegnatario | se assegnatario | si | se assegnatario |
 | Prese visione amministrative | si | si | no | no | no | no |
 | Firma personale dei fogli di affidamento | se firmatario | se firmatario | se firmatario | se firmatario | se firmatario | se firmatario |
 | Riconsegne da chiudere | si | si | no | no | no | no |
 | Scadenze inventario globali | si | si | no | no | no | no |
 | Scadenze inventario personali | se assegnatario | se assegnatario | se assegnatario | se assegnatario | si | se assegnatario |
+| Guasti inventario non sicuri o limitanti | si | si | no | no | no | no |
 | Movimenti non riconciliati | si | si | si | no | no | no |
 | Consegne tecniche fallite | si | si | no | no | no | no |
 | Accettazione legale | si | si | si | si | si | si |
+
+La matrice vale con le funzionalita del tenant richieste da ciascuna voce (vedi [Ambito della prima versione](#ambito-della-prima-versione)).
 
 Se una persona possiede sia un ruolo amministrativo sia un ruolo partecipante, le due viste non devono duplicare la stessa attivita. Per l'inventario prevale la riga amministrativa globale quando il conteggio globale contiene anche la riga personale.
 
@@ -477,7 +523,7 @@ Sono richieste almeno:
 - calendario amministrativo: raggruppamento degli eventi visibili nel periodo e conteggio degli utenti attivi attesi senza risposta;
 - inventario: riuso dei conteggi gia presenti e nuove proiezioni per minima scadenza, scaduti e in scadenza;
 - economia: conteggio, importo e minima `booking_date` dei movimenti ordinari non riconciliati;
-- notifiche: conteggio e minima `occurred_at` delle righe `FAILED`.
+- notifiche: conteggio e minimo istante delle righe `FAILED` di outbox, consegne push e promemoria push.
 
 Prima di aggiungere indici si deve verificare il piano PostgreSQL su un dataset realistico. Indici candidati:
 
@@ -491,23 +537,24 @@ Nessuna migrazione e obbligatoria per il modello funzionale; gli eventuali indic
 
 ### Soglie configurabili
 
-Configurazione proposta:
+Configurazione in `application.yml`:
 
 ```yaml
 application:
   dashboard:
-    enabled: true
+    enabled: false
     calendar-look-ahead-days: 14
     inventory-expiration-look-ahead-days: 30
     inventory-warning-days: 7
     finance-unreconciled-warning-days: 30
 ```
 
-Le proprieta devono essere validate all'avvio:
+Le proprieta sono validate all'avvio:
 
 - valori maggiori o uguali a zero;
-- orizzonti massimi di 366 giorni;
-- `inventory-warning-days` non superiore all'orizzonte inventario.
+- orizzonti massimi di 366 giorni.
+
+Il vincolo `inventory-warning-days` non superiore all'orizzonte inventario non e verificato.
 
 ### Autorizzazioni
 
@@ -534,7 +581,7 @@ Il provider non deve accettare user ID, tenant o ruolo dal client. L'identita pe
 
 ### Moduli e componenti
 
-Nuove aree previste:
+Aree:
 
 ```text
 taurus-fe/src/app/module/operational-dashboard.ts
@@ -543,7 +590,7 @@ taurus-fe/src/app/pages/dashboard/components/operations-widget/
 taurus-fe/src/app/pages/admin/notification-delivery/
 ```
 
-`OperationalDashboardService` espone `getOperations()` e non conserva dati globali tra tenant. Un cambio tenant invalida immediatamente lo stato precedente.
+`OperationalDashboardService` espone `getOperations()` e non conserva dati globali tra tenant. Il frontend non gestisce un cambio tenant nella stessa sessione: il tenant e quello del token e il widget non ha una logica di invalidazione dedicata.
 
 `OperationsWidgetComponent` riceve il DTO gia ordinato e produce:
 
@@ -569,10 +616,15 @@ Le pagine di destinazione devono interpretare i parametri senza eseguire automat
 | `/inventory?view=mine` | vista personale con il riquadro **Firme** degli atti da firmare |
 | `/inventory?attention=pending-returns` | riconsegne aperte |
 | `/inventory?attention=expiring` | assegnazioni scadute o in scadenza |
+| `/inventory?view=mine&attention=expiring` | proprie assegnazioni scadute o in scadenza |
+| `/inventory?attention=issues-unsafe` | guasti non sicuri aperti |
+| `/inventory?attention=issues-limiting` | guasti limitanti aperti |
+| `/calendar?attention=event-preparation` | elenco calendario senza filtro: il parametro non e gestito |
+| `/calendar?attention=event-follow-up` | elenco calendario senza filtro: il parametro non e gestito |
 | `/finance?section=movements&reconciled=false` | movimenti ordinari non riconciliati |
 | `/admin/notification-delivery?status=FAILED` | consegne tecniche fallite |
 
-Parametri sconosciuti vengono ignorati in sicurezza e producono la vista predefinita. Filtri non autorizzati non devono ampliare i dati restituiti dalle API.
+Il backend accetta per ogni tipo soltanto i percorsi della propria allowlist (questa tabella piu `/legal/accept`): una voce con un altro percorso fa considerare non disponibile il suo dominio. Parametri sconosciuti vengono ignorati in sicurezza e producono la vista predefinita. Filtri non autorizzati non devono ampliare i dati restituiti dalle API.
 
 ### Errori
 
@@ -599,22 +651,29 @@ Per rendere azionabile `NOTIFICATION_DELIVERY_FAILED` serve una superficie ammin
 ### API amministrative
 
 ```http
-GET  /api/admin/notification-delivery?status=FAILED&page=0&size=20&sort=occurredAt,asc
-POST /api/admin/notification-delivery/{id}/retry
+GET  /api/admin/notification-delivery?status=FAILED&origin=&source=&operation=&from=&to=&page=0&size=20&sort=occurredAt,asc
+POST /api/admin/notification-delivery/{origin}/{id}/retry
+POST /api/admin/notification-delivery/{origin}/{id}/close
 POST /api/admin/notification-delivery/retry
 ```
 
-Il retry massivo riceve un corpo `{ "ids": [1, 2, 3] }`, rifiuta liste vuote, duplicate o superiori a 100 elementi e restituisce il numero di righe riportate in `PENDING`. Tutti gli endpoint sono riservati a Super Admin e Admin e operano soltanto nello schema del tenant attivo.
+Le righe provengono da tre origini: `OUTBOX` (fan-out in-app di `notification_outbox`), `PUSH` (`notification_push_delivery`) e `REMINDER` (`push_reminders`). Ogni riga e identificata da origine e ID.
 
-La ricerca accetta esclusivamente gli stati previsti dal modello e impone una dimensione massima della pagina pari a 100. L'ordinamento predefinito mostra prima l'evento fallito piu vecchio.
+- La ricerca filtra per `status` (default `FAILED`), `origin`, `source`, `operation` e intervallo `from`/`to`; impone una pagina massima di 100 righe. L'ordinamento predefinito mostra prima l'evento fallito piu vecchio.
+- Il retry singolo riporta in `PENDING` una riga `FAILED`; su una riga gia `PENDING` non fa nulla, sugli altri stati risponde `409 notification.delivery.notFailed`.
+- Il retry massivo riceve un corpo `{ "refs": [{ "origin": "OUTBOX", "id": 1 }] }`, rifiuta liste vuote, duplicate o superiori a 100 elementi, ignora le righe non `FAILED` e restituisce `retriedCount`.
+- La chiusura tecnica riceve un motivo `{ "reason": "NO_LONGER_RELEVANT" }` (maiuscole, cifre e `_`, massimo 32 caratteri) e porta in `SKIPPED` una riga `PENDING` o `FAILED`. Vale solo per `PUSH` e `REMINDER`; per `OUTBOX` risponde `409 notification.delivery.close.unsupported`.
+
+Tutti gli endpoint sono riservati a Super Admin e Admin e operano soltanto nello schema del tenant attivo.
 
 ### Elenco
 
 Campi visibili:
 
 - ID tecnico;
+- origine e tipo di consegna;
 - sorgente e operazione;
-- stato;
+- stato ed eventuale motivo di chiusura (`skipReason`);
 - istante dell'evento;
 - tentativi eseguiti;
 - ultimo aggiornamento tecnico, ricavato da `edit_date`, e prossimo tentativo se presente;
@@ -627,6 +686,7 @@ Non vengono mostrati contenuto, descrizione, destinatari o payload completi.
 
 - **Riprova** su una riga `FAILED`;
 - **Riprova selezionate** con conferma e limite massimo di 100 righe;
+- **Chiudi…** per le righe `PUSH` e `REMINDER` in stato `PENDING` o `FAILED`, con i motivi «Non piu pertinente», «Dispositivo non raggiungibile» e «Chiusura manuale»;
 - nessuna eliminazione manuale nella prima versione.
 
 Il retry:
@@ -665,18 +725,20 @@ Se un provider supera stabilmente 200 ms, deve essere ottimizzato o reso facolta
 
 ## Osservabilita
 
-Metriche Micrometer proposte:
+Metriche Micrometer (`DashboardMetrics`):
 
 - timer `taurus.dashboard.operations.duration` con tag `result=complete|partial|failed`;
-- counter `taurus.dashboard.operations.requests`;
+- counter `taurus.dashboard.operations.requests` con lo stesso tag `result`;
 - counter `taurus.dashboard.provider.failures` con tag `domain`;
-- summary `taurus.dashboard.operations.groups`.
+- summary `taurus.dashboard.operations.groups` con tag `result`, escluse le richieste fallite.
 
 Le metriche non devono usare tenant o subject come tag, per evitare cardinalita non limitata. I log strutturati includono tenant, dominio, durata e classe di errore, senza dati delle attivita personali.
 
 Alert raccomandato: rapporto di risposte `PARTIAL` o `failed` maggiore al 5% per dieci minuti.
 
 ## Strategia di test
+
+I test presenti sono `OperationalDashboardServiceTest`, `CalendarOperationProviderTest`, `InventoryOperationProviderTest` e `NotificationDeliveryAdminServiceTest` nel backend, `operations-widget.component.spec.ts` e `notification-delivery-admin.service.spec.ts` nel frontend. Mancano i test dei provider Economia, Legale e Notifiche, gli integration test PostgreSQL, i security test e i casi di cambio tenant: sono tra i [Requisiti aperti](#requisiti-aperti).
 
 ### Unit test backend
 
@@ -734,47 +796,6 @@ Alert raccomandato: rapporto di risposte `PARTIAL` o `failed` maggiore al 5% per
 5. Il provider economico fallisce: calendario e inventario restano disponibili con indicazione di risultato parziale.
 6. Un Utente Esterno non vede eventi non pubblici ne attivita amministrative.
 
-## Piano di implementazione
-
-### Fase 1 - Contratto e infrastruttura
-
-1. aggiungere enum, DTO, proprieta validate e resource;
-2. costruire orchestratore e interfaccia provider;
-3. implementare risultato parziale, ordinamento e allowlist dei path;
-4. aggiungere test di sicurezza e isolamento tenant.
-
-### Fase 2 - Provider funzionali
-
-1. calendario personale e amministrativo;
-2. inventario personale e amministrativo;
-3. movimenti non riconciliati;
-4. conformita difensiva;
-5. query plan e indici soltanto se necessari.
-
-### Fase 3 - Widget frontend
-
-1. service e modelli TypeScript;
-2. `OperationsWidgetComponent` con tutti gli stati;
-3. integrazione in testa alla dashboard;
-4. refresh e invalidazione al cambio tenant;
-5. deep link e filtri nelle pagine calendario, inventario e finanza.
-
-### Fase 4 - Consegne tecniche
-
-1. provider `NotificationOperationProvider`;
-2. endpoint amministrativo paginato per l'outbox;
-3. retry singolo e massivo idempotente;
-4. pagina `/admin/notification-delivery`;
-5. audit, metriche e test concorrenti.
-
-### Fase 5 - Hardening e rilascio
-
-1. test end-to-end per ogni profilo;
-2. verifica accessibilita e responsive;
-3. misurazione `p95` e query plan con dataset realistico;
-4. smoke test del risultato parziale;
-5. rilascio iniziale con `application.dashboard.enabled=false`, attivazione in staging e poi produzione.
-
 ## Criteri di accettazione
 
 La funzionalita e completa quando:
@@ -800,15 +821,17 @@ La funzionalita e completa quando:
 19. nessuna query della dashboard attraversa schemi tenant diversi;
 20. documentazione API e note di rilascio descrivono soglie e comportamento.
 
-## File e aree previste
+## File e aree
 
-### Backend da creare
+### Backend principali
 
 ```text
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OperationalDashboardResource.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/NotificationDeliveryAdminResource.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/OperationalDashboardService.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminService.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/DashboardMetrics.java
+taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/notification/NotificationDeliveryAdminQueryRepository.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/DashboardOperationProvider.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/CalendarOperationProvider.java
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/InventoryOperationProvider.java
@@ -818,7 +841,7 @@ taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/LegalOperati
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/dashboard/
 ```
 
-### Backend da modificare
+### Backend estesi
 
 ```text
 taurus-be/src/main/java/com/fundaro/zodiac/taurus/config/ApplicationProperties.java
@@ -830,7 +853,7 @@ taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/notification/Notifi
 taurus-be/src/main/resources/config/application.yml
 ```
 
-### Frontend da creare
+### Frontend principali
 
 ```text
 taurus-fe/src/app/module/operational-dashboard.ts
@@ -839,7 +862,7 @@ taurus-fe/src/app/pages/dashboard/components/operations-widget/
 taurus-fe/src/app/pages/admin/notification-delivery/
 ```
 
-### Frontend da modificare
+### Frontend estesi
 
 ```text
 taurus-fe/src/app/pages/dashboard/dashboard.component.ts
@@ -856,7 +879,6 @@ taurus-fe/src/app/module/index.ts
 
 Il contratto per tipo e dominio permette di aggiungere in seguito:
 
-- presenze di eventi passati ancora da consolidare, quando esistera uno stato esplicito di chiusura presenze;
 - eventi economici con importi ancora da incassare o pagare;
 - richieste GDPR da lavorare;
 - media in stato `MIGRATION_PENDING` o `FAILED`;
@@ -865,3 +887,12 @@ Il contratto per tipo e dominio permette di aggiungere in seguito:
 - aggiornamento real-time come semplice invalidazione dello snapshot.
 
 Queste evoluzioni devono continuare a derivare dal dominio autorevole e non introdurre una tabella generica di task.
+
+## Requisiti aperti
+
+- Filtro dell'elenco calendario per `attention=event-preparation` ed `attention=event-follow-up` ([Collegamenti profondi](#collegamenti-profondi)).
+- Evento tra sette e quattordici giorni con il solo avviso sulle disponibilita, oggi assente da preparazione e risposte mancanti ([Preparazione eventi](#preparazione-eventi-event_preparation_blocked-event_preparation_attention-event_follow_up_required)).
+- Verifica all'avvio di `inventory-warning-days` non superiore all'orizzonte inventario ([Soglie configurabili](#soglie-configurabili)).
+- Invalidazione dello snapshot al cambio tenant, se il frontend permettera di cambiare tenant nella sessione ([Moduli e componenti](#moduli-e-componenti), criterio 16).
+- Test dei provider Economia, Legale e Notifiche, integration test PostgreSQL, security test e test di cambio tenant ([Strategia di test](#strategia-di-test)).
+- Test end-to-end per ogni profilo, verifica di accessibilita e responsive, misura di `p95` e dei query plan su dataset realistico ([Prestazioni](#prestazioni), [End-to-end principali](#end-to-end-principali)).
