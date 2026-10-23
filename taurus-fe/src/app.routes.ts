@@ -77,7 +77,8 @@ export const appRoutes: Routes = [
                 path: 'calendar',
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                // The treasurer opens only the detail of an event, from the economic notifications: the child routes decide.
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'admin/notification-delivery',
