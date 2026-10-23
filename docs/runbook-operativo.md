@@ -7,7 +7,7 @@ Questo runbook descrive come installare, configurare, avviare, verificare, rilas
 ID catalogo: `operational-runbook`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Il documento riflette lo stato del repository alla data **18 ottobre 2026**. Le procedure marcate **baseline da definire** non sono ancora automatizzate o completamente rappresentate nel repository e devono essere validate nell'ambiente di destinazione prima di essere usate in produzione.
+Il documento descrive il repository; la data dell'ultima verifica è nel catalogo. Le procedure marcate **baseline da definire** non sono ancora automatizzate o completamente rappresentate nel repository e devono essere validate nell'ambiente di destinazione prima di essere usate in produzione.
 
 Principi operativi:
 
@@ -431,6 +431,8 @@ Eseguire dalla root:
 ```powershell
 node scripts/docs/validate-feature-catalog.mjs
 node --test scripts/docs/feature-catalog.test.mjs
+node --test scripts/docs/error-catalog.test.mjs
+node scripts/docs/check-error-catalog.mjs
 node scripts/docs/generate-feature-index.mjs
 git diff --exit-code -- docs/features.md
 ```
@@ -696,6 +698,10 @@ Gli orari cron senza `zone` esplicita usano il timezone del processo JVM. Impost
 | Pulizia conferme di firma | 03:45 giornaliero | Elimina per tenant le conferme con codice chiuse da oltre 30 giorni (`application.signature.cleanup-cron`, `challenge-retention-days`) |
 | Eliminazione atti firmati | 03:50 giornaliero | Elimina per tenant documenti, attestazioni e dati personali delle prove degli atti dei fogli definiti o annullati da oltre il periodo di grazia (`application.signature.purge-cron`, `download-grace-days`) |
 | Link di firma scaduti | ogni ora al minuto 20 | Notifica una volta agli amministratori i link dei genitori scaduti senza firma e rimuove dal registro pubblico le righe dei link revocati o scaduti (`application.signature.link-expiry-cron`) |
+| Conservazione dei fogli di affidamento | 03:15 Europe/Rome | Definisce per tenant i fogli chiusi senza addebiti da oltre `application.inventory.loan-sheet.auto-settle-days` (30), eliminandone dati personali e PDF (`application.inventory.loan-sheet.settle-cron`) |
+| Conservazione degli import di onboarding | 04:30 Europe/Rome | Elimina per tenant file, righe e problemi degli import conclusi da oltre `source-retention-days` (30) ed elimina i job dopo `audit-retention-days` (365) (`application.onboarding.cleanup-cron`) |
+
+Fogli di affidamento, firma elettronica e onboarding applicano la conservazione a tutti i tenant attivi, anche quando la funzionalità è disattivata per il tenant. Il primo passaggio della conservazione dell'onboarding dopo l'aggiornamento elimina subito i dati degli import conclusi da oltre 30 giorni.
 
 In una distribuzione con più repliche, verificare il comportamento concorrente di ogni scheduler. Il repository non mostra un coordinatore distribuito generale: prima di scalare il backend oltre una replica, validare idempotenza e locking o assegnare i job a una sola replica.
 

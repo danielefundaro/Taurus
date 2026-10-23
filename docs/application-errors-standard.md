@@ -9,7 +9,7 @@ Documenti collegati: [Taurus Layout Standard](taurus-layout-standard.md), che st
 
 ## Obiettivo
 
-Taurus deve avere un'unica linea guida per gli errori che il backend restituisce al frontend. La linea guida stabilisce:
+Taurus ha un'unica linea guida per gli errori che il backend restituisce al frontend. La linea guida stabilisce:
 
 - che cosa contiene la risposta d'errore, e che cosa non deve mai contenere;
 - come si nomina la chiave che identifica l'errore;
@@ -154,10 +154,10 @@ Gli errori che non nascono da `RequestAlertException` ricevono comunque una chia
 ### La chiave
 
 - Formato `{area}.{oggetto}.{condizione}`, in camelCase, con l'oggetto omesso quando coincide con l'area: `inventory.photo.tooLarge`, `onboarding.disabled`.
-- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `signature`, `tenant`, `tenantFeature`, `track`, `user`.
+- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `scorePlayback`, `signature`, `tenant`, `tenantFeature`, `track`, `user`.
 - Fanno eccezione le chiavi trasversali dei servizi CRUD comuni: `id.notFound`, `id.exists`, `id.invalid`, `id.null` e `version.conflict`.
 - Una chiave produce un solo messaggio e ha un solo stato HTTP. La stessa condizione usa la stessa chiave in tutti i punti in cui si verifica.
-- Le nuove chiavi usano un vocabolario chiuso per la condizione. Le chiavi esistenti già conformi ad area e significato restano invariate: si rinominano solo per i motivi elencati in [Corrispondenza con le chiavi attuali](#corrispondenza-con-le-chiavi-attuali).
+- Le nuove chiavi usano un vocabolario chiuso per la condizione. Le chiavi esistenti già conformi ad area e significato restano invariate: si rinominano solo per i motivi elencati in [Corrispondenza con le chiavi precedenti](#corrispondenza-con-le-chiavi-precedenti).
 
 | Condizione | Significato |
 | --- | --- |
@@ -231,7 +231,7 @@ I codici dei vincoli di validazione (`NotNull`, `NotBlank`, `Size`, `Min`, `Max`
 
 ### Un solo punto di risoluzione
 
-`ApiErrorService` traduce `HttpErrorResponse` in un errore risolto: chiave, stato, parametri, `errorId`, titolo, dettaglio e comportamento. L'interceptor lo usa per ogni risposta in errore; il `switch` dei testi attuale viene eliminato.
+`ApiErrorService` traduce `HttpErrorResponse` in un errore risolto: chiave, stato, parametri, `errorId`, titolo, dettaglio e comportamento. L'interceptor lo usa per ogni risposta in errore; non esiste più uno `switch` di testi nell'interceptor.
 
 La risoluzione segue quest'ordine:
 
@@ -262,13 +262,13 @@ this.inventoryService.createAssignment(request, withErrorSummary('Assegnazione n
 
 Senza un titolo dichiarato si usa «Operazione non riuscita»; per una chiave `*.notFound` «Elemento non trovato».
 
-I componenti non mostrano un proprio toast per un errore HTTP. I toast di errore oggi presenti nei callback delle chiamate diventano titoli dichiarati con `withErrorSummary`.
+I componenti non mostrano un proprio toast per un errore HTTP: il titolo specifico si dichiara con `withErrorSummary`.
 
 ### Errori mostrati dal componente
 
-Un componente che mostra l'errore accanto al campo dichiara le chiavi che gestisce con un secondo `HttpContextToken` (`HANDLED_ERRORS`). Per quelle chiavi l'interceptor non mostra il toast, e il componente chiede il testo ad `ApiErrorService` e lo mostra sotto il campo.
+Un componente che mostra l'errore accanto al campo dichiara le chiavi che gestisce con un secondo `HttpContextToken` (`HANDLED_ERRORS`, con `withHandledErrors`). Per quelle chiavi l'interceptor non mostra il toast, e il componente chiede il testo ad `ApiErrorService` e lo mostra sotto il campo.
 
-Il primo caso è la scadenza dell'assegnazione nel dettaglio inventario: la funzione `expirationProblem` e la sua espressione regolare vengono sostituite da `HANDLED_ERRORS` con le chiavi `inventory.loanDuration.*` e i codici di scadenza di `inventory.loanSheet.*`.
+Lo usano la scadenza dell'assegnazione nel dettaglio inventario, con le chiavi `inventory.loanDuration.*` e i codici di scadenza di `inventory.loanSheet.*`, e i dialoghi della firma elettronica per i codici di conferma, i dati del firmatario e il documento firmato con CieSign.
 
 ### Registro dei comportamenti
 
@@ -305,16 +305,16 @@ Fallisce se una chiave del backend manca dal catalogo o dai messaggi del fronten
 
 Lo script si esegue nel job documentazione di `verify.yml`, accanto alla validazione del catalogo funzionalità, con i test in `scripts/docs/error-catalog.test.mjs`. Un controllo bloccante è necessario: senza, una chiave nuova arriverebbe all'utente come testo generico.
 
-## Piano di adozione
+## Componenti dell'adozione
 
-Togliere i titoli dalla risposta e costruire i messaggi nel frontend sono due facce della stessa modifica: vanno rilasciate insieme. Backend e frontend vivono nello stesso repository e il frontend è l'unico consumatore delle chiavi, quindi non servono periodi di compatibilità. Il lavoro si divide in tre blocchi.
+Togliere i titoli dalla risposta e costruire i messaggi nel frontend sono due facce della stessa modifica, rilasciate insieme. Backend e frontend vivono nello stesso repository e il frontend è l'unico consumatore delle chiavi, quindi non servono periodi di compatibilità. L'adozione comprende tre blocchi.
 
 ### Backend
 
 - `RequestAlertException` con chiave, parametri e descrizione per i log; `ErrorArgs`.
 - `ExceptionTranslator` con la risposta minima, l'`errorId` e il log.
 - `AuthenticationEntryPoint` e `AccessDeniedHandler` della catena di sicurezza.
-- Rinomine e scomposizioni della [corrispondenza](#corrispondenza-con-le-chiavi-attuali), con i parametri del catalogo.
+- Rinomine e scomposizioni della [corrispondenza](#corrispondenza-con-le-chiavi-precedenti), con i parametri del catalogo.
 - 404 al posto di 403 per le risorse di altri utenti sugli endpoint del socio.
 - Keycloak: stato 502, nessun messaggio di Keycloak nella risposta.
 - Esiti della verifica del modello e dell'anteprima di emissione con `code` e `args`.
@@ -351,13 +351,13 @@ Frontend, in `api-error.service.spec.ts`:
 
 Script: `node --test scripts/docs/error-catalog.test.mjs` con chiave mancante dal catalogo, chiave mancante dai messaggi, chiave obsoleta e parametro non previsto.
 
-## Corrispondenza con le chiavi attuali
+## Corrispondenza con le chiavi precedenti
 
-Il catalogo riporta le chiavi previste da questo standard. Le chiavi attuali che cambiano sono elencate qui: una chiave letta in un log precedente all'adozione si cerca in questa tabella. Le chiavi non elencate restano invariate.
+Il catalogo riporta le chiavi di questo standard. Le chiavi precedenti all'adozione che sono cambiate sono elencate qui: una chiave letta in un log precedente all'adozione si cerca in questa tabella. Le chiavi non elencate sono rimaste invariate.
 
 ### Sessione, tenant e utenti
 
-| Chiave attuale | Nuova chiave | Motivo |
+| Chiave precedente | Nuova chiave | Motivo |
 | --- | --- | --- |
 | 401 e 403 della catena di sicurezza, senza corpo | `auth.unauthenticated`, `auth.forbidden` | Chiave sempre presente |
 | `http.403` per accesso negato | `auth.forbidden` | Chiave dedicata |
@@ -376,7 +376,7 @@ Il catalogo riporta le chiavi previste da questo standard. Le chiavi attuali che
 
 Tutte passano a 502, tranne `conflict.error`.
 
-| Chiave attuale | Nuova chiave |
+| Chiave precedente | Nuova chiave |
 | --- | --- |
 | `users.list` | `keycloak.users.readFailed` |
 | `get.users` | `keycloak.roleUsers.readFailed` |
@@ -403,7 +403,7 @@ Tutte passano a 502, tranne `conflict.error`.
 
 ### Inventario e fogli di affidamento
 
-| Chiave attuale | Nuova chiave | Motivo |
+| Chiave precedente | Nuova chiave | Motivo |
 | --- | --- | --- |
 | `inventory.notFound` per oggetto, etichette e QR code PNG; `inventory.loanSheet.notFound` per l'oggetto della sostituzione | `inventory.item.notFound` | Un messaggio per chiave |
 | `inventory.notFound` per assegnazione; `inventory.assignment.forbidden`; `inventory.loanSheet.notFound` per assegnazione | `inventory.assignment.notFound` | Un messaggio per chiave; risorsa altrui |
@@ -424,7 +424,7 @@ Tutte passano a 502, tranne `conflict.error`.
 
 ### Altre aree
 
-| Chiave attuale | Nuova chiave |
+| Chiave precedente | Nuova chiave |
 | --- | --- |
 | `invalid`: traccia del programma inesistente | `eventPreparation.track.notFound` |
 | `invalid`: oggetto inventario inesistente | `eventPreparation.item.notFound` |
@@ -799,6 +799,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `calendar.series.recurrence.invalid` | 400 | Regola di ricorrenza non valida; il messaggio del generatore delle occorrenze va solo nel log | — | «Regola di ricorrenza non valida» |
 | `calendar.series.sourceOccurrence.invalid` | 400 | L'occorrenza di partenza indicata non appartiene alla serie | — | «L'occorrenza di partenza non appartiene alla serie» |
 | `calendar.series.occurrence.notFound` | 404 | Ripristino di un'occorrenza che non appartiene alla serie | — | «Occorrenza non trovata nella serie» |
+| `calendar.series.occurrence.conflict` | 409 | La nuova regola porta un'occorrenza sull'inizio già occupato da un'altra occorrenza della serie | — | «Un'altra occorrenza della serie inizia già in quella data» |
 | `calendar.series.reminder.invalid` | 400 | Promemoria dell'evento modello fuori dall'intervallo ammesso | `maximum` | «Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento» |
 | `calendar.reminder.invalid` | 400 | Promemoria di un evento fuori dall'intervallo ammesso | `maximum` | «Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento» |
 | `calendar.reminder.availabilityMissing` | 409 | Promemoria impostato su un evento per cui l'utente non ha confermato la disponibilità | — | «Confermare la propria disponibilità prima di impostare un promemoria» |
@@ -935,6 +936,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `onboarding.job.notCancellable` | 409 | Annullamento di un'importazione già applicata o in applicazione | — | «L'importazione non può essere annullata» |
 | `onboarding.job.validationNotRetryable` | 409 | Nuova validazione di un'importazione non invalida né fallita | — | «La validazione non si può ripetere» |
 | `onboarding.job.compensationNotRequired` | 409 | Ripristino di un'importazione che non lo richiede | — | «Il ripristino non è necessario» |
+| `onboarding.job.sourceRemoved` | 409 | Nuova validazione o nuovo invio delle e-mail dopo che la conservazione ha eliminato file e righe | — | «Il file dell'importazione è stato eliminato» |
 | `onboarding.idempotency.conflict` | 409 | Applicazione con una chiave diversa da quella già registrata per l'importazione | — | «L'importazione è già in applicazione da un'altra richiesta» |
 | `onboarding.warnings.notAccepted` | 409 | Applicazione di un'importazione con avvisi non accettati | — | «Accettare gli avvisi prima di applicare l'importazione» |
 | `onboarding.tenant.busy` | 409 | Un'altra importazione del tenant è in applicazione | — | «Un'altra importazione è già in corso» |

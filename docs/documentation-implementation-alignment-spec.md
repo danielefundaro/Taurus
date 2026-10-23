@@ -9,7 +9,7 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 Taurus contiene specifiche funzionali e tecniche dettagliate, ma non dispone di un indice autorevole che colleghi ogni iniziativa al relativo stato, al codice, alle migrazioni, ai test e alla release che la contiene.
 
-Oggi lo stato è espresso con testo libero all'interno dei documenti. Questo rende possibili situazioni incoerenti, per esempio una specifica che dichiara non avviato lo sviluppo mentre nel repository sono già presenti API, frontend, migrazione Liquibase e test. Inoltre il `README.md` principale contiene soltanto il nome del progetto e non permette di orientarsi tra i quattro moduli.
+Prima dell'adozione lo stato era espresso con testo libero all'interno dei documenti. Questo rendeva possibili situazioni incoerenti, per esempio una specifica che dichiarava non avviato lo sviluppo mentre nel repository erano già presenti API, frontend, migrazione Liquibase e test. Inoltre il `README.md` principale conteneva soltanto il nome del progetto e non permetteva di orientarsi tra i moduli.
 
 La soluzione deve essere leggera: il codice resta la fonte autorevole del comportamento, Git e le release restano la fonte autorevole della cronologia, mentre il catalogo documentale rende queste evidenze rintracciabili e verificabili.
 
@@ -106,7 +106,7 @@ L'esempio illustra il formato e non costituisce una certificazione dello stato c
 | `lastVerifiedOn` | sì | data ISO dell'ultima verifica tra catalogo e repository |
 | `notes` | no | eccezione breve; non deve diventare una seconda specifica |
 
-I valori ammessi per `modules` sono `taurus-be`, `taurus-fe`, `keycloak-authenticator`, `taurus-info` e `repository`.
+I valori ammessi per `modules` sono `taurus-be`, `taurus-fe`, `taurus-omr`, `keycloak-authenticator`, `taurus-info` e `repository`.
 
 ### Stato della progettazione
 
@@ -280,14 +280,15 @@ Si aggiunge `.github/workflows/verify.yml`, attivo su pull request e push al ram
 - `documentation`: valida catalogo e matrice;
 - `backend`: esegue `./mvnw verify` in `taurus-be` quando cambia il modulo o una sua specifica;
 - `frontend`: esegue `npm ci`, `npm test -- --watch=false --browsers=ChromeHeadless` e `npm run build` in `taurus-fe` quando cambia il modulo o una sua specifica;
+- `omr`: esegue i test pytest, costruisce l'immagine e misura l'accuratezza dei motori in `taurus-omr` quando necessario;
 - `keycloak`: esegue `./mvnw verify` in `keycloak-authenticator` quando necessario;
 - `info-site`: esegue `pnpm install --frozen-lockfile`, `pnpm check` e `pnpm build` in `taurus-info` quando necessario.
 
-I filtri per percorso sono un'ottimizzazione: il job `documentation` viene sempre eseguito.
+I filtri per percorso sono un'ottimizzazione, calcolata da `scripts/docs/affected-modules.mjs`: il job `documentation` viene sempre eseguito e comprende anche la verifica del catalogo degli errori (`check-error-catalog.mjs`, con i test in `error-catalog.test.mjs`) descritta nello [Standard degli errori applicativi](application-errors-standard.md#verifica-automatica-del-catalogo).
 
 ### Segnalazione della possibile deriva
 
-Un controllo aggiuntivo confronta i file modificati dalla pull request con le evidenze registrate. Se cambia un'evidenza ma non la relativa voce di catalogo, il job pubblica inizialmente un avviso nel riepilogo CI. Non blocca la pull request perché un refactoring o un bug fix possono non cambiare lo stato.
+Un controllo aggiuntivo (`scripts/docs/check-feature-drift.mjs`) confronta i file modificati dalla pull request con le evidenze registrate. Se cambia un'evidenza ma non la relativa voce di catalogo, il job pubblica inizialmente un avviso nel riepilogo CI. Non blocca la pull request perché un refactoring o un bug fix possono non cambiare lo stato.
 
 Dopo un periodo di adozione, l'avviso può diventare bloccante solo per questi casi oggettivi:
 
@@ -327,7 +328,7 @@ La prima adozione non deve dedurre automaticamente `released` dalla sola presenz
 
 La riconciliazione iniziale deve includere almeno gestione economica, inventario, media, notifiche, eventi ricorrenti, promemoria push, standard di layout, migrazione PostgreSQL e le nuove specifiche ancora non pianificate.
 
-## Struttura prevista del repository
+## Struttura del repository
 
 ```text
 README.md
@@ -342,6 +343,11 @@ scripts/
     validate-feature-catalog.mjs
     feature-catalog-lib.mjs
     feature-catalog.test.mjs
+    affected-modules.mjs         # moduli interessati da una pull request
+    check-feature-drift.mjs      # avvisi di possibile deriva
+    check-error-catalog.mjs      # verifica del catalogo degli errori
+    error-catalog-lib.mjs
+    error-catalog.test.mjs
 .github/
   pull_request_template.md
   workflows/
@@ -399,7 +405,7 @@ Le evidenze sono rappresentative: per una funzionalità non si elenca ogni DTO o
 - rinomina di un'evidenza senza aggiornare il catalogo;
 - pull request che tocca codice senza feature ID, gestita come avviso;
 - tag di release non coerente con il catalogo;
-- esecuzione selettiva delle verifiche dei quattro moduli.
+- esecuzione selettiva delle verifiche dei moduli.
 
 ### Verifica manuale iniziale
 

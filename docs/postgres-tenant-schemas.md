@@ -8,19 +8,24 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 Il backend usa il claim JWT `tenant` per selezionare lo schema PostgreSQL delle entità tenant-scoped.
 Le entità globali, come `legal_document`, restano nello schema `public`.
 Le tabelle degli schemi tenant non contengono `tenant_code`: l'appartenenza è determinata esclusivamente dallo
-schema selezionato sulla connessione. `tenant_code` rimane nel registro globale e, durante la fase di transizione,
-nelle vecchie tabelle `public` usate come sorgente per attribuire e copiare i dati preesistenti.
+schema selezionato sulla connessione. `tenant_code` rimane nel registro globale.
 
 ## Provisioning
 
-La creazione di un tenant tramite `POST /api/tenants` esegue, senza riavvio del backend:
+La creazione di un tenant tramite `POST /api/tenants` (`TenantsServiceImpl.save`) esegue, senza riavvio del backend:
 
-1. generazione di un identificatore sicuro `tenant_<hash>`;
-2. registrazione in `public.tenant_schema_registry` con stato `PROVISIONING`;
-3. `CREATE SCHEMA IF NOT EXISTS` protetto da advisory lock PostgreSQL;
-4. applicazione di `config/liquibase/tenant-master.xml` nello schema;
-5. copia idempotente degli eventuali record legacy del tenant da `public`;
-6. aggiornamento del registro allo stato `ACTIVE`.
+1. salvataggio dell'anagrafica in `public.tenant`;
+2. generazione di un identificatore sicuro `tenant_<hash>`;
+3. registrazione in `public.tenant_schema_registry` con stato `PROVISIONING`;
+4. `CREATE SCHEMA IF NOT EXISTS` protetto da advisory lock PostgreSQL;
+5. applicazione di `config/liquibase/tenant-master.xml` nello schema;
+6. aggiornamento del registro allo stato `ACTIVE`;
+7. collegamento del registro all'anagrafica (`linkTenant`, colonna `tenant_id`);
+8. creazione del gruppo Keycloak del tenant.
+
+Se schema o migration falliscono, il registro passa allo stato `FAILED` con il messaggio in `last_error`. In caso di
+errore in qualunque passo l'anagrafica appena salvata viene eliminata; un errore di provisioning dello schema risponde
+`500` con `tenant.schema.provisioningFailed`. Il metodo `qualified()` di `TenantSchemaProvisioningService` non è usato.
 
 Il nome fisico non contiene il codice inserito dall'utente. La relazione tra codice tenant e schema è consultabile con:
 
@@ -30,7 +35,8 @@ FROM public.tenant_schema_registry
 ORDER BY tenant_code;
 ```
 
-Al bootstrap vengono rieseguite le migration per i tenant non eliminati già presenti in OpenSearch. Liquibase conserva
+All'avvio `TenantSchemaMigrationRunner` legge dal registro i tenant `ACTIVE` e riesegue le migration di ciascuno
+schema; un errore viene registrato in `last_error`, senza cambiare lo stato, e interrompe l'avvio. Liquibase conserva
 `databasechangelog` e `databasechangeloglock` in ogni schema, quindi ciascun tenant ha una versione verificabile e il
 provisioning è ripetibile.
 
@@ -48,7 +54,7 @@ con `@TenantSchemaNotRequired`, che usano solo `public` o Keycloak: gestione ten
 della verifica resta in cache per 30 secondi per istanza, quello negativo no: un tenant appena creato è subito
 utilizzabile, uno eliminato viene respinto entro 30 secondi.
 
-Scheduler, outbox inventario, retention e notifiche push iterano il registro centrale ed eseguono una transazione
+Scheduler, outbox delle notifiche, retention e notifiche push iterano il registro centrale ed eseguono una transazione
 separata per ogni tenant.
 
 ## Permessi PostgreSQL
@@ -64,6 +70,9 @@ In produzione è preferibile usare un ruolo dedicato al provisioning/migration. 
 modificare le tabelle tenant, ma non dovrebbe consentire a input o utenti finali di eseguire DDL.
 
 ## Cancellazione
+
+La normale cancellazione del tenant (`DELETE /api/tenants/{id}`) elimina logicamente l'anagrafica, porta il registro
+allo stato `DELETED` e rimuove il gruppo Keycloak; lo schema resta nel database.
 
 La cancellazione GDPR del tenant pianifica `DROP SCHEMA ... CASCADE` dopo il commit della transazione applicativa,
 evitando lock circolari con le query JPA ancora attive. L'operazione è intenzionalmente distruttiva e il registro passa

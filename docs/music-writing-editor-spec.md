@@ -7,7 +7,7 @@ L'editor consente di scrivere parti e partiture direttamente in Taurus: una part
 ID catalogo: `music-writing-editor`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Approvato il 18/10/2026, dopo la revisione delle dodici questioni aperte della prima bozza, decise e raccolte in [Decisioni della revisione](#decisioni-della-revisione).
+Le dodici questioni aperte della prima bozza sono decise e raccolte in [Decisioni della revisione](#decisioni-della-revisione).
 
 Documenti collegati: [Ascolto e correzione delle parti](track-score-playback-spec.md), [Workspace per la gestione delle parti](track-parts-workspace-spec.md), [Anteprima e stampa degli spartiti](score-preview-printing-spec.md), [Gestione centralizzata dei media](media-asset-spec.md), [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md), [Standard degli errori applicativi](application-errors-standard.md).
 

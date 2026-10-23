@@ -64,23 +64,23 @@ La giurisprudenza ritiene insufficiente la sola spunta di una casella e ammette 
 14. **Firmatario per l'Associazione distinto dall'Affidatario.** Chi firma per l'Associazione non può essere l'Affidatario dello stesso foglio. Finché nessuno ha firmato l'atto, un amministratore può designare un altro firmatario per l'Associazione.
 15. **Nessun costo.** L'unico requisito esterno è un server SMTP, per esempio quello della casella e-mail già usata dall'associazione.
 
-## Contesto tecnico acquisito
+## Contesto tecnico
 
-- `InventoryLoanSheetService.generate()` rigenera il PDF a ogni download e salva ogni copia in `inventory_loan_sheet_export`; annullamento e definizione chiamano `deletePdfs()`, la definizione anche `purgePersonalData()`.
-- `LoanTemplateValidator` controlla solo `style` e un elenco chiuso di attributi di risorsa: gli attributi `data-*` sono già ammessi. Le segnalazioni sono `Issue(code, args, line, blocking)` e il frontend le traduce come `inventory.loanTemplate.issue.<code>`.
+- `InventoryLoanSheetService.generate()` rigenera il PDF a ogni download e salva ogni copia in `inventory_loan_sheet_export`; per un foglio `ELECTRONIC` il PDF è la copia di consultazione. Annullamento e definizione chiamano `deletePdfs()` e `LoanSheetSignatureService.sheetEnded()`, la definizione anche `purgePersonalData()`.
+- `LoanTemplateValidator` controlla solo `style` e un elenco chiuso di attributi di risorsa: gli attributi `data-*` sono ammessi. Le segnalazioni sono `Issue(code, args, line, blocking)` e il frontend le traduce come `inventory.loanTemplate.issue.<code>`.
 - Il catalogo `LoanSheetVariables` descrive ogni variabile con nome, tipo (`TEXT`, `FLAG`, `LIST`), descrizione ed esempio.
-- La presa visione (`InventoryService.decide`) confronta l'hash della revisione con `MessageDigest.isEqual` e salva in `inventory_assignment_decision` l'hash SHA-256 di `snapshotHash|userId|DECISION|reason`. Non esiste un endpoint di decisione multipla.
-- `spring-boot-starter-mail` è nel `pom.xml`, ma nessuna classe invia e-mail e nessun profilo configura `spring.mail`. `jhipster.mail.from` vale `taurus@localhost` e l'health check della posta è disattivato. L'ambiente di sviluppo non ha un server SMTP.
+- La presa visione diretta (`InventoryService.decide`) confronta l'hash della revisione con `MessageDigest.isEqual` e salva in `inventory_assignment_decision` l'hash SHA-256 di `snapshotHash|userId|DECISION|reason`. Con la firma attiva risponde `409 inventory.decision.signatureRequired`: la decisione, anche multipla, passa dalle conferme `ASSIGNMENT_DECISION` (`InventoryService.decideSigned`).
+- `SignatureMailService`, basato su `JavaMailSender` di `spring-boot-starter-mail`, invia codici e link con il mittente `jhipster.mail.from` (`taurus@localhost` per default). In sviluppo `services.yml` avvia Mailpit (`mailpit.yml`) e il profilo `dev` punta `spring.mail` a `localhost:1025`.
 - Le preferenze utente sono coppie chiave/valore della tabella `preferences`, esposte da `/api/preferences`.
-- Il profilo avvia già l'azione Keycloak `CONFIGURE_TOTP` (`profile.component.ts`). Il flusso "Browser with Tenant and Role" chiede l'OTP dopo la selezione di tenant e ruolo solo agli utenti che l'hanno configurato. La policy OTP del realm è TOTP a 6 cifre, periodo 30 secondi, look-ahead 1, codice non riutilizzabile.
+- Il profilo avvia l'azione Keycloak `CONFIGURE_TOTP` (`profile.component.ts`). Il flusso "Browser with Tenant and Role" chiede l'OTP dopo la selezione di tenant e ruolo solo agli utenti che l'hanno configurato. La policy OTP del realm è TOTP a 6 cifre, periodo 30 secondi, look-ahead 1, codice non riutilizzabile.
 - Nessun componente legge i claim `acr`, `amr` o `auth_time`.
-- Il frontend inizializza Keycloak con `onLoad: 'login-required'` in `taurus-fe/src/app.config.ts`: oggi nessuna rotta Angular è raggiungibile senza login.
-- L'annullamento di un foglio (`InventoryLoanSheetService.cancel`) rimuove i PDF ma non i dati personali. La definizione automatica dei fogli `COMPLIANT` avviene 30 giorni dopo la chiusura, con `InventoryLoanSheetRetentionScheduler`. La cancellazione GDPR (`InventoryErasureService.complete`) è completata da un amministratore.
-- Il feed calendario risolve il tenant di una richiesta anonima con il registro `public.calendar_feed_token_registry` e limita le richieste con `CalendarFeedRateLimiter`, basato su Caffeine.
-- `MediaRepository.isUnreferenced` elenca le tabelle che usano un media; la pulizia rimuove solo i file dei media non più attivi.
+- Il frontend inizializza Keycloak con `onLoad: 'login-required'` in `taurus-fe/src/app.config.ts`, tranne quando il percorso iniziale è la pagina pubblica `/firma/:token` (`publicSignaturePage()`), raggiungibile senza login.
+- L'annullamento di un foglio (`InventoryLoanSheetService.cancel`) rimuove i PDF e i dati dell'Affidatario, non i dati del socio. La definizione automatica dei fogli `COMPLIANT` avviene 30 giorni dopo la chiusura, con `InventoryLoanSheetRetentionScheduler`. La cancellazione GDPR è completata da un amministratore (`InventoryErasureService.complete`) o eseguita subito per un socio senza materiale in carico (`UserErasureCompleted`).
+- Il feed calendario risolve il tenant di una richiesta anonima con il registro `public.calendar_feed_token_registry` e limita le richieste con `CalendarFeedRateLimiter`, basato su Caffeine; i link dei genitori usano lo stesso schema.
+- `MediaRepository.isUnreferenced` elenca le tabelle che usano un media, comprese quelle della firma; la pulizia rimuove solo i file dei media non più attivi.
 - Le notifiche interne si creano con `NotificationOutboxPublisher.enqueue(NotificationCommand)` dentro una transazione.
-- BouncyCastle è presente solo come `bcprov-jdk15on` 1.70, usato dalla libreria Web Push. Manca `bcpkix`, necessario per generare e verificare firme CMS.
-- Il modulo `keycloak-authenticator` è compilato con Keycloak 26.6.0, mentre `keycloak.yml` avvia l'immagine 26.5.2.
+- BouncyCastle è presente come `bcprov-jdk18on` e `bcpkix-jdk18on` 1.86, usati dalla libreria Web Push e dal sigillo.
+- Il modulo `keycloak-authenticator` è compilato con Keycloak 26.6.4, la stessa versione dell'immagine avviata da `keycloak.yml`.
 
 ## Terminologia
 
@@ -120,7 +120,7 @@ Il firmatario per l'Associazione dell'emissione è scelto nella finestra di emis
 
 ### Firmatario per l'Associazione
 
-- Non può essere l'Affidatario del foglio. All'emissione l'elenco esclude il socio quando il ruolo è `MEMBER` e la richiesta con il socio come firmatario risponde `422 signature.associationSigner.sameAsHolder`. Se l'amministratore che registra una variazione o chiude il foglio ne è l'Affidatario, firma per l'Associazione il firmatario designato all'emissione.
+- Non può essere l'Affidatario del foglio. All'emissione l'elenco esclude sempre il socio, anche con ruolo `GUARDIAN`, e la richiesta con il socio come firmatario risponde `422 signature.associationSigner.sameAsHolder`. Se l'amministratore che registra una variazione o chiude il foglio ne è l'Affidatario, firma per l'Associazione il firmatario designato all'emissione.
 - Firma solo se, al momento della conferma, è ancora admin o super admin attivo del tenant. Altrimenti la conferma risponde `422 signature.associationSigner.notAdmin` e la scheda **Firme** del foglio segnala che serve un nuovo firmatario.
 - Finché nessun firmatario dell'atto ha firmato, un amministratore può designare un altro firmatario per l'Associazione, con le stesse regole e con il controllo di `entity_version` dell'atto (`409 signature.act.versionConflict`). Il nuovo firmatario riceve la notifica. Il nome è stampato solo nell'emissione: se i suoi documenti sono già congelati, Taurus li marca come eliminati e l'atto torna in `AWAITING_DATA`, perché i dati dell'Affidatario esistono solo dentro i documenti; l'Affidatario riceve la notifica e li inserisce di nuovo. Variazioni e verbale di riconsegna non stampano il nome e non cambiano.
 - Dopo la prima firma il firmatario non cambia più (`409 signature.associationSigner.locked`): se non può firmare, un amministratore dichiara l'atto firmato su carta.
@@ -154,7 +154,7 @@ Nuovo campo `electronic_signature_enabled` di `inventory_loan_settings`, falso p
 Con la firma elettronica attiva:
 
 - i nuovi fogli propongono la modalità `ELECTRONIC`;
-- la presa visione richiede un codice di conferma e non è più accettata dall'endpoint diretto attuale;
+- la presa visione richiede un codice di conferma e non è accettata dall'endpoint diretto;
 - la pagina del modello mostra se il modello in uso è firmabile.
 
 La disattivazione vale per nuovi fogli e nuove prese visione: gli atti già in attesa restano firmabili fino al completamento o all'annullamento.
@@ -181,9 +181,9 @@ Un amministratore può dichiarare firmato su carta un atto in `AWAITING_DATA` o 
 - Validità 10 minuti, al massimo 5 tentativi, uso singolo. Un nuovo invio è possibile dopo 60 secondi, fino a 5 invii per conferma; ogni invio sostituisce il codice precedente.
 - Il codice è legato al firmatario, allo scopo e all'hash dell'elenco dei documenti confermati: non vale per altri atti.
 - Il messaggio indica tenant, tipo di atto, numero del foglio, prime 8 cifre dell'hash del documento e scadenza del codice. Non contiene link.
-- L'invio usa `spring.mail.*` e il mittente `jhipster.mail.from`, tramite un nuovo `SignatureMailService` basato su `JavaMailSender`. L'e-mail parte dopo il commit; se il server SMTP non la accetta la conferma è annullata e la richiesta risponde `502 signature.mail.sendFailed`. Un firmatario senza e-mail riceve `signature.mail.addressMissing`.
+- L'invio usa `spring.mail.*` e il mittente `jhipster.mail.from`, tramite `SignatureMailService` basato su `JavaMailSender`. L'e-mail parte dopo il commit; se il server SMTP non la accetta la conferma è annullata e la richiesta risponde `502 signature.mail.sendFailed`. Un firmatario senza e-mail riceve `signature.mail.addressMissing`.
 - Ogni utente può aprire al massimo 20 conferme in un'ora (`application.signature.max-challenges-per-hour`), per proteggere la casella dell'associazione dai limiti di invio del provider; oltre il limite la richiesta risponde `429 signature.challenge.resendTooSoon` con il tempo d'attesa.
-- Le conferme chiuse da più di 30 giorni (`application.signature.challenge-retention-days`) sono eliminate ogni notte da `SignatureChallengeCleanupScheduler`; le prove non dipendono dalle conferme.
+- Le conferme chiuse da più di 30 giorni (`application.signature.challenge-retention-days`) sono eliminate ogni notte da `SignatureChallengeCleanupScheduler`, su tutti i tenant attivi; le prove non dipendono dalle conferme.
 - La configurazione SMTP è unica per l'installazione: tutti i tenant inviano dallo stesso mittente e ogni messaggio riporta la denominazione del tenant. Un SMTP diverso per tenant è fuori scope.
 - Nello sviluppo `services.yml` avvia Mailpit, un server SMTP locale e open source che raccoglie i messaggi senza consegnarli e li mostra in una pagina web; il profilo `dev` vi punta `spring.mail`.
 - Destinatario: l'e-mail dell'account Keycloak del firmatario oppure, per il genitore, l'e-mail registrata sul foglio.
@@ -245,13 +245,13 @@ La verifica usa PDFBox e `bcpkix`, introdotto con il sigillo (vedi [Sigillo](#si
 - L'emissione ha anche il firmatario `MINOR`, non obbligatorio: il socio minorenne prende visione del documento `MAIN` dal proprio account, con lo scopo `MINOR_ACKNOWLEDGMENT`, dopo che il genitore ha inserito i dati, e riceve la notifica in quel momento. Se l'atto è firmato da tutte le parti prima, la presa visione non si può più dare.
 - Per ogni atto da firmare (emissione, variazione, riconsegna) Taurus invia un link `{public-base-url}/firma/{token}`. La base URL viene dalla configurazione (`application.signature.public-base-url`), mai dall'header `Host`. L'e-mail parte dopo il commit dell'operazione: se il server SMTP la rifiuta l'operazione resta valida, il link risulta non inviato nella sezione **Firme** e un amministratore lo reinvia.
 - Il token è di 32 byte casuali in base64url. Si salvano solo il digest SHA-256, nel registro pubblico, e un'impronta di 8 caratteri per l'interfaccia, nel tenant; il token non contiene tenant, atto o utente.
-- Il tenant è risolto con il nuovo registro `public.signature_link_registry`, come per il feed calendario, accettando solo tenant e schema `ACTIVE` con l'inventario attivo.
+- Il tenant è risolto con il registro `public.signature_link_registry`, come per il feed calendario, accettando solo tenant e schema `ACTIVE` con la funzionalità `INVENTORY_SIGNATURE` attiva (`SignatureLinkResolver`).
 - Il link vale 7 giorni (`application.signature.link-validity`) e un solo firmatario di un solo atto. Un nuovo link revoca il precedente; il link è revocato anche quando l'atto è firmato da tutte le parti, dichiarato firmato su carta o annullato, e un amministratore può revocarlo.
 - A firme complete il genitore riceve la conferma di completamento con un nuovo link di 7 giorni, che apre la pagina con i documenti sigillati e l'attestazione. Un amministratore può reinviarlo finché i documenti sono in Taurus.
 - La pagina pubblica mostra tenant, tipo di atto, numero del foglio, socio minorenne e scadenza del link, raccoglie i dati dell'emissione e registra le firme con il codice via e-mail, inviato allo stesso indirizzo, o con CieSign. Le conferme dal link hanno gli stessi limiti di quelle con account e il limite orario vale per ciascun link.
 - Con i dati delle sezioni 1 e 2 il genitore inserisce nome, cognome e data di nascita propri, da maggiorenne, e il luogo di nascita del socio minorenne. Se cambia chi firma per l'Associazione quando i documenti dell'emissione sono già congelati, il genitore riceve un nuovo link per inserire di nuovo i dati.
 - Le prove delle firme dal link non hanno identificativo Keycloak: registrano il nome inserito dal genitore, l'indirizzo del link e, come sessione, `link:` seguito dall'impronta del link.
-- `SignatureLinkExpiryScheduler` gira ogni ora (`application.signature.link-expiry-cron`): notifica una volta ad admin e super admin i link scaduti senza la firma del genitore, con l'atto ancora in attesa, e rimuove dal registro pubblico le righe dei link revocati o scaduti.
+- `SignatureLinkExpiryScheduler` gira ogni ora su tutti i tenant attivi (`application.signature.link-expiry-cron`): notifica una volta ad admin e super admin i link scaduti senza la firma del genitore, con l'atto ancora in attesa, e rimuove dal registro pubblico le righe dei link revocati o scaduti.
 - Limite noto: link e codice arrivano sulla stessa casella. La firma prova il controllo della casella; CieSign offre un'identificazione più forte ed è indicato nella pagina come metodo consigliato, quando il genitore ha dichiarato un codice fiscale italiano.
 
 ## Dati dell'Affidatario
@@ -332,11 +332,11 @@ I fogli già emessi conservano la copia del predefinito con cui sono stati emess
 ### Sigillo
 
 - Quando l'atto passa a `SIGNED`, Taurus aggiunge a ogni documento una firma PAdES-B-B, o B-T se è configurata una TSA, come aggiornamento incrementale. Le firme CieSign già presenti restano valide.
-- Il certificato è unico per l'installazione: un keystore PKCS#12 indicato da `application.signature.seal.keystore-path`, con password da variabile d'ambiente. Può essere autofirmato o emesso da una CA interna; il runbook operativo indicherà il comando `keytool` per crearlo. Il keystore non va mai nel repository.
+- Il certificato è unico per l'installazione: un keystore PKCS#12 indicato da `application.signature.seal.keystore-path`, con password da variabile d'ambiente. Può essere autofirmato o emesso da una CA interna; il runbook operativo indica il comando `keytool` per crearlo. Il keystore non va mai nel repository.
 - Nel profilo `dev`, senza keystore, Taurus genera all'avvio un certificato effimero e registra un avviso. In produzione la firma elettronica non si attiva senza keystore.
 - `application.signature.seal.tsa-url` è vuoto per default. Una TSA gratuita è un servizio esterno e resta una scelta dell'operatore.
 - Acrobat mostra il sigillo come firma di identità sconosciuta finché il certificato non è tra le identità attendibili; l'integrità del file resta comunque verificabile e l'attestazione spiega come controllarla.
-- La firma CMS del sigillo richiede `bcpkix`. `bcprov-jdk15on` va sostituito con `bcprov-jdk18on` e `bcpkix-jdk18on`, escludendo la dipendenza transitiva di `web-push` e verificando i test Web Push. Le due famiglie di artefatti non devono convivere nel classpath.
+- La firma CMS del sigillo usa `bcpkix-jdk18on`; `bcprov-jdk18on`, dichiarato nel `pom.xml`, è anche il provider di sicurezza di Web Push. Gli artefatti `jdk15on` non devono convivere nel classpath con quelli `jdk18on`.
 
 ### Attestazione
 
@@ -395,12 +395,12 @@ La presa visione non genera sigillo né attestazione e non ha periodo di grazia:
 | Consegna successiva, sostituzione, rinnovo, restituzione registrata nel registro | un atto `LOAN_SHEET_VARIATION` per operazione, nella stessa transazione dell'operazione: `InventoryService` e `InventoryLoanSheetService` pubblicano l'evento `LoanSheetVariationRecorded`, che crea l'atto con le sole righe dell'operazione. Una restituzione che lascia il foglio senza beni in carico non crea un atto: la documenta il verbale di riconsegna |
 | Chiusura | atto `LOAN_SHEET_RETURN` |
 | Riconsegna `SIGNED` o `SIGNED_ON_PAPER` con esito `COMPLIANT` | definizione immediata con l'evento `LoanSheetReturnSigned`, al posto della conferma manuale della firma del verbale; resta la definizione automatica dopo 30 giorni |
-| Definizione | dati personali rimossi dalle tabelle come oggi, compresi i [dati dell'Affidatario](#dati-dellaffidatario); gli atti ancora in attesa diventano `CANCELLED`; gli atti firmati ricevono `purge_after` = definizione + periodo di grazia; notifica agli amministratori con la data di eliminazione del fascicolo |
+| Definizione | dati personali rimossi dalle tabelle come per i fogli su carta, compresi i [dati dell'Affidatario](#dati-dellaffidatario); gli atti ancora in attesa diventano `CANCELLED`; gli atti firmati ricevono `purge_after` = definizione + periodo di grazia; notifica agli amministratori con la data di eliminazione del fascicolo |
 | Annullamento | atti in attesa `CANCELLED`, documenti congelati e link rimossi, dati dell'Affidatario rimossi; gli atti firmati ricevono `purge_after` = annullamento + periodo di grazia; notifica agli amministratori con la data di eliminazione del fascicolo |
 | Cancellazione GDPR | atti in attesa `CANCELLED`; documenti, attestazioni e dati personali delle prove di tutti gli atti del socio eliminati, comprese le prese visione: subito se il socio non ha materiale in carico, altrimenti al completamento della pratica dopo la riconsegna |
 | Fine del periodo di grazia | documenti sigillati, file CieSign, attestazioni e dati personali delle prove eliminati; l'atto riceve `purged_at` |
 
-Il periodo di grazia è `application.signature.download-grace-days`, 30 giorni per default. `SignaturePurgeScheduler` gira ogni notte ed elimina gli atti con `purge_after` passato: azzera i riferimenti ai media, invoca `MediaService.deleteIfUnreferenced` e cancella i dati personali delle prove. La disattivazione della firma elettronica non cambia le date di eliminazione già fissate.
+Il periodo di grazia è `application.signature.download-grace-days`, 30 giorni per default. `SignaturePurgeScheduler` gira ogni notte su tutti i tenant attivi ed elimina gli atti con `purge_after` passato: azzera i riferimenti ai media, invoca `MediaService.deleteIfUnreferenced` e cancella i dati personali delle prove. La disattivazione della firma elettronica non cambia le date di eliminazione già fissate.
 
 ## Conservazione e GDPR
 
@@ -410,7 +410,7 @@ Il periodo di grazia è `application.signature.download-grace-days`, 30 giorni p
 - Il flusso GDPR esistente elimina anche documenti, attestazioni e dati personali delle prove del socio: subito, se non ha materiale in carico (evento `UserErasureCompleted` di `DataErasureService`, gestito da `InventoryErasureService`), altrimenti al completamento della pratica dopo la riconsegna (`InventoryErasureService.complete`). La finestra di conferma avvisa l'amministratore di scaricare prima i fascicoli dei fogli coinvolti.
 - Documenti firmati, attestazioni e fascicolo sono scaricabili da admin e super admin del tenant; documenti e attestazioni anche dai firmatari con account. Ogni download è registrato.
 - L'informativa del modello deve indicare chi conserva gli atti firmati e per quanto tempo.
-- I log non contengono codici, token, e-mail, codici fiscali o contenuto dei documenti.
+- I log non contengono codici, token, e-mail, codici fiscali o contenuto dei documenti. Anche nel profilo `dev` `LoggingAspect` esclude `service.signature` e le resource della firma (`SignatureLinkResource`, `InventorySignatureResource`, `UserSignatureResource`), quindi argomenti e risultati non finiscono nei log DEBUG.
 
 ## Autorizzazioni e isolamento tenant
 
@@ -429,7 +429,7 @@ Il periodo di grazia è `application.signature.download-grace-days`, 30 giorni p
 
 - Gli endpoint personali sono in `/api/user/signatures/**` e vanno aggiunti esplicitamente all'elenco di `SecurityConfiguration`, che mantiene il `denyAll` sugli altri percorsi. Un atto di cui l'utente non è firmatario risponde `404`.
 - Gli endpoint pubblici sono solo i percorsi `/api/signature-links/v1/*/…` elencati sotto, con `permitAll()` per metodo e `denyAll()` sul resto, prima della regola generale `/api/**`. L'autenticazione avviene solo tramite digest del token e non crea una `Authentication` riutilizzabile.
-- Tutti gli endpoint sono soggetti a `@RequiresTenantFeature(TenantFeature.INVENTORY)`; per il percorso pubblico la feature disattivata è indistinguibile da un token inesistente.
+- Gli endpoint amministrativi (`InventorySignatureResource`) e personali (`UserSignatureResource`) sono soggetti a `@RequiresTenantFeature(TenantFeature.INVENTORY_SIGNATURE)` e con la funzionalità spenta rispondono `403 tenantFeature.inventorySignature.disabled`. Il percorso pubblico controlla `INVENTORY_SIGNATURE` nel tenant del link (`SignatureLinkResolver`): la funzionalità disattivata è indistinguibile da un token inesistente.
 - Ogni identificativo è verificato nel tenant del token JWT o del registro dei link; le tabelle stanno nello schema del tenant, tranne `signature_link_registry`.
 
 ## Modello dati e migrazioni
@@ -480,7 +480,7 @@ Nuove tabelle:
 - Nuovo client confidenziale `taurus-signature` in `taurus-realm.json`: solo service account, nessun flusso browser, solo lo scope `basic`, ruolo client `otp-verifier` assegnato al service account `service-account-taurus-signature`. Il segreto di sviluppo segue la convenzione del realm locale (`taurus-signature`, come `web_app`); in produzione arriva da variabile d'ambiente e non va nel repository. Un realm di sviluppo già importato non riceve il client: va reimportato o configurato a mano come indicato nel [Runbook operativo](runbook-operativo.md).
 - Il flusso "Browser with Tenant and Role" resta invariato: l'OTP condizionale al login è accettato.
 - `smtpServer` del realm può usare la stessa casella dell'associazione per recupero password e verifica e-mail; la configurazione è documentata nel runbook, senza credenziali.
-- Provider e immagine eseguita devono usare la stessa versione di Keycloak. Come primo passo dell'implementazione, `keycloak.yml`, il runbook e `keycloak.version` del modulo vengono portati sulla stessa versione 26.6.x.
+- Provider e immagine eseguita usano la stessa versione di Keycloak, 26.6.4: `keycloak.version` del modulo e immagine di `keycloak.yml`.
 
 ## API REST
 
@@ -488,7 +488,7 @@ Nuove tabelle:
 
 | Metodo e percorso | Descrizione |
 | --- | --- |
-| `GET /acts` | atti dei fogli in cui l'utente firma, non annullati e non eliminati, dal più recente: stato, documenti con hash, firmatari, conferme ancora attese dall'utente (`pendingPurposes`), richiesta dei dati (`dataRequired`) e disponibilità di CieSign per l'Affidatario con codice fiscale italiano (`cieSignAvailable`) |
+| `GET /acts` | atti dei fogli in cui l'utente firma, non annullati e non eliminati, dal più recente: stato, documenti con hash, firmatari, conferme ancora attese dall'utente (`pendingPurposes`), richiesta dei dati (`dataRequired`), data di nascita del socio dal profilo (`memberBirthDate`), prese visione in attesa (`pendingAcknowledgments`) e disponibilità di CieSign per l'Affidatario con codice fiscale italiano (`cieSignAvailable`) |
 | `GET /acts/{id}` | dettaglio di un atto dell'utente, con gli stessi campi |
 | `PUT /acts/{id}/holder-data` | dati dell'Affidatario; genera i documenti congelati e restituisce gli hash |
 | `GET /acts/{id}/documents/{role}` | documento congelato o, ad atto completato, sigillato |
@@ -500,7 +500,7 @@ Nuove tabelle:
 | `POST /challenges/{id}/resend` | nuovo codice via e-mail |
 | `POST /challenges/{id}/confirm` | `{ code }`; registra le firme e restituisce l'esito per atto |
 
-Gli elementi di una conferma `ACCEPTANCE` possono riguardare più atti di variazione dello stesso firmatario. Emissione e riconsegna si confermano da sole, e `ACCEPTANCE` e `CLAUSE_APPROVAL` sono sempre conferme distinte.
+Gli elementi di una conferma `ACCEPTANCE` o `ASSOCIATION_SIGNATURE` possono riguardare più atti di variazione dello stesso firmatario. Emissione e riconsegna si confermano da sole, `CLAUSE_APPROVAL` non è mai multipla, e `ACCEPTANCE` e `CLAUSE_APPROVAL` sono sempre conferme distinte.
 
 ### Amministrazione (`/api/inventory`)
 
@@ -575,7 +575,7 @@ Gli errori seguono lo [Standard degli errori applicativi](application-errors-sta
 | `signature.associationSigner.sameAsHolder` | 422 | firmatario per l'Associazione coincidente con l'Affidatario |
 | `signature.associationSigner.notAdmin` | 422 | firmatario per l'Associazione non più admin o super admin attivo |
 | `signature.associationSigner.locked` | 409 | cambio del firmatario per l'Associazione dopo la prima firma dell'atto |
-| `signature.settings.requirementsMissing` | 422 | attivazione senza SMTP, chiave dei codici o sigillo configurati, con `args.missing` |
+| `signature.settings.requirementsMissing` | 422 | attivazione, creazione o reinvio di una conferma o caricamento CieSign senza SMTP, chiave dei codici o sigillo configurati, con `args.missing` |
 | `signature.settings.versionConflict` | 409 | impostazione modificata da un'altra richiesta |
 | `inventory.loanSheet.templateNotSignable` | 422 | emissione elettronica con modello senza marcatori validi |
 | `inventory.loanSheet.holderEmailRequired` | 422 | Affidatario senza e-mail in modalità elettronica: socio maggiorenne senza e-mail o genitore senza e-mail inserita all'emissione |
@@ -614,7 +614,7 @@ La vista segue il [Taurus Layout Standard](taurus-layout-standard.md) e la docum
 
 Composte da `NoticesAspect` e registrate con `NotificationOutboxPublisher.enqueue` nella transazione dell'operazione:
 
-- `Inventario: firma richiesta`, obbligatoria, con percorso verso **I miei oggetti**: all'Affidatario per l'emissione da completare con i dati, per ogni variazione e per il verbale; all'amministratore designato quando i documenti dell'emissione sono pronti, per variazioni e verbale e quando subentra a un altro; all'Affidatario quando deve reinserire i dati dopo il cambio del firmatario;
+- `Inventario: firma richiesta`, obbligatoria, con percorso verso **I miei oggetti**: all'Affidatario per l'emissione da completare con i dati (testo «inserisci i tuoi dati e firmalo con il codice inviato via e-mail»), per ogni variazione e per il verbale; all'amministratore designato quando i documenti dell'emissione sono pronti, per variazioni e verbale e quando subentra a un altro; all'Affidatario quando deve reinserire i dati dopo il cambio del firmatario;
 - `Inventario: atto firmato`, all'Affidatario e ad admin e super admin, per un atto firmato da tutte le parti o dichiarato su carta;
 - `Inventario: fascicolo da conservare`, ad admin e super admin, alla definizione o all'annullamento di un foglio con atti firmati, con la data di eliminazione;
 - `Inventario: link di firma scaduto`, ad admin e super admin, una volta per ogni link scaduto senza la firma del genitore mentre l'atto è in attesa;
@@ -683,37 +683,24 @@ Il genitore riceve solo e-mail: link, codici e conferma di completamento con il 
 - Invio delle e-mail con Mailpit nello sviluppo e con il server SMTP di una casella reale dell'associazione.
 - Stampa A4 della nuova versione del modello predefinito, a confronto con il modello dell'associazione.
 
-Il 2026-10-20 i casi SIG-001…035 del [Runbook di test](runbook-test.md#1414-firma-elettronica) sono stati eseguiti su uno stack locale, con le e-mail in Mailpit e le firme CieSign prodotte da una CA di prova configurata come trust anchor; anche il fascicolo è stato verificato senza Taurus. Restano la firma con una CIE reale e la verifica in Acrobat (SIG-031–033), l'invio da una casella reale e la stampa A4.
+I casi manuali sono i SIG-001…035 del [Runbook di test](runbook-test.md#1414-firma-elettronica); in sviluppo le e-mail si leggono in Mailpit e le firme CieSign si producono con una CA di prova configurata come trust anchor.
 
 ## Criteri di accettazione
 
-- [x] Con la firma elettronica disattivata il comportamento di fogli e prese visione è invariato.
-- [x] Un socio maggiorenne firma l'emissione con codice via e-mail o con l'app, con due conferme distinte per foglio e clausole.
-- [x] Un genitore senza account firma dal link con codice via e-mail o con CieSign.
-- [x] Ogni variazione e la riconsegna producono un atto firmabile; la riconsegna firmata senza addebiti definisce il foglio.
-- [x] Un documento firmato non cambia: download ripetuti restituiscono lo stesso hash e il sigillo resta valido.
-- [x] Un modello caricato senza marcatori resta utilizzabile su carta e la pagina del modello spiega cosa manca.
-- [x] Un file CieSign con documento diverso, firma non valida o firmatario diverso è rifiutato con la chiave corretta.
-- [x] Un codice scaduto, già usato, errato oltre i tentativi o legato a un altro atto è rifiutato.
-- [x] La catena delle prove è verificabile e una modifica manuale di una prova viene rilevata.
-- [x] Dopo la definizione o l'annullamento il fascicolo resta scaricabile per il periodo di grazia, poi documenti, attestazioni e dati personali delle prove sono eliminati; la cancellazione GDPR li elimina subito.
-- [x] Il fascicolo scaricato contiene documenti sigillati e attestazioni verificabili senza Taurus.
-- [x] Chi firma per l'Associazione non è mai l'Affidatario e può essere sostituito solo prima della prima firma dell'atto.
-- [x] Atti, conferme e link di un tenant non sono accessibili da un altro tenant.
-- [x] Nessun codice, token, e-mail o codice fiscale compare nei log.
-
-I criteri sono verificati il 2026-10-20 dai test automatici e dall'esecuzione dei casi SIG-001…035; per CieSign con una CA di prova al posto di quelle della CIE, mentre la prova con una carta reale resta tra le verifiche manuali.
-
-## Piano di implementazione
-
-1. **Fondamenta**: allineamento della versione di Keycloak, sostituzione di BouncyCastle, Mailpit nei servizi di sviluppo, tabelle, catena delle prove, conferme con codice via e-mail, `SignatureMailService`, sigillo e attestazione, presa visione con codice, interruttore del tenant.
-2. **Foglio**: marcatori e validatore, nuovo modello predefinito, atti di emissione, variazione e riconsegna, dati dell'Affidatario, firma per l'Associazione e suo cambio, firma su carta del singolo atto, fascicolo, eliminazione dopo il periodo di grazia e con la cancellazione GDPR.
-3. **App di autenticazione**: provider `taurus-otp`, client `taurus-signature`, preferenza nel profilo.
-4. **Genitore**: link pubblici, registro, pagina `/firma/:token`.
-5. **CieSign**: verifica dei file, trust anchor CIE.
-6. **Qualificazione**: runbook operativo e di test, verifiche manuali, [Verifica legale](#verifica-legale).
-
-Le fasi 1 e 2 sono implementate (ottobre 2026) e formano la prima consegna, utilizzabile da sola: soci maggiorenni e amministratori firmano con codice via e-mail fogli e prese visione. La fase 3 è implementata il 2026-10-19: chi ha configurato l'app di autenticazione può confermare con il suo codice, scegliendo il metodo preferito nel profilo. La fase 4 è implementata il 2026-10-19: il genitore o tutore senza account firma dal link ricevuto via e-mail e il socio minorenne prende visione del foglio dal proprio account. La fase 5 è implementata il 2026-10-19: l'Affidatario con codice fiscale italiano, socio maggiorenne o genitore, può firmare i documenti con CieSign, nelle installazioni che configurano i certificati delle CA della CIE. La fase 6 è eseguita il 2026-10-20: verifiche manuali su uno stack locale, correzione dei difetti trovati (vedi le decisioni della fase 6) e lettura del testo originale della pronuncia citata. Prima dell'uso in un tenant reale restano la firma con una CIE reale e in Acrobat, l'invio da una casella reale, la stampa A4 e la [Verifica legale](#verifica-legale) da parte di un legale.
+- Con la firma elettronica disattivata il comportamento di fogli e prese visione è invariato.
+- Un socio maggiorenne firma l'emissione con codice via e-mail o con l'app, con due conferme distinte per foglio e clausole.
+- Un genitore senza account firma dal link con codice via e-mail o con CieSign.
+- Ogni variazione e la riconsegna producono un atto firmabile; la riconsegna firmata senza addebiti definisce il foglio.
+- Un documento firmato non cambia: download ripetuti restituiscono lo stesso hash e il sigillo resta valido.
+- Un modello caricato senza marcatori resta utilizzabile su carta e la pagina del modello spiega cosa manca.
+- Un file CieSign con documento diverso, firma non valida o firmatario diverso è rifiutato con la chiave corretta.
+- Un codice scaduto, già usato, errato oltre i tentativi o legato a un altro atto è rifiutato.
+- La catena delle prove è verificabile e una modifica manuale di una prova viene rilevata.
+- Dopo la definizione o l'annullamento il fascicolo resta scaricabile per il periodo di grazia, poi documenti, attestazioni e dati personali delle prove sono eliminati; la cancellazione GDPR li elimina subito.
+- Il fascicolo scaricato contiene documenti sigillati e attestazioni verificabili senza Taurus.
+- Chi firma per l'Associazione non è mai l'Affidatario e può essere sostituito solo prima della prima firma dell'atto.
+- Atti, conferme e link di un tenant non sono accessibili da un altro tenant.
+- Nessun codice, token, e-mail o codice fiscale compare nei log.
 
 ## Compatibilità e adozione
 
@@ -723,14 +710,7 @@ Le fasi 1 e 2 sono implementate (ottobre 2026) e formano la prima consegna, util
 - I modelli caricati senza marcatori restano utilizzabili per i fogli su carta.
 - Rollback: disattivare la firma elettronica del tenant. Gli atti in attesa restano completabili e le date di eliminazione già fissate restano valide; tabelle e documenti non vengono rimossi.
 
-Quando l'implementazione inizia, vanno aggiornati anche:
-
-- [Foglio di consegna e affidamento in comodato](inventory-loan-sheet-spec.md): fuori scope, conservazione e GDPR, modello predefinito, emissione, definizione, annullamento e API;
-- [Gestione inventario tenant](inventory-management-spec.md): la frase secondo cui la presa visione non rappresenta una firma elettronica;
-- [Gestione centralizzata dei media](media-asset-spec.md): la categoria `signature-acts` e i nuovi riferimenti di `MediaRepository`;
-- il catalogo dello [Standard degli errori applicativi](application-errors-standard.md), con le nuove chiavi;
-- [Runbook operativo](runbook-operativo.md): SMTP, Mailpit nello sviluppo, keystore del sigillo, versione di Keycloak, client Keycloak, trust anchor CIE, variabili d'ambiente, responsabilità del tenant sulla conservazione dei fascicoli;
-- [Runbook di test](runbook-test.md): verifiche manuali di CieSign, e-mail, sigillo e fascicolo.
+La configurazione operativa (SMTP, Mailpit, keystore del sigillo, client Keycloak, trust anchor CIE, variabili d'ambiente) è nel [Runbook operativo](runbook-operativo.md); le verifiche manuali nel [Runbook di test](runbook-test.md).
 
 ## Decisioni della revisione
 
@@ -770,7 +750,7 @@ Decisioni della fase 5, 2026-10-19:
 
 Decisioni della fase 6, 2026-10-20:
 
-- la cancellazione GDPR di un socio senza materiale in carico elimina subito fogli, documenti, attestazioni e dati personali delle prove: `DataErasureService` pubblica `UserErasureCompleted` e `InventoryErasureService` esegue la stessa pulizia del completamento di una pratica, mentre prima restavano fino al termine del periodo di grazia. È corretto anche l'errore che faceva fallire ogni cancellazione GDPR di un utente del tenant, perché ruoli e strumenti venivano sostituiti con raccolte immutabili;
+- la cancellazione GDPR di un socio senza materiale in carico elimina subito fogli, documenti, attestazioni e dati personali delle prove: `DataErasureService` pubblica `UserErasureCompleted` e `InventoryErasureService` esegue la stessa pulizia del completamento di una pratica;
 - il documento scaricato e ricaricato senza firma risponde `signature.cieSign.invalidSignature`, non `documentMismatch`: il file è quello giusto, manca la firma;
 - un file CieSign vuoto o oltre 25 MB è contato nella metrica e registrato nel log come gli altri rifiuti;
 - la dichiarazione della presa visione del minore usa la preposizione articolata («Ho preso visione del foglio…», «della variazione…»);
@@ -780,7 +760,7 @@ Decisioni della fase 6, 2026-10-20:
 
 ## Verifica legale
 
-Non blocca lo sviluppo, perché la firma elettronica è disattivata per default, ma va completata prima di attivarla in un tenant reale:
+Va completata prima di attivare la firma elettronica in un tenant reale; la firma è disattivata per default:
 
 1. idoneità della firma elettronica semplice con codice per l'approvazione specifica delle clausole vessatorie, verificando sul testo originale le pronunce citate;
 2. testo delle dichiarazioni di accettazione, approvazione delle clausole, presa visione e firma su carta;
@@ -790,3 +770,12 @@ Esito della ricerca del 2026-10-20, da confermare da parte di un legale:
 
 - punto 1: Cass. civ., sez. III, ord. 20 giugno 2026, n. 20945 (Pres. Frasca, Rel. Saija), letta sul testo pubblicato da Diritto Bancario, conferma l'impostazione: per i contratti non soggetti alla forma dell'art. 1350 c.c. basta una firma elettronica semplice, di regola un codice OTP via SMS o e-mail, purché l'approvazione sia specifica e raccolta in un passaggio dedicato, e la sola spunta non basta. Il caso riguardava però un contratto telematico tra professionisti (art. 13 d.lgs. 70/2003): va valutata l'applicazione al comodato tra associazione e socio o genitore, anche rispetto al Codice del consumo. Cass. n. 9413/2021 è richiamata solo per la nozione di firma elettronica, in un altro ambito contrattuale;
 - punti 2 e 3: da verificare.
+
+## Requisiti aperti
+
+- Firma con una CIE reale, con CieSign su Android e iOS e con il Software CIE su PC, e verifica in Acrobat di firma CieSign e sigillo (SIG-031–033) ([Verifica manuale](#verifica-manuale)).
+- Configurazione dei certificati reali delle CA della CIE come trust anchor in un'installazione ([CieSign](#ciesign)).
+- Invio delle e-mail dal server SMTP di una casella reale dell'associazione ([Verifica manuale](#verifica-manuale)).
+- Stampa A4 del modello predefinito a confronto con il modello dell'associazione ([Verifica manuale](#verifica-manuale)).
+- Conferma da parte di un legale dei punti 1–3 ([Verifica legale](#verifica-legale)).
+- Testo della notifica di emissione che indichi anche l'app di autenticazione e CieSign, come i testi dell'interfaccia ([Notifiche](#notifiche), [Decisioni della revisione](#decisioni-della-revisione)).

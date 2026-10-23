@@ -7,20 +7,19 @@ Workspace a due pannelli per organizzare strumenti e pagine degli spartiti
 | Voce | Valore |
 | --- | --- |
 | Prodotto | Taurus frontend |
-| Stato | Direzione approvata, implementazione in corso |
 | Versione | 1.1 |
 | Data | 9 settembre 2026 |
-| ID catalogo | `track-parts-workspace` |
 
-Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
+## Stato del documento
 
 ID catalogo: `track-parts-workspace`.
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-### Decisione
+## Decisione
 
-La gestione delle parti sarà trasformata da tabella con dialog separato a workspace master detail. L’elenco delle parti resta visibile a sinistra; la parte selezionata, i suoi strumenti e le relative pagine occupano il pannello principale. Le modifiche avvengono nel contesto e le pagine possono essere riordinate o spostate direttamente.
+La gestione delle parti usa un workspace master detail al posto della tabella con dialog separato. L’elenco delle parti resta visibile a sinistra; la parte selezionata, i suoi strumenti e le relative pagine occupano il pannello principale. Le modifiche avvengono nel contesto e le pagine possono essere riordinate o spostate direttamente.
 
-Il primo rilascio mantiene il salvataggio esplicito della traccia e il contratto di upload PDF già esistente. L’interfaccia distingue in modo netto la bozza locale dall’elaborazione asincrona del PDF.
+Il workspace mantiene il salvataggio esplicito della traccia e il contratto di upload PDF esistente. L’interfaccia distingue in modo netto la bozza locale dall’elaborazione asincrona del PDF.
 
 ## 1 Sintesi e obiettivi
 
@@ -53,7 +52,7 @@ Questa specifica definisce il comportamento, la struttura visuale e i vincoli te
 
 ## 2 Direzione visuale
 
-Il mockup seguente rappresenta la direzione approvata. Non fissa ancora dimensioni definitive o dettagli grafici, ma costituisce il riferimento per gerarchia, distribuzione delle funzioni e modello di interazione.
+Il mockup seguente rappresenta la direzione approvata. Non fissa dimensioni definitive o dettagli grafici, ma costituisce il riferimento per gerarchia, distribuzione delle funzioni e modello di interazione.
 
 ![Mockup del workspace Parti con elenco delle parti a sinistra e miniature delle pagine a destra](assets/track-parts-workspace-mockup.png)
 
@@ -62,16 +61,16 @@ Il mockup seguente rappresenta la direzione approvata. Non fissa ancora dimensio
 ### Gerarchia della pagina
 
 1. Intestazione della traccia con navigazione indietro, titolo, metadati, anteprima e salvataggio.
-2. Navigazione interna tra Dettagli, Parti e File PDF. Il conteggio delle parti è visibile nella scheda.
+2. Navigazione interna tra Dettagli, Parti, Ascolto e File PDF. Il conteggio delle parti è visibile nella scheda.
 3. Pannello sinistro per ricerca, creazione, selezione e riordino delle parti.
 4. Pannello destro per strumenti, pagine, selezione e azioni contestuali.
-5. Indicatore persistente dello stato di salvataggio, indipendente dallo stato dei job PDF.
+5. Tag «Modifiche non salvate» nell'intestazione finché esiste una bozza, indipendente dallo stato dei job PDF.
 
 ## 3 Architettura dell’interfaccia
 
 ### Navigazione interna
 
-Il dettaglio della traccia usa le schede Dettagli e Parti per tutti i ruoli autorizzati alla consultazione. File PDF è visibile esclusivamente a super amministratori, amministratori e archivisti, che possono contribuire all’arricchimento della traccia. Le schede non diventano nuove route nel primo rilascio; lo stato attivo può essere rappresentato nel query parameter per consentire refresh e collegamenti diretti. Un ruolo non autorizzato che apre un collegamento con `tab=pdf` resta su Dettagli e non avvia il caricamento dei job PDF. La scheda Parti è selezionata automaticamente dopo il completamento di un’azione di organizzazione avviata dall’utente.
+Il dettaglio della traccia usa le schede Dettagli e Parti per tutti i ruoli autorizzati alla consultazione. Ascolto compare quando il tenant ha la funzione di ascolto delle partiture. File PDF è visibile esclusivamente a super amministratori, amministratori e archivisti, che possono contribuire all’arricchimento della traccia. Le schede non diventano nuove route nel primo rilascio; lo stato attivo può essere rappresentato nel query parameter per consentire refresh e collegamenti diretti. Un ruolo non autorizzato che apre un collegamento con `tab=pdf` resta su Dettagli e non avvia il caricamento dei job PDF. La scheda attiva cambia solo per scelta dell'utente o tramite `tab`.
 
 ### Pannello delle parti
 
@@ -81,8 +80,8 @@ Il dettaglio della traccia usa le schede Dettagli e Parti per tutti i ruoli auto
 | Nuova parte | Crea una parte vuota dopo l’ultima parte e la seleziona immediatamente. |
 | Riga parte | Mostra ordine, descrizione sintetica, strumenti e numero di pagine. |
 | Selezione | Una sola parte attiva determina il contenuto del pannello destro. |
-| Riordino | Trascinamento tramite maniglia; durante la ricerca il riordino è disabilitato per evitare risultati ambigui. |
-| Menu | Espone duplica, dividi per pagina ed elimina. Le azioni distruttive richiedono conferma. |
+| Riordino | Trascinamento tramite maniglia o pulsanti Sposta parte su e giù; durante la ricerca il riordino è disabilitato per evitare risultati ambigui. |
+| Azioni sulla parte | Pulsanti Duplica, Una parte per pagina ed Elimina parte nell’intestazione dell’editor della parte selezionata. Divisione ed eliminazione richiedono conferma; la duplicazione no. |
 
 La ricerca occupa sempre tutta la larghezza utile del pannello. Il wrapper e l’input non possono adottare una larghezza intrinseca né cambiare dimensione dopo focus, digitazione o azzeramento del filtro.
 
@@ -91,8 +90,8 @@ La ricerca occupa sempre tutta la larghezza utile del pannello. Il wrapper e l�
 - Il titolo deriva dalla descrizione della parte; se assente, usa il primo strumento o Parte senza nome.
 - Gli strumenti sono modificabili con selezione multipla filtrabile e visualizzazione a chip. Il controllo di ricerca e assegnazione è fluido e occupa sempre tutta la larghezza della propria colonna, prima e dopo l’interazione.
 - Le miniature mantengono il rapporto della pagina, riportano ordine e stato di selezione e aprono l’anteprima ingrandita tramite pulsante esplicito, Invio o doppio clic.
-- Gli spazi di inserimento compaiono durante il trascinamento e comunicano la posizione finale prima del rilascio.
-- La zona Aggiungi accetta pagine provenienti da un nuovo PDF o da media già associati alla traccia, se il contratto backend lo consente.
+- Il trascinamento di una pagina non mostra spazi di inserimento: il rilascio su una card inserisce le pagine in quella posizione, il rilascio sul pannello le accoda.
+- Non esiste una zona Aggiungi: nuove pagine arrivano da un PDF caricato nella scheda File PDF oppure da altre parti con Sposta in.
 
 ### Allineamento al sistema visuale
 
@@ -133,15 +132,15 @@ Il workspace privilegia la leggibilità delle pagine senza sacrificare la scansi
 
 ### Riordinare le pagine
 
-Il trascinamento parte solo dalla maniglia della miniatura. Il sistema mostra un segnaposto della stessa dimensione e un indicatore di inserimento. Al rilascio rinumera le pagine della parte da 1 a n e mantiene selezionata la pagina spostata.
+Il trascinamento parte solo dalla maniglia della miniatura; in alternativa si usano i pulsanti Riordina o Ctrl più frecce. Al rilascio rinumera le pagine della parte da 1 a n e mantiene selezionata la pagina spostata.
 
 ### Spostare pagine tra parti
 
 | Modalità | Sequenza | Esito |
 | --- | --- | --- |
-| Trascinamento | Trascinare una o più pagine sulla riga di destinazione o nel suo pannello. | Le pagine vengono aggiunte nella posizione indicata; la parte sorgente resta selezionata salvo svuotamento. |
-| Barra contestuale | Selezionare le pagine e scegliere Sposta in. | Si apre un elenco ricercabile di parti con conferma immediata. |
-| Nuova parte | Selezionare le pagine e scegliere Crea nuova parte. | Nasce una parte dopo quella corrente, con strumenti vuoti e pagine nell’ordine di selezione. |
+| Trascinamento | Il trascinamento agisce solo nella parte selezionata e riordina le sue pagine. | Lo spostamento tra parti usa la barra contestuale. |
+| Barra contestuale | Selezionare le pagine, scegliere la destinazione in Sposta in e premere Sposta. | Le pagine vengono accodate nella parte di destinazione, che diventa la parte selezionata. |
+| Nuova parte | Selezionare le pagine e scegliere Nuova parte. | Nasce una parte dopo quella corrente, con strumenti vuoti e pagine nell’ordine della parte sorgente. |
 
 ### Unire parti
 
@@ -149,7 +148,7 @@ L’unione resta un’azione sulle parti, non sulle pagine. Dopo l’attivazione
 
 ### Dividere una parte
 
-Dividi propone due modalità: una nuova parte per ogni pagina oppure divisione dopo la pagina selezionata. La seconda è predefinita perché corrisponde al caso più comune e produce un risultato prevedibile. La conferma descrive quante parti saranno create e conserva gli strumenti in entrambe.
+La divisione ha due comandi: Una parte per pagina, nell’intestazione dell’editor, e Dividi qui, nella barra contestuale, che divide dopo la pagina selezionata. La conferma descrive il risultato e gli strumenti restano in tutte le parti create.
 
 ### Annullare
 
@@ -169,10 +168,10 @@ Il primo rilascio offre Annulla ultima operazione per riordino, spostamento, uni
 
 | Stato | Indicatore | Azioni |
 | --- | --- | --- |
-| Sincronizzata | Tutte le modifiche salvate | Salva disabilitato |
-| Modificata | Modifiche non salvate | Salva e Annulla ultima operazione disponibili |
-| Salvataggio | Salvataggio in corso | Azioni strutturali temporaneamente disabilitate |
-| Errore | Modifiche non salvate con dettaglio recuperabile | Riprova; la bozza resta in memoria |
+| Sincronizzata | Nessun indicatore | Salva disabilitato |
+| Modificata | Tag Modifiche non salvate | Salva e Annulla ultima operazione disponibili |
+| Salvataggio | Pulsante Salva traccia in caricamento | Annulla ultima operazione e Modifica immagine disabilitati |
+| Errore | Banner Modifiche non salvate con dettaglio recuperabile | Riprova; la bozza resta in memoria |
 
 ### Stati del PDF
 
@@ -182,31 +181,31 @@ I job PDF mantengono la semantica definita dalla specifica di elaborazione asinc
 | --- | --- |
 | Upload accettato | Mostrare il job nella scheda File PDF. Non alterare la bozza Parti. |
 | Job completato prima dell’apertura | La successiva lettura della traccia include le nuove parti e le presenta normalmente. |
-| Job completato mentre esiste una bozza | Non ricaricare automaticamente la traccia. Mostrare Nuove parti disponibili con azioni Ricarica e continua oppure Salva prima. |
+| Job completato mentre esiste una bozza | La traccia non viene ricaricata e, senza polling, il completamento non è rilevato. Le nuove parti compaiono alla lettura successiva; il salvataggio della bozza può ricevere `409` se il worker ha cambiato la versione della traccia. |
 | Retry del job | Aggiornare lo stato locale del job a In coda senza polling. |
 
 ### Protezione da perdita dati
 
 - La guardia di navigazione esistente protegge uscita, cambio route e chiusura con bozza modificata.
 - Il cambio di scheda interno non scarta la bozza.
-- Il refresh richiede conferma quando il browser lo consente.
+- Il refresh e la chiusura della scheda del browser non chiedono conferma.
 - Una risposta di salvataggio aggiorna la traccia locale con la versione restituita dal server.
 
 ### Concorrenza
 
-Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilascio frontend, ma non rileva modifiche concorrenti. Prima della produzione è raccomandato aggiungere un campo version alla traccia e usare controllo ottimistico: una versione non corrente restituisce 409 e apre un confronto tra bozza e dati server. Senza questo presidio, l’interfaccia deve almeno avvisare che un refresh può sovrascrivere modifiche esterne.
+Il payload aggiorna l’intera traccia e porta la sua `version`. Il backend usa il controllo ottimistico: una versione non corrente restituisce `409` `version.conflict`. Il frontend mostra il banner Modifiche non salvate con Riprova, senza confronto tra bozza e dati server.
 
 ## 6 Stati visuali e messaggi
 
 | Caso | Presentazione | Azione primaria |
 | --- | --- | --- |
-| Nessuna parte | Pannello vuoto con spiegazione e due vie d’ingresso. | Importa PDF |
-| Parte senza pagine | Drop zone ampia e testo Questa parte non contiene pagine. | Aggiungi pagine |
-| Parte senza strumenti | Chip ambra Strumento mancante e contatore riepilogativo. | Assegna strumenti |
+| Nessuna parte | Stato vuoto Nessuna parte: carica un PDF dalla scheda File PDF oppure crea una parte vuota. | Nuova parte |
+| Parte senza pagine | Stato vuoto Nessuna pagina: sposta pagine da un’altra parte oppure carica un PDF. | Nessuna |
+| Parte senza strumenti | Testo Strumento mancante nell’elenco; tag ambra in sola lettura. | Assegna strumenti |
 | Miniatura in caricamento | Skeleton con rapporto pagina e nome accessibile. | Nessuna |
-| Miniatura non disponibile | Segnaposto con errore e nome del media. | Riprova |
+| Miniatura non disponibile | Segnaposto Anteprima non disponibile. | Riprova |
 | Ricerca senza risultati | Nessuna parte corrisponde alla ricerca. | Azzera ricerca |
-| Operazione non valida | Messaggio inline vicino al target; nessuna modifica alla bozza. | Correggi selezione |
+| Operazione non valida | Comando disabilitato oppure messaggio nella regione aria live; nessuna modifica alla bozza. | Correggi selezione |
 | Salvataggio fallito | Banner non modale; selezione e scroll restano invariati. | Riprova |
 
 ### Testi principali
@@ -216,12 +215,12 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 | Titolo scheda | Parti |
 | Ricerca | Cerca per parte o strumento |
 | Creazione | Nuova parte |
-| Drop zone | Trascina qui le pagine oppure aggiungile |
-| Bozza pulita | Tutte le modifiche salvate |
+| Parte senza pagine | Nessuna pagina |
 | Bozza modificata | Modifiche non salvate |
 | Spostamento | Sposta in |
 | Parte incompleta | Strumento mancante |
-| Conferma unione | Le pagine saranno concatenate nell’ordine delle parti selezionate. |
+| Parte da revisionare | Parte da verificare |
+| Conferma unione | Le pagine saranno concatenate nell’ordine delle parti selezionate. Gli strumenti duplicati verranno rimossi. |
 
 ### Regole editoriali
 
@@ -236,7 +235,7 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 
 | Viewport | Composizione |
 | --- | --- |
-| Da 1024 px | Due pannelli affiancati. Divisore ridimensionabile opzionale, con proporzione memorizzata solo nella sessione. |
+| Da 1024 px | Due pannelli affiancati con proporzione fissa. |
 | Da 768 a 1023 px | Due pannelli più compatti. Miniature su due colonne; azioni secondarie nel menu overflow. |
 | Sotto 768 px | Navigazione a due livelli: elenco Parti e dettaglio della parte. Il dettaglio si apre come pagina interna con pulsante Indietro alle parti. |
 | Touch | Nessuna funzione dipende dal trascinamento. Selezione e menu Sposta in coprono lo stesso flusso. |
@@ -245,12 +244,11 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 
 | Tasto | Risultato |
 | --- | --- |
-| Frecce direzionali | Spostano il focus tra le parti o tra le pagine nel contesto attivo. Nella griglia, sinistra e su vanno alla pagina precedente; destra e giù alla successiva. |
+| Frecce direzionali | Nella griglia, sinistra e su vanno alla pagina precedente; destra e giù alla successiva. Nell’elenco delle parti il focus si sposta con Tab. |
 | Invio | Apre la parte o l’anteprima della pagina focalizzata. |
 | Spazio | Seleziona o deseleziona la pagina. |
-| Ctrl più frecce | Riordina l’elemento focalizzato quando la modalità riordino è attiva. |
-| Maiusc più frecce | Estende la selezione contigua delle pagine. |
-| Escape | Annulla il trascinamento o chiude menu e anteprima. |
+| Ctrl più frecce | Riordina la parte focalizzata con su e giù, la pagina focalizzata con sinistra e destra. |
+| Escape | Nessuna gestione dedicata nel workspace; valgono i comportamenti nativi del browser e di PrimeNG. |
 
 ### Requisiti accessibili
 
@@ -278,7 +276,7 @@ Il payload attuale aggiorna l’intera traccia. Questo consente un primo rilasci
 
 ### Stato locale
 
-Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagina deve possedere una chiave stabile per selezione e trascinamento. Nel modello corrente la parte è identificata di fatto dall’ordine e il frontend non espone needsReview: entrambi i limiti vanno corretti prima di basare il nuovo workspace su aggiornamenti incrementali.
+Il workspace lavora su una copia normalizzata di track.scores. Una parte persistita usa come chiave il proprio `id`; una parte in bozza usa una chiave derivata dall’ordine. Le pagine usano l’id del media. Il modello espone `needsReview`, mostrato nell’elenco con l’icona Parte da verificare. Al salvataggio il backend conserva l’identità delle parti con `id`.
 
 | Stato | Tipo suggerito | Nota |
 | --- | --- | --- |
@@ -292,29 +290,21 @@ Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagi
 
 ### Contratto dati
 
-- Prima iterazione: continuare a salvare l’intero TracksDTO con scores ordinati.
-- Allineare il modello TypeScript a SheetsMusicDTO includendo almeno needsReview e, quando disponibile, id o chiave stabile.
-- Normalizzare sempre order delle parti, dei media e degli strumenti prima dell’invio.
-- Valutare in una seconda iterazione endpoint specifici per spostamento e riordino se dimensione payload, audit o concorrenza lo richiedono.
-- Introdurre version della traccia e risposta 409 per impedire sovrascritture silenziose.
+- Il salvataggio invia l’intero TracksDTO con scores ordinati.
+- Il modello TypeScript di SheetsMusic include `id` e `needsReview`.
+- Il frontend normalizza order delle parti, dei media e degli strumenti prima dell’invio; il backend lo rinormalizza.
+- Endpoint specifici per spostamento e riordino vanno valutati solo se dimensione payload, audit o concorrenza lo richiedono.
+- La `version` della traccia e la risposta `409` impediscono sovrascritture silenziose.
 - Mantenere mutabili le collezioni JPA assegnate a `Tracks.scores`, `SheetsMusic.media` e `SheetsMusic.instruments`. Non usare `List.of` o `Stream.toList` quando la raccolta diventa stato dell’entità, perché Hibernate deve poterla aggiornare durante `merge` e `flush`.
 
 ### Prestazioni
 
-- Caricare miniature con lazy loading e limite di concorrenza; non richiedere il media a piena risoluzione finché non viene aperta l’anteprima.
+- Le miniature si caricano quando entrano nella vista (`IntersectionObserver`); il media a piena risoluzione serve solo all’anteprima.
 - Usare trackBy basato su chiavi stabili e ChangeDetectionStrategy OnPush nei componenti di lista e miniatura.
-- Per raccolte molto grandi virtualizzare l’elenco delle parti; evitare la virtualizzazione orizzontale delle pagine finché non è misurata una necessità reale.
+- L’elenco delle parti non è virtualizzato; evitare la virtualizzazione orizzontale delle pagine finché non è misurata una necessità reale.
 - Rilasciare gli object URL o le sottoscrizioni quando una miniatura esce definitivamente dalla vista.
 
-## 9 Piano di realizzazione
-
-| Fase | Contenuto | Esito verificabile |
-| --- | --- | --- |
-| 1 Fondazioni | Schede del dettaglio, modelli allineati, chiavi stabili, stato locale e selezione della parte. | Navigazione e modifica strumenti senza dialog. |
-| 2 Pagine | Miniature, anteprima, selezione, riordino e spostamento tramite comando. | Organizzazione completa senza drag and drop. |
-| 3 Manipolazione diretta | Drag and drop, indicatori, auto scroll e fallback tastiera. | Parità funzionale tra mouse e tastiera. |
-| 4 Operazioni strutturali | Nuova parte, unione, divisione, eliminazione e undo locale. | Tutte le operazioni correnti coperte nel workspace. |
-| 5 Robustezza | Conflitti, prestazioni, responsive, accessibilità e telemetria UX. | Gate di rilascio superati. |
+## 9 Verifica
 
 ### Strategia di test
 
@@ -329,7 +319,7 @@ Il workspace lavora su una copia normalizzata di track.scores. Ogni parte e pagi
 
 ### Telemetria consigliata
 
-Senza registrare contenuti musicali o nomi dei file, misurare apertura della scheda Parti, uso di ricerca, riordino, spostamento, unione, divisione, annullamento ed errori di salvataggio. Confrontare tempo dalla prima apertura al salvataggio e numero di operazioni per sessione prima e dopo il rilascio.
+Il workspace non registra telemetria. La misura prevista, senza registrare contenuti musicali o nomi dei file, riguarda apertura della scheda Parti, uso di ricerca, riordino, spostamento, unione, divisione, annullamento ed errori di salvataggio. Vanno confrontati il tempo dalla prima apertura al salvataggio e il numero di operazioni per sessione.
 
 ## 10 Criteri di accettazione
 
@@ -361,12 +351,27 @@ Senza registrare contenuti musicali o nomi dei file, misurare apertura della sch
 - Annotazione o modifica grafica della pagina nel workspace Parti; l'estensione dedicata è definita in [Modifica e analisi delle immagini delle parti](track-page-image-editing-spec.md).
 - Sostituzione del visualizzatore e del flusso di stampa esistenti.
 
-### Decisioni da confermare prima dell’implementazione
+### Decisioni adottate
 
-| Decisione | Raccomandazione |
+| Decisione | Esito |
 | --- | --- |
-| Identità stabile della parte | Aggiungere id al DTO e al modello frontend; non usare order come dataKey. |
-| Conflitti di salvataggio | Aggiungere version alla traccia e controllo ottimistico. |
-| Aggiunta manuale di pagine | Limitare inizialmente allo spostamento di media già presenti; estendere solo con contratto esplicito. |
+| Identità stabile della parte | `id` nel DTO e nel modello frontend; order non è usato come chiave delle parti persistite. |
+| Conflitti di salvataggio | `version` della traccia e controllo ottimistico. |
+| Aggiunta manuale di pagine | Limitata allo spostamento di media già presenti; estensioni solo con contratto esplicito. |
 | Undo | Cronologia locale fino al salvataggio, senza persistenza tra refresh. |
-| Dividi | Offrire divisione dopo la pagina selezionata e mantenere per compatibilità una parte per pagina. |
+| Dividi | Divisione dopo la pagina selezionata e una parte per pagina. |
+
+## Requisiti aperti
+
+- Banner Nuove parti disponibili con Ricarica e continua oppure Salva prima; senza polling va riprogettato (5 Stati del PDF; criterio 10).
+- Confronto tra bozza e dati server dopo un `409` (5 Concorrenza).
+- Conferma prima di refresh o chiusura della scheda del browser con bozza modificata (5 Protezione da perdita dati).
+- Indicatore Tutte le modifiche salvate per la bozza sincronizzata (2 Gerarchia della pagina; 5 Stati della bozza).
+- Zona Aggiungi e drop zone per le parti senza pagine (3 Pannello della parte selezionata; 6 Stati visuali e messaggi).
+- Trascinamento di pagine tra parti, con spazi di inserimento e indicatore di posizione (4 Riordinare le pagine; 4 Spostare pagine tra parti; criterio 5).
+- Selezione automatica della scheda Parti dopo un’azione di organizzazione (3 Navigazione interna).
+- Tastiera: frecce sull’elenco parti, Maiusc più frecce per la selezione contigua, Escape gestito dal workspace (7 Tastiera; criterio 12).
+- Divisore ridimensionabile tra i pannelli (7 Comportamento responsive).
+- Virtualizzazione dell’elenco parti per raccolte molto grandi (8 Prestazioni).
+- Telemetria UX (9 Telemetria consigliata).
+- Gate end to end e prestazionali con 200 parti e 1 000 pagine (9 Strategia di test).

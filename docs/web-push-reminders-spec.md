@@ -3,7 +3,7 @@
 ## Stato del documento
 
 ID catalogo: `web-push-reminders`.
-Lo stato di consegna e le evidenze verificabili sono pubblicati nel [Catalogo funzionalità](features.md).
+Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 Questa specifica descrive l'architettura effettivamente adottata. Sostituisce il progetto iniziale basato su WebFlux/R2DBC e RabbitMQ delayed exchange, non coerente con lo stack corrente di Taurus.
 
@@ -26,6 +26,7 @@ Le notifiche applicative immediate continuano a passare dalla pipeline generaliz
 | Multi-tenancy | enumerazione tenant attivi e transazione nel relativo schema |
 | Preferenze | profilo notifiche tipizzato, con fallback temporaneo alla preferenza legacy |
 | Navigazione | rotta applicativa `/calendar/{eventId}` |
+| Funzionalità tenant | sottoscrizioni e preferenze dietro `NOTIFICATION_PREFERENCES`; promemoria dietro `WEB_PUSH_REMINDERS`, che richiede la prima e chiavi VAPID configurate |
 
 RabbitMQ resta presente per altri flussi del progetto, ma non gestisce il ritardo dei promemoria calendario. La persistenza PostgreSQL evita di perdere le pianificazioni al riavvio e rende gli esiti consultabili dalla console amministrativa.
 
@@ -53,8 +54,7 @@ File principali:
 - `domain/PushReminder.java`;
 - `repository/PushReminderRepository.java`;
 - migration `20260710000001_add_entity_PushReminder.xml`;
-- migration `20260905000000_notification_preferences.xml`;
-- migration `20260905010000_notification_delivery_console.xml`.
+- migration `20260905000000_notification_preferences.xml`.
 
 ### Anticipo del promemoria
 
@@ -63,10 +63,12 @@ L'anticipo effettivo applica questa precedenza:
 1. valore personale sulla disponibilità dell'utente;
 2. valore configurato sull'evento;
 3. valore del profilo notifiche dell'utente;
-4. preferenza legacy `defaultReminderMinutes`, durante la finestra di compatibilità;
+4. preferenza legacy `defaultReminderMinutes`, se l'utente non ha un profilo notifiche;
 5. default applicativo di 30 minuti.
 
 Il valore `0` disabilita il promemoria al livello in cui è configurato. I valori validi sono compresi tra 0 e 1440 minuti.
+
+`EventReminderProducer` legge la preferenza legacy con il token della richiesta: vale quindi il `defaultReminderMinutes` di chi esegue l'operazione, non quello del destinatario. Quando un amministratore aggiorna un evento e i promemoria vengono ripianificati, ai disponibili senza profilo si applica il suo valore.
 
 ## Flussi backend
 
@@ -94,23 +96,25 @@ Per gli utenti standard:
 - `PATCH /api/user/calendar-events/{id}/reminder?minutes=...` lo imposta;
 - l'assenza di `minutes` ripristina il valore ereditato dall'evento.
 
+Gli utenti esterni usano gli stessi endpoint sotto `/api/external/calendar-events/{id}/reminder`. Super Admin, Admin e Archivista usano `/api/calendar-events/{id}/reminder`. Gli endpoint del promemoria richiedono la funzionalità `WEB_PUSH_REMINDERS`.
+
 Il promemoria personale è modificabile solo con disponibilità confermata.
 
 ### Pianificazione e consegna
 
-`EventReminderProducer` calcola `sendAt`, sostituisce l'eventuale job pendente per la stessa coppia evento/utente e non crea job già scaduti.
+`EventReminderProducer` calcola `sendAt`, elimina fisicamente gli eventuali job non inviati (`sent = false`) per la stessa coppia evento/utente, ne crea uno nuovo e non crea job già scaduti. Con la funzionalità `WEB_PUSH_REMINDERS` disattivata non crea job.
 
-`PushReminderScheduler`:
+`PushReminderScheduler`, ogni minuto:
 
 1. enumera i tenant attivi;
-2. apre una transazione nello schema del tenant;
-3. carica i reminder pendenti con `sendAt <= now`;
-4. rivaluta preferenze, pausa e quiet hours;
+2. apre una sola transazione nello schema del tenant;
+3. carica i reminder con `sent = false` e `sendAt <= now`, senza lock;
+4. rivaluta funzionalità tenant, inizio dell'evento, preferenze, pausa e quiet hours;
 5. invia il payload con target `/calendar/{eventId}`;
-6. registra `DELIVERED`, `SKIPPED` o `FAILED`;
-7. applica backoff ai fallimenti temporanei senza superare l'inizio dell'evento.
+6. registra `DELIVERED`, `SKIPPED` o `FAILED`, tutti con `sent = true`: un reminder `FAILED` torna in coda solo con il retry della console amministrativa;
+7. applica backoff ai fallimenti temporanei (1, 2, 4… fino a 60 minuti, massimo 8 tentativi) senza superare l'inizio dell'evento.
 
-Un reminder viene saltato se i promemoria sono disabilitati, l'evento è già iniziato o non esistono sottoscrizioni valide.
+Un reminder viene chiuso `SKIPPED` se la funzionalità è disattivata, i promemoria sono disabilitati, l'evento è già iniziato (anche dopo un fermo del backend) o non esistono sottoscrizioni valide.
 
 ## Payload e sicurezza
 
@@ -134,7 +138,7 @@ Un reminder viene saltato se i promemoria sono disabilitati, l'evento è già in
 }
 ```
 
-Con anteprima `PRIVATE`, titolo e testo non espongono il nome dell'evento. Le chiavi VAPID arrivano dalla configurazione di deploy; `CHANGE_ME` disabilita esplicitamente il canale e non deve essere usato in produzione.
+Con anteprima `FULL` il testo è quello dell'esempio, senza l'anticipo. Con anteprima `PRIVATE` titolo e testo sono `Taurus` e `Hai un promemoria per un evento`, senza il nome dell'evento. Le chiavi VAPID arrivano dalla configurazione di deploy; `CHANGE_ME` disabilita esplicitamente il canale e non deve essere usato in produzione.
 
 ## Frontend
 
@@ -178,4 +182,9 @@ La copertura automatica rilevante include:
 - `NotificationPreferencesServiceTest` e `NotificationTimingTest`: preferenze e finestre temporali;
 - `NotificationPushDeliveryServiceTest`: consegna push generalizzata;
 - `NotificationPreferencesIT`: persistenza PostgreSQL e isolamento tenant;
-- test frontend dei servizi e della presentazione delle notifiche.
+- `notification-presentation.service.spec.ts`: presentazione delle notifiche nel frontend.
+
+## Requisiti aperti
+
+- Anticipo del promemoria: la preferenza legacy `defaultReminderMinutes` deve essere quella del destinatario, non di chi esegue l'operazione.
+- Verifica: test frontend di `push-notification.service` e `app-update.service`.

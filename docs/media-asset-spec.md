@@ -7,9 +7,9 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 ## Obiettivo
 
-Taurus deve adottare un catalogo tecnico centralizzato dei file gestiti dall'applicazione. Il contenuto binario resta sul filesystem; il database conserva esclusivamente metadati, stato e chiave relativa dello storage.
+Taurus usa un catalogo tecnico centralizzato dei file gestiti dall'applicazione. Il contenuto binario resta sul filesystem; il database conserva esclusivamente metadati, stato e chiave relativa dello storage.
 
-Il catalogo sostituirà progressivamente le informazioni tecniche duplicate tra `media`, `upload_job`, `inventory_item_photo` e `inventory_return_photo` e sarà riutilizzato dagli allegati finanziari e dai PDF inventario conservati.
+Il catalogo ha sostituito le informazioni tecniche prima duplicate tra `media`, `upload_job`, `inventory_item_photo` e `inventory_return_photo`. Lo usano tutti i file gestiti: pagine degli spartiti e versioni delle parti, PDF caricati, fotografie dell'inventario, fogli di affidamento, documenti degli atti di firma, allegati economici e file dell'onboarding.
 
 ## Decisioni approvate
 
@@ -51,6 +51,8 @@ Campi previsti:
 | `file_size` | `BIGINT` | Dimensione effettiva del contenuto salvato |
 | `sha256` | `CHAR(64)` | Digest del contenuto definitivo |
 | `status` | `VARCHAR(32)` | Stato tecnico del file |
+| `name` | `VARCHAR(255)` | Obbligatorio, ereditato dalla tabella `media`: contiene il nome del file sanificato |
+| `description` | `TEXT` | Facoltativa, ereditata dalla tabella `media` e non valorizzata dal caricamento |
 | `deleted` | `BOOLEAN` | Cancellazione logica |
 | `insert_by` | `VARCHAR(255)` | Utente o processo che ha creato il record |
 | `insert_date` | `TIMESTAMP WITH TIME ZONE` | Data di creazione |
@@ -92,33 +94,43 @@ Con `application.base-path=D:\data` il path fisico diventa:
 D:\data\<tenant>\inventory\550e8400-e29b-41d4-a716-446655440000\a84c70f1c2eac12d9c832a55e42f7804d2f748a04f70ce54c9f945f888a3c892.jpg
 ```
 
-Categorie iniziali:
+Categorie usate dai servizi (la categoria deve rispettare `[a-z0-9][a-z0-9-]{0,63}`, altrimenti `400 media.category.invalid`):
 
-- `uploads` per i file sorgente in attesa di elaborazione;
-- `scores` per le pagine e i media degli spartiti;
+- `uploads` per i PDF sorgente in attesa di elaborazione;
+- `scores` per le pagine degli spartiti, generate dall'elaborazione o dalla modifica delle immagini;
+- `score-versions` per le versioni MusicXML delle parti dell'[ascolto delle parti](track-score-playback-spec.md);
 - `inventory` per le fotografie degli oggetti;
 - `inventory-returns` per le fotografie delle riconsegne;
+- `inventory-issue-photos` per le fotografie dei guasti segnalati con il QR;
 - `inventory-reports` per i PDF del proforma inventario, rimosso: i media esistenti sono marcati come eliminati;
 - `inventory-loan-sheets` per i fogli di affidamento generati;
 - `signature-acts` per i documenti degli atti firmati elettronicamente (congelati, sigillati, firmati con CieSign) e le loro attestazioni, referenziati da `signature_document` e `signature_act`; restano finché il foglio non è definito o annullato e poi per il periodo di grazia della [firma elettronica](inventory-electronic-signature-spec.md#ciclo-di-vita-del-foglio);
-- `financial-attachments` per gli allegati dei movimenti finanziari.
+- `finance` per gli allegati dei movimenti finanziari;
+- `onboarding-imports` per i file XLSX e CSV dell'[onboarding](tenant-onboarding-import-spec.md), rimossi dalla sua retention.
 
-Il nome originale non viene usato per determinare directory o nome fisico. L'estensione deriva dal contenuto riconosciuto dal server. La chiave non può essere fornita o modificata dal client e deve essere normalizzata e verificata prima di ogni accesso al filesystem.
+Il nome originale non viene usato per determinare directory o nome fisico. L'estensione deriva dal tipo riconosciuto dal server per PNG, JPEG e PDF; per gli altri file è quella del nome originale, se composta da lettere minuscole e cifre, altrimenti `bin`. La chiave non può essere fornita o modificata dal client e deve essere normalizzata e verificata prima di ogni accesso al filesystem.
 
 ## Relazioni con le tabelle di dominio
 
 `media_asset` conserva soltanto dati tecnici. Proprietà funzionali come ordine, anteprima, descrizione, validità e relazione con l'entità proprietaria rimangono nelle rispettive tabelle.
 
-Relazioni target:
+Relazioni:
 
 | Tabella | Relazione verso `media_asset` | Informazioni che restano nel dominio |
 |---|---|---|
 | `inventory_item_photo` | `media_asset_id` obbligatorio | `item_id`, ordine e indicatore di anteprima |
 | `inventory_return_photo` | `media_asset_id` obbligatorio | `return_id` e informazioni della riconsegna |
+| `inventory_issue_photo` | `media_asset_id` obbligatorio | segnalazione di guasto |
 | `sheet_music_media` | `media_asset_id` obbligatorio | `sheet_music_id` e ordine |
 | `upload_job` | `source_media_asset_id` | stato e informazioni dell'elaborazione |
+| `score_version` | `media_asset_id` obbligatorio | parte (`sheet_music_id`), numero, origine e stato della versione |
 | `inventory_loan_sheet_export` | `media_asset_id`, azzerato quando il PDF viene rimosso | foglio di affidamento, richiedente e data |
+| `signature_document` | `frozen_media_asset_id`, `signed_media_asset_id`, `sealed_media_asset_id` | documento dell'atto nelle sue versioni |
+| `signature_act` | `attestation_media_asset_id` | attestazione dell'atto |
 | `financial_movement_attachment` | `media_asset_id` obbligatorio | movimento, descrizione, validità e audit funzionale |
+| `onboarding_import_job` | `source_media_asset_id` | job di importazione; il file resta referenziato finché `source_removed_at` è vuoto |
+
+`MediaRepository.isUnreferenced` considera queste relazioni, escluse le righe cancellate logicamente, per decidere se un file è ancora in uso.
 
 Non deve essere introdotta una relazione polimorfica `owner_type` più `owner_id`, perché non garantirebbe l'integrità referenziale. Ogni dominio usa una foreign key o una tabella di relazione specifica.
 
@@ -128,15 +140,13 @@ Il proforma PDF dell'inventario è stato rimosso e sostituito dal foglio di affi
 
 ## Stati tecnici
 
-Stati iniziali:
+Stati ammessi dal vincolo della tabella:
 
-- `UPLOADING`: caricamento o scrittura non ancora completati;
-- `PROCESSING`: elaborazione tecnica in corso;
-- `READY`: contenuto disponibile e verificato;
-- `INVALID`: contenuto rifiutato o non valido;
-- `FAILED`: scrittura o elaborazione fallita;
-- `DELETED`: contenuto cancellato logicamente.
-- `MIGRATION_PENDING`: record storico migrato, i cui metadati di integrità vengono verificati e completati alla prima lettura.
+- `READY`: contenuto disponibile e verificato; è lo stato assegnato a ogni file salvato;
+- `INVALID`: contenuto rifiutato o non valido, per esempio un file storico che non si riesce a leggere;
+- `DELETED`: contenuto cancellato logicamente;
+- `MIGRATION_PENDING`: record storico migrato, i cui metadati di integrità vengono verificati e completati alla prima lettura;
+- `UPLOADING`, `PROCESSING` e `FAILED`: previsti per scritture ed elaborazioni non ancora concluse, ma non assegnati dal codice, perché il file viene salvato solo a contenuto completo.
 
 Lo stato tecnico del file non sostituisce lo stato delle entità applicative. Ad esempio, lo stato di `upload_job` continua a descrivere il processo di importazione dello spartito.
 
@@ -144,18 +154,17 @@ Il contratto HTTP, le transizioni persistenti del job e la relativa esperienza n
 
 ## Processo di caricamento o generazione
 
-1. Recuperare il tenant esclusivamente dal contesto autenticato.
-2. Verificare autorizzazioni, dimensione e formato ammesso.
-3. Scrivere il contenuto in un'area temporanea interna alla directory del tenant.
-4. Determinare il MIME type dal contenuto senza fidarsi del solo valore inviato dal client.
-5. Eseguire l'eventuale normalizzazione prevista dal dominio.
-6. Calcolare dimensione e SHA-256 sul contenuto definitivo.
-7. Generare UUID, estensione e `storage_key` lato server.
-8. Spostare atomicamente il file nella posizione definitiva quando il filesystem lo consente.
-9. Salvare `media_asset` e la relazione di dominio.
-10. Impostare lo stato `READY` solo al completamento dell'intera operazione.
+Il servizio di dominio verifica autorizzazioni, dimensione e formato ammesso ed esegue l'eventuale normalizzazione, per esempio la conversione delle fotografie. Poi `MediaService.store`:
 
-Filesystem e database non condividono la stessa transazione. Se la persistenza nel database fallisce dopo la scrittura, il servizio deve tentare la cancellazione compensativa del file. Un processo periodico deve eliminare file temporanei e file orfani rimasti dopo errori non recuperabili.
+1. ricava il tenant dal contesto autenticato, oppure lo riceve esplicitamente da un processo di sistema insieme all'autore;
+2. rifiuta un contenuto vuoto (`400 media.file.empty`) e una categoria non valida;
+3. determina il MIME type dai primi byte del contenuto: PNG, JPEG e PDF sono riconosciuti, ogni altro file è salvato come `application/octet-stream` anche se il client dichiara un tipo diverso;
+4. calcola dimensione e SHA-256 sul contenuto definitivo;
+5. genera UUID, estensione e `storage_key` lato server;
+6. scrive il file accanto alla destinazione con un nome temporaneo e lo sposta con un `ATOMIC_MOVE`, ripiegando su uno spostamento ordinario dove il filesystem non lo consente;
+7. salva `media_asset` con stato `READY`; la relazione di dominio viene salvata dal chiamante nella stessa transazione.
+
+Filesystem e database non condividono la stessa transazione. Se il salvataggio del record fallisce, il file viene cancellato subito; se la transazione del chiamante non va a buon fine, il file viene cancellato al termine della transazione. Un processo periodico elimina i file temporanei e i file orfani rimasti dopo errori non recuperabili (vedi [Cancellazione e pulizia](#cancellazione-e-pulizia)).
 
 ## Download e sicurezza
 
@@ -170,23 +179,22 @@ Filesystem e database non condividono la stessa transazione. Se la persistenza n
 ## Cancellazione e pulizia
 
 - La rimozione di una relazione di dominio non determina automaticamente la cancellazione fisica.
-- Un file può essere eliminato soltanto quando non è più referenziato da alcuna tabella di dominio.
-- La cancellazione applicativa è inizialmente logica.
-- Un processo di garbage collection elimina successivamente file e record non più utilizzati secondo le regole di conservazione del dominio.
-- Tutte le operazioni di pulizia devono rimanere confinate alla directory del tenant.
+- Il dominio che rimuove una relazione chiama `MediaService.deleteIfUnreferenced`: se nessuna relazione attiva usa più il media, il record passa a `DELETED` e il file viene cancellato dopo il commit.
+- La cancellazione del record è sempre logica: nessun processo elimina fisicamente le righe di `media_asset`.
+- `MediaStorageCleanupScheduler` (`application.media.cleanup-cron`, default `0 30 3 * * *`, disattivabile con `application.media.cleanup-enabled`) esegue ogni giorno su ogni tenant attivo `MediaStorageCleanupService`, che elimina i file temporanei più vecchi di `temporary-file-hours` (24), i file più vecchi di `orphan-file-hours` (168) che non corrispondono a un media non cancellato e le ricevute di modifica delle pagine più vecchie di `track-page-edit-receipt-days` (7).
+- Tutte le operazioni di pulizia restano confinate alla directory del tenant.
 
-## Strategia di migrazione prevista
+## Migrazione
 
-1. Rinominare ed estendere l'attuale tabella `media` come `media_asset`.
-2. Aggiungere i nuovi campi e la colonna `storage_key`.
-3. Convertire i path assoluti esistenti in chiavi relative, rifiutando quelli esterni alla directory gestita del tenant.
-4. Creare record `media_asset` per i file referenziati da `inventory_item_photo` e `inventory_return_photo`.
-5. Conservare i PDF inventario generati e collegare `inventory_report_export` tramite `media_asset_id`.
-6. Collegare `upload_job` al media sorgente.
-7. Aggiornare upload, elaborazione, download, cancellazione e cancellazione GDPR.
-8. Verificare esistenza, dimensione e SHA-256 di tutti i file migrati.
-9. Rendere obbligatorie le nuove foreign key dopo il backfill.
-10. Rimuovere path e metadati duplicati soltanto al termine della validazione.
+La migrazione `20260831000000_media_asset.xml`:
+
+1. rinomina la tabella `media` in `media_asset` e la colonna `media_id` delle relazioni in `media_asset_id`;
+2. aggiunge `storage_key` e i metadati tecnici, convertendo i path assoluti in chiavi relative; un path esterno alla directory del tenant riceve una chiave `legacy-unresolved/…`, che non corrisponde a un file leggibile;
+3. crea i record `media_asset` per le fotografie di oggetti e riconsegne e collega `upload_job` al media sorgente;
+4. marca i record storici `MIGRATION_PENDING`: esistenza, dimensione, tipo e SHA-256 del file vengono verificati e completati alla prima lettura, oppure il record passa a `INVALID`;
+5. rende obbligatori metadati e foreign key dopo il backfill.
+
+I PDF del proforma inventario, collegati in un primo tempo tramite `inventory_report_export`, sono stati poi rimossi (vedi [Conservazione dei PDF inventario](#conservazione-dei-pdf-inventario)).
 
 ## Fuori scope della specifica
 

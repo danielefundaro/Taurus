@@ -56,7 +56,7 @@ Il criterio proposto: *ciò che rappresenta una posizione resta completo; ciò c
 | Rendiconto per categoria | escluse, esposte nel raccordo | classifica per causale |
 | Dashboard: entrate, uscite e risultato del periodo | escluse, con gli importi esclusi esposti a parte | deve mostrare gli stessi totali dell'esportazione |
 | Dashboard: saldi e conteggi | incluse | sono posizioni |
-| Registro cassa ed elenchi dei movimenti | incluse e contrassegnate | hanno un saldo progressivo: togliere una riga lo renderebbe illeggibile |
+| Registro cassa ed elenchi dei movimenti | incluse e contrassegnate | sono elenchi analitici da verificare riga per riga; il saldo progressivo è solo nell'estratto conto |
 | Consuntivo e stato economico dell'evento | incluse e contrassegnate | è una posizione: il residuo da incassare o da pagare deve restare vero |
 
 Gli elenchi analitici restano quindi completi e contrassegnano le voci escluse. È l'unico punto in cui il criterio si piega: un elenco con saldo progressivo a cui manchi una riga non sarebbe verificabile, e l'estratto conto perderebbe l'unica cosa per cui esiste, cioè il confronto con l'estratto bancario.
@@ -111,7 +111,7 @@ I totali di periodo della dashboard sono al netto delle voci escluse e la pagina
 
 ### 5. Consuntivo dell'evento
 
-Le voci escluse **continuano a contare** in incassato, pagato, residui e stato economico, e sono **contrassegnate** nell'elenco dei movimenti dell'evento. Escluderle avrebbe prodotto residui fantasma ed eventi perennemente «aperti» nei rendiconti annuali successivi.
+Le voci escluse **continuano a contare** in incassato, pagato, residui e stato economico, e sono **contrassegnate** nell'elenco dei movimenti dell'evento. Oggi il backend espone questo elenco (`GET /api/finance/events/{id}/movements` e il riepilogo dell'evento), ma l'interfaccia non lo mostra. Escluderle avrebbe prodotto residui fantasma ed eventi perennemente «aperti» nei rendiconti annuali successivi.
 
 ### 6. Motivo
 
@@ -127,7 +127,7 @@ Le voci escluse **continuano a contare** in incassato, pagato, residui e stato e
 - l'esclusione è reversibile; il reintegro azzera motivo, autore e istante;
 - l'eliminazione logica di un movimento escluso lo toglie da tutto, raccordo compreso: i due meccanismi non si sommano;
 - esclusione e riconciliazione sono indipendenti;
-- l'operazione usa il controllo di concorrenza già previsto per i movimenti;
+- l'operazione usa il controllo di concorrenza dei movimenti: oggi esiste soltanto `@Version` sull'entità, senza versione inviata dal client, quindi due modifiche concorrenti si sovrascrivono;
 - esclusione e reintegro sono operazioni economiche esplicite e generano notifica.
 
 ## Riga di raccordo
@@ -153,7 +153,7 @@ Dove la funzionalità tocca il codice esistente, utile per stimare l'intervento 
 | Rendiconti | righe di raccordo nelle sezioni dei totali, colonna di contrassegno nei registri, conteggio nell'intestazione, identico nei tre formati |
 | API | un endpoint di aggiornamento dedicato sul movimento e un filtro di ricerca |
 | Notifiche | due nuovi eventi con i testi nello stile editoriale |
-| Interfaccia | dialogo con motivo obbligatorio, contrassegno e motivo sulla riga, filtro dedicato, contrassegno nei movimenti dell'evento, raccordo nel riepilogo dell'esercizio, card in dashboard visibile solo quando serve, avviso prima dell'esportazione |
+| Interfaccia | dialogo con motivo obbligatorio, contrassegno e motivo sulla riga, filtro dedicato, contrassegno nei movimenti dell'evento (elenco da aggiungere alla pagina evento o alla scheda Eventi), raccordo nel riepilogo dell'esercizio, card in dashboard visibile solo quando serve, avviso prima dell'esportazione |
 | Errori | due chiavi nel catalogo con i testi corrispondenti nel frontend |
 
 ## Strategia di test

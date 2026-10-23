@@ -13,17 +13,17 @@ L'obiettivo è rendere ogni notifica immediatamente riconoscibile, sintetica e c
 
 ## Centralizzazione nel backend
 
-Le notifiche interne generate dagli eventi applicativi sono centralizzate nel backend e hanno come unico punto di composizione `NoticesAspect`.
+Le notifiche interne generate dagli eventi applicativi sono composte nel backend. Il punto di composizione principale è `NoticesAspect`.
 
 In particolare:
 
-- `NoticesAspect` definisce il titolo, la descrizione e i destinatari della notifica;
-- i service applicativi, i controller e gli scheduler eseguono esclusivamente la logica di dominio e non compongono né inviano direttamente notifiche;
-- quando una notifica deriva da un processo schedulato o da un salvataggio tecnico, l'aspect intercetta l'evento pertinente e genera la notifica;
+- `NoticesAspect` definisce titolo, descrizione e destinatari delle notifiche legate alle operazioni che intercetta, comprese quelle che derivano da un salvataggio tecnico;
+- quando la notifica nasce da logica che l'aspect non intercetta in modo utile, come uno scheduler o un confronto tra stati, la compone il servizio di dominio dedicato: `EventPreparationService`, `EventPreparationNotificationScheduler`, `InventoryIssueService`, `InventoryQrCodeService`, `ScoreRecognitionNotifier` e `ScoreErrorReportService`;
+- aspect e servizi dedicati inviano sempre il comando a `NotificationOutboxPublisher` e non scrivono direttamente le notifiche;
 - `NotificationOutboxPublisher` valida e registra il `NotificationCommand` già composto; `NotificationDispatcher` e `NoticesService` curano la consegna idempotente senza ridefinirne il contenuto editoriale;
 - il frontend visualizza il titolo e la descrizione ricevuti dal backend senza ricostruirli o modificarne il significato.
 
-Ogni nuova notifica interna deve quindi essere aggiunta all'aspect seguendo i modelli editoriali descritti in questo documento. Eventuali servizi di supporto possono fornire all'aspect dati contestuali, ma non devono contenere testi o regole editoriali delle notifiche.
+Una nuova notifica interna va aggiunta all'aspect quando l'operazione è intercettabile; altrimenti al servizio dedicato. In entrambi i casi segue i modelli editoriali descritti in questo documento.
 
 ## Principi generali
 
@@ -246,3 +246,20 @@ Prima di introdurre o modificare una notifica, verificare che:
 - date, quantità e motivazioni siano formattate in modo uniforme;
 - nessun valore assente possa apparire come `null` o come testo incompleto;
 - non siano presenti HTML, Markdown, abbreviazioni tecniche o enfasi non necessarie.
+
+## Scostamenti noti
+
+Testi del backend che violano queste regole, da correggere. I percorsi sono relativi a `taurus-be/src/main/java/com/fundaro/zodiac/taurus/`.
+
+| File e riga | Regola violata | Occorrenze |
+| --- | --- | --- |
+| `service/impl/InventoryIssueService.java:239-240` | titolo `Nuova segnalazione inventario` fuori dal formato `<Ambito>: <evento>`; descrizione `numero · SEVERITÀ` con l'enum grezzo, senza frase né punto finale | 1 |
+| `service/impl/InventoryIssueService.java:250-251` | titolo `Segnalazione inventario aggiornata` fuori formato; descrizione `numero · STATO → STATO` con enum grezzi, senza punto finale | 1 |
+| `service/impl/InventoryQrCodeService.java:93-94` | titolo `Codice QR inventario ruotato` fuori formato; descrizione `numero · versione N` senza frase né punto finale | 1 |
+| `service/eventpreparation/EventPreparationService.java:604, 620` | titoli `Programma evento aggiornato` e `Materiali evento aggiornati` fuori formato; evento senza la forma `l'evento “…”` | 2 |
+| `service/eventpreparation/EventPreparationNotificationScheduler.java:71, 74, 79` | titoli `Disponibilità insufficienti`, `Presenze da confermare` e `Chiusura economica richiesta` fuori formato | 3 |
+| `service/scoreplayback/ScoreRecognitionNotifier.java:73-79, 90-97` | titoli `Riconoscimento completato`, `Riconoscimento non riuscito` e `Riconoscimento delle parti completato` fuori formato; parte e traccia senza virgolette tipografiche | 3 |
+| `service/scoreplayback/ScoreErrorReportService.java:220-221` | titolo `Segnalato un errore nella parte` fuori formato; parte e traccia senza virgolette; il testo dell'utente non garantisce il punto finale | 1 |
+| `aop/notices/NoticesAspect.java:1645, 1752` | senza nome e cognome nel token l'autore mostrato è il `sub` del token, cioè un UUID | 2 |
+| `aop/notices/NoticesAspect.java:590, 595, 636, 655` | operazione dell'atto di firma tra virgolette basse `«…»` invece di `“…”` | 4 |
+| `rabbitmq/PushReminderScheduler.java:86, 115` | testo push del promemoria con virgolette dritte e senza punto finale | 2 |

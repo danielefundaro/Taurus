@@ -37,7 +37,9 @@ La dashboard non rientra fra le superfici da ridisegnare, ma i suoi sei widget r
 
 Rientrano infine `notfound` e `forbidden`, non come ridisegno ma come correzione di una parte mai adattata dal template di partenza.
 
-## Pagine elenco: stato attuale
+Elenchi e conteggi descrivono il censimento da cui è nata la specifica. Le superfici aggiunte in seguito, come i dialoghi di fogli di affidamento, firma elettronica e ascolto delle parti o le pagine di onboarding e amministrazione delle consegne, seguono le stesse regole.
+
+## Pagine elenco: stato prima dell'adozione
 
 Le pagine si dividono in tre famiglie tecniche che non condividono codice:
 
@@ -230,7 +232,7 @@ Le scritture sul database attendono lo stato del tenant e partono solo se il ten
 
 **Documenti legali.** Intestazione già conforme, da portare al componente condiviso. Va aggiunta la ricerca, oggi assente. L'impaginazione va allineata a `[12, 24, 48]`.
 
-## Modali e avvisi: stato attuale
+## Modali e avvisi: stato prima dell'adozione
 
 Undici componenti sotto `dialogs/`, più sei `p-dialog` dichiarati inline dentro le pagine. Quarantaquattro chiamate a `confirmationService.confirm`. Circa settanta chiamate a `ToastService`. Sei banner informativi, ciascuno disegnato con una tecnica diversa.
 
@@ -400,7 +402,7 @@ Quattro gravità e due forme. Il toast è effimero e riguarda un'azione appena c
 
 **Nessun colore fisso.** Ogni avviso prende i colori dai token di tema; gli esadecimali di riserva di `legal-acceptance` spariscono.
 
-## Pagine di dettaglio: stato attuale
+## Pagine di dettaglio: stato prima dell'adozione
 
 A differenza degli elenchi, la struttura di base è condivisa: un `p-fluid` che contiene una o più `card`, l'ultima delle quali è la zona pericolosa. È dentro quella struttura che tutto diverge.
 
@@ -584,11 +586,11 @@ La dashboard resta fuori dal ridisegno, ma adotta i componenti che ha contribuit
 - Sono le uniche due pagine con SVG e gradienti dichiarati in linea nel template.
 - `forbidden` carica l'illustrazione da `https://primefaces.org/cdn/templates/sakai/auth/asset-access.svg`. È una dipendenza di rete verso un dominio di terze parti dentro una pagina di errore: se il CDN non risponde, o se l'installazione è in rete chiusa, resta un riquadro vuoto proprio dove serve chiarezza.
 
-Interventi previsti: traduzione dei testi, sostituzione dell'immagine remota con una risorsa locale o con la sola icona, e adozione del guscio comune limitatamente a titolo e azione di ritorno. Non è un ridisegno: è la correzione di una parte mai adattata.
+Interventi applicati: testi tradotti («Pagina non trovata», «Permesso insufficiente»), immagine remota eliminata e guscio comune adottato limitatamente a titolo e azione di ritorno. Non è un ridisegno: è la correzione di una parte mai adattata.
 
-## Componenti condivisi da introdurre
+## Componenti condivisi
 
-Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pezzi condivisi vanno estratti prima di modificare le singole superfici.
+Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pezzi condivisi sono stati estratti prima di modificare le singole superfici e ogni superficie nuova li riusa.
 
 ### Pagine elenco
 
@@ -627,7 +629,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 ## Ordine di migrazione
 
-Si parte dai difetti che comportano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine. La migrazione strutturale e la verifica di conformità sono state completate; l'esito verificato è registrato nel catalogo delle funzionalità.
+La migrazione è partita dai difetti che comportavano una perdita di dati o un comportamento errato, poi dai componenti a maggior copertura, infine dalle singole pagine, in quest'ordine:
 
 1. Il salvataggio delle presenze in `calendar-events/detail`: è una perdita di dati e non aspetta il resto.
 2. La doppia dichiarazione di `p-confirmdialog key="guard"`, la spaziatura delle card e l'immagine remota di `forbidden`: correzioni di poche righe ciascuna.
@@ -655,7 +657,7 @@ Due punti divergono dalla lettera della specifica, per ragioni che vale la pena 
 
 **La shell resta su `*ngIf` e `*ngFor`.** `topbar`, `menu`, `menu-item`, `configurator` e `loading-spinner` non sono stati migrati alla nuova sintassi: sono codice di piattaforma e il loro ridisegno è fuori scope. Ognuno importa da sé le direttive che usa, così `NgIf` e `NgFor` sono stati rimossi da `imports.ts` e non sono più disponibili globalmente: ogni superficie di contenuto è su `@if` e `@for`, `preview` compresa.
 
-## Interventi già applicati
+## Interventi applicati
 
 ### Collocazione degli stili di `preview`
 
@@ -717,3 +719,13 @@ Ne discende una regola per i componenti condivisi: **nessun ingresso può chiama
 - Introduzione di un cestino o di un percorso di ripristino per i record con `deleted = true`: la specifica ne prende atto per formulare i messaggi di conferma e per fissare la gravità della zona pericolosa, ma non lo richiede.
 - Revisione della logica di dominio delle pagine di dettaglio: la specifica interviene sul salvataggio solo per delimitare l'ambito di ciascun pulsante, non per cambiare cosa ciascuna operazione scrive.
 - Modifiche al backend, con l'unica eccezione della mappatura degli errori nell'interceptor, che è comunque lato client. La specifica non richiede nuovi endpoint né migrazioni Liquibase.
+
+## Scostamenti noti
+
+Punti in cui il codice diverge dalle regole di questa specifica, da correggere o da accogliere nella regola.
+
+| Punto | Regola | Scostamento |
+| --- | --- | --- |
+| `taurus-fe/angular.json`, budget `anyComponentStyle` | [Budget sugli stili di componente](#budget-sugli-stili-di-componente): avviso a 2 kB, errore a 8 kB | l'avviso è a 7 kB dal commit «Align frontend and extend tenant features»: la compilazione non segnala più i fogli di stile tra 2 e 7 kB. `preview.component.scss` (7,99 kB) e `pdf-manipulator-dialog.component.scss` (7,72 kB) superano l'avviso e il primo è a circa 200 byte dalla soglia d'errore di 8 KiB |
+| `image-editor-dialog`, `score-editor-dialog`, `score-player-dialog` | [Il dialogo standard](#il-dialogo-standard): guscio `dialog-shell` | non usano `dialog-shell`; come `pdf-manipulator-dialog`, escluso in [Fuori scope](#fuori-scope), sono strumenti a piena finestra (95, 100 e 96 vw): l'esclusione va estesa o i dialoghi allineati |
+| `image-editor-dialog`, `pdf-manipulator-dialog` | [Toast e banner](#toast-e-banner): banner tramite `inline-alert` | usano `p-message` direttamente |

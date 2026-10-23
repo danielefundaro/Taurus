@@ -5,11 +5,9 @@
 ID catalogo: `track-page-image-editing`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Implementazione completata e verificata il **9 settembre 2026**.
+## Riepilogo funzionale
 
-## Riepilogo dell'implementazione
-
-| Ambito | Stato realizzato |
+| Ambito | Comportamento |
 | --- | --- |
 | Editing post-caricamento | Le immagini già associate alle parti possono essere analizzate, modificate e salvate senza ripetere il caricamento del PDF. |
 | Accesso | L'editor è raggiungibile dalle pagine della sezione «Parti» e dalla selezione singola nel workspace. |
@@ -22,7 +20,7 @@ Implementazione completata e verificata il **9 settembre 2026**.
 | Ridimensionamento visuale | La zona attiva mostra otto maniglie: quattro angolari e quattro laterali. I bordi possono essere trascinati con cursori direzionali, aggiornamento in tempo reale, limiti dell'immagine e lato minimo del 2%. |
 | Layout editor | La spalla strumenti destra usa almeno `28rem`, può arrivare al 32% della viewport e contiene campi fluidi senza scroll orizzontale. |
 | Persistenza | Ogni risultato è un nuovo PNG `media_asset`; la pagina sorgente è sostituita dai risultati nello stesso punto e nel loro ordine. |
-| Concorrenza e retry | Versione ottimistica della traccia e `Idempotency-Key` UUID v4 con ricevuta persistente e replay della lista dei risultati. |
+| Concorrenza e retry | Versione ottimistica della traccia e `Idempotency-Key` UUID v4 con ricevuta persistente e replay della lista dei risultati. Il frontend genera una chiave nuova a ogni salvataggio. |
 | Relazioni ordinate | La ricostruzione di `sheet_music_media` avviene in due fasi, con flush dopo la disattivazione dei vecchi collegamenti, evitando collisioni temporanee sugli indici unici durante un multi-crop. |
 | Pulizia storage | Il media sorgente viene eliminato soltanto se non è più referenziato; i file creati in operazioni fallite sono compensati dal meccanismo di cleanup. |
 
@@ -53,7 +51,7 @@ Una stessa immagine può essere referenziata da più parti, per esempio dopo una
 | Anteprima | Rendering locale nel browser; il backend ricalcola autorevolmente il risultato al salvataggio |
 | Analisi | Tecnica e deterministica: bordi vuoti, inclinazione, luminosità e contrasto; nessuna analisi del contenuto musicale |
 | Concorrenza | Versione attesa della traccia e verifica della relazione corrente |
-| Retry | `Idempotency-Key` UUID v4 con ricevuta persistente a durata limitata |
+| Retry | `Idempotency-Key` UUID v4 con ricevuta persistente a durata limitata; il frontend ne genera una nuova a ogni invio |
 | Formato risultante | PNG lossless nella categoria storage `scores` |
 | Autorizzazioni | `SUPER_ADMIN`, `ADMIN`, `ARCHIVIST`; utenti interni ed esterni restano in sola lettura |
 
@@ -153,8 +151,10 @@ Stati espliciti del dialogo:
 | Pronto | Controlli attivi e «Salva immagine» disabilitato finché la ricetta è vuota |
 | Modificato | Confronto prima/dopo e riepilogo trasformazioni |
 | Salvataggio | Un solo invio; chiusura e navigazione bloccate |
-| Errore recuperabile | Ricetta mantenuta, messaggio e «Riprova» |
-| Conflitto | Ricetta mantenuta; richiesta di ricaricare la pagina corrente prima di riprovare |
+| Errore recuperabile | Ricetta mantenuta e messaggio; «Salva immagine» resta disponibile e invia una chiave nuova |
+| Conflitto (`409`) | Ricetta mantenuta; messaggio «La traccia o la pagina è stata modificata. Ricarica la traccia prima di riprovare.» |
+
+Un nuovo invio dopo una risposta persa usa una chiave diversa e non riceve il replay. La pagina sorgente è già stata sostituita, quindi la risposta è `404` `image.notFound` e il dialogo mostra il messaggio generico di errore.
 
 La chiusura con ricetta non vuota richiede conferma. Dopo il salvataggio il dialogo si chiude e la pagina sorgente viene sostituita da tutte le immagini generate, nello stesso punto e nell'ordine visualizzato; le miniature vengono ricaricate e un toast riporta il numero di immagini create. Il comando generale «Salva traccia» non si attiva per questa operazione già persistita.
 
@@ -174,7 +174,7 @@ Vengono introdotti:
 - rendering locale nel canvas dell'editor per applicare la pipeline a una bitmap ridotta e disegnare zone e maniglie;
 - modelli `TrackPageAnalysis`, `TrackPageEditResult`, `ImageCrop` e `ImageTransformRecipe`;
 - metodi dedicati in `TracksService` per analisi e salvataggio;
-- evento `mediaEdited` da `ScoreWorkspaceComponent` verso `DetailComponent` e aggiornamento immutabile della pagina nella bozza corrente.
+- evento `imageEdit` da `ScoreWorkspaceComponent` verso `DetailComponent`, che apre il dialogo e applica il risultato con `applyImageEditResult`, aggiornando in modo immutabile la pagina nella bozza corrente.
 
 Il frontend conserva la ricetta, non i PNG definitivi. La preview può usare una bitmap ridotta per fluidità, mentre il backend lavora sempre sui byte originali. Il risultato restituito sostituisce il `ChildrenEntities.index` della pagina sorgente con una lista ordinata e aggiorna `track.version`; ordine e nomi visuali sono quelli restituiti dal server.
 
@@ -252,19 +252,21 @@ Risposta `200 OK` indicativa:
 }
 ```
 
-La risposta a una ripetizione con la stessa chiave e lo stesso fingerprint è identica finché il risultato è ancora la pagina corrente. La stessa chiave con payload diverso restituisce `409 Conflict`. Una ricevuta scaduta o riferita a un risultato non più corrente restituisce `409`, senza rieseguire implicitamente la modifica.
+La risposta a una ripetizione con la stessa chiave e lo stesso fingerprint è identica finché il risultato è ancora la pagina corrente. La stessa chiave con payload diverso restituisce `409 Conflict` (`image.idempotency.conflict`). Una ricevuta riferita a un risultato non più corrente restituisce `409` (`image.idempotency.stale`), senza rieseguire implicitamente la modifica. Una ricevuta scaduta non esiste più: la richiesta è trattata come nuova e, poiché la pagina sorgente è già stata sostituita, riceve `404`.
 
 ### Errori
 
 | Codice | Caso |
 | --- | --- |
-| `400` | ricetta, coordinate, versione ricetta o chiave idempotente non valide |
-| `404` | traccia, parte o media non visibili oppure relazione non esistente nel tenant |
-| `409` | versione traccia superata, pagina già sostituita o conflitto idempotente |
+| `400` | ricetta, coordinate, versione ricetta o chiave idempotente non valide; ricetta senza modifiche (`image.recipe.empty`); zona inferiore al 2 per cento per lato |
+| `403` | ruolo non autorizzato (`image.forbidden`) |
+| `404` | traccia, parte o media non visibili, relazione non esistente nel tenant o pagina già sostituita (`image.notFound`) |
+| `409` | versione traccia superata (`version.conflict`) o conflitto idempotente |
 | `413` | file o immagine decodificata oltre i limiti |
 | `415` | media corrente non supportato come immagine |
-| `422` | ricetta valida ma risultato non producibile, per esempio crop vuoto |
-| `503` | elaborazione temporaneamente non disponibile o timeout controllato |
+| `422` | immagine non decodificabile o risultato non codificabile (`image.decode`, `image.encode`) |
+
+Il rendering non ha un timeout.
 
 Il frontend non distingue un oggetto inesistente da uno appartenente a un altro tenant.
 
@@ -315,11 +317,11 @@ Le migration tenant creano `track_page_edit_receipt` e ne evolvono il risultato 
 | `result_track_version` | versione restituita al primo completamento |
 | `requested_by`, `created_at` | audit minimo |
 
-La ricevuta non è uno storico editoriale e viene eliminata dopo una finestra configurabile, inizialmente sette giorni. Non conserva il contenuto dell'immagine né valori liberi non necessari.
+La ricevuta non è uno storico editoriale. `MediaStorageCleanupService` la elimina dopo `application.media.track-page-edit-receipt-days` giorni (default 7). Non conserva il contenuto dell'immagine né valori liberi non necessari.
 
 ### Limiti e qualità
 
-Valori iniziali configurabili:
+Limiti fissi, definiti come costanti in `ImageTransformationService`:
 
 - input massimo 50 MB;
 - massimo 40 milioni di pixel decodificati;
@@ -328,7 +330,7 @@ Valori iniziali configurabili:
 - massimo otto zone e otto immagini risultanti per operazione;
 - protezione persistente da richieste concorrenti tramite versione e idempotenza.
 
-Il formato viene riconosciuto dai byte. Sono accettati PNG e JPEG come sorgenti; il risultato è sempre PNG. Prima dell'allocazione completa vengono lette, quando possibile, le dimensioni dall'header per contrastare decompression bomb. Il backend elimina metadati EXIF e profili non necessari, conserva l'orientamento già applicato e non incorpora path o dati utente nel file.
+Il formato viene riconosciuto dai byte tramite i lettori ImageIO; le pagine sorgente sono PNG o JPEG e il risultato è sempre PNG. Le dimensioni vengono lette dall'header (`ImageReader`) e un'immagine oltre i limiti è rifiutata prima di decodificarne i pixel, per contrastare decompression bomb. Il backend elimina metadati EXIF e profili non necessari, conserva l'orientamento già applicato e non incorpora path o dati utente nel file.
 
 ## Modello dati e compatibilità
 
@@ -347,7 +349,7 @@ I client precedenti continuano a leggere il nuovo asset come una normale pagina.
 
 ## Osservabilità
 
-Metriche minime:
+Analisi e salvataggio non registrano log né metriche dedicate; gli errori arrivano al client come chiavi `image.*`. Il monitoraggio previsto comprende:
 
 - numero e durata di analisi e trasformazioni per esito;
 - pixel e byte in ingresso/uscita in bucket;
@@ -356,7 +358,7 @@ Metriche minime:
 - errori di decode, limiti superati e compensazioni storage;
 - media derivati rimasti senza riferimento dopo errore.
 
-I log correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, `resultMediaId`, idempotency digest ed esito. Non registrano il contenuto della ricetta se include coordinate puntuali; per diagnosi sono sufficienti i tipi di trasformazione.
+I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, `resultMediaId`, idempotency digest ed esito. Non registrano il contenuto della ricetta se include coordinate puntuali; per diagnosi sono sufficienti i tipi di trasformazione.
 
 ## Strategia di test
 
@@ -372,8 +374,8 @@ I log correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, 
 ### Backend integrazione
 
 - analisi e salvataggio autorizzati sulla catena corretta;
-- `404` per associazione errata e accesso cross-tenant;
-- `409` per versione superata, media già sostituito e chiave riusata con payload differente;
+- `404` per associazione errata, media già sostituito e accesso cross-tenant;
+- `409` per versione superata e chiave riusata con payload differente;
 - replay identico senza secondo asset;
 - uno o più nuovi asset, sostituzione atomica della relazione sorgente e incremento versione nello stesso commit;
 - ricostruzione in due fasi della lista ordinata: disattivazione e flush dei collegamenti correnti, quindi inserimento del nuovo ordine senza violare `uq_sheet_music_media_active_relation` o `uq_sheet_music_media_active_order`;
@@ -407,14 +409,11 @@ I log correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, 
 - nessuna transazione database mantenuta durante il rendering;
 - due salvataggi concorrenti sulla stessa pagina producono un solo vincitore e un `409`.
 
-## Stato dell'adozione
+### Copertura attuale
 
-1. Modelli, renderer, analisi tecnica, limiti e fixture backend sono implementati.
-2. API protette, ricevute idempotenti e migration per risultato singolo e multi-crop sono implementate.
-3. Dialogo, canvas di preview, controlli tonali, multi-crop e maniglie sono integrati nel frontend.
-4. Il workspace «Parti» aggiorna in modo immutabile media e versione della traccia dopo il salvataggio.
-5. I test automatici coprono trasformazioni, servizio, persistenza ordinata PostgreSQL, dialogo, workspace, miniature e client HTTP.
-6. Rimane attività operativa il collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate.
+`ImageTransformationServiceTest` copre renderer, analisi e limiti; `TrackPageImageServiceTest` ha un solo test, la sostituzione di una pagina con tutti i risultati dei crop; `RelationalSoftDeleteIT` copre la ricostruzione ordinata di `sheet_music_media` su PostgreSQL. Il frontend ha spec di editor, dettaglio, miniature, workspace e client HTTP.
+
+## Compatibilità e rollback
 
 In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini compatibili con il codice precedente. La tabella ricevute può rimanere inutilizzata senza influire sulla lettura delle tracce.
 
@@ -436,22 +435,6 @@ In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini 
 14. Tutti gli strumenti sono utilizzabili da tastiera e su viewport mobile.
 15. Test automatici coprono trasformazioni, concorrenza, idempotenza, compensazione storage, ruoli e tenant isolation.
 
-## Evidenze di verifica del thread
-
-| Verifica | Esito |
-| --- | --- |
-| Test unitari backend eseguiti durante l'implementazione complessiva | 298 superati |
-| Test mirati `ImageTransformationServiceTest`, `TrackPageImageServiceTest`, `MediaStorageCleanupServiceTest` | 9 superati |
-| Provisioning tenant e applicazione delle migration con PostgreSQL 17 | superato |
-| Regressione PostgreSQL per sostituzione di una pagina con più risultati ordinati | superata |
-| Test frontend mirati di editor, dettaglio, miniature, workspace e servizio HTTP | 17 superati dopo il multi-crop |
-| Test specifici dell'editor dopo maniglie, anteprima live e slider angolare | 6 superati |
-| Test del renderer backend, inclusi sfondo fisso, ritaglio agli angoli ed equivalenza 360°/0° | 7 superati |
-| Build Angular di produzione | superata |
-| Formattazione Prettier, Checkstyle, parsing XML e `git diff --check` | superati |
-
-Durante la verifica completa di `RelationalSoftDeleteIT` è emersa una failure preesistente e indipendente dall'editing immagini: il test inventario inserisce una riga senza il campo obbligatorio `qr_public_id`. Il metodo di regressione dedicato a `sheet_music_media` è stato eseguito isolatamente con esito positivo.
-
 ## Fuori scope
 
 - modifica del PDF sorgente o rigenerazione automatica del PDF caricato;
@@ -462,3 +445,12 @@ Durante la verifica completa di `RelationalSoftDeleteIT` è emersa una failure p
 - editing per utenti standard o esterni;
 - nuovi provider di storage, CDN o URL pubblici;
 - elaborazione asincrona: la prima versione opera sincronicamente su una pagina entro limiti controllati.
+
+## Requisiti aperti
+
+- Riuso della stessa `Idempotency-Key` nei nuovi tentativi e azione «Riprova» nel dialogo, così che una risposta persa ottenga il replay (Stati espliciti del dialogo; Idempotenza; criterio 9).
+- Timeout controllato del rendering con risposta `503` (Errori).
+- Metriche e log di analisi e salvataggio (Osservabilità).
+- Test backend di concorrenza, replay e conflitto idempotente, compensazione storage, ruoli e isolamento tenant (Strategia di test; criterio 15).
+- Test di integrazione con input malevolo e timeout controllato (Backend integrazione).
+- Collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate (Prestazioni).

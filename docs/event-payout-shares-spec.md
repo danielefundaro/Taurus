@@ -4,6 +4,8 @@ La funzionalità calcola quanto spetta a ciascun socio che ha presenziato a un e
 
 Si appoggia interamente alle entità già esistenti: le presenze sono quelle registrate sull'evento (`calendar_event_presence`), il compenso e le spese sono il preventivo descritto in [Gestione economica, cassa e conti correnti](financial-management-spec.md), e la liquidazione produce un normale movimento di uscita dello stesso modulo. Le convenzioni di interfaccia seguono il [Taurus Layout Standard](taurus-layout-standard.md), gli errori lo [Standard degli errori applicativi](application-errors-standard.md) e le notifiche lo [Stile editoriale delle notifiche interne](notification-editorial-style.md).
 
+Presuppone inoltre l'[Esclusione delle voci dal rendiconto](report-exclusion-spec.md): la riga di raccordo dei rendiconti e l'esclusione di un movimento dal rendiconto, citate più avanti, sono introdotte da quella specifica e non esistono nel modulo economico attuale.
+
 ## Stato del documento
 
 ID catalogo: `event-payout-shares`.
@@ -102,7 +104,7 @@ cassa effettiva     = 200,00 + 75,00 = 275,00
 
 I 68,00 € non attribuiti al presente a mezzo servizio restano alla cassa: ridurre la quota di uno non aumenta quella degli altri, che continuano a ricevere la stessa quota base.
 
-La somma di spese, cassa effettiva e quote è sempre pari alla base dell'evento: è la stessa quadratura che i rendiconti garantiscono con la riga di raccordo, e l'interfaccia la mostra esplicitamente.
+La somma di spese, cassa effettiva e quote è sempre pari alla base dell'evento: è la stessa quadratura che i rendiconti garantiscono con la riga di raccordo introdotta dall'[Esclusione delle voci dal rendiconto](report-exclusion-spec.md), e l'interfaccia la mostra esplicitamente.
 
 ### Casi limite
 
@@ -183,7 +185,7 @@ Le tabelle appartengono allo schema del tenant e non contengono `tenant_code`, c
 
 - `id BIGINT`;
 - `event_id BIGINT` obbligatorio, foreign key verso `calendar_event`;
-- `user_id BIGINT` obbligatorio, foreign key verso `users`;
+- `user_id BIGINT` obbligatorio, foreign key verso `app_user`;
 - `factor NUMERIC(6,3)` obbligatorio, fra `0` e `1`;
 - `reason VARCHAR(255)` obbligatoria;
 - campi di audit ed `entity_version`;
@@ -194,7 +196,7 @@ Le tabelle appartengono allo schema del tenant e non contengono `tenant_code`, c
 - `id BIGINT`;
 - `movement_id BIGINT` obbligatorio, foreign key verso `financial_movement`;
 - `event_id BIGINT` obbligatorio, foreign key verso `calendar_event`;
-- `user_id BIGINT` obbligatorio, foreign key verso `users`;
+- `user_id BIGINT` obbligatorio, foreign key verso `app_user`;
 - `amount NUMERIC(19,4)` obbligatorio, maggiore di zero;
 - `event_name_snapshot VARCHAR(255)`, per conservare la denominazione mostrata;
 - campi di audit ed `entity_version`;
@@ -206,7 +208,7 @@ L'eliminazione logica del movimento di liquidazione elimina anche le righe colle
 
 ## API REST
 
-Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola di sicurezza del modulo economico e dal flag tenant `FINANCE`.
+Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola di sicurezza del modulo economico su `/api/finance/**`. Il flag tenant `FINANCE` non si applica per percorso ma per controller, con `@RequiresTenantFeature(TenantFeature.FINANCE)` come su `FinanceResource`: il nuovo controller deve portare la stessa annotazione.
 
 ### Parametri
 
@@ -245,7 +247,7 @@ Il movimento creato dalla liquidazione è un normale movimento del modulo econom
 
 Ne discende un limite da conoscere: una liquidazione che copre più eventi contribuisce ai totali del tenant ma non al consuntivo del singolo evento, che continua a leggere `financial_movement.event_id`. Il dettaglio per evento resta nelle righe di liquidazione e nella pagina delle quote. Attribuire al singolo evento anche i pagamenti cumulativi richiede la normalizzazione `event_economic_item` già prevista come evoluzione facoltativa dalla [specifica economica](financial-management-spec.md); fino ad allora, chi vuole il consuntivo per evento liquida un evento per volta.
 
-Il movimento resta modificabile ed eliminabile come ogni altro. Può essere escluso dal rendiconto con il flusso ordinario: l'esclusione agisce sulla classificazione, non sulle quote.
+Il movimento resta modificabile ed eliminabile come ogni altro. L'esclusione dal rendiconto segue il flusso ordinario definito dall'[Esclusione delle voci dal rendiconto](report-exclusion-spec.md): l'esclusione agisce sulla classificazione, non sulle quote.
 
 ## Notifiche
 
@@ -273,7 +275,7 @@ Tre elementi, dal generale al particolare.
 
 **1. Barre di ripartizione, previsto sopra ed effettivo sotto.** Due barre orizzontali impilate, allineate sulla stessa scala, ciascuna divisa in quattro segmenti affiancati: `Spese`, `Quota di cassa`, `Totale quote`, `Residuo`. La prima rappresenta il preventivo, la seconda il consuntivo; la seconda è più corta finché l'incasso non è completo, e quella differenza di lunghezza è esattamente ciò che manca all'appello. Ogni segmento porta etichetta, importo e percentuale in legenda. Le barre rispondono alla domanda «dove vanno i soldi di questo evento» in un colpo d'occhio e, poiché i segmenti sommano esattamente alla rispettiva base, rendono visibile la quadratura invece di chiedere di fidarsi. Sono preferibili a una torta per due motivi: la lunghezza si confronta meglio dell'angolo, e il residuo è spesso una fetta minima che in una torta diventa illeggibile proprio quando serve vederla.
 
-**2. Tabella dei presenti.** Una riga per presente, con `Nome`, `Fattore` modificabile in linea, `Quota simulata`, `Quota reale`, `Già liquidato` e `Residuo`. La quota liquidabile è quella reale ed è la colonna in evidenza; la simulata le sta accanto in tono secondario, come termine di paragone. Il motivo del fattore compare sotto il nome, leggibile senza aprire nulla, con lo stesso criterio adottato per le voci escluse dal rendiconto. Il piè di tabella riporta i due totali, che coincidono con i segmenti omonimi delle barre. L'ordinamento predefinito è alfabetico, non per importo: l'elenco serve a trovare una persona, non a stilare una classifica.
+**2. Tabella dei presenti.** Una riga per presente, con `Nome`, `Fattore` modificabile in linea, `Quota simulata`, `Quota reale`, `Già liquidato` e `Residuo`. La quota liquidabile è quella reale ed è la colonna in evidenza; la simulata le sta accanto in tono secondario, come termine di paragone. Il motivo del fattore compare sotto il nome, leggibile senza aprire nulla, con lo stesso criterio previsto per le voci escluse dal rendiconto dalla specifica di esclusione. Il piè di tabella riporta i due totali, che coincidono con i segmenti omonimi delle barre. L'ordinamento predefinito è alfabetico, non per importo: l'elenco serve a trovare una persona, non a stilare una classifica.
 
 **3. Pannello dei parametri.** Una riga di indicatori compatti sopra le barre: percentuale di cassa, passo di arrotondamento, decorrenza della versione applicata. Il passo è modificabile come anteprima con un selettore a valori discreti (1, 2, 5, 10, 20 €): spostarlo ridisegna barre e tabella all'istante e mostra quanto cresce il residuo. L'anteprima è dichiarata come tale finché non viene salvata in una nuova versione dei parametri.
 

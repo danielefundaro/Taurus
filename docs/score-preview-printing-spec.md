@@ -5,31 +5,6 @@
 ID catalogo: `score-preview-printing`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-### Stato implementato al 12 settembre 2026
-
-Questo documento consolida gli interventi realizzati sulla route `/preview`:
-
-- il comando «Filtri» nell'intestazione, il comando «Apri filtri» nello stato vuoto e la X della spalla sono nuovamente visibili nelle condizioni previste e modificano esplicitamente lo stato aperto/chiuso;
-- la superficie applicativa nascosta viene rimossa dal flusso di stampa, invece di conservarne lo spazio, e shell, contenitore principale e canvas non introducono più fogli bianchi prima delle pagine dello spartito;
-- la barra strumenti consente di scegliere esclusivamente una o due pagine per foglio e aggiorna anteprima, conteggio dei fogli e testo del pulsante «Stampa»;
-- la modalità 2-up raggruppa pagine consecutive senza modificarne l'ordine e mostra nel canvas il foglio composto;
-- con un numero dispari di pagine, l'ultimo foglio conserva due slot: l'ultima pagina occupa il primo e il secondo resta vuoto;
-- il foglio stampabile si adatta all'area fornita dal browser; formato carta, orientamento, margini, scala, stampante e destinazione restano nel dialogo di sistema;
-- la scelta applicativa A4/A3 e i tentativi di propagarla tramite regole `@page` sono stati rimossi, perché non producono un comportamento uniforme nel dialogo di stampa dei browser supportati;
-- lo zoom dell'anteprima non influenza le dimensioni stampate e le immagini usano adattamento proporzionale senza deformazione.
-
-Al 12 settembre 2026 sono stati completati anche i requisiti che restavano aperti:
-
-- lo stato di apertura della spalla è risolto dal breakpoint dei 960 px e `aria-expanded` è esposto da «Filtri» e «Apri filtri» coerentemente con la spalla realmente visibile;
-- la chiusura riporta il focus su «Filtri», l'apertura lo sposta sul primo controllo della spalla e `Escape` chiude prima la presentazione e poi la spalla;
-- la spalla ha un nome programmatico e il numero di pagine incluse è annunciato da una regione `aria-live="polite"`;
-- ogni pagina ha uno stato esplicito di caricamento ed errore, con segnaposto a proporzione stabile e azione «Riprova» che non pregiudica le altre pagine;
-- la presentazione parte dalla pagina corrente e, alla chiusura, riporta l'anteprima sull'ultima pagina mostrata;
-- un errore nel caricamento delle tracce di un album non apre più un'anteprima parziale: lo stato viene liberato e la pagina sorgente mostra un errore recuperabile;
-- i comandi a sola icona rispettano l'area attiva minima di 44 × 44 px e le transizioni rispettano `prefers-reduced-motion`.
-
-La regressione è coperta da diciassette test: otto unitari su raggruppamento 1-up/2-up, pagina dispari, orientamento dell'anteprima, apertura/chiusura filtri, stato iniziale responsive e delega a `window.print`, e nove di componente su `aria-expanded`, spalla fuori dall'ordine di focus, passaggio del focus in apertura e chiusura, `Escape`, sincronizzazione della presentazione, regione `aria-live` e stati di errore con nuovo tentativo. Sono stati inoltre verificati la build Angular di produzione, il catalogo funzionalità e i relativi test di governance.
-
 ## 1. Contesto e obiettivo
 
 Taurus consente di raccogliere in una sola anteprima le pagine degli spartiti appartenenti a una traccia oppure alle tracce di un album. Prima della stampa l'utente può limitare il documento agli strumenti necessari, controllare le singole pagine e aprire una presentazione a schermo intero.
@@ -88,7 +63,7 @@ La route è disponibile a super amministratori, amministratori, archivisti, uten
 - l'anteprima non salva né trasmette una nuova copia dei file;
 - titoli, nomi degli strumenti e identificativi dei media non vengono scritti in log o telemetria applicativa.
 
-L'apertura diretta di `/preview` non ricostruisce dati assenti dalla sessione e non effettua ricerche implicite. Se il servizio di stampa non contiene pagine, l'utente viene riportato alla superficie precedente o a una destinazione sicura, senza mostrare una pagina vuota inutilizzabile.
+L'apertura diretta di `/preview` non ricostruisce dati assenti dalla sessione e non effettua ricerche implicite. Se il servizio di stampa non contiene pagine, `PreviewComponent` reindirizza alla home (`/`) senza messaggio, invece di mostrare una pagina vuota inutilizzabile.
 
 ## 4. Origini e preparazione dei dati
 
@@ -100,11 +75,11 @@ L'azione di anteprima riceve la traccia già caricata, conserva l'ordine delle p
 
 L'azione di anteprima usa le tracce selezionate quando la selezione non è vuota; altrimenti usa tutte le tracce dell'album. Le tracce vengono risolte prima della navigazione, mantenendo l'ordine dell'album o della selezione. Il titolo deriva dal nome dell'album e l'etichetta di contesto è «Album».
 
-Un errore durante il caricamento di una o più tracce impedisce l'apertura di un'anteprima parziale silenziosa. La pagina sorgente conserva la selezione e mostra un errore recuperabile con azione «Riprova».
+Un errore durante il caricamento di una o più tracce impedisce l'apertura di un'anteprima parziale silenziosa. `PrinterService` libera lo stato e mostra il riepilogo d'errore «Anteprima non disponibile»; la pagina sorgente conserva la selezione. Non esiste un'azione «Riprova»: l'utente ripete il comando di anteprima.
 
 ### Durata dello stato
 
-I dati preparati vivono nella sessione applicativa necessaria alla navigazione verso `/preview`. Uscendo dall'anteprima, lo stato viene liberato. Un refresh o un collegamento diretto non è tenuto a ricostruire la selezione: questa limitazione deve produrre un ritorno sicuro, non un errore JavaScript.
+I dati preparati vivono nella sessione applicativa necessaria alla navigazione verso `/preview`. Uscendo dall'anteprima, lo stato viene liberato. Un refresh o un collegamento diretto non ricostruisce la selezione: la pagina torna alla home, senza errori JavaScript.
 
 Non sono richiesti nuovi modelli persistenti, endpoint o migrazioni Liquibase.
 
@@ -184,8 +159,8 @@ Dopo ogni filtro:
 | Nessuna parte selezionata | Icona, titolo, causa esplicita e testo di supporto. | «Apri filtri» quando la spalla è chiusa. |
 | Media in caricamento | Segnaposto con proporzione stabile, senza salto di layout. | Nessuna. |
 | Media non disponibile | Segnaposto con numero pagina e messaggio recuperabile. | «Riprova». |
-| Sorgente senza pagine | Nessuna navigazione verso una preview inutilizzabile. | Ritorno sicuro con messaggio sulla pagina sorgente. |
-| Caricamento album fallito | Nessuna anteprima parziale non dichiarata. | «Riprova» dalla pagina sorgente. |
+| Sorgente senza pagine | `/preview` reindirizza alla home senza messaggio. | Nessuna. |
+| Caricamento album fallito | Nessuna anteprima parziale; riepilogo d'errore «Anteprima non disponibile». | Ripetere il comando di anteprima dalla pagina sorgente. |
 
 ## 7. Navigazione, zoom e presentazione
 
@@ -350,23 +325,20 @@ npm run build
 23. Il flusso completo è utilizzabile con tastiera e i pulsanti a sola icona hanno area attiva minima di 44 × 44 px.
 24. Test di componente, integrazione e viewport coprono le regressioni della spalla filtri e dell'impaginazione.
 
-## 15. Adozione e decisioni da confermare
+## 15. Decisioni adottate
 
-### Piano di adozione
-
-1. Formalizzare e approvare comportamento responsive, accessibilità e sincronizzazione della presentazione.
-2. Allineare la pagina al contratto approvato senza cambiare gli ingressi esistenti.
-3. Aggiungere i test automatici mancanti e le fixture con parti multi-strumento e senza strumento.
-4. Verificare stampa reale da Chrome ed Edge con almeno un documento verticale e uno orizzontale.
-5. Eseguire collaudo da tastiera, tema scuro e viewport fino a 320 px.
-
-### Decisioni da confermare
-
-| Decisione | Proposta |
+| Decisione | Esito |
 | --- | --- |
-| Breakpoint della spalla | Conservare 960 px per compatibilità con la pagina attuale. |
+| Breakpoint della spalla | 960 px. |
 | Stato iniziale desktop/mobile | Aperta su desktop, chiusa su tablet e mobile. |
 | Persistenza filtri | Limitata alla singola visita; nessun salvataggio utente. |
 | Presentazione | Apertura sulla pagina corrente e sincronizzazione bidirezionale. |
-| Refresh diretto | Ritorno sicuro alla pagina precedente o al catalogo, senza ricostruzione implicita. |
+| Refresh diretto | Ritorno alla home, senza ricostruzione implicita. |
 | Stampa | Fogli 1-up/2-up composti dal frontend e affidati al browser; formato e orientamento scelti soltanto nel dialogo di sistema; nessuna generazione PDF server-side. |
+
+## Requisiti aperti
+
+- Azione «Riprova» sulla pagina sorgente dopo un errore di caricamento delle tracce dell'album (4. Album; 6. Stati visuali).
+- Messaggio all'utente quando la sorgente non ha pagine o `/preview` è aperta senza stato, con ritorno alla superficie precedente (3. Utenti; 6. Stati visuali; criterio 21).
+- Verifica della stampa reale da Chrome ed Edge con almeno un documento verticale e uno orizzontale (13. Strategia di test, Stampa).
+- Collaudo da tastiera, tema scuro e viewport fino a 320 px (13. Strategia di test, End to end e Visuale).
