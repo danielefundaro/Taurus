@@ -255,7 +255,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected preparationStatusLabel(): string {
-        const status = this.preparation?.evaluation.preparationStatus;
+        const status = this.preparation?.evaluation?.preparationStatus;
         return ({ NOT_CONFIGURED: 'Da configurare', BLOCKED: 'Preparazione incompleta', ATTENTION: 'Da verificare', READY: 'Evento pronto', UNKNOWN: 'Valutazione non disponibile' } as Record<string, string>)[status ?? 'NOT_CONFIGURED'];
     }
 
@@ -276,7 +276,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected readonly materialConditionLabel = inventoryConditionLabel;
 
     protected preparationSeverity(): 'success' | 'warn' | 'danger' | 'secondary' {
-        const status = this.preparation?.evaluation.preparationStatus;
+        const status = this.preparation?.evaluation?.preparationStatus;
         return status === 'READY' ? 'success' : status === 'BLOCKED' || status === 'UNKNOWN' ? 'danger' : status === 'ATTENTION' ? 'warn' : 'secondary';
     }
 
