@@ -63,7 +63,8 @@ export interface EventPreparationMaterial {
 
 export interface EventPreparationView {
     configuration?: EventPreparationConfiguration;
-    evaluation: EventPreparationEvaluation;
+    /** Absent in the personal views of members and external users. */
+    evaluation?: EventPreparationEvaluation;
     program: EventPreparationProgramEntry[];
     availability: { expected: number; available: number; unavailable: number; missing: number; minimumRequired?: number; deadline?: string };
     materials: EventPreparationMaterial[];
