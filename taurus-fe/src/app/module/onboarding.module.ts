@@ -24,6 +24,7 @@ export interface OnboardingJob {
     completedAt?: string;
     setupEmailFailures: number;
     lastErrorCode?: string;
+    sourceRemovedAt?: string;
 }
 export interface OnboardingLimits {
     maxFileSizeBytes: number;
