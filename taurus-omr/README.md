@@ -23,7 +23,10 @@ Le richieste protette portano la chiave nell'intestazione `X-Taurus-Omr-Key`. Gl
 | `TAURUS_OMR_MAX_PAGES` | `30` | pagine per richiesta |
 | `TAURUS_OMR_MAX_REQUEST_MB` | `25` | dimensione massima delle pagine |
 | `TAURUS_OMR_MAX_MIDI_MB` | `10` | dimensione massima di un file MIDI |
+| `TAURUS_OMR_MAX_IMAGE_PIXELS` | `60000000` | pixel massimi di una pagina, controllati prima della decodifica (`unreadableImage`) |
 | `TAURUS_OMR_CONCURRENCY` | `1` | richieste elaborate insieme; le altre attendono |
+
+L'immagine imposta anche i comandi dei motori, la versione di Audiveris e la cartella di lavoro (`TAURUS_OMR_AUDIVERIS_COMMAND`, `TAURUS_OMR_AUDIVERIS_VERSION`, `TAURUS_OMR_HOMR_COMMAND`, `TAURUS_OMR_WORK_DIR`): servono ai test e non vanno cambiati nell'immagine.
 
 ## Sviluppo
 
@@ -50,6 +53,6 @@ La cartella `accuracy` misura quanto leggono bene i motori reali. Il corpus (`ac
 
 ## Immagine
 
-L'immagine completa si costruisce con `docker build -t taurus-omr .`; il file `taurus-be/src/main/docker/omr.yml` la avvia con le restrizioni previste (file system di sola lettura, rete interna, limiti di CPU e memoria) ed è incluso in `services.yml`, che avvia tutte le dipendenze del backend. Il workflow `docker-publish.yml` pubblica l'immagine su Docker Hub come `fundanie/taurus-omr` a ogni tag `v*.*.*`.
+L'immagine completa si costruisce con `docker build -t taurus-omr .`; il file `taurus-be/src/main/docker/omr.yml` la avvia con le restrizioni previste (file system di sola lettura con `/tmp` in memoria, nessun privilegio aggiuntivo, limiti di CPU e memoria, porta pubblicata solo su `127.0.0.1`) ed è incluso in `services.yml`, che avvia tutte le dipendenze del backend. Il workflow `docker-publish.yml` pubblica l'immagine su Docker Hub come `fundanie/taurus-omr` a ogni tag `v*.*.*`.
 
 Licenze e sorgenti dei componenti: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
