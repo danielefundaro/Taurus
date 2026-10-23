@@ -228,6 +228,31 @@ class NoticesAspectTest {
     }
 
     @Test
+    void keepsTheRemovalOfATenantInTheTenantOfTheSuperAdministrator() throws Throwable {
+        TenantsDTO tenant = new TenantsDTO();
+        tenant.setId(41L);
+        tenant.setName("Associazione Aurora");
+        tenant.setCode("AURORA");
+        Jwt jwt = new Jwt(
+            "token",
+            Instant.now(),
+            Instant.now().plusSeconds(300),
+            Map.of("alg", "none"),
+            Map.of("sub", "actor-1", "given_name", "Mario", "family_name", "Rossi", "tenant", "BMCDG")
+        );
+
+        invoke("onDelete", joinPoint("delete", tenant, 41L, new JwtAuthenticationToken(jwt)));
+
+        ArgumentCaptor<NotificationCommand> captor = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(crossTenantPublisher).enqueue(captor.capture());
+        NotificationCommand command = captor.getValue();
+        assertThat(command.title()).isEqualTo("Tenant: rimosso");
+        assertThat(command.aggregateId()).isEqualTo("AURORA");
+        assertThat(command.targetTenantCode()).isEqualTo("BMCDG");
+        assertThat(command.audiences()).containsExactly(NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN));
+    }
+
+    @Test
     void composesInventoryCreation() throws Throwable {
         InventoryItemDTO item = new InventoryItemDTO(
             51L,
