@@ -122,7 +122,8 @@ public class EventPreparationService {
         List<ProgramEntry> visibleProgram = full.program().stream()
             .filter(row -> external ? StateEnum.PUBLIC.name().equals(row.trackState()) : !StateEnum.DRAFT.name().equals(row.trackState()))
             .toList();
-        return new View(personalConfiguration(full.configuration()), full.evaluation(), visibleProgram, ownAvailability(current, full.configuration(), userId), List.of());
+        // No evaluation: status, percentage and issues could reveal economic or material problems to the members.
+        return new View(personalConfiguration(full.configuration()), null, visibleProgram, ownAvailability(current, full.configuration(), userId), List.of());
     }
 
     @Transactional(readOnly = true)
