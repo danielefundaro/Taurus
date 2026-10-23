@@ -80,6 +80,43 @@ class TracksServiceImplTest {
     }
 
     @Test
+    void failsTheCommittedUploadJobWhenItsMessageIsNotPublished() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        Sender sender = mock(Sender.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            sender
+        );
+        JwtAuthenticationToken token = authentication();
+        MultipartFile file = mock(MultipartFile.class);
+        Tracks track = new Tracks();
+        track.setId(8L);
+        TracksDTO trackDTO = new TracksDTO();
+        trackDTO.setId(8L);
+        QueueUploadFilesDTO queued = new QueueUploadFilesDTO();
+        queued.setId(3L);
+
+        when(file.isEmpty()).thenReturn(false);
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(track));
+        when(mapper.toDto(track)).thenReturn(trackDTO);
+        when(queueUploadFilesService.saveStream(any(QueueUploadFilesDTO.class), same(token))).thenReturn(queued);
+        doThrow(new IllegalStateException("broker down")).when(sender).send(any(byte[].class));
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        service.uploadFile(8L, file, null, token);
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+
+        verify(queueUploadFilesService).markUnpublished(3L, token);
+    }
+
+    @Test
     void requeuesAFailedUploadJob() {
         TracksRepository repository = mock(TracksRepository.class);
         TracksMapper mapper = mock(TracksMapper.class);

@@ -173,7 +173,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         QueueUploadFilesDTO queued = queueUploadFilesService.saveStream(upload, token);
         try {
             byte[] message = Converter.objectToBytes(new UploadFilesPackage(queued.getId(), token));
-            sendAfterCommit(message);
+            sendAfterCommit(queued.getId(), message, token);
         } catch (Exception exception) {
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
@@ -204,7 +204,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             throw new RequestAlertException(HttpStatus.CONFLICT, "Upload job state changed", getEntityName(), "track.upload.versionConflict");
         }
         try {
-            sendAfterCommit(Converter.objectToBytes(new UploadFilesPackage(jobId, token)));
+            sendAfterCommit(jobId, Converter.objectToBytes(new UploadFilesPackage(jobId, token)), token);
         } catch (Exception exception) {
             queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.ERROR, token);
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
@@ -212,7 +212,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         return queueUploadFilesService.findOne(jobId, token).orElseThrow();
     }
 
-    private void sendAfterCommit(byte[] message) {
+    private void sendAfterCommit(Long jobId, byte[] message, AbstractAuthenticationToken token) {
         if (
             !TransactionSynchronizationManager.isActualTransactionActive() ||
                 !TransactionSynchronizationManager.isSynchronizationActive()
@@ -226,7 +226,12 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                 try {
                     sender.send(message);
                 } catch (RuntimeException exception) {
-                    getLogger().error("Unable to publish the committed upload job", exception);
+                    getLogger().error("Unable to publish the committed upload job {}", jobId, exception);
+                    try {
+                        queueUploadFilesService.markUnpublished(jobId, token);
+                    } catch (RuntimeException markFailure) {
+                        getLogger().error("Unable to fail the unpublished upload job {}", jobId, markFailure);
+                    }
                 }
             }
         });
