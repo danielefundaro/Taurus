@@ -326,12 +326,18 @@ public class NoticesAspect {
             String user = displayName(usersDTO.getName(), usersDTO.getLastName(), "un utente senza nome");
             publishAdmins("Utente: rimosso", actor + " ha rimosso l'utente " + user + ".", token);
         } else if (dto instanceof TenantsDTO tenantsDTO) {
-            publishTenant(
-                tenantsDTO.getCode(),
-                "Tenant: rimosso",
-                actor + " ha rimosso il tenant " + quoted(tenantsDTO.getName()) + " con codice " + quoted(tenantsDTO.getCode()) + ".",
-                token
-            );
+            // The schema of the removed tenant is dropped: the notification stays in the tenant the super administrator
+            // works in.
+            String workingTenant = SecurityUtils.getTenantIdFromAuthentication(token);
+            if (workingTenant != null && !workingTenant.isBlank() && !workingTenant.equals(tenantsDTO.getCode())) {
+                publishTenant(
+                    tenantsDTO.getCode(),
+                    workingTenant,
+                    "Tenant: rimosso",
+                    actor + " ha rimosso il tenant " + quoted(tenantsDTO.getName()) + " con codice " + quoted(tenantsDTO.getCode()) + ".",
+                    token
+                );
+            }
         }
 
         return result;
@@ -1348,6 +1354,10 @@ public class NoticesAspect {
     }
 
     private void publishTenant(String tenantCode, String title, String message, AbstractAuthenticationToken token) {
+        publishTenant(tenantCode, tenantCode, title, message, token);
+    }
+
+    private void publishTenant(String tenantCode, String targetTenantCode, String title, String message, AbstractAuthenticationToken token) {
         if (token == null) return;
         String operation = operationOf(title);
         crossTenantNotificationPublisher.enqueue(new NotificationCommand(
@@ -1363,7 +1373,7 @@ public class NoticesAspect {
             Objects.requireNonNullElse(trimToNull(SecurityUtils.getUserIdFromAuthentication(token)), "system"),
             getActorDisplayName(token),
             Set.of(NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)),
-            tenantCode
+            targetTenantCode
         ));
     }
 
