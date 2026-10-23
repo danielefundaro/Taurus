@@ -1,5 +1,7 @@
 import { tenantFeatureGuard } from './app/guard/tenant-feature.guard';
+import { RoleEnums } from './app/constants';
 import { TenantFeature } from './app/module';
+import calendarRoutes from './app/pages/calendar-events/calendar-events.routes';
 import { appRoutes } from './app.routes';
 
 describe('appRoutes tenant features', () => {
@@ -20,5 +22,18 @@ describe('appRoutes tenant features', () => {
 
         expect(albums?.canActivate).not.toContain(tenantFeatureGuard);
         expect(albums?.data?.['feature']).toBeUndefined();
+    });
+});
+
+describe('appRoutes calendar', () => {
+    const calendar = appRoutes.find((route) => route.path === '')?.children?.find((route) => route.path === 'calendar');
+
+    it('lets the treasurer reach the detail of an event but not the calendar', () => {
+        const list = calendarRoutes.find((route) => route.path === '');
+        const detail = calendarRoutes.find((route) => route.path === ':id');
+
+        expect(calendar?.data?.['role']).toContain(RoleEnums.TREASURER);
+        expect(detail?.data?.['role']).toContain(RoleEnums.TREASURER);
+        expect(list?.data?.['role']).not.toContain(RoleEnums.TREASURER);
     });
 });
