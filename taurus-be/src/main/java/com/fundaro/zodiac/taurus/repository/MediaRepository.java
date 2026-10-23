@@ -19,6 +19,8 @@ public interface MediaRepository extends CatalogRepository<Media> {
                 UNION ALL
                 SELECT 1 FROM upload_job WHERE source_media_asset_id = :id AND deleted = FALSE
                 UNION ALL
+                SELECT 1 FROM onboarding_import_job WHERE source_media_asset_id = :id AND source_removed_at IS NULL
+                UNION ALL
                 SELECT 1 FROM inventory_item_photo WHERE media_asset_id = :id AND deleted = FALSE
                 UNION ALL
                 SELECT 1 FROM inventory_return_photo WHERE media_asset_id = :id AND deleted = FALSE

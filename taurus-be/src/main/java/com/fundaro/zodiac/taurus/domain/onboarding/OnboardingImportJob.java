@@ -62,6 +62,9 @@ public class OnboardingImportJob extends TenantAuditedEntity {
     private ZonedDateTime completedAt;
     @Column(name = "last_error_code", length = 128)
     private String lastErrorCode;
+    /** When the retention removed the source file, the staging rows and the problems of the import. */
+    @Column(name = "source_removed_at")
+    private ZonedDateTime sourceRemovedAt;
 
     public Media getSourceMediaAsset() {
         return sourceMediaAsset;
@@ -253,5 +256,13 @@ public class OnboardingImportJob extends TenantAuditedEntity {
 
     public void setLastErrorCode(String v) {
         lastErrorCode = v;
+    }
+
+    public ZonedDateTime getSourceRemovedAt() {
+        return sourceRemovedAt;
+    }
+
+    public void setSourceRemovedAt(ZonedDateTime v) {
+        sourceRemovedAt = v;
     }
 }

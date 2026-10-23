@@ -17,8 +17,9 @@ public class OnboardingIdentityOperation {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "job_id", nullable = false)
     private OnboardingImportJob job;
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "row_id", nullable = false)
+    /** Cleared by the retention, which removes the staging rows and keeps the outcome of the operation. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "row_id")
     private OnboardingImportRow row;
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_type", nullable = false, length = 32)

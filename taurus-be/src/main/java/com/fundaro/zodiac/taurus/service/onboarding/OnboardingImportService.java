@@ -212,6 +212,7 @@ public class OnboardingImportService {
         OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow();
         if (!Set.of(OnboardingJobStatus.INVALID, OnboardingJobStatus.FAILED).contains(job.getStatus()))
             throw problem(HttpStatus.CONFLICT, "Validazione non ripetibile", "onboarding.job.validationNotRetryable");
+        requireSource(job);
         MediaService.MediaContent content = mediaService.getContent(job.getSourceMediaAsset().getId(), token);
         job.setStatus(OnboardingJobStatus.UPLOADED);
         job.setStage("QUEUED_FOR_VALIDATION");
@@ -238,8 +239,15 @@ public class OnboardingImportService {
         OnboardingImportJob job = jobs.findForUpdate(id).orElseThrow();
         if (job.getStatus() != OnboardingJobStatus.COMPLETED || job.getSetupEmailFailures() == 0)
             throw problem(HttpStatus.CONFLICT, "Nessuna e-mail da ritentare", "onboarding.email.retryNotAllowed");
+        requireSource(job);
         job.setSetupEmailFailures(identitySaga.retryFailedSetupEmails(id));
         return dto(jobs.save(job));
+    }
+
+    /** The retention removed the file and the rows that a new validation or a new e-mail would read. */
+    private void requireSource(OnboardingImportJob job) {
+        if (job.getSourceRemovedAt() != null)
+            throw problem(HttpStatus.CONFLICT, "File dell'importazione eliminato", "onboarding.job.sourceRemoved");
     }
 
     private Tenant tenant(AbstractAuthenticationToken token) {
@@ -307,7 +315,7 @@ public class OnboardingImportService {
     }
 
     private OnboardingDtos.Job dto(OnboardingImportJob j) {
-        return new OnboardingDtos.Job(j.getId(), j.getFileName(), j.getFormat(), j.getCsvSection(), j.getTemplateVersion(), j.getStatus(), j.getStage(), j.getProgressPercentage(), new OnboardingDtos.Counts(j.getTotalRows(), j.getValidRows(), j.getWarningRows(), j.getErrorRows()), j.getInsertDate(), j.getCompletedAt(), j.getSetupEmailFailures(), j.getLastErrorCode());
+        return new OnboardingDtos.Job(j.getId(), j.getFileName(), j.getFormat(), j.getCsvSection(), j.getTemplateVersion(), j.getStatus(), j.getStage(), j.getProgressPercentage(), new OnboardingDtos.Counts(j.getTotalRows(), j.getValidRows(), j.getWarningRows(), j.getErrorRows()), j.getInsertDate(), j.getCompletedAt(), j.getSetupEmailFailures(), j.getLastErrorCode(), j.getSourceRemovedAt());
     }
 
     private OnboardingDtos.Section dto(OnboardingImportSection s) {
