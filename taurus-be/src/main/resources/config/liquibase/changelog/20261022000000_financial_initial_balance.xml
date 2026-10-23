@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261022000000-1" author="taurus">
+    <comment>Tells the starting balance of a new account apart from the carry-over that the yearly rollover recalculates.</comment>
+    <addColumn tableName="financial_movement">
+      <column name="initial_balance" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="financial_movement" columnName="initial_balance"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261022000000-2" author="taurus">
+    <comment>The starting balances entered when creating or importing an account are the openings described as "Saldo iniziale"; the carry-overs carry the year.</comment>
+    <update tableName="financial_movement">
+      <column name="initial_balance" valueBoolean="true"/>
+      <where>nature = 'OPENING' AND description = 'Saldo iniziale'</where>
+    </update>
+    <rollback/>
+  </changeSet>
+</databaseChangeLog>

@@ -81,4 +81,5 @@
   <include file="config/liquibase/changelog/20261018100000_inventory_electronic_signature.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261019100000_inventory_loan_sheet_signature.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261020100001_inventory_signature_links.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261022000000_financial_initial_balance.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

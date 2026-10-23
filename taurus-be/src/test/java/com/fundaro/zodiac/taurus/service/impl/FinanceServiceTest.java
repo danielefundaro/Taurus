@@ -33,6 +33,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -166,6 +167,7 @@ class FinanceServiceTest {
         var movementCaptor = org.mockito.ArgumentCaptor.forClass(FinancialMovement.class);
         verify(movementRepository).save(movementCaptor.capture());
         assertThat(movementCaptor.getValue().getNature()).isEqualTo(FinancialMovementNature.OPENING);
+        assertThat(movementCaptor.getValue().isInitialBalance()).isTrue();
         assertThat(movementCaptor.getValue().getDirection()).isEqualTo(FinancialDirection.INCOME);
         assertThat(movementCaptor.getValue().getAmount()).isEqualByComparingTo("250.00");
         assertThat(movementCaptor.getValue().getBookingDate()).isEqualTo(LocalDate.of(2026, 1, 1));
@@ -262,6 +264,78 @@ class FinanceServiceTest {
         verify(notificationPublisher).enqueue(notification.capture());
         assertThat(notification.getValue().eventKey()).isEqualTo("finance-rollover:2026");
         assertThat(notification.getValue().message()).startsWith("Il riporto dell’esercizio 2026").doesNotContain("Il sistema ha").endsWith(".");
+    }
+
+    @Test
+    void rolloverKeepsTheStartingBalanceOfAnAccountOpenedInTheFollowingYear() {
+        AccountingYear source = year(2025);
+        AccountingYear target = year(2026);
+        source.setStatus(AccountingYearStatus.OPEN);
+        target.setStatus(AccountingYearStatus.OPEN);
+        FinancialAccount account = account(10L, "Banca", "EUR");
+        FinancialMovement initial = initialBalance(target, LocalDate.of(2026, 3, 15), "1000.00");
+        when(financeNoticeDataService.findYearStatus(2025)).thenReturn(AccountingYearStatus.OPEN);
+        when(yearRepository.findByYearAndDeletedFalse(2025)).thenReturn(Optional.of(source));
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(target));
+        when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+            .thenReturn(List.of());
+        when(movementRepository.findByAccountingYear_YearAndAccount_IdAndNatureAndDeletedFalse(2026, 10L, FinancialMovementNature.OPENING))
+            .thenReturn(Optional.of(initial));
+        when(yearRepository.save(any(AccountingYear.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.rolloverForActor(2025, FinanceRolloverScheduler.SYSTEM_ACTOR);
+
+        verify(movementRepository, never()).save(any(FinancialMovement.class));
+        assertThat(initial.isDeleted()).isFalse();
+        assertThat(initial.getAmount()).isEqualByComparingTo("1000.00");
+    }
+
+    @Test
+    void startsTheStatementFromTheBalanceOfAnAccountOpenedInThePeriod() {
+        FinancialAccount account = account(10L, "Banca", "EUR");
+        AccountingYear year = year(2026);
+        FinancialMovement initial = initialBalance(year, LocalDate.of(2026, 3, 15), "1000.00");
+        FinancialMovement income = movement(2L, null, year, FinancialDirection.INCOME);
+        income.setBookingDate(LocalDate.of(2026, 4, 1));
+        income.setAmount(new BigDecimal("50.00"));
+
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(account));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+            .thenReturn(List.of());
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(initial, income));
+
+        var statement = service.accountStatement(10L, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), authentication());
+
+        assertThat(statement.openingBalance()).isEqualByComparingTo("1000.00");
+        assertThat(statement.income()).isEqualByComparingTo("50.00");
+        assertThat(statement.closingBalance()).isEqualByComparingTo("1050.00");
+        assertThat(statement.lines()).hasSize(1);
+        assertThat(statement.lines().get(0).balance()).isEqualByComparingTo("1050.00");
+    }
+
+    @Test
+    void countsTheStartingBalanceOfAnAccountOpenedDuringTheYearAmongTheOpenings() {
+        AccountingYear year = year(2026);
+        FinancialAccount account = account(10L, "Banca", "EUR");
+        FinancialMovement initial = initialBalance(year, LocalDate.of(2026, 3, 15), "1000.00");
+        FinancialMovement income = movement(2L, null, year, FinancialDirection.INCOME);
+        income.setAmount(new BigDecimal("50.00"));
+
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(year));
+        when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of(initial, income));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+            .thenReturn(List.of());
+        when(eventRepository.findAll()).thenReturn(List.of());
+
+        var summary = service.yearSummary(2026, authentication());
+
+        assertThat(summary.openingTotal()).isEqualByComparingTo("1000.00");
+        assertThat(summary.ordinaryIncome()).isEqualByComparingTo("50.00");
+        assertThat(summary.closingTotal()).isEqualByComparingTo("1050.00");
     }
 
     @Test
@@ -447,6 +521,16 @@ class FinanceServiceTest {
         movement.setCurrency("EUR");
         movement.setDescription("Movimento");
         return movement;
+    }
+
+    private static FinancialMovement initialBalance(AccountingYear year, LocalDate date, String amount) {
+        FinancialMovement opening = movement(1L, null, year, FinancialDirection.INCOME);
+        opening.setNature(FinancialMovementNature.OPENING);
+        opening.setInitialBalance(true);
+        opening.setBookingDate(date);
+        opening.setAmount(new BigDecimal(amount));
+        opening.setDescription("Saldo iniziale");
+        return opening;
     }
 
     private static JwtAuthenticationToken authentication() {

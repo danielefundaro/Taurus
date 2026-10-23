@@ -204,6 +204,7 @@ public class OnboardingDomainApplicationService {
             movement.setAccount(account);
             movement.setDirection(signed.signum() > 0 ? FinancialDirection.INCOME : FinancialDirection.EXPENSE);
             movement.setNature(FinancialMovementNature.OPENING);
+            movement.setInitialBalance(true);
             movement.setBookingDate(date);
             movement.setValueDate(date);
             movement.setAmount(signed.abs());

@@ -147,11 +147,13 @@ public class FinanceService {
             opening.setAccount(account);
             opening.setDirection(request.initialBalance().signum() > 0 ? FinancialDirection.INCOME : FinancialDirection.EXPENSE);
             opening.setNature(FinancialMovementNature.OPENING);
+            opening.setInitialBalance(true);
             opening.setBookingDate(openingDate);
             opening.setAmount(request.initialBalance().abs());
             opening.setCurrency(account.getCurrency());
             opening.setDescription("Saldo iniziale");
             movementRepository.save(opening);
+            recalculateFollowingYears(openingDate.getYear(), actor(token));
         }
         return toAccountDto(account, balance(account.getId(), LocalDate.now()));
     }
@@ -508,9 +510,11 @@ public class FinanceService {
         LocalDate effectiveTo = Objects.requireNonNullElse(to, LocalDate.now());
         LocalDate effectiveFrom = Objects.requireNonNullElse(from, effectiveTo.withDayOfYear(1));
         requirePeriod(effectiveFrom, effectiveTo);
-        BigDecimal opening = balance(accountId, effectiveFrom.minusDays(1));
-        List<FinancialMovement> movements = periodMovements(effectiveFrom, effectiveTo).stream()
+        List<FinancialMovement> accountMovements = periodMovements(effectiveFrom, effectiveTo).stream()
             .filter(movement -> movement.getAccount().getId().equals(accountId))
+            .toList();
+        BigDecimal opening = balance(accountId, effectiveFrom.minusDays(1)).add(initialBalance(accountMovements));
+        List<FinancialMovement> movements = accountMovements.stream()
             .filter(movement -> movement.getNature() != FinancialMovementNature.OPENING)
             .toList();
         List<StatementLineDTO> lines = new ArrayList<>();
@@ -549,11 +553,13 @@ public class FinanceService {
         BigDecimal openingTotal = ZERO;
         BigDecimal closingTotal = ZERO;
         for (FinancialAccount account : accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()) {
-            List<FinancialMovement> own = movements.stream()
+            List<FinancialMovement> accountMovements = movements.stream()
                 .filter(movement -> movement.getAccount().getId().equals(account.getId()))
+                .toList();
+            List<FinancialMovement> own = accountMovements.stream()
                 .filter(movement -> movement.getNature() != FinancialMovementNature.OPENING)
                 .toList();
-            BigDecimal opening = balance(account.getId(), from.minusDays(1));
+            BigDecimal opening = balance(account.getId(), from.minusDays(1)).add(initialBalance(accountMovements));
             BigDecimal income = total(own, FinancialDirection.INCOME, false);
             BigDecimal expense = total(own, FinancialDirection.EXPENSE, false);
             BigDecimal closing = opening.add(income).subtract(expense);
@@ -860,6 +866,8 @@ public class FinanceService {
             FinancialMovement opening = movementRepository
                 .findByAccountingYear_YearAndAccount_IdAndNatureAndDeletedFalse(targetYear, account.getId(), FinancialMovementNature.OPENING)
                 .orElse(null);
+            // The account starts in this year: its opening is the balance entered by hand, not a carry-over.
+            if (opening != null && opening.isInitialBalance()) continue;
             if (previousBalance.signum() == 0) {
                 if (opening != null) {
                     opening.setDeleted(true);
@@ -974,6 +982,14 @@ public class FinanceService {
             .filter(movement -> movement.getDirection() == direction)
             .filter(movement -> !ordinaryOnly || movement.getNature() == FinancialMovementNature.ORDINARY)
             .map(FinancialMovement::getAmount)
+            .reduce(ZERO, BigDecimal::add);
+    }
+
+    /** Starting balances of the accounts opened in the period: the carry-overs are already in the previous balance. */
+    private BigDecimal initialBalance(List<FinancialMovement> movements) {
+        return movements.stream()
+            .filter(movement -> movement.getNature() == FinancialMovementNature.OPENING && movement.isInitialBalance())
+            .map(this::signedAmount)
             .reduce(ZERO, BigDecimal::add);
     }
 
