@@ -76,6 +76,22 @@ class SecurityConfigurationTest {
     }
 
     @ParameterizedTest
+    @MethodSource("allowedReminderRequests")
+    void allowsThePersonalReminderForTheMatchingRole(String authority, String path) throws Exception {
+        mockMvc
+            .perform(patch(path).with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @MethodSource("deniedReminderRequests")
+    void deniesThePersonalReminderForAnotherRole(String authority, String path) throws Exception {
+        mockMvc
+            .perform(patch(path).with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
     @MethodSource("allowedErrorReports")
     void allowsListenersToReportErrorsOnTheirOwnPaths(String authority, String path) throws Exception {
         mockMvc.perform(post(path).with(user("member").authorities(new SimpleGrantedAuthority(authority)))).andExpect(status().isOk());
@@ -105,6 +121,23 @@ class SecurityConfigurationTest {
         );
     }
 
+    private static Stream<Arguments> allowedReminderRequests() {
+        return Stream.of(
+            Arguments.of(AuthoritiesConstants.ADMIN, "/api/calendar-events/42/reminder"),
+            Arguments.of(AuthoritiesConstants.ARCHIVIST, "/api/calendar-events/42/reminder"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/user/calendar-events/42/reminder"),
+            Arguments.of(AuthoritiesConstants.USER_EXTERNAL, "/api/external/calendar-events/42/reminder")
+        );
+    }
+
+    private static Stream<Arguments> deniedReminderRequests() {
+        return Stream.of(
+            Arguments.of(AuthoritiesConstants.TREASURER, "/api/calendar-events/42/reminder"),
+            Arguments.of(AuthoritiesConstants.USER_EXTERNAL, "/api/user/calendar-events/42/reminder"),
+            Arguments.of(AuthoritiesConstants.USER, "/api/external/calendar-events/42/reminder")
+        );
+    }
+
     private static Stream<Arguments> allowedCancellationRequests() {
         return Stream.of(
             Arguments.of(AuthoritiesConstants.ADMIN, "/api/calendar-events/42/availability/cancel"),
@@ -128,6 +161,14 @@ class SecurityConfigurationTest {
             "/api/external/calendar-events/series/{id}/availability/cancel",
         })
         void cancelAvailability() {
+        }
+
+        @PatchMapping({
+            "/api/calendar-events/{id}/reminder",
+            "/api/user/calendar-events/{id}/reminder",
+            "/api/external/calendar-events/{id}/reminder",
+        })
+        void setReminder() {
         }
     }
 
