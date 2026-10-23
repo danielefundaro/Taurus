@@ -9,7 +9,10 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.zip.CRC32;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -128,6 +131,30 @@ class ImageTransformationServiceTest {
         assertThatThrownBy(() -> service.transform(png(new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB)), recipe))
             .isInstanceOf(RequestAlertException.class)
             .hasMessageContaining("does not contain changes");
+    }
+
+    @Test
+    void refusesAnOversizedImageFromItsHeaderBeforeDecodingThePixels() {
+        // A header announcing 30000 x 30000 pixels, without the pixels: decoding it would fail differently.
+        assertThatThrownBy(() -> service.analyze(7L, pngHeader(30_000, 30_000)))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Decoded image is too large");
+    }
+
+    private static byte[] pngHeader(int width, int height) {
+        ByteBuffer header = ByteBuffer.allocate(13).putInt(width).putInt(height).put((byte) 8).put((byte) 2).put((byte) 0).put((byte) 0).put((byte) 0);
+        ByteBuffer png = ByteBuffer.allocate(8 + 25 + 12);
+        png.put(new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
+        chunk(png, "IHDR", header.array());
+        chunk(png, "IEND", new byte[0]);
+        return png.array();
+    }
+
+    private static void chunk(ByteBuffer png, String type, byte[] data) {
+        CRC32 crc = new CRC32();
+        crc.update(type.getBytes(StandardCharsets.US_ASCII));
+        crc.update(data);
+        png.putInt(data.length).put(type.getBytes(StandardCharsets.US_ASCII)).put(data).putInt((int) crc.getValue());
     }
 
     private static byte[] png(BufferedImage image) throws Exception {

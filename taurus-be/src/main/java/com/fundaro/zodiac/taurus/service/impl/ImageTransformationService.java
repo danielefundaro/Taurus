@@ -14,8 +14,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -159,14 +163,23 @@ public class ImageTransformationService implements PageImageTransformer {
         if (content == null || content.length == 0) throw badRequest("Image is empty", "image.empty");
         if (content.length > MAX_BYTES)
             throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
-        try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
-            if (image == null)
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
+            Iterator<ImageReader> readers = input == null ? Collections.emptyIterator() : ImageIO.getImageReaders(input);
+            if (!readers.hasNext())
                 throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image format", "trackPageImage", "image.unsupported");
-            if (image.getWidth() > MAX_SIDE || image.getHeight() > MAX_SIDE || (long) image.getWidth() * image.getHeight() > MAX_PIXELS) {
-                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge").with("maxSide", MAX_SIDE).with("maxMegapixels", (int) (MAX_PIXELS / 1_000_000));
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                // The dimensions come from the header: an image too large is refused before its pixels are decoded.
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                if (width > MAX_SIDE || height > MAX_SIDE || (long) width * height > MAX_PIXELS) {
+                    throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge").with("maxSide", MAX_SIDE).with("maxMegapixels", (int) (MAX_PIXELS / 1_000_000));
+                }
+                return reader.read(0);
+            } finally {
+                reader.dispose();
             }
-            return image;
         } catch (IOException exception) {
             throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Unable to decode image", "trackPageImage", "image.decode");
         }
