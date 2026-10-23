@@ -35,6 +35,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -190,6 +192,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         }
         eventRepository.saveAll(allEvents);
         eventRepository.flush();
+        if (sourceSequence != null) realignOriginalStarts(bySequence, allEvents, sourceSequence, definition.occurrences());
 
         int created = 0;
         int updated = 0;
@@ -233,8 +236,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         seriesRepository.save(series);
         if (calendarFeedLifecycle != null)
             changed.forEach(event -> calendarFeedLifecycle.apply(event, feedSnapshots.get(event)));
-        eventRepository.saveAll(changed);
-        eventRepository.flush();
+        saveOccurrences(changed);
 
         CalendarEventSeriesDTO result = toDto(series);
         result.setCreatedCount(created);
@@ -510,6 +512,46 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
     private boolean financeEnabled() {
         return tenantFeatureService.isEnabled(TenantFeature.FINANCE);
+    }
+
+    /**
+     * From the source occurrence on, every position of the series takes the start that the changed rule gives it: it stays
+     * the identity of the occurrence for its restore and for the changes of all the future occurrences. The positions no
+     * longer generated and the other rows of a position free their start. The starts pass through a value owned by each
+     * row, so that two rows never share one while they are exchanged.
+     */
+    private void realignOriginalStarts(
+        Map<Integer, CalendarEvents> bySequence,
+        List<CalendarEvents> events,
+        int sourceSequence,
+        List<ZonedDateTime> occurrences
+    ) {
+        Map<CalendarEvents, Instant> targets = new IdentityHashMap<>();
+        for (CalendarEvents event : events) {
+            Integer sequence = event.getSeriesSequence();
+            if (sequence == null || sequence < sourceSequence) continue;
+            boolean generated = sequence <= occurrences.size() && bySequence.get(sequence) == event;
+            Instant target = generated ? occurrences.get(sequence - 1).toInstant() : parkedStart(event);
+            if (!target.equals(event.getOriginalStartDate().toInstant())) targets.put(event, target);
+        }
+        if (targets.isEmpty()) return;
+        targets.keySet().forEach(event -> event.setOriginalStartDate(Date.from(parkedStart(event))));
+        saveOccurrences(targets.keySet());
+        targets.forEach((event, target) -> event.setOriginalStartDate(Date.from(target)));
+        saveOccurrences(targets.keySet());
+    }
+
+    private static Instant parkedStart(CalendarEvents event) {
+        return Instant.EPOCH.minusSeconds(event.getId());
+    }
+
+    private void saveOccurrences(Collection<CalendarEvents> events) {
+        try {
+            eventRepository.saveAll(events);
+            eventRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw error(HttpStatus.CONFLICT, "Another occurrence of the series already starts there", "calendar.series.occurrence.conflict");
+        }
     }
 
     private RequestAlertException error(HttpStatus status, String message, String key) {
