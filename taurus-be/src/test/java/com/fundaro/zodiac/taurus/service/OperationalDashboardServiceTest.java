@@ -111,6 +111,32 @@ class OperationalDashboardServiceTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void acceptsTheInventoryIssuesWithTheirOwnTargets() {
+        OperationalItemDTO unsafe = item(
+            DashboardOperationType.INVENTORY_UNSAFE_ISSUES,
+            DashboardDomain.INVENTORY,
+            DashboardSeverity.DANGER,
+            "/inventory?attention=issues-unsafe"
+        );
+        OperationalItemDTO limiting = item(
+            DashboardOperationType.INVENTORY_LIMITING_ISSUES,
+            DashboardDomain.INVENTORY,
+            DashboardSeverity.WARNING,
+            "/inventory?attention=issues-limiting"
+        );
+
+        OperationalDashboardService.validate(unsafe, DashboardDomain.INVENTORY);
+        OperationalDashboardService.validate(limiting, DashboardDomain.INVENTORY);
+    }
+
+    @Test
+    void definesTheTargetsOfEveryOperationType() {
+        for (DashboardOperationType type : DashboardOperationType.values()) {
+            assertThat(OperationalDashboardService.allowedTargets(type)).as(type.name()).isNotEmpty();
+        }
+    }
+
     private OperationalDashboardService service(List<DashboardOperationProvider> providers) {
         ApplicationProperties properties = new ApplicationProperties();
         properties.getDashboard().setEnabled(true);
