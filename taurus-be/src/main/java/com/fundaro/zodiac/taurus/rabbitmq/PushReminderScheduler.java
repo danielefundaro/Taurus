@@ -77,6 +77,11 @@ public class PushReminderScheduler {
                 skipped(reminder, "FEATURE_DISABLED");
                 return;
             }
+            // A reminder late because of a stop of the backend is not delivered once the event has begun.
+            if (reminder.getEventStartAt() != null && !Instant.now().isBefore(reminder.getEventStartAt())) {
+                skipped(reminder, "EVENT_STARTED");
+                return;
+            }
             if (preferenceResolver == null) {
                 String body = String.format("L'evento \"%s\" sta per iniziare", reminder.getEventName());
                 pushService.sendToUser(reminder.getUserId(), TenantContext.getTenantCode().orElseThrow(), "Promemoria evento", body);
@@ -133,7 +138,10 @@ public class PushReminderScheduler {
                     reminderRepository.save(reminder);
                 }
             } else {
+                // Final until the delivery console retries it: the scheduler only reads the reminders not yet sent.
+                reminder.setSent(true);
                 reminder.setStatus(NotificationStatus.FAILED);
+                reminder.setNextAttemptAt(null);
                 reminder.setAttempts(reminder.getAttempts() + 1);
                 reminder.setLastError("PERMANENT_PROVIDER_FAILURE");
                 recordReminderJob(NotificationStatus.FAILED);
