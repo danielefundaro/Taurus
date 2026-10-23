@@ -1,59 +1,48 @@
-# Sakai19
+# Taurus frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.6.
+Applicazione Angular 19 di Taurus per utenti e amministratori, con componenti PrimeNG 19 e autenticazione Keycloak (`keycloak-angular`). Il progetto nasce dal template Sakai.
 
-## Development server
+## Struttura
 
-To start a local development server, run:
+| Percorso | Contenuto |
+| --- | --- |
+| `src/app/pages` | pagine, una cartella per funzionalità |
+| `src/app/components` | componenti condivisi del [Taurus Layout Standard](../docs/taurus-layout-standard.md) |
+| `src/app/dialogs` | dialoghi |
+| `src/app/service` | accesso alle API del backend |
+| `src/app/constants` | messaggi d'errore e comportamenti dello [Standard degli errori applicativi](../docs/application-errors-standard.md) |
+| `src/app/score-player`, `src/app/score-editor` | lettore ed editor dell'[ascolto delle parti](../docs/track-score-playback-spec.md) |
+| `src/assets` | risorse statiche, compresi Verovio, SpessaSynth e il SoundFont |
+| `src/environments` | indirizzi di backend e Keycloak: `environment.ts` per lo sviluppo, `environment.prod.ts` per la build di produzione |
 
-```bash
-ng serve
-```
+## Sviluppo
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Con Node.js 22 e i servizi del backend avviati (vedi il [README principale](../README.md)):
 
 ```bash
-ng generate --help
+npm ci
+npm start
 ```
 
-## Building
+L'applicazione è su `http://localhost:4200` e chiama il backend su `http://localhost:8080/api` e Keycloak su `http://localhost:9080`.
 
-To build the project run:
+`npm start` e `npm run build` eseguono prima `scripts/fetch-soundfont.mjs`, che scarica il SoundFont MuseScore General (circa 38 MB, non versionato) e ne verifica lo SHA-256. `TAURUS_SKIP_SOUNDFONT=1` salta il download, per esempio nei job che non usano il lettore.
 
-```bash
-ng build
-```
+## Comandi
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+| Comando | Effetto |
+| --- | --- |
+| `npm start` | server di sviluppo |
+| `npm run build` | build di produzione in `dist/sakai-ng/browser` |
+| `npm test -- --watch=false --browsers=ChromeHeadless` | test Karma/Jasmine, una sola esecuzione |
+| `npm run format` | formattazione Prettier |
 
-## Running unit tests
+I test stanno accanto ai file che verificano, come `*.spec.ts`.
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## Convenzioni
 
-```bash
-ng test
-```
+TypeScript strict, indentazione a quattro spazi, apici singoli e punto e virgola, formattazione con Prettier. I file seguono il kebab case con il suffisso del ruolo, per esempio `inventory.service.ts`. Per i componenti PrimeNG si consulta `docs/llms-full.md`, limitandosi alle sezioni del componente usato.
 
-## Running end-to-end tests
+## Immagine
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Il `Dockerfile` costruisce l'applicazione con Node.js 22 e la serve con nginx. Il workflow `docker-publish.yml` pubblica l'immagine come `taurus-frontend` a ogni tag `v*.*.*`.

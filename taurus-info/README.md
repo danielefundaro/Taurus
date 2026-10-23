@@ -76,7 +76,7 @@ Il sito pubblica separatamente i documenti destinati agli utenti della web app:
 - `/privacy-applicativo/` per l'informativa privacy, da registrare in Taurus come tipo `PRIVACY` e azione `ACKNOWLEDGE`;
 - `/termini-applicativo/` per i termini di utilizzo, da registrare come tipo `TERMS` e azione `ACCEPT`.
 
-Le versioni pubblicate nel sito sono attualmente la **1.1 del 3 settembre 2026**.
+Le versioni pubblicate nel sito sono la **1.1 del 3 settembre 2026** per l'informativa privacy e la **1.2 del 7 settembre 2026** per i termini di utilizzo.
 
 Dopo la pubblicazione del sito, un super amministratore deve aprire **Documenti legali** nella web app e creare le due versioni indicando gli URL pubblici completi, la versione, la data di pubblicazione e lo stato attivo. I record non devono essere inseriti manualmente nel database.
 
