@@ -146,13 +146,16 @@ public class OperationalDashboardService {
         if (item == null || item.type() == null || item.domain() != providerDomain || item.count() <= 0) {
             throw new IllegalArgumentException("Invalid dashboard operation");
         }
-        Set<String> expectedPaths = TARGET_PATHS.get(item.type());
-        if (!item.type().name().equals(item.key()) || expectedPaths == null || !expectedPaths.contains(item.targetPath())) {
+        if (!item.type().name().equals(item.key()) || !allowedTargets(item.type()).contains(item.targetPath())) {
             throw new IllegalArgumentException("Invalid dashboard operation identity or target path");
         }
         if (!item.targetPath().startsWith("/") || item.targetPath().startsWith("//")) {
             throw new IllegalArgumentException("Dashboard target path must be internal");
         }
+    }
+
+    static Set<String> allowedTargets(DashboardOperationType type) {
+        return TARGET_PATHS.getOrDefault(type, Set.of());
     }
 
     private static int severityOrder(DashboardSeverity severity) {
@@ -179,6 +182,8 @@ public class OperationalDashboardService {
             DashboardOperationType.INVENTORY_ASSIGNMENTS_EXPIRING,
             Set.of("/inventory?attention=expiring", "/inventory?view=mine&attention=expiring")
         );
+        paths.put(DashboardOperationType.INVENTORY_UNSAFE_ISSUES, Set.of("/inventory?attention=issues-unsafe"));
+        paths.put(DashboardOperationType.INVENTORY_LIMITING_ISSUES, Set.of("/inventory?attention=issues-limiting"));
         paths.put(DashboardOperationType.FINANCE_MOVEMENTS_UNRECONCILED, Set.of("/finance?section=movements&reconciled=false"));
         paths.put(DashboardOperationType.NOTIFICATION_DELIVERY_FAILED, Set.of("/admin/notification-delivery?status=FAILED"));
         return Map.copyOf(paths);
