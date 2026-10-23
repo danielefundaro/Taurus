@@ -45,7 +45,8 @@ public class SignatureChallengeCleanupScheduler {
     )
     public void removeClosedChallenges() {
         ZonedDateTime before = ZonedDateTime.now().minusDays(retentionDays);
-        tenantSchemaRegistry.findInventoryEnabledTenantCodes().forEach(tenantCode -> {
+        // Every active tenant: turning off the inventory or its loan sheets and signature does not suspend the retention.
+        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
             try {
                 int removed = tenantTransactionExecutor.execute(
                     tenantCode,

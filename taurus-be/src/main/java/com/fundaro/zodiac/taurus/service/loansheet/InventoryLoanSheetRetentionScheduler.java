@@ -44,7 +44,8 @@ public class InventoryLoanSheetRetentionScheduler {
     )
     public void settleClosedSheets() {
         ZonedDateTime closedBefore = ZonedDateTime.now().minusDays(autoSettleDays);
-        tenantSchemaRegistry.findInventoryEnabledTenantCodes().forEach(tenantCode -> {
+        // Every active tenant: turning off the inventory or its loan sheets and signature does not suspend the retention.
+        tenantSchemaRegistry.findActiveTenantCodes().forEach(tenantCode -> {
             try {
                 int settled = tenantTransactionExecutor.execute(
                     tenantCode,
