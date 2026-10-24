@@ -146,7 +146,8 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
             trackId: this.trackId,
             scoreId: part.scoreId,
             partLabel: partLabel(part),
-            settings: part.settings ?? { transpositionOverride: null, soundBankOverride: null, soundProgramOverride: null }
+            settings: part.settings ?? { transpositionOverride: null, soundBankOverride: null, soundProgramOverride: null },
+            instrument: part.instruments[0] ?? null
         };
         const ref = this.dialogService.open(ScoreVersionsDialogComponent, { showHeader: false, width: 'min(56rem, 95vw)', modal: true, focusOnShow: false, data });
         ref.onClose.pipe(first()).subscribe((result: ScoreVersionsDialogResult | undefined) => {

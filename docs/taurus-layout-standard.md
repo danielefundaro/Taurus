@@ -334,7 +334,9 @@ Tre fasce fisse — intestazione, corpo scorrevole, piede ancorato — su un'uni
 
 **Piede.** Ancorato, fuori dall'area scorrevole, con separatore e fondo `surface`. A destra la rinuncia come `text` e la conferma come pulsante pieno, non più `[outlined]`. A sinistra il conteggio dei campi da correggere, che sostituisce il pulsante spento come unica spiegazione.
 
-**Dialoghi senza conferma.** Dove il piede non invia nulla, perché il dialogo mostra informazioni o applica ogni azione nel corpo, resta un solo pulsante pieno: la chiusura, nominata dall'etichetta della rinuncia. Due pulsanti con lo stesso testo non sono una scelta, e il pulsante di conferma prometterebbe un salvataggio che non esiste. In questi dialoghi la chiusura non interroga l'utente per la sola interazione con il corpo — i comandi del corpo hanno già avuto effetto — ma solo se il dialogo si dichiara `dirty`.
+**Dialoghi senza conferma.** Dove il piede non invia nulla, perché il dialogo mostra informazioni o applica ogni azione nel corpo, resta un solo pulsante pieno: la chiusura, nominata dall'etichetta della rinuncia. Due pulsanti con lo stesso testo non sono una scelta, e il pulsante di conferma prometterebbe un salvataggio che non esiste. In questi dialoghi la chiusura non interroga l'utente per la sola interazione con il corpo — i comandi del corpo hanno già avuto effetto — ma solo se il dialogo si dichiara `dirty`. Un dialogo senza conferma che ha nel corpo campi con un proprio salvataggio, come il suono della parte in «Versioni e suono», si dichiara `dirty` finché quei campi differiscono dai valori salvati, e chiede conferma anche prima delle azioni del corpo che lo chiudono.
+
+**Valori ereditati.** Un campo che, lasciato vuoto, eredita il valore da un'altra entità mostra quel valore come segnaposto, con l'origine: «+3 dallo strumento», «Come lo strumento: Clarinet». Il campo resta vuoto, quindi l'eredità continua; il segnaposto dice soltanto che cosa si sta usando.
 
 **Conferma.** L'etichetta nomina l'atto: «Salva movimento», «Aggiungi album», non «Salva» generico. Durante l'invio va in stato `[loading]` e resta disabilitata.
 
