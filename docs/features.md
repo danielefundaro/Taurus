@@ -11,6 +11,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | in-progress | BE, FE | [1](#event-preparation-evidenze) | [5](#event-preparation-evidenze) | non rilasciata | 2026-10-23 |
 | `external-calendar-feed` | [Feed calendario esterno in sola lettura](external-calendar-feed-spec.md) | feature | approved | in-progress | BE, FE | [4](#external-calendar-feed-evidenze) | [8](#external-calendar-feed-evidenze) | non rilasciata | 2026-10-23 |
 | `financial-management` | [Gestione economica, cassa e conti correnti](financial-management-spec.md) | feature | approved | in-progress | BE, FE | [2](#financial-management-evidenze) | [1](#financial-management-evidenze) | non rilasciata | 2026-10-23 |
+| `guided-tour` | [Guida introduttiva per ruolo](guided-tour-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-24 |
 | `inventory-electronic-signature` | [Firma elettronica del foglio di affidamento e della presa visione](inventory-electronic-signature-spec.md) | feature | approved | in-progress | BE, FE, Keycloak | [4](#inventory-electronic-signature-evidenze) | [35](#inventory-electronic-signature-evidenze) | non rilasciata | 2026-10-23 |
 | `inventory-loan-sheet` | [Foglio di consegna e affidamento in comodato](inventory-loan-sheet-spec.md) | feature | approved | in-progress | BE, FE | [3](#inventory-loan-sheet-evidenze) | [13](#inventory-loan-sheet-evidenze) | non rilasciata | 2026-10-23 |
 | `inventory-management` | [Gestione inventario tenant](inventory-management-spec.md) | feature | approved | implemented | BE, FE | [1](#inventory-management-evidenze) | [1](#inventory-management-evidenze) | non rilasciata | 2026-10-23 |
@@ -89,6 +90,14 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: [`taurus-be/src/main/resources/config/liquibase/changelog/20260901000002_add_finance.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20260901000002_add_finance.xml), [`taurus-be/src/main/resources/config/liquibase/changelog/20261022000000_financial_initial_balance.xml`](../taurus-be/src/main/resources/config/liquibase/changelog/20261022000000_financial_initial_balance.xml)
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java)
 - Note: La migration è verificata dal plugin Liquibase; i test di servizio coprono il contratto economico principale, inclusi riattivazione ed eliminazione dei conti. Il 2026-10-22 il saldo iniziale di un conto è marcato con initial_balance: il riporto annuale non lo modifica ed entra nel saldo d'apertura di estratto conto e rendiconto annuale. Restano i requisiti aperti elencati nella specifica.
+
+<a id="guided-tour-evidenze"></a>
+### Guida introduttiva per ruolo
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Bozza del 2026-10-24: guida al primo ingresso per persona e ruolo, con stato globale nello schema public, avvio automatico disattivabile e riattivabile dal profilo e pulsante di aiuto sempre disponibile. Punti aperti elencati nella specifica; implementazione non pianificata.
 
 <a id="inventory-electronic-signature-evidenze"></a>
 ### Firma elettronica del foglio di affidamento e della presa visione

@@ -178,6 +178,29 @@
       "notes": "La migration è verificata dal plugin Liquibase; i test di servizio coprono il contratto economico principale, inclusi riattivazione ed eliminazione dei conti. Il 2026-10-22 il saldo iniziale di un conto è marcato con initial_balance: il riporto annuale non lo modifica ed entra nel saldo d'apertura di estratto conto e rendiconto annuale. Restano i requisiti aperti elencati nella specifica."
     },
     {
+      "id": "guided-tour",
+      "title": "Guida introduttiva per ruolo",
+      "kind": "feature",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/guided-tour-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/support-requests-spec.md",
+        "docs/taurus-layout-standard.md",
+        "docs/tenant-feature-flags-spec.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-10-24",
+      "notes": "Bozza del 2026-10-24: guida al primo ingresso per persona e ruolo, con stato globale nello schema public, avvio automatico disattivabile e riattivabile dal profilo e pulsante di aiuto sempre disponibile. Punti aperti elencati nella specifica; implementazione non pianificata."
+    },
+    {
       "id": "inventory-electronic-signature",
       "title": "Firma elettronica del foglio di affidamento e della presa visione",
       "kind": "feature",
