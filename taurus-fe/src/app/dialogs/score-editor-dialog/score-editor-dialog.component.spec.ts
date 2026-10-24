@@ -82,6 +82,23 @@ describe('ScoreEditorDialogComponent', () => {
         expect(renderer.render.calls.mostRecent().args[0].split('<step>F</step>').length - 1).toBe(1);
     });
 
+    it('goes back to the track from the top left button, asking first when there are unsaved corrections', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+        const back = (): void => fixture.nativeElement.querySelector('.score-editor__header > p-button:first-child button').click();
+
+        back();
+        expect(dialogRef.close).toHaveBeenCalledTimes(1);
+        expect(confirmService.confirmDiscard).not.toHaveBeenCalled();
+
+        (fixture.componentInstance as unknown as { move(steps: number): void }).move(1);
+        back();
+        expect(confirmService.confirmDiscard).toHaveBeenCalled();
+        expect(dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
     it('saves a correction with the origin of the measures', async () => {
         fixture.detectChanges();
         await fixture.whenStable();
