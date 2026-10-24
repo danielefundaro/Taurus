@@ -49,6 +49,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.printerService.dismissError();
         this.activatedRouteService.params.pipe(first()).subscribe((params) => {
             this.loadElement(params['id']);
         });
@@ -94,6 +95,15 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected preview(): void {
         this.printerService.preview(this.album, this.selectedTracks);
+    }
+
+    /** Il caricamento delle tracce dell'album non è riuscito: l'avviso resta finché il comando non va a buon fine. */
+    protected get previewError(): boolean {
+        return this.printerService.previewError;
+    }
+
+    protected retryPreview(): void {
+        this.printerService.retry();
     }
 
     protected filterStates(event: AutoCompleteCompleteEvent) {

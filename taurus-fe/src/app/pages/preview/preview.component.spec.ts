@@ -6,7 +6,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SheetsMusic } from '../../module';
-import { MediaService, PrinterService } from '../../service';
+import { MediaService, PrinterService, ToastService } from '../../service';
 import { PreviewComponent } from './preview.component';
 
 const TRANSPARENT_PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -25,10 +25,11 @@ describe('PreviewComponent', () => {
         component = new PreviewComponent(
             { scores: [], previewTitle: 'Titolo', previewSource: 'Traccia', clear: () => undefined } as unknown as PrinterService,
             { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
-            { navigate: () => Promise.resolve(true) } as unknown as Router,
+            { navigate: () => Promise.resolve(true), getCurrentNavigation: () => null, lastSuccessfulNavigation: null } as unknown as Router,
             { back: () => undefined } as Location,
             { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
-            { markForCheck: () => undefined } as ChangeDetectorRef
+            { markForCheck: () => undefined } as ChangeDetectorRef,
+            { warn: () => undefined } as unknown as ToastService
         );
     });
 
@@ -51,13 +52,63 @@ describe('PreviewComponent', () => {
             { navigate: () => Promise.resolve(true) } as unknown as Router,
             { back: () => undefined } as Location,
             { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
-            { markForCheck: () => undefined } as ChangeDetectorRef
+            { markForCheck: () => undefined } as ChangeDetectorRef,
+            { warn: () => undefined } as unknown as ToastService
         );
         ordered.ngOnInit();
 
         const state = ordered as unknown as { instrumentKeys: string[]; instruments: { [key: string]: string } };
         expect(state.instrumentKeys.map((key) => state.instruments[key])).toEqual(['Ottavino', 'Flauto', 'Senza strumento', 'Clarinetto']);
         ordered.ngOnDestroy();
+    });
+
+    it('warns and returns to the home when the preview is opened without state', () => {
+        const navigate = jasmine.createSpy('navigate').and.returnValue(Promise.resolve(true));
+        const back = jasmine.createSpy('back');
+        const warn = jasmine.createSpy('warn');
+        const orphan = new PreviewComponent(
+            { scores: [], previewTitle: 'Spartiti selezionati', previewSource: 'Traccia', clear: () => undefined } as unknown as PrinterService,
+            { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
+            { navigate, getCurrentNavigation: () => null, lastSuccessfulNavigation: null } as unknown as Router,
+            { back } as unknown as Location,
+            { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
+            { markForCheck: () => undefined } as ChangeDetectorRef,
+            { warn } as unknown as ToastService
+        );
+
+        orphan.ngOnInit();
+
+        expect(warn).toHaveBeenCalledWith('Anteprima non disponibile', jasmine.any(String));
+        expect(navigate).toHaveBeenCalledWith(['/']);
+        expect(back).not.toHaveBeenCalled();
+        orphan.ngOnDestroy();
+    });
+
+    it('warns and goes back to the source when it has no pages', () => {
+        const navigate = jasmine.createSpy('navigate').and.returnValue(Promise.resolve(true));
+        const back = jasmine.createSpy('back');
+        const warn = jasmine.createSpy('warn');
+        const withoutPages = new PreviewComponent(
+            {
+                scores: [{ instruments: [{ index: 7, name: 'Flauto' }], media: [] }],
+                previewTitle: 'Marcia sinfonica',
+                previewSource: 'Traccia',
+                clear: () => undefined
+            } as unknown as PrinterService,
+            { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
+            { navigate, getCurrentNavigation: () => ({ previousNavigation: {} }), lastSuccessfulNavigation: null } as unknown as Router,
+            { back } as unknown as Location,
+            { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
+            { markForCheck: () => undefined } as ChangeDetectorRef,
+            { warn } as unknown as ToastService
+        );
+
+        withoutPages.ngOnInit();
+
+        expect(warn).toHaveBeenCalledWith('Nessuna pagina da mostrare', jasmine.any(String));
+        expect(back).toHaveBeenCalled();
+        expect(navigate).not.toHaveBeenCalled();
+        withoutPages.ngOnDestroy();
     });
 
     it('groups consecutive pages into two-up print sheets', () => {
@@ -145,7 +196,8 @@ describe('PreviewComponent template', () => {
                 provideNoopAnimations(),
                 provideRouter([]),
                 { provide: Location, useValue: { back: () => undefined } },
-                { provide: PrinterService, useValue: { scores, previewTitle: 'Marcia sinfonica', previewSource: 'Traccia', clear: () => undefined } }
+                { provide: PrinterService, useValue: { scores, previewTitle: 'Marcia sinfonica', previewSource: 'Traccia', clear: () => undefined } },
+                { provide: ToastService, useValue: { warn: () => undefined } }
             ]
         })
             .overrideComponent(PreviewComponent, {

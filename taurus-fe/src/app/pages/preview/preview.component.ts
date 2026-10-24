@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { CheckboxChangeEvent } from 'primeng/checkbox';
 import { Subscription } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { MediaService, PrinterService } from '../../service';
+import { MediaService, PrinterService, ToastService } from '../../service';
 
 type PrintSheetOrientation = 'portrait' | 'landscape';
 
@@ -71,7 +71,8 @@ export class PreviewComponent implements OnInit, OnDestroy {
         private readonly router: Router,
         private readonly location: Location,
         private readonly sanitizer: DomSanitizer,
-        private readonly changeDetector: ChangeDetectorRef
+        private readonly changeDetector: ChangeDetectorRef,
+        private readonly toastService: ToastService
     ) {
         this.mediaStreams = [];
         this.instruments = {};
@@ -103,7 +104,7 @@ export class PreviewComponent implements OnInit, OnDestroy {
         this.selectedInstruments = this.getInstrumentIndices(true);
 
         if (this.mediaStreams.length === 0) {
-            this.router.navigate(['/']);
+            this.leaveWithoutPages();
             return;
         }
 
@@ -289,6 +290,32 @@ export class PreviewComponent implements OnInit, OnDestroy {
         if (this.mediaStreams.length) {
             this.currentPage = Math.min(this.mediaStreams.length, Math.max(1, this.presentationIndex + 1));
         }
+    }
+
+    /**
+     * Senza pagine la route non ha nulla da mostrare: l'utente viene avvisato della causa e riportato
+     * alla superficie da cui è arrivato, invece di trovarsi su una pagina vuota o alla home senza spiegazione.
+     */
+    private leaveWithoutPages(): void {
+        if (this.printerService.scores.length === 0) {
+            this.toastService.warn('Anteprima non disponibile', 'L’anteprima non conserva i dati dopo un ricaricamento: ripeti il comando dalla traccia o dall’album.');
+        } else {
+            this.toastService.warn('Nessuna pagina da mostrare', 'La sorgente selezionata non contiene pagine da consultare o stampare.');
+        }
+
+        this.returnToPreviousSurface();
+    }
+
+    /** Un accesso diretto non ha una superficie precedente nell'applicazione: in quel caso l'uscita è la home. */
+    private returnToPreviousSurface(): void {
+        const navigation = this.router.getCurrentNavigation() ?? this.router.lastSuccessfulNavigation;
+
+        if (navigation?.previousNavigation) {
+            this.location.back();
+            return;
+        }
+
+        this.router.navigate(['/']);
     }
 
     private isDesktopViewport(): boolean {
