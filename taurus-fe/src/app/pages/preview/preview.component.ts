@@ -37,6 +37,8 @@ const DESKTOP_VIEWPORT = '(min-width: 961px)';
 export class PreviewComponent implements OnInit, OnDestroy {
     protected mediaStreams: string[];
     protected instruments: { [key: string]: string };
+    /** Chiavi degli strumenti nell'ordine delle parti della traccia, cioè dei loro primi spartiti. */
+    protected instrumentKeys: string[] = [];
     protected selectedInstruments: { [key: string]: boolean };
     protected selectAll: boolean;
     protected displayGalleria: boolean = false;
@@ -92,12 +94,10 @@ export class PreviewComponent implements OnInit, OnDestroy {
             });
 
             if (!score.instruments?.length) {
-                this.instruments['null'] = 'Senza strumento';
+                this.addInstrument('null', 'Senza strumento');
             }
 
-            score.instruments?.forEach((instrument) => {
-                this.instruments[instrument.index] = instrument.name!;
-            });
+            score.instruments?.forEach((instrument) => this.addInstrument(String(instrument.index), instrument.name!));
         });
 
         this.selectedInstruments = this.getInstrumentIndices(true);
@@ -332,6 +332,11 @@ export class PreviewComponent implements OnInit, OnDestroy {
                 }
             })
         );
+    }
+
+    private addInstrument(key: string, name: string): void {
+        if (!(key in this.instruments)) this.instrumentKeys.push(key);
+        this.instruments[key] = name;
     }
 
     private getInstrumentIndices(value: boolean): { [key: string]: boolean } {

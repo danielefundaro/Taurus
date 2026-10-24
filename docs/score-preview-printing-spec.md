@@ -122,6 +122,7 @@ La spalla mostra:
 - selezione globale «Seleziona tutto»;
 - una riga per strumento con nome e numero di pagine;
 - voce «Senza strumento» per le parti prive di associazioni;
+- righe nell'ordine delle parti della traccia (nell'album, delle tracce e poi delle loro parti): ogni strumento compare alla posizione della prima parte che lo contiene e «Senza strumento» alla posizione della prima parte senza strumenti;
 - nota persistente che chiarisce l'aggiornamento automatico e l'effetto sulla stampa.
 
 Ogni strumento compare una sola volta. Il numero mostrato sulla sua riga è la somma delle pagine delle parti associate. Se una parte è associata a più strumenti selezionati, le sue pagine vengono incluse una sola volta.
@@ -303,7 +304,7 @@ npm run build
 1. L'anteprima si apre da traccia, album e selezione di tracce mantenendo titolo, contesto e ordine.
 2. Tutte le parti sono incluse al primo ingresso e il conteggio usa singolare e plurale corretti.
 3. Il filtro per strumento aggiorna immediatamente anteprima, presentazione e stampa senza duplicare parti multi-strumento.
-4. Le parti senza strumenti sono controllabili tramite «Senza strumento».
+4. Le parti senza strumenti sono controllabili tramite «Senza strumento» e le righe del filtro seguono l'ordine delle parti della traccia, non l'identificativo degli strumenti.
 5. «Seleziona tutto» riflette sempre lo stato reale delle righe.
 6. Da oltre 960 px la spalla parte aperta; fino a 960 px parte chiusa e si comporta come overlay.
 7. «Filtri», X, maschera, «Apri filtri» ed `Escape` producono sempre l'esito dichiarato.

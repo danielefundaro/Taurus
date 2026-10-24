@@ -34,6 +34,32 @@ describe('PreviewComponent', () => {
 
     afterEach(() => component.ngOnDestroy());
 
+    it('lists the instruments of the filter in the order of the track parts', () => {
+        const ordered = new PreviewComponent(
+            {
+                scores: [
+                    { instruments: [{ index: 30, name: 'Ottavino' }], media: [{ index: 1 }] },
+                    { instruments: [{ index: 4, name: 'Flauto' }], media: [{ index: 2 }] },
+                    { instruments: [], media: [{ index: 3 }] },
+                    { instruments: [{ index: 12, name: 'Clarinetto' }, { index: 4, name: 'Flauto' }], media: [{ index: 4 }] }
+                ],
+                previewTitle: 'Titolo',
+                previewSource: 'Traccia',
+                clear: () => undefined
+            } as unknown as PrinterService,
+            { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
+            { navigate: () => Promise.resolve(true) } as unknown as Router,
+            { back: () => undefined } as Location,
+            { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
+            { markForCheck: () => undefined } as ChangeDetectorRef
+        );
+        ordered.ngOnInit();
+
+        const state = ordered as unknown as { instrumentKeys: string[]; instruments: { [key: string]: string } };
+        expect(state.instrumentKeys.map((key) => state.instruments[key])).toEqual(['Ottavino', 'Flauto', 'Senza strumento', 'Clarinetto']);
+        ordered.ngOnDestroy();
+    });
+
     it('groups consecutive pages into two-up print sheets', () => {
         component['mediaStreams'] = ['/media/1', '/media/2', '/media/3'];
         component['printPagesPerSheet'] = 2;
