@@ -63,7 +63,7 @@ La route è disponibile a super amministratori, amministratori, archivisti, uten
 - l'anteprima non salva né trasmette una nuova copia dei file;
 - titoli, nomi degli strumenti e identificativi dei media non vengono scritti in log o telemetria applicativa.
 
-L'apertura diretta di `/preview` non ricostruisce dati assenti dalla sessione e non effettua ricerche implicite. Se il servizio di stampa non contiene pagine, `PreviewComponent` reindirizza alla home (`/`) senza messaggio, invece di mostrare una pagina vuota inutilizzabile.
+L'apertura diretta di `/preview` non ricostruisce dati assenti dalla sessione e non effettua ricerche implicite. Se il servizio di stampa non contiene pagine, `PreviewComponent` avvisa l'utente e lo riporta alla superficie precedente, invece di mostrare una pagina vuota inutilizzabile. L'avviso distingue le due cause: lo stato assente dopo un accesso diretto o un ricaricamento e la sorgente priva di pagine.
 
 ## 4. Origini e preparazione dei dati
 
@@ -75,11 +75,11 @@ L'azione di anteprima riceve la traccia già caricata, conserva l'ordine delle p
 
 L'azione di anteprima usa le tracce selezionate quando la selezione non è vuota; altrimenti usa tutte le tracce dell'album. Le tracce vengono risolte prima della navigazione, mantenendo l'ordine dell'album o della selezione. Il titolo deriva dal nome dell'album e l'etichetta di contesto è «Album».
 
-Un errore durante il caricamento di una o più tracce impedisce l'apertura di un'anteprima parziale silenziosa. `PrinterService` libera lo stato e mostra il riepilogo d'errore «Anteprima non disponibile»; la pagina sorgente conserva la selezione. Non esiste un'azione «Riprova»: l'utente ripete il comando di anteprima.
+Un errore durante il caricamento di una o più tracce impedisce l'apertura di un'anteprima parziale silenziosa. `PrinterService` libera lo stato e mostra il riepilogo d'errore «Anteprima non disponibile»; la pagina sorgente — elenco o dettaglio dell'album — conserva la selezione e presenta un avviso con l'azione «Riprova», che ripete il comando con la stessa sorgente e la stessa selezione. L'avviso resta finché l'anteprima non si apre; aprendo un'altra pagina sorgente l'avviso non viene riproposto.
 
 ### Durata dello stato
 
-I dati preparati vivono nella sessione applicativa necessaria alla navigazione verso `/preview`. Uscendo dall'anteprima, lo stato viene liberato. Un refresh o un collegamento diretto non ricostruisce la selezione: la pagina torna alla home, senza errori JavaScript.
+I dati preparati vivono nella sessione applicativa necessaria alla navigazione verso `/preview`. Uscendo dall'anteprima, lo stato viene liberato. Un refresh o un collegamento diretto non ricostruisce la selezione: l'anteprima spiega che i dati non sopravvivono al ricaricamento e torna alla home, senza errori JavaScript.
 
 Non sono richiesti nuovi modelli persistenti, endpoint o migrazioni Liquibase.
 
@@ -160,8 +160,9 @@ Dopo ogni filtro:
 | Nessuna parte selezionata | Icona, titolo, causa esplicita e testo di supporto. | «Apri filtri» quando la spalla è chiusa. |
 | Media in caricamento | Segnaposto con proporzione stabile, senza salto di layout. | Nessuna. |
 | Media non disponibile | Segnaposto con numero pagina e messaggio recuperabile. | «Riprova». |
-| Sorgente senza pagine | `/preview` reindirizza alla home senza messaggio. | Nessuna. |
-| Caricamento album fallito | Nessuna anteprima parziale; riepilogo d'errore «Anteprima non disponibile». | Ripetere il comando di anteprima dalla pagina sorgente. |
+| Sorgente senza pagine | `/preview` avvisa della causa e riporta alla superficie precedente. | Nessuna. |
+| Stato assente | `/preview` avvisa che i dati non sopravvivono al ricaricamento e torna alla home. | Ripetere il comando dalla traccia o dall'album. |
+| Caricamento album fallito | Nessuna anteprima parziale; riepilogo d'errore «Anteprima non disponibile» e avviso persistente sulla pagina sorgente. | «Riprova» sull'avviso, con la stessa sorgente e la stessa selezione. |
 
 ## 7. Navigazione, zoom e presentazione
 
@@ -245,8 +246,8 @@ Il ridimensionamento non deve troncare il canvas, rendere irraggiungibili i coma
 
 | Elemento | Responsabilità |
 | --- | --- |
-| `PrinterService` | Prepara titolo, sorgente e parti; risolve le tracce dell'album; naviga verso `/preview`; libera lo stato all'uscita; su errore non apre un'anteprima parziale. |
-| `PreviewComponent` | Deriva strumenti e media, governa filtri, focus, pagina, zoom, presentazione e stampa; tiene lo stato di caricamento ed errore di ogni pagina. |
+| `PrinterService` | Prepara titolo, sorgente e parti; risolve le tracce dell'album; naviga verso `/preview`; libera lo stato all'uscita; su errore non apre un'anteprima parziale, espone lo stato d'errore alla pagina sorgente e ripete il comando su «Riprova». |
+| `PreviewComponent` | Deriva strumenti e media, governa filtri, focus, pagina, zoom, presentazione e stampa; tiene lo stato di caricamento ed errore di ogni pagina; senza pagine avvisa della causa e riporta alla superficie precedente. |
 | `MediaService` | Costruisce gli stream autenticati e ne risolve il contenuto; il componente lo usa direttamente per distinguere caricamento, esito e nuovo tentativo di una singola pagina. |
 | `MediaPlaceholderComponent` | Segnaposto condiviso con proporzione stabile per pagina in caricamento e pagina non disponibile, con azione «Riprova». |
 | PrimeNG Checkbox | Selezione binaria globale e per strumento. |
@@ -283,14 +284,14 @@ La funzionalità riusa gli stream media esistenti e le letture delle tracce nece
 
 | Livello | Copertura minima |
 | --- | --- |
-| Unità | Aggregazione traccia/album, ordine, deduplicazione delle parti multi-strumento, «Senza strumento», selezione globale, raggruppamento 1-up/2-up, ultimo slot vuoto, orientamento dell'anteprima, limiti pagina e zoom, pulizia dello stato. |
+| Unità | Aggregazione traccia/album, ordine, deduplicazione delle parti multi-strumento, «Senza strumento», selezione globale, raggruppamento 1-up/2-up, ultimo slot vuoto, orientamento dell'anteprima, limiti pagina e zoom, pulizia dello stato, ripetizione del comando dopo un errore dell'album, avviso e uscita quando non ci sono pagine. |
 | Componente | Apertura e chiusura da tutti i comandi, classi responsive, maschera, stato vuoto, anteprima del foglio, conteggio fogli, attributi ARIA, focus, `Escape`, azioni disabilitate e sincronizzazione della presentazione. |
 | Integrazione frontend | Stream autenticati, errore di una traccia album, errore media e ritorno sicuro dopo refresh diretto. |
 | End to end | Ingressi da traccia e album, filtro, stampa intercettata, presentazione, tastiera, viewport desktop/tablet/mobile e ruoli consentiti. |
 | Visuale | Tema chiaro/scuro, pagina verticale/orizzontale, nomi lunghi, 1 e molte pagine, spalla aperta/chiusa e anteprima senza selezioni. |
 | Stampa | Ordine, numero di fogli, assenza di UI, nessun foglio aggiuntivo, ultimo slot dispari vuoto, adattamento alla carta scelta nel browser e indipendenza dallo zoom. |
 
-I livelli di unità e componente sono automatizzati in `preview.component.spec.ts` ed eseguiti dalla verifica di modulo. I livelli end to end, visuale e di stampa restano collaudi manuali: il modulo `taurus-fe` non ospita un runner end to end e la stampa reale dipende dal dialogo del browser.
+I livelli di unità e componente sono automatizzati in `preview.component.spec.ts` e `printer.service.spec.ts` ed eseguiti dalla verifica di modulo. I livelli end to end, visuale e di stampa restano collaudi manuali: il modulo `taurus-fe` non ospita un runner end to end e la stampa reale dipende dal dialogo del browser.
 
 La verifica minima del modulo esegue:
 
@@ -320,8 +321,8 @@ npm run build
 17. La presentazione contiene le sole pagine incluse, parte dalla pagina corrente e mantiene la sincronizzazione alla chiusura.
 18. La stampa contiene tutti i media una sola volta, senza UI né fogli vuoti aggiuntivi.
 19. Un media in caricamento o errore mantiene stabile il layout e offre un esito comprensibile.
-20. Un errore durante la preparazione di un album non apre silenziosamente un documento parziale.
-21. Un refresh o accesso diretto senza stato torna in sicurezza e non genera errori non gestiti.
+20. Un errore durante la preparazione di un album non apre silenziosamente un documento parziale e la pagina sorgente offre «Riprova» con la stessa selezione.
+21. Un refresh o accesso diretto senza stato avvisa della causa, torna in sicurezza alla superficie precedente e non genera errori non gestiti.
 22. Tutti i ruoli ammessi vedono soltanto media già autorizzati e gli stream rispettano l'isolamento tenant.
 23. Il flusso completo è utilizzabile con tastiera e i pulsanti a sola icona hanno area attiva minima di 44 × 44 px.
 24. Test di componente, integrazione e viewport coprono le regressioni della spalla filtri e dell'impaginazione.
@@ -334,12 +335,10 @@ npm run build
 | Stato iniziale desktop/mobile | Aperta su desktop, chiusa su tablet e mobile. |
 | Persistenza filtri | Limitata alla singola visita; nessun salvataggio utente. |
 | Presentazione | Apertura sulla pagina corrente e sincronizzazione bidirezionale. |
-| Refresh diretto | Ritorno alla home, senza ricostruzione implicita. |
+| Refresh diretto | Avviso all'utente e ritorno alla home, senza ricostruzione implicita. |
 | Stampa | Fogli 1-up/2-up composti dal frontend e affidati al browser; formato e orientamento scelti soltanto nel dialogo di sistema; nessuna generazione PDF server-side. |
 
 ## Requisiti aperti
 
-- Azione «Riprova» sulla pagina sorgente dopo un errore di caricamento delle tracce dell'album (4. Album; 6. Stati visuali).
-- Messaggio all'utente quando la sorgente non ha pagine o `/preview` è aperta senza stato, con ritorno alla superficie precedente (3. Utenti; 6. Stati visuali; criterio 21).
 - Verifica della stampa reale da Chrome ed Edge con almeno un documento verticale e uno orizzontale (13. Strategia di test, Stampa).
 - Collaudo da tastiera, tema scuro e viewport fino a 320 px (13. Strategia di test, End to end e Visuale).

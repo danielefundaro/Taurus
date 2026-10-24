@@ -40,6 +40,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.printerService.dismissError();
         this.initializeListState('albums');
         this.sortOptions = [
             { label: 'Nome A-Z', value: 'name' },
@@ -101,6 +102,15 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
 
     protected preview(album: Albums): void {
         this.printerService.preview(album);
+    }
+
+    /** Il caricamento delle tracce dell'album non è riuscito: l'avviso resta finché il comando non va a buon fine. */
+    protected get previewError(): boolean {
+        return this.printerService.previewError;
+    }
+
+    protected retryPreview(): void {
+        this.printerService.retry();
     }
 
     protected isSelected(item: Albums): boolean {

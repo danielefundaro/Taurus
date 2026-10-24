@@ -12,6 +12,11 @@
         </div>
     </app-page-header>
 
+    @if (previewError) {
+    <app-inline-alert severity="error" heading="Anteprima non disponibile"
+        detail="Non è stato possibile caricare le tracce dell’album. La selezione è rimasta invariata: riprova per aprire l’anteprima completa."
+        actionLabel="Riprova" (action)="retryPreview()" />
+    }
     <app-detail-section heading="Dati album"
         description="Nome, data e stato di pubblicazione. Si salva con «Salva album» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

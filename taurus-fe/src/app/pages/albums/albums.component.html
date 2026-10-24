@@ -10,6 +10,11 @@
 <app-selection-bar *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
     [count]="selectedAlbums.length" [allSelected]="isAllSelected(albums)" (toggleAll)="toggleSelectAll(albums)"
     (clear)="selectedAlbums = []" (delete)="deleteSelectedElements()" />
+@if (previewError) {
+<app-inline-alert severity="error" heading="Anteprima non disponibile"
+    detail="Non è stato possibile caricare le tracce dell’album. Riprova per aprire l’anteprima completa."
+    actionLabel="Riprova" (action)="retryPreview()" />
+}
 
 <div class="card !p-0 overflow-hidden">
     <p-dataview [value]="albums" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
