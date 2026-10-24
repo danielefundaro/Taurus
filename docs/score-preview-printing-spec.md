@@ -337,8 +337,3 @@ npm run build
 | Presentazione | Apertura sulla pagina corrente e sincronizzazione bidirezionale. |
 | Refresh diretto | Avviso all'utente e ritorno alla home, senza ricostruzione implicita. |
 | Stampa | Fogli 1-up/2-up composti dal frontend e affidati al browser; formato e orientamento scelti soltanto nel dialogo di sistema; nessuna generazione PDF server-side. |
-
-## Requisiti aperti
-
-- Verifica della stampa reale da Chrome ed Edge con almeno un documento verticale e uno orizzontale (13. Strategia di test, Stampa).
-- Collaudo da tastiera, tema scuro e viewport fino a 320 px (13. Strategia di test, End to end e Visuale).
