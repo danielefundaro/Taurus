@@ -39,6 +39,8 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 
 Due interventi circoscritti, un difetto e una copertura mancante. Va chiuso per primo anche perché la fase 5 di `notification-preferences` rimuove la lettura legacy: correggere prima evita di propagare l'anticipo sbagliato ai job già pianificati.
 
+> Chiuso il 2026-10-25: la voce è passata a `implemented`.
+
 ## 2. `tenant-feature-flags`
 
 [Funzionalità configurabili per tenant](../tenant-feature-flags-spec.md) — difficoltà bassa.

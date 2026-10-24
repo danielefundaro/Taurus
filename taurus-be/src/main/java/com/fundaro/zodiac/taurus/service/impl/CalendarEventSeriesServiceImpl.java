@@ -489,7 +489,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         event.getAvailabilities().stream()
             .filter(value -> value.getAvailability() == CalendarEventAvailability.Availability.AVAILABLE)
             .forEach(value -> availableUsers.put(value.getUser().getKeycloakId(), value.getReminderMinutes()));
-        reminderProducer.rescheduleForAvailableUsers(eventMapper.toDto(event), availableUsers, token);
+        reminderProducer.rescheduleForAvailableUsers(eventMapper.toDto(event), availableUsers);
     }
 
     private void initialize(CommonFieldsOpenSearch entity, String actor) {

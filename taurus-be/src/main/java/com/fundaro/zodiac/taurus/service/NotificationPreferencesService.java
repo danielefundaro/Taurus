@@ -124,7 +124,7 @@ public class NotificationPreferencesService {
                 .findFirst()
                 .map(value -> value.getReminderMinutes())
                 .orElse(null);
-            eventReminderProducer.scheduleIfNeeded(calendarEventsMapper.toDto(event), subject, personalMinutes, authentication);
+            eventReminderProducer.scheduleIfNeeded(calendarEventsMapper.toDto(event), subject, personalMinutes);
         });
     }
 
