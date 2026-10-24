@@ -560,7 +560,7 @@ Durante il caricamento iniziale, gli elementi soggetti a feature devono rimanere
 
 Non è necessario usare `localStorage`: una nuova scheda può leggere nuovamente la configurazione, mentre una copia persistente rischierebbe di mostrare dati obsoleti o appartenenti a un tenant selezionato in precedenza.
 
-### Nome dell'organizzazione nella topbar
+### Organizzazione e ruolo nella topbar
 
 La topbar mostra, accanto al logo, il nome del tenant della sessione (`tenantName` della risposta di `GET /api/tenant-features/current`). Così chi appartiene a più organizzazioni vede in ogni pagina quella scelta all'accesso.
 
@@ -572,6 +572,15 @@ Regole:
 - nella modalità bootstrap del primo accesso, quando il tenant non ha ancora uno schema attivo ([Schema PostgreSQL per tenant](postgres-tenant-schemas.md)), al posto del nome compare «Primo accesso»;
 - se il nome è vuoto o la lettura non è riuscita, la topbar non mostra nulla al suo posto;
 - un nome lungo è troncato con i puntini su una sola riga e resta leggibile per intero nel tooltip nativo (`title`); sotto i 576 pixel il testo si riduce.
+
+Il ruolo della sessione segue il nome, nella forma «Orchestra A · Tesoriere», solo quando l'utente l'ha scelto tra più ruoli del tenant selezionato:
+
+- il selettore Keycloak registra nella sessione utente se il tenant scelto offriva più ruoli (nota `selected_role_choice`); `tenant-role-mapper` aggiunge allora al token il claim `role_choice` con valore `true`, e lo omette negli altri casi;
+- chi ha un solo ruolo nel tenant scelto non vede il ruolo, anche se ne ha altri in tenant diversi;
+- l'etichetta è quella italiana di `RoleLabelsMap`; un ruolo senza etichetta non è mostrato;
+- in modalità bootstrap compare solo «Primo accesso», senza ruolo;
+- il nome dell'organizzazione cede spazio al ruolo, che resta sempre intero; il tooltip riporta nome e ruolo insieme;
+- le sessioni aperte prima dell'aggiornamento del provider non hanno il claim e non mostrano il ruolo fino al nuovo accesso.
 
 ## Route guard e componenti frontend
 

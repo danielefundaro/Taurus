@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 
 public class TenantRoleSelectorAuthenticator implements Authenticator {
 
+    public static final String ROLE_CHOICE_NOTE = "selected_role_choice";
+
     @Override
     public void authenticate(AuthenticationFlowContext context) {
         UserModel user = context.getUser();
@@ -44,7 +46,7 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
 
             if (roles.size() == 1) {
                 // Selezione automatica
-                setTenantAndRole(context, tenant, roles.get(0));
+                setTenantAndRole(context, tenant, roles.get(0), false);
                 context.success();
                 return;
             }
@@ -78,7 +80,7 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
 
         // Caso 2: Tenant selezionato con un solo ruolo -> selezione automatica del ruolo
         if (availableRoles.size() == 1) {
-            setTenantAndRole(context, selectedTenant, availableRoles.get(0));
+            setTenantAndRole(context, selectedTenant, availableRoles.get(0), false);
             context.success();
             return;
         }
@@ -94,8 +96,8 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
             return;
         }
 
-        // Tutto OK: salva tenant e ruolo
-        setTenantAndRole(context, selectedTenant, selectedRole);
+        // Tutto OK: salva tenant e ruolo, scelto tra piu' ruoli del tenant
+        setTenantAndRole(context, selectedTenant, selectedRole, true);
         context.success();
     }
 
@@ -137,9 +139,11 @@ public class TenantRoleSelectorAuthenticator implements Authenticator {
             ));
     }
 
-    private void setTenantAndRole(AuthenticationFlowContext context, String tenant, String role) {
+    private void setTenantAndRole(AuthenticationFlowContext context, String tenant, String role, boolean roleChoice) {
         context.getAuthenticationSession().setUserSessionNote("selected_tenant", tenant);
         context.getAuthenticationSession().setUserSessionNote("selected_role", role);
+        // Il tenant scelto offre piu' ruoli: la topbar mostra quello della sessione
+        context.getAuthenticationSession().setUserSessionNote(ROLE_CHOICE_NOTE, Boolean.toString(roleChoice));
 
         // IMPORTANTE: Salva anche come attributo della AuthenticationSession per debug
         context.getAuthenticationSession().setAuthNote("selected_tenant", tenant);
