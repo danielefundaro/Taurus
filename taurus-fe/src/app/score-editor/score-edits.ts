@@ -93,6 +93,10 @@ export interface MeasureInfo {
     tempo: number | null;
     /** Battute raggruppate dalla pausa che inizia qui; 1 se la battuta non apre una pausa di più battute. */
     multiRest: number;
+    /** La battuta non contiene né note né pause, come capita in alcune versioni riconosciute o salvate in passato. */
+    empty: boolean;
+    /** La battuta contiene almeno una nota, non solo pause. */
+    hasNotes: boolean;
 }
 
 const STATE_ATTRIBUTES = ['divisions', 'key', 'time', 'staves', 'part-symbol', 'instruments', 'clef', 'transpose'];
@@ -156,7 +160,9 @@ export function measureInfo(score: ScoreDocument, index: number): MeasureInfo {
         ending: endingNumbers(score)[index],
         marks: STRUCTURE_MARKS.map((mark) => mark.value).filter((mark) => markElements(measure, mark).length > 0),
         tempo: tempoOf(measure),
-        multiRest: multiRestCount(measure)
+        multiRest: multiRestCount(measure),
+        empty: !child(measure, 'note'),
+        hasNotes: children(measure, 'note').some((note) => !isRest(note))
     };
 }
 
@@ -331,8 +337,14 @@ export function deleteNote(score: ScoreDocument, id: string): string | null {
     const note = score.note(id);
     const event = score.eventOf(note);
     if (event.notes.length === 1 && tupletOf(note)) throw new EditError('La nota fa parte di un gruppo irregolare: togli prima il gruppo');
-    const next = adjacentNote(score, id, 1) ?? adjacentNote(score, id, -1);
     const measure = score.measureOf(note);
+    if (children(measure, 'note').length === 1) {
+        // Una battuta senza note né pause non si potrebbe più selezionare: l'ultima nota diventa una pausa di battuta.
+        if (isRest(note)) throw new EditError('La battuta deve contenere almeno una pausa: per toglierla usa Elimina nella scheda Battuta');
+        removeNote(score, note);
+        return fillEmptyMeasure(score, score.measureIndex(measure));
+    }
+    const next = adjacentNote(score, id, 1) ?? adjacentNote(score, id, -1);
     removeNote(score, note);
     respell(score, [score.measureIndex(measure)]);
     refreshMeasure(score, measure);
@@ -525,6 +537,35 @@ export function deleteMeasure(score: ScoreDocument, index: number): void {
     if (measures.length <= 1) throw new EditError('La parte deve avere almeno una battuta');
     removeMeasure(score, measures[index]);
     score.renumber();
+}
+
+/** Mette una pausa di battuta in una battuta senza note né pause; restituisce la pausa, da selezionare. */
+export function fillEmptyMeasure(score: ScoreDocument, index: number): string {
+    const measure = score.measure(index);
+    if (child(measure, 'note')) throw new EditError('La battuta contiene già delle note');
+    for (const item of children(measure)) if (['backup', 'forward'].includes(item.tagName)) item.remove();
+    fillWithRest(score, measure, score.stateAt(index));
+    return child(measure, 'note')!.getAttribute('id')!;
+}
+
+/**
+ * Aggiunge battute di pausa dopo la battuta, oppure dopo la pausa di più battute che la contiene, che resta intatta.
+ * Restituisce l'indice della prima battuta aggiunta.
+ */
+export function insertMeasures(score: ScoreDocument, index: number, count: number): number {
+    if (!Number.isInteger(count) || count < 1 || count > MAX_MULTI_REST) throw new EditError(`Il numero di battute va da 1 a ${MAX_MULTI_REST}`);
+    const measures = score.measures();
+    let anchor = index;
+    for (let start = index; start >= 0; start--) {
+        const group = multiRestCount(measures[start]);
+        if (group > 1 && start + group - 1 >= index) {
+            anchor = Math.min(start + group - 1, measures.length - 1);
+            break;
+        }
+    }
+    const first = insertMeasure(score, anchor, 'after');
+    for (let added = 1; added < count; added++) insertMeasure(score, first + added - 1, 'after');
+    return first;
 }
 
 /** La battuta diventa una pausa di più battute: le battute del gruppo diventano pause, aggiunte o tolte secondo il numero. */

@@ -87,6 +87,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     protected activeTool = 'note';
 
     protected selectedId: string | null = null;
+    /** Battuta selezionata quando non contiene note da selezionare. */
+    private emptyMeasureId: string | null = null;
     /** Ultima battuta dell'intervallo da ascoltare, scelta con Maiusc+clic. */
     protected rangeEnd: number | null = null;
     protected note: edits.NoteInfo | null = null;
@@ -97,7 +99,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     protected timeBeats = 4;
     protected timeBeatType = 4;
     protected tempo: number | null = null;
-    protected multiRest = 1;
+    /** Battute da aggiungere, o durata della pausa di più battute. */
+    protected measureCount = 1;
 
     protected pageIndex = 0;
     protected zoom = 100;
@@ -185,8 +188,14 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     protected get selectionLabel(): string {
+        if (this.measure?.empty) return `Battuta ${this.measure.number} · vuota`;
         if (!this.note || !this.measure) return 'Seleziona una nota sullo spartito';
         return `Battuta ${this.measure.number} · ${edits.noteLabel(this.note)}`;
+    }
+
+    protected get emptyMeasures(): { index: number; number: string }[] {
+        const measures = this.score?.measures() ?? [];
+        return this.checks.empty.map((index) => ({ index, number: measures[index]?.getAttribute('number') ?? String(index + 1) }));
     }
 
     protected get wrongMeasures(): { index: number; number: string }[] {
@@ -263,13 +272,17 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         }
         this.rangeEnd = null;
         // Le teste delle note sono piccole: un clic accanto a una nota sceglie la nota più vicina della battuta.
-        this.select(noteId ?? this.nearestNote(target, event.clientX, event.clientY) ?? edits.firstNoteOf(this.score, measureIndex));
+        const id = noteId ?? this.nearestNote(target, event.clientX, event.clientY) ?? edits.firstNoteOf(this.score, measureIndex);
+        if (id) this.select(id);
+        else this.selectEmptyMeasure(measureIndex);
     }
 
     protected selectMeasure(index: number): void {
         if (!this.score) return;
         this.rangeEnd = null;
-        this.select(edits.firstNoteOf(this.score, index));
+        const id = edits.firstNoteOf(this.score, index);
+        if (id) this.select(id);
+        else this.selectEmptyMeasure(index);
     }
 
     /** Seleziona la battuta indicata in una segnalazione. */
@@ -358,10 +371,39 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         });
     }
 
+    /** Aggiunge il numero di battute indicato dopo quella selezionata, ognuna con una pausa di battuta. */
+    protected addMeasures(): void {
+        this.measureChange((score, index) => edits.firstNoteOf(score, edits.insertMeasures(score, index, this.measureCount)));
+    }
+
+    /** Una battuta vuota riceve una pausa di battuta: da lì si inseriscono le note come nelle altre battute. */
+    protected fillMeasure(): void {
+        this.measureChange((score, index) => edits.fillEmptyMeasure(score, index));
+    }
+
+    /** La battuta selezionata diventa una pausa del numero di battute indicato; se contiene note, prima si chiede. */
     protected applyMultiRest(): void {
-        this.measureChange((score, index) => {
-            edits.setMultiRest(score, index, this.multiRest);
-            return edits.firstNoteOf(score, index);
+        const measure = this.measure;
+        if (!measure) {
+            this.measureChange(() => undefined);
+            return;
+        }
+        const count = this.measureCount;
+        const change = (): void =>
+            this.measureChange((score, index) => {
+                edits.setMultiRest(score, index, count);
+                return edits.firstNoteOf(score, index);
+            });
+        if (!measure.hasNotes) {
+            change();
+            return;
+        }
+        this.confirmService.confirmReversible({
+            title: 'Pausa di più battute',
+            consequence: `La battuta ${measure.number} diventa una pausa ${count === 1 ? 'di battuta' : `di ${count} battute`}: le sue note andranno perse. Potrai annullare l’operazione prima del salvataggio.`,
+            actionLabel: 'Trasforma in pausa',
+            key: 'score-editor-discard',
+            accept: change
         });
     }
 
@@ -497,7 +539,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
 
     private noteChange(change: (score: ScoreDocument, id: string) => string | null | void): void {
         if (!this.selectedId) {
-            this.message = 'Seleziona prima una nota sullo spartito';
+            this.message = this.measure?.empty ? 'La battuta è vuota: aggiungi una pausa per inserire le note' : 'Seleziona prima una nota sullo spartito';
             this.changeDetector.markForCheck();
             return;
         }
@@ -523,7 +565,10 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         try {
             const selected = change(this.score);
             this.history.record(before);
-            if (typeof selected === 'string') this.selectedId = selected;
+            if (typeof selected === 'string') {
+                this.selectedId = selected;
+                this.emptyMeasureId = null;
+            }
             this.message = null;
         } catch (error) {
             this.score = ScoreDocument.restore(before, this.score.prefix);
@@ -545,11 +590,12 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         const score = this.score!;
         this.dirty = score.snapshot() !== this.initialSnapshot;
         this.checks = score.checks();
-        if (this.selectedId && !score.find(this.selectedId)) {
-            // La nota selezionata non esiste più, per esempio dopo «Annulla»: si resta sulla stessa battuta.
-            const measures = score.measures().length;
-            const index = Math.min(this.measure?.index ?? 0, measures - 1);
-            this.selectedId = (index >= 0 ? edits.firstNoteOf(score, index) : null) ?? score.notes()[0]?.getAttribute('id') ?? null;
+        const selectionExists = this.selectedId ? !!score.find(this.selectedId) : !this.emptyMeasureId || !!score.find(this.emptyMeasureId);
+        if (!selectionExists) {
+            // La nota o la battuta selezionata non esiste più, per esempio dopo «Annulla»: si resta sulla stessa battuta.
+            const index = Math.min(this.measure?.index ?? 0, score.measures().length - 1);
+            this.selectedId = edits.firstNoteOf(score, index);
+            this.emptyMeasureId = this.selectedId ? null : (score.measure(index).getAttribute('id') ?? null);
         }
         if (this.rangeEnd !== null && this.rangeEnd >= score.measures().length) this.rangeEnd = null;
         this.refreshSelection();
@@ -571,6 +617,16 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
 
     private select(id: string | null): void {
         this.selectedId = id;
+        this.emptyMeasureId = null;
+        this.message = null;
+        this.refreshSelection();
+        this.decorate(true);
+        this.changeDetector.markForCheck();
+    }
+
+    private selectEmptyMeasure(index: number): void {
+        this.selectedId = null;
+        this.emptyMeasureId = this.score?.measure(index).getAttribute('id') ?? null;
         this.message = null;
         this.refreshSelection();
         this.decorate(true);
@@ -587,18 +643,20 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     private refreshSelection(): void {
-        if (!this.score || !this.selectedId || !this.score.find(this.selectedId)) {
+        const emptyMeasure = !this.selectedId && this.emptyMeasureId ? this.score?.find(this.emptyMeasureId) : null;
+        if (!this.score || (!emptyMeasure && (!this.selectedId || !this.score.find(this.selectedId)))) {
             this.note = null;
             this.measure = null;
             this.highlight = null;
             return;
         }
-        this.note = edits.noteInfo(this.score, this.selectedId);
-        this.measure = edits.measureInfo(this.score, this.note.measureIndex);
+        this.note = emptyMeasure ? null : edits.noteInfo(this.score, this.selectedId!);
+        this.measure = edits.measureInfo(this.score, emptyMeasure ? this.score.measureIndex(emptyMeasure) : this.note!.measureIndex);
         this.timeBeats = this.measure.beats;
         this.timeBeatType = this.measure.beatType;
         this.tempo = this.measure.tempo;
-        this.multiRest = this.measure.multiRest;
+        // Su una pausa di più battute il numero mostra la sua durata, da correggere; altrimenti resta l'ultimo scritto.
+        if (this.measure.multiRest > 1) this.measureCount = this.measure.multiRest;
         this.updatePage();
     }
 
