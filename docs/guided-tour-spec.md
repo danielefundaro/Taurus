@@ -27,7 +27,7 @@ Fatti del codice che condizionano la progettazione:
 | Menu, rotte e widget dipendono da ruolo e flag del tenant | `MenuComponent`, `app.routes.ts`, `tenantFeatureGuard` | ogni tappa dichiara ruoli e funzionalità richieste |
 | Non esiste un indicatore di primo accesso | nessuna colonna `first_login` o simile | lo stato della guida è un dato nuovo |
 | `localStorage` viene svuotato alla chiusura della finestra e le chiavi non includono utente o tenant | `AppComponent.unloadHandler`, `LocalStorageService` | lo stato non può vivere nel browser |
-| Le preferenze chiave-valore sono per utente e per schema tenant | `preferences`, `CommonServiceImpl` | una chiave libera ripeterebbe la guida in ogni tenant; le specifiche recenti preferiscono tabelle tipizzate |
+| Le preferenze personali sono per utente e per schema tenant | `preferences`, `notification_profile` | la guida segue lo stesso perimetro, in tabelle tipizzate come le specifiche recenti |
 | Su schermi fino a 991 px il menu laterale è a scomparsa e le azioni della topbar sono raccolte nel pulsante a tre punti | `LayoutService.isDesktop`, `topbar.component.html` | le evidenziazioni devono avere un'alternativa su mobile |
 | PrimeNG 19.0.10 offre `p-popover` ancorabile a un elemento, `p-stepper` e la direttiva `pFocusTrap`, ma non un componente tour | `node_modules/primeng` | la guida si costruisce con componenti esistenti, senza nuove dipendenze |
 | La specifica [Richieste di assistenza](support-requests-spec.md), in bozza, prevede un'azione `pi-question-circle` nella topbar | sezione interfaccia della specifica | il punto d'ingresso dell'aiuto va condiviso |
@@ -52,9 +52,9 @@ La prima versione deve:
 | Aspetto | Decisione proposta |
 | --- | --- |
 | Nome nell'interfaccia | **Guida** |
-| Unità di stato | persona e ruolo; stato condiviso tra i tenant della stessa persona |
-| Persistenza | due tabelle tipizzate nello schema `public` |
-| Avvio automatico | interruttore unico per persona, attivo per default |
+| Unità di stato | persona e ruolo, separatamente in ogni tenant |
+| Persistenza | due tabelle tipizzate nello schema del tenant |
+| Avvio automatico | interruttore unico per persona nel tenant, attivo per default |
 | Avvio manuale | sempre disponibile dal pulsante di aiuto della topbar, anche con avvio automatico disattivato |
 | Momento dell'avvio | solo sulla dashboard, dopo accettazione dei documenti legali e caricamento delle funzionalità del tenant |
 | Struttura | una scheda di benvenuto e da 5 a 10 tappe per ruolo |
@@ -188,7 +188,7 @@ La scheda è larga al massimo 22rem, usa i token di colore PrimeNG per tema chia
 | Più tardi | invariato | rinvio per la sola sessione corrente |
 | Salta la guida | `SKIPPED` | resta acceso per gli altri ruoli |
 | Fine | `COMPLETED` | nessuno |
-| Non avviare più la guida automaticamente | invariato | spento per tutti i ruoli |
+| Non avviare più la guida automaticamente | invariato | spento per tutti i ruoli nel tenant corrente |
 | Ricomincia la guida, dal profilo | stato del ruolo azzerato | invariato |
 
 **Salta la guida** non chiede conferma: è reversibile dal pulsante di aiuto. Il toast di esito dice «Guida chiusa. Puoi riaprirla dal pulsante ? in alto».
@@ -318,8 +318,10 @@ Le funzionalità sono valutate quando la guida si apre, con i valori già carica
 
 La proposta separa due concetti, così ogni scelta ha un effetto prevedibile:
 
-1. **Avvio automatico**, personale e valido per tutti i ruoli e i tenant della persona.
-2. **Stato del ruolo**, cioè a che punto è la guida del ruolo corrente.
+1. **Avvio automatico**, personale e valido per tutti i ruoli della persona nel tenant corrente.
+2. **Stato del ruolo**, cioè a che punto è la guida del ruolo corrente in quel tenant.
+
+Entrambi appartengono al tenant: in un'altra organizzazione la persona ritrova la guida con l'impostazione e lo stato di quell'organizzazione, che può avere funzionalità diverse.
 
 ### Dove si disattiva
 
@@ -380,29 +382,31 @@ L'apertura attende 600 ms dopo il primo rendering della dashboard, per non sovra
 
 ### Utenti esistenti al rilascio
 
-Una migrazione crea il profilo della guida per ogni identità attiva in `public.user_identity` con `legacy_invitation = true`. Per queste persone, finché il ruolo corrente non ha stato, la dashboard mostra un banner inline invece della scheda di benvenuto:
+Una migrazione crea, in ogni schema tenant, il profilo della guida per ogni utente non cancellato di `app_user` con `legacy_invitation = true`. Per queste persone, finché il ruolo corrente non ha stato, la dashboard mostra un banner inline invece della scheda di benvenuto:
 
 ```text
 ⓘ  Novità: una guida ti mostra in due minuti cosa puoi fare come Archivista.
    [ Inizia la guida ]   No, grazie
 ```
 
-**Inizia la guida** apre la guida dal benvenuto; **No, grazie** porta il ruolo a `SKIPPED`. L'invito segue le stesse condizioni dell'avvio automatico, esclusa la 6: con l'interruttore spento non compare. Le persone create dopo il rilascio, o prive di identità come può accadere al Super amministratore creato direttamente in Keycloak, ricevono la normale scheda di benvenuto.
+**Inizia la guida** apre la guida dal benvenuto; **No, grazie** porta il ruolo a `SKIPPED`. L'invito segue le stesse condizioni dell'avvio automatico, esclusa la 6: con l'interruttore spento non compare. Le persone aggiunte al tenant dopo il rilascio, o prive di una riga `app_user` nel tenant come può accadere al Super amministratore, ricevono la normale scheda di benvenuto.
 
 ## Modello dati
 
-Le tabelle sono globali, nello schema `public`, perché la guida descrive Taurus e non i dati di un tenant. Non contengono il codice del tenant né contenuti dei tenant.
+Le tabelle vivono nello schema del tenant, come `notification_profile`: lo stato di una persona è separato per ogni organizzazione e segue il ciclo di vita del tenant. Contengono soltanto interruttore, stato e ID delle tappe.
 
 ### `guided_tour_profile`
 
 | Campo | Tipo indicativo | Regola |
 | --- | --- | --- |
 | `id` | `BIGINT` | PK |
-| `user_keycloak_id` | `VARCHAR(255)` | subject Keycloak, univoco |
+| `user_keycloak_id` | `VARCHAR(255)` | subject Keycloak obbligatorio, univoco |
+| `user_id` | `BIGINT` | FK facoltativa a `app_user`, assente per un Super amministratore senza profilo nel tenant |
 | `auto_start_enabled` | `BOOLEAN` | default `true` |
 | `legacy_invitation` | `BOOLEAN` | default `false`; `true` solo dalla migrazione |
-| `created_at`, `updated_at` | `TIMESTAMPTZ` | non nulli |
-| `version` | `INTEGER` | lock ottimistico |
+| audit/versione | campi standard tenant | include lock ottimistico |
+
+Il profilo si cerca per subject, come `notification_profile`, perché un Super amministratore può non avere una riga `app_user` nel tenant.
 
 ### `guided_tour_progress`
 
@@ -416,24 +420,24 @@ Le tabelle sono globali, nello schema `public`, perché la guida descrive Taurus
 | `last_step_id` | `VARCHAR(64)` | facoltativo |
 | `auto_proposals` | `SMALLINT` | da 0 a 3 |
 | `catalog_revision` | `INTEGER` | revisione del catalogo all'ultima decisione |
-| `started_at`, `completed_at`, `updated_at` | `TIMESTAMPTZ` | `completed_at` solo per `COMPLETED` |
-| `version` | `INTEGER` | lock ottimistico |
+| `started_at`, `completed_at` | `TIMESTAMPTZ` | `completed_at` solo per `COMPLETED` |
+| audit/versione | campi standard tenant | include lock ottimistico |
 
 Vincolo univoco `(profile_id, role)`. L'assenza della riga equivale allo stato «mai iniziata». `JSONB` segue la mappatura già usata da `OnboardingImportRow` con `@JdbcTypeCode(SqlTypes.JSON)`.
 
 ### Migrazione
 
-Un changelog incluso in `master.xml`, non in `tenant-master.xml`:
+Un changelog incluso in `tenant-master.xml`:
 
 1. crea le due tabelle e i vincoli;
-2. inserisce un profilo con `legacy_invitation = true` per ogni `user_identity` con `deleted_at` nullo;
+2. inserisce un profilo con `legacy_invitation = true` per ogni riga di `app_user` con `deleted = false`, copiando `keycloak_id` e `id`;
 3. non crea righe di avanzamento.
 
-La migrazione è idempotente rispetto ai profili già esistenti e non richiede dati Keycloak. Copre tutti gli utenti dei tenant, perché `app_user.user_identity_id` è obbligatorio e univoco: ogni profilo locale ha un'identità globale.
+La migrazione non richiede dati Keycloak e non duplica profili già esistenti. `TenantSchemaMigrationRunner` la applica a ogni schema `ACTIVE` all'avvio; un tenant creato dopo il rilascio la riceve durante il provisioning, quando non ha ancora utenti, quindi i suoi membri ricevono la normale scheda di benvenuto. Lo stesso vale per gli utenti caricati in seguito dalla **Configurazione iniziale**.
 
 ## API
 
-Tutti gli endpoint richiedono autenticazione, ricavano persona e ruolo dal token e sono annotati con `@TenantSchemaNotRequired`, perché usano solo lo schema `public`. Il client non invia mai utente o ruolo.
+Tutti gli endpoint richiedono autenticazione, ricavano persona e ruolo dal token e lavorano nello schema del tenant della sessione. Il client non invia mai utente, ruolo o tenant. Con un tenant non provisionato rispondono `tenant.notProvisioned`, come le altre API dello schema tenant; il frontend non li chiama in modalità bootstrap.
 
 ```http
 GET    /api/guided-tour
@@ -529,12 +533,14 @@ La guida è un sesto canale rispetto ai cinque della sezione «Quale canale, qua
 ## Sicurezza e privacy
 
 - Persona e ruolo derivano sempre dal token; nessun endpoint accetta un utente o un ruolo dal client.
-- Le tabelle non contengono tenant, testi liberi o dati dei moduli: solo interruttore, stato e ID delle tappe.
+- Lo stato di un tenant non influenza lo stesso account in un altro tenant.
+- Le tabelle non contengono testi liberi o dati dei moduli: solo interruttore, stato e ID delle tappe.
 - Gli ID delle tappe sono validati per formato e numero; non vengono mai interpretati come HTML o percorsi.
 - I testi del catalogo sono statici; nome della persona e dell'organizzazione sono inseriti con l'interpolazione Angular, mai con `innerHTML`.
 - La guida non rivela funzioni non autorizzate: una tappa per un ruolo diverso non viene composta, e le rotte restano comunque protette da `canActivateAuthRole` e `tenantFeatureGuard`.
-- Profilo e avanzamento vengono eliminati quando la persona non ha più appartenenze attive in `public.tenant_user_membership`. La verifica avviene dopo la rimozione da un tenant (`UsersServiceImpl.removeUserFromTenant`, che disattiva l'appartenenza) e dopo la cancellazione GDPR nel tenant (`DataErasureService.eraseUserData`).
-- La cancellazione di un tenant non tocca le tabelle della guida.
+- La cancellazione GDPR dell'utente nel tenant elimina profilo e avanzamento in `DataErasureService.eraseUserDataInCurrentTenant`, accanto a `notification_profile` e `preferences`; la riga di avanzamento segue il profilo con `ON DELETE CASCADE`.
+- La cancellazione logica dell'utente non richiede una cascata: le righe restano fino alla cancellazione GDPR, come le altre preferenze personali.
+- La cancellazione GDPR del tenant elimina le tabelle con lo schema.
 - I log non contengono subject o ID tappa.
 
 ## Osservabilità
@@ -562,13 +568,14 @@ I contatori servono a capire se la guida viene completata o saltata per ruolo. N
 - `GET` senza profilo né avanzamento: default completi, nessuna scrittura;
 - persona e ruolo ricavati dal token, campi omologhi del body ignorati o rifiutati;
 - stessa persona con due ruoli: avanzamenti distinti;
-- stessa persona in due tenant con lo stesso ruolo: avanzamento condiviso;
+- stessa persona in due tenant con lo stesso ruolo: profili e avanzamenti separati e isolati tra gli schemi;
+- Super amministratore senza riga `app_user`: profilo per subject con `user_id` nullo;
 - validazione di stato, formato e numero delle tappe e di `autoProposals`;
 - conflitto di versione su profilo e avanzamento;
 - `DELETE /progress` limitato al ruolo del token;
-- migrazione: profili `legacy_invitation` per le identità attive, nessun profilo per quelle cancellate, ripetibilità;
-- endpoint raggiungibili anche con tenant non provisionato, grazie a `@TenantSchemaNotRequired`;
-- cancellazione GDPR con e senza altre appartenenze attive;
+- migrazione: profili `legacy_invitation` per gli utenti non cancellati, nessun profilo per quelli cancellati, nessun profilo in uno schema nuovo;
+- tenant non provisionato: risposta `tenant.notProvisioned`;
+- cancellazione GDPR dell'utente e del tenant;
 - interruttore applicativo spento.
 
 ### Frontend
@@ -594,7 +601,7 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 ### Verifica manuale
 
 - un giro completo per ruolo su desktop e su un telefono Android reale;
-- lettura dei testi con una persona per ruolo dell'associazione pilota;
+- rilettura dei testi di ogni ruolo da parte del responsabile del progetto prima del rilascio;
 - verifica che nessuna tappa citi funzioni non visibili a quel ruolo.
 
 ## Criteri di accettazione
@@ -608,18 +615,18 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 7. Chiudere la guida conserva l'ultima tappa e la successiva apertura riprende da lì.
 8. Dopo 3 proposte automatiche chiuse la guida non si apre più da sola per quel ruolo.
 9. **Salta la guida** chiude la guida del solo ruolo corrente.
-10. **Non avviare più la guida automaticamente** impedisce ogni avvio automatico, per tutti i ruoli e i tenant della persona.
+10. **Non avviare più la guida automaticamente** impedisce ogni avvio automatico per tutti i ruoli della persona nel tenant corrente.
 11. L'interruttore del profilo riattiva l'avvio automatico.
 12. Il pulsante di aiuto apre la guida in ogni momento, anche con avvio automatico spento.
 13. **Ricomincia la guida** azzera solo lo stato del ruolo corrente.
-14. La stessa persona non rivede la guida dello stesso ruolo entrando in un altro tenant.
+14. Stato e interruttore della guida di un tenant non influenzano lo stesso account in un altro tenant.
 15. Gli utenti esistenti al rilascio vedono un invito e non la guida automatica.
 16. Persona e ruolo provengono sempre dal token.
 17. Un errore delle API della guida non impedisce l'uso di Taurus.
 18. La guida è utilizzabile da tastiera e con lettore di schermo.
 19. Il bundle iniziale cresce al massimo di 3 kB compressi.
 20. Lo script delle ancore fallisce se il catalogo cita un'ancora inesistente.
-21. La cancellazione GDPR rimuove i dati della guida quando la persona non ha più appartenenze attive.
+21. La cancellazione GDPR dell'utente o del tenant rimuove i dati della guida.
 
 ## Piano di rilascio
 
@@ -656,7 +663,7 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 | --- | --- | --- |
 | Nomi già usati | «Onboarding guidato», «Configurazione iniziale» e «Primo accesso» indicano già altro | nome **Guida**, prefisso `guided-tour`, vocabolario dei testi vincolato |
 | Ruolo scelto all'accesso | una persona con più ruoli vedrebbe guide sbagliate o ripetute | stato per persona e ruolo, ruolo letto dal token |
-| Persona in più tenant | con lo stato per tenant la guida si ripeterebbe in ogni organizzazione, Super amministratore incluso | stato globale nello schema `public` |
+| Persona in più tenant | con lo stato per tenant la guida si ripete in ogni organizzazione, Super amministratore incluso | scelta accettata per l'isolamento tra tenant: **Salta la guida** e l'interruttore la chiudono con un clic, e il ripasso mostra le funzionalità proprie di quell'organizzazione |
 | Nessun indicatore di primo accesso | al rilascio tutti gli utenti esistenti riceverebbero la guida automatica | profilo con invito creato dalla migrazione |
 | Stato nel browser non affidabile | `localStorage` svuotato alla chiusura e senza separazione per utente | backend come fonte; `sessionStorage` solo per il rinvio di sessione |
 | Ancore fragili | rotte lazy, menu per ruolo e flag, contenuti asincroni e layout mobile | identificativi stabili, candidate multiple, attesa limitata, scheda centrata, script di controllo |
@@ -666,26 +673,32 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 | Interferenze con il flusso esistente | documenti legali, collegamenti diretti, dialoghi, modifiche non salvate, aggiornamento dell'applicazione | avvio solo sulla dashboard, condizioni di avvio, pausa su navigazione annullata, ripresa dall'ultima tappa |
 | Pulsante di aiuto conteso | la specifica delle richieste di assistenza usa la stessa icona nella topbar | un solo pulsante di aiuto con menu, da riportare nella specifica di assistenza |
 | Nuovo canale di interfaccia | lo standard di layout ne prevede cinque | sezione dedicata nello standard all'implementazione |
-| Dati globali e GDPR | la cancellazione oggi avviene per tenant | eliminazione quando cade l'ultima appartenenza attiva |
 | Accessibilità dell'evidenziazione | l'oscuramento non dice nulla a chi usa un lettore di schermo | testi autosufficienti, dialogo accessibile, annunci |
 | Utente esterno | testi pensati per l'Utente prometterebbero eventi e brani non visibili | varianti di testo per ruolo e verifica manuale |
 | Telefoni modesti | molti musicisti usano Taurus da telefono | nessuna libreria, chunk differito, un ricalcolo per frame |
 | Due schede aperte | salvataggi concorrenti dello stesso avanzamento | lock ottimistico e unione delle tappe viste |
 
-## Punti aperti
+## Decisioni approvate
 
-Ogni punto riporta la proposta di questa specifica; la decisione resta da confermare prima di passare a `approved`.
+Decisioni prese il 2026-10-24 sui punti aperti della bozza:
 
-1. **Stato globale o per tenant.** Proposta: globale per persona e ruolo, nello schema `public`. L'alternativa per tenant segue il modello di `notification_profile` e semplifica la cancellazione, ma ripete la guida in ogni organizzazione.
-2. **Utenti esistenti al rilascio.** Proposta: invito discreto una sola volta per ruolo. Alternative: guida automatica per tutti oppure nessuna proposta.
-3. **Numero di proposte automatiche.** Proposta: 3 per ruolo, poi solo il punto informativo sul pulsante di aiuto.
-4. **Interruttore unico o per ruolo.** Proposta: unico per persona; la scelta per ruolo è già coperta da **Salta la guida**.
-5. **Controllo dell'amministratore.** Proposta: nessun flag del tenant nella prima versione, solo l'interruttore applicativo. Da verificare se le associazioni vogliono spegnere la guida per tutti i propri membri.
-6. **Guide di pagina.** Proposta: fase 2. Includerle nella prima versione rende la guida più completa ma raddoppia contenuti e test.
-7. **Novità.** Proposta: fase 3, da confermare o rinviare.
-8. **Validazione dei testi.** Proposta: una persona per ruolo dell'associazione pilota rilegge le tappe prima del rilascio. Va individuato chi.
-9. **Modalità bootstrap.** Proposta: esclusa; l'avviso «Primo accesso» nella pagina Tenant e il runbook bastano al Super amministratore.
-10. **Metriche.** Proposta: soli contatori aggregati per ruolo ed esito. Da confermare che siano accettabili anche questi.
-11. **Pulsante di aiuto condiviso.** Proposta: un solo pulsante con menu; la specifica delle richieste di assistenza va allineata.
-12. **Tappe solo descrittive.** Proposta: nella prima versione la guida mostra e non fa compiere azioni reali.
-13. **Lingua.** Proposta: solo italiano, come il resto dell'interfaccia.
+1. **Perimetro dello stato.** Per tenant: profilo e avanzamento vivono nello schema del tenant, per persona e ruolo.
+2. **Utenti esistenti al rilascio.** Invito discreto sulla dashboard, una sola volta per ruolo, al posto dell'avvio automatico.
+3. **Proposte automatiche.** Al massimo 3 per ruolo, poi solo il punto informativo sul pulsante di aiuto.
+4. **Interruttore.** Unico per persona nel tenant; la rinuncia per singolo ruolo resta **Salta la guida**.
+5. **Controllo dell'amministratore.** Nessun flag del tenant nella prima versione; solo l'interruttore applicativo `application.guided-tour.enabled`.
+6. **Guide di pagina.** Fase 2.
+7. **Novità.** Fase 3.
+8. **Testi.** La rilettura dei testi di ogni ruolo è a cura del responsabile del progetto, prima del rilascio.
+9. **Modalità bootstrap.** Esclusa; restano l'avviso «Primo accesso» della pagina Tenant e il runbook.
+10. **Metriche.** Soli contatori aggregati per ruolo ed esito.
+11. **Pulsante di aiuto.** Uno solo nella topbar, con menu condiviso con le richieste di assistenza; la [specifica delle richieste di assistenza](support-requests-spec.md) va allineata quando sarà implementata.
+12. **Tappe.** Solo descrittive nella prima versione.
+13. **Lingua.** Solo italiano.
+
+## Alternative scartate
+
+- **Stato globale nello schema `public`.** Avrebbe evitato di ripetere la guida a chi appartiene a più organizzazioni, ma avrebbe introdotto dati personali fuori dagli schemi tenant e una cancellazione GDPR legata all'ultima appartenenza attiva. Prevale l'isolamento per tenant, coerente con preferenze e notifiche.
+- **Libreria di tour esterna.** Avrebbe aggiunto una dipendenza per funzioni già coperte da PrimeNG e da poche decine di righe di posizionamento.
+- **Chiavi libere in `preferences`.** Senza tipi, vincoli e versione, e contrarie alla scelta di tabelle tipizzate fatta per le preferenze di notifica.
+- **Guida obbligatoria.** Rallenterebbe chi conosce già Taurus senza garantire che venga letta.
