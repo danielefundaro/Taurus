@@ -339,8 +339,6 @@
 .print-sheet-preview {
     display: grid;
     min-height: 0;
-    gap: 1rem;
-    padding: 1rem;
 }
 
 .print-sheet-preview--portrait {
@@ -359,11 +357,12 @@
     min-width: 0;
     min-height: 0;
     place-items: center;
-    border: 2px solid transparent;
 }
 
+/* Contorno interno: evidenzia la pagina corrente senza togliere spazio alle pagine. */
 .print-sheet-preview__slot.active {
-    border-color: var(--primary-color);
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
 }
 
 .print-sheet-preview__slot span {

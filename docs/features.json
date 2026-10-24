@@ -181,7 +181,7 @@
       "id": "guided-tour",
       "title": "Guida introduttiva per ruolo",
       "kind": "feature",
-      "designStatus": "draft",
+      "designStatus": "approved",
       "deliveryStatus": "not-planned",
       "spec": "docs/guided-tour-spec.md",
       "relatedDocs": [
@@ -198,7 +198,7 @@
       },
       "release": null,
       "lastVerifiedOn": "2026-10-24",
-      "notes": "Bozza del 2026-10-24: guida al primo ingresso per persona e ruolo, con stato globale nello schema public, avvio automatico disattivabile e riattivabile dal profilo e pulsante di aiuto sempre disponibile. Punti aperti elencati nella specifica; implementazione non pianificata."
+      "notes": "Decisioni approvate il 2026-10-24: stato per persona e ruolo nello schema del tenant; invito discreto agli utenti esistenti al rilascio; al massimo tre proposte automatiche per ruolo; interruttore di avvio automatico unico per persona nel tenant, disattivabile e riattivabile dal profilo; pulsante di aiuto sempre disponibile e condiviso con l'assistenza; nessun flag del tenant; guide di pagina in fase 2 e novità in fase 3; testi riletti dal responsabile del progetto. Implementazione non ancora pianificata."
     },
     {
       "id": "inventory-electronic-signature",
@@ -772,9 +772,9 @@
           "taurus-fe/src/app/pages/preview/preview.component.spec.ts"
         ]
       },
-      "notes": "Anteprima, filtri, composizione 1-up/2-up e stampa delegata al dialogo del browser sono completi; formato, orientamento, margini e scala restano nel dialogo di sistema. Il 12 settembre 2026 sono stati chiusi i requisiti residui: stato iniziale della spalla risolto dal breakpoint dei 960 px con aria-expanded coerente, ritorno del focus su «Filtri» in chiusura e passaggio al primo controllo in apertura, Escape che chiude prima la presentazione e poi la spalla, regione aria-live sul numero di pagine incluse, stati di caricamento ed errore per singola pagina con azione «Riprova», presentazione che parte dalla pagina corrente e risincronizza l'anteprima alla chiusura, errore di caricamento dell'album che non apre più un'anteprima parziale, area attiva minima di 44 x 44 px e rispetto di prefers-reduced-motion. Diciassette test unitari e di componente coprono le regressioni; i livelli end to end, visuale e di stampa restano collaudi manuali perché il modulo non ospita un runner end to end. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Anteprima, filtri, composizione 1-up/2-up e stampa delegata al dialogo del browser sono completi; formato, orientamento, margini e scala restano nel dialogo di sistema. Il 12 settembre 2026 sono stati chiusi i requisiti residui: stato iniziale della spalla risolto dal breakpoint dei 960 px con aria-expanded coerente, ritorno del focus su «Filtri» in chiusura e passaggio al primo controllo in apertura, Escape che chiude prima la presentazione e poi la spalla, regione aria-live sul numero di pagine incluse, stati di caricamento ed errore per singola pagina con azione «Riprova», presentazione che parte dalla pagina corrente e risincronizza l'anteprima alla chiusura, errore di caricamento dell'album che non apre più un'anteprima parziale, area attiva minima di 44 x 44 px e rispetto di prefers-reduced-motion. Diciassette test unitari e di componente coprono le regressioni; i livelli end to end, visuale e di stampa restano collaudi manuali perché il modulo non ospita un runner end to end. Restano i requisiti aperti elencati nella specifica. Il 2026-10-24 l'anteprima a due pagine per foglio ha perso spaziatura interna e distanza fra le pagine, e la pagina corrente è evidenziata da un contorno interno che non occupa spazio.",
       "release": null,
-      "lastVerifiedOn": "2026-10-23"
+      "lastVerifiedOn": "2026-10-24"
     },
     {
       "id": "support-requests",

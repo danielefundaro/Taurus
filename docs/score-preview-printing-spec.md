@@ -110,7 +110,7 @@ Il conteggio e l'etichetta singolare/plurale si aggiornano immediatamente dopo o
 
 La barra strumenti espone soltanto l'impaginazione a una o due pagine. Formato carta e orientamento vengono scelti nel dialogo di stampa del browser o del sistema. Il conteggio dei fogli e l'etichetta del pulsante «Stampa» riflettono la composizione scelta, mentre il conteggio vicino al titolo continua a indicare le pagine dello spartito.
 
-La modalità a due pagine accorpa automaticamente pagine consecutive e mostra nel canvas l'anteprima del foglio risultante. La pagina corrente è evidenziata senza introdurre elementi decorativi nella stampa.
+La modalità a due pagine accorpa automaticamente pagine consecutive e mostra nel canvas l'anteprima del foglio risultante. Le due pagine occupano l'intero foglio dell'anteprima, a contatto e senza spaziatura interna. La pagina corrente è evidenziata da un contorno interno che non sottrae spazio alle pagine e non compare nella stampa.
 
 ### Spalla filtri
 
