@@ -84,9 +84,11 @@
             </div>
             @if (selectingParts) {
             <app-selection-bar [count]="selectedPartKeys.size" [allSelected]="allFilteredPartsSelected"
-                singularLabel="parte selezionata" pluralLabel="parti selezionate" [showDefaultActions]="false"
-                (toggleAll)="toggleAllParts($event)" (clear)="clearPartSelection()">
-                <p-button label="Deseleziona" severity="secondary" text (onClick)="clearPartSelection()" />
+                [alwaysVisible]="true" singularLabel="parte selezionata" pluralLabel="parti selezionate"
+                [showDefaultActions]="false"
+                (toggleAll)="toggleAllParts($event)">
+                <p-button label="Segna come verificate" icon="pi pi-check-circle" severity="secondary" outlined
+                    [disabled]="!selectedReviewCount" (onClick)="confirmMarkSelectedReviewed()" />
                 <p-button label="Unisci parti" icon="pi pi-link" [disabled]="selectedPartKeys.size < 2"
                     (onClick)="confirmMerge()" />
             </app-selection-bar>
@@ -115,6 +117,12 @@
                 </div>
                 }
             </div>
+
+            @if (score.needsReview) {
+            <app-inline-alert class="review-alert" severity="warn" heading="Parte da verificare"
+                detail="Gli strumenti sono stati assegnati in automatico dal PDF. Controllali, correggili se servono e segna la parte come verificata."
+                [actionLabel]="readOnly ? undefined : 'Segna come verificata'" (action)="markReviewed()" />
+            }
 
             <div class="score-fields">
                 <app-form-field label="Descrizione" forId="score-description">
@@ -150,11 +158,10 @@
                 @if (!readOnly && selectedMediaIds.size) {
                 <app-selection-bar class="page-selection-actions" [count]="selectedMediaIds.size"
                     [allSelected]="allPagesSelected" singularLabel="pagina selezionata" pluralLabel="pagine selezionate"
-                    [showDefaultActions]="false" (toggleAll)="toggleAllPages($event)" (clear)="clearPageSelection()">
+                    [showDefaultActions]="false" (toggleAll)="toggleAllPages($event)">
                     <p-select [options]="moveTargets" optionLabel="label" optionValue="value"
                         [(ngModel)]="moveTargetIndex" placeholder="Sposta in" ariaLabel="Parte di destinazione"
                         appendTo="body" />
-                    <p-button label="Deseleziona" severity="secondary" text (onClick)="clearPageSelection()" />
                     <p-button label="Modifica immagine" icon="pi pi-image" severity="secondary" outlined
                         [disabled]="!selectedMedia || trackDirty || selectedScore.id === undefined"
                         [pTooltip]="trackDirty ? 'Salva prima le modifiche alla traccia' : 'Modifica la pagina selezionata'"

@@ -37,6 +37,21 @@ describe('DialogShellComponent', () => {
         expect(emit).toHaveBeenCalled();
     });
 
+    it('dismisses a dialog without a form after an interaction, but still asks when it is dirty', () => {
+        const emit = spyOn(component.cancel, 'emit');
+        component.dismissOnly = true;
+        component.markAsInteracted();
+
+        component.requestCancel();
+
+        expect(confirmService.confirmDiscard).not.toHaveBeenCalled();
+        expect(emit).toHaveBeenCalled();
+
+        component.dirty = true;
+        component.requestCancel();
+        expect(confirmService.confirmDiscard).toHaveBeenCalled();
+    });
+
     it('cancels immediately when nothing changed', () => {
         const emit = spyOn(component.cancel, 'emit');
 

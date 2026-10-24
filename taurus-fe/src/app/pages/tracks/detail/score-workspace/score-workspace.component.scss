@@ -175,6 +175,11 @@ p {
     margin-bottom: 1.25rem;
 }
 
+.review-alert {
+    display: block;
+    margin-bottom: 1.25rem;
+}
+
 .eyebrow {
     color: var(--p-primary-color);
     font-size: 0.75rem;
@@ -201,8 +206,11 @@ p {
 }
 
 .pages-heading {
-    align-items: flex-end;
     margin: 1.5rem 0 1rem;
+}
+
+.pages-heading > div:first-child {
+    flex: none;
 }
 
 .page-navigation {
@@ -222,6 +230,8 @@ p {
 
 .page-selection-actions {
     display: block;
+    // Cancels the bottom margin of the bar so the heading centers on it.
+    margin-bottom: -1rem;
 }
 
 .pages-grid {
@@ -334,6 +344,7 @@ p {
     }
 
     .page-selection-actions {
+        margin-bottom: 0;
         position: sticky;
         z-index: 2;
         bottom: 0;

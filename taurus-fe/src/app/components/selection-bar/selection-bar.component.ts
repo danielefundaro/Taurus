@@ -17,6 +17,8 @@ export class SelectionBarComponent {
     @Input() actionSeverity: 'secondary' | 'success' | 'info' | 'warn' | 'help' | 'danger' | 'contrast' | null = 'danger';
     @Input() actionLoading = false;
     @Input() showDefaultActions = true;
+    /** Keeps the bar visible without a selection, for lists with an explicit selection mode. */
+    @Input() alwaysVisible = false;
     @Output() toggleAll = new EventEmitter<boolean>();
     @Output() clear = new EventEmitter<void>();
     @Output() delete = new EventEmitter<void>();

@@ -123,7 +123,7 @@ Le scelte discusse e fissate il 20/10/2026, con il motivo per cui l'alternativa 
 
 ## Termini
 
-- **Strumento suggerito**: uno strumento del tenant assegnato automaticamente alla parte, che viene marcata `needsReview`, come oggi.
+- **Strumento suggerito**: uno strumento del tenant assegnato automaticamente alla parte, che viene marcata `needsReview`, come oggi. Il flag si azzera con Segna come verificata nel [workspace Parti](track-parts-workspace-spec.md#verificare-una-parte).
 - **Strumento da aggiungere**: un nome letto sulla parte che corrisponde al catalogo di riferimento ma a nessuno strumento del tenant. Viene salvato come suggerimento sulla parte, che resta senza quello strumento finché qualcuno non decide.
 
 ## Flusso

@@ -1,4 +1,4 @@
-@if (count > 0) {
+@if (count > 0 || alwaysVisible) {
 <div class="selection-bar" role="region" aria-label="Azioni sugli elementi selezionati">
     <p-checkbox [binary]="true" [ngModel]="allSelected" (ngModelChange)="toggleAll.emit($event)"
         [inputId]="checkboxId" />

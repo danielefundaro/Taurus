@@ -334,6 +334,8 @@ Tre fasce fisse — intestazione, corpo scorrevole, piede ancorato — su un'uni
 
 **Piede.** Ancorato, fuori dall'area scorrevole, con separatore e fondo `surface`. A destra la rinuncia come `text` e la conferma come pulsante pieno, non più `[outlined]`. A sinistra il conteggio dei campi da correggere, che sostituisce il pulsante spento come unica spiegazione.
 
+**Dialoghi senza conferma.** Dove il piede non invia nulla, perché il dialogo mostra informazioni o applica ogni azione nel corpo, resta un solo pulsante pieno: la chiusura, nominata dall'etichetta della rinuncia. Due pulsanti con lo stesso testo non sono una scelta, e il pulsante di conferma prometterebbe un salvataggio che non esiste. In questi dialoghi la chiusura non interroga l'utente per la sola interazione con il corpo — i comandi del corpo hanno già avuto effetto — ma solo se il dialogo si dichiara `dirty`.
+
 **Conferma.** L'etichetta nomina l'atto: «Salva movimento», «Aggiungi album», non «Salva» generico. Durante l'invio va in stato `[loading]` e resta disabilitata.
 
 **Dimensioni.** Tre taglie in `rem`, mai in `vw`: 28rem per una conferma con un solo campo, 40rem per il modulo tipico, 56rem per tabelle e selezioni multiple. Fuori scala soltanto `pdf-manipulator-dialog`, che è uno strumento a piena finestra. I breakpoint sono sempre dichiarati.
@@ -601,7 +603,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 | `components/list-row/` | Guscio della riga lista con le cinque fasce fisse e proiezioni nominate per identità, metriche e azioni. Si estrae dall'unione di `.track-row` e `.event-row` della dashboard, che coprono già il caso con miniatura a immagine e quello con riquadro giorno/mese. |
 | `components/entity-card/` | Guscio della card griglia con media, corpo, fascia metriche e piede, e le stesse proiezioni nominate della riga. |
 | `components/empty-state/` | Stato vuoto. Ingressi `icon`, `heading`, `message`, azione opzionale, con la variante «nessun risultato di ricerca». Parte da `.widget-empty` della dashboard, oggi definito tre volte e privo di titolo, causa e azione. |
-| `components/selection-bar/` | Selezione massiva. Racchiude la logica `isSelected`, `toggleSelectAll` e `deleteSelected` oggi duplicata identica in cinque componenti. |
+| `components/selection-bar/` | Selezione massiva. Racchiude la logica `isSelected`, `toggleSelectAll` e `deleteSelected` oggi duplicata identica in cinque componenti. Di norma compare solo con almeno un elemento selezionato; l'ingresso `alwaysVisible` la mantiene visibile dove la selezione si attiva con un comando esplicito, perché lì la casella Seleziona tutte deve restare raggiungibile anche a selezione vuota. |
 | `service/list-layout.service.ts` | Lettura e scrittura della preferenza `listLayout.<pagina>` secondo quanto descritto sopra. |
 | `pages/_shared/list-page.base.ts` | Classe base con `dataViewLazyLoadEvent`, `onLazyLoad`, `onSortChange`, `onGlobalFilter`, `totalRecords` e `loading`: oggi lo stesso codice compare, con piccole divergenze, in sette componenti. |
 | `assets/layout/_list.scss` | Stili condivisi di densità, miniature, fasce metriche e hover delle card. Assorbe `inventory.component.scss` e le parti riutilizzabili di `finance.component.scss`. |
@@ -610,7 +612,7 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 
 | Percorso | Responsabilità |
 | --- | --- |
-| `components/dialog-shell/` | Guscio del dialogo: intestazione, corpo scorrevole, piede ancorato. Ingressi `heading`, `subtitle`, `size`, `confirmLabel`, `saving`, `invalidCount`; uscite `confirm` e `cancel`, con l'intercettazione della chiusura sporca. |
+| `components/dialog-shell/` | Guscio del dialogo: intestazione, corpo scorrevole, piede ancorato. Ingressi `heading`, `subtitle`, `size`, `confirmLabel`, `cancelLabel`, `saving`, `invalidCount`, `dirty` e `dismissOnly` per i dialoghi senza conferma; uscite `confirm` e `cancel`, con l'intercettazione della chiusura sporca. |
 | `components/form-field/` | Campo di modulo: etichetta sopra, asterisco di obbligatorietà, messaggio di errore sotto, stato di errore sul controllo. Sostituisce l'uso di `p-floatlabel` dentro i dialoghi. |
 | `components/inline-alert/` | Banner. Involucro su `p-message` con gravità, titolo, dettaglio, azione opzionale e ruolo ARIA corretto. Sostituisce le sei implementazioni artigianali. |
 | `service/confirm.service.ts` | Conferme tipizzate: `confirmDestructive`, `confirmReversible`, `confirmDiscard`. Assorbe le quarantaquattro invocazioni e le loro otto proprietà ripetute, correggendo la severità inesistente e l'icona mancante. |
