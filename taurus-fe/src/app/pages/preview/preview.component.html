@@ -50,14 +50,14 @@
             </label>
 
             <div class="instrument-list">
-                @for (instrument of instruments | keyvalue; track instrument.key) {
-                <label class="instrument-row" [for]="instrument.key">
+                @for (key of instrumentKeys; track key) {
+                <label class="instrument-row" [for]="key">
                     <span class="instrument-check">
-                        <p-checkBox [inputId]="instrument.key" [binary]="true" [value]="instrument.key"
-                            [(ngModel)]="selectedInstruments[instrument.key]" (onChange)="selectedInstrumentChange()" />
+                        <p-checkBox [inputId]="key" [binary]="true" [value]="key"
+                            [(ngModel)]="selectedInstruments[key]" (onChange)="selectedInstrumentChange()" />
                     </span>
-                    <span class="instrument-name">{{ instrument.value }}</span>
-                    <span class="instrument-pages">{{ instrumentPageCount(instrument.key) }} pag.</span>
+                    <span class="instrument-name">{{ instruments[key] }}</span>
+                    <span class="instrument-pages">{{ instrumentPageCount(key) }} pag.</span>
                 </label>
                 }
             </div>
