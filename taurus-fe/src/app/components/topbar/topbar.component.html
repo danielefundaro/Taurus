@@ -58,7 +58,12 @@
     </div>
 
     @if (tenantName) {
-    <span class="topbar-tenant-name" [title]="tenantName">{{ tenantName }}</span>
+    <span class="topbar-tenant-name" [title]="tenantTitle">
+        <span class="topbar-tenant-name__text">{{ tenantName }}</span>
+        @if (roleLabel) {
+        <span class="topbar-tenant-name__role">· {{ roleLabel }}</span>
+        }
+    </span>
     }
 
     <div class="layout-topbar-actions">

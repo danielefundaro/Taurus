@@ -839,7 +839,7 @@
       "designStatus": "approved",
       "deliveryStatus": "in-progress",
       "spec": "docs/tenant-feature-flags-spec.md",
-      "modules": ["taurus-be", "taurus-fe"],
+      "modules": ["taurus-be", "taurus-fe", "keycloak-authenticator"],
       "evidence": {
         "implementation": [
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/TenantFeatureService.java",
@@ -849,7 +849,9 @@
           "taurus-fe/src/app/service/tenant-feature.service.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.ts",
           "taurus-fe/src/app/pages/tenants/detail/detail.component.ts",
-          "taurus-fe/src/app/components/topbar/topbar.component.ts"
+          "taurus-fe/src/app/components/topbar/topbar.component.ts",
+          "keycloak-authenticator/src/main/java/com/fundaro/zodiac/keycloakauthenticator/authentication/TenantRoleSelectorAuthenticator.java",
+          "keycloak-authenticator/src/main/java/com/fundaro/zodiac/keycloakauthenticator/protocol/oidc/mappers/TenantRoleMapper.java"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260904000000_tenant_feature_flags.xml",
@@ -867,10 +869,12 @@
           "taurus-fe/src/app/service/tenant-feature.service.spec.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.spec.ts",
           "taurus-fe/src/app/components/menu/menu.component.spec.ts",
-          "taurus-fe/src/app/components/topbar/topbar.component.spec.ts"
+          "taurus-fe/src/app/components/topbar/topbar.component.spec.ts",
+          "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/authentication/TenantRoleSelectorAuthenticatorTest.java",
+          "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/protocol/oidc/mappers/TenantRoleMapperTest.java"
         ]
       },
-      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar, già implementata. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar e aggiunto il ruolo della sessione quando è stato scelto tra più ruoli del tenant (claim role_choice del provider Keycloak). Restano i requisiti aperti elencati nella specifica.",
       "release": null,
       "lastVerifiedOn": "2026-10-24"
     },

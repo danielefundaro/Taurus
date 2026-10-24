@@ -2,7 +2,7 @@
 
 Provider Java 17 per Keycloak:
 
-- selezione tenant/ruolo durante l'autenticazione e mapper `tenant-role-mapper` che aggiunge al token il tenant e il ruolo scelti. I nomi dei claim sono configurabili: per default `tenant` e `tenant_role`; il realm di Taurus (`taurus-realm.json`) imposta `tenant` e `role`;
+- selezione tenant/ruolo durante l'autenticazione e mapper `tenant-role-mapper` che aggiunge al token il tenant e il ruolo scelti. Il mapper aggiunge anche il claim `role_choice` con valore `true` quando il ruolo è stato scelto tra più ruoli del tenant, e lo omette altrimenti: la topbar lo usa per mostrare il ruolo ([specifica](../docs/tenant-feature-flags-spec.md#organizzazione-e-ruolo-nella-topbar)). I nomi dei claim sono configurabili: per default `tenant`, `tenant_role` e `role_choice`; il realm di Taurus (`taurus-realm.json`) imposta `tenant`, `role` e `role_choice`;
 - `taurus-otp`, risorsa del realm (`/realms/{realm}/taurus-otp`) con cui il backend verifica i codici dell'app di autenticazione per la firma elettronica. Accetta solo il service account del client confidenziale `taurus-signature` con il ruolo client `otp-verifier`; il codice è controllato con la policy OTP del realm e non è mai registrato nei log ([specifica](../docs/inventory-electronic-signature-spec.md#app-di-autenticazione)).
 
 ## Verifica

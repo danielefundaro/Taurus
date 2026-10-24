@@ -7,6 +7,7 @@ import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.oidc.mappers.*;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.IDToken;
+import com.fundaro.zodiac.keycloakauthenticator.authentication.TenantRoleSelectorAuthenticator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,14 @@ public class TenantRoleMapper extends AbstractOIDCProtocolMapper implements OIDC
         property.setType(ProviderConfigProperty.STRING_TYPE);
         property.setDefaultValue("tenant_role");
         property.setHelpText("Name of the claim for role in the token");
+        configProperties.add(property);
+
+        property = new ProviderConfigProperty();
+        property.setName("role.choice.claim.name");
+        property.setLabel("Role Choice Claim Name");
+        property.setType(ProviderConfigProperty.STRING_TYPE);
+        property.setDefaultValue("role_choice");
+        property.setHelpText("Name of the claim set to true when the selected tenant offers more than one role");
         configProperties.add(property);
 
         // Aggiungi i checkbox standard per access token, id token, userinfo
@@ -72,6 +81,7 @@ public class TenantRoleMapper extends AbstractOIDCProtocolMapper implements OIDC
 
         String tenantClaimName = mappingModel.getConfig().getOrDefault("tenant.claim.name", "tenant");
         String roleClaimName = mappingModel.getConfig().getOrDefault("role.claim.name", "tenant_role");
+        String roleChoiceClaimName = mappingModel.getConfig().getOrDefault("role.choice.claim.name", "role_choice");
 
         // Recupera i valori dalle note della sessione utente
         String tenant = userSession.getNote("selected_tenant");
@@ -83,6 +93,11 @@ public class TenantRoleMapper extends AbstractOIDCProtocolMapper implements OIDC
 
         if (role != null && !role.isEmpty()) {
             token.getOtherClaims().put(roleClaimName, role);
+        }
+
+        // Presente solo quando il ruolo e' stato scelto tra piu' ruoli del tenant
+        if (Boolean.parseBoolean(userSession.getNote(TenantRoleSelectorAuthenticator.ROLE_CHOICE_NOTE))) {
+            token.getOtherClaims().put(roleChoiceClaimName, true);
         }
     }
 }

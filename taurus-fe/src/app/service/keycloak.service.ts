@@ -26,6 +26,11 @@ export class KeycloakService {
         return this.keycloak.idTokenParsed?.['role'] as RoleEnums || RoleEnums.UNKNOWN;
     }
 
+    /** True when the user chose this role among more roles of the session tenant. */
+    public get currentUserRoleChosen(): boolean {
+        return this.keycloak.idTokenParsed?.['role_choice'] === true;
+    }
+
     public get currentUserFirstName(): string {
         return (this.keycloak.idTokenParsed?.['given_name'] as string) || '';
     }
