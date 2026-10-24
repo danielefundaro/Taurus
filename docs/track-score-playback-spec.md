@@ -391,6 +391,7 @@ Il tempo iniziale è, in ordine: il nuovo campo numerico `tempoBpm` della tracci
 
 Disponibile a super amministratore, amministratore e archivista, a schermo intero.
 
+- **Intestazione**: in alto a sinistra la freccia **Torna alla traccia** chiude l'editor e riporta alla scheda Ascolto da cui è stato aperto; con correzioni non salvate chiede prima «Uscire senza salvare?». Seguono titolo e versione di partenza, poi a destra annulla e ripristina, ascolto, **Salva** e **Salva e approva**. Non c'è un secondo comando di chiusura: la freccia è l'unico.
 - **Layout**: spartito disegnato da Verovio a sinistra, pagina originale a destra con la battuta selezionata evidenziata, ingrandibile al 100, 150 e 200%. Con posizioni approssimate il riquadro è più ampio e tratteggiato; senza posizioni, o con pagine cambiate dopo la versione, un avviso lo spiega e le pagine si scorrono a mano.
 - **Note e pause**: selezione con il mouse o con le frecce; nome della nota (tasti A–G, all'ottava più vicina), su e giù di un grado o di un'ottava, alterazione, figura (tasti 1–7 come in MuseScore), punti di valore; trasformazione tra nota e pausa; inserimento prima o dopo, aggiunta all'accordo ed eliminazione.
 - **Legature e terzine**: legature di valore con la nota seguente della stessa altezza, anche nella battuta dopo (una legatura di portamento tra le stesse note viene tolta, come la legge homr); gruppi irregolari di 3, 5 e 6 note. Spostando una nota legata si spostano anche le note legate a lei.

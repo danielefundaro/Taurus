@@ -22,6 +22,7 @@
 
 .score-editor__title {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.125rem;
     min-width: 0;

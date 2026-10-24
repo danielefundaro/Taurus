@@ -2,6 +2,7 @@
 
 <div class="score-editor">
     <header class="score-editor__header">
+        <p-button icon="pi pi-arrow-left" ariaLabel="Torna alla traccia" pTooltip="Torna alla traccia" tooltipPosition="bottom" severity="secondary" text [rounded]="true" [disabled]="saving" (onClick)="close()" />
         <div class="score-editor__title">
             <h2 class="m-0 text-lg font-semibold">Correzione · {{ data.partLabel }}</h2>
             @if (editor) {
@@ -21,7 +22,6 @@
                 pTooltip="Spazio. Maiusc+clic su un'altra battuta sceglie un intervallo"
                 (onClick)="togglePlay()"
             />
-            <p-button label="Chiudi" severity="secondary" text [disabled]="saving" (onClick)="close()" />
             <p-button label="Salva" icon="pi pi-save" severity="secondary" [disabled]="!dirty || saving" [loading]="saving" pTooltip="Salva come nuova versione non verificata" (onClick)="save(false)" />
             <p-button label="Salva e approva" icon="pi pi-check" [disabled]="!dirty || saving" [loading]="saving" pTooltip="Salva come nuova versione approvata" (onClick)="save(true)" />
         </div>
