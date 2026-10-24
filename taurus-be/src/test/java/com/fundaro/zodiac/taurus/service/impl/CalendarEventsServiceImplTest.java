@@ -306,7 +306,7 @@ class CalendarEventsServiceImplTest {
         }
 
         @Override
-        public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes, AbstractAuthenticationToken token) {
+        public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes) {
             scheduled++;
             lastPersonalMinutes = personalMinutes;
         }

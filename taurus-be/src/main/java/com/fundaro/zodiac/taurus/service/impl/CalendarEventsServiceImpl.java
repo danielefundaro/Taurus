@@ -97,7 +97,7 @@ public class CalendarEventsServiceImpl
         }
         if (calendarFeedLifecycle != null) calendarFeedLifecycle.apply(entity, feedBefore);
         CalendarEventsDTO result = featureSafe(saveEntity(entity, token, false));
-        reminderProducer.rescheduleForAvailableUsers(result, availableUsers(entity), token);
+        reminderProducer.rescheduleForAvailableUsers(result, availableUsers(entity));
         return result;
     }
 
@@ -158,7 +158,7 @@ public class CalendarEventsServiceImpl
         response.setResponseDate(new Date());
         CalendarEventsDTO result = saveEntity(event, token, false);
         if (available) {
-            reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), response.getReminderMinutes(), token);
+            reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), response.getReminderMinutes());
         } else {
             reminderProducer.cancelPending(eventId, user.getKeycloakId());
         }
@@ -191,7 +191,7 @@ public class CalendarEventsServiceImpl
             );
         response.setReminderMinutes(minutes);
         CalendarEventsDTO result = saveEntity(event, token, false);
-        reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), minutes, token);
+        reminderProducer.scheduleIfNeeded(result, user.getKeycloakId(), minutes);
         return featureSafe(result);
     }
 
@@ -271,8 +271,7 @@ public class CalendarEventsServiceImpl
                         .filter(entry -> entry.getUser().getId().equals(user.getId()))
                         .findFirst()
                         .map(CalendarEventAvailability::getReminderMinutes)
-                        .orElse(null),
-                    token
+                        .orElse(null)
                 )
             );
         } else {

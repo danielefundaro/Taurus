@@ -1245,7 +1245,7 @@
       "title": "Promemoria eventi tramite Web Push",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/web-push-reminders-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
@@ -1266,12 +1266,15 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventsServiceImplTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/PushReminderSchedulerTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationPreferencesServiceTest.java",
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationTimingTest.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationTimingTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/EventReminderProducerTest.java",
+          "taurus-fe/src/app/service/push-notification.service.spec.ts",
+          "taurus-fe/src/app/service/app-update.service.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Completati sottoscrizione Web Push, preferenze globali e personali, pianificazione persistente PostgreSQL per tenant, quiet hours, retry e gestione degli esiti. Il target dei reminder apre la rotta applicativa /calendar/{id} ed è coperto da un test dedicato; la specifica è allineata all'architettura Spring MVC/JPA e alla pipeline notifiche corrente. Dal 2026-09-12 il service worker è registrato in ogni ambiente e non solo in produzione, e AppUpdateService porta le schede aperte sulla versione scaricata: prima nessuno lo faceva e l'applicazione poteva restare indefinitamente su un bundle vecchio. Restano i requisiti aperti elencati nella specifica."
+      "lastVerifiedOn": "2026-10-25",
+      "notes": "Completati sottoscrizione Web Push, preferenze globali e personali, pianificazione persistente PostgreSQL per tenant, quiet hours, retry e gestione degli esiti. Il target dei reminder apre la rotta applicativa /calendar/{id} ed è coperto da un test dedicato; la specifica è allineata all'architettura Spring MVC/JPA e alla pipeline notifiche corrente. Dal 2026-09-12 il service worker è registrato in ogni ambiente e non solo in produzione, e AppUpdateService porta le schede aperte sulla versione scaricata: prima nessuno lo faceva e l'applicazione poteva restare indefinitamente su un bundle vecchio. Il 2026-10-25 sono stati chiusi i due requisiti aperti: l'anticipo legacy è letto dalle righe del destinatario invece che dal contesto della richiesta, quindi una ripianificazione fatta da un amministratore non applica più il suo defaultReminderMinutes ai disponibili senza profilo, e EventReminderProducer non riceve più il token della richiesta perché non gli serve. Aggiunti EventReminderProducerTest e le spec di push-notification.service e app-update.service. La specifica non ha più requisiti aperti."
     }
   ]
 }

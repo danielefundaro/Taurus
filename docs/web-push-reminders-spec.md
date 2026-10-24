@@ -68,7 +68,7 @@ L'anticipo effettivo applica questa precedenza:
 
 Il valore `0` disabilita il promemoria al livello in cui è configurato. I valori validi sono compresi tra 0 e 1440 minuti.
 
-`EventReminderProducer` legge la preferenza legacy con il token della richiesta: vale quindi il `defaultReminderMinutes` di chi esegue l'operazione, non quello del destinatario. Quando un amministratore aggiorna un evento e i promemoria vengono ripianificati, ai disponibili senza profilo si applica il suo valore.
+`EventReminderProducer` legge la preferenza legacy direttamente dalle righe del destinatario, non dal contesto della richiesta: quando un amministratore aggiorna un evento e i promemoria vengono ripianificati, a ogni disponibile senza profilo si applica il proprio `defaultReminderMinutes`. Un valore non numerico equivale all'assenza della preferenza e porta al default applicativo.
 
 ## Flussi backend
 
@@ -182,9 +182,7 @@ La copertura automatica rilevante include:
 - `NotificationPreferencesServiceTest` e `NotificationTimingTest`: preferenze e finestre temporali;
 - `NotificationPushDeliveryServiceTest`: consegna push generalizzata;
 - `NotificationPreferencesIT`: persistenza PostgreSQL e isolamento tenant;
-- `notification-presentation.service.spec.ts`: presentazione delle notifiche nel frontend.
-
-## Requisiti aperti
-
-- Anticipo del promemoria: la preferenza legacy `defaultReminderMinutes` deve essere quella del destinatario, non di chi esegue l'operazione.
-- Verifica: test frontend di `push-notification.service` e `app-update.service`.
+- `EventReminderProducerTest`: precedenza dell'anticipo e lettura della preferenza legacy del destinatario;
+- `notification-presentation.service.spec.ts`: presentazione delle notifiche nel frontend;
+- `push-notification.service.spec.ts`: supporto, consenso, registrazione e disattivazione del dispositivo;
+- `app-update.service.spec.ts`: attivazione della versione scaricata, stato non recuperabile e controlli periodici.
