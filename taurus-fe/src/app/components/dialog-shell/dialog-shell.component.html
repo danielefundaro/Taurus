@@ -16,8 +16,12 @@
             {{ invalidCount }} {{ invalidCount === 1 ? 'campo da correggere' : 'campi da correggere' }}
             }
         </span>
+        @if (dismissOnly) {
+        <div><p-button [label]="cancelLabel" icon="pi pi-times" [disabled]="saving" (onClick)="requestCancel()" /></div>
+        } @else {
         <div><p-button [label]="cancelLabel" text severity="secondary" [disabled]="saving"
                 (onClick)="requestCancel()" /><p-button [label]="confirmLabel" icon="pi pi-check" [loading]="saving"
                 [disabled]="saving" (onClick)="submit()" /></div>
+        }
     </footer>
 </div>

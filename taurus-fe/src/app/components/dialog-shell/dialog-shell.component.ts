@@ -9,6 +9,8 @@ export class DialogShellComponent {
     @Input() confirmLabel = 'Salva';
     @Input() cancelLabel = 'Annulla';
     @Input() saving = false;
+    /** Dialogs without a form to submit: the footer keeps the sole dismissal, named by cancelLabel. */
+    @Input() dismissOnly = false;
     @Input() invalidCount = 0;
     @Input() dirty = false;
     @Output() confirm = new EventEmitter<void>();
@@ -52,7 +54,7 @@ export class DialogShellComponent {
 
     requestCancel(): void {
         if (this.saving || this.confirmationOpen) return;
-        if (!this.dirty && !this.interacted) {
+        if (!this.dirty && (this.dismissOnly || !this.interacted)) {
             this.cancel.emit();
             return;
         }

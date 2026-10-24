@@ -80,6 +80,8 @@ Il dettaglio della traccia usa le schede Dettagli e Parti per tutti i ruoli auto
 | Nuova parte | Crea una parte vuota dopo l’ultima parte e la seleziona immediatamente. |
 | Riga parte | Mostra ordine, descrizione sintetica, strumenti e numero di pagine. |
 | Selezione | Una sola parte attiva determina il contenuto del pannello destro. |
+| Seleziona parti | Attiva la selezione multipla. La barra contestuale resta visibile per tutta la modalità, anche senza parti selezionate, così la casella Seleziona tutte è sempre raggiungibile; i comandi che richiedono una selezione sono disabilitati. |
+| Seleziona tutte | La casella della barra contestuale aggiunge alla selezione le parti visibili, cioè quelle che superano la ricerca; deselezionandola la selezione si azzera per intero, comprese le parti nascoste dal filtro. È l’unico comando di selezione della barra: un pulsante Deseleziona separato ripeteva la stessa azione. |
 | Riordino | Trascinamento tramite maniglia o pulsanti Sposta parte su e giù; durante la ricerca il riordino è disabilitato per evitare risultati ambigui. |
 | Azioni sulla parte | Pulsanti Duplica, Una parte per pagina ed Elimina parte nell’intestazione dell’editor della parte selezionata. Divisione ed eliminazione richiedono conferma; la duplicazione no. |
 
@@ -121,6 +123,15 @@ Il workspace privilegia la leggibilità delle pagine senza sacrificare la scansi
 3. Una modifica agli strumenti aggiorna immediatamente la bozza locale e attiva Salva.
 4. Il passaggio a un’altra parte non chiude un dialog e non perde la modifica.
 
+### Verificare una parte
+
+1. Una parte con strumenti assegnati in automatico dall’elaborazione del PDF arriva con `needsReview` vero: l’elenco mostra l’icona Parte da verificare e il pannello destro un avviso ambra.
+2. L’utente controlla strumenti, descrizione e pagine e li corregge come una modifica qualsiasi.
+3. Segna come verificata porta `needsReview` a falso nella bozza locale, entra nella cronologia come le altre operazioni e attiva Salva; il flag torna vero con Annulla ultima operazione.
+4. Dopo un import con molte parti marcate, la modalità Seleziona parti offre Segna come verificate sulla selezione: la casella della barra contestuale seleziona tutte le parti visibili e il comando azzera il flag in un’unica operazione, con conferma che riporta quante parti riguarda. La barra non ha altri comandi oltre a questo, Unisci parti e la casella stessa. Il comando è disabilitato se nessuna parte selezionata è da verificare e non tocca le parti già verificate.
+5. Il flag resta vero finché la traccia non viene salvata: correggere gli strumenti non lo azzera da solo, perché la conferma è una decisione dell’utente.
+6. In sola lettura l’avviso è informativo e i comandi non compaiono.
+
 ### Navigare e consultare le pagine
 
 - Sopra la griglia, quando sono presenti almeno due pagine, compaiono i comandi Pagina precedente e Pagina successiva con l’indicazione Pagina x di n.
@@ -140,6 +151,8 @@ Il trascinamento parte solo dalla maniglia della miniatura; in alternativa si us
 | --- | --- | --- |
 | Trascinamento | Il trascinamento agisce solo nella parte selezionata e riordina le sue pagine. | Lo spostamento tra parti usa la barra contestuale. |
 | Barra contestuale | Selezionare le pagine, scegliere la destinazione in Sposta in e premere Sposta. | Le pagine vengono accodate nella parte di destinazione, che diventa la parte selezionata. |
+
+La barra delle pagine compare con almeno una pagina selezionata, accanto al titolo Pagine e centrata verticalmente su di esso. Come nella barra delle parti, la casella seleziona tutte le pagine della parte e, deselezionata, azzera la selezione e la destinazione scelta in Sposta in; non c’è un pulsante Deseleziona separato.
 | Nuova parte | Selezionare le pagine e scegliere Nuova parte. | Nasce una parte dopo quella corrente, con strumenti vuoti e pagine nell’ordine della parte sorgente. |
 
 ### Unire parti
@@ -152,7 +165,7 @@ La divisione ha due comandi: Una parte per pagina, nell’intestazione dell’ed
 
 ### Annullare
 
-Il primo rilascio offre Annulla ultima operazione per riordino, spostamento, unione, divisione ed eliminazione non ancora salvati. È sufficiente una cronologia locale lineare della sessione; dopo Salva la cronologia viene azzerata. La conferma distruttiva resta necessaria per eliminare pagine o parti.
+Il primo rilascio offre Annulla ultima operazione per riordino, spostamento, unione, divisione, verifica ed eliminazione non ancora salvati. È sufficiente una cronologia locale lineare della sessione; dopo Salva la cronologia viene azzerata. La conferma distruttiva resta necessaria per eliminare pagine o parti.
 
 ### Regole trasversali
 
@@ -202,6 +215,7 @@ Il payload aggiorna l’intera traccia e porta la sua `version`. Il backend usa 
 | Nessuna parte | Stato vuoto Nessuna parte: carica un PDF dalla scheda File PDF oppure crea una parte vuota. | Nuova parte |
 | Parte senza pagine | Stato vuoto Nessuna pagina: sposta pagine da un’altra parte oppure carica un PDF. | Nessuna |
 | Parte senza strumenti | Testo Strumento mancante nell’elenco; tag ambra in sola lettura. | Assegna strumenti |
+| Parte con strumenti suggeriti | Icona Parte da verificare nell’elenco e avviso ambra nel pannello della parte; in sola lettura l’avviso resta senza azione. | Segna come verificata |
 | Miniatura in caricamento | Skeleton con rapporto pagina e nome accessibile. | Nessuna |
 | Miniatura non disponibile | Segnaposto Anteprima non disponibile. | Riprova |
 | Ricerca senza risultati | Nessuna parte corrisponde alla ricerca. | Azzera ricerca |
@@ -220,6 +234,10 @@ Il payload aggiorna l’intera traccia e porta la sua `version`. Il backend usa 
 | Spostamento | Sposta in |
 | Parte incompleta | Strumento mancante |
 | Parte da revisionare | Parte da verificare |
+| Avviso della parte da verificare | Gli strumenti sono stati assegnati in automatico dal PDF. Controllali, correggili se servono e segna la parte come verificata. |
+| Conferma della verifica | Segna come verificata |
+| Verifica massiva | Segna come verificate |
+| Conferma della verifica massiva | N parti non saranno più segnalate come da verificare. Potrai annullare l’operazione prima del salvataggio. |
 | Conferma unione | Le pagine saranno concatenate nell’ordine delle parti selezionate. Gli strumenti duplicati verranno rimossi. |
 
 ### Regole editoriali
@@ -272,11 +290,11 @@ Il payload aggiorna l’intera traccia e porta la sua `version`. Il backend usa 
 | Score list | Elenco parti, ricerca e riordino. | Markup semantico custom con DragDrop |
 | Score editor | Strumenti, pagine e azioni della parte selezionata. | MultiSelect o AutoComplete multiple e componenti custom |
 | Media thumbnail | Anteprima, selezione, caricamento ed errore. | Componente OnPush riutilizzabile |
-| Selection bar | Azioni contestuali sulle pagine o sulle parti. | Estensione del componente condiviso esistente |
+| Selection bar | Azioni contestuali sulle pagine o sulle parti. | Estensione del componente condiviso esistente, con l’ingresso `alwaysVisible` per la modalità di selezione delle parti |
 
 ### Stato locale
 
-Il workspace lavora su una copia normalizzata di track.scores. Una parte persistita usa come chiave il proprio `id`; una parte in bozza usa una chiave derivata dall’ordine. Le pagine usano l’id del media. Il modello espone `needsReview`, mostrato nell’elenco con l’icona Parte da verificare. Al salvataggio il backend conserva l’identità delle parti con `id`.
+Il workspace lavora su una copia normalizzata di track.scores. Una parte persistita usa come chiave il proprio `id`; una parte in bozza usa una chiave derivata dall’ordine. Le pagine usano l’id del media. Il modello espone `needsReview`, mostrato nell’elenco con l’icona Parte da verificare e azzerabile dal pannello della parte con Segna come verificata. Al salvataggio il backend conserva l’identità delle parti con `id`.
 
 | Stato | Tipo suggerito | Nota |
 | --- | --- | --- |

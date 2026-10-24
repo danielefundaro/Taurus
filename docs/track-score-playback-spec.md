@@ -533,9 +533,9 @@ La vista segue il [Taurus Layout Standard](taurus-layout-standard.md) e la docum
 - **Notifiche**: a chi ha avviato il riconoscimento, «Riconoscimento completato» o «Riconoscimento non riuscito» con il motivo; per **Riconosci tutte le parti** una sola «Riconoscimento delle parti completato» con il numero di parti riuscite e non riuscite. Aprono la scheda Ascolto della traccia.
 - **Lettore della parte**: spartito con cursore, controlli di ascolto, etichetta e riepilogo dei controlli, **Segnala un errore**.
 - **Segnala un errore**: parte (nella partitura), battuta facoltativa proposta da quella in ascolto, descrizione; a chi la invia un messaggio di conferma.
-- **Segnalazioni della parte**: aperte e chiuse con battuta, versione, autore e data; **Chiudi segnalazione** e **Correggi la parte**.
+- **Segnalazioni della parte**: aperte e chiuse con battuta, versione, autore e data; **Chiudi segnalazione** e **Correggi la parte**; anche qui il piede porta la sola **Chiudi**.
 - **Lettore della partitura**: spartito della parte selezionata tra quelle visibili all'utente, mixer, controlli di ascolto.
-- **Versioni e suono**: elenco con origine, data, stato, controlli e azioni **Usa questa versione**, **Approva**, **Scarica**; sovrascritture di trasposizione e suono della parte.
+- **Versioni e suono**: elenco con origine, data, stato, controlli e azioni **Usa questa versione**, **Approva**, **Correggi**, **Scarica**; sovrascritture di trasposizione e suono della parte con **Salva suono**. Ogni azione ha effetto nel corpo del dialogo, quindi il piede porta la sola **Chiudi**.
 - **Editor di correzione**: vista a schermo intero descritta in [Editor di correzione](#editor-di-correzione).
 - **Strumenti**: nel dettaglio, trasposizione e suono con la proposta calcolata dal nome, il selettore del suono per famiglia e **Prova**; nell'elenco, l'indicazione e il filtro **Da configurare per l'ascolto**.
 - **Avviso di strumento non configurato**: nella scheda Ascolto, con i nomi degli strumenti e, per chi ha privilegi, il collegamento al dettaglio di ciascuno; nel mixer come etichetta «Suono non configurato».

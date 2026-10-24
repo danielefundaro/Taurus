@@ -99,6 +99,10 @@ export class ScoreWorkspaceComponent implements OnChanges {
         return this.filteredScores.length > 0 && this.filteredScores.every(({ score }) => this.selectedPartKeys.has(this.scoreKey(score)));
     }
 
+    protected get selectedReviewCount(): number {
+        return this.draftScores.filter((score) => this.selectedPartKeys.has(this.scoreKey(score)) && score.needsReview).length;
+    }
+
     protected get allPagesSelected(): boolean {
         const media = this.selectedScore?.media ?? [];
         return media.length > 0 && media.every((item) => this.selectedMediaIds.has(item.index));
@@ -162,6 +166,13 @@ export class ScoreWorkspaceComponent implements OnChanges {
         this.updateInline('Strumenti della parte modificati');
     }
 
+    protected markReviewed(): void {
+        if (this.readOnly || !this.selectedScore?.needsReview) return;
+        const next = cloneAndNormalizeScores(this.draftScores);
+        next[this.selectedScoreIndex].needsReview = false;
+        this.commit(next, 'Parte segnata come verificata');
+    }
+
     protected filterInstruments(event: AutoCompleteCompleteEvent): void {
         const query = event.query.toLocaleLowerCase('it');
         const selected = new Set((this.selectedScore?.instruments ?? []).map((instrument) => instrument.index));
@@ -184,22 +195,18 @@ export class ScoreWorkspaceComponent implements OnChanges {
     }
 
     protected toggleAllParts(selected: boolean): void {
+        if (!selected) {
+            this.selectedPartKeys = new Set<string>();
+            return;
+        }
         const next = new Set(this.selectedPartKeys);
-        this.filteredScores.forEach(({ score }) => (selected ? next.add(this.scoreKey(score)) : next.delete(this.scoreKey(score))));
+        this.filteredScores.forEach(({ score }) => next.add(this.scoreKey(score)));
         this.selectedPartKeys = next;
-    }
-
-    protected clearPartSelection(): void {
-        this.selectedPartKeys = new Set<string>();
     }
 
     protected toggleAllPages(selected: boolean): void {
         this.selectedMediaIds = selected ? new Set((this.selectedScore?.media ?? []).map((media) => media.index)) : new Set<number>();
-    }
-
-    protected clearPageSelection(): void {
-        this.selectedMediaIds = new Set<number>();
-        this.moveTargetIndex = null;
+        if (!selected) this.moveTargetIndex = null;
     }
 
     protected togglePartSelectionMode(): void {
@@ -218,6 +225,23 @@ export class ScoreWorkspaceComponent implements OnChanges {
                 this.commit(mergeScores(this.draftScores, this.selectedPartKeys, this.scoreKey), `${this.selectedPartKeys.size} parti unite`, Math.max(0, first));
                 this.selectingParts = false;
                 this.selectedPartKeys = new Set<string>();
+            }
+        });
+    }
+
+    protected confirmMarkSelectedReviewed(): void {
+        const count = this.selectedReviewCount;
+        if (this.readOnly || !count) return;
+        this.confirmService.confirmReversible({
+            title: count === 1 ? 'Segna come verificata' : 'Segna come verificate',
+            consequence: `${count} ${count === 1 ? 'parte non sarà più segnalata' : 'parti non saranno più segnalate'} come da verificare. Potrai annullare l’operazione prima del salvataggio.`,
+            actionLabel: 'Segna',
+            accept: () => {
+                const next = cloneAndNormalizeScores(this.draftScores);
+                next.forEach((score) => {
+                    if (this.selectedPartKeys.has(this.scoreKey(score))) score.needsReview = false;
+                });
+                this.commit(next, `${count} ${count === 1 ? 'parte segnata come verificata' : 'parti segnate come verificate'}`);
             }
         });
     }

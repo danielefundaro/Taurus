@@ -1,4 +1,4 @@
-<app-dialog-shell heading="Segnalazioni d'errore" [subtitle]="data.partLabel" confirmLabel="Chiudi" cancelLabel="Chiudi" (cancel)="close()" (confirm)="close()">
+<app-dialog-shell heading="Segnalazioni d'errore" [subtitle]="data.partLabel" [dismissOnly]="true" cancelLabel="Chiudi" (cancel)="close()">
     @if (loading) {
         <app-list-loading-skeleton />
     } @else if (!reports.length) {
