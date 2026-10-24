@@ -137,13 +137,13 @@
                         <div class="score-editor__group" role="group" aria-label="Battute">
                             <span class="score-editor__label">Battuta {{ measure?.number }}</span>
                             <p-button label="Inserisci prima" size="small" severity="secondary" outlined [disabled]="!measure" (onClick)="insertMeasure('before')" />
-                            <p-button label="Inserisci dopo" size="small" severity="secondary" outlined [disabled]="!measure" (onClick)="insertMeasure('after')" />
                             <p-button label="Elimina" icon="pi pi-trash" size="small" severity="danger" outlined [disabled]="!measure" (onClick)="deleteMeasure()" />
                         </div>
-                        <div class="score-editor__group" role="group" aria-label="Pausa di più battute">
-                            <span class="score-editor__label">Pausa di più battute</span>
-                            <p-inputnumber [(ngModel)]="multiRest" [min]="1" [max]="200" [showButtons]="true" inputStyleClass="w-14" size="small" ariaLabel="Battute della pausa" [disabled]="!measure" />
-                            <p-button label="Applica" size="small" severity="secondary" pTooltip="La battuta e le seguenti diventano una pausa del numero di battute indicato" [disabled]="!measure" (onClick)="applyMultiRest()" />
+                        <div class="score-editor__group" role="group" aria-label="Numero di battute">
+                            <span class="score-editor__label">Numero di battute</span>
+                            <p-inputnumber [(ngModel)]="measureCount" [min]="1" [max]="200" [showButtons]="true" inputStyleClass="w-14" size="small" ariaLabel="Numero di battute" [disabled]="!measure" />
+                            <p-button label="Aggiungi dopo" size="small" severity="secondary" outlined pTooltip="Battute separate dopo quella selezionata, ognuna con una pausa di battuta da trasformare in note" [disabled]="!measure" (onClick)="addMeasures()" />
+                            <p-button label="Pausa di più battute da qui" size="small" severity="secondary" outlined pTooltip="La battuta selezionata diventa una pausa che dura il numero di battute indicato" [disabled]="!measure" (onClick)="applyMultiRest()" />
                         </div>
                     </div>
                 </p-tabpanel>
@@ -209,6 +209,9 @@
 
         <div class="score-editor__status" role="status">
             <span class="font-medium">{{ selectionLabel }}</span>
+            @if (measure?.empty) {
+                <p-button label="Aggiungi una pausa" icon="pi pi-plus" size="small" severity="secondary" outlined pTooltip="La battuta riceve una pausa di battuta, da trasformare in note con «In nota»" [disabled]="saving" (onClick)="fillMeasure()" />
+            }
             @if (message) {
                 <span class="score-editor__message"><i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>{{ message }}</span>
             }
@@ -273,8 +276,13 @@
                     } @else {
                         <p class="text-sm m-0 text-muted-color"><i class="pi pi-check mr-1" aria-hidden="true"></i>Tutte le battute hanno la durata del metro.</p>
                     }
-                    @if (checks.empty.length) {
-                        <p class="text-sm m-0">{{ checks.empty.length }} {{ checks.empty.length === 1 ? 'battuta vuota' : 'battute vuote' }}</p>
+                    @if (emptyMeasures.length) {
+                        <p class="text-sm m-0">{{ emptyMeasures.length === 1 ? 'Battuta vuota' : 'Battute vuote' }}:</p>
+                        <div class="flex flex-wrap gap-1">
+                            @for (item of emptyMeasures; track item.index) {
+                                <p-button [label]="item.number" size="small" severity="warn" outlined [ariaLabel]="'Vai alla battuta vuota ' + item.number" (onClick)="selectMeasure(item.index)" />
+                            }
+                        </div>
                     }
                 </div>
 

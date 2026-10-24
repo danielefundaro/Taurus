@@ -205,6 +205,44 @@ describe('score editor', () => {
         expect(pitch(document, 0)).toBe('F4');
     });
 
+    it('never leaves a measure without notes and fills the empty ones with a measure rest', () => {
+        const document = score([ATTRIBUTES + note('C', 5, 'whole'), '', note('D', 5, 'whole')]);
+        expect(document.checks().empty).toEqual([1]);
+        expect(edits.measureInfo(document, 1).empty).toBeTrue();
+
+        const rest = edits.fillEmptyMeasure(document, 1);
+        expect(edits.noteInfo(document, rest).rest).toBeTrue();
+        expect(document.checks()).toEqual({ wrongDuration: [], empty: [] });
+        expect(() => edits.fillEmptyMeasure(document, 1)).toThrowError(EditError);
+
+        const replaced = edits.deleteNote(document, ids(document)[0])!;
+        expect(edits.noteInfo(document, replaced)).toEqual(jasmine.objectContaining({ rest: true, measureIndex: 0 }));
+        expect(document.checks().empty).toEqual([]);
+        expect(() => edits.deleteNote(document, replaced)).toThrowError(EditError);
+    });
+
+    it('adds measures after the selected one, also after a whole multi-measure rest', () => {
+        const document = score();
+
+        expect(edits.insertMeasures(document, 0, 2)).toBe(1);
+        expect(document.measureSources()).toEqual([0, null, null, 1, 2]);
+        expect(document.checks()).toEqual({ wrongDuration: [], empty: [] });
+        expect(edits.measureInfo(document, 0).hasNotes).toBeTrue();
+        expect(edits.measureInfo(document, 1).hasNotes).toBeFalse();
+
+        // Una battuta aggiunta che diventa una pausa di più battute: il gruppo nasce senza toccare le battute esistenti.
+        edits.insertMeasures(document, 4, 1);
+        edits.setMultiRest(document, 5, 4);
+        expect(document.measures().length).toBe(9);
+        expect(edits.measureInfo(document, 5).multiRest).toBe(4);
+
+        // Dentro una pausa di più battute le battute si aggiungono dopo l'intero gruppo, che resta intatto.
+        expect(edits.insertMeasures(document, 6, 1)).toBe(9);
+        expect(edits.measureInfo(document, 5).multiRest).toBe(4);
+        expect(parseMusicXml(document.cleanXml()).measures.length).toBe(10);
+        expect(() => edits.insertMeasures(document, 0, 0)).toThrowError(EditError);
+    });
+
     it('fixes the number of measures of a multi-measure rest', () => {
         const document = score();
 

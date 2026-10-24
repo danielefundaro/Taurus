@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ConfirmationService } from 'primeng/api';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { ScoreEditorData } from '../../module';
 import { ConfirmService, MediaService, ScoreAudioService, ScorePlaybackService, ScoreRendererService } from '../../service';
 import { ScoreEditorDialogComponent, ScoreEditorDialogData } from './score-editor-dialog.component';
@@ -47,7 +47,7 @@ describe('ScoreEditorDialogComponent', () => {
                 { provide: ScoreRendererService, useValue: renderer },
                 { provide: MediaService, useValue: jasmine.createSpyObj('MediaService', ['streamImage']) },
                 { provide: ScoreAudioService, useValue: jasmine.createSpyObj('ScoreAudioService', ['ready', 'load', 'play', 'pause', 'setChannel']) },
-                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard']) }
+                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard', 'confirmReversible']) }
             ]
         }).compileComponents();
         fixture = TestBed.createComponent(ScoreEditorDialogComponent);
@@ -97,6 +97,68 @@ describe('ScoreEditorDialogComponent', () => {
         back();
         expect(confirmService.confirmDiscard).toHaveBeenCalled();
         expect(dialogRef.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('selects a measure without notes and fills it with a rest, also from the checks', async () => {
+        const empty = XML.replace(/<measure number="2">[\s\S]*?<\/measure>/, '<measure number="2"></measure>');
+        const editor = await firstValueFrom(playbackService.editor(4, 9, 7));
+        playbackService.editor.and.returnValue(of({ ...editor, musicXml: empty }));
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const component = fixture.componentInstance as unknown as {
+            emptyMeasures: { index: number }[];
+            selectionLabel: string;
+            selectMeasure(index: number): void;
+            fillMeasure(): void;
+            insert(where: 'before' | 'after'): void;
+            message: string | null;
+            note: { rest: boolean } | null;
+        };
+
+        expect(component.emptyMeasures.map((item) => item.index)).toEqual([1]);
+        component.selectMeasure(1);
+        expect(component.selectionLabel).toBe('Battuta 2 · vuota');
+        component.insert('after');
+        expect(component.message).toContain('La battuta è vuota');
+
+        component.fillMeasure();
+        expect(component.note?.rest).toBeTrue();
+        expect(component.emptyMeasures).toEqual([]);
+    });
+
+    it('turns a measure into a multi-measure rest, asking first only when it contains notes', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+        const component = fixture.componentInstance as unknown as {
+            measureCount: number;
+            selectMeasure(index: number): void;
+            addMeasures(): void;
+            applyMultiRest(): void;
+            measure: { index: number; multiRest: number } | null;
+        };
+
+        component.measureCount = 3;
+        component.selectMeasure(0);
+        component.applyMultiRest();
+        expect(confirmService.confirmReversible).toHaveBeenCalledTimes(1);
+        expect(component.measure?.multiRest).toBe(1);
+
+        component.measureCount = 1;
+        component.addMeasures();
+        expect(component.measure?.index).toBe(1);
+        component.measureCount = 4;
+        component.applyMultiRest();
+        expect(confirmService.confirmReversible).toHaveBeenCalledTimes(1);
+        expect(component.measure?.multiRest).toBe(4);
+
+        // Selezionando una pausa di più battute il numero mostra la sua durata, pronto da correggere.
+        component.measureCount = 2;
+        component.selectMeasure(0);
+        expect(component.measureCount).toBe(2);
+        component.selectMeasure(1);
+        expect(component.measureCount).toBe(4);
     });
 
     it('saves a correction with the origin of the measures', async () => {
