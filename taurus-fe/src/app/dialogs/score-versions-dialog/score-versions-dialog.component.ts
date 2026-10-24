@@ -2,16 +2,18 @@ import { Component, OnInit } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { PartPlaybackSettings, ScoreVersion } from '../../module';
-import { GENERAL_MIDI_FAMILIES } from '../../score-player/general-midi';
+import { PartPlaybackSettings, PlaybackInstrument, ScoreVersion } from '../../module';
+import { GENERAL_MIDI_FAMILIES, programName } from '../../score-player/general-midi';
 import { checkIssues, originLabel } from '../../score-player/playback-labels';
-import { ScorePlaybackService, ToastService } from '../../service';
+import { ConfirmService, ScorePlaybackService, ToastService } from '../../service';
 
 export interface ScoreVersionsDialogData {
     trackId: number;
     scoreId: number;
     partLabel: string;
     settings: PartPlaybackSettings;
+    /** Primo strumento della parte: con i campi vuoti la parte usa il suo suono e la sua trasposizione. */
+    instrument?: PlaybackInstrument | null;
 }
 
 /** Esito del dialogo: versioni o suono cambiati e, se richiesta, la versione da aprire nell'editor di correzione. */
@@ -37,17 +39,58 @@ export class ScoreVersionsDialogComponent implements OnInit {
     protected soundProgramOverride: number | null;
     protected soundBankOverride: number | null;
     private changed = false;
+    /** Suono salvato sulla parte, per riconoscere i campi modificati e non ancora salvati. */
+    private savedSound: PartPlaybackSettings;
 
     constructor(
         private readonly dialogRef: DynamicDialogRef<ScoreVersionsDialogComponent>,
         private readonly playbackService: ScorePlaybackService,
         private readonly toastService: ToastService,
+        private readonly confirmService: ConfirmService,
         config: DynamicDialogConfig<ScoreVersionsDialogData>
     ) {
         this.data = config.data!;
-        this.transpositionOverride = this.data.settings.transpositionOverride;
-        this.soundProgramOverride = this.data.settings.soundProgramOverride;
-        this.soundBankOverride = this.data.settings.soundBankOverride;
+        this.transpositionOverride = this.data.settings.transpositionOverride ?? null;
+        this.soundProgramOverride = this.data.settings.soundProgramOverride ?? null;
+        this.soundBankOverride = this.data.settings.soundBankOverride ?? null;
+        this.savedSound = this.soundSettings();
+    }
+
+    /** I campi del suono differiscono da quelli salvati: chiudere il dialogo li perderebbe. */
+    protected get soundDirty(): boolean {
+        const current = this.soundSettings();
+        return (
+            current.transpositionOverride !== this.savedSound.transpositionOverride ||
+            current.soundProgramOverride !== this.savedSound.soundProgramOverride ||
+            current.soundBankOverride !== this.savedSound.soundBankOverride
+        );
+    }
+
+    /** Nome dello strumento da cui la parte eredita suono e trasposizione. */
+    protected get instrumentName(): string {
+        return this.data.instrument?.name ?? 'suo primo strumento';
+    }
+
+    /** Valori ereditati dallo strumento, mostrati nei campi vuoti. */
+    protected get inheritedTransposition(): string {
+        const instrument = this.data.instrument;
+        if (instrument?.percussionKey != null) return 'Batteria, nessuna trasposizione';
+        const value = instrument?.transpositionSemitones;
+        if (value == null) return 'Non configurata nello strumento';
+        return `${value > 0 ? '+' : ''}${value} dallo strumento`;
+    }
+
+    protected get inheritedSound(): string {
+        const instrument = this.data.instrument;
+        if (instrument?.percussionKey != null) return 'Come lo strumento: batteria';
+        const name = programName(instrument?.soundProgram);
+        return name ? `Come lo strumento: ${name}` : 'Come lo strumento: non configurato';
+    }
+
+    protected get inheritedBank(): string {
+        if (this.soundProgramOverride != null) return '';
+        const bank = this.data.instrument?.soundBank;
+        return bank == null ? '' : `${bank} dallo strumento`;
     }
 
     ngOnInit(): void {
@@ -84,11 +127,7 @@ export class ScoreVersionsDialogComponent implements OnInit {
 
     protected saveSound(): void {
         this.busy = true;
-        const settings: PartPlaybackSettings = {
-            transpositionOverride: this.transpositionOverride,
-            soundProgramOverride: this.soundProgramOverride,
-            soundBankOverride: this.soundProgramOverride === null ? null : this.soundBankOverride
-        };
+        const settings = this.soundSettings();
         this.playbackService
             .updatePartSettings(this.data.trackId, this.data.scoreId, settings)
             .pipe(
@@ -97,6 +136,7 @@ export class ScoreVersionsDialogComponent implements OnInit {
             )
             .subscribe(() => {
                 this.changed = true;
+                this.savedSound = settings;
                 this.toastService.success('Suono della parte salvato', 'La parte suonerà con le nuove impostazioni.');
             });
     }
@@ -108,13 +148,31 @@ export class ScoreVersionsDialogComponent implements OnInit {
         this.saveSound();
     }
 
-    /** Chiude il dialogo e apre la versione nell'editor di correzione. */
+    /** Chiude il dialogo e apre la versione nell'editor di correzione; con il suono non salvato chiede prima. */
     protected correct(version: ScoreVersion): void {
-        this.dialogRef.close({ changed: this.changed, correctVersionId: version.id } satisfies ScoreVersionsDialogResult);
+        const open = (): void => this.dialogRef.close({ changed: this.changed, correctVersionId: version.id } satisfies ScoreVersionsDialogResult);
+        if (!this.soundDirty) {
+            open();
+            return;
+        }
+        this.confirmService.confirmDiscard({
+            title: 'Modifiche non salvate',
+            consequence: 'Il suono della parte non è stato salvato: aprendo l’editor le modifiche andranno perse.',
+            actionLabel: 'Apri senza salvare',
+            accept: open
+        });
     }
 
     protected close(): void {
         this.dialogRef.close({ changed: this.changed } satisfies ScoreVersionsDialogResult);
+    }
+
+    private soundSettings(): PartPlaybackSettings {
+        return {
+            transpositionOverride: this.transpositionOverride ?? null,
+            soundProgramOverride: this.soundProgramOverride ?? null,
+            soundBankOverride: this.soundProgramOverride == null ? null : (this.soundBankOverride ?? null)
+        };
     }
 
     private run(request: ReturnType<ScorePlaybackService['approve']>, title: string, detail: string): void {

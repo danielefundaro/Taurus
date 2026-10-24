@@ -1,4 +1,4 @@
-<app-dialog-shell heading="Versioni della parte" [subtitle]="data.partLabel" [dismissOnly]="true" cancelLabel="Chiudi" (cancel)="close()">
+<app-dialog-shell heading="Versioni della parte" [subtitle]="data.partLabel" [dismissOnly]="true" [dirty]="soundDirty" cancelLabel="Chiudi" (cancel)="close()">
     @if (loading) {
         <app-list-loading-skeleton />
     } @else if (!versions.length) {
@@ -42,16 +42,16 @@
     }
 
     <h3 class="text-base font-semibold mt-6 mb-2">Suono della parte</h3>
-    <p class="text-sm text-muted-color mb-3">Lasciando vuoti i campi la parte usa suono e trasposizione del suo primo strumento.</p>
+    <p class="text-sm text-muted-color mb-3">Lasciando vuoti i campi la parte usa suono e trasposizione di {{ instrumentName }}, mostrati in grigio.</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <app-form-field label="Trasposizione (semitoni)" forId="partTransposition" hint="Dalla nota scritta al suono reale.">
-            <p-inputnumber inputId="partTransposition" [(ngModel)]="transpositionOverride" [min]="-36" [max]="36" [showButtons]="true" />
+            <p-inputnumber inputId="partTransposition" [(ngModel)]="transpositionOverride" [min]="-36" [max]="36" [showButtons]="true" [placeholder]="inheritedTransposition" />
         </app-form-field>
         <app-form-field label="Suono" forId="partSound">
-            <p-select inputId="partSound" [options]="soundGroups" [group]="true" [(ngModel)]="soundProgramOverride" optionLabel="label" optionValue="value" [filter]="true" [showClear]="true" placeholder="Come lo strumento" appendTo="body" />
+            <p-select inputId="partSound" [options]="soundGroups" [group]="true" [(ngModel)]="soundProgramOverride" optionLabel="label" optionValue="value" [filter]="true" [showClear]="true" [placeholder]="inheritedSound" appendTo="body" />
         </app-form-field>
         <app-form-field label="Banco" forId="partBank" hint="0 per i suoni General MIDI.">
-            <p-inputnumber inputId="partBank" [(ngModel)]="soundBankOverride" [min]="0" [max]="16383" [disabled]="soundProgramOverride === null" />
+            <p-inputnumber inputId="partBank" [(ngModel)]="soundBankOverride" [min]="0" [max]="16383" [disabled]="soundProgramOverride === null" [placeholder]="inheritedBank" />
         </app-form-field>
     </div>
     <div class="flex gap-2 mt-3">
