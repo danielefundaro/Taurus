@@ -848,7 +848,8 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/calendarfeed/CalendarFeedTokenResolver.java",
           "taurus-fe/src/app/service/tenant-feature.service.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.ts",
-          "taurus-fe/src/app/pages/tenants/detail/detail.component.ts"
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.ts",
+          "taurus-fe/src/app/components/topbar/topbar.component.ts"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260904000000_tenant_feature_flags.xml",
@@ -865,12 +866,13 @@
           "taurus-fe/src/app.routes.spec.ts",
           "taurus-fe/src/app/service/tenant-feature.service.spec.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.spec.ts",
-          "taurus-fe/src/app/components/menu/menu.component.spec.ts"
+          "taurus-fe/src/app/components/menu/menu.component.spec.ts",
+          "taurus-fe/src/app/components/topbar/topbar.component.spec.ts"
         ]
       },
-      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar, già implementata. Restano i requisiti aperti elencati nella specifica.",
       "release": null,
-      "lastVerifiedOn": "2026-10-23"
+      "lastVerifiedOn": "2026-10-24"
     },
     {
       "id": "tenant-onboarding-import",

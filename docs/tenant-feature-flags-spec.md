@@ -560,6 +560,19 @@ Durante il caricamento iniziale, gli elementi soggetti a feature devono rimanere
 
 Non è necessario usare `localStorage`: una nuova scheda può leggere nuovamente la configurazione, mentre una copia persistente rischierebbe di mostrare dati obsoleti o appartenenti a un tenant selezionato in precedenza.
 
+### Nome dell'organizzazione nella topbar
+
+La topbar mostra, accanto al logo, il nome del tenant della sessione (`tenantName` della risposta di `GET /api/tenant-features/current`). Così chi appartiene a più organizzazioni vede in ogni pagina quella scelta all'accesso.
+
+Regole:
+
+- il nome compare per tutti i ruoli e per tutti gli utenti, anche per chi ha un solo tenant: la topbar non sa quanti tenant ha la persona e non lo deve rivelare;
+- il tenant si sceglie nel selettore Keycloak a ogni accesso (`TenantRoleSelectorAuthenticator`); durante la sessione la topbar non offre un cambio di tenant;
+- il nome è quello letto da `TenantFeatureService` e si aggiorna con gli stessi refresh dei flag, quindi una modifica dal dettaglio tenant compare senza nuovo accesso;
+- nella modalità bootstrap del primo accesso, quando il tenant non ha ancora uno schema attivo ([Schema PostgreSQL per tenant](postgres-tenant-schemas.md)), al posto del nome compare «Primo accesso»;
+- se il nome è vuoto o la lettura non è riuscita, la topbar non mostra nulla al suo posto;
+- un nome lungo è troncato con i puntini su una sola riga e resta leggibile per intero nel tooltip nativo (`title`); sotto i 576 pixel il testo si riduce.
+
 ## Route guard e componenti frontend
 
 Creare un `tenantFeatureGuard` che legga dalla route:
