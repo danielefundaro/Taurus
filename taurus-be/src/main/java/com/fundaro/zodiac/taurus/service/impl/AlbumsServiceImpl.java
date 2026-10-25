@@ -8,8 +8,10 @@ import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.AlbumsService;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.AlbumsMapper;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +41,9 @@ public class AlbumsServiceImpl extends CommonOpenSearchServiceImpl<Albums, Album
 
     @Override
     public AlbumsDTO update(Long id, AlbumsDTO dto, AbstractAuthenticationToken token) {
-        Albums entity = getRepository().findByIdAndDeletedFalse(id).orElseThrow();
+        // Un id inesistente, anche perché appartiene a un altro tenant, è un 404 come nelle altre risorse.
+        Albums entity = getRepository().findByIdAndDeletedFalse(id)
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
         getMapper().partialUpdate(entity, dto);
         List<Tracks> resolvedTracks = resolveTracks(dto);
         entity.getTracks().clear();

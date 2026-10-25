@@ -16,7 +16,7 @@ Copertura presente nel repository (la data dell'ultima verifica è nel catalogo)
 - servizio OMR: 7 file pytest, con test sui motori finti e test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
 - provider Keycloak: 3 classi di test, tra cui `TaurusOtpTest` e il test di integrazione `TaurusOtpResourceIT`;
 - sito informativo: type-check e build, senza suite funzionale dedicata;
-- nessun framework E2E browser configurato;
+- E2E: suite Playwright in `taurus-fe/e2e`, con i profili desktop e mobile, che richiede un'istanza completa e due tenant di prova e non è ancora stata eseguita su un ambiente reale;
 - JaCoCo produce report backend, ma non applica una soglia minima;
 - la CI esegue test/build dei moduli modificati e, per `taurus-omr`, la misura di accuratezza sull'immagine appena costruita, ma non test full-stack, performance, sicurezza dinamica o restore.
 
@@ -235,6 +235,22 @@ Test mirati tenant:
 .\mvnw.cmd "-Dit.test=TenantSchemaProvisioningServiceIT,TenantBootstrapIT" failsafe:integration-test failsafe:verify
 ```
 
+Isolamento tenant per risorsa, CRUD e IDOR:
+
+```powershell
+.\mvnw.cmd "-Dtest=TenantIsolationIT" test
+```
+
+`TenantIsolationIT` esegue lo stesso giro di prove su ogni risorsa elencata nel suo metodo `resources()`: la riga creata in un tenant non è leggibile, modificabile né cancellabile dall'altro, e resta intatta nel proprio. Una risorsa nuova si aggiunge a quell'elenco e porta con sé le tre prove, invece di richiedere un test scritto a mano. Alcune tabelle nascono con i dati di riferimento del tenant, quindi il controllo confronta la variazione del conteggio, non il totale.
+
+Broker RabbitMQ reale:
+
+```powershell
+.\mvnw.cmd "-Dtest=RabbitMqBrokerIT" test
+```
+
+`RabbitMqBrokerIT` avvia RabbitMQ con Testcontainers e verifica consegna, riconsegna dopo un errore di elaborazione, messaggio avvelenato e broker irraggiungibile. Il caso del messaggio avvelenato registra il comportamento attuale: senza una coda di scarto un messaggio che fallisce sempre viene riconsegnato senza fine, quindi la prova osserva le prime riconsegne e ferma il consumatore. Serve Docker.
+
 Verificare che Docker sia realmente disponibile: `TenantSchemaProvisioningServiceIT` usa un'assumption e può risultare saltato se Docker non è raggiungibile. Un test P0 saltato rende il run incompleto.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
@@ -253,6 +269,16 @@ npm run build -- --configuration production
 ```
 
 Controllare sia l'exit code sia il report coverage. Attualmente non esiste una soglia configurata: il report non costituisce da solo un gate. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+
+Suite end to end full-stack, con Playwright:
+
+```powershell
+Set-Location taurus-fe
+npm run e2e:install
+npm run e2e
+```
+
+La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e mobile e richiede un'istanza completa — dipendenze, backend, frontend — più due tenant di prova con utenti per ruolo. Credenziali e codici tenant arrivano dalle variabili d'ambiente descritte in `taurus-fe/e2e/README.md`: nel repository non vive nessuna credenziale e, senza quelle variabili, le prove si saltano invece di fallire. Le prove coprono il menu per ruolo, il nome del tenant nella topbar e l'indirizzo di una traccia non raggiungibile dall'altro tenant. I selettori non sono ancora stati calibrati su un'istanza reale: finché la prima esecuzione non è registrata la suite non è un gate di rilascio.
 
 ### 8.4 Provider Keycloak
 
@@ -838,10 +864,10 @@ Eseguire solo test sintetici non distruttivi:
 
 | Priorità | Gap attuale | Azione |
 | --- | --- | --- |
-| Bloccante | Nessuna suite E2E browser full-stack | Introdurre Playwright/Cypress equivalente con ruoli e tenant multipli |
+| Bloccante | Suite E2E Playwright presente in `taurus-fe/e2e` ma mai eseguita su un'istanza reale | Calibrare i selettori alla prima esecuzione, registrarne l'esito ed estendere gli scenari oltre ruoli e tenant |
 | Bloccante | Nessun test automatico completo del provider Keycloak | Eseguire flow e mapper contro Keycloak reale |
-| Bloccante | Tenant isolation API non coperta sistematicamente per tutte le risorse | Creare test parametrizzati CRUD/IDOR per resource |
-| Alta | Nessuna integrazione RabbitMQ reale/poison-message | Aggiungere Testcontainers RabbitMQ e casi redelivery/outage |
+| Bloccante | Tenant isolation coperta da `TenantIsolationIT` su tracce, album, strumenti e preferenze | Aggiungere all'elenco `resources()` le altre risorse, inventario ed economia comprese |
+| Alta | Broker reale coperto da `RabbitMqBrokerIT`; un messaggio avvelenato viene però riconsegnato senza fine | Decidere coda di scarto o rifiuto senza rimessa in coda per `upload.files` e `score.recognition`, poi coprirla con un test |
 | Alta | Nessuna soglia coverage | Definire baseline, ratchet e gate per changed code |
 | Alta | Nessun test performance/SLO | Definire carichi e integrare uno strumento ripetibile |
 | Alta | Nessun security scan completo in CI | Aggiungere SAST, SCA, secret e container scan; DAST su staging |

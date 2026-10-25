@@ -6,6 +6,9 @@
 /out-tsc
 /bazel-out
 
+# Esiti, tracce e report della suite end to end
+/target
+
 # Node
 /node_modules
 npm-debug.log

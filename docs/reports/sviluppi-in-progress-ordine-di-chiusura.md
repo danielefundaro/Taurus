@@ -115,6 +115,8 @@ Un solo intervento di prodotto (il testo della notifica); tutto il resto è veri
 
 Va prima delle funzionalità che seguono perché quasi tutte hanno fra i requisiti aperti test end to end, integrazioni con PostgreSQL e RabbitMQ reali o verifiche di accessibilità e prestazioni: senza questa infrastruttura quei requisiti non sono chiudibili. Non serve completarlo tutto in un colpo: bastano, come primo lotto, il runner end to end, Testcontainers RabbitMQ e i test parametrizzati di isolamento tenant.
 
+> Primo lotto chiuso il 2026-10-25: `TenantIsolationIT`, `RabbitMqBrokerIT` e la suite Playwright in `taurus-fe/e2e`. La voce resta `in-progress` per gli altri gap; la suite end to end attende la prima esecuzione su un'istanza reale.
+
 ## 8. `track-pdf-processing`
 
 [Elaborazione asincrona dei PDF](../track-pdf-processing-spec.md) — difficoltà media.

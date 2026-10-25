@@ -1,0 +1,284 @@
+package com.fundaro.zodiac.taurus.service;
+
+import com.fundaro.zodiac.taurus.IntegrationTest;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
+import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
+import com.fundaro.zodiac.taurus.service.dto.CommonFieldsDTO;
+import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
+import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
+import com.fundaro.zodiac.taurus.service.dto.PreferencesDTO;
+import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.test.context.TestPropertySource;
+
+import java.time.Instant;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/**
+ * Lo stesso giro di prove CRUD/IDOR su ogni risorsa: creata in un tenant, non deve essere
+ * leggibile, modificabile né cancellabile dall'altro, e deve restare intatta nel proprio.
+ *
+ * <p>È il controllo sistematico chiesto dal runbook di test: una risorsa nuova si aggiunge a
+ * {@code resources()} e porta con sé le stesse verifiche, invece di dipendere da un test scritto
+ * a mano per ogni servizio.
+ */
+@IntegrationTest
+// Le risorse arrivano dai servizi iniettati: la sorgente del test parametrizzato non può essere statica.
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestPropertySource(
+    properties = {
+        "spring.liquibase.contexts=test",
+        "spring.datasource.hikari.maximum-pool-size=4",
+        "spring.datasource.hikari.minimum-idle=1",
+        "spring.security.oauth2.client.registration.oidc.client-id=test",
+        "spring.security.oauth2.client.registration.oidc.client-secret=test",
+    }
+)
+class TenantIsolationIT {
+
+    @MockBean
+    private ClientRegistrationRepository clientRegistrationRepository;
+
+    @MockBean
+    private JwtDecoder jwtDecoder;
+
+    private final String ownerTenant = "isolation-owner-" + UUID.randomUUID();
+    private final String intruderTenant = "isolation-intruder-" + UUID.randomUUID();
+
+    @Autowired
+    private TenantSchemaProvisioningService provisioningService;
+
+    @Autowired
+    private TenantTransactionExecutor transactionExecutor;
+
+    @Autowired
+    private TracksService tracksService;
+
+    @Autowired
+    private AlbumsService albumsService;
+
+    @Autowired
+    private InstrumentsService instrumentsService;
+
+    @Autowired
+    private PreferencesService preferencesService;
+
+    @BeforeEach
+    void provisionBothTenants() {
+        provisioningService.provision(ownerTenant);
+        provisioningService.provision(intruderTenant);
+    }
+
+    @AfterEach
+    void dropBothTenants() {
+        try {
+            provisioningService.dropSchema(ownerTenant);
+        } finally {
+            provisioningService.dropSchema(intruderTenant);
+        }
+    }
+
+    /** Le risorse sotto controllo: nome, servizio e come si costruisce una riga minima valida. */
+    private Stream<Resource<?>> resources() {
+        return Stream.of(
+            new Resource<>("tracks", port(tracksService), () -> {
+                TracksDTO dto = new TracksDTO();
+                dto.setName("Marcia sinfonica");
+                return dto;
+            }),
+            new Resource<>("albums", port(albumsService), () -> {
+                AlbumsDTO dto = new AlbumsDTO();
+                dto.setName("Concerto di Natale");
+                return dto;
+            }),
+            new Resource<>("instruments", port(instrumentsService), () -> {
+                InstrumentsDTO dto = new InstrumentsDTO();
+                dto.setName("Clarinetto");
+                return dto;
+            }),
+            new Resource<>("preferences", port(preferencesService), () -> {
+                PreferencesDTO dto = new PreferencesDTO();
+                dto.setKey("isolation-probe");
+                dto.setValue("1");
+                return dto;
+            })
+        );
+    }
+
+    @ParameterizedTest(name = "{0} stays inside its tenant")
+    @MethodSource("resources")
+    void keepsEveryResourceInsideItsTenant(Resource<?> resource) {
+        // Alcune tabelle nascono con i dati di riferimento del tenant: conta la variazione, non il totale.
+        long intruderRowsBefore = countFor(resource, intruderTenant);
+        Long id = create(resource);
+
+        transactionExecutor.execute(intruderTenant, () -> {
+            assertThat(resource.service().exists(id, authentication(intruderTenant))).isFalse();
+        });
+        assertThat(countFor(resource, intruderTenant)).isEqualTo(intruderRowsBefore);
+
+        assertOwnerStillHas(resource, id);
+    }
+
+    @ParameterizedTest(name = "{0} cannot be updated from another tenant")
+    @MethodSource("resources")
+    void refusesToUpdateAResourceFromAnotherTenant(Resource<?> resource) {
+        Long id = create(resource);
+
+        assertThatThrownBy(() -> updateFromIntruder(resource, id)).hasMessageContaining("Entity not found");
+
+        assertOwnerStillHas(resource, id);
+    }
+
+    @ParameterizedTest(name = "{0} cannot be deleted from another tenant")
+    @MethodSource("resources")
+    void refusesToDeleteAResourceFromAnotherTenant(Resource<?> resource) {
+        Long id = create(resource);
+
+        // Il rifiuto può arrivare come errore o come cancellazione senza effetto: conta che la riga resti.
+        try {
+            transactionExecutor.execute(intruderTenant, () -> {
+                resource.service().delete(id, authentication(intruderTenant));
+            });
+        } catch (RuntimeException expected) {
+            assertThat(expected).hasMessageContaining("Entity not found");
+        }
+
+        assertOwnerStillHas(resource, id);
+    }
+
+    private <D> void assertOwnerStillHas(Resource<D> resource, Long id) {
+        transactionExecutor.execute(ownerTenant, () -> {
+            assertThat(resource.service().exists(id, authentication(ownerTenant))).isTrue();
+        });
+    }
+
+    private <D> void updateFromIntruder(Resource<D> resource, Long id) {
+        transactionExecutor.execute(intruderTenant, () -> {
+            resource.service().update(id, resource.newRow().get(), authentication(intruderTenant));
+        });
+    }
+
+    private <D> long countFor(Resource<D> resource, String tenant) {
+        return transactionExecutor.execute(tenant, () -> resource.service().countAll(authentication(tenant)));
+    }
+
+    private <D> Long create(Resource<D> resource) {
+        return transactionExecutor.execute(ownerTenant, () -> resource.service().save(resource.newRow().get(), authentication(ownerTenant)));
+    }
+
+    private JwtAuthenticationToken authentication(String tenantCode) {
+        Instant now = Instant.now();
+        Jwt jwt = Jwt
+            .withTokenValue("token")
+            .header("alg", "none")
+            .subject("user-1")
+            .claim("tenant", tenantCode)
+            .issuedAt(now)
+            .expiresAt(now.plusSeconds(300))
+            .build();
+        return new JwtAuthenticationToken(jwt);
+    }
+
+    /** Una risorsa con il proprio servizio e il proprio modo di costruire una riga minima. */
+    private record Resource<D>(String name, Crud<D> service, Supplier<D> newRow) {
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    /**
+     * Le sole operazioni usate dal controllo. Il repository ha due famiglie di servizi, con firme
+     * quasi uguali ma senza un'interfaccia comune: questa porta le unisce per il test.
+     */
+    private interface Crud<D> {
+        Long save(D dto, AbstractAuthenticationToken token);
+
+        void update(Long id, D dto, AbstractAuthenticationToken token);
+
+        boolean exists(Long id, AbstractAuthenticationToken token);
+
+        void delete(Long id, AbstractAuthenticationToken token);
+
+        long countAll(AbstractAuthenticationToken token);
+    }
+
+    private static <D extends CommonFieldsDTO> Crud<D> port(CommonService<?, D, ?> service) {
+        return new Crud<D>() {
+            @Override
+            public Long save(D dto, AbstractAuthenticationToken token) {
+                return service.save(dto, token).getId();
+            }
+
+            @Override
+            public void update(Long id, D dto, AbstractAuthenticationToken token) {
+                dto.setId(id);
+                service.update(id, dto, token);
+            }
+
+            @Override
+            public boolean exists(Long id, AbstractAuthenticationToken token) {
+                return service.findOne(id, token).isPresent();
+            }
+
+            @Override
+            public void delete(Long id, AbstractAuthenticationToken token) {
+                service.delete(id, token);
+            }
+
+            @Override
+            public long countAll(AbstractAuthenticationToken token) {
+                return service.countAll(token);
+            }
+        };
+    }
+
+    private static <D extends CommonFieldsOpenSearchDTO> Crud<D> port(CommonOpenSearchService<?, D, ?> service) {
+        return new Crud<D>() {
+            @Override
+            public Long save(D dto, AbstractAuthenticationToken token) {
+                return service.save(dto, token).getId();
+            }
+
+            @Override
+            public void update(Long id, D dto, AbstractAuthenticationToken token) {
+                dto.setId(id);
+                service.update(id, dto, token);
+            }
+
+            @Override
+            public boolean exists(Long id, AbstractAuthenticationToken token) {
+                return service.findOne(id, token).isPresent();
+            }
+
+            @Override
+            public void delete(Long id, AbstractAuthenticationToken token) {
+                service.delete(id, token);
+            }
+
+            @Override
+            public long countAll(AbstractAuthenticationToken token) {
+                // I servizi OpenSearch contano per criteri: un criterio vuoto è il conteggio dello schema.
+                return service.count(null, token);
+            }
+        };
+    }
+}
