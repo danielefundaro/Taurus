@@ -819,8 +819,3 @@ Stampa A4 del foglio generato con il modello predefinito e confronto con la stam
 ## Rollback
 
 Il rollback applicativo preserva le nuove tabelle, perché contengono lo storico contrattuale. Le colonne aggiunte sono tutte facoltative e compatibili con la versione precedente del backend.
-
-## Requisiti aperti
-
-- Verifica manuale dell'interfaccia con un tenant di prova: emissione, variazioni, chiusura, definizione e caricamento di un modello modificato ([Verifica manuale](#verifica-manuale)).
-- Stampa A4 del foglio generato con il modello predefinito, a confronto con la stampa del modello Word ([Verifica manuale](#verifica-manuale)).

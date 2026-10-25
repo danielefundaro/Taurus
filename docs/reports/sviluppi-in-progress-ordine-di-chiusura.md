@@ -74,6 +74,8 @@ Pochi interventi ma non banali: l'allineamento dell'anteprima richiede di replic
 
 Nessuno sviluppo residuo: serve una sessione di collaudo su un tenant di prova e una stampa di confronto.
 
+> Chiuso il 2026-10-25: collaudo eseguito, la voce è passata a `implemented`.
+
 ## 5. `track-score-playback`
 
 [Ascolto e correzione delle parti](../track-score-playback-spec.md) — difficoltà media, è collaudo con dipendenze.
