@@ -14,7 +14,7 @@ Copertura presente nel repository (la data dell'ultima verifica è nel catalogo)
 - backend: 170 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
 - frontend: 68 specifiche Jasmine/Karma;
 - servizio OMR: 7 file pytest, con test sui motori finti e test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
-- provider Keycloak: 3 classi di test, tra cui `TaurusOtpTest` e il test di integrazione `TaurusOtpResourceIT`;
+- provider Keycloak: 5 classi di test, fra cui `TaurusOtpTest`, `TaurusOtpResourceIT` e `TenantRoleFlowIT`, che attraversa il browser flow e legge i claim del mapper su un Keycloak reale;
 - sito informativo: type-check e build, senza suite funzionale dedicata;
 - E2E: suite Playwright in `taurus-fe/e2e`, con i profili desktop e mobile, che richiede un'istanza completa e due tenant di prova e non è ancora stata eseguita su un ambiente reale;
 - JaCoCo produce report backend, ma non applica una soglia minima;
@@ -286,6 +286,10 @@ La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e m
 Set-Location keycloak-authenticator
 .\mvnw.cmd clean verify
 ```
+
+`TenantRoleFlowIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo, il tema montato come fa il deploy e un realm il cui browser flow usa `tenant-role-selector-authenticator`. Attraversa la pagina di accesso e quella di scelta, poi scambia il codice e legge i claim del token: tenant e ruolo scelti da soli quando l'utente ne ha uno, pagina di scelta quando il tenant offre più ruoli con `role_choice` nel token, ruolo non posseduto rifiutato, scelta del tenant fra due, utente senza tenant respinto. Serve Docker.
+
+Il tema non è caricato dal JAR: Keycloak lo trova solo come cartella, perché il JAR non dichiara i temi in `META-INF/keycloak-themes.json`. Il deploy monta `taurus-be/src/main/docker/realm-config/taurus-theme`, che è una copia di `keycloak-authenticator/src/main/resources/themes/taurus`: le due copie possono divergere. Il test monta la cartella del modulo con il nome usato dal deploy.
 
 La suite verifica metadata del factory e service descriptor e, per il provider `taurus-otp` della firma, l'autorizzazione e la verifica dei codici (`TaurusOtpTest`). Dopo il pacchetto `TaurusOtpResourceIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo e un realm di prova, e verifica stato dell'app, codice valido accettato una sola volta, codice errato e chiamanti non autorizzati: serve Docker. La qualificazione richiede anche i casi reali della sezione 12.
 
@@ -865,7 +869,7 @@ Eseguire solo test sintetici non distruttivi:
 | Priorità | Gap attuale | Azione |
 | --- | --- | --- |
 | Bloccante | Suite E2E Playwright presente in `taurus-fe/e2e` ma mai eseguita su un'istanza reale | Calibrare i selettori alla prima esecuzione, registrarne l'esito ed estendere gli scenari oltre ruoli e tenant |
-| Bloccante | Nessun test automatico completo del provider Keycloak | Eseguire flow e mapper contro Keycloak reale |
+| Alta | Flow e mapper coperti da `TenantRoleFlowIT` su Keycloak reale; temi e tema di posta restano da provare a mano | Coprire le pagine del tema e i modelli di posta, e dichiarare i temi nel JAR invece di montarli |
 | Bloccante | Tenant isolation coperta da `TenantIsolationIT` su tracce, album, strumenti e preferenze | Aggiungere all'elenco `resources()` le altre risorse, inventario ed economia comprese |
 | Alta | Broker reale coperto da `RabbitMqBrokerIT`; un messaggio avvelenato viene però riconsegnato senza fine | Decidere coda di scarto o rifiuto senza rimessa in coda per `upload.files` e `score.recognition`, poi coprirla con un test |
 | Alta | Nessuna soglia coverage | Definire baseline, ratchet e gate per changed code |

@@ -117,6 +117,8 @@ Va prima delle funzionalità che seguono perché quasi tutte hanno fra i requisi
 
 > Primo lotto chiuso il 2026-10-25: `TenantIsolationIT`, `RabbitMqBrokerIT` e la suite Playwright in `taurus-fe/e2e`. La voce resta `in-progress` per gli altri gap; la suite end to end attende la prima esecuzione su un'istanza reale.
 
+> Secondo lotto, stesso giorno: `TenantRoleFlowIT` copre browser flow e mapper su un Keycloak reale. Restano soglie di coverage, security scan, performance, backup/restore, scheduler multi-replica e i gap di priorità media.
+
 ## 8. `track-pdf-processing`
 
 [Elaborazione asincrona dei PDF](../track-pdf-processing-spec.md) — difficoltà media.
