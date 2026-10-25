@@ -1,0 +1,196 @@
+{
+  "realm": "tenant-role-test",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginTheme": "taurus-theme",
+  "browserFlow": "tenant-browser",
+  "groups": [
+    {
+      "name": "TENANT-A",
+      "path": "/TENANT-A",
+      "description": "Banda di prova A"
+    },
+    {
+      "name": "TENANT-B",
+      "path": "/TENANT-B",
+      "description": "Banda di prova B"
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "tenant-browser",
+      "description": "Browser flow con la scelta di tenant e ruolo",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "tenant-browser-forms",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "tenant-browser-forms",
+      "description": "Credenziali e poi la scelta di tenant e ruolo",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "tenant-role-selector-authenticator",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "taurus-web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost/callback"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "tenant and role",
+          "protocol": "openid-connect",
+          "protocolMapper": "tenant-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "tenant.claim.name": "tenant",
+            "role.claim.name": "tenant_role",
+            "role.choice.claim.name": "role_choice",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "anna",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Anna",
+      "lastName": "Unico",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "anna-test-password"
+        }
+      ],
+      "groups": [
+        "/TENANT-A"
+      ],
+      "attributes": {
+        "TENANT-A_roles": [
+          "ROLE_ADMIN"
+        ]
+      },
+      "email": "anna@example.test"
+    },
+    {
+      "username": "bruno",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Bruno",
+      "lastName": "Due Ruoli",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bruno-test-password"
+        }
+      ],
+      "groups": [
+        "/TENANT-A"
+      ],
+      "attributes": {
+        "TENANT-A_roles": [
+          "ROLE_ADMIN,ROLE_USER"
+        ]
+      },
+      "email": "bruno@example.test"
+    },
+    {
+      "username": "carla",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Carla",
+      "lastName": "Due Tenant",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "carla-test-password"
+        }
+      ],
+      "groups": [
+        "/TENANT-A",
+        "/TENANT-B"
+      ],
+      "attributes": {
+        "TENANT-A_roles": [
+          "ROLE_USER"
+        ],
+        "TENANT-B_roles": [
+          "ROLE_ARCHIVIST"
+        ]
+      },
+      "email": "carla@example.test"
+    },
+    {
+      "username": "dario",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Dario",
+      "lastName": "Senza Tenant",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dario-test-password"
+        }
+      ],
+      "email": "dario@example.test"
+    }
+  ],
+  "requiredActions": [
+    {
+      "alias": "VERIFY_PROFILE",
+      "name": "Verify Profile",
+      "providerId": "VERIFY_PROFILE",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 90,
+      "config": {}
+    }
+  ]
+}
