@@ -1066,7 +1066,7 @@
       "title": "Editor manuale delle pagine PDF",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/track-pdf-manual-editing-spec.md",
       "relatedDocs": [
         "docs/track-pdf-processing-spec.md",
@@ -1085,6 +1085,7 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/pdf/PdfAnnotations.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/pdf/PdfPageTransform.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/Receiver.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java",
           "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.ts",
           "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.html"
         ],
@@ -1093,12 +1094,13 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationServiceTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/utils/ConverterTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java",
           "taurus-fe/src/app/dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component.spec.ts"
         ]
       },
-      "notes": "Il manipolatore PDF offre regolazioni manuali per pagina e riutilizza la pipeline dell'editor immagini. Il raddrizzamento usa uno slider 0°-360° con passo di 0,1° e valore visibile. Le zone di ritaglio, fino a otto, condividono colori e handle circolari con l'editor immagini, vengono salvate al rilascio senza conferma e mantengono il trascinamento oltre i bordi tramite pointer capture; restano disponibili modifica percentuale, ordinamento, eliminazione e divisioni rapide. Applica a tutte copia l'intera ricetta senza modificare le esclusioni; quando tutte le pagine sono escluse la conferma resta disabilitata. Le annotazioni precedenti vengono ripristinate e i crop legacy restano compatibili. La conversione PDF delega la pipeline tramite l'interfaccia PageImageTransformer e il modello neutro PageEditRecipe dichiarati in utils, così il pacchetto di utilità non dipende dal livello di servizio e la regola a strati di TechnicalStructureTest resta soddisfatta; il formato JSON delle annotazioni non cambia. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Il manipolatore PDF offre regolazioni manuali per pagina e riutilizza la pipeline dell'editor immagini. Il raddrizzamento usa uno slider 0°-360° con passo di 0,1° e valore visibile. Le zone di ritaglio, fino a otto, condividono colori e handle circolari con l'editor immagini, vengono salvate al rilascio senza conferma e mantengono il trascinamento oltre i bordi tramite pointer capture; restano disponibili modifica percentuale, ordinamento, eliminazione e divisioni rapide. Applica a tutte copia l'intera ricetta senza modificare le esclusioni; quando tutte le pagine sono escluse la conferma resta disabilitata. Le annotazioni precedenti vengono ripristinate e i crop legacy restano compatibili. La conversione PDF delega la pipeline tramite l'interfaccia PageImageTransformer e il modello neutro PageEditRecipe dichiarati in utils, così il pacchetto di utilità non dipende dal livello di servizio e la regola a strati di TechnicalStructureTest resta soddisfatta; il formato JSON delle annotazioni non cambia. Il 2026-10-25 sono stati chiusi i due requisiti aperti: l'anteprima calcola contrasto automatico e toni una zona per volta, con gli estremi di ogni crop e la stessa aritmetica intera del backend, e fuori dalle zone resta il contesto con gli estremi dell'intera pagina; l'upload valida le annotazioni prima di accodare il job, rispondendo 400 per JSON illeggibile (track.annotations.invalid) o ricetta fuori dai limiti, con i limiti riusati da ImageTransformationService.validate. Il worker conserva la propria validazione per i job già accodati e le annotazioni legacy. La specifica non ha più requisiti aperti.",
       "release": null,
-      "lastVerifiedOn": "2026-10-23"
+      "lastVerifiedOn": "2026-10-25"
     },
     {
       "id": "track-pdf-processing",

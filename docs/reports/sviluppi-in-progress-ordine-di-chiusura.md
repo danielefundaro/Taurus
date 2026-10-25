@@ -63,6 +63,8 @@ Tre interventi di interfaccia e uno di logging, tutti locali e già descritti in
 
 Pochi interventi ma non banali: l'allineamento dell'anteprima richiede di replicare nel client la stessa pipeline del backend, quindi va verificato su scansioni reali.
 
+> Chiuso il 2026-10-25: la voce è passata a `implemented`.
+
 ## 4. `inventory-loan-sheet`
 
 [Foglio di consegna e affidamento in comodato](../inventory-loan-sheet-spec.md) — difficoltà bassa, è solo collaudo.

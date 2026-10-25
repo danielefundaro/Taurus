@@ -7,7 +7,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { ImportsModule } from '../../imports';
-import { ImageTransformRecipe } from '../../module';
+import { ImageCrop, ImageTransformRecipe } from '../../module';
 import { PdfAnnotations, PdfCropRegion, PdfPageTransform } from '../../module/pdf-annotations.module';
 import { ConfirmService } from '../../service';
 
@@ -16,6 +16,23 @@ interface CropRect {
     y: number;
     width: number;
     height: number;
+}
+
+/** Una zona dell'anteprima con gli estremi usati dal contrasto automatico, come il crop del backend. */
+interface ToneRect {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
+interface ToneBounds {
+    min: number;
+    max: number;
+}
+
+interface ToneZone extends ToneRect {
+    bounds: ToneBounds;
 }
 
 type CropDragMode = 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se' | 'resize-n' | 'resize-s' | 'resize-e' | 'resize-w';
@@ -670,43 +687,88 @@ export class PdfManipulatorDialogComponent {
         this.applyTone(context, canvas.width, canvas.height);
     }
 
+    /**
+     * Il backend calcola i toni dopo il crop, una zona per volta: l'anteprima fa lo stesso, così il
+     * contrasto automatico di ogni zona usa i propri estremi. I pixel fuori dalle zone sono scartati
+     * dal backend e restano qui come contesto, con gli estremi dell'intera pagina.
+     */
     private applyTone(context: CanvasRenderingContext2D, width: number, height: number): void {
         const image = context.getImageData(0, 0, width, height);
         const values = image.data;
-        let min = 255;
-        let max = 0;
-        if (this.recipe.autoContrast) {
-            for (let i = 0; i < values.length; i += 4) {
-                const luminance = this.luminance(values[i], values[i + 1], values[i + 2]);
-                min = Math.min(min, luminance);
-                max = Math.max(max, luminance);
-            }
-        }
+        const zones = this.toneZones(values, width, height);
+        const page = zones.length === 1 ? zones[0].bounds : this.toneBounds(values, { left: 0, top: 0, right: width, bottom: height }, width);
         const factor = 1 + this.recipe.contrast / 100;
-        const offset = this.recipe.brightness * 2.55;
-        for (let i = 0; i < values.length; i += 4) {
-            const luminance = this.luminance(values[i], values[i + 1], values[i + 2]);
-            const stretched = this.recipe.autoContrast && max > min ? ((luminance - min) * 255) / (max - min) : luminance;
-            const adjusted = this.clamp((stretched - 128) * factor + 128 + offset, 0, 255);
-            if (this.recipe.grayscale || this.recipe.threshold !== null) {
-                const result = this.recipe.threshold === null ? adjusted : adjusted >= this.recipe.threshold ? 255 : 0;
-                values[i] = values[i + 1] = values[i + 2] = result;
-            } else {
-                values[i] = this.adjustChannel(values[i], min, max, factor, offset);
-                values[i + 1] = this.adjustChannel(values[i + 1], min, max, factor, offset);
-                values[i + 2] = this.adjustChannel(values[i + 2], min, max, factor, offset);
+        const offset = Math.round(this.recipe.brightness * 2.55);
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const zone = zones.find((candidate) => x >= candidate.left && x < candidate.right && y >= candidate.top && y < candidate.bottom);
+                this.applyPixel(values, (y * width + x) * 4, zone ? zone.bounds : page, factor, offset);
             }
         }
         context.putImageData(image, 0, 0);
     }
 
-    private adjustChannel(value: number, min: number, max: number, factor: number, offset: number): number {
-        const stretched = this.recipe.autoContrast && max > min ? ((value - min) * 255) / (max - min) : value;
-        return this.clamp((stretched - 128) * factor + 128 + offset, 0, 255);
+    /** Le zone del backend: i crop della ricetta, oppure l'intera pagina quando non ce ne sono. */
+    private toneZones(values: Uint8ClampedArray, width: number, height: number): ToneZone[] {
+        const rectangles: ToneRect[] = this.recipe.crops.length
+            ? this.recipe.crops.map((crop) => this.toneRect(crop, width, height))
+            : [{ left: 0, top: 0, right: width, bottom: height }];
+
+        return rectangles.map((rectangle) => ({ ...rectangle, bounds: this.toneBounds(values, rectangle, width) }));
+    }
+
+    /** Stesso arrotondamento del crop del backend, sulle dimensioni del canvas. */
+    private toneRect(crop: ImageCrop, width: number, height: number): ToneRect {
+        const left = this.clamp(Math.round(crop.x * width), 0, Math.max(0, width - 1));
+        const top = this.clamp(Math.round(crop.y * height), 0, Math.max(0, height - 1));
+
+        return {
+            left,
+            top,
+            right: left + this.clamp(Math.round(crop.width * width), 1, width - left),
+            bottom: top + this.clamp(Math.round(crop.height * height), 1, height - top)
+        };
+    }
+
+    private toneBounds(values: Uint8ClampedArray, rectangle: ToneRect, width: number): ToneBounds {
+        if (!this.recipe.autoContrast) return { min: 255, max: 0 };
+        let min = 255;
+        let max = 0;
+        for (let y = rectangle.top; y < rectangle.bottom; y++) {
+            for (let x = rectangle.left; x < rectangle.right; x++) {
+                const index = (y * width + x) * 4;
+                const luminance = this.luminance(values[index], values[index + 1], values[index + 2]);
+                min = Math.min(min, luminance);
+                max = Math.max(max, luminance);
+            }
+        }
+
+        return { min, max };
+    }
+
+    private applyPixel(values: Uint8ClampedArray, index: number, bounds: ToneBounds, factor: number, offset: number): void {
+        if (this.recipe.grayscale || this.recipe.threshold !== null) {
+            const adjusted = this.adjustValue(this.luminance(values[index], values[index + 1], values[index + 2]), bounds, factor, offset);
+            const result = this.recipe.threshold === null ? adjusted : adjusted >= this.recipe.threshold ? 255 : 0;
+            values[index] = values[index + 1] = values[index + 2] = result;
+            return;
+        }
+
+        values[index] = this.adjustValue(values[index], bounds, factor, offset);
+        values[index + 1] = this.adjustValue(values[index + 1], bounds, factor, offset);
+        values[index + 2] = this.adjustValue(values[index + 2], bounds, factor, offset);
+    }
+
+    /** Stessa aritmetica intera del backend, per non introdurre differenze di un livello. */
+    private adjustValue(value: number, bounds: ToneBounds, factor: number, offset: number): number {
+        const stretched = this.recipe.autoContrast && bounds.max > bounds.min ? Math.trunc(((value - bounds.min) * 255) / (bounds.max - bounds.min)) : value;
+
+        return this.clamp(Math.round((stretched - 128) * factor + 128) + offset, 0, 255);
     }
 
     private luminance(red: number, green: number, blue: number): number {
-        return (red * 299 + green * 587 + blue * 114) / 1000;
+        return Math.trunc((red * 299 + green * 587 + blue * 114) / 1000);
     }
 
     private isZeroAngle(degrees: number): boolean {

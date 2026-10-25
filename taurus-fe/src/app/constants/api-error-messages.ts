@@ -490,6 +490,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     // Tracks, uploads and page images
     'track.notFound': 'Brano non trovato',
     'track.file.empty': 'Il file è vuoto',
+    'track.annotations.invalid': 'Le modifiche alle pagine non sono leggibili: riapri il manipolatore e riprova',
     'track.score.notFound': 'La parte non appartiene al brano',
     'track.queue.failed': "Impossibile avviare l'elaborazione del file: riprovare",
     'track.upload.notFound': 'Elaborazione non trovata',

@@ -135,7 +135,7 @@ render pagina PDF a colori
     -> PNG della pagina
 ```
 
-L'anteprima del dialogo applica rotazione e raddrizzamento, poi calcola contrasto automatico e toni sull'intera pagina e mostra i crop come sovrapposizioni. Il backend calcola invece i toni dopo il crop, zona per zona (`ImageTransformationService.transformRendered`). Con il contrasto automatico attivo e più zone, il risultato può quindi differire dall'anteprima.
+L'anteprima del dialogo applica rotazione e raddrizzamento, poi calcola contrasto automatico e toni con la stessa regola del backend: una zona per volta, sui crop della ricetta, o sull'intera pagina quando non ci sono crop (`ImageTransformationService.transformRendered`). Ogni zona usa quindi i propri estremi di luminanza e la stessa aritmetica intera del backend. I pixel fuori dalle zone, che il backend scarta, restano come contesto e usano gli estremi dell'intera pagina. Differenze residue di un livello restano possibili perché l'anteprima lavora su una pagina ridotta a 1400 pixel di lato e con l'antialiasing del canvas.
 
 Se non esistono crop, l'intera pagina continua nella pipeline. Se una pagina è esclusa, la sua posizione nell'elenco intermedio viene conservata con un valore nullo; il raggruppamento delle parti può così continuare a riferirsi agli indici del PDF originale.
 
@@ -152,7 +152,9 @@ La conversione PDF vive in `utils`, mentre la pipeline appartiene al livello di 
 
 ## Validazione e sicurezza
 
-L'upload non valida le annotazioni: le salva nel job così come arrivano. Il worker le interpreta durante l'elaborazione. Un JSON malformato viene scartato con un warning e il PDF è elaborato senza annotazioni. Una ricetta fuori dai limiti porta il job a `ERROR` in modo asincrono.
+L'upload valida le annotazioni prima di accodare il job: un JSON illeggibile risponde `400` con `track.annotations.invalid` e una ricetta fuori dai limiti risponde `400` con le chiavi dell'editor immagini (`image.recipe.invalid`, `image.recipeVersion`). Il file non viene accodato e l'utente vede subito l'errore, invece di scoprire un job in `ERROR` dopo la chiusura dell'upload. La validazione riusa i limiti del motore condiviso, esposti da `ImageTransformationService.validate`.
+
+Il worker continua a interpretare e validare le annotazioni: vale per i job accodati prima di questo controllo e per quelle legacy. Lì un JSON malformato viene ancora scartato con un warning e il PDF elaborato senza annotazioni, mentre una ricetta fuori dai limiti porta il job a `ERROR`.
 
 Il worker valida le ricette provenienti dalle annotazioni del PDF, che non attraversano la validazione HTTP dell'endpoint dell'editor immagini:
 
@@ -177,11 +179,12 @@ Annotazioni legacy senza `pageTransforms` continuano a essere elaborate usando e
 
 ### Backend
 
+- `TracksServiceImpl`: validazione sincrona delle annotazioni all'upload, prima dell'accodamento;
 - `PageEditRecipe`: modello neutro della ricetta, senza dipendenze dal livello di servizio;
 - `PageImageTransformer`: interfaccia che `utils` usa per delegare la trasformazione;
 - `PdfPageTransform`: deserializzazione e conversione nella ricetta condivisa;
 - `PdfAnnotations`: supporto di `pageTransforms`;
-- `ImageTransformationService`: trasformazione condivisa di immagini già renderizzate; implementa `PageImageTransformer` e converte i DTO HTTP nel modello neutro;
+- `ImageTransformationService`: trasformazione condivisa di immagini già renderizzate; implementa `PageImageTransformer`, converte i DTO HTTP nel modello neutro ed espone `validate` per la validazione sincrona dell'upload;
 - `Converter`: rendering RGB, applicazione della ricetta e unione verticale dei crop; riceve il trasformatore dal chiamante invece di costruirlo;
 - `Receiver`: iniezione e utilizzo del motore condiviso.
 
@@ -204,7 +207,8 @@ Sono coperti:
 - mantenimento del trascinamento oltre i bordi tramite pointer capture;
 - blocco dell'aggiunta oltre il limite di otto zone;
 - posizionamento del tooltip numerico di luminosità, contrasto e soglia lungo lo slider;
-- slider di raddrizzamento 0°–360° e normalizzazione delle annotazioni negative precedenti.
+- slider di raddrizzamento 0°–360° e normalizzazione delle annotazioni negative precedenti;
+- contrasto automatico calcolato sugli estremi di ogni zona, pagina intera senza crop, contesto fuori dalle zone e aritmetica intera di luminosità e contrasto.
 
 ### Backend
 
@@ -214,12 +218,13 @@ Sono coperti:
 - rotazione e scala di grigi tramite la pipeline condivisa;
 - conversione reale di un PDF di prova;
 - mantenimento della posizione nulla di una pagina esclusa;
-- comportamento precedente del receiver dopo l'iniezione del motore.
+- comportamento precedente del receiver dopo l'iniezione del motore;
+- rifiuto all'upload di un JSON illeggibile e di una ricetta fuori dai limiti, con le annotazioni legacy ancora accettate.
 
 ## Criteri di accettazione
 
 1. Ogni pagina PDF può avere una ricetta manuale indipendente.
-2. Tutte le regolazioni previste dall'editor sono visibili nell'anteprima e applicate dal backend.
+2. Tutte le regolazioni previste dall'editor sono visibili nell'anteprima e applicate dal backend, con contrasto automatico e toni calcolati per zona in entrambi.
 3. La conversione a scala di grigi avviene soltanto quando richiesta.
 4. «Applica a tutte» copia l'intera ricetta senza modificare le esclusioni.
 5. Escludere tutte le pagine disabilita «Applica modifiche» e non chiude il dialogo con annotazioni invalide.
@@ -239,8 +244,3 @@ Sono coperti:
 - modifica del PDF sorgente;
 - cronologia o undo dopo l'avvio dell'upload;
 - modifica simultanea di ricette diverse su una selezione parziale di pagine.
-
-## Requisiti aperti
-
-- Allineamento dell'anteprima al backend per contrasto automatico e toni calcolati per zona (Pipeline di elaborazione; criterio 2).
-- Validazione delle annotazioni all'upload, con errore sincrono per JSON malformato o ricetta fuori dai limiti (Validazione e sicurezza).

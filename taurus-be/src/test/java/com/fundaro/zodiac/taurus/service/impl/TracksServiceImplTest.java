@@ -14,6 +14,7 @@ import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -54,7 +55,8 @@ class TracksServiceImplTest {
             queueUploadFilesService,
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            sender
+            sender,
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         MultipartFile file = mock(MultipartFile.class);
@@ -91,7 +93,8 @@ class TracksServiceImplTest {
             queueUploadFilesService,
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            sender
+            sender,
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         MultipartFile file = mock(MultipartFile.class);
@@ -128,7 +131,8 @@ class TracksServiceImplTest {
             queueUploadFilesService,
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            sender
+            sender,
+            new ImageTransformationService()
         );
         JwtAuthenticationToken token = authentication();
         Tracks track = new Tracks();
@@ -163,7 +167,8 @@ class TracksServiceImplTest {
             mock(QueueUploadFilesService.class),
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            mock(Sender.class)
+            mock(Sender.class),
+            new ImageTransformationService()
         );
         Tracks entity = new Tracks();
         TracksDTO request = new TracksDTO();
@@ -196,7 +201,8 @@ class TracksServiceImplTest {
             mock(QueueUploadFilesService.class),
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            mock(Sender.class)
+            mock(Sender.class),
+            new ImageTransformationService()
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -239,7 +245,8 @@ class TracksServiceImplTest {
             mock(QueueUploadFilesService.class),
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            mock(Sender.class)
+            mock(Sender.class),
+            new ImageTransformationService()
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -279,7 +286,8 @@ class TracksServiceImplTest {
             mock(QueueUploadFilesService.class),
             mediaRepository,
             instrumentsRepository,
-            mock(Sender.class)
+            mock(Sender.class),
+            new ImageTransformationService()
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -323,7 +331,8 @@ class TracksServiceImplTest {
             mock(QueueUploadFilesService.class),
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
-            mock(Sender.class)
+            mock(Sender.class),
+            new ImageTransformationService()
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -335,6 +344,83 @@ class TracksServiceImplTest {
         assertThatThrownBy(() -> service.update(8L, request, authentication()))
             .isInstanceOf(com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException.class)
             .hasMessageContaining("modified by another request");
+    }
+
+    @Test
+    void refusesAnUploadWhoseAnnotationsAreNotReadable() {
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            mock(TracksRepository.class),
+            mock(TracksMapper.class),
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            mock(Sender.class),
+            new ImageTransformationService()
+        );
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+
+        assertThatThrownBy(() -> service.uploadFile(8L, file, "{\"excludedPages\": [1,", authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Annotations are not readable");
+
+        verifyNoInteractions(queueUploadFilesService);
+    }
+
+    @Test
+    void refusesAnUploadWhoseRecipeIsOutOfRange() {
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            mock(TracksRepository.class),
+            mock(TracksMapper.class),
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            mock(Sender.class),
+            new ImageTransformationService()
+        );
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        String annotations = "{\"pageTransforms\":[{\"page\":1,\"recipeVersion\":1,\"brightness\":500}]}";
+
+        assertThatThrownBy(() -> service.uploadFile(8L, file, annotations, authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Invalid image adjustments");
+
+        verifyNoInteractions(queueUploadFilesService);
+    }
+
+    @Test
+    void acceptsLegacyAnnotationsWithoutRecipes() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            mock(Sender.class),
+            new ImageTransformationService()
+        );
+        MultipartFile file = mock(MultipartFile.class);
+        Tracks track = new Tracks();
+        track.setId(8L);
+        TracksDTO trackDTO = new TracksDTO();
+        trackDTO.setId(8L);
+        QueueUploadFilesDTO queued = new QueueUploadFilesDTO();
+        queued.setId(3L);
+
+        when(file.isEmpty()).thenReturn(false);
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(track));
+        when(mapper.toDto(track)).thenReturn(trackDTO);
+        when(queueUploadFilesService.saveStream(any(QueueUploadFilesDTO.class), any())).thenReturn(queued);
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        assertThat(service.uploadFile(8L, file, "{\"excludedPages\":[2],\"cropRegions\":[]}", authentication())).isSameAs(queued);
     }
 
     private JwtAuthenticationToken authentication() {

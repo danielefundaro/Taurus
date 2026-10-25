@@ -17,7 +17,11 @@ import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
+import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
+import com.fundaro.zodiac.taurus.utils.pdf.PdfPageTransform;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,6 +51,8 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private final MediaRepository mediaRepository;
     private final InstrumentsRepository instrumentsRepository;
     private final Sender sender;
+    private final ImageTransformationService imageTransformationService;
+    private final ObjectMapper annotationsMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public TracksServiceImpl(
         TracksRepository repository,
@@ -54,13 +60,15 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         QueueUploadFilesService queueUploadFilesService,
         MediaRepository mediaRepository,
         InstrumentsRepository instrumentsRepository,
-        Sender sender
+        Sender sender,
+        ImageTransformationService imageTransformationService
     ) {
         super(repository, mapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
         this.mediaRepository = mediaRepository;
         this.instrumentsRepository = instrumentsRepository;
         this.sender = sender;
+        this.imageTransformationService = imageTransformationService;
     }
 
     @Override
@@ -158,6 +166,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         if (file == null || file.isEmpty()) {
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, "File is empty", getEntityName(), "track.file.empty");
         }
+        validateAnnotations(annotations);
         QueueUploadFilesDTO upload = new QueueUploadFilesDTO();
         upload.setMultipartFile(file);
         upload.setType(getEntityName());
@@ -178,6 +187,25 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
         return queued;
+    }
+
+    /**
+     * Le annotazioni arrivano come JSON dal dialogo: un errore va detto subito, perché scoprirlo nel
+     * worker significa un job in ERROR quando l'utente ha già chiuso l'upload. Il worker continua a
+     * validarle per i job accodati prima di questo controllo e per le annotazioni legacy.
+     */
+    private void validateAnnotations(String annotations) {
+        if (annotations == null || annotations.isBlank()) return;
+        PdfAnnotations parsed;
+        try {
+            parsed = annotationsMapper.readValue(annotations, PdfAnnotations.class);
+        } catch (Exception exception) {
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Annotations are not readable", getEntityName(), "track.annotations.invalid");
+        }
+        if (parsed == null || parsed.getPageTransforms() == null) return;
+        for (PdfPageTransform transform : parsed.getPageTransforms()) {
+            imageTransformationService.validate(transform.toRecipe());
+        }
     }
 
     @Override
