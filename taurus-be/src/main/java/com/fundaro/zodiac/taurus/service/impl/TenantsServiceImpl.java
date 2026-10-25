@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.criteria.TenantsCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningException;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
@@ -16,6 +17,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,8 +91,9 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         Map<String, Boolean> savedFeatures = featureFlags(saved);
         if (!previousFeatures.equals(savedFeatures)) {
             getLogger().info(
-                "tenant_features_updated tenantId={} tenantCode={} before={} after={} actor={} version={} occurredAt={}",
+                "tenant_features_updated tenantId={} tenantCode={} before={} after={} dependentChanges={} actor={} version={} occurredAt={}",
                 saved.getId(), saved.getCode(), previousFeatures, savedFeatures,
+                dependentChanges(previousFeatures, savedFeatures),
                 SecurityUtils.getUserIdFromAuthentication(token), saved.getEntityVersion(), java.time.Instant.now()
             );
         }
@@ -199,6 +202,30 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             dto.setInventoryLoanSheetEnabled(previous.getInventoryLoanSheetEnabled());
         if (dto.getInventorySignatureEnabled() == null)
             dto.setInventorySignatureEnabled(previous.getInventorySignatureEnabled());
+    }
+
+    /**
+     * Funzionalità figlie il cui flag non cambia ma il cui stato effettivo cambia perché cambia
+     * una funzionalità da cui dipendono: senza questa riga il log mostrerebbe una modifica sola.
+     * Visibile al package per il test che ne verifica la catena.
+     */
+    Map<String, Boolean> dependentChanges(Map<String, Boolean> before, Map<String, Boolean> after) {
+        Map<String, Boolean> changed = new LinkedHashMap<>();
+        for (TenantFeature feature : TenantFeature.values()) {
+            String key = feature.errorKey();
+            if (!Objects.equals(before.get(key), after.get(key))) continue;
+            boolean effectiveAfter = effective(feature, after);
+            if (effective(feature, before) != effectiveAfter) changed.put(key, effectiveAfter);
+        }
+
+        return changed;
+    }
+
+    /** Una funzionalità è effettiva quando è attiva insieme a tutte quelle da cui dipende. */
+    private boolean effective(TenantFeature feature, Map<String, Boolean> flags) {
+        if (!Boolean.TRUE.equals(flags.get(feature.errorKey()))) return false;
+
+        return feature.dependencies().stream().allMatch(dependency -> effective(dependency, flags));
     }
 
     private Map<String, Boolean> featureFlags(Tenants tenant) {

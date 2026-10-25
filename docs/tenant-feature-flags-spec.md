@@ -114,23 +114,14 @@ I nuovi tenant nascono con tutti i flag configurati a `false`. La pagina di crea
 
 ## Gestione nella pagina di dettaglio tenant
 
-Nella pagina di dettaglio la sezione **Funzionalità disponibili** contiene checkbox PrimeNG binarie per tutti i flag tenant, in un'unica griglia senza raggruppamenti.
+Nella pagina di dettaglio la sezione **Funzionalità disponibili** contiene checkbox PrimeNG binarie per tutti i flag tenant, divise in due gruppi: **Moduli principali**, le funzionalità autonome, ed **Estensioni**, quelle che dipendono da un modulo. L'appartenenza deriva dalle dipendenze dichiarate, quindi una funzionalità nuova finisce nel gruppo giusto senza altre modifiche. Il gruppo delle estensioni ricorda che restano inefficaci finché il modulo da cui dipendono è spento.
 
 Ogni checkbox usa `[binary]="true"`, un `inputId` stabile e una `label` semanticamente associata. Accanto al controllo viene mostrato lo stato della capacità applicativa: **Disponibile**, **Non disponibile nell'installazione** oppure **Richiede un'altra funzionalità**.
 
 I controlli, nell'ordine della pagina, sono:
 
-- Economia;
-- Inventario;
-- Onboarding e importazione iniziale;
-- Feed calendario esterno;
-- Preparazione evento;
-- Ascolto delle parti;
-- QR code inventario;
-- Fogli di affidamento;
-- Firma elettronica;
-- Preferenze notifiche;
-- Promemoria eventi Web Push.
+- **Moduli principali**: Economia; Inventario; Onboarding e importazione iniziale; Feed calendario esterno; Preparazione evento; Ascolto delle parti; Preferenze notifiche.
+- **Estensioni**: QR code inventario; Fogli di affidamento; Firma elettronica; Promemoria eventi Web Push.
 
 Ogni checkbox deve avere un `inputId`, una label associata e una breve descrizione. Esempio:
 
@@ -138,7 +129,7 @@ Ogni checkbox deve avere un `inputId`, una label associata e una breve descrizio
 
 Il cambiamento viene salvato insieme agli altri dati del tenant. Se una o più funzionalità passano da attive a disattive, prima del salvataggio viene mostrata un'unica conferma che elenca per nome gli effetti e le dipendenze che diventeranno inefficaci. La riattivazione non richiede conferma.
 
-Il valore tenant rimane modificabile anche se il kill switch globale è spento, permettendo di preparare un rollout. In questo caso la UI mostra soltanto lo stato **Non disponibile nell'installazione**.
+Il valore tenant rimane modificabile anche se il kill switch globale è spento, permettendo di preparare un rollout. In questo caso la UI mostra lo stato **Non disponibile nell'installazione** e spiega che cosa significa il valore scelto: con la checkbox attiva si tratta di un'abilitazione pianificata, che diventerà effettiva quando l'installazione renderà disponibile la funzionalità; con la checkbox spenta, che il valore viene comunque salvato.
 
 Il salvataggio aggiorna atomicamente tutti i flag. Quando il client invia `entityVersion`, una versione diversa da quella persistita risponde `409` (`version.conflict`); senza `entityVersion` la versione non viene controllata.
 
@@ -617,7 +608,7 @@ Se un utente si trova già in una funzionalità appena disabilitata:
 
 1. al successivo aggiornamento periodico il frontend aggiorna il menu e lo reindirizza alla dashboard;
 2. se prima dell'aggiornamento prova a eseguire un'operazione, il backend risponde immediatamente `403`;
-3. l'interceptor HTTP (`http-interceptor.service.ts`, comportamento `tenantFeatureDisabled` di `api-error-behaviors.ts`) riconosce il codice `tenantFeature.*.disabled`, mostra il toast, forza il refresh dei flag e naviga sempre a `/`.
+3. l'interceptor HTTP (`http-interceptor.service.ts`, comportamento `tenantFeatureDisabled` di `api-error-behaviors.ts`) riconosce il codice `tenantFeature.*.disabled`, mostra il toast, forza il refresh dei flag e naviga a `/` soltanto se la pagina aperta è quella dedicata a quella funzionalità.
 
 Messaggio suggerito:
 
@@ -625,7 +616,7 @@ Messaggio suggerito:
 
 Il normale `403` dovuto a un ruolo insufficiente continua invece a produrre il messaggio **Permesso negato**.
 
-La navigazione a `/` avviene anche per le funzionalità incorporate in una pagina condivisa, come Preparazione evento, Preferenze notifiche o QR inventario: il frontend non distingue tra sezione e route dedicata.
+Per le funzionalità incorporate in una pagina condivisa, come Preparazione evento, Preferenze notifiche o QR inventario, la navigazione a `/` non avviene: l'utente resta dov'è e il refresh dei flag fa sparire la sola sezione interessata. La distinzione non è un elenco da mantenere: una pagina è dedicata a una funzionalità quando una route dell'albero attivo la dichiara in `data.feature`, come fa `tenantFeatureGuard`.
 
 Una disattivazione dipendente produce lo stesso aggiornamento. Per esempio, spegnere Inventario rende immediatamente inefficace anche QR inventario pur conservando `inventoryQrEnabled = true` come configurazione pianificata.
 
@@ -709,7 +700,7 @@ Ogni modifica dei flag produce in `TenantsServiceImpl.update` il log strutturato
 - data e ora;
 - versione dell'entità.
 
-Il log non elenca le funzionalità figlie il cui stato effettivo cambia per dipendenza.
+Il log elenca in `dependentChanges` le funzionalità figlie il cui flag non cambia ma il cui stato effettivo cambia perché cambia una funzionalità da cui dipendono, anche in modo indiretto, con il nuovo stato effettivo di ciascuna. Le dipendenze sono dichiarate una sola volta, in `TenantFeature.dependencies()`, e sono le stesse usate per calcolare lo stato effettivo.
 
 Non devono essere registrati token o altri dati sensibili. I normali campi di audit del tenant continuano a indicare autore e data dell'ultima modifica.
 
@@ -754,7 +745,8 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - aggiornamento periodico e al ritorno in primo piano;
 - gestione specifica del `403` per feature disabilitata;
 - conferma prima della disattivazione dal dettaglio tenant;
-- rendering delle undici checkbox, stato della capacità applicativa e dipendenze;
+- rendering delle undici checkbox nei due gruppi, stato della capacità applicativa, spiegazione dell'abilitazione pianificata e dipendenze;
+- permanenza nella pagina condivisa, e uscita dalla sola pagina dedicata, quando una funzionalità viene disattivata;
 - Onboarding nascosto e polling interrotto dopo la disattivazione;
 - gestione feed nascosta senza esporre URL o token conservati;
 - assenza di comandi QR e chiamate resolver quando QR o Inventario sono disabilitati;
@@ -813,10 +805,3 @@ La funzionalità è completata quando:
 - disabilitare Web Push reminder non spegne i push di altre categorie e non causa invii tardivi;
 - Preparazione evento conserva dati e conferme, degradando separatamente le aree Economia e Inventario;
 - `notification-delivery-generalization` non compare tra i controlli tenant e resta l'unico meccanismo di consegna.
-
-## Requisiti aperti
-
-- Raggruppamento delle checkbox in **Moduli principali** ed **Estensioni** (Gestione nella pagina di dettaglio tenant).
-- Spiegazione, con il kill switch globale spento, che il flag salvato è un'abilitazione pianificata (Gestione nella pagina di dettaglio tenant).
-- Rimozione della sola sezione interessata, senza navigare a `/`, quando una funzionalità di una pagina condivisa viene disattivata (Modifica mentre l'utente è collegato).
-- Elenco nel log delle funzionalità figlie il cui stato effettivo cambia per dipendenza (Logging e audit).

@@ -3,7 +3,9 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
-import { KeycloakService, LoadingService, ToastService, withHandledErrors } from '../service';
+import { KeycloakService, LoadingService, TenantFeatureService, ToastService, withHandledErrors } from '../service';
+import { of } from 'rxjs';
+import { TenantFeature } from '../module';
 import { HttpInterceptorService } from './http-interceptor.service';
 
 describe('HttpInterceptorService on the public signature page', () => {
@@ -50,5 +52,65 @@ describe('HttpInterceptorService on the public signature page', () => {
         controller.expectOne(link).flush(null, { status: 404, statusText: 'Not Found' });
         expect(toast.error).toHaveBeenCalledTimes(1);
         expect(keycloak.logout).not.toHaveBeenCalled();
+    });
+});
+
+describe('HttpInterceptorService when a tenant feature is disabled', () => {
+    let http: HttpClient;
+    let controller: HttpTestingController;
+    let router: jasmine.SpyObj<Router>;
+    const url = `${environment.baseUrl}/inventory/items`;
+
+    const configure = (openFeature?: TenantFeature): void => {
+        const root = { data: {}, children: [{ data: openFeature ? { feature: openFeature } : {}, children: [] }] };
+        router = jasmine.createSpyObj<Router>('Router', ['navigate'], { routerState: { snapshot: { root } } as never });
+        TestBed.configureTestingModule({
+            providers: [
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+                { provide: KeycloakService, useValue: jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: true, token: 'token' }) },
+                { provide: ToastService, useValue: jasmine.createSpyObj<ToastService>('ToastService', ['error']) },
+                { provide: LoadingService, useValue: { loading: false } },
+                { provide: TenantFeatureService, useValue: { refresh: () => of({}) } },
+                { provide: Router, useValue: router }
+            ]
+        });
+        http = TestBed.inject(HttpClient);
+        controller = TestBed.inject(HttpTestingController);
+    };
+
+    afterEach(() => {
+        controller.verify();
+        TestBed.resetTestingModule();
+    });
+
+    const failWith = (key: string): void => {
+        http.get(url).subscribe({ error: () => undefined });
+        controller.expectOne(url).flush({ message: `error.${key}` }, { status: 403, statusText: 'Forbidden' });
+    };
+
+    it('leaves the page that is dedicated to the feature', () => {
+        configure(TenantFeature.INVENTORY);
+
+        failWith('tenantFeature.inventory.disabled');
+
+        expect(router.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('stays on a shared page and lets it hide the section', () => {
+        configure(TenantFeature.INVENTORY);
+
+        failWith('tenantFeature.inventoryQr.disabled');
+
+        expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('stays on a page that declares no feature at all', () => {
+        configure();
+
+        failWith('tenantFeature.eventPreparation.disabled');
+
+        expect(router.navigate).not.toHaveBeenCalled();
     });
 });

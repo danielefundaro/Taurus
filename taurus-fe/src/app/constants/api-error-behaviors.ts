@@ -40,6 +40,14 @@ const VERSION_CONFLICT_SUFFIX = '.versionConflict';
 /** Every `tenantFeature.{feature}.disabled` key, including features added after this registry. */
 const TENANT_FEATURE_DISABLED = /^tenantFeature\.[a-zA-Z0-9]+\.disabled$/;
 
+/** The tenant feature of a `tenantFeature.{feature}.disabled` key, if the key is one of them. */
+export const tenantFeatureOfError = (key: string): string | undefined => {
+    if (!TENANT_FEATURE_DISABLED.test(key)) return undefined;
+
+    // `inventoryQr` is the error key of `INVENTORY_QR`: the enum value is its upper snake case.
+    return key.split('.')[1].replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase();
+};
+
 /** The behavior registered for an error key, if any. */
 export const apiErrorBehavior = (key: string): ApiErrorBehavior | undefined => {
     if (Object.prototype.hasOwnProperty.call(API_ERROR_BEHAVIORS, key)) return API_ERROR_BEHAVIORS[key];

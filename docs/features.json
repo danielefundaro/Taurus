@@ -842,7 +842,7 @@
       "title": "Funzionalità configurabili per tenant",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/tenant-feature-flags-spec.md",
       "modules": ["taurus-be", "taurus-fe", "keycloak-authenticator"],
       "evidence": {
@@ -854,6 +854,11 @@
           "taurus-fe/src/app/service/tenant-feature.service.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.ts",
           "taurus-fe/src/app/pages/tenants/detail/detail.component.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.html",
+          "taurus-fe/src/app/interceptor/http-interceptor.service.ts",
+          "taurus-fe/src/app/constants/api-error-behaviors.ts",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/enumeration/TenantFeature.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TenantsServiceImpl.java",
           "taurus-fe/src/app/components/topbar/topbar.component.ts",
           "keycloak-authenticator/src/main/java/com/fundaro/zodiac/keycloakauthenticator/authentication/TenantRoleSelectorAuthenticator.java",
           "keycloak-authenticator/src/main/java/com/fundaro/zodiac/keycloakauthenticator/protocol/oidc/mappers/TenantRoleMapper.java"
@@ -870,7 +875,10 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceRolloverSchedulerTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryExpirationNotificationSchedulerTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationDispatcherTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TenantsServiceImplTest.java",
           "taurus-fe/src/app.routes.spec.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.spec.ts",
+          "taurus-fe/src/app/interceptor/http-interceptor.service.spec.ts",
           "taurus-fe/src/app/service/tenant-feature.service.spec.ts",
           "taurus-fe/src/app/guard/tenant-feature.guard.spec.ts",
           "taurus-fe/src/app/components/menu/menu.component.spec.ts",
@@ -879,9 +887,9 @@
           "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/protocol/oidc/mappers/TenantRoleMapperTest.java"
         ]
       },
-      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar e aggiunto il ruolo della sessione quando è stato scelto tra più ruoli del tenant (claim role_choice del provider Keycloak). Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar e aggiunto il ruolo della sessione quando è stato scelto tra più ruoli del tenant (claim role_choice del provider Keycloak). Il 2026-10-25 sono stati chiusi i quattro requisiti aperti: le checkbox sono divise in Moduli principali ed Estensioni in base alle dipendenze dichiarate; con la capacità applicativa spenta la pagina spiega se il valore salvato è un'abilitazione pianificata; una funzionalità incorporata in una pagina condivisa non porta più l'utente a / ma fa sparire la sola sezione, perché l'interceptor esce soltanto dalla pagina che dichiara quella funzionalità in data.feature; il log tenant_features_updated elenca in dependentChanges le figlie il cui stato effettivo cambia per dipendenza, con le dipendenze dichiarate una sola volta in TenantFeature.dependencies(). La specifica non ha più requisiti aperti.",
       "release": null,
-      "lastVerifiedOn": "2026-10-24"
+      "lastVerifiedOn": "2026-10-25"
     },
     {
       "id": "tenant-onboarding-import",

@@ -128,12 +128,7 @@ public class TenantFeatureService {
     }
 
     private List<TenantFeature> dependencies(TenantFeature feature) {
-        return switch (feature) {
-            case INVENTORY_QR, INVENTORY_LOAN_SHEET -> List.of(TenantFeature.INVENTORY);
-            case INVENTORY_SIGNATURE -> List.of(TenantFeature.INVENTORY_LOAN_SHEET);
-            case WEB_PUSH_REMINDERS -> List.of(TenantFeature.NOTIFICATION_PREFERENCES);
-            default -> List.of();
-        };
+        return feature.dependencies();
     }
 
     private boolean vapidConfigured() {

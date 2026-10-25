@@ -21,7 +21,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     public tenant: Tenants = new Tenants();
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
-    protected readonly tenantFeatures: { key: TenantFeatureField; feature: TenantFeature; label: string; description: string; dependency?: TenantFeatureField }[] = [
+    protected readonly tenantFeatures: TenantFeatureItem[] = [
         { key: 'financeEnabled', feature: TenantFeature.FINANCE, label: 'Economia', description: 'Conti, movimenti, rendiconti e informazioni economiche degli eventi.' },
         { key: 'inventoryEnabled', feature: TenantFeature.INVENTORY, label: 'Inventario', description: 'Oggetti, assegnazioni, fotografie, riconsegne e report.' },
         { key: 'onboardingImportEnabled', feature: TenantFeature.ONBOARDING_IMPORT, label: 'Onboarding e importazione iniziale', description: 'Wizard, template e importazioni iniziali del tenant.' },
@@ -47,6 +47,18 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         { key: 'webPushRemindersEnabled', feature: TenantFeature.WEB_PUSH_REMINDERS, label: 'Promemoria eventi Web Push', description: 'Pianificazione e invio dei promemoria prima degli eventi.', dependency: 'notificationPreferencesEnabled' }
     ];
     private originalFeatureValues: Partial<Record<TenantFeatureField, boolean>> = {};
+
+    /** I moduli autonomi e le funzionalità che ne estendono uno, nei due gruppi mostrati dalla pagina. */
+    protected get featureGroups(): TenantFeatureGroup[] {
+        return [
+            { heading: 'Moduli principali', items: this.tenantFeatures.filter((item) => !item.dependency) },
+            {
+                heading: 'Estensioni',
+                description: 'Richiedono un modulo principale: restano inefficaci finché il modulo da cui dipendono è spento.',
+                items: this.tenantFeatures.filter((item) => !!item.dependency)
+            }
+        ];
+    }
 
     constructor(
         private readonly tenantsService: TenantsService,
@@ -191,6 +203,19 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return 'Disponibile';
     }
 
+    /**
+     * Con la funzionalità spenta nell'installazione il flag resta modificabile e viene salvato:
+     * serve a preparare un rollout, quindi la pagina spiega che cosa significa il valore scelto.
+     */
+    protected featureHint(item: { key: TenantFeatureField; feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
+        const capability = this.tenantFeatureService.capabilities()?.[item.feature];
+        if (!capability || capability.available) return undefined;
+
+        return this.tenant[item.key] === true
+            ? 'Abilitazione pianificata: diventerà effettiva quando l’installazione renderà disponibile la funzionalità.'
+            : 'Il valore viene salvato comunque e diventerà effettivo quando l’installazione renderà disponibile la funzionalità.';
+    }
+
     /** Una funzionalità è effettiva quando è attiva insieme a tutte quelle da cui dipende. */
     private effective(key: TenantFeatureField, values: Partial<Record<TenantFeatureField, boolean>>): boolean {
         const dependency = this.tenantFeatures.find((item) => item.key === key)?.dependency;
@@ -215,6 +240,20 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 }
             });
     }
+}
+
+interface TenantFeatureGroup {
+    heading: string;
+    description?: string;
+    items: TenantFeatureItem[];
+}
+
+interface TenantFeatureItem {
+    key: TenantFeatureField;
+    feature: TenantFeature;
+    label: string;
+    description: string;
+    dependency?: TenantFeatureField;
 }
 
 type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled' | 'scorePlaybackEnabled' | 'inventoryLoanSheetEnabled' | 'inventorySignatureEnabled';
