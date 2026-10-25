@@ -3,7 +3,8 @@ import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
 import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
-import { Router } from '@angular/router';
+import { ActivatedRouteSnapshot, Router } from '@angular/router';
+import { tenantFeatureOfError } from '../constants';
 
 @Injectable({
     providedIn: 'root'
@@ -115,7 +116,9 @@ export class HttpInterceptorService implements HttpInterceptor {
                     .get(TenantFeatureService)
                     .refresh(true)
                     .subscribe({ error: () => undefined });
-                this.router.navigate(['/']);
+                // Una funzionalità incorporata in una pagina condivisa fa sparire la sola sezione: la pagina
+                // la nasconde da sé quando i flag si aggiornano, quindi si esce solo dalla sua pagina dedicata.
+                if (this.onPageOf(resolved.key)) this.router.navigate(['/']);
                 break;
             case 'notFoundPage':
                 if (request.method === 'GET' && !resolved.handled) {
@@ -130,6 +133,21 @@ export class HttpInterceptorService implements HttpInterceptor {
         }
 
         return throwError(() => error);
+    }
+
+    /** Whether the open page is the one dedicated to the feature of the error, that is a route declaring it. */
+    private onPageOf(errorKey: string): boolean {
+        const feature = tenantFeatureOfError(errorKey);
+        if (!feature) return false;
+
+        const pending: ActivatedRouteSnapshot[] = [this.router.routerState.snapshot.root];
+        while (pending.length) {
+            const route = pending.pop()!;
+            if (route.data['feature'] === feature) return true;
+            pending.push(...route.children);
+        }
+
+        return false;
     }
 
     private notify(resolved: ResolvedApiError): void {

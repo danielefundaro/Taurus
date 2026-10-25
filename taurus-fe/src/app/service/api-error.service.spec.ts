@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom, of } from 'rxjs';
 import { API_ERROR_MESSAGES, apiErrorMessage, loanDurationIssueMessage } from '../constants';
 import { HttpInterceptorService } from '../interceptor/http-interceptor.service';
-import { ApiErrorBody, TenantFeatures } from '../module';
+import { ApiErrorBody, TenantFeature, TenantFeatures } from '../module';
 import { withErrorSummary, withHandledErrors } from './api-error-context';
 import { ApiErrorService } from './api-error.service';
 import { KeycloakService } from './keycloak.service';
@@ -241,6 +241,10 @@ describe('HttpInterceptorService error handling', () => {
         toast = jasmine.createSpyObj<ToastService>('ToastService', ['error', 'success', 'info', 'warn']);
         router = jasmine.createSpyObj<Router>('Router', ['navigate']);
         router.navigate.and.resolveTo(true);
+        // La pagina aperta durante questi test è quella dedicata all'Inventario: l'albero delle route la dichiara.
+        (router as unknown as { routerState: unknown }).routerState = {
+            snapshot: { root: { data: {}, children: [{ data: { feature: TenantFeature.INVENTORY }, children: [] }] } }
+        };
         keycloak = { isUserLoggedIn: true, token: 'access-token', refreshToken: jasmine.createSpy('refreshToken').and.returnValue('renewed-token'), logout: jasmine.createSpy('logout').and.resolveTo() };
         tenantStatus = jasmine.createSpyObj<TenantStatusService>('TenantStatusService', ['invalidate']);
         tenantFeatures = jasmine.createSpyObj<TenantFeatureService>('TenantFeatureService', ['refresh']);
@@ -329,7 +333,7 @@ describe('HttpInterceptorService error handling', () => {
         expect(keycloak.logout).not.toHaveBeenCalled();
     });
 
-    it('reloads the tenant features and goes back to the root when a feature is disabled', async () => {
+    it('reloads the tenant features and leaves the page dedicated to the disabled feature', async () => {
         const { done } = send('GET');
         fail(403, { message: 'error.tenantFeature.inventory.disabled' });
 

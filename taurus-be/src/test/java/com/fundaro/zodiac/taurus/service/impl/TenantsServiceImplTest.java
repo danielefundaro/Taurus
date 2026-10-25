@@ -11,9 +11,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.*;
 
 class TenantsServiceImplTest {
@@ -48,6 +50,65 @@ class TenantsServiceImplTest {
         assertThat(tenant.getDeleted()).isTrue();
         verify(provisioningService).deactivate("TENANT-A", "user-1");
         verify(keycloakService).deleteGroup("group-7");
+    }
+
+    @Test
+    void listsTheChildrenThatLoseEffectWhenTheModuleTheyDependOnIsTurnedOff() {
+        Map<String, Boolean> before = flags(true, true, true);
+        Map<String, Boolean> after = flags(false, true, true);
+
+        Map<String, Boolean> dependent = service().dependentChanges(before, after);
+
+        // L'inventario è spento direttamente: nel log compaiono soltanto le figlie, anche quelle indirette.
+        assertThat(dependent).containsOnly(
+            entry("inventoryQr", false),
+            entry("inventoryLoanSheet", false),
+            entry("inventorySignature", false)
+        );
+    }
+
+    @Test
+    void ignoresTheChildrenThatWereAlreadyWithoutEffect() {
+        Map<String, Boolean> before = flags(false, true, true);
+        Map<String, Boolean> after = flags(false, true, false);
+
+        assertThat(service().dependentChanges(before, after)).isEmpty();
+    }
+
+    @Test
+    void listsTheChildThatBecomesEffectiveAgainWithItsModule() {
+        Map<String, Boolean> dependent = service().dependentChanges(flags(false, true, false), flags(true, true, false));
+
+        assertThat(dependent).containsOnly(
+            entry("inventoryQr", true),
+            entry("inventoryLoanSheet", true)
+        );
+    }
+
+    private static Map<String, Boolean> flags(boolean inventory, boolean loanSheet, boolean signature) {
+        return Map.ofEntries(
+            Map.entry("finance", false),
+            Map.entry("inventory", inventory),
+            Map.entry("onboardingImport", false),
+            Map.entry("externalCalendarFeed", false),
+            Map.entry("inventoryQr", true),
+            Map.entry("notificationPreferences", false),
+            Map.entry("webPushReminders", false),
+            Map.entry("eventPreparation", false),
+            Map.entry("scorePlayback", false),
+            Map.entry("inventoryLoanSheet", loanSheet),
+            Map.entry("inventorySignature", signature)
+        );
+    }
+
+    private static TenantsServiceImpl service() {
+        return new TenantsServiceImpl(
+            mock(TenantsRepository.class),
+            mock(TenantsMapper.class),
+            mock(KeycloakService.class),
+            mock(DataErasureService.class),
+            mock(TenantSchemaProvisioningService.class)
+        );
     }
 
     private JwtAuthenticationToken authentication() {

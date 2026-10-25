@@ -52,6 +52,8 @@ Due interventi circoscritti, un difetto e una copertura mancante. Va chiuso per 
 
 Tre interventi di interfaccia e uno di logging, tutti locali e già descritti in dettaglio nella specifica.
 
+> Chiuso il 2026-10-25: la voce è passata a `implemented`.
+
 ## 3. `track-pdf-manual-editing`
 
 [Editor manuale delle pagine PDF](../track-pdf-manual-editing-spec.md) — difficoltà bassa.

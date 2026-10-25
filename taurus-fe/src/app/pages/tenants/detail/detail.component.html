@@ -95,8 +95,13 @@
     <app-detail-section heading="Funzionalità disponibili"
         description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato."
         [dirty]="isDirty">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            @for (item of tenantFeatures; track item.key) {
+        @for (group of featureGroups; track group.heading) {
+        <h3 class="text-base font-semibold mb-1" [class.mt-0]="$first" [class.mt-8]="!$first">{{ group.heading }}</h3>
+        @if (group.description) {
+        <p class="text-surface-500 text-sm mt-0 mb-4">{{ group.description }}</p>
+        }
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" [class.mt-4]="!group.description">
+            @for (item of group.items; track item.key) {
             <div class="flex items-start gap-3">
                 <p-checkbox [inputId]="item.key" [binary]="true" [(ngModel)]="tenant[item.key]"
                     (ngModelChange)="isDirty = true" />
@@ -107,10 +112,14 @@
                     <small [class.text-green-600]="status === 'Disponibile'"
                         [class.text-warn-600]="status !== 'Disponibile'">{{ status }}</small>
                     }
+                    @if (featureHint(item); as hint) {
+                    <small class="block text-surface-500 mt-1">{{ hint }}</small>
+                    }
                 </div>
             </div>
             }
         </div>
+        }
     </app-detail-section>
 
     <app-danger-zone [operations]="[
