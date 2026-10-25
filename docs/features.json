@@ -311,7 +311,7 @@
       "title": "Foglio di consegna e affidamento in comodato",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/inventory-loan-sheet-spec.md",
       "relatedDocs": [
         "docs/inventory-management-spec.md",
@@ -359,8 +359,8 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Implementazione con il modello HTML caricabile per tenant, il modello predefinito in sintassi Mustache e le regole di durata registrate sul foglio. Verificati la suite backend completa, le migrazioni su PostgreSQL 17, i test Angular e la build di produzione; il PDF del modello predefinito coincide nel testo con quello della stesura precedente. Prima di implemented restano la verifica manuale dell'interfaccia con un tenant di prova e la stampa A4 di confronto con il modello (LOAN-006). Il 2026-10-10 il foglio è diventato l'unico documento dell'inventario al posto del proforma, il valore concordato deriva dal valore stimato dell'oggetto e la scadenza degli oggetti a scadenza è controllata fin dall'assegnazione (LOAN-007, LOAN-008)."
+      "lastVerifiedOn": "2026-10-25",
+      "notes": "Implementazione con il modello HTML caricabile per tenant, il modello predefinito in sintassi Mustache e le regole di durata registrate sul foglio. Verificati la suite backend completa, le migrazioni su PostgreSQL 17, i test Angular e la build di produzione; il PDF del modello predefinito coincide nel testo con quello della stesura precedente. Il 2026-10-25 sono state eseguite con esito positivo le due verifiche manuali che restavano (LOAN-006): interfaccia su un tenant di prova, con emissione, variazioni, chiusura, definizione e caricamento di un modello modificato, e stampa A4 di confronto con il modello Word. La specifica non ha più requisiti aperti. Il 2026-10-10 il foglio è diventato l'unico documento dell'inventario al posto del proforma, il valore concordato deriva dal valore stimato dell'oggetto e la scadenza degli oggetti a scadenza è controllata fin dall'assegnazione (LOAN-007, LOAN-008)."
     },
     {
       "id": "inventory-management",
