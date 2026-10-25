@@ -194,4 +194,72 @@ describe('PdfManipulatorDialogComponent', () => {
         expect(component['pageRecipes'].get(1)?.crops).toHaveSize(1);
         expect(component['pageRecipes'].get(2)?.brightness).toBe(20);
     });
+
+    /** Un canvas finto 4x1: due pixel scuri a sinistra, due chiari a destra. */
+    function toneContext(values: number[]): { context: CanvasRenderingContext2D; data: Uint8ClampedArray } {
+        const data = new Uint8ClampedArray(values);
+        const image = { data, width: values.length / 4, height: 1 } as unknown as ImageData;
+        const context = { getImageData: () => image, putImageData: () => undefined } as unknown as CanvasRenderingContext2D;
+        return { context, data };
+    }
+
+    const gray = (level: number): number[] => [level, level, level, 255];
+
+    it('stretches the auto contrast of every crop zone on its own extremes', () => {
+        const { component } = createComponent();
+        component['recipe'].autoContrast = true;
+        component['recipe'].grayscale = true;
+        component['recipe'].crops = [
+            { x: 0, y: 0, width: 0.5, height: 1 },
+            { x: 0.5, y: 0, width: 0.5, height: 1 }
+        ];
+        const { context, data } = toneContext([...gray(40), ...gray(60), ...gray(200), ...gray(220)]);
+
+        component['applyTone'](context, 4, 1);
+
+        // Ogni zona porta il proprio minimo a 0 e il proprio massimo a 255, come fa il backend dopo il crop.
+        expect([data[0], data[4], data[8], data[12]]).toEqual([0, 255, 0, 255]);
+    });
+
+    it('stretches the whole page when the recipe has no crop', () => {
+        const { component } = createComponent();
+        component['recipe'].autoContrast = true;
+        component['recipe'].grayscale = true;
+        const { context, data } = toneContext([...gray(40), ...gray(60), ...gray(200), ...gray(220)]);
+
+        component['applyTone'](context, 4, 1);
+
+        expect(data[0]).toBe(0);
+        expect(data[12]).toBe(255);
+        expect(data[4]).toBeGreaterThan(0);
+        expect(data[4]).toBeLessThan(255);
+    });
+
+    it('leaves the pixels outside the zones as context, on the extremes of the page', () => {
+        const { component } = createComponent();
+        component['recipe'].autoContrast = true;
+        component['recipe'].grayscale = true;
+        component['recipe'].crops = [{ x: 0, y: 0, width: 0.5, height: 1 }];
+        const { context, data } = toneContext([...gray(40), ...gray(60), ...gray(200), ...gray(220)]);
+
+        component['applyTone'](context, 4, 1);
+
+        expect([data[0], data[4]]).toEqual([0, 255]);
+        // Fuori dalla zona valgono gli estremi dell'intera pagina: 200 e 220 restano chiari ma non saturati a 0.
+        expect(data[8]).toBeGreaterThan(200);
+        expect(data[12]).toBe(255);
+    });
+
+    it('applies brightness and contrast with the integer arithmetic of the backend', () => {
+        const { component } = createComponent();
+        component['recipe'].grayscale = true;
+        component['recipe'].contrast = 50;
+        component['recipe'].brightness = 10;
+        const { context, data } = toneContext([...gray(100)]);
+
+        component['applyTone'](context, 1, 1);
+
+        // round((100 - 128) * 1.5 + 128) + round(10 * 2.55) = 86 + 26
+        expect(data[0]).toBe(112);
+    });
 });

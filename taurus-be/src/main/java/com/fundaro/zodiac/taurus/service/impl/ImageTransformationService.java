@@ -280,6 +280,14 @@ public class ImageTransformationService implements PageImageTransformer {
         }
     }
 
+    /**
+     * Valida una ricetta senza applicarla: l'upload del PDF la usa per rifiutare subito
+     * annotazioni fuori dai limiti, invece di lasciare fallire il worker.
+     */
+    public void validate(PageEditRecipe recipe) {
+        validateRecipe(recipe);
+    }
+
     private static void validateRecipe(PageEditRecipe recipe) {
         if (recipe == null || recipe.recipeVersion() != 1)
             throw badRequest("Unsupported image recipe version", "image.recipeVersion");
