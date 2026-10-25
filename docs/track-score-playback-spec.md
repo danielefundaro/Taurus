@@ -715,15 +715,9 @@ Il modulo `taurus-omr` è descritto anche in `AGENTS.md`, è tra i moduli ammess
 
 ## Questioni aperte
 
-1. **Catalogo di riferimento**: valori e parole chiave da verificare con un archivista, in particolare corno in Fa o in Mib, parti in chiave di basso, percussioni intonate e nomi locali degli strumenti.
+1. **Catalogo di riferimento**: valori e parole chiave confermati da un archivista, compresi corno in Fa o in Mib, parti in chiave di basso, percussioni intonate e nomi locali degli strumenti.
 2. **SoundFont specifico per banda**: valutare in futuro un SoundFont gratuito con suoni di flicorni ed euphonium; il salvataggio del suono come banco e programma lo consente senza modifiche al modello dati.
-3. **Prototipi tecnici**: resta da confermare su un telefono reale (`PLY-009`) la memoria usata dal lettore, misurata nella fase 4 in circa 190 MB per il SoundFont e 140 MB per Verovio; se il telefono chiude la scheda si valuterà un SoundFont più leggero.
+3. **Prototipi tecnici**: la memoria usata dal lettore, misurata nella fase 4 in circa 190 MB per il SoundFont e 140 MB per Verovio, è stata confermata su un telefono reale (`PLY-009`): la scheda non viene chiusa, quindi un SoundFont più leggero non serve.
 
    Risolti con la fase 1: la trasposizione è applicata dal generatore MIDI di Taurus; oltre 16 canali si usano più porte MIDI, che SpessaSynth gestisce con 16 canali ciascuna. Risolto con la fase 3: la corrispondenza tra elementi di Verovio e nodi MusicXML è data dagli `id`, che Verovio conserva; MEI non serve. Risolti con la fase 4 (vedi [Copertura della fase 4](#copertura-della-fase-4)): una partitura di 30 parti si prepara in meno di mezzo secondo, e l'editor ridisegna una parte di 300 battute in circa 0,2 secondi, unendo in un solo disegno le modifiche che arrivano prima del fotogramma successivo.
 4. **Licenza dei modelli di homr**: l'uso resta ammesso finché Taurus non è commerciale.
-
-## Requisiti aperti
-
-- Prova a mano del percorso completo con un tenant di prova, compresi i ruoli utente ed esterno: attivazione della funzionalità, configurazione di uno strumento con **Prova**, caricamento di un MusicXML con più parti, ascolto, correzione e segnalazione (Verifica manuale).
-- Prove `PLY-009` (ascolto su un telefono di fascia media, con la memoria usata dal SoundFont) e `PLY-018` (parti reali della banda: digitali, scansioni e foto) del [Runbook di test](runbook-test.md) (Verifica manuale; Questioni aperte, punto 3).
-- Verifica con un archivista dei valori del catalogo di riferimento (Catalogo di riferimento; Questioni aperte, punto 1).

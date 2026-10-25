@@ -86,6 +86,8 @@ Nessuno sviluppo residuo: serve una sessione di collaudo su un tenant di prova e
 
 Anche qui non manca codice, ma servono un telefono di fascia media, parti reali e il tempo di un archivista: va pianificato, non improvvisato.
 
+> Chiuso il 2026-10-25: collaudo eseguito, la voce è passata a `implemented`.
+
 ## 6. `inventory-electronic-signature`
 
 [Firma elettronica del foglio di affidamento](../inventory-electronic-signature-spec.md) — difficoltà media, dominata da dipendenze esterne.
