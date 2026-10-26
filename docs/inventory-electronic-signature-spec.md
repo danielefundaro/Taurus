@@ -614,7 +614,7 @@ La vista segue il [Taurus Layout Standard](taurus-layout-standard.md) e la docum
 
 Composte da `NoticesAspect` e registrate con `NotificationOutboxPublisher.enqueue` nella transazione dell'operazione:
 
-- `Inventario: firma richiesta`, obbligatoria, con percorso verso **I miei oggetti**: all'Affidatario per l'emissione da completare con i dati (testo «inserisci i tuoi dati e firmalo con il codice inviato via e-mail»), per ogni variazione e per il verbale; all'amministratore designato quando i documenti dell'emissione sono pronti, per variazioni e verbale e quando subentra a un altro; all'Affidatario quando deve reinserire i dati dopo il cambio del firmatario;
+- `Inventario: firma richiesta`, obbligatoria, con percorso verso **I miei oggetti**: all'Affidatario per l'emissione da completare con i dati (testo «inserisci i tuoi dati e firmalo con un codice, via e-mail o dall'app di autenticazione, oppure con CieSign», gli stessi metodi dei testi dell'interfaccia), per ogni variazione e per il verbale; all'amministratore designato quando i documenti dell'emissione sono pronti, per variazioni e verbale e quando subentra a un altro; all'Affidatario quando deve reinserire i dati dopo il cambio del firmatario;
 - `Inventario: atto firmato`, all'Affidatario e ad admin e super admin, per un atto firmato da tutte le parti o dichiarato su carta;
 - `Inventario: fascicolo da conservare`, ad admin e super admin, alla definizione o all'annullamento di un foglio con atti firmati, con la data di eliminazione;
 - `Inventario: link di firma scaduto`, ad admin e super admin, una volta per ogni link scaduto senza la firma del genitore mentre l'atto è in attesa;
@@ -778,4 +778,3 @@ Esito della ricerca del 2026-10-20, da confermare da parte di un legale:
 - Invio delle e-mail dal server SMTP di una casella reale dell'associazione ([Verifica manuale](#verifica-manuale)).
 - Stampa A4 del modello predefinito a confronto con il modello dell'associazione ([Verifica manuale](#verifica-manuale)).
 - Conferma da parte di un legale dei punti 1–3 ([Verifica legale](#verifica-legale)).
-- Testo della notifica di emissione che indichi anche l'app di autenticazione e CieSign, come i testi dell'interfaccia ([Notifiche](#notifiche), [Decisioni della revisione](#decisioni-della-revisione)).

@@ -441,6 +441,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'calendar.series.template.invalid': "Indicare nome e data di inizio dell'evento",
     'calendar.series.duration.invalid': "La fine dell'evento deve seguire l'inizio",
     'calendar.series.recurrence.invalid': 'Regola di ricorrenza non valida',
+    'calendar.series.recurrence.tooManyOccurrences': (args) => `La regola supera il limite di ${args['maximum'] ?? 500} occorrenze: riduci la durata o aumenta l’intervallo`,
     'calendar.series.sourceOccurrence.invalid': "L'occorrenza di partenza non appartiene alla serie",
     'calendar.series.occurrence.notFound': 'Occorrenza non trovata nella serie',
     'calendar.series.occurrence.conflict': "Un'altra occorrenza della serie inizia già in quella data",

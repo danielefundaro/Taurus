@@ -261,7 +261,7 @@ Disponibilità e presenze esistenti restano associate allo stesso ID. Se cambian
 
 Questo comportamento è più semplice e prevedibile di un sistema di override diverso per ogni campo.
 
-Le eccezioni che restano fuori dalla nuova regola rimangono visibili come occorrenze eccezionali della serie fino a cancellazione esplicita.
+Le eccezioni che restano fuori dalla nuova regola rimangono visibili come occorrenze eccezionali della serie fino a cancellazione esplicita, e la risposta del `PATCH` ne riporta il numero in `outsideRuleExceptionCount`: l'interfaccia lo mostra nel riepilogo del salvataggio. Prima di salvare, il dettaglio avvisa con il numero di eccezioni che non verranno aggiornate e chiede conferma.
 
 ### Da un'occorrenza in poi
 
@@ -373,7 +373,7 @@ Gli endpoint esistenti degli eventi singoli devono rimanere compatibili.
 - `DELETE /api/calendar-event-series/{id}`
 - `POST /api/calendar-event-series/{id}/occurrences/{eventId}/restore`
 
-Il `POST` riceve template, costi e regola strutturata. Il `PATCH` riceve template e regola completi, `entityVersion` (se diversa risponde 409 `version.conflict`) e, facoltativo, `sourceOccurrenceId` (400 `calendar.series.sourceOccurrence.invalid` se l'occorrenza non appartiene alla serie). La risposta contiene `createdCount`, `updatedCount`, `deletedCount`, il numero di occorrenze attive (`occurrenceCount`) e di eccezioni attive (`exceptionCount`).
+Il `POST` riceve template, costi e regola strutturata. Il `PATCH` riceve template e regola completi, `entityVersion` (se diversa risponde 409 `version.conflict`) e, facoltativo, `sourceOccurrenceId` (400 `calendar.series.sourceOccurrence.invalid` se l'occorrenza non appartiene alla serie). La risposta contiene `createdCount`, `updatedCount`, `deletedCount`, `keptExceptionCount` (occorrenze lasciate come sono perché eccezioni), `skippedPastCount` (posizioni già passate, non riscritte), `outsideRuleExceptionCount` (eccezioni che la nuova regola non genera più), il numero di occorrenze attive (`occurrenceCount`) e di eccezioni attive (`exceptionCount`). Una regola che supera il limite risponde `400` con `calendar.series.recurrence.tooManyOccurrences` e il limite come parametro, distinto dalla regola non valida.
 
 ### Operazioni sulla singola occorrenza
 
@@ -513,9 +513,16 @@ Il numero progressivo dell'occorrenza non viene mostrato.
 
 ## Osservabilità
 
-Il servizio delle serie non registra log o metriche dedicati. Le misure da raccogliere sono tra i [Requisiti aperti](#requisiti-aperti).
+`CalendarSeriesMetrics` raccoglie, con tag a cardinalità nota e senza identificativi:
 
-Evitare di registrare nei log descrizioni o altri contenuti non necessari.
+- `taurus.calendar.series.operations{operation}`: serie create, modificate e cancellate;
+- `taurus.calendar.series.occurrences{outcome}`: occorrenze create, aggiornate, cancellate, lasciate come eccezioni, saltate perché passate o fuori dalla nuova regola;
+- `taurus.calendar.series.bulk.occurrences{operation}` e `taurus.calendar.series.bulk.duration{operation}`: dimensione e durata delle operazioni massive;
+- `taurus.calendar.series.failures{reason}`: limite superato, regola non valida, conflitto di occorrenza, conflitto di versione;
+- `taurus.calendar.series.reminders{action}`: promemoria ripianificati o cancellati;
+- `taurus.calendar.series.availability.occurrences`: occorrenze toccate da una disponibilità massiva.
+
+I log strutturati `calendar_series_created`, `calendar_series_updated` e `calendar_series_deleted` riportano identificativo della serie, ambito e conteggi. Nei log non finiscono descrizioni o altri contenuti non necessari.
 
 ## Test di accettazione principali
 
@@ -564,14 +571,7 @@ Evitare di registrare nei log descrizioni o altri contenuti non necessari.
 
 ## Requisiti aperti
 
-- Conteggi delle occorrenze conservate come eccezioni e ignorate perché passate nella risposta del `PATCH` ([API](#gestione-amministrativa-della-serie)).
-- Segnalazione delle eccezioni che non appartengono più alla nuova regola ([Regole comuni alla modifica della serie](#regole-comuni-alla-modifica-della-serie)).
-- Avviso, prima del salvataggio, del numero di eccezioni che non verranno aggiornate ([Regole comuni alla modifica della serie](#regole-comuni-alla-modifica-della-serie)).
-- Conferma con il numero di occorrenze coinvolte prima di una disponibilità bulk che sovrascrive risposte esistenti ([Disponibilità](#disponibilità)).
 - Idempotenza della creazione: chiave di idempotenza o conflitto riconoscibile per una richiesta ripetuta dopo timeout ([Concorrenza e atomicità](#concorrenza-e-atomicità)).
-- Osservabilità: serie create, modificate e cancellate, occorrenze generate o riallineate, durata delle operazioni massive, errori di generazione, conflitti di versione, promemoria ripianificati o cancellati ([Osservabilità](#osservabilità)).
 - Riepilogo testuale della regola, anteprima delle date ed evidenza dei mesi saltati nel form ([Anteprima](#anteprima), [Creazione](#creazione)).
-- Messaggio specifico quando la regola supera il limite di occorrenze ([Creazione](#creazione)).
 - Indicatore visivo distinto per le eccezioni nel calendario e nella lista ([Calendario e lista](#calendario-e-lista)).
-- Compenso e costi modificati con `PATCH /api/finance/events/{id}/budget` non marcano l'occorrenza come eccezione: una modifica successiva della serie li sovrascrive ([Eccezioni](#decisioni-approvate)).
 - Test di integrazione multi-tenant, autorizzativi e di concorrenza ([Fasi di sviluppo ipotizzate](#fasi-di-sviluppo-ipotizzate), [Test di accettazione principali](#test-di-accettazione-principali)).

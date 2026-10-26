@@ -52,13 +52,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fundaro.zodiac.taurus.service.OccurrenceLimitExceededException;
+import com.fundaro.zodiac.taurus.service.calendar.CalendarSeriesMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedEventLifecycle;
 
 @Service
 @Transactional
 public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesService {
+    private static final Logger log = LoggerFactory.getLogger(CalendarEventSeriesServiceImpl.class);
+
     private CalendarFeedEventLifecycle calendarFeedLifecycle;
+    private CalendarSeriesMetrics metrics;
 
     private final CalendarEventSeriesRepository seriesRepository;
     private final CalendarEventsRepository eventRepository;
@@ -94,6 +101,11 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         this.calendarFeedLifecycle = value;
     }
 
+    @Autowired
+    void setMetrics(CalendarSeriesMetrics value) {
+        this.metrics = value;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public CalendarEventSeriesPreviewDTO preview(CalendarEventSeriesRequest request) {
@@ -109,6 +121,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
     @Override
     public CalendarEventSeriesDTO create(CalendarEventSeriesRequest request, AbstractAuthenticationToken token) {
+        long startedAt = System.nanoTime();
         ZoneId zone = tenantTimeZoneService.currentZoneId();
         SeriesDefinition definition = definition(request, zone);
         String actor = actor(token);
@@ -128,6 +141,13 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
         CalendarEventSeriesDTO result = toDto(series);
         result.setCreatedCount(events.size());
+        if (metrics != null) {
+            metrics.recordSeries(CalendarSeriesMetrics.SeriesOperation.CREATED);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.CREATED, events.size());
+            metrics.recordBulk(CalendarSeriesMetrics.SeriesOperation.CREATED, events.size(), System.nanoTime() - startedAt);
+        }
+        // Nessuna descrizione nel log: solo identificativi e conteggi.
+        log.info("calendar_series_created seriesId={} occurrences={}", series.getId(), events.size());
         return result;
     }
 
@@ -139,8 +159,10 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
     @Override
     public CalendarEventSeriesDTO update(Long id, CalendarEventSeriesRequest request, AbstractAuthenticationToken token) {
+        long startedAt = System.nanoTime();
         CalendarEventSeries series = findSeries(id);
         if (request.getEntityVersion() != null && !Objects.equals(request.getEntityVersion(), series.getEntityVersion())) {
+            if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.VERSION_CONFLICT);
             throw error(HttpStatus.CONFLICT, "The recurring series was modified by another request", "version.conflict");
         }
         ZoneId zone = ZoneId.of(series.getTimeZone());
@@ -196,11 +218,17 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
 
         int created = 0;
         int updated = 0;
+        int keptException = 0;
+        int skippedPast = 0;
         List<CalendarEvents> changed = new ArrayList<>();
         for (int index = 0; index < definition.occurrences().size(); index++) {
             ZonedDateTime occurrence = definition.occurrences().get(index);
             int sequence = index + 1;
-            if (sourceSequence == null && occurrence.toInstant().isBefore(now)) continue;
+            if (sourceSequence == null && occurrence.toInstant().isBefore(now)) {
+                // Lo storico non si riscrive: la posizione passata resta come è.
+                skippedPast++;
+                continue;
+            }
             if (sourceSequence != null && sequence < sourceSequence) continue;
             CalendarEvents existing = sourceSequence == null
                 ? byOriginalStart.get(occurrence.toInstant())
@@ -229,6 +257,9 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
                 changed.add(existing);
                 rescheduleReminders(existing, token);
                 updated++;
+            } else {
+                // Occorrenza marcata eccezione: la modifica del template non la tocca.
+                keptException++;
             }
         }
 
@@ -242,7 +273,44 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         result.setCreatedCount(created);
         result.setUpdatedCount(updated);
         result.setDeletedCount(deleted);
+        result.setKeptExceptionCount(keptException);
+        result.setSkippedPastCount(skippedPast);
+        int outsideRule = outsideRuleExceptions(allEvents, desired, definition, sourceSequence);
+        result.setOutsideRuleExceptionCount(outsideRule);
+        if (metrics != null) {
+            metrics.recordSeries(CalendarSeriesMetrics.SeriesOperation.UPDATED);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.CREATED, created);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.UPDATED, updated);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.DELETED, deleted);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.KEPT_EXCEPTION, keptException);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.SKIPPED_PAST, skippedPast);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.OUTSIDE_RULE_EXCEPTION, outsideRule);
+            metrics.recordReminders(updated, deleted);
+            metrics.recordBulk(CalendarSeriesMetrics.SeriesOperation.UPDATED, created + updated + deleted, System.nanoTime() - startedAt);
+        }
+        log.info(
+            "calendar_series_updated seriesId={} scope={} created={} updated={} deleted={} keptExceptions={} skippedPast={} outsideRule={}",
+            id, sourceSequence == null ? "future" : "fromOccurrence", created, updated, deleted, keptException, skippedPast, outsideRule
+        );
         return result;
+    }
+
+    /**
+     * Eccezioni che la nuova regola non genera più: restano visibili come occorrenze eccezionali
+     * della serie fino a una cancellazione esplicita, quindi chi modifica la serie deve saperlo.
+     */
+    private int outsideRuleExceptions(
+        List<CalendarEvents> allEvents,
+        Map<Instant, Integer> desired,
+        SeriesDefinition definition,
+        Integer sourceSequence
+    ) {
+        return (int) allEvents.stream()
+            .filter(event -> !event.getDeleted() && Boolean.TRUE.equals(event.getSeriesException()))
+            .filter(event -> sourceSequence == null
+                ? !desired.containsKey(event.getOriginalStartDate().toInstant())
+                : event.getSeriesSequence() > definition.occurrences().size())
+            .count();
     }
 
     @Override
@@ -269,6 +337,12 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         seriesRepository.save(series);
         CalendarEventSeriesDTO result = toDtoIncludingDeleted(series, events);
         result.setDeletedCount(deleted);
+        if (metrics != null) {
+            metrics.recordSeries(CalendarSeriesMetrics.SeriesOperation.DELETED);
+            metrics.recordOccurrences(CalendarSeriesMetrics.OccurrenceOutcome.DELETED, deleted);
+            metrics.recordReminders(0, deleted);
+        }
+        log.info("calendar_series_deleted seriesId={} deletedOccurrences={}", id, deleted);
         return result;
     }
 
@@ -316,7 +390,13 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             if (occurrences.isEmpty())
                 throw new IllegalArgumentException("The recurrence does not generate occurrences");
             return new SeriesDefinition(firstLocal, (int) duration, occurrences);
+        } catch (OccurrenceLimitExceededException exception) {
+            // Messaggio dedicato: la regola è valida ma genera più occorrenze del limite della serie.
+            if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.LIMIT_EXCEEDED);
+            throw error(HttpStatus.BAD_REQUEST, exception.getMessage(), "calendar.series.recurrence.tooManyOccurrences")
+                .with("maximum", exception.maximum());
         } catch (IllegalArgumentException exception) {
+            if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.INVALID_RULE);
             throw error(HttpStatus.BAD_REQUEST, exception.getMessage(), "calendar.series.recurrence.invalid");
         }
     }
@@ -550,6 +630,7 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
             eventRepository.saveAll(events);
             eventRepository.flush();
         } catch (DataIntegrityViolationException exception) {
+            if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.OCCURRENCE_CONFLICT);
             throw error(HttpStatus.CONFLICT, "Another occurrence of the series already starts there", "calendar.series.occurrence.conflict");
         }
     }

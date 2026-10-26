@@ -1,9 +1,11 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
+import com.fundaro.zodiac.taurus.domain.CalendarEventSeries;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.finance.*;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventBudgetRequest;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.finance.*;
 import com.fundaro.zodiac.taurus.service.MediaService;
@@ -531,6 +533,39 @@ class FinanceServiceTest {
         opening.setAmount(new BigDecimal(amount));
         opening.setDescription("Saldo iniziale");
         return opening;
+    }
+
+    @Test
+    void marksTheOccurrenceAsAnExceptionWhenItsBudgetChanges() {
+        CalendarEventSeries series = new CalendarEventSeries();
+        series.setId(7L);
+        CalendarEvents occurrence = new CalendarEvents();
+        occurrence.setId(70L);
+        occurrence.setName("Concerto");
+        occurrence.setSeries(series);
+        occurrence.setSeriesException(false);
+        when(eventRepository.findById(70L)).thenReturn(Optional.of(occurrence));
+        when(eventRepository.save(occurrence)).thenReturn(occurrence);
+
+        service.updateEventBudget(70L, new EventBudgetRequest(new BigDecimal("300.00"), List.of()), authentication());
+
+        // Una modifica singola protegge l'intera occorrenza dagli aggiornamenti del template.
+        assertThat(occurrence.getSeriesException()).isTrue();
+        assertThat(occurrence.getFee()).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void leavesAnEventWithoutSeriesUntouchedByTheExceptionFlag() {
+        CalendarEvents single = new CalendarEvents();
+        single.setId(71L);
+        single.setName("Prova");
+        when(eventRepository.findById(71L)).thenReturn(Optional.of(single));
+        when(eventRepository.save(single)).thenReturn(single);
+
+        service.updateEventBudget(71L, new EventBudgetRequest(new BigDecimal("10.00"), List.of()), authentication());
+
+        // Il valore di partenza dell'entità resta: nessun contrassegno su un evento senza serie.
+        assertThat(single.getSeriesException()).isFalse();
     }
 
     private static JwtAuthenticationToken authentication() {

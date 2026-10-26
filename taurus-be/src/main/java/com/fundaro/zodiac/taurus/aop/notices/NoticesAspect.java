@@ -580,7 +580,9 @@ public class NoticesAspect {
                 case "createIssueAct" -> change.recipients().forEach(userId -> publishSignature(
                     userId,
                     SIGNATURE_REQUESTED,
-                    "È stato emesso il foglio di affidamento n. " + change.sheetNumber() + ": inserisci i tuoi dati e firmalo con il codice inviato via e-mail.",
+                    // I metodi citati sono gli stessi dei testi dell'interfaccia: codice via e-mail o app, oppure CieSign.
+                    "È stato emesso il foglio di affidamento n. " + change.sheetNumber()
+                        + ": inserisci i tuoi dati e firmalo con un codice, via e-mail o dall'app di autenticazione, oppure con CieSign.",
                     actor,
                     change.actId()
                 ));

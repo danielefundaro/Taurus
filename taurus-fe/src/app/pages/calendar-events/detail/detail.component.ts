@@ -454,6 +454,25 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected saveSeriesFuture(): void {
         if (!this.series || this.seriesRuleInvalid) return;
+        const exceptions = this.series.exceptionCount ?? 0;
+        // Le eccezioni non ricevono le modifiche al template: chi salva deve saperlo prima.
+        if (exceptions > 0) {
+            this.confirmService.confirmReversible({
+                title: 'Alcune occorrenze non verranno aggiornate',
+                consequence:
+                    exceptions === 1
+                        ? 'Una occorrenza della serie è segnata come eccezione e resterà come è: le modifiche al template non la toccano.'
+                        : `${exceptions} occorrenze della serie sono segnate come eccezioni e resteranno come sono: le modifiche al template non le toccano.`,
+                actionLabel: 'Salva comunque',
+                accept: () => this.persistSeriesFuture()
+            });
+            return;
+        }
+        this.persistSeriesFuture();
+    }
+
+    private persistSeriesFuture(): void {
+        if (!this.series) return;
         const request = this.buildSeriesRequest();
         this.saving = true;
         this.calendarEventSeriesService
@@ -466,10 +485,23 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 next: (updated) => {
                     this.series = updated;
                     this.isDirty = false;
-                    this.toastService.success('Serie aggiornata', `${updated.updatedCount ?? 0} eventi sono stati aggiornati da questa occorrenza in poi.`);
+                    this.toastService.success('Serie aggiornata', this.seriesUpdateSummary(updated));
                     this.loadElement(this.event.id);
                 }
             });
+    }
+
+    /** Che cosa ha fatto il salvataggio della serie, eccezioni e occorrenze passate comprese. */
+    private seriesUpdateSummary(updated: CalendarEventSeries): string {
+        const parts = [`${updated.updatedCount ?? 0} eventi aggiornati da questa occorrenza in poi`];
+        if (updated.createdCount) parts.push(`${updated.createdCount} creati`);
+        if (updated.deletedCount) parts.push(`${updated.deletedCount} rimossi`);
+        if (updated.keptExceptionCount) parts.push(`${updated.keptExceptionCount} lasciati come eccezioni`);
+        if (updated.skippedPastCount) parts.push(`${updated.skippedPastCount} già passati e non riscritti`);
+        if (updated.outsideRuleExceptionCount)
+            parts.push(`${updated.outsideRuleExceptionCount} eccezioni restano fuori dalla nuova regola`);
+
+        return `${parts.join(', ')}.`;
     }
 
     protected onSeriesDefinitionChange(): void {
@@ -612,16 +644,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected setAvailability(available: boolean): void {
         if (this.applyAvailabilityToFuture && this.event.seriesId) {
-            this.calendarEventsService
-                .setSeriesAvailability(this.event.seriesId, available)
-                .pipe(first())
-                .subscribe({
-                    next: (result) => {
-                        const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
-                        this.toastService.success('Disponibilità aggiornata', `${msg} per ${result.affectedOccurrences} eventi futuri.`);
-                        this.loadElement(this.event.id);
-                    }
-                });
+            this.confirmService.confirmReversible({
+                title: available ? 'Conferma la disponibilità sulla serie' : 'Registra la non disponibilità sulla serie',
+                consequence: `${this.futureOccurrencesLabel()} e le risposte già date verranno sovrascritte.`,
+                actionLabel: 'Applica alla serie',
+                accept: () => this.applySeriesAvailability(available)
+            });
             return;
         }
         this.calendarEventsService
@@ -636,6 +664,45 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     if (this.eventPreparationEnabled()) this.loadPreparation();
                 }
             });
+    }
+
+    /** Applica la risposta a tutte le occorrenze future della serie. */
+    private applySeriesAvailability(available: boolean): void {
+        if (!this.event.seriesId) return;
+        this.calendarEventsService
+            .setSeriesAvailability(this.event.seriesId, available)
+            .pipe(first())
+            .subscribe({
+                next: (result) => {
+                    const msg = available ? 'Disponibilità confermata' : 'Non disponibilità registrata';
+                    this.toastService.success('Disponibilità aggiornata', `${msg} per ${result.affectedOccurrences} eventi futuri.`);
+                    this.loadElement(this.event.id);
+                }
+            });
+    }
+
+    /** Azzera la risposta su tutte le occorrenze future della serie. */
+    private cancelSeriesAvailability(): void {
+        if (!this.event.seriesId) return;
+        this.calendarEventsService
+            .cancelSeriesAvailability(this.event.seriesId)
+            .pipe(first())
+            .subscribe({
+                next: (result) => {
+                    this.toastService.success('Disponibilità annullata', `La risposta è stata rimossa per ${result.affectedOccurrences} eventi futuri.`);
+                    this.loadElement(this.event.id);
+                }
+            });
+    }
+
+    /**
+     * Quante occorrenze toccherà l'operazione. Il numero esatto lo conosce il backend, che conta le
+     * sole future: qui si dice il limite superiore noto, per non promettere un numero sbagliato.
+     */
+    private futureOccurrencesLabel(): string {
+        const total = this.series?.occurrenceCount;
+
+        return total ? `La risposta verrà applicata alle occorrenze future della serie, fino a ${total}` : 'La risposta verrà applicata a tutte le occorrenze future della serie';
     }
 
     private loadPreparation(): void {
@@ -688,15 +755,12 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected cancelAvailability(): void {
         if (this.applyAvailabilityToFuture && this.event.seriesId) {
-            this.calendarEventsService
-                .cancelSeriesAvailability(this.event.seriesId)
-                .pipe(first())
-                .subscribe({
-                    next: (result) => {
-                        this.toastService.success('Disponibilità annullata', `La risposta è stata rimossa per ${result.affectedOccurrences} eventi futuri.`);
-                        this.loadElement(this.event.id);
-                    }
-                });
+            this.confirmService.confirmReversible({
+                title: 'Annulla la risposta sulla serie',
+                consequence: `${this.futureOccurrencesLabel()}: le risposte già date verranno rimosse.`,
+                actionLabel: 'Annulla sulla serie',
+                accept: () => this.cancelSeriesAvailability()
+            });
             return;
         }
         this.calendarEventsService

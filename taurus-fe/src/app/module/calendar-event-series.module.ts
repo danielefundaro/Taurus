@@ -42,6 +42,12 @@ export interface CalendarEventSeries {
     createdCount?: number;
     updatedCount?: number;
     deletedCount?: number;
+    /** Occorrenze lasciate come sono perché eccezioni. */
+    keptExceptionCount?: number;
+    /** Occorrenze ignorate perché già passate. */
+    skippedPastCount?: number;
+    /** Eccezioni che la nuova regola non genera più. */
+    outsideRuleExceptionCount?: number;
 }
 
 export interface BulkAvailabilityResult {
