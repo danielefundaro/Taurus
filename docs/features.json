@@ -701,27 +701,32 @@
       "title": "Eventi ricorrenti del calendario",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/recurring-calendar-events-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
         "implementation": [
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/CalendarEventSeriesResource.java",
           "taurus-fe/src/app/service/calendar-event-series.service.ts",
-          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/calendar/CalendarSeriesMetrics.java"
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/calendar/CalendarSeriesMetrics.java",
+          "taurus-fe/src/app/dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component.ts"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260831000003_recurring_calendar_events.xml",
-          "taurus-be/src/main/resources/config/liquibase/changelog/20260831000002_tenant_timezone.xml"
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260831000002_tenant_timezone.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261026000000_calendar_series_idempotency.xml"
         ],
         "tests": [
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java",
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/CalendarEventSeriesIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/CalendarSeriesSecurityConfigurationTest.java",
+          "taurus-fe/src/app/dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component.spec.ts"
         ]
       },
       "release": null,
       "lastVerifiedOn": "2026-10-26",
-      "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze. Restano i requisiti aperti elencati nella specifica."
+      "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze. La creazione accetta una chiave di idempotenza con indice univoco per tenant, il form mostra regola, date e mesi saltati, le eccezioni hanno un indicatore distinto in calendario e lista, e i test coprono isolamento fra tenant, autorizzazioni dei percorsi e concorrenza su creazione e modifica."
     },
     {
       "id": "report-exclusion",

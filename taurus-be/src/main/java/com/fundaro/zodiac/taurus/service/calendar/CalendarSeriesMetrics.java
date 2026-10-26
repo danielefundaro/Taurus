@@ -41,7 +41,8 @@ public class CalendarSeriesMetrics {
         LIMIT_EXCEEDED,
         INVALID_RULE,
         OCCURRENCE_CONFLICT,
-        VERSION_CONFLICT
+        VERSION_CONFLICT,
+        DUPLICATE_REQUEST
     }
 
     private final MeterRegistry registry;

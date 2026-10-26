@@ -220,6 +220,7 @@ Mantenere l'unicità anche sui record cancellati fa sì che una singola occorren
 
 Il backend deve:
 
+0. riconoscere la chiave di idempotenza, quando presente: se una serie la porta già, restituire quella senza creare nulla;
 1. validare template, fuso, regola e termine;
 2. calcolare tutte le date locali;
 3. rifiutare la richiesta se il limite massimo viene superato;
@@ -231,7 +232,7 @@ Non devono rimanere serie o occorrenze parziali se una singola generazione falli
 
 ### Anteprima
 
-L'endpoint di anteprima non persiste nulla e restituisce fuso usato, numero totale di occorrenze, prime 20 date generate e ultima occorrenza. Il dialog di creazione e il pannello della serie nel dettaglio mostrano numero di occorrenze, ultima data e fuso.
+L'endpoint di anteprima non persiste nulla e restituisce fuso usato, numero totale di occorrenze, prime 20 date generate, ultima occorrenza e i mesi che la regola salta perché il giorno scelto non esiste (`skippedMonths`, in forma `aaaa-mm`). Il dialog di creazione e il pannello della serie nel dettaglio mostrano numero di occorrenze, ultima data e fuso.
 
 L'anteprima e la creazione usano lo stesso generatore backend (`RecurringEventGenerator`), evitando che frontend e backend interpretino diversamente la regola.
 
@@ -373,7 +374,7 @@ Gli endpoint esistenti degli eventi singoli devono rimanere compatibili.
 - `DELETE /api/calendar-event-series/{id}`
 - `POST /api/calendar-event-series/{id}/occurrences/{eventId}/restore`
 
-Il `POST` riceve template, costi e regola strutturata. Il `PATCH` riceve template e regola completi, `entityVersion` (se diversa risponde 409 `version.conflict`) e, facoltativo, `sourceOccurrenceId` (400 `calendar.series.sourceOccurrence.invalid` se l'occorrenza non appartiene alla serie). La risposta contiene `createdCount`, `updatedCount`, `deletedCount`, `keptExceptionCount` (occorrenze lasciate come sono perché eccezioni), `skippedPastCount` (posizioni già passate, non riscritte), `outsideRuleExceptionCount` (eccezioni che la nuova regola non genera più), il numero di occorrenze attive (`occurrenceCount`) e di eccezioni attive (`exceptionCount`). Una regola che supera il limite risponde `400` con `calendar.series.recurrence.tooManyOccurrences` e il limite come parametro, distinto dalla regola non valida.
+Il `POST` riceve template, costi, regola strutturata e, facoltativo, `idempotencyKey` (fino a 64 caratteri; 400 `calendar.series.idempotencyKey.invalid` se vuota o più lunga). Con la stessa chiave la serie non viene creata due volte: una richiesta ripetuta dopo un timeout riceve la serie già creata con `replayed` a vero, e due richieste simultanee con la stessa chiave lasciano passare una sola creazione, mentre le altre ricevono `409 calendar.series.duplicateRequest`. Il `PATCH` riceve template e regola completi, `entityVersion` (se diversa risponde 409 `version.conflict`) e, facoltativo, `sourceOccurrenceId` (400 `calendar.series.sourceOccurrence.invalid` se l'occorrenza non appartiene alla serie). La risposta contiene `createdCount`, `updatedCount`, `deletedCount`, `keptExceptionCount` (occorrenze lasciate come sono perché eccezioni), `skippedPastCount` (posizioni già passate, non riscritte), `outsideRuleExceptionCount` (eccezioni che la nuova regola non genera più), il numero di occorrenze attive (`occurrenceCount`) e di eccezioni attive (`exceptionCount`). Una regola che supera il limite risponde `400` con `calendar.series.recurrence.tooManyOccurrences` e il limite come parametro, distinto dalla regola non valida.
 
 ### Operazioni sulla singola occorrenza
 
@@ -451,14 +452,17 @@ Nel dialog di creazione:
 - intervallo;
 - giorni della settimana quando necessario;
 - termine per data o numero (da 1 a 500 occorrenze);
-- anteprima con numero di occorrenze, ultima data e fuso.
+- riepilogo della regola in parole, aggiornato mentre si cambiano frequenza, intervallo, giorni e termine;
+- anteprima con numero di occorrenze, ultima data e fuso;
+- elenco delle date generate (le prime 20, dichiarando quante sono in tutto);
+- avviso dei mesi saltati, con il giorno che non esiste in quei mesi.
 
-Oltre il limite il backend risponde con l'errore generico `calendar.series.recurrence.invalid`.
+Oltre il limite il backend risponde `400 calendar.series.recurrence.tooManyOccurrences`, con il limite come parametro.
 
 ### Calendario e lista
 
 - icona di ricorrenza sulle occorrenze appartenenti a una serie;
-- la stessa icona per le eccezioni, con il tooltip «Eccezione della serie» al posto di «Evento ricorrente»;
+- icona distinta per le eccezioni, con il tooltip e il nome accessibile «Eccezione della serie» al posto di «Evento ricorrente»: l'indicatore si distingue a occhio, non solo passandoci sopra;
 - nessun raggruppamento obbligatorio: la paginazione continua a operare sulle occorrenze;
 - eventuale filtro per `seriesId` in una fase successiva.
 
@@ -468,7 +472,7 @@ Il dettaglio mostra:
 
 - appartenenza alla serie, con il tag «Evento ricorrente» o «Eccezione della serie»;
 - descrizione della ricorrenza con fuso, occorrenze attive ed eccezioni;
-- sezione "Modifica pianificazione della serie" con regola e anteprima;
+- sezione "Modifica pianificazione della serie" con regola, anteprima e avviso dei mesi che la nuova regola salta;
 - azioni "Salva solo questo evento" e "Salva da questo evento in poi";
 - azione "Ripristina dalla serie" per un'eccezione;
 - scelta esplicita dell'ambito prima di una cancellazione ("Elimina evento" o "Elimina serie futura").
@@ -491,7 +495,7 @@ Il numero progressivo dell'occorrenza non viene mostrato.
 - `entity_version` applica optimistic locking alla serie.
 - La modifica della serie deve bloccare o versionare coerentemente le occorrenze future coinvolte.
 - I vincoli univoci impediscono duplicazioni di occorrenze nella stessa serie.
-- La creazione non è idempotente: una richiesta ripetuta dopo timeout crea una seconda serie.
+- La creazione è idempotente quando il client manda `idempotencyKey`: la chiave è unica nello schema del tenant, una richiesta ripetuta dopo un timeout ritrova la serie già creata e due richieste simultanee con la stessa chiave non creano due serie.
 - Le operazioni massive restituiscono un riepilogo e non un generico `204`.
 
 ## Validazioni
@@ -509,7 +513,8 @@ Il numero progressivo dell'occorrenza non viene mostrato.
 - almeno una e non più del massimo numero di occorrenze generate;
 - nessuna data duplicata;
 - importi e costi con le stesse regole dell'evento singolo;
-- `seriesId` non impostabile liberamente tramite il normale DTO evento.
+- `seriesId` non impostabile liberamente tramite il normale DTO evento;
+- chiave di idempotenza, se presente, non vuota e non più lunga di 64 caratteri.
 
 ## Osservabilità
 
@@ -518,11 +523,11 @@ Il numero progressivo dell'occorrenza non viene mostrato.
 - `taurus.calendar.series.operations{operation}`: serie create, modificate e cancellate;
 - `taurus.calendar.series.occurrences{outcome}`: occorrenze create, aggiornate, cancellate, lasciate come eccezioni, saltate perché passate o fuori dalla nuova regola;
 - `taurus.calendar.series.bulk.occurrences{operation}` e `taurus.calendar.series.bulk.duration{operation}`: dimensione e durata delle operazioni massive;
-- `taurus.calendar.series.failures{reason}`: limite superato, regola non valida, conflitto di occorrenza, conflitto di versione;
+- `taurus.calendar.series.failures{reason}`: limite superato, regola non valida, conflitto di occorrenza, conflitto di versione, richiesta di creazione duplicata;
 - `taurus.calendar.series.reminders{action}`: promemoria ripianificati o cancellati;
 - `taurus.calendar.series.availability.occurrences`: occorrenze toccate da una disponibilità massiva.
 
-I log strutturati `calendar_series_created`, `calendar_series_updated` e `calendar_series_deleted` riportano identificativo della serie, ambito e conteggi. Nei log non finiscono descrizioni o altri contenuti non necessari.
+I log strutturati `calendar_series_created`, `calendar_series_updated` e `calendar_series_deleted` riportano identificativo della serie, ambito e conteggi; `calendar_series_create_replayed` e `calendar_series_create_duplicate` registrano le creazioni ripetute con la stessa chiave. Nei log non finiscono descrizioni o altri contenuti non necessari.
 
 ## Test di accettazione principali
 
@@ -548,6 +553,9 @@ I log strutturati `calendar_series_created`, `calendar_series_updated` e `calend
 20. Isolamento completo tra schemi tenant.
 21. Creazione di serie in tenant con timezone differenti, mantenendo la rispettiva ora locale.
 22. Cambio della timezone del tenant senza modifica delle serie già esistenti.
+23. Creazione ripetuta con la stessa chiave di idempotenza che restituisce la serie già creata.
+24. Creazioni simultanee con la stessa chiave che lasciano una sola serie e un conflitto riconoscibile.
+25. Modifiche simultanee della stessa serie di cui una sola va a buon fine.
 
 ## Fasi di sviluppo ipotizzate
 
@@ -571,7 +579,4 @@ I log strutturati `calendar_series_created`, `calendar_series_updated` e `calend
 
 ## Requisiti aperti
 
-- Idempotenza della creazione: chiave di idempotenza o conflitto riconoscibile per una richiesta ripetuta dopo timeout ([Concorrenza e atomicità](#concorrenza-e-atomicità)).
-- Riepilogo testuale della regola, anteprima delle date ed evidenza dei mesi saltati nel form ([Anteprima](#anteprima), [Creazione](#creazione)).
-- Indicatore visivo distinto per le eccezioni nel calendario e nella lista ([Calendario e lista](#calendario-e-lista)).
-- Test di integrazione multi-tenant, autorizzativi e di concorrenza ([Fasi di sviluppo ipotizzate](#fasi-di-sviluppo-ipotizzate), [Test di accettazione principali](#test-di-accettazione-principali)).
+Nessuno: la specifica è coperta dal codice e dai test.

@@ -444,6 +444,8 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'calendar.series.recurrence.tooManyOccurrences': (args) => `La regola supera il limite di ${args['maximum'] ?? 500} occorrenze: riduci la durata o aumenta l’intervallo`,
     'calendar.series.sourceOccurrence.invalid': "L'occorrenza di partenza non appartiene alla serie",
     'calendar.series.occurrence.notFound': 'Occorrenza non trovata nella serie',
+    'calendar.series.idempotencyKey.invalid': "La chiave della richiesta non è valida: riprova a creare la serie",
+    'calendar.series.duplicateRequest': "La serie è già in creazione da un'altra richiesta: aggiorna la pagina per vederla",
     'calendar.series.occurrence.conflict': "Un'altra occorrenza della serie inizia già in quella data",
     'calendar.series.reminder.invalid': "Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento",
     'calendar.reminder.invalid': "Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento",

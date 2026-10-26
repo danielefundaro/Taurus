@@ -66,8 +66,10 @@
                         <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">
                             {{ item.name }}
                             @if (item.seriesId) {
-                            <i class="pi pi-sync ml-2 text-base text-primary"
-                                [pTooltip]="item.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"></i>
+                            <i class="ml-2 text-base" role="img"
+                                [ngClass]="item.seriesException ? 'pi pi-pencil text-orange-500' : 'pi pi-sync text-primary'"
+                                [pTooltip]="item.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"
+                                [attr.aria-label]="item.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"></i>
                             }
                         </a>
                         <span class="block text-sm text-muted-color whitespace-nowrap overflow-hidden text-ellipsis"><i
@@ -120,7 +122,9 @@
                 @for (event of visibleDayEvents(day); track event.id) {
                 <a [routerLink]="'/calendar/' + event.id" class="calendar-event">
                     @if (event.seriesId) {
-                    <i class="pi pi-sync mr-1" style="font-size: 0.6rem"></i>
+                    <i class="mr-1" style="font-size: 0.6rem" role="img"
+                        [ngClass]="event.seriesException ? 'pi pi-pencil text-orange-500' : 'pi pi-sync'"
+                        [attr.aria-label]="event.seriesException ? 'Eccezione della serie' : 'Evento ricorrente'"></i>
                     }
                     @if (event.startDate) {
                     <i class="pi pi-clock mr-1" style="font-size: 0.6rem"></i>{{ event.startDate | date: 'HH:mm' }}

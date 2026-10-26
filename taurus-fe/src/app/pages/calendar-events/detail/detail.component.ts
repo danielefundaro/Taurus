@@ -539,6 +539,33 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             });
     }
 
+    /** I mesi che la nuova regola salta perché il giorno scelto non esiste, in parole. */
+    protected get seriesSkippedMonthsLabel(): string {
+        const skipped = this.seriesPreview?.skippedMonths ?? [];
+        if (skipped.length === 0) return '';
+        const months = [
+            'gennaio',
+            'febbraio',
+            'marzo',
+            'aprile',
+            'maggio',
+            'giugno',
+            'luglio',
+            'agosto',
+            'settembre',
+            'ottobre',
+            'novembre',
+            'dicembre'
+        ];
+        const names = skipped.map((value) => {
+            const [year, month] = value.split('-');
+            return `${months[Number(month) - 1]} ${year}`;
+        });
+        const day = this.event.startDate ? new Date(this.event.startDate).getDate() : undefined;
+        const reason = day ? `perché il giorno ${day} non esiste` : 'perché il giorno scelto non esiste';
+        return `${names.length === 1 ? 'Un mese saltato' : `${names.length} mesi saltati`} ${reason}: ${names.join(', ')}.`;
+    }
+
     protected get seriesRuleInvalid(): boolean {
         if (!this.series) return false;
         const rule = this.series.recurrence;

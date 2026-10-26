@@ -19,6 +19,8 @@ export interface RecurrenceRule {
 
 export interface CalendarEventSeriesRequest {
     entityVersion?: number;
+    /** Chiave della creazione: una richiesta ripetuta dopo un timeout non crea una seconda serie. */
+    idempotencyKey?: string;
     sourceOccurrenceId?: number;
     template: CalendarEvents;
     recurrence: RecurrenceRule;
@@ -29,6 +31,8 @@ export interface CalendarEventSeriesPreview {
     occurrenceCount: number;
     occurrences: Date[];
     lastOccurrence: Date;
+    /** Mesi saltati dalla regola, in forma `aaaa-mm`. */
+    skippedMonths?: string[];
 }
 
 export interface CalendarEventSeries {
@@ -48,6 +52,8 @@ export interface CalendarEventSeries {
     skippedPastCount?: number;
     /** Eccezioni che la nuova regola non genera più. */
     outsideRuleExceptionCount?: number;
+    /** Vero quando la creazione ha ritrovato la serie di una richiesta già andata a buon fine. */
+    replayed?: boolean;
 }
 
 export interface BulkAvailabilityResult {

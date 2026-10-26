@@ -30,6 +30,8 @@ export class AddCalendarEventsDialogComponent {
     protected untilDate?: Date;
     protected previewResult?: CalendarEventSeriesPreview;
     protected isPreviewing = false;
+    /** Una chiave per dialog: il secondo invio dopo un timeout ritrova la serie invece di crearne un'altra. */
+    private readonly idempotencyKey = AddCalendarEventsDialogComponent.newKey();
     protected readonly financeEnabled;
     protected readonly frequencyOptions: { value: RecurrenceFrequency; label: string }[] = [
         { value: 'DAILY', label: 'Giornaliera' },
@@ -116,8 +118,55 @@ export class AddCalendarEventsDialogComponent {
         return !this.untilDate;
     }
 
+    /**
+     * La regola in parole, come la leggerà chi crea la serie: frequenza, giorni e termine.
+     */
+    protected get recurrenceSummary(): string {
+        if (!this.recurring || !this.event.startDate) return '';
+        const start = new Date(this.event.startDate);
+        const every = this.interval > 1 ? `Ogni ${this.interval} ` : 'Ogni ';
+        let rule: string;
+        switch (this.frequency) {
+            case 'DAILY':
+                rule = `${every}${this.interval > 1 ? 'giorni' : 'giorno'}`;
+                break;
+            case 'WEEKLY': {
+                const days = this.weekDayOptions.filter((day) => this.weekDays.includes(day.code)).map((day) => day.label);
+                rule = `${every}${this.interval > 1 ? 'settimane' : 'settimana'}${days.length ? ' il ' + days.join(', ') : ''}`;
+                break;
+            }
+            case 'MONTHLY':
+                rule = `${every}${this.interval > 1 ? 'mesi' : 'mese'} il giorno ${start.getDate()}`;
+                break;
+            default:
+                rule = `${every}${this.interval > 1 ? 'anni' : 'anno'} il ${start.getDate()} ${AddCalendarEventsDialogComponent.MONTHS[start.getMonth()]}`;
+        }
+        const end =
+            this.endType === 'COUNT'
+                ? `per ${this.occurrenceCount} ${this.occurrenceCount === 1 ? 'occorrenza' : 'occorrenze'}`
+                : this.untilDate
+                  ? `fino al ${this.untilDate.toLocaleDateString('it-IT')}`
+                  : '';
+        const time = start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        return `${rule}, alle ${time}${end ? ', ' + end : ''}.`;
+    }
+
+    /** I mesi che la regola salta perché il giorno scelto non esiste, in parole. */
+    protected get skippedMonthsLabel(): string {
+        const skipped = this.previewResult?.skippedMonths ?? [];
+        if (skipped.length === 0) return '';
+        const names = skipped.map((value) => {
+            const [year, month] = value.split('-');
+            return `${AddCalendarEventsDialogComponent.MONTHS[Number(month) - 1]} ${year}`;
+        });
+        const day = this.event.startDate ? new Date(this.event.startDate).getDate() : undefined;
+        const reason = day ? `perché il giorno ${day} non esiste` : 'perché il giorno scelto non esiste';
+        return `${names.length === 1 ? 'Un mese saltato' : `${names.length} mesi saltati`} ${reason}: ${names.join(', ')}.`;
+    }
+
     private buildSeriesRequest(): CalendarEventSeriesRequest {
         return {
+            idempotencyKey: this.idempotencyKey,
             template: this.event,
             recurrence: {
                 frequency: this.frequency,
@@ -133,6 +182,28 @@ export class AddCalendarEventsDialogComponent {
         const codes: RecurrenceWeekDay[] = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
         const startDay = codes[new Date(this.event.startDate).getDay()];
         if (!this.weekDays.includes(startDay)) this.weekDays = [...this.weekDays, startDay];
+    }
+
+    private static readonly MONTHS = [
+        'gennaio',
+        'febbraio',
+        'marzo',
+        'aprile',
+        'maggio',
+        'giugno',
+        'luglio',
+        'agosto',
+        'settembre',
+        'ottobre',
+        'novembre',
+        'dicembre'
+    ];
+
+    /** `randomUUID` manca nei contesti non sicuri e nei test: in quel caso basta una chiave casuale. */
+    private static newKey(): string {
+        const generator = globalThis.crypto;
+        if (generator && typeof generator.randomUUID === 'function') return generator.randomUUID();
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
     }
 
     private formatLocalDate(value: Date): string {

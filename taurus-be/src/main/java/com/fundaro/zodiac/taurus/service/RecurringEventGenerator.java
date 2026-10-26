@@ -18,14 +18,27 @@ import java.util.Set;
 @Component
 public class RecurringEventGenerator {
 
+    /**
+     * Occorrenze generate dalla regola e mesi che la regola ha saltato perché il giorno scelto non
+     * esiste in quel mese: chi crea la serie deve vederli prima di salvare.
+     */
+    public record Generation(List<ZonedDateTime> occurrences, List<YearMonth> skippedMonths) {
+    }
+
     public List<ZonedDateTime> generate(LocalDateTime firstStart, ZoneId zoneId, RecurrenceRuleDTO rule, int maximumOccurrences) {
+        return generateDetailed(firstStart, zoneId, rule, maximumOccurrences).occurrences();
+    }
+
+    public Generation generateDetailed(LocalDateTime firstStart, ZoneId zoneId, RecurrenceRuleDTO rule, int maximumOccurrences) {
         validate(firstStart, rule, maximumOccurrences);
-        return switch (rule.getFrequency()) {
+        List<YearMonth> skipped = new ArrayList<>();
+        List<ZonedDateTime> occurrences = switch (rule.getFrequency()) {
             case DAILY -> generateDaily(firstStart, zoneId, rule, maximumOccurrences);
             case WEEKLY -> generateWeekly(firstStart, zoneId, rule, maximumOccurrences);
-            case MONTHLY -> generateMonthly(firstStart, zoneId, rule, maximumOccurrences);
-            case YEARLY -> generateYearly(firstStart, zoneId, rule, maximumOccurrences);
+            case MONTHLY -> generateMonthly(firstStart, zoneId, rule, maximumOccurrences, skipped);
+            case YEARLY -> generateYearly(firstStart, zoneId, rule, maximumOccurrences, skipped);
         };
+        return new Generation(occurrences, List.copyOf(skipped));
     }
 
     private List<ZonedDateTime> generateDaily(LocalDateTime first, ZoneId zone, RecurrenceRuleDTO rule, int maximum) {
@@ -60,7 +73,7 @@ public class RecurringEventGenerator {
         return result;
     }
 
-    private List<ZonedDateTime> generateMonthly(LocalDateTime first, ZoneId zone, RecurrenceRuleDTO rule, int maximum) {
+    private List<ZonedDateTime> generateMonthly(LocalDateTime first, ZoneId zone, RecurrenceRuleDTO rule, int maximum, List<YearMonth> skipped) {
         List<ZonedDateTime> result = new ArrayList<>();
         YearMonth month = YearMonth.from(first);
         int day = first.getDayOfMonth();
@@ -71,6 +84,8 @@ public class RecurringEventGenerator {
                 add(result, LocalDateTime.of(candidateDate, first.toLocalTime()), zone, maximum);
             } else if (pastUntil(month.atEndOfMonth(), rule.getEnd())) {
                 break;
+            } else {
+                skipped.add(month);
             }
             if (reachedCount(result.size(), rule.getEnd())) break;
             month = month.plusMonths(rule.getInterval());
@@ -78,7 +93,7 @@ public class RecurringEventGenerator {
         return result;
     }
 
-    private List<ZonedDateTime> generateYearly(LocalDateTime first, ZoneId zone, RecurrenceRuleDTO rule, int maximum) {
+    private List<ZonedDateTime> generateYearly(LocalDateTime first, ZoneId zone, RecurrenceRuleDTO rule, int maximum, List<YearMonth> skipped) {
         List<ZonedDateTime> result = new ArrayList<>();
         int year = first.getYear();
         int month = first.getMonthValue();
@@ -91,6 +106,8 @@ public class RecurringEventGenerator {
                 add(result, LocalDateTime.of(candidateDate, first.toLocalTime()), zone, maximum);
             } else if (pastUntil(yearMonth.atEndOfMonth(), rule.getEnd())) {
                 break;
+            } else {
+                skipped.add(yearMonth);
             }
             if (reachedCount(result.size(), rule.getEnd())) break;
             year += rule.getInterval();

@@ -81,6 +81,10 @@
                 </label>
             </div>
 
+            @if (recurrenceSummary) {
+            <p class="text-sm m-0"><i class="pi pi-info-circle mr-1"></i>{{ recurrenceSummary }}</p>
+            }
+
             <div class="flex items-center justify-between gap-3">
                 <p-button label="Calcola anteprima" icon="pi pi-eye" severity="secondary" [outlined]="true"
                     [loading]="isPreviewing" [disabled]="recurrenceInvalid || !event.startDate" (onClick)="preview()" />
@@ -89,6 +93,28 @@
                     previewResult.lastOccurrence | date: 'dd/MM/yyyy HH:mm' }} · {{ previewResult.timeZone }} </span>
                 }
             </div>
+
+            @if (previewResult) {
+            <div class="flex flex-col gap-2">
+                <span class="text-sm text-surface-500">
+                    @if (previewResult.occurrenceCount > previewResult.occurrences.length) {
+                    Prime {{ previewResult.occurrences.length }} date di {{ previewResult.occurrenceCount }}
+                    } @else {
+                    Date generate
+                    }
+                </span>
+                <div class="flex flex-wrap gap-2">
+                    @for (occurrence of previewResult.occurrences; track occurrence) {
+                    <span class="text-sm rounded bg-surface-100 dark:bg-surface-800 px-2 py-1">{{ occurrence | date:
+                        'EEE dd/MM/yyyy HH:mm' }}</span>
+                    }
+                </div>
+                @if (skippedMonthsLabel) {
+                <p class="text-sm m-0 text-orange-600 dark:text-orange-400"><i
+                        class="pi pi-exclamation-triangle mr-1"></i>{{ skippedMonthsLabel }}</p>
+                }
+            </div>
+            }
         </div>
         }
     </p-fluid>
