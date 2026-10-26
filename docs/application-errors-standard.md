@@ -798,6 +798,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `calendar.series.template.invalid` | 400 | Evento modello senza nome o data di inizio | — | «Indicare nome e data di inizio dell'evento» |
 | `calendar.series.duration.invalid` | 400 | La fine dell'evento modello non segue l'inizio di almeno un minuto | — | «La fine dell'evento deve seguire l'inizio» |
 | `calendar.series.recurrence.invalid` | 400 | Regola di ricorrenza non valida; il messaggio del generatore delle occorrenze va solo nel log | — | «Regola di ricorrenza non valida» |
+| `calendar.series.recurrence.tooManyOccurrences` | 400 | La regola genererebbe più occorrenze del limite della serie | `maximum` | «La regola supera il limite di {maximum} occorrenze: riduci la durata o aumenta l'intervallo» |
 | `calendar.series.sourceOccurrence.invalid` | 400 | L'occorrenza di partenza indicata non appartiene alla serie | — | «L'occorrenza di partenza non appartiene alla serie» |
 | `calendar.series.occurrence.notFound` | 404 | Ripristino di un'occorrenza che non appartiene alla serie | — | «Occorrenza non trovata nella serie» |
 | `calendar.series.occurrence.conflict` | 409 | La nuova regola porta un'occorrenza sull'inizio già occupato da un'altra occorrenza della serie | — | «Un'altra occorrenza della serie inizia già in quella data» |

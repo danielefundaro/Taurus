@@ -459,6 +459,9 @@ public class FinanceService {
             cost.setAmount(moneyOrZero(item.amount()));
             event.getCosts().add(cost);
         }
+        // Una modifica alla singola occorrenza protegge l'intera occorrenza dagli aggiornamenti del
+        // template della serie: compenso e costi non sono un'eccezione a quella decisione.
+        if (event.getSeries() != null) event.setSeriesException(true);
         eventRepository.save(event);
         return eventSummary(event);
     }

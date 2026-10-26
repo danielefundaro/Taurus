@@ -303,7 +303,7 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
+      "lastVerifiedOn": "2026-10-26",
       "notes": "Approvata il 2026-10-18 con le decisioni della revisione: conservazione degli atti firmati a cura del tenant, che scarica il fascicolo; eliminazione dopo 30 giorni dalla definizione o dall'annullamento. Prima consegna autorizzata: fasi 1 e 2 (firma con codice via e-mail di fogli e prese visione); app di autenticazione, genitore senza account e CieSign in consegne successive. Fasi 1 e 2 implementate il 2026-10-19: Keycloak 26.6.4, BouncyCastle 1.86, Mailpit, catena delle prove con trigger di immutabilità, conferme con codice via e-mail, sigillo PAdES e attestazione, presa visione con codice anche multipla, interruttore del tenant; marcatori del modello e nuovo predefinito 2026-10-19, atti di emissione con dati dell'Affidatario e clausole firmate a parte, variazioni, verbale di riconsegna che definisce il foglio, firma per l'Associazione e suo cambio, firma su carta del singolo atto, fascicolo ZIP, eliminazione dopo il periodo di grazia e con la cancellazione GDPR. Verificate con test unitari, integrazione su PostgreSQL, test Angular e build di produzione. Fase 3 implementata il 2026-10-19: provider Keycloak taurus-otp con client confidenziale taurus-signature, verifica del codice dell'app che rifiuta i codici già usati anche per il login, metodo preferito nel profilo e passaggio all'altro metodo nella finestra del codice; verificata anche con Keycloak 26.6.4 in Testcontainers. Fase 4 implementata il 2026-10-19: genitore o tutore senza account con link pubblico di 7 giorni, registro pubblico dei link, pagina /firma/:token senza login con dati del genitore e codice via e-mail, presa visione del socio minorenne dal proprio account, nuovo link ai documenti firmati a firme complete, reinvio e revoca del link dalla sezione Firme, notifica dei link scaduti senza firma. Fase 5 implementata il 2026-10-19: firma dei documenti con CieSign per l'Affidatario con codice fiscale italiano, dall'applicazione e dalla pagina pubblica, con verifica del documento congelato, dell'aggiornamento incrementale, della firma, delle CA della CIE configurate come trust anchor, di nome e codice fiscale e della revoca con ripiego in caso di CRL irraggiungibile; sigillo aggiunto al file CieSign; verificata con una CA di prova nei test unitari e su PostgreSQL. Fase 6 eseguita il 2026-10-20: casi SIG-001…035 su uno stack locale con login reali di Keycloak, Mailpit e una CA di prova al posto di quelle della CIE; corretti la cancellazione GDPR (errore su ogni utente del tenant ed eliminazione immediata per il socio senza materiale in carico), il blocco della finestra di firma nella pagina pubblica, la risposta al documento caricato senza firma, il conteggio dei file oltre 25 MB, la dichiarazione del minore e i testi che citavano solo il codice via e-mail; pronuncia citata verificata sul testo originale (Cass. 20945/2026). Restano la firma con una CIE reale e in Acrobat, l'invio da una casella reale, la stampa A4, la configurazione dei certificati reali della CIE e la verifica legale indicata nella specifica, da completare prima dell'attivazione in un tenant reale."
     },
     {
@@ -707,18 +707,20 @@
       "evidence": {
         "implementation": [
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/CalendarEventSeriesResource.java",
-          "taurus-fe/src/app/service/calendar-event-series.service.ts"
+          "taurus-fe/src/app/service/calendar-event-series.service.ts",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/calendar/CalendarSeriesMetrics.java"
         ],
         "migrations": [
           "taurus-be/src/main/resources/config/liquibase/changelog/20260831000003_recurring_calendar_events.xml",
           "taurus-be/src/main/resources/config/liquibase/changelog/20260831000002_tenant_timezone.xml"
         ],
         "tests": [
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
+      "lastVerifiedOn": "2026-10-26",
       "notes": "La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze. Restano i requisiti aperti elencati nella specifica."
     },
     {

@@ -19,6 +19,7 @@ import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceEndDTO;
 import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
 import com.fundaro.zodiac.taurus.service.mapper.CalendarEventsMapper;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -239,6 +241,137 @@ class CalendarEventSeriesServiceImplTest {
         assertThat(occurrence.getCosts()).containsExactly(occurrenceCost);
         assertThat(result.getTemplate().getFee()).isNull();
         assertThat(result.getTemplate().getCosts()).isEmpty();
+    }
+
+    @Test
+    void reportsTheOccurrencesKeptAsExceptionsAndThoseOutsideTheNewRule() {
+        CalendarEventSeriesRepository seriesRepository = mock(CalendarEventSeriesRepository.class);
+        CalendarEventsRepository eventRepository = mock(CalendarEventsRepository.class);
+        CalendarEventsMapper eventMapper = mock(CalendarEventsMapper.class);
+        TenantFeatureService tenantFeatureService = mock(TenantFeatureService.class);
+
+        Instant start = Instant.now().plusSeconds(86_400);
+        CalendarEventSeries series = new CalendarEventSeries();
+        series.setId(30L);
+        series.setTimeZone("UTC");
+
+        // La sorgente, una posizione normale e due eccezioni: una dentro la nuova regola, una oltre.
+        CalendarEvents source = occurrence(series, 40L, start, 1, false);
+        CalendarEvents plain = occurrence(series, 41L, start.plusSeconds(86_400), 2, false);
+        CalendarEvents keptException = occurrence(series, 42L, start.plusSeconds(172_800), 3, true);
+        CalendarEvents outsideRule = occurrence(series, 43L, start.plusSeconds(259_200), 4, true);
+
+        when(seriesRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(series));
+        when(eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(30L))
+            .thenReturn(List.of(source, plain, keptException, outsideRule));
+
+        CalendarEventSeriesServiceImpl service = new CalendarEventSeriesServiceImpl(
+            seriesRepository,
+            eventRepository,
+            eventMapper,
+            new RecurringEventGenerator(),
+            mock(TenantTimeZoneService.class),
+            mock(EventReminderProducer.class),
+            tenantFeatureService,
+            500
+        );
+
+        CalendarEventSeriesRequest request = new CalendarEventSeriesRequest();
+        request.setSourceOccurrenceId(source.getId());
+        request.setTemplate(template(start));
+        request.setRecurrence(dailyRule(3));
+
+        var result = service.update(series.getId(), request, authentication());
+
+        assertThat(result.getKeptExceptionCount()).isEqualTo(1);
+        assertThat(result.getOutsideRuleExceptionCount()).isEqualTo(1);
+        assertThat(result.getSkippedPastCount()).isZero();
+        assertThat(keptException.getName()).isEqualTo("Nome precedente");
+    }
+
+    @Test
+    void countsTheOccurrencesSkippedBecauseTheyArePast() {
+        CalendarEventSeriesRepository seriesRepository = mock(CalendarEventSeriesRepository.class);
+        CalendarEventsRepository eventRepository = mock(CalendarEventsRepository.class);
+        TenantFeatureService tenantFeatureService = mock(TenantFeatureService.class);
+
+        CalendarEventSeries series = new CalendarEventSeries();
+        series.setId(31L);
+        series.setTimeZone("UTC");
+        Instant past = Instant.now().minus(10, ChronoUnit.DAYS);
+
+        when(seriesRepository.findByIdAndDeletedFalse(31L)).thenReturn(Optional.of(series));
+        when(eventRepository.findAllBySeries_IdOrderByOriginalStartDateAsc(31L)).thenReturn(List.of());
+
+        CalendarEventSeriesServiceImpl service = new CalendarEventSeriesServiceImpl(
+            seriesRepository,
+            eventRepository,
+            mock(CalendarEventsMapper.class),
+            new RecurringEventGenerator(),
+            mock(TenantTimeZoneService.class),
+            mock(EventReminderProducer.class),
+            tenantFeatureService,
+            500
+        );
+
+        CalendarEventSeriesRequest request = new CalendarEventSeriesRequest();
+        request.setTemplate(template(past));
+        request.setRecurrence(dailyRule(3));
+
+        var result = service.update(series.getId(), request, authentication());
+
+        // Tre posizioni, tutte nel passato: lo storico non si riscrive.
+        assertThat(result.getSkippedPastCount()).isEqualTo(3);
+        assertThat(result.getUpdatedCount()).isZero();
+        assertThat(result.getCreatedCount()).isZero();
+    }
+
+    @Test
+    void tellsTheUserWhenTheRuleExceedsTheOccurrenceLimit() {
+        CalendarEventSeriesRepository seriesRepository = mock(CalendarEventSeriesRepository.class);
+        CalendarEventSeries series = new CalendarEventSeries();
+        series.setId(32L);
+        series.setTimeZone("UTC");
+        when(seriesRepository.findByIdAndDeletedFalse(32L)).thenReturn(Optional.of(series));
+
+        CalendarEventSeriesServiceImpl service = new CalendarEventSeriesServiceImpl(
+            seriesRepository,
+            mock(CalendarEventsRepository.class),
+            mock(CalendarEventsMapper.class),
+            new RecurringEventGenerator(),
+            mock(TenantTimeZoneService.class),
+            mock(EventReminderProducer.class),
+            mock(TenantFeatureService.class),
+            5
+        );
+
+        CalendarEventSeriesRequest request = new CalendarEventSeriesRequest();
+        request.setTemplate(template(Instant.now().plusSeconds(86_400)));
+        request.setRecurrence(dailyRule(50));
+
+        assertThatThrownBy(() -> service.update(series.getId(), request, authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("exceeds the maximum of 5");
+    }
+
+    private static CalendarEventsDTO template(Instant start) {
+        CalendarEventsDTO template = new CalendarEventsDTO();
+        template.setName("Nuovo nome");
+        template.setState(StateEnum.COMPLETE);
+        template.setStartDate(Date.from(start));
+        template.setEndDate(Date.from(start.plusSeconds(7_200)));
+        return template;
+    }
+
+    private static RecurrenceRuleDTO dailyRule(int count) {
+        RecurrenceEndDTO end = new RecurrenceEndDTO();
+        end.setType(RecurrenceEndType.COUNT);
+        end.setCount(count);
+        RecurrenceRuleDTO recurrence = new RecurrenceRuleDTO();
+        recurrence.setFrequency(RecurrenceFrequency.DAILY);
+        recurrence.setInterval(1);
+        recurrence.setEnd(end);
+        return recurrence;
     }
 
     private static CalendarEvents occurrence(

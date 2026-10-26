@@ -113,7 +113,7 @@ public class RecurringEventGenerator {
 
     private void add(List<ZonedDateTime> result, LocalDateTime candidate, ZoneId zone, int maximum) {
         if (result.size() >= maximum) {
-            throw new IllegalArgumentException("The recurrence exceeds the maximum of " + maximum + " occurrences");
+            throw new OccurrenceLimitExceededException(maximum);
         }
         result.add(candidate.atZone(zone));
     }
@@ -127,8 +127,11 @@ public class RecurringEventGenerator {
         }
         if (maximum < 1) throw new IllegalArgumentException("Invalid maximum occurrence limit");
         if (rule.getEnd().getType() == RecurrenceEndType.COUNT) {
-            if (rule.getEnd().getCount() == null || rule.getEnd().getCount() < 1 || rule.getEnd().getCount() > maximum) {
-                throw new IllegalArgumentException("Occurrence count must be between 1 and " + maximum);
+            if (rule.getEnd().getCount() != null && rule.getEnd().getCount() > maximum) {
+                throw new OccurrenceLimitExceededException(maximum);
+            }
+            if (rule.getEnd().getCount() == null || rule.getEnd().getCount() < 1) {
+                throw new IllegalArgumentException("Occurrence count must be at least 1");
             }
             if (rule.getEnd().getUntil() != null)
                 throw new IllegalArgumentException("COUNT cannot include an until date");

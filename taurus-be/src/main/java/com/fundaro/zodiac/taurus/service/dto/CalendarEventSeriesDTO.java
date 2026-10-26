@@ -11,6 +11,12 @@ public class CalendarEventSeriesDTO {
     private Integer createdCount;
     private Integer updatedCount;
     private Integer deletedCount;
+    /** Occorrenze lasciate come sono perché marcate eccezione. */
+    private Integer keptExceptionCount;
+    /** Occorrenze ignorate perché già passate: la modifica di serie non riscrive lo storico. */
+    private Integer skippedPastCount;
+    /** Eccezioni che la nuova regola non genera più: restano come occorrenze eccezionali della serie. */
+    private Integer outsideRuleExceptionCount;
 
     public Long getId() {
         return id;
@@ -90,5 +96,29 @@ public class CalendarEventSeriesDTO {
 
     public void setDeletedCount(Integer deletedCount) {
         this.deletedCount = deletedCount;
+    }
+
+    public Integer getKeptExceptionCount() {
+        return keptExceptionCount;
+    }
+
+    public void setKeptExceptionCount(Integer keptExceptionCount) {
+        this.keptExceptionCount = keptExceptionCount;
+    }
+
+    public Integer getSkippedPastCount() {
+        return skippedPastCount;
+    }
+
+    public void setSkippedPastCount(Integer skippedPastCount) {
+        this.skippedPastCount = skippedPastCount;
+    }
+
+    public Integer getOutsideRuleExceptionCount() {
+        return outsideRuleExceptionCount;
+    }
+
+    public void setOutsideRuleExceptionCount(Integer outsideRuleExceptionCount) {
+        this.outsideRuleExceptionCount = outsideRuleExceptionCount;
     }
 }
