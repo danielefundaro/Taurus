@@ -738,7 +738,13 @@ Usare snapshot consistente o copia incrementale del volume `APPLICATION_BASE_PAT
 
 ### 12.4 Restore di prova
 
-Almeno con la frequenza prevista dalla policy:
+La parte del database è automatizzata da `scripts/ops/restore-test.sh`: fa il backup dell'istanza indicata dalle variabili `PG*`, la ripristina in un container temporaneo, confronta il numero di schemi tenant e di migrazioni applicate con l'origine e stampa durata del backup, durata del ripristino e dimensione del dump — i tre numeri da registrare come misura di RPO e RTO. L'origine non viene mai toccata e il container di prova viene eliminato alla fine.
+
+```bash
+PGHOST=... PGPORT=5432 PGUSER=taurus PGPASSWORD=... PGDATABASE=taurus scripts/ops/restore-test.sh
+```
+
+Lo script va programmato sull'host che raggiunge il database: la CI non lo raggiunge. Copre il solo database Taurus, quindi i passi su Keycloak, storage media e applicazione restano da eseguire con la procedura seguente, almeno con la frequenza prevista dalla policy:
 
 1. creare un ambiente isolato;
 2. ripristinare i due database su istanze vuote;
@@ -1036,7 +1042,7 @@ I seguenti punti emergono direttamente dal repository e devono diventare attivit
 | Alta | `app.yml` obsoleto/incompleto | Non usarlo; sostituirlo e aggiungere RabbitMQ/storage/JDBC corretti |
 | Alta | Pipeline non pubblica info/provider | Estendere CI/CD, firma e provenienza artefatti |
 | Alta | Scheduler multi-replica non governati globalmente | Validare locking/idempotenza o separare worker scheduler |
-| Alta | Nessun RPO/RTO/retention approvato | Definire e provare backup/DR |
+| Alta | Nessun RPO/RTO/retention approvato; la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh` ma non programmata | Programmare lo script, estendere la prova a Keycloak e allo storage media, far approvare RPO, RTO e retention con i tempi misurati |
 | Media | Logging prod non strutturato | Definire formato, correlazione, raccolta e retention |
 | Media | Actuator espone endpoint sensibili | Restringere rete e autorizzazioni, verificare sanitizzazione |
 | Media | Compose RabbitMQ espone porte su tutte le interfacce | Limitare al loopback in dev e usare rete privata/TLS/credenziali in prod |

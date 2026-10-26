@@ -445,6 +445,7 @@ Tutte passano a 502, tranne `conflict.error`.
 | `quietHours.invalid`, `digest.quietHours`, `pushPause.invalid`, `categories.incomplete`, `categories.invalid`, `timeZone.invalid` delle preferenze | Stesso nome con prefisso `preferences.` |
 | `snooze.invalid`, `snooze.read` | Stesso nome con prefisso `notice.` |
 | `file.empty` dei brani | `track.file.empty` |
+| annotazioni illeggibili all'upload | `track.annotations.invalid` |
 | `file.unsupported` | `track.upload.unsupported` |
 | `file.upload` | `track.upload.failed` (500) |
 | `media.required` | `track.upload.mediaRequired` |
@@ -855,6 +856,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | --- | --- | --- | --- | --- |
 | `track.notFound` | 404 | L'elaborazione indica un brano inesistente | — | «Brano non trovato» |
 | `track.file.empty` | 400 | Caricamento di un file vuoto in un brano | — | «Il file è vuoto» |
+| `track.annotations.invalid` | 400 | Le annotazioni del manipolatore PDF non sono leggibili come JSON | — | «Le modifiche alle pagine non sono leggibili: riapri il manipolatore e riprova» |
 | `track.score.notFound` | 400 | La parte indicata non appartiene al brano | — | «La parte non appartiene al brano» |
 | `track.queue.failed` | 500 | Impossibile accodare l'elaborazione del file, al caricamento o al nuovo tentativo | — | «Impossibile avviare l'elaborazione del file: riprovare» |
 | `track.upload.notFound` | 404 | Elaborazione inesistente o di un altro brano | — | «Elaborazione non trovata» |

@@ -35,7 +35,7 @@
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
+      "lastVerifiedOn": "2026-10-26",
       "notes": "Bozza del 2026-10-10, riscritta e implementata il 2026-10-11. Il backend restituisce solo stato, chiave, parametri strutturati ed errorId, anche per i 401 e 403 della catena di sicurezza; descrizioni, nomi delle entità e messaggi di Keycloak restano nel log. Il frontend costruisce ogni messaggio dal catalogo per chiave. Rinominate e scomposte le chiavi della tabella di corrispondenza; le risorse di altri soci rispondono 404. La verifica automatica del catalogo gira nella CI."
     },
     {
