@@ -4,6 +4,13 @@ import { ImportsModule } from '../../imports';
 import { FinancialAccount } from '../../module';
 import { toIsoDate } from '../../service';
 
+/** Il conto salvato e, alla creazione, il documento che giustifica il saldo iniziale. */
+export interface AccountDialogResult {
+    account: FinancialAccount;
+    openingAttachment?: File;
+    openingAttachmentDescription?: string;
+}
+
 @Component({
     selector: 'app-finance-account-dialog',
     standalone: true,
@@ -13,6 +20,7 @@ import { toIsoDate } from '../../service';
 export class FinanceAccountDialogComponent {
     protected readonly account: FinancialAccount;
     protected openingDate = new Date();
+    protected openingAttachment?: File;
 
     protected readonly accountTypes = [
         { label: 'Cassa', value: 'CASH' },
@@ -43,6 +51,10 @@ export class FinanceAccountDialogComponent {
         return (this.nameError ? 1 : 0) + (this.currencyError ? 1 : 0);
     }
 
+    protected onOpeningAttachmentSelected(event: Event): void {
+        this.openingAttachment = (event.target as HTMLInputElement).files?.[0];
+    }
+
     protected cancel(): void {
         this.dialogRef.close();
     }
@@ -52,6 +64,12 @@ export class FinanceAccountDialogComponent {
         this.account.name = this.account.name.trim();
         this.account.currency = this.account.currency.trim().toUpperCase();
         if (!this.account.id && this.account.initialBalance) this.account.initialBalanceDate = toIsoDate(this.openingDate);
-        this.dialogRef.close(this.account);
+        const result: AccountDialogResult = {
+            account: this.account,
+            // Il documento segue il movimento di apertura, che esiste solo dopo il salvataggio.
+            openingAttachment: this.account.id ? undefined : this.openingAttachment,
+            openingAttachmentDescription: this.account.initialBalanceDescription
+        };
+        this.dialogRef.close(result);
     }
 }

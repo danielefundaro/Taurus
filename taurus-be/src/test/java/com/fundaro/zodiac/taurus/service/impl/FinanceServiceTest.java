@@ -11,10 +11,12 @@ import com.fundaro.zodiac.taurus.repository.finance.*;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.MovementNotice;
 import com.fundaro.zodiac.taurus.service.impl.FinanceNoticeDataService.NamedNotice;
 import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,7 +77,8 @@ class FinanceServiceTest {
             attachmentRepository,
             eventRepository,
             mediaRepository,
-            mediaService
+            mediaService,
+            new FinanceMetrics(new SimpleMeterRegistry())
         );
         NoticesAspect noticesAspect = new NoticesAspect(
             notificationPublisher,
@@ -124,7 +127,8 @@ class FinanceServiceTest {
                 null,
                 null,
                 null,
-                UUID.randomUUID()
+                UUID.randomUUID(),
+                null
             ),
             authentication()
         );
@@ -161,7 +165,8 @@ class FinanceServiceTest {
                 "Banca di prova",
                 1,
                 new BigDecimal("250.00"),
-                LocalDate.of(2026, 1, 1)
+                LocalDate.of(2026, 1, 1),
+                null
             ),
             authentication()
         );
@@ -195,6 +200,7 @@ class FinanceServiceTest {
                 null,
                 BigDecimal.TEN,
                 "Incasso",
+                null,
                 null,
                 null,
                 null,

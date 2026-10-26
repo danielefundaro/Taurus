@@ -939,6 +939,7 @@ public class NoticesAspect {
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.accountStatement(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.events(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.categories(..)) || " +
+            "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.eventStatement(..)) || " +
             "execution(* com.fundaro.zodiac.taurus.service.impl.FinanceReportService.annual(..))"
     )
     Object onFinanceReportExport(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -954,7 +955,13 @@ public class NoticesAspect {
         Integer year = null;
         int seenDates = 0;
         for (int index = 0; index < parameterTypes.length; index++) {
-            if (parameterTypes[index] == LocalDate.class) {
+            // Il registro cassa riceve i filtri dell'elenco in un record: il periodo sta dentro.
+            if (args[index] instanceof FinanceReportService.MovementFilter filter) {
+                from = filter.from();
+                to = filter.to();
+                year = filter.year();
+                seenDates = 2;
+            } else if (parameterTypes[index] == LocalDate.class) {
                 if (seenDates == 0) from = (LocalDate) args[index];
                 else if (seenDates == 1) to = (LocalDate) args[index];
                 seenDates++;
@@ -993,6 +1000,7 @@ public class NoticesAspect {
             case "events" -> "il rendiconto per evento";
             case "categories" -> "il rendiconto per categoria";
             case "annual" -> "il rendiconto annuale";
+            case "eventStatement" -> "il rendiconto dell'evento";
             default -> "il registro cassa";
         };
     }

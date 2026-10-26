@@ -29,6 +29,8 @@ public interface FinancialMovementRepository extends JpaRepository<FinancialMove
 
     List<FinancialMovement> findAllByAccount_IdAndDeletedFalse(Long accountId);
 
+    List<FinancialMovement> findAllByAccount_IdAndDeletedFalseAndInitialBalanceTrue(Long accountId);
+
     List<FinancialMovement> findAllByEvent_IdAndDeletedFalseOrderByBookingDateAscIdAsc(Long eventId);
 
     List<FinancialMovement> findAllByTransferGroupAndDeletedFalse(UUID transferGroup);

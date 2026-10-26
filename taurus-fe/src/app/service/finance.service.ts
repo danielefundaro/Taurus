@@ -5,19 +5,37 @@ import { environment } from '../../environments/environment';
 import {
     AccountingYear,
     AccountingYearSummary,
+    EventEconomicStatus,
     FinancialAccount,
     FinancialAccountStatement,
     FinancialAttachment,
     FinancialCategory,
     FinancialDashboard,
     FinancialDirection,
+    FinancialEventStatement,
     FinancialEventSummary,
     FinancialMovement,
+    FinancialMovementNature,
     FinancialTransferRequest,
     Page
 } from '../module';
 
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
+
+/** I filtri dell'elenco movimenti: l'esportazione riceve gli stessi, così il file e la tabella coincidono. */
+export interface MovementFilters {
+    from?: string;
+    to?: string;
+    year?: number;
+    accountId?: number;
+    categoryId?: number;
+    eventId?: number;
+    direction?: FinancialDirection;
+    nature?: FinancialMovementNature;
+    counterparty?: string;
+    reconciled?: boolean;
+    query?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -72,18 +90,7 @@ export class FinanceService {
         return this.http.patch<void>(`${this.baseUrl}/categories/${id}/archive`, {});
     }
 
-    getMovements(options: {
-        page?: number;
-        size?: number;
-        sort?: string;
-        from?: string;
-        to?: string;
-        accountId?: number;
-        categoryId?: number;
-        direction?: FinancialDirection;
-        reconciled?: boolean;
-        query?: string;
-    }): Observable<Page<FinancialMovement>> {
+    getMovements(options: MovementFilters & { page?: number; size?: number; sort?: string }): Observable<Page<FinancialMovement>> {
         let params = new HttpParams()
             .set('page', options.page ?? 0)
             .set('size', options.size ?? 20)
@@ -143,8 +150,38 @@ export class FinanceService {
         return this.http.delete<void>(`${this.baseUrl}/attachments/${id}`);
     }
 
-    getEvents(page = 0, size = 20, sort = 'startDate,desc'): Observable<Page<FinancialEventSummary>> {
-        return this.http.get<Page<FinancialEventSummary>>(`${this.baseUrl}/events`, { params: { page, size, sort } });
+    getEvents(
+        options: { page?: number; size?: number; sort?: string; from?: string; to?: string; status?: EventEconomicStatus; query?: string } = {}
+    ): Observable<Page<FinancialEventSummary>> {
+        let params = new HttpParams()
+            .set('page', options.page ?? 0)
+            .set('size', options.size ?? 20)
+            .set('sort', options.sort ?? 'startDate,desc');
+        (['from', 'to', 'status', 'query'] as const).forEach((key) => {
+            const value = options[key];
+            if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+        });
+        return this.http.get<Page<FinancialEventSummary>>(`${this.baseUrl}/events`, { params });
+    }
+
+    getEventStatement(eventId: number): Observable<FinancialEventStatement> {
+        return this.http.get<FinancialEventStatement>(`${this.baseUrl}/events/${eventId}/statement`);
+    }
+
+    exportEventStatement(format: ReportFormat, eventId: number): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/reports/event-statement`, {
+            params: new HttpParams().set('format', format).set('eventId', eventId),
+            responseType: 'blob'
+        });
+    }
+
+    /** L'ordine scelto dall'utente: ogni identificativo prende la posizione che ha nell'elenco. */
+    reorderAccounts(ids: number[]): Observable<FinancialAccount[]> {
+        return this.http.patch<FinancialAccount[]>(`${this.baseUrl}/accounts/order`, { ids });
+    }
+
+    reorderCategories(ids: number[]): Observable<FinancialCategory[]> {
+        return this.http.patch<FinancialCategory[]>(`${this.baseUrl}/categories/order`, { ids });
     }
 
     getEvent(id: number): Observable<FinancialEventSummary> {
@@ -159,12 +196,12 @@ export class FinanceService {
         return this.http.get<AccountingYear[]>(`${this.baseUrl}/years`);
     }
 
-    exportCashbook(format: ReportFormat, from?: string, to?: string, accountId?: number, categoryId?: number): Observable<Blob> {
+    /** Esporta l'intero risultato dei filtri correnti, non la sola pagina a video. */
+    exportCashbook(format: ReportFormat, filters: MovementFilters = {}): Observable<Blob> {
         let params = new HttpParams().set('format', format);
-        if (from) params = params.set('from', from);
-        if (to) params = params.set('to', to);
-        if (accountId) params = params.set('accountId', accountId);
-        if (categoryId) params = params.set('categoryId', categoryId);
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') params = params.set(key, String(value));
+        });
         return this.http.get(`${this.baseUrl}/reports/cashbook`, { params, responseType: 'blob' });
     }
 

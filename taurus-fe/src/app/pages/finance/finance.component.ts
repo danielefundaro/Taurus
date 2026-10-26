@@ -4,7 +4,7 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { first, forkJoin } from 'rxjs';
-import { FinanceAccountDialogComponent } from '../../dialogs/finance-account-dialog/finance-account-dialog.component';
+import { AccountDialogResult, FinanceAccountDialogComponent } from '../../dialogs/finance-account-dialog/finance-account-dialog.component';
 import { FinanceCategoryDialogComponent } from '../../dialogs/finance-category-dialog/finance-category-dialog.component';
 import { EventBudgetResult, FinanceEventBudgetDialogComponent } from '../../dialogs/finance-event-budget-dialog/finance-event-budget-dialog.component';
 import { FinanceMovementDialogComponent, MovementDialogResult } from '../../dialogs/finance-movement-dialog/finance-movement-dialog.component';
@@ -13,17 +13,26 @@ import { ImportsModule } from '../../imports';
 import {
     AccountingYear,
     AccountingYearSummary,
+    EventEconomicStatus,
     FinancialAccount,
     FinancialAccountStatement,
     FinancialCategory,
     FinancialCategoryDirection,
     FinancialDashboard,
     FinancialDirection,
+    FinancialEventStatement,
     FinancialEventSummary,
     FinancialMovement,
+    FinancialMovementNature,
     FinancialTransferRequest
 } from '../../module';
-import { ConfirmService, FinanceService, ReportFormat, ToastService, toIsoDate } from '../../service';
+import { ConfirmService, FinanceService, MovementFilters, ReportFormat, ToastService, toIsoDate } from '../../service';
+
+/** Chiave di idempotenza del salvataggio: un retry non deve creare un secondo movimento. */
+const newRequestKey = (): string =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
 
 @Component({
     selector: 'app-finance',
@@ -50,12 +59,24 @@ export class FinanceComponent implements OnInit {
     protected movementFilters: {
         from?: Date;
         to?: Date;
+        year?: number;
         accountId?: number;
         categoryId?: number;
+        eventId?: number;
         direction?: FinancialDirection;
+        nature?: FinancialMovementNature;
+        counterparty?: string;
         reconciled?: boolean;
         query?: string;
     } = {};
+
+    /** Periodo della sezione Economia: la dashboard non è vincolata all'anno in corso. */
+    protected dashboardFrom: Date = new Date(new Date().getFullYear(), 0, 1);
+    protected dashboardTo: Date = new Date();
+
+    protected eventFilters: { from?: Date; to?: Date; status?: EventEconomicStatus; query?: string } = {};
+    protected eventStatement?: FinancialEventStatement;
+    protected eventStatementLoading = false;
 
     /** Estratto conto e riepilogo esercizio: pannelli di sola lettura aperti dalle rispettive tabelle. */
     protected statement?: FinancialAccountStatement;
@@ -75,6 +96,19 @@ export class FinanceComponent implements OnInit {
         { label: 'Tutti', value: undefined },
         { label: 'Riconciliati', value: true },
         { label: 'Da verificare', value: false }
+    ];
+    protected readonly natures = [
+        { label: 'Ordinario', value: 'ORDINARY' },
+        { label: 'Trasferimento', value: 'TRANSFER' },
+        { label: 'Apertura', value: 'OPENING' }
+    ];
+    protected readonly economicStatuses = [
+        { label: 'Nessun preventivo', value: 'NO_BUDGET' },
+        { label: 'Movimenti non preventivati', value: 'UNPLANNED_MOVEMENTS' },
+        { label: 'Nessun movimento', value: 'NO_MOVEMENTS' },
+        { label: 'Preventivo superato', value: 'OVERPAID_OR_OVERRUN' },
+        { label: 'Parzialmente saldato', value: 'PARTIALLY_SETTLED' },
+        { label: 'Saldato', value: 'SETTLED' }
     ];
 
     private movementLazyEvent: TableLazyLoadEvent = { first: 0, rows: 20, sortField: 'bookingDate', sortOrder: -1 };
@@ -107,11 +141,15 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '75vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: FinancialAccount) => {
+        ref.onClose.pipe(first()).subscribe((result?: AccountDialogResult) => {
             if (!result) return;
-            const request = result.id ? this.financeService.updateAccount(result) : this.financeService.createAccount(result);
-            request.pipe(first()).subscribe(() => {
+            const payload = result.account;
+            const request = payload.id ? this.financeService.updateAccount(payload) : this.financeService.createAccount(payload);
+            request.pipe(first()).subscribe((saved) => {
                 this.toastService.success('Conto salvato', 'Le informazioni del conto sono state aggiornate.');
+                if (result.openingAttachment && saved.initialBalanceMovementId) {
+                    this.uploadFile(saved.initialBalanceMovementId, result.openingAttachment, result.openingAttachmentDescription);
+                }
                 this.loadReferenceData();
             });
         });
@@ -193,14 +231,15 @@ export class FinanceComponent implements OnInit {
         });
     }
 
-    protected openMovement(movement?: FinancialMovement, eventId?: number): void {
+    protected openMovement(movement?: FinancialMovement, eventId?: number, direction?: FinancialDirection): void {
         const ref: DynamicDialogRef = this.dialogService.open(FinanceMovementDialogComponent, {
             inputValues: {
                 movement: movement ? { ...movement } : undefined,
                 accounts: this.accounts,
                 categories: this.categories,
                 events: this.eventOptions,
-                eventId
+                eventId,
+                direction
             },
             closable: false,
             modal: true,
@@ -212,14 +251,57 @@ export class FinanceComponent implements OnInit {
 
         ref.onClose.pipe(first()).subscribe((result?: MovementDialogResult) => {
             if (!result) return;
-            const payload = result.movement;
-            const request = payload.id ? this.financeService.updateMovement(payload) : this.financeService.createMovement(payload);
-            request.pipe(first()).subscribe((saved) => {
-                this.toastService.success('Movimento salvato', 'Saldi e rendiconti sono stati aggiornati.');
-                this.refreshAfterMovement();
-                if (result.pendingAttachment && saved.id) this.uploadFile(saved.id, result.pendingAttachment, result.attachmentDescription);
+            const warning = this.negativeBalanceWarning(result.movement);
+            if (!warning) {
+                this.saveMovement(result);
+                return;
+            }
+            // Un saldo negativo non è vietato: in un'associazione capita di anticipare una spesa.
+            // Si chiede conferma perché spesso è invece un conto sbagliato o un importo di troppo.
+            this.confirmService.confirmReversible({
+                title: 'Il conto va sotto zero',
+                consequence: warning,
+                actionLabel: 'Registra comunque',
+                accept: () => this.saveMovement(result)
             });
         });
+    }
+
+    /** Il saldo del conto dopo l'uscita, quando diventa negativo. */
+    private negativeBalanceWarning(movement: FinancialMovement): string | undefined {
+        if (movement.direction !== 'EXPENSE' || movement.id) return undefined;
+        const account = this.accounts.find((candidate) => candidate.id === movement.accountId);
+        if (!account || account.balance === undefined) return undefined;
+        const after = account.balance - movement.amount;
+        if (after >= 0) return undefined;
+        const formatted = after.toLocaleString('it-IT', { style: 'currency', currency: account.currency || 'EUR' });
+        return `Dopo questa uscita “${account.name}” avrebbe un saldo di ${formatted}.`;
+    }
+
+    private saveMovement(result: MovementDialogResult): void {
+        const payload: FinancialMovement = result.movement.id
+            ? result.movement
+            : { ...result.movement, requestKey: newRequestKey() };
+        const request = payload.id ? this.financeService.updateMovement(payload) : this.financeService.createMovement(payload);
+        request.pipe(first()).subscribe((saved) => {
+            this.toastService.success('Movimento salvato', 'Saldi e rendiconti sono stati aggiornati.');
+            this.noticeRecalculatedOpenings(saved);
+            this.refreshAfterMovement();
+            if (result.pendingAttachment && saved.id) this.uploadFile(saved.id, result.pendingAttachment, result.attachmentDescription);
+        });
+    }
+
+    /**
+     * Un movimento registrato in un esercizio passato cambia i saldi di apertura di tutti gli anni
+     * successivi: il backend li rifà da solo, ma chi salva deve sapere che è accaduto.
+     */
+    private noticeRecalculatedOpenings(movement: FinancialMovement): void {
+        const year = movement.accountingYear;
+        if (!year || year >= new Date().getFullYear()) return;
+        this.toastService.info(
+            'Riporti ricalcolati',
+            `Il movimento è nell’esercizio ${year}: i saldi di apertura degli esercizi successivi sono stati aggiornati.`
+        );
     }
 
     protected deleteMovement(movement: FinancialMovement): void {
@@ -260,7 +342,7 @@ export class FinanceComponent implements OnInit {
         ref.onClose.pipe(first()).subscribe((result?: FinancialTransferRequest) => {
             if (!result) return;
             this.financeService
-                .createTransfer(result)
+                .createTransfer({ ...result, requestKey: newRequestKey() })
                 .pipe(first())
                 .subscribe(() => {
                     this.toastService.success('Trasferimento registrato', 'Entrambi i movimenti sono stati creati.');
@@ -310,13 +392,121 @@ export class FinanceComponent implements OnInit {
         this.applyFilters();
     }
 
-    protected exportCashbook(format: ReportFormat): void {
-        const from = this.movementFilters.from ? toIsoDate(this.movementFilters.from) : undefined;
-        const to = this.movementFilters.to ? toIsoDate(this.movementFilters.to) : undefined;
+    protected applyEventFilters(): void {
+        this.eventLazyEvent = { ...this.eventLazyEvent, first: 0 };
+        this.loadEvents(this.eventLazyEvent);
+    }
+
+    protected resetEventFilters(): void {
+        this.eventFilters = {};
+        this.applyEventFilters();
+    }
+
+    protected reloadDashboard(): void {
         this.financeService
-            .exportCashbook(format, from, to, this.movementFilters.accountId, this.movementFilters.categoryId)
+            .getDashboard(toIsoDate(this.dashboardFrom), toIsoDate(this.dashboardTo))
+            .pipe(first())
+            .subscribe((dashboard) => (this.dashboard = dashboard));
+    }
+
+    protected exportCashbook(format: ReportFormat): void {
+        this.financeService
+            .exportCashbook(format, this.currentMovementFilters())
             .pipe(first())
             .subscribe((blob) => this.download(blob, `registro-cassa.${format}`));
+    }
+
+    /** I filtri correnti nel formato delle API: l'esportazione riceve esattamente questi. */
+    private currentMovementFilters(): MovementFilters {
+        return {
+            from: this.movementFilters.from ? toIsoDate(this.movementFilters.from) : undefined,
+            to: this.movementFilters.to ? toIsoDate(this.movementFilters.to) : undefined,
+            year: this.movementFilters.year,
+            accountId: this.movementFilters.accountId,
+            categoryId: this.movementFilters.categoryId,
+            eventId: this.movementFilters.eventId,
+            direction: this.movementFilters.direction,
+            nature: this.movementFilters.nature,
+            counterparty: this.movementFilters.counterparty,
+            reconciled: this.movementFilters.reconciled,
+            query: this.movementFilters.query
+        };
+    }
+
+    /** La pagina dell'evento: preventivo, consuntivo, scostamenti e movimenti collegati. */
+    protected showEventStatement(event: FinancialEventSummary): void {
+        this.eventStatementLoading = true;
+        this.financeService
+            .getEventStatement(event.eventId)
+            .pipe(first())
+            .subscribe({
+                next: (statement) => {
+                    this.eventStatement = statement;
+                    this.eventStatementLoading = false;
+                },
+                error: () => (this.eventStatementLoading = false)
+            });
+    }
+
+    protected closeEventStatement(): void {
+        this.eventStatement = undefined;
+    }
+
+    protected exportEventStatement(format: ReportFormat): void {
+        if (!this.eventStatement) return;
+        this.financeService
+            .exportEventStatement(format, this.eventStatement.summary.eventId)
+            .pipe(first())
+            .subscribe((blob) => this.download(blob, `rendiconto-evento.${format}`));
+    }
+
+    protected registerEventIncome(eventId: number): void {
+        this.openMovement(undefined, eventId, 'INCOME');
+    }
+
+    protected registerEventExpense(eventId: number): void {
+        this.openMovement(undefined, eventId, 'EXPENSE');
+    }
+
+    protected filterMovementsByEvent(eventId: number): void {
+        this.movementFilters = { ...this.movementFilters, eventId };
+        this.activeTab = 'movements';
+        this.applyFilters();
+    }
+
+    /** Sposta il conto di una posizione e salva l'ordine completo. */
+    protected moveAccount(account: FinancialAccount, delta: number): void {
+        const ids = this.reordered(this.accounts.map((item) => item.id!), account.id!, delta);
+        if (!ids) return;
+        this.financeService
+            .reorderAccounts(ids)
+            .pipe(first())
+            .subscribe((accounts) => {
+                this.accounts = accounts;
+                this.toastService.success('Ordine aggiornato', 'I conti compaiono nel nuovo ordine in tutte le schermate.');
+            });
+    }
+
+    protected moveCategory(category: FinancialCategory, delta: number): void {
+        const ids = this.reordered(this.categories.map((item) => item.id!), category.id!, delta);
+        if (!ids) return;
+        this.financeService
+            .reorderCategories(ids)
+            .pipe(first())
+            .subscribe((categories) => {
+                this.categories = categories;
+                this.toastService.success('Ordine aggiornato', 'Le categorie compaiono nel nuovo ordine in tutte le schermate.');
+            });
+    }
+
+    /** L'elenco con l'elemento spostato di delta posizioni, o undefined se è già al limite. */
+    private reordered(ids: number[], id: number, delta: number): number[] | undefined {
+        const index = ids.indexOf(id);
+        const target = index + delta;
+        if (index < 0 || target < 0 || target >= ids.length) return undefined;
+        const moved = [...ids];
+        moved.splice(target, 0, ...moved.splice(index, 1));
+        return moved;
     }
 
     protected showStatement(account: FinancialAccount): void {
@@ -402,6 +592,22 @@ export class FinanceComponent implements OnInit {
             });
     }
 
+    protected rolloverYear(year: number): void {
+        this.confirmService.confirmReversible({
+            title: 'Rigenera il riporto',
+            consequence: `Le aperture del ${year + 1} saranno riscritte sui saldi attuali del ${year}.`,
+            actionLabel: 'Rigenera',
+            accept: () =>
+                this.financeService
+                    .rollover(year)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success('Riporto aggiornato', `Il saldo al 31/12/${year} è stato riportato all’anno successivo.`);
+                        this.loadReferenceData();
+                    })
+        });
+    }
+
     protected rolloverCurrentYear(): void {
         const year = new Date().getFullYear() - 1;
         this.financeService
@@ -440,10 +646,10 @@ export class FinanceComponent implements OnInit {
 
     private loadReferenceData(): void {
         forkJoin({
-            dashboard: this.financeService.getDashboard(),
+            dashboard: this.financeService.getDashboard(toIsoDate(this.dashboardFrom), toIsoDate(this.dashboardTo)),
             accounts: this.financeService.getAccounts(true),
             categories: this.financeService.getCategories(true),
-            eventOptions: this.financeService.getEvents(0, 100),
+            eventOptions: this.financeService.getEvents({ page: 0, size: 100 }),
             years: this.financeService.getYears()
         })
             .pipe(first())
@@ -498,13 +704,7 @@ export class FinanceComponent implements OnInit {
                 page: Math.floor((event.first ?? 0) / rows),
                 size: rows,
                 sort,
-                from: this.movementFilters.from ? toIsoDate(this.movementFilters.from) : undefined,
-                to: this.movementFilters.to ? toIsoDate(this.movementFilters.to) : undefined,
-                accountId: this.movementFilters.accountId,
-                categoryId: this.movementFilters.categoryId,
-                direction: this.movementFilters.direction,
-                reconciled: this.movementFilters.reconciled,
-                query: this.movementFilters.query
+                ...this.currentMovementFilters()
             })
             .pipe(first())
             .subscribe({
@@ -525,7 +725,15 @@ export class FinanceComponent implements OnInit {
         const sortDirection = event.sortOrder === 1 ? 'asc' : 'desc';
         this.eventsLoading = true;
         this.financeService
-            .getEvents(page, rows, `${sortField},${sortDirection}`)
+            .getEvents({
+                page,
+                size: rows,
+                sort: `${sortField},${sortDirection}`,
+                from: this.eventFilters.from ? toIsoDate(this.eventFilters.from) : undefined,
+                to: this.eventFilters.to ? toIsoDate(this.eventFilters.to) : undefined,
+                status: this.eventFilters.status,
+                query: this.eventFilters.query
+            })
             .pipe(first())
             .subscribe({
                 next: (events) => {
@@ -549,6 +757,7 @@ export class FinanceComponent implements OnInit {
         this.loadMovements(this.movementLazyEvent);
         this.loadEvents(this.eventLazyEvent);
         if (this.statementAccount) this.loadStatement();
+        if (this.eventStatement) this.showEventStatement(this.eventStatement.summary);
     }
 
     private download(blob: Blob, fileName: string): void {

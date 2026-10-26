@@ -761,6 +761,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `finance.category.nameExists` | 409 | Creazione o modifica di una categoria con il nome di un'altra categoria attiva | — | «Esiste già una categoria attiva con questo nome» |
 | `finance.movement.notFound` | 404 | Movimento inesistente o eliminato | — | «Movimento non trovato» |
 | `finance.movement.categoryDirection` | 400 | La categoria ammette solo entrate o solo uscite, e il movimento ha la direzione opposta | — | «La categoria non è compatibile con la direzione del movimento» |
+| `finance.movement.versionConflict` | 409 | Modifica di un movimento con una versione diversa da quella corrente | — | «Il movimento è stato modificato da un altro utente: ricaricalo prima di salvare» |
 | `finance.event.notFound` | 404 | Riepilogo economico di un evento inesistente, o movimento collegato a un evento inesistente | — | «Evento non trovato» |
 | `finance.year.notFound` | 404 | Esercizio contabile inesistente | — | «Esercizio non trovato» |
 | `finance.transfer.sameAccount` | 400 | Trasferimento con lo stesso conto di origine e di destinazione | — | «Il conto di origine e quello di destinazione devono essere diversi» |
@@ -769,6 +770,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `finance.attachment.notFound` | 404 | Allegato inesistente o eliminato | — | «Allegato non trovato» |
 | `finance.attachment.tooLarge` | 413 | Allegato vuoto o oltre la dimensione massima | `maxMegabytes` | «L'allegato deve essere un file non vuoto di al massimo {maxMegabytes} MB» |
 | `finance.attachment.unsupported` | 415 | Allegato in un formato diverso da PDF, JPEG e PNG | — | «Sono supportati soltanto PDF, JPEG e PNG» |
+| `finance.attachment.contentMismatch` | 415 | Il contenuto dell'allegato non corrisponde al tipo dichiarato | — | «Il contenuto del file non corrisponde al tipo dichiarato» |
 | `finance.attachment.limit` | 409 | Il movimento ha già il numero massimo di allegati | `maximum` | «Sono consentiti al massimo {maximum} allegati per movimento» |
 | `finance.report.invalidPeriod` | 400 | Rendiconto o riepilogo con data iniziale successiva alla finale | — | «La data iniziale deve precedere la data finale» |
 | `finance.report.unsupportedFormat` | 400 | Esportazione in un formato diverso da PDF e XLSX | — | «Formato di esportazione non supportato» |

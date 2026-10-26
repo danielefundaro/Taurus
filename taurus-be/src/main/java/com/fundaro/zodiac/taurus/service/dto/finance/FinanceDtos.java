@@ -32,7 +32,8 @@ public final class FinanceDtos {
         @Size(max = 255) String bankName,
         Integer displayOrder,
         BigDecimal initialBalance,
-        LocalDate initialBalanceDate
+        LocalDate initialBalanceDate,
+        @Size(max = 4000) String initialBalanceDescription
     ) {
     }
 
@@ -48,6 +49,8 @@ public final class FinanceDtos {
         int displayOrder,
         BigDecimal balance,
         long movementCount,
+        /** Il movimento di apertura del saldo iniziale, a cui il frontend allega il documento che lo giustifica. */
+        Long initialBalanceMovementId,
         long version
     ) {
     }
@@ -84,7 +87,9 @@ public final class FinanceDtos {
         @Size(max = 500) String counterparty,
         @Size(max = 255) String documentReference,
         @Size(max = 10000) String notes,
-        UUID requestKey
+        UUID requestKey,
+        /** Versione letta dal client: se presente, una modifica concorrente viene rifiutata invece di sovrascritta. */
+        Long version
     ) {
     }
 
@@ -111,11 +116,17 @@ public final class FinanceDtos {
         boolean reconciled,
         ZonedDateTime reconciledAt,
         String reconciliationReference,
+        /** Documenti allegati ancora validi: a zero l'interfaccia segnala il movimento senza giustificativo. */
+        long attachmentCount,
         long version
     ) {
     }
 
     public record ReconciliationRequest(boolean reconciled, @Size(max = 255) String reference) {
+    }
+
+    /** L'ordine scelto dall'utente: ogni identificativo prende la posizione che ha nell'elenco. */
+    public record ReorderRequest(@NotNull List<Long> ids) {
     }
 
     public record TransferRequest(
@@ -134,12 +145,20 @@ public final class FinanceDtos {
     }
 
     public record DashboardDTO(
+        LocalDate from,
+        LocalDate to,
         BigDecimal totalBalance,
         BigDecimal income,
         BigDecimal expense,
         BigDecimal result,
         long movementCount,
         long unreconciledCount,
+        /** Posizioni evento ancora da incassare o da pagare: è il lavoro economico che resta aperto. */
+        BigDecimal eventsToCollect,
+        BigDecimal eventsToPay,
+        List<EventEconomicLineDTO> openEvents,
+        /** Ultimo riporto generato e suo stato, per sapere se le aperture sono allineate. */
+        YearDTO lastRollover,
         List<AccountDTO> accounts
     ) {
     }
@@ -237,6 +256,13 @@ public final class FinanceDtos {
     ) {
     }
 
+    /**
+     * Segnalazione informativa su un esercizio: non impedisce nulla, indica soltanto che qualcosa
+     * merita un controllo umano.
+     */
+    public record YearAnomalyDTO(String code, String message, Long movementId, java.util.UUID transferGroup) {
+    }
+
     public record YearSummaryDTO(
         YearDTO year,
         List<AccountYearBalanceDTO> accounts,
@@ -250,7 +276,17 @@ public final class FinanceDtos {
         List<EventEconomicLineDTO> openEvents,
         long unreconciledCount,
         BigDecimal unreconciledAmount,
+        List<YearAnomalyDTO> anomalies,
         ZonedDateTime lastRecalculatedAt
+    ) {
+    }
+
+
+    public record EventStatementDTO(
+        EventSummaryDTO summary,
+        BigDecimal feeVariance,
+        BigDecimal costVariance,
+        BigDecimal resultVariance
     ) {
     }
 }

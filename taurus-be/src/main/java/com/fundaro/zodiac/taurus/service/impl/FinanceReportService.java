@@ -2,15 +2,21 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovement;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountYearBalanceDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.CategoryTotalDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventCostDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLineDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventStatementDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.StatementLineDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearAnomalyDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics;
 import com.fundaro.zodiac.taurus.service.report.ReportLabels;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageWriter;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -24,8 +30,10 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -38,6 +46,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -59,74 +68,144 @@ public class FinanceReportService {
     private final FinancialMovementRepository movementRepository;
     private final FinanceService financeService;
     private final TenantPdfHeaderService tenantPdfHeaderService;
+    private final FinanceMetrics metrics;
 
     public FinanceReportService(
         FinancialMovementRepository movementRepository,
         FinanceService financeService,
-        TenantPdfHeaderService tenantPdfHeaderService
+        TenantPdfHeaderService tenantPdfHeaderService,
+        FinanceMetrics metrics
     ) {
         this.movementRepository = movementRepository;
         this.financeService = financeService;
         this.tenantPdfHeaderService = tenantPdfHeaderService;
+        this.metrics = metrics;
     }
 
-    @Transactional
-    public ReportContent cashbook(
+    /**
+     * I filtri dell'elenco movimenti, così come li invia l'interfaccia. L'esportazione li riceve
+     * identici perché il file deve contenere esattamente il risultato che l'utente sta guardando,
+     * intero e non soltanto la pagina a video.
+     */
+    public record MovementFilter(
         LocalDate from,
         LocalDate to,
+        Integer year,
         Long accountId,
         Long categoryId,
         Long eventId,
-        String format,
-        AbstractAuthenticationToken token
+        FinancialDirection direction,
+        FinancialMovementNature nature,
+        String counterparty,
+        Boolean reconciled,
+        String query
     ) {
-        LocalDate effectiveTo = to == null ? LocalDate.now() : to;
-        LocalDate effectiveFrom = from == null ? effectiveTo.withDayOfYear(1) : from;
-        requirePeriod(effectiveFrom, effectiveTo);
-        List<FinancialMovement> movements = movementRepository
-            .findAllByDeletedFalseAndBookingDateBetween(effectiveFrom, effectiveTo)
-            .stream()
-            .filter(movement -> accountId == null || movement.getAccount().getId().equals(accountId))
-            .filter(movement -> categoryId == null || (movement.getCategory() != null && movement.getCategory().getId().equals(categoryId)))
-            .filter(movement -> eventId == null || (movement.getEvent() != null && movement.getEvent().getId().equals(eventId)))
-            .sorted((left, right) -> {
-                int date = left.getBookingDate().compareTo(right.getBookingDate());
-                return date != 0 ? date : left.getId().compareTo(right.getId());
-            })
-            .toList();
+    }
+
+    /**
+     * Il registro di cassa: una sezione per conto, con saldo iniziale, saldo progressivo riga per
+     * riga e saldo finale. Il saldo iniziale è quello reale del conto alla vigilia del periodo,
+     * mentre il progressivo segue le sole righe esportate: con un filtro per categoria o direzione
+     * la colonna racconta quindi l'effetto di quelle righe, non il conto nel suo insieme.
+     */
+    @Transactional
+    public ReportContent cashbook(MovementFilter filter, String format, AbstractAuthenticationToken token) {
+        LocalDate effectiveFrom = filter.from();
+        LocalDate effectiveTo = filter.to();
+        if (effectiveFrom == null && effectiveTo == null && filter.year() == null) {
+            effectiveTo = LocalDate.now();
+            effectiveFrom = effectiveTo.withDayOfYear(1);
+        }
+        if (effectiveFrom != null && effectiveTo != null) requirePeriod(effectiveFrom, effectiveTo);
+        List<FinancialMovement> movements = movementRepository.findAll(
+            financeService.movementSpecification(
+                effectiveFrom,
+                effectiveTo,
+                filter.year(),
+                filter.accountId(),
+                filter.categoryId(),
+                filter.eventId(),
+                filter.direction(),
+                filter.nature(),
+                filter.counterparty(),
+                filter.reconciled(),
+                filter.query()
+            ),
+            Sort.by("bookingDate", "id")
+        );
 
         List<String> filters = new ArrayList<>();
-        if (accountId != null) filters.add("Conto id " + accountId);
-        if (categoryId != null) filters.add("Categoria id " + categoryId);
-        if (eventId != null) filters.add("Evento id " + eventId);
+        if (filter.year() != null) filters.add("Esercizio " + filter.year());
+        if (filter.accountId() != null) filters.add("Conto id " + filter.accountId());
+        if (filter.categoryId() != null) filters.add("Categoria id " + filter.categoryId());
+        if (filter.eventId() != null) filters.add("Evento id " + filter.eventId());
+        if (filter.direction() != null) filters.add("Direzione: " + ReportLabels.financialDirection(filter.direction()));
+        if (filter.nature() != null) filters.add("Natura: " + ReportLabels.financialMovementNature(filter.nature()));
+        if (filter.counterparty() != null && !filter.counterparty().isBlank()) filters.add("Controparte: " + filter.counterparty().trim());
+        if (filter.reconciled() != null) filters.add(filter.reconciled() ? "Solo riconciliati" : "Solo da riconciliare");
+        if (filter.query() != null && !filter.query().isBlank()) filters.add("Ricerca: " + filter.query().trim());
 
-        List<Object[]> rows = new ArrayList<>();
+        Map<Long, List<FinancialMovement>> byAccount = new LinkedHashMap<>();
         for (FinancialMovement movement : movements) {
-            rows.add(
-                new Object[]{
-                    movement.getBookingDate(),
-                    movement.getAccount().getName(),
-                    ReportLabels.financialDirection(movement.getDirection()),
-                    ReportLabels.financialMovementNature(movement.getNature()),
-                    movement.getCategory() == null ? null : movement.getCategory().getName(),
-                    movement.getEventNameSnapshot(),
-                    movement.getDescription(),
-                    movement.getCounterparty(),
-                    movement.getDocumentReference(),
-                    signed(movement),
-                    movement.getCurrency(),
-                    movement.isReconciled()
-                }
-            );
+            byAccount.computeIfAbsent(movement.getAccount().getId(), key -> new ArrayList<>()).add(movement);
         }
 
-        Section section = new Section(
-            "Movimenti",
-            List.of("Data", "Conto", "Direzione", "Natura", "Categoria", "Evento", "Descrizione", "Controparte", "Riferimento", "Importo", "Valuta", "Riconciliato"),
-            rows
-        );
+        List<Section> sections = new ArrayList<>();
+        for (Map.Entry<Long, List<FinancialMovement>> entry : byAccount.entrySet()) {
+            List<FinancialMovement> accountMovements = entry.getValue();
+            String accountName = accountMovements.get(0).getAccount().getName();
+            BigDecimal running = effectiveFrom == null
+                ? null
+                : financeService.accountBalance(entry.getKey(), effectiveFrom.minusDays(1), token);
+            if (running == null) running = BigDecimal.ZERO.setScale(4);
+            List<Object[]> rows = new ArrayList<>();
+            rows.add(new Object[]{effectiveFrom, null, null, null, null, "Saldo iniziale", null, null, null, null, null, running, null});
+            for (FinancialMovement movement : accountMovements) {
+                running = running.add(signed(movement));
+                rows.add(
+                    new Object[]{
+                        movement.getBookingDate(),
+                        ReportLabels.financialDirection(movement.getDirection()),
+                        ReportLabels.financialMovementNature(movement.getNature()),
+                        movement.getCategory() == null ? null : movement.getCategory().getName(),
+                        movement.getEventNameSnapshot(),
+                        movement.getDescription(),
+                        movement.getCounterparty(),
+                        movement.getDocumentReference(),
+                        movement.getDirection() == FinancialDirection.INCOME ? movement.getAmount() : null,
+                        movement.getDirection() == FinancialDirection.EXPENSE ? movement.getAmount() : null,
+                        movement.getCurrency(),
+                        running,
+                        movement.isReconciled()
+                    }
+                );
+            }
+            rows.add(new Object[]{effectiveTo, null, null, null, null, "Saldo finale", null, null, null, null, null, running, null});
+            sections.add(new Section("Registro cassa - " + accountName, cashbookHeaders(), rows));
+        }
+        if (sections.isEmpty()) sections.add(new Section("Registro cassa", cashbookHeaders(), List.of()));
+
         Meta meta = meta("Registro cassa", effectiveFrom, effectiveTo, filters, token);
-        return render("registro-cassa-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
+        String baseName = "registro-cassa-" + (effectiveFrom == null ? "esercizio-" + filter.year() : effectiveFrom + "-" + effectiveTo);
+        return render(baseName, "cashbook", meta, sections, format, token);
+    }
+
+    private static List<String> cashbookHeaders() {
+        return List.of(
+            "Data",
+            "Direzione",
+            "Natura",
+            "Categoria",
+            "Evento",
+            "Descrizione",
+            "Controparte",
+            "Riferimento",
+            "Entrate",
+            "Uscite",
+            "Valuta",
+            "Saldo",
+            "Riconciliato"
+        );
     }
 
     @Transactional
@@ -159,7 +238,7 @@ public class FinanceReportService {
             List.of("Conto: " + statement.account().name()),
             token
         );
-        return render("estratto-conto-" + accountId + "-" + statement.from() + "-" + statement.to(), meta, List.of(section), format, token);
+        return render("estratto-conto-" + accountId + "-" + statement.from() + "-" + statement.to(), "account-statement", meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -169,7 +248,7 @@ public class FinanceReportService {
         List<EventEconomicLineDTO> lines = financeService.eventLines(effectiveFrom, effectiveTo, token);
         Section section = new Section("Eventi", eventHeaders(), eventRows(lines));
         Meta meta = meta("Rendiconto per evento", effectiveFrom, effectiveTo, List.of(), token);
-        return render("rendiconto-eventi-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
+        return render("rendiconto-eventi-" + effectiveFrom + "-" + effectiveTo, "events", meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -179,7 +258,7 @@ public class FinanceReportService {
         List<CategoryTotalDTO> totals = financeService.categoryTotals(effectiveFrom, effectiveTo, token);
         Section section = new Section("Categorie", categoryHeaders(), categoryRows(totals));
         Meta meta = meta("Rendiconto per categoria", effectiveFrom, effectiveTo, List.of(), token);
-        return render("rendiconto-categorie-" + effectiveFrom + "-" + effectiveTo, meta, List.of(section), format, token);
+        return render("rendiconto-categorie-" + effectiveFrom + "-" + effectiveTo, "categories", meta, List.of(section), format, token);
     }
 
     @Transactional
@@ -214,6 +293,14 @@ public class FinanceReportService {
         Section categories = new Section("Categorie", categoryHeaders(), categoryRows(summary.categories()));
         Section openEvents = new Section("Eventi aperti", eventHeaders(), eventRows(summary.openEvents()));
 
+        // Le segnalazioni non cambiano i totali: accompagnano il rendiconto perché chi lo legge
+        // sappia dove guardare prima di portarlo in assemblea.
+        List<Object[]> anomalyRows = new ArrayList<>();
+        for (YearAnomalyDTO anomaly : summary.anomalies()) {
+            anomalyRows.add(new Object[]{anomaly.code(), anomaly.message(), anomaly.movementId(), anomaly.transferGroup()});
+        }
+        Section anomalies = new Section("Segnalazioni", List.of("Codice", "Segnalazione", "Movimento", "Trasferimento"), anomalyRows);
+
         Meta meta = meta(
             "Rendiconto annuale " + year,
             summary.year().startDate(),
@@ -221,7 +308,59 @@ public class FinanceReportService {
             List.of("Esercizio: " + year + " (" + ReportLabels.accountingYearStatus(summary.year().status()) + ")"),
             token
         );
-        return render("rendiconto-annuale-" + year, meta, List.of(accounts, totals, categories, openEvents), format, token);
+        return render("rendiconto-annuale-" + year, "annual", meta, List.of(accounts, totals, categories, openEvents, anomalies), format, token);
+    }
+
+    /**
+     * Il rendiconto di un evento: preventivo, movimenti registrati e scostamento fra i due, cioè
+     * quello che serve per spiegare a un consiglio direttivo come è andata una manifestazione.
+     */
+    @Transactional
+    public ReportContent eventStatement(long eventId, String format, AbstractAuthenticationToken token) {
+        EventStatementDTO statement = financeService.eventStatement(eventId, token);
+        EventSummaryDTO summary = statement.summary();
+
+        List<Object[]> totals = new ArrayList<>();
+        totals.add(new Object[]{"Compenso previsto", summary.expectedFee(), summary.received(), statement.feeVariance()});
+        totals.add(new Object[]{"Costi previsti", summary.expectedCosts(), summary.paid(), statement.costVariance()});
+        totals.add(new Object[]{"Margine", summary.expectedMargin(), summary.actualResult(), statement.resultVariance()});
+        Section economics = new Section("Economia", List.of("Voce", "Previsto", "Effettivo", "Scostamento"), totals);
+
+        List<Object[]> costRows = new ArrayList<>();
+        for (EventCostDTO cost : summary.expectedCostItems()) {
+            costRows.add(new Object[]{cost.description(), cost.amount()});
+        }
+        Section costs = new Section("Costi previsti", List.of("Voce", "Importo"), costRows);
+
+        List<Object[]> movementRows = new ArrayList<>();
+        for (MovementDTO movement : summary.movements()) {
+            movementRows.add(
+                new Object[]{
+                    movement.bookingDate(),
+                    movement.accountName(),
+                    ReportLabels.financialDirection(movement.direction()),
+                    movement.categoryName(),
+                    movement.description(),
+                    movement.counterparty(),
+                    movement.amount(),
+                    movement.reconciled()
+                }
+            );
+        }
+        Section movements = new Section(
+            "Movimenti",
+            List.of("Data", "Conto", "Direzione", "Categoria", "Descrizione", "Controparte", "Importo", "Riconciliato"),
+            movementRows
+        );
+
+        Meta meta = meta(
+            "Rendiconto evento - " + summary.eventName(),
+            null,
+            null,
+            List.of("Stato economico: " + ReportLabels.economicStatus(summary.economicStatus())),
+            token
+        );
+        return render("rendiconto-evento-" + eventId, "event-statement", meta, List.of(economics, costs, movements), format, token);
     }
 
     private static List<String> eventHeaders() {
@@ -288,6 +427,20 @@ public class FinanceReportService {
     }
 
     private ReportContent render(
+        String baseName,
+        String report,
+        Meta meta,
+        List<Section> sections,
+        String format,
+        AbstractAuthenticationToken token
+    ) {
+        long started = System.nanoTime();
+        ReportContent content = renderContent(baseName, meta, sections, format, token);
+        metrics.recordReport(report, format == null ? "csv" : format.toLowerCase(Locale.ROOT), System.nanoTime() - started);
+        return content;
+    }
+
+    private ReportContent renderContent(
         String baseName,
         Meta meta,
         List<Section> sections,
