@@ -9,6 +9,14 @@
         </div>
     </app-page-header>
 
+    <div class="report-toolbar">
+        <app-form-field label="Dal" forId="dashboard-from"><p-datepicker inputId="dashboard-from"
+                [(ngModel)]="dashboardFrom" dateFormat="dd/mm/yy" /></app-form-field>
+        <app-form-field label="Al" forId="dashboard-to"><p-datepicker inputId="dashboard-to" [(ngModel)]="dashboardTo"
+                dateFormat="dd/mm/yy" /></app-form-field>
+        <p-button label="Aggiorna" icon="pi pi-refresh" (onClick)="reloadDashboard()" />
+    </div>
+
     @if (dashboard) {
     <div class="summary-grid">
         <div class="summary-card">
@@ -16,20 +24,64 @@
             <strong>{{ dashboard.totalBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
         </div>
         <div class="summary-card income">
-            <span>Entrate dell’anno</span>
+            <span>Entrate del periodo</span>
             <strong>{{ dashboard.income | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
         </div>
         <div class="summary-card expense">
-            <span>Uscite dell’anno</span>
+            <span>Uscite del periodo</span>
             <strong>{{ dashboard.expense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
         </div>
         <div class="summary-card">
-            <span>Risultato dell’anno</span>
+            <span>Risultato del periodo</span>
             <strong [class.negative]="dashboard.result < 0">{{ dashboard.result | currency: 'EUR' : 'symbol' : '1.2-2' :
                 'it-IT' }}</strong>
             <small>{{ dashboard.unreconciledCount }} movimenti da verificare</small>
         </div>
+        <div class="summary-card income">
+            <span>Da incassare dagli eventi</span>
+            <strong>{{ dashboard.eventsToCollect | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+            <small>{{ dashboard.openEvents.length }} eventi ancora aperti</small>
+        </div>
+        <div class="summary-card expense">
+            <span>Da pagare per gli eventi</span>
+            <strong>{{ dashboard.eventsToPay | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Ultimo riporto</span>
+            @if (dashboard.lastRollover) {
+            <strong>{{ dashboard.lastRollover.year }}</strong>
+            <small>Generato il {{ dashboard.lastRollover.rolledOverAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+            } @else {
+            <strong>—</strong>
+            <small>Nessun riporto generato</small>
+            }
+        </div>
     </div>
+
+    @if (dashboard.openEvents.length) {
+    <p-table [value]="dashboard.openEvents" dataKey="eventId" styleClass="open-events">
+        <ng-template #caption>Posizioni aperte degli eventi</ng-template>
+        <ng-template #header>
+            <tr>
+                <th>Evento</th>
+                <th>Data</th>
+                <th class="text-right">Da incassare</th>
+                <th class="text-right">Da pagare</th>
+                <th>Stato</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-row>
+            <tr>
+                <td>{{ row.eventName }}</td>
+                <td>{{ row.eventDate ? (row.eventDate | date: 'dd/MM/yyyy') : '—' }}</td>
+                <td class="text-right">{{ row.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                <td class="text-right">{{ row.remainingExpense | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                <td><p-tag [value]="eventStatusLabel(row.economicStatus)"
+                        [severity]="eventStatusSeverity(row.economicStatus)" /></td>
+            </tr>
+        </ng-template>
+    </p-table>
+    }
     }
 
     <div class="card">
@@ -76,6 +128,27 @@
                             <label for="filter-reconciled">Verifica</label>
                             <p-select inputId="filter-reconciled" [(ngModel)]="movementFilters.reconciled"
                                 [options]="reconciliationOptions" optionLabel="label" optionValue="value" />
+                        </div>
+                        <div>
+                            <label for="filter-year">Esercizio</label>
+                            <p-select inputId="filter-year" [(ngModel)]="movementFilters.year" [options]="years"
+                                optionLabel="year" optionValue="year" placeholder="Tutti" [showClear]="true" />
+                        </div>
+                        <div>
+                            <label for="filter-nature">Natura</label>
+                            <p-select inputId="filter-nature" [(ngModel)]="movementFilters.nature" [options]="natures"
+                                optionLabel="label" optionValue="value" placeholder="Tutte" [showClear]="true" />
+                        </div>
+                        <div>
+                            <label for="filter-event">Evento</label>
+                            <p-select inputId="filter-event" [(ngModel)]="movementFilters.eventId"
+                                [options]="eventOptions" optionLabel="eventName" optionValue="eventId"
+                                placeholder="Tutti" [showClear]="true" [filter]="true" filterBy="eventName" />
+                        </div>
+                        <div>
+                            <label for="filter-counterparty">Controparte</label>
+                            <input id="filter-counterparty" pInputText [(ngModel)]="movementFilters.counterparty"
+                                placeholder="Chi ha pagato o è stato pagato" (keyup.enter)="applyFilters()" />
                         </div>
                         <div class="filter-search">
                             <label for="filter-query">Ricerca</label>
@@ -128,6 +201,10 @@
                                     @if (movement.nature !== 'ORDINARY') {
                                     <p-tag [value]="movement.nature === 'TRANSFER' ? 'Trasferimento' : 'Apertura'"
                                         severity="secondary" />
+                                    }
+                                    @if (movement.nature === 'ORDINARY' && !movement.attachmentCount) {
+                                    <p-tag value="Senza giustificativo" severity="warn" icon="pi pi-paperclip"
+                                        pTooltip="Nessun documento allegato a questo movimento" />
                                     }
                                 </td>
                                 <td>
@@ -215,6 +292,10 @@
                                         [severity]="account.active ? 'success' : 'secondary'" /></td>
                                 <td>
                                     <div class="flex justify-end gap-1">
+                                        <p-button icon="pi pi-arrow-up" [text]="true" pTooltip="Sposta su"
+                                            ariaLabel="Sposta il conto in alto" (onClick)="moveAccount(account, -1)" />
+                                        <p-button icon="pi pi-arrow-down" [text]="true" pTooltip="Sposta giù"
+                                            ariaLabel="Sposta il conto in basso" (onClick)="moveAccount(account, 1)" />
                                         <p-button icon="pi pi-list" [text]="true" pTooltip="Estratto conto"
                                             ariaLabel="Estratto conto" (onClick)="showStatement(account)" />
                                         @if (account.active) {
@@ -383,6 +464,12 @@
                                         [severity]="category.active ? 'success' : 'secondary'" /></td>
                                 <td>
                                     <div class="flex justify-end gap-1">
+                                        <p-button icon="pi pi-arrow-up" [text]="true" pTooltip="Sposta su"
+                                            ariaLabel="Sposta la categoria in alto"
+                                            (onClick)="moveCategory(category, -1)" />
+                                        <p-button icon="pi pi-arrow-down" [text]="true" pTooltip="Sposta giù"
+                                            ariaLabel="Sposta la categoria in basso"
+                                            (onClick)="moveCategory(category, 1)" />
                                         <p-button icon="pi pi-pencil" ariaLabel="Modifica categoria" [text]="true"
                                             (onClick)="openCategory(category)" />
                                         @if (category.active) {
@@ -422,6 +509,35 @@
                                 (onClick)="exportEventsReport('pdf')" />
                         </div>
                     </div>
+                    <div class="filter-grid">
+                        <div>
+                            <label for="event-from">Dal</label>
+                            <p-datepicker inputId="event-from" [(ngModel)]="eventFilters.from" dateFormat="dd/mm/yy"
+                                [showClear]="true" />
+                        </div>
+                        <div>
+                            <label for="event-to">Al</label>
+                            <p-datepicker inputId="event-to" [(ngModel)]="eventFilters.to" dateFormat="dd/mm/yy"
+                                [showClear]="true" />
+                        </div>
+                        <div>
+                            <label for="event-status">Stato economico</label>
+                            <p-select inputId="event-status" [(ngModel)]="eventFilters.status"
+                                [options]="economicStatuses" optionLabel="label" optionValue="value"
+                                placeholder="Tutti" [showClear]="true" />
+                        </div>
+                        <div class="filter-search">
+                            <label for="event-query">Ricerca</label>
+                            <input id="event-query" pInputText [(ngModel)]="eventFilters.query"
+                                placeholder="Nome dell’evento" (keyup.enter)="applyEventFilters()" />
+                        </div>
+                        <div class="filter-actions">
+                            <p-button label="Applica" icon="pi pi-filter" (onClick)="applyEventFilters()" />
+                            <p-button label="Azzera" icon="pi pi-filter-slash" severity="secondary" [outlined]="true"
+                                (onClick)="resetEventFilters()" />
+                        </div>
+                    </div>
+
                     <p-table [value]="events" [lazy]="true" [loading]="eventsLoading" [paginator]="true" [rows]="12"
                         [totalRecords]="totalEvents" [rowsPerPageOptions]="[12, 24, 48]" [showCurrentPageReport]="true"
                         currentPageReportTemplate="Da {first} a {last} di {totalRecords} eventi" dataKey="eventId"
@@ -459,19 +575,166 @@
                                 </td>
                                 <td><p-tag [value]="eventStatusLabel(event.economicStatus)"
                                         [severity]="eventStatusSeverity(event.economicStatus)" /></td>
-                                <td><p-button icon="pi pi-pencil" ariaLabel="Modifica preventivo" [text]="true"
-                                        pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" /></td>
+                                <td>
+                                    <div class="flex justify-end flex-wrap gap-1">
+                                        <p-button label="Registra incasso" icon="pi pi-arrow-down-left" [text]="true"
+                                            size="small" (onClick)="registerEventIncome(event.eventId)" />
+                                        <p-button label="Registra spesa" icon="pi pi-arrow-up-right" [text]="true"
+                                            size="small" severity="danger"
+                                            (onClick)="registerEventExpense(event.eventId)" />
+                                        <p-button icon="pi pi-chart-bar" ariaLabel="Rendiconto dell’evento"
+                                            [text]="true" pTooltip="Rendiconto dell’evento"
+                                            (onClick)="showEventStatement(event)" />
+                                        <p-button icon="pi pi-pencil" ariaLabel="Modifica preventivo" [text]="true"
+                                            pTooltip="Modifica preventivo" (onClick)="openEventBudget(event)" />
+                                    </div>
+                                </td>
                             </tr>
                         </ng-template>
                         <ng-template #emptymessage>
                             <tr>
                                 <td colspan="6">
                                     <app-empty-state compact icon="pi pi-calendar" heading="Nessun evento"
-                                        message="Non ci sono eventi con dati economici da mostrare." />
+                                        message="Nessun evento corrisponde ai filtri selezionati."
+                                        actionLabel="Azzera filtri" (action)="resetEventFilters()" />
                                 </td>
                             </tr>
                         </ng-template>
                     </p-table>
+
+                    @if (eventStatement) {
+                    <section class="report-panel">
+                        <div class="section-heading">
+                            <div>
+                                <h2>{{ eventStatement.summary.eventName }}</h2>
+                                <p>Preventivo, consuntivo e scostamento, con i movimenti che lo compongono.</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p-button label="Registra incasso" icon="pi pi-arrow-down-left" size="small"
+                                    (onClick)="registerEventIncome(eventStatement.summary.eventId)" />
+                                <p-button label="Registra spesa" icon="pi pi-arrow-up-right" severity="danger"
+                                    size="small" (onClick)="registerEventExpense(eventStatement.summary.eventId)" />
+                                <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [text]="true"
+                                    (onClick)="closeEventStatement()" />
+                            </div>
+                        </div>
+
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <span>Compenso</span>
+                                <strong>{{ eventStatement.summary.received | currency: 'EUR' : 'symbol' : '1.2-2' :
+                                    'it-IT' }}</strong>
+                                <small>Previsto {{ eventStatement.summary.expectedFee | currency: 'EUR' : 'symbol' :
+                                    '1.2-2' : 'it-IT' }}, scostamento {{ eventStatement.feeVariance | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</small>
+                            </div>
+                            <div class="summary-card expense">
+                                <span>Costi</span>
+                                <strong>{{ eventStatement.summary.paid | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}</strong>
+                                <small>Previsti {{ eventStatement.summary.expectedCosts | currency: 'EUR' : 'symbol' :
+                                    '1.2-2' : 'it-IT' }}, scostamento {{ eventStatement.costVariance | currency: 'EUR' :
+                                    'symbol' : '1.2-2' : 'it-IT' }}</small>
+                            </div>
+                            <div class="summary-card">
+                                <span>Margine previsto</span>
+                                <strong [class.negative]="eventStatement.summary.expectedMargin < 0">{{
+                                    eventStatement.summary.expectedMargin | currency: 'EUR' : 'symbol' : '1.2-2' :
+                                    'it-IT' }}</strong>
+                            </div>
+                            <div class="summary-card">
+                                <span>Risultato effettivo</span>
+                                <strong [class.negative]="eventStatement.summary.actualResult < 0">{{
+                                    eventStatement.summary.actualResult | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
+                                    }}</strong>
+                                <small>Scostamento {{ eventStatement.resultVariance | currency: 'EUR' : 'symbol' :
+                                    '1.2-2' : 'it-IT' }}</small>
+                            </div>
+                        </div>
+
+                        <div class="report-toolbar">
+                            <p-button label="Vedi nei movimenti" icon="pi pi-filter" severity="secondary"
+                                [outlined]="true" size="small"
+                                (onClick)="filterMovementsByEvent(eventStatement.summary.eventId)" />
+                            <div class="report-exports">
+                                <span>Esporta rendiconto dell’evento</span>
+                                <div class="flex gap-1">
+                                    <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportEventStatement('csv')" />
+                                    <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportEventStatement('xlsx')" />
+                                    <p-button label="PDF" severity="secondary" [outlined]="true" size="small"
+                                        (onClick)="exportEventStatement('pdf')" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="report-subtitle">Costi previsti</h3>
+                        <p-table [value]="eventStatement.summary.expectedCostItems" dataKey="description">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Voce</th>
+                                    <th class="text-right">Importo</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-cost>
+                                <tr>
+                                    <td>{{ cost.description }}</td>
+                                    <td class="text-right">{{ cost.amount | currency: 'EUR' : 'symbol' : '1.2-2' :
+                                        'it-IT' }}</td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="2"><app-empty-state compact icon="pi pi-list"
+                                            heading="Nessun costo previsto"
+                                            message="Il preventivo dell’evento non elenca voci di costo." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+
+                        <h3 class="report-subtitle">Movimenti collegati</h3>
+                        <p-table [value]="eventStatement.summary.movements" [loading]="eventStatementLoading"
+                            dataKey="id">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Conto</th>
+                                    <th>Descrizione</th>
+                                    <th class="text-right">Importo</th>
+                                    <th aria-label="Azioni"></th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-movement>
+                                <tr>
+                                    <td>{{ movement.bookingDate | date: 'dd/MM/yyyy' }}</td>
+                                    <td>{{ movement.accountName }}</td>
+                                    <td>
+                                        <strong>{{ movement.description }}</strong>
+                                        @if (movement.nature === 'ORDINARY' && !movement.attachmentCount) {
+                                        <p-tag value="Senza giustificativo" severity="warn" icon="pi pi-paperclip" />
+                                        }
+                                    </td>
+                                    <td class="text-right font-semibold"
+                                        [class.amount-income]="movement.direction === 'INCOME'"
+                                        [class.amount-expense]="movement.direction === 'EXPENSE'">
+                                        {{ movement.direction === 'INCOME' ? '+' : '−' }} {{ movement.amount | currency:
+                                        movement.currency || 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
+                                    </td>
+                                    <td><p-button icon="pi pi-pencil" ariaLabel="Modifica movimento" [text]="true"
+                                            pTooltip="Modifica" (onClick)="openMovement(movement)" /></td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="5"><app-empty-state compact icon="pi pi-wallet"
+                                            heading="Nessun movimento"
+                                            message="All’evento non è ancora collegato alcun movimento." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+                    </section>
+                    }
                 </p-tabpanel>
 
                 <p-tabpanel value="years">
@@ -510,6 +773,11 @@
                                         <p-button label="Ricalcola" icon="pi pi-refresh" [text]="true" size="small"
                                             pTooltip="Ricalcola i riporti successivi"
                                             (onClick)="recalculateYear(year)" />
+                                        <p-button
+                                            [label]="year.status === 'ROLLED_OVER' ? 'Rigenera riporto' : 'Genera riporto'"
+                                            icon="pi pi-forward" [text]="true" size="small"
+                                            pTooltip="Riscrive le aperture dell’anno successivo"
+                                            (onClick)="rolloverYear(year.year)" />
                                         <p-button label="CSV" severity="secondary" [outlined]="true" size="small"
                                             (onClick)="exportAnnualReport(year.year, 'csv')" />
                                         <p-button label="XLSX" severity="secondary" [outlined]="true" size="small"
@@ -623,6 +891,36 @@
                                     <td colspan="5"><app-empty-state compact icon="pi pi-tags"
                                             heading="Nessun movimento ordinario"
                                             message="Nell’esercizio non risultano movimenti classificati." /></td>
+                                </tr>
+                            </ng-template>
+                        </p-table>
+
+                        <h3 class="report-subtitle">Segnalazioni</h3>
+                        <p-table [value]="yearSummary.anomalies" dataKey="message">
+                            <ng-template #header>
+                                <tr>
+                                    <th>Segnalazione</th>
+                                    <th>Movimento</th>
+                                </tr>
+                            </ng-template>
+                            <ng-template #body let-anomaly>
+                                <tr>
+                                    <td>{{ anomaly.message }}</td>
+                                    <td>
+                                        @if (anomaly.movementId) {
+                                        <span>#{{ anomaly.movementId }}</span>
+                                        } @else {
+                                        <span>—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </ng-template>
+                            <ng-template #emptymessage>
+                                <tr>
+                                    <td colspan="2"><app-empty-state compact icon="pi pi-check-circle"
+                                            heading="Nessuna segnalazione"
+                                            message="Trasferimenti, saldi e giustificativi dell’esercizio risultano in ordine." />
+                                    </td>
                                 </tr>
                             </ng-template>
                         </p-table>

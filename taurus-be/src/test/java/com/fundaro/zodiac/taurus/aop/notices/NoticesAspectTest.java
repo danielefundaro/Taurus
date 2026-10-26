@@ -335,7 +335,8 @@ class NoticesAspectTest {
             null,
             null,
             null,
-            requestKey
+            requestKey,
+            null
         );
         MovementDTO movement = new MovementDTO(
             71L,
@@ -360,6 +361,7 @@ class NoticesAspectTest {
             false,
             null,
             null,
+            0,
             1
         );
 

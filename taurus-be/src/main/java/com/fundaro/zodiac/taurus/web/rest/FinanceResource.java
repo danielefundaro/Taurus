@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialDirection;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.*;
 import com.fundaro.zodiac.taurus.service.impl.FinanceReportService;
@@ -71,6 +72,11 @@ public class FinanceResource {
         return financeService.restoreAccount(id, token);
     }
 
+    @PatchMapping("/accounts/order")
+    public List<AccountDTO> reorderAccounts(@Valid @RequestBody ReorderRequest request, AbstractAuthenticationToken token) {
+        return financeService.reorderAccounts(request, token);
+    }
+
     @DeleteMapping("/accounts/{id}")
     public ResponseEntity<Void> deleteAccount(@PathVariable long id, AbstractAuthenticationToken token) {
         financeService.deleteAccount(id, token);
@@ -111,6 +117,11 @@ public class FinanceResource {
         return financeService.updateCategory(id, request, token);
     }
 
+    @PatchMapping("/categories/order")
+    public List<CategoryDTO> reorderCategories(@Valid @RequestBody ReorderRequest request, AbstractAuthenticationToken token) {
+        return financeService.reorderCategories(request, token);
+    }
+
     @PatchMapping("/categories/{id}/archive")
     public ResponseEntity<Void> archiveCategory(@PathVariable long id, AbstractAuthenticationToken token) {
         financeService.archiveCategory(id, token);
@@ -121,16 +132,33 @@ public class FinanceResource {
     public Page<MovementDTO> movements(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(required = false) Integer year,
         @RequestParam(required = false) Long accountId,
         @RequestParam(required = false) Long categoryId,
         @RequestParam(required = false) Long eventId,
         @RequestParam(required = false) FinancialDirection direction,
+        @RequestParam(required = false) FinancialMovementNature nature,
+        @RequestParam(required = false) String counterparty,
         @RequestParam(required = false) Boolean reconciled,
         @RequestParam(required = false) String query,
         Pageable pageable,
         AbstractAuthenticationToken token
     ) {
-        return financeService.findMovements(from, to, accountId, categoryId, eventId, direction, reconciled, query, pageable, token);
+        return financeService.findMovements(
+            from,
+            to,
+            year,
+            accountId,
+            categoryId,
+            eventId,
+            direction,
+            nature,
+            counterparty,
+            reconciled,
+            query,
+            pageable,
+            token
+        );
     }
 
     @GetMapping("/movements/{id}")
@@ -181,13 +209,34 @@ public class FinanceResource {
     public ResponseEntity<byte[]> cashbook(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(required = false) Integer year,
         @RequestParam(required = false) Long accountId,
         @RequestParam(required = false) Long categoryId,
         @RequestParam(required = false) Long eventId,
+        @RequestParam(required = false) FinancialDirection direction,
+        @RequestParam(required = false) FinancialMovementNature nature,
+        @RequestParam(required = false) String counterparty,
+        @RequestParam(required = false) Boolean reconciled,
+        @RequestParam(required = false) String query,
         @RequestParam(defaultValue = "csv") String format,
         AbstractAuthenticationToken token
     ) {
-        return download(financeReportService.cashbook(from, to, accountId, categoryId, eventId, format, token));
+        return download(
+            financeReportService.cashbook(
+                new FinanceReportService.MovementFilter(from, to, year, accountId, categoryId, eventId, direction, nature, counterparty, reconciled, query),
+                format,
+                token
+            )
+        );
+    }
+
+    @GetMapping("/reports/event-statement")
+    public ResponseEntity<byte[]> eventStatementReport(
+        @RequestParam long eventId,
+        @RequestParam(defaultValue = "csv") String format,
+        AbstractAuthenticationToken token
+    ) {
+        return download(financeReportService.eventStatement(eventId, format, token));
     }
 
     @GetMapping("/reports/account-statement")
@@ -261,8 +310,15 @@ public class FinanceResource {
     }
 
     @GetMapping("/events")
-    public Page<EventSummaryDTO> events(Pageable pageable, AbstractAuthenticationToken token) {
-        return financeService.findEvents(pageable, token);
+    public Page<EventSummaryDTO> events(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String query,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
+        return financeService.findEvents(from, to, status, query, pageable, token);
     }
 
     @GetMapping("/events/{id}")
@@ -279,6 +335,11 @@ public class FinanceResource {
         return financeService.updateEventBudget(id, request, token);
     }
 
+    @GetMapping("/events/{id}/statement")
+    public EventStatementDTO eventStatement(@PathVariable long id, AbstractAuthenticationToken token) {
+        return financeService.eventStatement(id, token);
+    }
+
     @GetMapping("/events/{id}/movements")
     public List<MovementDTO> eventMovements(@PathVariable long id, AbstractAuthenticationToken token) {
         return financeService.eventSummary(id, token).movements();
@@ -292,7 +353,8 @@ public class FinanceResource {
     ) {
         MovementRequest linked = new MovementRequest(
             request.accountId(), request.categoryId(), id, request.direction(), request.bookingDate(), request.valueDate(), request.amount(),
-            request.description(), request.counterparty(), request.documentReference(), request.notes(), request.requestKey()
+            request.description(), request.counterparty(), request.documentReference(), request.notes(), request.requestKey(),
+            request.version()
         );
         return ResponseEntity.status(201).body(financeService.createMovement(linked, token));
     }

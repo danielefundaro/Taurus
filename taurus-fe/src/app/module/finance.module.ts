@@ -16,6 +16,10 @@ export interface FinancialAccount {
     displayOrder?: number;
     initialBalance?: number;
     initialBalanceDate?: string;
+    /** Spiega da dove viene il saldo iniziale: finisce sulla descrizione del movimento di apertura. */
+    initialBalanceDescription?: string;
+    /** Movimento di apertura del saldo iniziale, a cui allegare il documento che lo giustifica. */
+    initialBalanceMovementId?: number;
     balance?: number;
     /** Scritture collegate ancora vive, escluse quelle eliminate: a zero il conto è eliminabile. */
     movementCount?: number;
@@ -56,6 +60,10 @@ export interface FinancialMovement {
     reconciled?: boolean;
     reconciledAt?: string;
     reconciliationReference?: string;
+    /** Documenti allegati ancora validi: a zero il movimento è senza giustificativo. */
+    attachmentCount?: number;
+    /** Chiave di idempotenza generata dal client: un retry non crea un secondo movimento. */
+    requestKey?: string;
     version?: number;
 }
 
@@ -67,15 +75,25 @@ export interface FinancialTransferRequest {
     amount: number;
     description: string;
     notes?: string;
+    /** Chiave di idempotenza generata dal client: un retry non sposta il denaro due volte. */
+    requestKey?: string;
 }
 
 export interface FinancialDashboard {
+    from: string;
+    to: string;
     totalBalance: number;
     income: number;
     expense: number;
     result: number;
     movementCount: number;
     unreconciledCount: number;
+    /** Posizioni evento ancora aperte: quanto resta da incassare e quanto da pagare. */
+    eventsToCollect: number;
+    eventsToPay: number;
+    openEvents: FinancialEventLine[];
+    /** Ultimo riporto generato, per sapere se le aperture sono allineate. */
+    lastRollover?: AccountingYear;
     accounts: FinancialAccount[];
 }
 
@@ -164,6 +182,22 @@ export interface FinancialEventLine {
     economicStatus: EventEconomicStatus;
 }
 
+/** Segnalazione informativa su un esercizio: non impedisce nulla, indica cosa controllare. */
+export interface FinancialYearAnomaly {
+    code: string;
+    message: string;
+    movementId?: number;
+    transferGroup?: string;
+}
+
+/** Preventivo, consuntivo e scostamento di un evento. */
+export interface FinancialEventStatement {
+    summary: FinancialEventSummary;
+    feeVariance: number;
+    costVariance: number;
+    resultVariance: number;
+}
+
 export interface AccountingYearSummary {
     year: AccountingYear;
     accounts: FinancialAccountYearBalance[];
@@ -177,5 +211,6 @@ export interface AccountingYearSummary {
     openEvents: FinancialEventLine[];
     unreconciledCount: number;
     unreconciledAmount: number;
+    anomalies: FinancialYearAnomaly[];
     lastRecalculatedAt?: string;
 }

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { FinancialAccount, FinancialAttachment, FinancialCategory, FinancialEventSummary, FinancialMovement } from '../../module';
+import { FinancialAccount, FinancialAttachment, FinancialCategory, FinancialDirection, FinancialEventSummary, FinancialMovement } from '../../module';
 import { ConfirmService, FinanceService, ToastService, parseIsoDate, toIsoDate } from '../../service';
 
 export interface MovementDialogResult {
@@ -45,6 +45,9 @@ export class FinanceMovementDialogComponent {
                 categories: FinancialCategory[];
                 events: FinancialEventSummary[];
                 eventId?: number;
+                /** Direzione proposta dall'azione che ha aperto il form, per esempio «Registra incasso». */
+                direction?: FinancialDirection;
+                categoryId?: number;
             }
         >,
         private readonly financeService: FinanceService,
@@ -57,6 +60,13 @@ export class FinanceMovementDialogComponent {
         this.events = values?.events ?? [];
         this.movement = values?.movement ? { ...values.movement } : { accountId: 0, direction: 'EXPENSE', bookingDate: toIsoDate(new Date()), amount: 0, description: '' };
         if (!this.movement.id && values?.eventId) this.movement.eventId = values.eventId;
+        // Chi arriva da «Registra incasso» non deve riscegliere la direzione: il form la propone già,
+        // e con essa la categoria coerente quando ce n'è una sola possibile.
+        if (!this.movement.id && values?.direction) this.movement.direction = values.direction;
+        if (!this.movement.id && !this.movement.categoryId) {
+            const proposed = values?.categoryId ?? this.singleCategoryFor(this.movement.direction);
+            if (proposed) this.movement.categoryId = proposed;
+        }
         this.bookingDate = parseIsoDate(this.movement.bookingDate) ?? new Date();
         this.valueDate = parseIsoDate(this.movement.valueDate);
         if (this.movement.id) this.loadAttachments(this.movement.id);
@@ -151,6 +161,14 @@ export class FinanceMovementDialogComponent {
             attachmentDescription: this.attachmentDescription
         };
         this.dialogRef.close(result);
+    }
+
+    /** L'unica categoria utilizzabile con quella direzione, quando non c'è ambiguità. */
+    private singleCategoryFor(direction: FinancialDirection): number | undefined {
+        const usable = this.categories.filter(
+            (category) => category.active !== false && (category.direction === 'BOTH' || category.direction === direction)
+        );
+        return usable.length === 1 ? usable[0].id : undefined;
     }
 
     private loadAttachments(movementId: number): void {

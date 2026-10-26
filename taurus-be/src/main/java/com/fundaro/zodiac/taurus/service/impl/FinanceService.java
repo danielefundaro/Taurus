@@ -35,15 +35,22 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventBudgetRequ
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventCostDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventCostRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventEconomicLineDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventStatementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.EventSummaryDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.ReconciliationRequest;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.ReorderRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.StatementLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.TransferRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearAnomalyDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.YearSummaryDTO;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics.Entity;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics.FailureReason;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics.Operation;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.criteria.Predicate;
 
@@ -64,7 +71,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -76,6 +86,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @Transactional
 public class FinanceService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FinanceService.class);
 
     private static final String ENTITY = "finance";
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(4);
@@ -90,6 +102,7 @@ public class FinanceService {
     private final CalendarEventsRepository eventRepository;
     private final MediaRepository mediaRepository;
     private final MediaService mediaService;
+    private final FinanceMetrics metrics;
 
     public FinanceService(
         AccountingYearRepository yearRepository,
@@ -99,7 +112,8 @@ public class FinanceService {
         FinancialMovementAttachmentRepository attachmentRepository,
         CalendarEventsRepository eventRepository,
         MediaRepository mediaRepository,
-        MediaService mediaService
+        MediaService mediaService,
+        FinanceMetrics metrics
     ) {
         this.yearRepository = yearRepository;
         this.accountRepository = accountRepository;
@@ -109,6 +123,7 @@ public class FinanceService {
         this.eventRepository = eventRepository;
         this.mediaRepository = mediaRepository;
         this.mediaService = mediaService;
+        this.metrics = metrics;
     }
 
     @Transactional(readOnly = true)
@@ -151,10 +166,15 @@ public class FinanceService {
             opening.setBookingDate(openingDate);
             opening.setAmount(request.initialBalance().abs());
             opening.setCurrency(account.getCurrency());
-            opening.setDescription("Saldo iniziale");
+            // La descrizione scelta dall'utente spiega da dove viene il saldo; senza di essa resta
+            // l'etichetta tecnica, che la migrazione usa per riconoscere le aperture esistenti.
+            opening.setDescription(Objects.requireNonNullElse(trimToNull(request.initialBalanceDescription()), "Saldo iniziale"));
             movementRepository.save(opening);
             recalculateFollowingYears(openingDate.getYear(), actor(token));
         }
+        metrics.record(Entity.ACCOUNT, Operation.CREATED);
+        // L'IBAN non entra mai per intero in un log: ne basta la coda per riconoscere il conto.
+        LOG.info("finance: creato il conto {} ({}) con iban {}", account.getId(), account.getAccountType(), maskedIban(account.getIban()));
         return toAccountDto(account, balance(account.getId(), LocalDate.now()));
     }
 
@@ -168,6 +188,8 @@ public class FinanceService {
         applyAccount(account, request);
         account.touchAudit(actor(token));
         accountRepository.save(account);
+        metrics.record(Entity.ACCOUNT, Operation.UPDATED);
+        LOG.info("finance: aggiornato il conto {} con iban {}", id, maskedIban(account.getIban()));
         return toAccountDto(account, balance(id, LocalDate.now()));
     }
 
@@ -177,6 +199,40 @@ public class FinanceService {
         account.setActive(false);
         account.touchAudit(actor(token));
         accountRepository.save(account);
+        metrics.record(Entity.ACCOUNT, Operation.ARCHIVED);
+    }
+
+    /**
+     * L'ordine dei conti scelto dall'utente. Gli identificativi assenti dall'elenco conservano la
+     * posizione che avevano: l'interfaccia riordina quello che mostra, non tutto l'archivio.
+     */
+    public List<AccountDTO> reorderAccounts(ReorderRequest request, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        List<Long> ids = request.ids();
+        for (int position = 0; position < ids.size(); position++) {
+            FinancialAccount account = requiredAccount(ids.get(position), false);
+            account.setDisplayOrder(position);
+            account.touchAudit(actor);
+            accountRepository.save(account);
+        }
+        metrics.record(Entity.ACCOUNT, Operation.REORDERED);
+        return findAccounts(true, token);
+    }
+
+    /** L'ordine delle categorie scelto dall'utente, con la stessa regola dei conti. */
+    public List<CategoryDTO> reorderCategories(ReorderRequest request, AbstractAuthenticationToken token) {
+        tenant(token);
+        String actor = actor(token);
+        List<Long> ids = request.ids();
+        for (int position = 0; position < ids.size(); position++) {
+            FinancialCategory category = requiredCategory(ids.get(position), false);
+            category.setDisplayOrder(position);
+            category.touchAudit(actor);
+            categoryRepository.save(category);
+        }
+        metrics.record(Entity.CATEGORY, Operation.REORDERED);
+        return findCategories(true, token);
     }
 
     public AccountDTO restoreAccount(long id, AbstractAuthenticationToken token) {
@@ -191,6 +247,7 @@ public class FinanceService {
         account.setActive(true);
         account.touchAudit(actor(token));
         accountRepository.save(account);
+        metrics.record(Entity.ACCOUNT, Operation.RESTORED);
         return toAccountDto(account, balance(id, LocalDate.now()));
     }
 
@@ -210,6 +267,7 @@ public class FinanceService {
         account.setDeleted(true);
         account.touchAudit(actor(token));
         accountRepository.save(account);
+        metrics.record(Entity.ACCOUNT, Operation.DELETED);
     }
 
     @Transactional(readOnly = true)
@@ -258,17 +316,32 @@ public class FinanceService {
     public Page<MovementDTO> findMovements(
         LocalDate from,
         LocalDate to,
+        Integer year,
         Long accountId,
         Long categoryId,
         Long eventId,
         FinancialDirection direction,
+        FinancialMovementNature nature,
+        String counterparty,
         Boolean reconciled,
         String query,
         Pageable pageable,
         AbstractAuthenticationToken token
     ) {
         tenant(token);
-        Specification<FinancialMovement> specification = movementSpecification(from, to, accountId, categoryId, eventId, direction, reconciled, query);
+        Specification<FinancialMovement> specification = movementSpecification(
+            from,
+            to,
+            year,
+            accountId,
+            categoryId,
+            eventId,
+            direction,
+            nature,
+            counterparty,
+            reconciled,
+            query
+        );
         return movementRepository.findAll(specification, pageable).map(this::toMovementDto);
     }
 
@@ -283,7 +356,10 @@ public class FinanceService {
         String actor = actor(token);
         if (request.requestKey() != null) {
             MovementDTO existing = movementRepository.findByRequestKeyAndDeletedFalse(request.requestKey()).map(this::toMovementDto).orElse(null);
-            if (existing != null) return existing;
+            if (existing != null) {
+                metrics.record(Entity.MOVEMENT, Operation.REPLAYED);
+                return existing;
+            }
         }
         FinancialMovement movement = new FinancialMovement();
         movement.initializeAudit(actor);
@@ -291,6 +367,8 @@ public class FinanceService {
         applyMovement(movement, request, actor);
         movementRepository.save(movement);
         recalculateFollowingYears(movement.getAccountingYear().getYear(), actor);
+        metrics.record(Entity.MOVEMENT, Operation.CREATED);
+        LOG.debug("finance: registrato il movimento {} sull'esercizio {}", movement.getId(), movement.getAccountingYear().getYear());
         return toMovementDto(movement);
     }
 
@@ -298,6 +376,7 @@ public class FinanceService {
         tenant(token);
         String actor = actor(token);
         FinancialMovement movement = requiredMovement(id);
+        requireCurrentVersion(movement, request.version());
         int oldYear = movement.getAccountingYear().getYear();
         if (movement.getNature() == FinancialMovementNature.TRANSFER) {
             updateTransferPair(movement, request, actor);
@@ -307,6 +386,7 @@ public class FinanceService {
             movementRepository.save(movement);
         }
         recalculateFollowingYears(Math.min(oldYear, movement.getAccountingYear().getYear()), actor);
+        metrics.record(Entity.MOVEMENT, Operation.UPDATED);
         return toMovementDto(movement);
     }
 
@@ -324,6 +404,7 @@ public class FinanceService {
         });
         movementRepository.saveAll(targets);
         recalculateFollowingYears(year, actor);
+        metrics.record(movement.getNature() == FinancialMovementNature.TRANSFER ? Entity.TRANSFER : Entity.MOVEMENT, Operation.DELETED);
     }
 
     public MovementDTO reconcile(long id, ReconciliationRequest request, AbstractAuthenticationToken token) {
@@ -336,26 +417,63 @@ public class FinanceService {
         movement.setReconciliationReference(request.reconciled() ? trimToNull(request.reference()) : null);
         movement.touchAudit(actor);
         movementRepository.save(movement);
+        metrics.record(Entity.MOVEMENT, Operation.RECONCILED);
         return toMovementDto(movement);
     }
 
     public TransferDTO createTransfer(TransferRequest request, AbstractAuthenticationToken token) {
         tenant(token);
         String actor = actor(token);
+        // Un retry HTTP non deve spostare il denaro due volte: con la stessa chiave si restituisce
+        // il trasferimento già creato, ricostruito dalle due scritture del suo gruppo.
+        if (request.requestKey() != null) {
+            TransferDTO replay = movementRepository.findByRequestKeyAndDeletedFalse(request.requestKey())
+                .map(FinancialMovement::getTransferGroup)
+                .map(this::transferByGroup)
+                .orElse(null);
+            if (replay != null) {
+                metrics.record(Entity.TRANSFER, Operation.REPLAYED);
+                return replay;
+            }
+        }
         if (request.sourceAccountId().equals(request.destinationAccountId())) {
-            throw error(HttpStatus.BAD_REQUEST, "Il conto di origine e quello di destinazione devono essere diversi", "finance.transfer.sameAccount");
+            throw rejected(
+                FailureReason.SAME_ACCOUNT_TRANSFER,
+                HttpStatus.BAD_REQUEST,
+                "Il conto di origine e quello di destinazione devono essere diversi",
+                "finance.transfer.sameAccount"
+            );
         }
         FinancialAccount source = requiredAccount(request.sourceAccountId(), true);
         FinancialAccount destination = requiredAccount(request.destinationAccountId(), true);
         if (!source.getCurrency().equals(destination.getCurrency())) {
-            throw error(HttpStatus.BAD_REQUEST, "I conti del trasferimento devono avere la stessa valuta", "finance.transfer.currencyMismatch");
+            throw rejected(
+                FailureReason.CURRENCY_MISMATCH,
+                HttpStatus.BAD_REQUEST,
+                "I conti del trasferimento devono avere la stessa valuta",
+                "finance.transfer.currencyMismatch"
+            );
         }
         UUID group = UUID.randomUUID();
         AccountingYear year = ensureYear(request.bookingDate().getYear(), actor);
         FinancialMovement outgoing = transferLeg(source, year, FinancialDirection.EXPENSE, request, group, actor);
         FinancialMovement incoming = transferLeg(destination, year, FinancialDirection.INCOME, request, group, actor);
+        // La chiave sta sulla sola uscita: identifica il trasferimento, non la singola scrittura.
+        outgoing.setRequestKey(request.requestKey());
         movementRepository.saveAll(List.of(outgoing, incoming));
         recalculateFollowingYears(year.getYear(), actor);
+        metrics.record(Entity.TRANSFER, Operation.CREATED);
+        LOG.info("finance: trasferimento {} registrato sull'esercizio {}", group, year.getYear());
+        return new TransferDTO(group, toMovementDto(outgoing), toMovementDto(incoming));
+    }
+
+    /** Le due scritture di un gruppo lette come trasferimento; null se il gruppo non è completo. */
+    private TransferDTO transferByGroup(UUID group) {
+        if (group == null) return null;
+        List<FinancialMovement> legs = movementRepository.findAllByTransferGroupAndDeletedFalse(group);
+        FinancialMovement outgoing = legs.stream().filter(leg -> leg.getDirection() == FinancialDirection.EXPENSE).findFirst().orElse(null);
+        FinancialMovement incoming = legs.stream().filter(leg -> leg.getDirection() == FinancialDirection.INCOME).findFirst().orElse(null);
+        if (outgoing == null || incoming == null) return null;
         return new TransferDTO(group, toMovementDto(outgoing), toMovementDto(incoming));
     }
 
@@ -372,7 +490,33 @@ public class FinanceService {
             .map(account -> toAccountDto(account, balance(account.getId(), effectiveTo)))
             .toList();
         BigDecimal totalBalance = accounts.stream().map(AccountDTO::balance).reduce(ZERO, BigDecimal::add);
-        return new DashboardDTO(totalBalance, income, expense, income.subtract(expense), movements.size(), unreconciled, accounts);
+        // Le posizioni evento aperte sono il lavoro economico che resta: quanto c'è da incassare e
+        // quanto da pagare, letto dalle righe del periodo scelto.
+        List<EventEconomicLineDTO> openEvents = eventLines(effectiveFrom, effectiveTo, movements).stream()
+            .filter(FinanceService::economicallyOpen)
+            .toList();
+        BigDecimal toCollect = openEvents.stream().map(EventEconomicLineDTO::remainingIncome).filter(value -> value.signum() > 0).reduce(ZERO, BigDecimal::add);
+        BigDecimal toPay = openEvents.stream().map(EventEconomicLineDTO::remainingExpense).filter(value -> value.signum() > 0).reduce(ZERO, BigDecimal::add);
+        YearDTO lastRollover = yearRepository.findAllByDeletedFalseOrderByYearAsc().stream()
+            .filter(year -> year.getRolledOverAt() != null)
+            .reduce((first, second) -> second)
+            .map(this::toYearDto)
+            .orElse(null);
+        return new DashboardDTO(
+            effectiveFrom,
+            effectiveTo,
+            totalBalance,
+            income,
+            expense,
+            income.subtract(expense),
+            movements.size(),
+            unreconciled,
+            toCollect,
+            toPay,
+            openEvents,
+            lastRollover,
+            accounts
+        );
     }
 
     @Transactional(readOnly = true)
@@ -385,24 +529,58 @@ public class FinanceService {
     public AttachmentDTO addAttachment(long movementId, MultipartFile file, String description, AbstractAuthenticationToken token) throws IOException {
         tenant(token);
         if (file == null || file.isEmpty() || file.getSize() > MAX_ATTACHMENT_SIZE) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge").with("maxMegabytes", (int) (MAX_ATTACHMENT_SIZE / (1024 * 1024)));
+            throw rejected(FailureReason.ATTACHMENT_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge").with("maxMegabytes", (int) (MAX_ATTACHMENT_SIZE / (1024 * 1024)));
         }
         if (attachmentRepository.countByMovement_IdAndDeletedFalseAndActiveTrue(movementId) >= MAX_ATTACHMENTS) {
-            throw error(HttpStatus.CONFLICT, "Sono consentiti al massimo 20 allegati per movimento", "finance.attachment.limit").with("maximum", MAX_ATTACHMENTS);
+            throw rejected(FailureReason.TOO_MANY_ATTACHMENTS, HttpStatus.CONFLICT, "Sono consentiti al massimo 20 allegati per movimento", "finance.attachment.limit").with("maximum", MAX_ATTACHMENTS);
         }
         String mime = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!List.of("application/pdf", "image/jpeg", "image/png").contains(mime)) {
-            throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Sono supportati soltanto PDF, JPEG e PNG", "finance.attachment.unsupported");
+            throw rejected(FailureReason.UNSUPPORTED_TYPE, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Sono supportati soltanto PDF, JPEG e PNG", "finance.attachment.unsupported");
         }
         FinancialMovement movement = requiredMovement(movementId);
-        MediaDTO stored = mediaService.store(file.getBytes(), file.getOriginalFilename(), mime, "finance", token);
+        byte[] bytes = file.getBytes();
+        // Il MIME dichiarato dal client è un'affermazione, non una prova: il tipo si riconosce dai
+        // primi byte del file, così un eseguibile rinominato .pdf non entra nello storage del tenant.
+        if (!mime.equals(sniffedMime(bytes))) {
+            LOG.warn("finance: allegato rifiutato sul movimento {}, il contenuto non corrisponde al tipo {}", movementId, mime);
+            throw rejected(
+                FailureReason.CONTENT_MISMATCH,
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Il contenuto del file non corrisponde al tipo dichiarato",
+                "finance.attachment.contentMismatch"
+            );
+        }
+        MediaDTO stored = mediaService.store(bytes, file.getOriginalFilename(), mime, "finance", token);
         FinancialMovementAttachment attachment = new FinancialMovementAttachment();
         attachment.initializeAudit(actor(token));
         attachment.setMovement(movement);
         attachment.setMediaAsset(mediaRepository.getReferenceById(stored.getId()));
         attachment.setDescription(trimToNull(description));
         attachmentRepository.save(attachment);
+        metrics.record(Entity.ATTACHMENT, Operation.CREATED);
+        metrics.recordAttachmentSize(bytes.length);
         return toAttachmentDto(attachment);
+    }
+
+    /**
+     * Il tipo riconosciuto dai byte iniziali, oppure {@code null} se non è uno dei tre ammessi.
+     * I tre formati hanno firme corte e stabili: non serve una libreria per distinguerli.
+     */
+    static String sniffedMime(byte[] bytes) {
+        if (bytes == null || bytes.length < 4) return null;
+        if (startsWith(bytes, 0x25, 0x50, 0x44, 0x46)) return "application/pdf";
+        if (startsWith(bytes, 0xFF, 0xD8, 0xFF)) return "image/jpeg";
+        if (startsWith(bytes, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return "image/png";
+        return null;
+    }
+
+    private static boolean startsWith(byte[] bytes, int... signature) {
+        if (bytes.length < signature.length) return false;
+        for (int index = 0; index < signature.length; index++) {
+            if ((bytes[index] & 0xFF) != signature[index]) return false;
+        }
+        return true;
     }
 
     @Transactional(readOnly = true)
@@ -417,6 +595,7 @@ public class FinanceService {
     public MediaService.MediaContent getAttachment(long attachmentId, AbstractAuthenticationToken token) {
         tenant(token);
         FinancialMovementAttachment attachment = requiredAttachment(attachmentId);
+        metrics.record(Entity.ATTACHMENT, Operation.DOWNLOADED);
         return mediaService.getContent(attachment.getMediaAsset().getId(), token);
     }
 
@@ -429,6 +608,7 @@ public class FinanceService {
         attachment.touchAudit(actor(token));
         attachmentRepository.save(attachment);
         mediaService.deleteIfUnreferenced(mediaId, token);
+        metrics.record(Entity.ATTACHMENT, Operation.DELETED);
     }
 
     @Transactional(readOnly = true)
@@ -437,14 +617,51 @@ public class FinanceService {
         return eventSummary(requiredEvent(eventId));
     }
 
+    /**
+     * La scheda Eventi con i suoi filtri. Lo stato economico è calcolato dai movimenti, non è una
+     * colonna: periodo, testo e stato si applicano quindi in memoria sull'elenco degli eventi, che
+     * per un'associazione resta dell'ordine delle centinaia.
+     */
     @Transactional(readOnly = true)
-    public Page<EventSummaryDTO> findEvents(Pageable pageable, AbstractAuthenticationToken token) {
+    public Page<EventSummaryDTO> findEvents(
+        LocalDate from,
+        LocalDate to,
+        String status,
+        String queryText,
+        Pageable pageable,
+        AbstractAuthenticationToken token
+    ) {
         tenant(token);
-        return eventRepository.findAll((root, query, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(builder.isFalse(root.get("deleted")));
-            return builder.and(predicates.toArray(Predicate[]::new));
-        }, pageable).map(this::eventSummary);
+        if (from != null && to != null) requirePeriod(from, to);
+        String pattern = notBlank(queryText) ? queryText.trim().toLowerCase(Locale.ROOT) : null;
+        List<EventSummaryDTO> summaries = eventRepository.findAll().stream()
+            .filter(event -> !Boolean.TRUE.equals(event.getDeleted()))
+            .filter(event -> from == null || (eventDate(event) != null && !eventDate(event).isBefore(from)))
+            .filter(event -> to == null || (eventDate(event) != null && !eventDate(event).isAfter(to)))
+            .sorted(Comparator.comparing(FinanceService::eventDate, Comparator.nullsLast(Comparator.naturalOrder())))
+            .map(this::eventSummary)
+            .filter(summary -> !notBlank(status) || status.trim().equalsIgnoreCase(summary.economicStatus()))
+            .filter(summary -> pattern == null || (summary.eventName() != null && summary.eventName().toLowerCase(Locale.ROOT).contains(pattern)))
+            .toList();
+        int start = (int) Math.min(pageable.getOffset(), summaries.size());
+        int end = pageable.isPaged() ? Math.min(start + pageable.getPageSize(), summaries.size()) : summaries.size();
+        return new PageImpl<>(summaries.subList(start, end), pageable, summaries.size());
+    }
+
+    /**
+     * Il rendiconto di un evento: il preventivo, i movimenti registrati e lo scostamento fra i due.
+     * È quello che serve per spiegare a un consiglio direttivo come è andata una manifestazione.
+     */
+    @Transactional(readOnly = true)
+    public EventStatementDTO eventStatement(long eventId, AbstractAuthenticationToken token) {
+        tenant(token);
+        EventSummaryDTO summary = eventSummary(requiredEvent(eventId));
+        return new EventStatementDTO(
+            summary,
+            summary.received().subtract(summary.expectedFee()),
+            summary.paid().subtract(summary.expectedCosts()),
+            summary.actualResult().subtract(summary.expectedMargin())
+        );
     }
 
     public EventSummaryDTO updateEventBudget(long eventId, EventBudgetRequest request, AbstractAuthenticationToken token) {
@@ -483,9 +700,15 @@ public class FinanceService {
         return result.year();
     }
 
+    /**
+     * Genera il riporto dell'esercizio. Su un esercizio già riportato il comando resta efficace e
+     * rifà le aperture dell'anno successivo: dopo una correzione tardiva è l'unico modo di
+     * riallineare i saldi, e rifiutarlo lasciava il riporto vecchio senza dirlo a nessuno. La
+     * segnalazione automatica, invece, scatta soltanto la prima volta: {@code changed} dice questo.
+     */
     private RolloverResult performRollover(int year, String actor) {
         AccountingYear source = ensureYear(year, actor);
-        if (source.getStatus() == AccountingYearStatus.ROLLED_OVER) return new RolloverResult(toYearDto(source), false);
+        boolean first = source.getStatus() != AccountingYearStatus.ROLLED_OVER;
         ensureYear(year + 1, actor);
         recalculateOpening(year + 1, actor);
         source.setStatus(AccountingYearStatus.ROLLED_OVER);
@@ -493,7 +716,9 @@ public class FinanceService {
         source.setRolledOverBy(actor);
         source.touchAudit(actor);
         yearRepository.save(source);
-        return new RolloverResult(toYearDto(source), true);
+        metrics.record(Entity.YEAR, Operation.ROLLED_OVER);
+        LOG.info("finance: riporto dell'esercizio {} {}", year, first ? "generato" : "rigenerato");
+        return new RolloverResult(toYearDto(source), first);
     }
 
     public YearDTO recalculate(int year, AbstractAuthenticationToken token) {
@@ -503,6 +728,7 @@ public class FinanceService {
         recalculateFollowingYears(year, actor);
         source.setLastRecalculatedAt(ZonedDateTime.now());
         source.touchAudit(actor);
+        metrics.record(Entity.YEAR, Operation.RECALCULATED);
         return toYearDto(yearRepository.save(source));
     }
 
@@ -581,6 +807,8 @@ public class FinanceService {
         List<FinancialMovement> unreconciled = movements.stream()
             .filter(movement -> movement.getNature() == FinancialMovementNature.ORDINARY && !movement.isReconciled())
             .toList();
+        List<YearAnomalyDTO> anomalies = anomalies(movements, accounts);
+        anomalies.forEach(anomaly -> metrics.recordAnomaly(anomaly.code(), 1));
 
         return new YearSummaryDTO(
             toYearDto(entity),
@@ -595,8 +823,72 @@ public class FinanceService {
             eventLines(from, to, movements).stream().filter(FinanceService::economicallyOpen).toList(),
             unreconciled.size(),
             unreconciled.stream().map(FinancialMovement::getAmount).reduce(ZERO, BigDecimal::add),
+            anomalies,
             entity.getLastRecalculatedAt()
         );
+    }
+
+    /**
+     * Le segnalazioni dell'esercizio. Sono informative per scelta: la contabilità di un'associazione
+     * ha casi irregolari legittimi, e bloccarli costringerebbe a scritture finte. Chi legge decide.
+     */
+    private List<YearAnomalyDTO> anomalies(List<FinancialMovement> movements, List<AccountYearBalanceDTO> accounts) {
+        List<YearAnomalyDTO> anomalies = new ArrayList<>();
+        Map<UUID, List<FinancialMovement>> groups = new LinkedHashMap<>();
+        movements.stream()
+            .filter(movement -> movement.getNature() == FinancialMovementNature.TRANSFER && movement.getTransferGroup() != null)
+            .forEach(movement -> groups.computeIfAbsent(movement.getTransferGroup(), key -> new ArrayList<>()).add(movement));
+        groups.forEach((group, legs) -> {
+            // Una gamba sola può essere legittima a cavallo di due esercizi: la coppia è nello stesso
+            // anno per costruzione, quindi qui una gamba spaiata è davvero un'anomalia.
+            if (legs.size() != 2) {
+                anomalies.add(new YearAnomalyDTO(
+                    "TRANSFER_INCOMPLETE",
+                    "Il trasferimento ha " + legs.size() + " scritture invece di due",
+                    legs.get(0).getId(),
+                    group
+                ));
+                return;
+            }
+            FinancialMovement first = legs.get(0);
+            FinancialMovement second = legs.get(1);
+            if (first.getAmount().compareTo(second.getAmount()) != 0) {
+                anomalies.add(new YearAnomalyDTO("TRANSFER_AMOUNT_MISMATCH", "Le due scritture del trasferimento hanno importi diversi", first.getId(), group));
+            }
+            if (!Objects.equals(first.getBookingDate(), second.getBookingDate())) {
+                anomalies.add(new YearAnomalyDTO("TRANSFER_DATE_MISMATCH", "Le due scritture del trasferimento hanno date contabili diverse", first.getId(), group));
+            }
+            if (!Objects.equals(first.getCurrency(), second.getCurrency())) {
+                anomalies.add(new YearAnomalyDTO("TRANSFER_CURRENCY_MISMATCH", "Le due scritture del trasferimento hanno valute diverse", first.getId(), group));
+            }
+            if (first.getDirection() == second.getDirection()) {
+                anomalies.add(new YearAnomalyDTO("TRANSFER_DIRECTION_MISMATCH", "Le due scritture del trasferimento hanno la stessa direzione", first.getId(), group));
+            }
+            if (Objects.equals(first.getAccount().getId(), second.getAccount().getId())) {
+                anomalies.add(new YearAnomalyDTO("TRANSFER_SAME_ACCOUNT", "Il trasferimento ha origine e destinazione sullo stesso conto", first.getId(), group));
+            }
+        });
+        accounts.stream()
+            .filter(account -> account.closingBalance().signum() < 0)
+            .forEach(account -> anomalies.add(new YearAnomalyDTO(
+                "ACCOUNT_NEGATIVE_CLOSING",
+                "Il conto " + account.accountName() + " chiude l'esercizio con saldo negativo",
+                null,
+                null
+            )));
+        long missingAttachments = movements.stream()
+            .filter(movement -> movement.getNature() == FinancialMovementNature.ORDINARY)
+            .filter(movement -> attachmentRepository.countByMovement_IdAndDeletedFalseAndActiveTrue(movement.getId()) == 0)
+            .count();
+        if (missingAttachments > 0) {
+            anomalies.add(new YearAnomalyDTO(
+                "MOVEMENTS_WITHOUT_ATTACHMENT",
+                missingAttachments + " movimenti ordinari non hanno un documento allegato",
+                null,
+                null
+            ));
+        }
+        return List.copyOf(anomalies);
     }
 
     @Transactional(readOnly = true)
@@ -948,13 +1240,16 @@ public class FinanceService {
         return "PARTIALLY_SETTLED";
     }
 
-    private Specification<FinancialMovement> movementSpecification(
+    Specification<FinancialMovement> movementSpecification(
         LocalDate from,
         LocalDate to,
+        Integer year,
         Long accountId,
         Long categoryId,
         Long eventId,
         FinancialDirection direction,
+        FinancialMovementNature nature,
+        String counterparty,
         Boolean reconciled,
         String queryText
     ) {
@@ -963,6 +1258,13 @@ public class FinanceService {
             predicates.add(builder.isFalse(root.get("deleted")));
             if (from != null) predicates.add(builder.greaterThanOrEqualTo(root.get("bookingDate"), from));
             if (to != null) predicates.add(builder.lessThanOrEqualTo(root.get("bookingDate"), to));
+            // L'esercizio è il filtro con cui si lavora in contabilità: non coincide con l'intervallo
+            // di date, perché un movimento può essere registrato in un esercizio e pagato in un altro.
+            if (year != null) predicates.add(builder.equal(root.get("accountingYear").get("year"), year));
+            if (nature != null) predicates.add(builder.equal(root.get("nature"), nature));
+            if (notBlank(counterparty)) {
+                predicates.add(builder.like(builder.lower(root.get("counterparty")), "%" + counterparty.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
             if (accountId != null) predicates.add(builder.equal(root.get("account").get("id"), accountId));
             if (categoryId != null) predicates.add(builder.equal(root.get("category").get("id"), categoryId));
             if (eventId != null) predicates.add(builder.equal(root.get("event").get("id"), eventId));
@@ -1016,14 +1318,39 @@ public class FinanceService {
         return category;
     }
 
+    /**
+     * Il controllo di concorrenza ottimistica chiesto dal client: chi invia la versione che ha letto
+     * ottiene un rifiuto invece di sovrascrivere la correzione di un collega. Chi non la invia
+     * conserva il comportamento di prima, perché la versione resta facoltativa.
+     */
+    private void requireCurrentVersion(FinancialMovement movement, Long expected) {
+        if (expected == null || expected == movement.getEntityVersion()) return;
+        throw rejected(
+            FailureReason.VERSION_CONFLICT,
+            HttpStatus.CONFLICT,
+            "Il movimento è stato modificato da un altro utente: ricaricalo prima di salvare",
+            "finance.movement.versionConflict"
+        );
+    }
+
     private FinancialMovement requiredMovement(long id) {
         return movementRepository.findByIdAndDeletedFalse(id)
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Movimento non trovato", "finance.movement.notFound"));
     }
 
+    /**
+     * L'allegato di un movimento eliminato non è più scaricabile: il documento seguiva quel
+     * movimento, e un collegamento rimasto in giro non deve diventare una porta aperta.
+     */
     private FinancialMovementAttachment requiredAttachment(long id) {
-        return attachmentRepository.findByIdAndDeletedFalseAndActiveTrue(id)
+        FinancialMovementAttachment attachment = attachmentRepository.findByIdAndDeletedFalseAndActiveTrue(id)
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Allegato non trovato", "finance.attachment.notFound"));
+        FinancialMovement movement = attachment.getMovement();
+        if (movement == null || movement.isDeleted()) {
+            LOG.warn("finance: negato l'accesso all'allegato {} di un movimento eliminato", id);
+            throw rejected(FailureReason.ACCESS_DENIED, HttpStatus.NOT_FOUND, "Allegato non trovato", "finance.attachment.notFound");
+        }
+        return attachment;
     }
 
     private CalendarEvents requiredEvent(long id) {
@@ -1035,8 +1362,21 @@ public class FinanceService {
         return new AccountDTO(
             account.getId(), account.getName(), account.getDescription(), account.getAccountType(), account.getCurrency(), account.getIban(),
             account.getBankName(), account.isActive(), account.getDisplayOrder(), balance, movementCount(account.getId()),
+            initialBalanceMovementId(account.getId()),
             account.getEntityVersion()
         );
+    }
+
+    /**
+     * Il movimento che porta il saldo iniziale del conto: il frontend vi allega il documento che lo
+     * giustifica, perché l'apertura è un movimento come gli altri e non un campo del conto.
+     */
+    private Long initialBalanceMovementId(Long accountId) {
+        if (accountId == null) return null;
+        return movementRepository.findAllByAccount_IdAndDeletedFalseAndInitialBalanceTrue(accountId).stream()
+            .map(FinancialMovement::getId)
+            .findFirst()
+            .orElse(null);
     }
 
     /**
@@ -1061,8 +1401,16 @@ public class FinanceService {
             movement.getEvent() == null ? null : movement.getEvent().getId(), movement.getEventNameSnapshot(), movement.getDirection(), movement.getNature(),
             movement.getBookingDate(), movement.getValueDate(), movement.getAmount(), movement.getCurrency(), movement.getDescription(), movement.getCounterparty(),
             movement.getDocumentReference(), movement.getNotes(), movement.getTransferGroup(), movement.isReconciled(), movement.getReconciledAt(),
-            movement.getReconciliationReference(), movement.getEntityVersion()
+            movement.getReconciliationReference(), attachmentCount(movement.getId()), movement.getEntityVersion()
         );
+    }
+
+    /**
+     * Quanti documenti giustificano il movimento. Serve all'elenco per segnalare le righe senza
+     * giustificativo: un movimento appena creato ne ha zero, e a quel punto l'indicazione e' utile.
+     */
+    private long attachmentCount(Long movementId) {
+        return movementId == null ? 0 : attachmentRepository.countByMovement_IdAndDeletedFalseAndActiveTrue(movementId);
     }
 
     private AttachmentDTO toAttachmentDto(FinancialMovementAttachment attachment) {
@@ -1101,6 +1449,22 @@ public class FinanceService {
 
     private static RequestAlertException error(HttpStatus status, String message, String key) {
         return new RequestAlertException(status, message, ENTITY, key);
+    }
+
+    /** Lo stesso rifiuto di {@link #error}, contato anche come metrica del modulo. */
+    private RequestAlertException rejected(FailureReason reason, HttpStatus status, String message, String key) {
+        metrics.recordFailure(reason);
+        return error(status, message, key);
+    }
+
+    /**
+     * L'IBAN ridotto alle ultime quattro cifre. Serve a riconoscere il conto in un log senza
+     * scriverci dentro una coordinata bancaria completa.
+     */
+    static String maskedIban(String iban) {
+        if (!notBlank(iban)) return "n/d";
+        String trimmed = iban.trim();
+        return trimmed.length() <= 4 ? "****" : "****" + trimmed.substring(trimmed.length() - 4);
     }
 
     private record RolloverResult(YearDTO year, boolean changed) {

@@ -30,6 +30,17 @@
             <p-datepicker inputId="account-opening-date" [(ngModel)]="openingDate" dateFormat="dd/mm/yy"
                 appendTo="body" />
         </app-form-field>
+        <app-form-field class="md:col-span-2" label="Da dove viene il saldo iniziale"
+            forId="account-opening-description" hint="Diventa la descrizione del movimento di apertura.">
+            <input id="account-opening-description" pInputText maxlength="4000"
+                [(ngModel)]="account.initialBalanceDescription"
+                placeholder="Per esempio: fondo cassa al passaggio di gestione" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Documento del saldo iniziale" forId="account-opening-file"
+            hint="PDF, JPEG o PNG fino a 10 MB: viene allegato al movimento di apertura.">
+            <input id="account-opening-file" type="file" accept="application/pdf,image/jpeg,image/png"
+                (change)="onOpeningAttachmentSelected($event)" />
+        </app-form-field>
         }
         <app-form-field class="md:col-span-2" label="Descrizione" forId="account-description">
             <textarea id="account-description" pTextarea rows="3" [(ngModel)]="account.description"></textarea>

@@ -10,10 +10,14 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
+import com.fundaro.zodiac.taurus.service.finance.FinanceMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
@@ -55,7 +59,8 @@ class FinanceReportServiceTest {
         FinanceReportService target = new FinanceReportService(
             movementRepository,
             financeService,
-            new TenantPdfHeaderService(tenantsService, tenantLogoLoader)
+            new TenantPdfHeaderService(tenantsService, tenantLogoLoader),
+            new FinanceMetrics(new SimpleMeterRegistry())
         );
         NoticesAspect noticesAspect = new NoticesAspect(notificationPublisher, null, null, null, null, null, null, null, null, null);
         AspectJProxyFactory proxyFactory = new AspectJProxyFactory(target);
@@ -64,11 +69,13 @@ class FinanceReportServiceTest {
         lenient()
             .when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
             .thenReturn(List.of());
+        lenient().when(movementRepository.findAll(nullable(Specification.class), any(Sort.class))).thenReturn(List.of());
+        lenient().when(financeService.accountBalance(anyLong(), any(LocalDate.class), any())).thenReturn(new BigDecimal("20.00"));
     }
 
     @Test
     void exportsCsvWithTenantAndPeriod() {
-        var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "csv", authentication());
+        var report = service.cashbook(filter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)), "csv", authentication());
 
         assertThat(report.mimeType()).startsWith("text/csv");
         assertThat(new String(report.bytes(), StandardCharsets.UTF_8)).contains("tenant-a", "01/01/2026 - 31/12/2026");
@@ -80,23 +87,22 @@ class FinanceReportServiceTest {
 
     @Test
     void exportsValidXlsxContainer() {
-        var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "xlsx", authentication());
+        var report = service.cashbook(filter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)), "xlsx", authentication());
 
         assertThat(report.bytes()).startsWith((byte) 'P', (byte) 'K');
     }
 
     @Test
     void exportsPdfDocumentAsARealLandscapeTable() throws Exception {
-        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
-            .thenReturn(List.of(movement()));
+        when(movementRepository.findAll(nullable(Specification.class), any(Sort.class))).thenReturn(List.of(movement()));
 
-        var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "pdf", authentication());
+        var report = service.cashbook(filter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)), "pdf", authentication());
 
         assertThat(new String(report.bytes(), 0, 4, StandardCharsets.US_ASCII)).isEqualTo("%PDF");
         try (var document = Loader.loadPDF(report.bytes())) {
             assertThat(document.getPage(0).getMediaBox().getWidth()).isGreaterThan(document.getPage(0).getMediaBox().getHeight());
             assertThat(new PDFTextStripper().getText(document))
-                .contains("Data", "Conto", "Direzione", "Descrizione estesa del movimento", "125.50", "EUR")
+                .contains("Registro cassa - Conto corrente principale", "Data", "Direzione", "Saldo", "Descrizione estesa del movimento", "125.50", "EUR")
                 .doesNotContain("Data | Conto | Direzione");
         }
     }
@@ -118,7 +124,7 @@ class FinanceReportServiceTest {
         when(tenantsService.findByCode("tenant-a", token)).thenReturn(Optional.of(tenant));
         when(tenantLogoLoader.load(tenant.getLogoUrl())).thenReturn(Optional.of(logoPng()));
 
-        var report = service.cashbook(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), null, null, null, "pdf", token);
+        var report = service.cashbook(filter(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)), "pdf", token);
 
         try (var document = Loader.loadPDF(report.bytes())) {
             assertThat(new PDFTextStripper().getText(document))
@@ -206,8 +212,13 @@ class FinanceReportServiceTest {
             List.of(),
             2,
             new BigDecimal("110.00"),
+            List.of(),
             null
         );
+    }
+
+    private static FinanceReportService.MovementFilter filter(LocalDate from, LocalDate to) {
+        return new FinanceReportService.MovementFilter(from, to, null, null, null, null, null, null, null, null, null);
     }
 
     private static AccountStatementDTO statement(LocalDate from, LocalDate to) {
@@ -223,6 +234,7 @@ class FinanceReportServiceTest {
             0,
             new BigDecimal("50.00"),
             3,
+            null,
             1
         );
         return new AccountStatementDTO(
