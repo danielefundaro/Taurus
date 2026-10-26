@@ -26,8 +26,15 @@ export default defineConfig({
         trace: 'retain-on-failure',
         video: 'retain-on-failure'
     },
+    /**
+     * Matrice dei browser e dei dispositivi supportati. `npm run e2e` esegue i profili del gate;
+     * gli altri si chiedono con `--project`, perché Firefox e WebKit raddoppiano il tempo del run.
+     */
     projects: [
         { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-        { name: 'mobile', use: { ...devices['Pixel 5'] } }
+        { name: 'mobile', use: { ...devices['Pixel 5'] } },
+        { name: 'tablet', use: { ...devices['iPad (gen 7)'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } } }
     ]
 });
