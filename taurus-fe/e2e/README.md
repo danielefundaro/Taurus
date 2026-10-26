@@ -2,14 +2,23 @@
 
 Guida un browser reale contro un'istanza completa di Taurus: frontend, backend, Keycloak,
 PostgreSQL e RabbitMQ. È la suite chiesta dal [Runbook di test](../../docs/runbook-test.md) per i
-percorsi con ruoli e tenant multipli, e non sostituisce i test di componente di `npm test`.
+percorsi con ruoli e tenant multipli e per il gate di accessibilità, e non sostituisce i test di
+componente di `npm test`.
+
+Le prove sono in `specs`:
+
+- `roles-and-tenants.spec.ts`: menu per ruolo, nome del tenant nella topbar e indirizzo di una
+  traccia non raggiungibile dall'altro tenant;
+- `accessibility.spec.ts`: axe-core con le regole WCAG 2.1 A e AA sulla pagina di accesso e sulle
+  pagine principali di un amministratore. Lo scanner trova le violazioni automatiche, non tutte: la
+  verifica a mano con tastiera e lettore di schermo resta nel runbook.
 
 ## Prerequisiti
 
 1. Dipendenze avviate: `docker compose -f ../taurus-be/src/main/docker/services.yml up --wait`.
 2. Backend in esecuzione: `cd ../taurus-be && ./mvnw`.
 3. Frontend in esecuzione: `npm start` (serve su `http://localhost:4200`).
-4. Browser di Playwright installati una volta sola: `npm run e2e:install`.
+4. Browser di Playwright installati una volta sola: `npm run e2e:install` (Chromium, Firefox e WebKit).
 5. Due tenant di prova in Keycloak, con utenti per i ruoli usati dalle prove.
 
 ## Variabili d'ambiente
@@ -30,10 +39,15 @@ I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `ARCHIVIST`, `USER`, `EXTERNAL` e `T
 ## Esecuzione
 
 ```bash
-npm run e2e            # entrambi i profili, desktop e mobile
+npm run e2e                      # il gate: profili desktop e mobile
+npm run e2e:matrix               # tutta la matrice: desktop, mobile, tablet, Firefox, WebKit
 npm run e2e -- --project=desktop
 npm run e2e -- --headed --project=desktop
 ```
+
+I profili sono dichiarati in `playwright.config.ts`. Il gate resta su desktop e mobile perché
+Firefox e WebKit raddoppiano la durata del run: la matrice completa va eseguita nei cicli di
+release, come dice il runbook.
 
 Tracce, video e report delle prove fallite restano in `target/e2e` e `target/e2e-report`.
 

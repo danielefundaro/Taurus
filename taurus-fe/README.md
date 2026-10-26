@@ -35,9 +35,12 @@ L'applicazione è su `http://localhost:4200` e chiama il backend su `http://loca
 | `npm start` | server di sviluppo |
 | `npm run build` | build di produzione in `dist/sakai-ng/browser` |
 | `npm test -- --watch=false --browsers=ChromeHeadless` | test Karma/Jasmine, una sola esecuzione |
+| `npm run test:coverage` | gli stessi test con la copertura e la soglia minima |
+| `npm run e2e` | suite end to end Playwright, desktop e mobile: serve un'istanza completa, vedi `e2e/README.md` |
+| `npm run e2e:matrix` | la stessa suite su tutti i profili, tablet, Firefox e WebKit compresi |
 | `npm run format` | formattazione Prettier |
 
-I test stanno accanto ai file che verificano, come `*.spec.ts`.
+I test stanno accanto ai file che verificano, come `*.spec.ts`. Le prove end to end e quelle di accessibilità stanno in `e2e/`.
 
 ## Convenzioni
 

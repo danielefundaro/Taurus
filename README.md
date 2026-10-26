@@ -53,10 +53,13 @@ Su un ambiente vuoto o appena resettato non esiste ancora nessun tenant: il prim
 | --- | --- |
 | Governance documentale | `node scripts/docs/validate-feature-catalog.mjs`; `node --test scripts/docs/feature-catalog.test.mjs`; `node scripts/docs/generate-feature-index.mjs`; `node scripts/docs/check-error-catalog.mjs`; `node --test scripts/docs/error-catalog.test.mjs` |
 | Backend | `cd taurus-be && ./mvnw verify` |
-| Frontend | `cd taurus-fe && npm ci && npm test -- --watch=false --browsers=ChromeHeadless && npm run build` |
+| Frontend | `cd taurus-fe && npm ci && npm run test:coverage && npm run build`; `npm run e2e` per la suite end to end, con un'istanza completa e le variabili di `taurus-fe/e2e/README.md` |
 | Servizio OMR | `cd taurus-omr && pip install -r requirements-test.txt && python -m pytest`; `docker build -t taurus-omr .` per l'immagine completa |
 | Provider Keycloak | `cd keycloak-authenticator && ./mvnw verify` |
-| Sito informativo | `cd taurus-info && pnpm install --frozen-lockfile && pnpm check && pnpm build` |
+| Sito informativo | `cd taurus-info && pnpm install --frozen-lockfile && pnpm check && pnpm build && pnpm test` |
+| Sicurezza | Segreti, dipendenze e analisi statica: i tre comandi della sezione 8.7 del [Runbook di test](docs/runbook-test.md) |
+
+`npm run test:coverage` e `./mvnw verify` applicano le soglie di copertura: una copertura che scende fa fallire il comando. Le soglie sono baseline misurate, non obiettivi raggiunti.
 
 Su Windows usare `mvnw.cmd` al posto di `./mvnw`.
 

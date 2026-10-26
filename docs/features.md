@@ -5,7 +5,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 
 | ID | Funzionalità | Tipo | Progettazione | Consegna | Moduli | Migrazioni | Test | Release | Verificata |
 | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
-| `application-errors-standard` | [Standard degli errori applicativi](application-errors-standard.md) | standard | approved | implemented | BE, FE, Repository | 0 | [5](#application-errors-standard-evidenze) | non rilasciata | 2026-10-23 |
+| `application-errors-standard` | [Standard degli errori applicativi](application-errors-standard.md) | standard | approved | implemented | BE, FE, Repository | 0 | [5](#application-errors-standard-evidenze) | non rilasciata | 2026-10-26 |
 | `documentation-implementation-alignment` | [Governance e allineamento tra documentazione e implementazione](documentation-implementation-alignment-spec.md) | standard | approved | implemented | Repository | 0 | [1](#documentation-implementation-alignment-evidenze) | non rilasciata | 2026-10-23 |
 | `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | in-progress | BE, FE | [1](#event-preparation-evidenze) | [5](#event-preparation-evidenze) | non rilasciata | 2026-10-23 |
