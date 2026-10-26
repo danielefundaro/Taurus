@@ -7,7 +7,7 @@ import { delay, finalize, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
-import { CalendarEventDialogResult, CalendarEvents, CalendarEventsCriteria, Page, Users, UsersCriteria } from '../../module';
+import { CalendarEventDialogResult, CalendarEvents, CalendarEventSeries, CalendarEventsCriteria, Page, Users, UsersCriteria } from '../../module';
 import { DateFilter, StringFilter } from '../../module/criteria/filter';
 import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, KeycloakService, ListLayout, ListLayoutService, ToastService, UsersService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
@@ -146,8 +146,14 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
             if (result?.event || result?.series) {
                 const creation: Observable<unknown> = result.series ? this.calendarEventSeriesService.create(result.series) : this.calendarEventsService.create(result.event!);
                 creation.pipe(delay(1000), first()).subscribe({
-                    next: () => {
-                        this.toastService.success(result.series ? 'Serie di eventi aggiunta' : 'Evento aggiunto', 'Il calendario è stato aggiornato.');
+                    next: (created) => {
+                        // Creazione ripetuta dopo un timeout: la serie era già stata creata, e lo diciamo.
+                        const replayed = result.series ? ((created as CalendarEventSeries)?.replayed ?? false) : false;
+                        if (replayed) {
+                            this.toastService.success('Serie di eventi già creata', 'La richiesta precedente era andata a buon fine: il calendario è aggiornato.');
+                        } else {
+                            this.toastService.success(result.series ? 'Serie di eventi aggiunta' : 'Evento aggiunto', 'Il calendario è stato aggiornato.');
+                        }
                         if (this.layout === 'grid') {
                             this.loadCalendarMonth();
                         } else {

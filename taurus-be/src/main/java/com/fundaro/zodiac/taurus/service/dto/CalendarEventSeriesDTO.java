@@ -17,6 +17,8 @@ public class CalendarEventSeriesDTO {
     private Integer skippedPastCount;
     /** Eccezioni che la nuova regola non genera più: restano come occorrenze eccezionali della serie. */
     private Integer outsideRuleExceptionCount;
+    /** Vero quando la creazione ha ritrovato la serie di una richiesta già andata a buon fine. */
+    private Boolean replayed;
 
     public Long getId() {
         return id;
@@ -72,6 +74,14 @@ public class CalendarEventSeriesDTO {
 
     public void setExceptionCount(Integer exceptionCount) {
         this.exceptionCount = exceptionCount;
+    }
+
+    public Boolean getReplayed() {
+        return replayed;
+    }
+
+    public void setReplayed(Boolean replayed) {
+        this.replayed = replayed;
     }
 
     public Integer getCreatedCount() {

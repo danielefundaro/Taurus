@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.service.dto.RecurrenceRuleDTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -90,6 +91,53 @@ class RecurringEventGeneratorTest {
     }
 
     @Test
+    void reportsTheMonthsSkippedBecauseTheDayDoesNotExist() {
+        var generation = generator.generateDetailed(
+            LocalDateTime.of(2026, 1, 31, 18, 0),
+            rome,
+            countRule(RecurrenceFrequency.MONTHLY, 1, 4),
+            500
+        );
+
+        assertThat(generation.occurrences()).hasSize(4);
+        assertThat(generation.skippedMonths()).containsExactly(
+            YearMonth.of(2026, 2),
+            YearMonth.of(2026, 4),
+            YearMonth.of(2026, 6)
+        );
+    }
+
+    @Test
+    void reportsTheYearsSkippedByFebruaryTwentyNinth() {
+        var generation = generator.generateDetailed(
+            LocalDateTime.of(2024, 2, 29, 10, 0),
+            rome,
+            countRule(RecurrenceFrequency.YEARLY, 1, 2),
+            500
+        );
+
+        assertThat(generation.occurrences()).hasSize(2);
+        assertThat(generation.skippedMonths()).containsExactly(
+            YearMonth.of(2025, 2),
+            YearMonth.of(2026, 2),
+            YearMonth.of(2027, 2)
+        );
+    }
+
+    @Test
+    void reportsNoSkippedMonthForARuleThatNeverSkips() {
+        var generation = generator.generateDetailed(
+            LocalDateTime.of(2026, 9, 1, 20, 0),
+            rome,
+            countRule(RecurrenceFrequency.DAILY, 1, 3),
+            500
+        );
+
+        assertThat(generation.occurrences()).hasSize(3);
+        assertThat(generation.skippedMonths()).isEmpty();
+    }
+
+    @Test
     void keepsLocalTimeAcrossDaylightSavingTime() {
         RecurrenceRuleDTO rule = countRule(RecurrenceFrequency.WEEKLY, 1, 4);
         rule.setWeekDays(List.of(RecurrenceWeekDay.MO));
@@ -108,7 +156,7 @@ class RecurringEventGeneratorTest {
             rome,
             countRule(RecurrenceFrequency.DAILY, 1, 501),
             500
-        )).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("between 1 and 500");
+        )).isInstanceOf(OccurrenceLimitExceededException.class).hasMessageContaining("maximum of 500 occurrences");
     }
 
     @Test

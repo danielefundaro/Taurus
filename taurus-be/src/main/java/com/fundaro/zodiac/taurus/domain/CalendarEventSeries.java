@@ -60,10 +60,22 @@ public class CalendarEventSeries extends StateFieldsOpenSearch {
     @Column(name = "until_local_date")
     private LocalDate untilLocalDate;
 
+    /** Chiave della richiesta di creazione: la stessa chiave non crea una seconda serie. */
+    @Column(name = "idempotency_key", length = 64, updatable = false)
+    private String idempotencyKey;
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "series_id", nullable = false)
     @OrderColumn(name = "display_order")
     private List<CalendarEventSeriesCost> costs = new ArrayList<>();
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
 
     public String getLocation() {
         return location;

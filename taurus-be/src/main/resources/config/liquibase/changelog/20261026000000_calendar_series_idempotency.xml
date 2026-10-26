@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261026000000-1" author="taurus">
+    <comment>Idempotency key of the series creation: a repeated request after a timeout finds the series already created instead of making a second one.</comment>
+    <addColumn tableName="calendar_event_series">
+      <column name="idempotency_key" type="varchar(64)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="calendar_event_series" columnName="idempotency_key"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261026000000-2" author="taurus">
+    <comment>The key is unique inside the tenant schema: two concurrent requests with the same key cannot both create a series.</comment>
+    <sql>
+      CREATE UNIQUE INDEX ux_calendar_event_series_idempotency_key
+        ON calendar_event_series (idempotency_key) WHERE idempotency_key IS NOT NULL;
+    </sql>
+    <rollback>
+      <sql>DROP INDEX ux_calendar_event_series_idempotency_key;</sql>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

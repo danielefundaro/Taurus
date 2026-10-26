@@ -370,6 +370,10 @@
                             date: 'dd/MM/yyyy HH:mm' }} · {{ seriesPreview.timeZone }}</span>
                         }
                     </div>
+                    @if (seriesSkippedMonthsLabel) {
+                    <p class="text-sm m-0 text-orange-600 dark:text-orange-400"><i
+                            class="pi pi-exclamation-triangle mr-1"></i>{{ seriesSkippedMonthsLabel }}</p>
+                    }
                     <small class="text-surface-500">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine
                         dell’evento visualizzato. Le occorrenze precedenti non vengono modificate.</small>
                 </div>

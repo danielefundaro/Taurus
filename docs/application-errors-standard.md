@@ -801,6 +801,8 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `calendar.series.recurrence.tooManyOccurrences` | 400 | La regola genererebbe più occorrenze del limite della serie | `maximum` | «La regola supera il limite di {maximum} occorrenze: riduci la durata o aumenta l'intervallo» |
 | `calendar.series.sourceOccurrence.invalid` | 400 | L'occorrenza di partenza indicata non appartiene alla serie | — | «L'occorrenza di partenza non appartiene alla serie» |
 | `calendar.series.occurrence.notFound` | 404 | Ripristino di un'occorrenza che non appartiene alla serie | — | «Occorrenza non trovata nella serie» |
+| `calendar.series.idempotencyKey.invalid` | 400 | Chiave di idempotenza della creazione vuota o più lunga del limite di 64 caratteri | — | «La chiave della richiesta non è valida: riprova a creare la serie» |
+| `calendar.series.duplicateRequest` | 409 | Due richieste di creazione con la stessa chiave di idempotenza arrivate insieme | — | «La serie è già in creazione da un'altra richiesta: aggiorna la pagina per vederla» |
 | `calendar.series.occurrence.conflict` | 409 | La nuova regola porta un'occorrenza sull'inizio già occupato da un'altra occorrenza della serie | — | «Un'altra occorrenza della serie inizia già in quella data» |
 | `calendar.series.reminder.invalid` | 400 | Promemoria dell'evento modello fuori dall'intervallo ammesso | `maximum` | «Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento» |
 | `calendar.reminder.invalid` | 400 | Promemoria di un evento fuori dall'intervallo ammesso | `maximum` | «Il promemoria deve essere compreso tra 0 e {maximum} minuti prima dell'evento» |

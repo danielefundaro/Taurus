@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.dto;
 
 public class CalendarEventSeriesRequest {
     private Long entityVersion;
+    private String idempotencyKey;
     private Long sourceOccurrenceId;
     private CalendarEventsDTO template;
     private RecurrenceRuleDTO recurrence;
@@ -12,6 +13,14 @@ public class CalendarEventSeriesRequest {
 
     public void setEntityVersion(Long entityVersion) {
         this.entityVersion = entityVersion;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
     }
 
     public Long getSourceOccurrenceId() {

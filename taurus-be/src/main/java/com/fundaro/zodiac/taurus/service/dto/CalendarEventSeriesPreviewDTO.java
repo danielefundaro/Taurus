@@ -9,6 +9,8 @@ public class CalendarEventSeriesPreviewDTO {
     private Integer occurrenceCount;
     private List<Date> occurrences = new ArrayList<>();
     private Date lastOccurrence;
+    /** Mesi che la regola salta perché il giorno scelto non esiste, in forma ISO `aaaa-mm`. */
+    private List<String> skippedMonths = new ArrayList<>();
 
     public String getTimeZone() {
         return timeZone;
@@ -32,6 +34,14 @@ public class CalendarEventSeriesPreviewDTO {
 
     public void setOccurrences(List<Date> occurrences) {
         this.occurrences = occurrences;
+    }
+
+    public List<String> getSkippedMonths() {
+        return skippedMonths;
+    }
+
+    public void setSkippedMonths(List<String> skippedMonths) {
+        this.skippedMonths = skippedMonths;
     }
 
     public Date getLastOccurrence() {

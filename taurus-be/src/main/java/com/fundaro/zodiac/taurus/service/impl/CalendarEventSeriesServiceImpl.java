@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.YearMonth;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,12 +117,28 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         result.setOccurrenceCount(definition.occurrences().size());
         result.setOccurrences(definition.occurrences().stream().limit(20).map(value -> Date.from(value.toInstant())).toList());
         result.setLastOccurrence(Date.from(definition.occurrences().get(definition.occurrences().size() - 1).toInstant()));
+        result.setSkippedMonths(definition.skippedMonths().stream().map(YearMonth::toString).toList());
         return result;
     }
 
     @Override
     public CalendarEventSeriesDTO create(CalendarEventSeriesRequest request, AbstractAuthenticationToken token) {
         long startedAt = System.nanoTime();
+        String idempotencyKey = idempotencyKey(request);
+        if (idempotencyKey != null) {
+            // Richiesta ripetuta dopo un timeout: la serie esiste già e viene restituita come è.
+            CalendarEventSeriesDTO replay = seriesRepository
+                .findByIdempotencyKey(idempotencyKey)
+                .map(existing -> {
+                    CalendarEventSeriesDTO dto = toDto(existing);
+                    dto.setReplayed(true);
+                    dto.setCreatedCount(dto.getOccurrenceCount());
+                    log.info("calendar_series_create_replayed seriesId={} occurrences={}", existing.getId(), dto.getOccurrenceCount());
+                    return dto;
+                })
+                .orElse(null);
+            if (replay != null) return replay;
+        }
         ZoneId zone = tenantTimeZoneService.currentZoneId();
         SeriesDefinition definition = definition(request, zone);
         String actor = actor(token);
@@ -130,7 +147,8 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         CalendarEventSeries series = new CalendarEventSeries();
         initialize(series, actor);
         applySeriesDefinition(series, request, definition, actor, economicsWritable);
-        series = seriesRepository.save(series);
+        series.setIdempotencyKey(idempotencyKey);
+        series = saveSeries(series, idempotencyKey);
 
         List<CalendarEvents> events = new ArrayList<>();
         for (int index = 0; index < definition.occurrences().size(); index++) {
@@ -386,10 +404,10 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         }
         LocalDateTime firstLocal = start.atZone(zone).toLocalDateTime();
         try {
-            List<ZonedDateTime> occurrences = generator.generate(firstLocal, zone, request.getRecurrence(), maximumOccurrences);
-            if (occurrences.isEmpty())
+            RecurringEventGenerator.Generation generation = generator.generateDetailed(firstLocal, zone, request.getRecurrence(), maximumOccurrences);
+            if (generation.occurrences().isEmpty())
                 throw new IllegalArgumentException("The recurrence does not generate occurrences");
-            return new SeriesDefinition(firstLocal, (int) duration, occurrences);
+            return new SeriesDefinition(firstLocal, (int) duration, generation.occurrences(), generation.skippedMonths());
         } catch (OccurrenceLimitExceededException exception) {
             // Messaggio dedicato: la regola è valida ma genera più occorrenze del limite della serie.
             if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.LIMIT_EXCEEDED);
@@ -635,11 +653,43 @@ public class CalendarEventSeriesServiceImpl implements CalendarEventSeriesServic
         }
     }
 
+    /**
+     * La chiave di idempotenza della creazione, normalizzata: assente quando il client non la manda,
+     * perché le richieste vecchie restano valide.
+     */
+    private String idempotencyKey(CalendarEventSeriesRequest request) {
+        String value = request == null ? null : request.getIdempotencyKey();
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty() || trimmed.length() > 64) {
+            throw error(HttpStatus.BAD_REQUEST, "The idempotency key must be between 1 and 64 characters", "calendar.series.idempotencyKey.invalid");
+        }
+        return trimmed;
+    }
+
+    /**
+     * Due richieste con la stessa chiave arrivate insieme: l'indice univoco ne lascia passare una, e
+     * l'altra riceve un conflitto riconoscibile invece di creare una seconda serie.
+     */
+    private CalendarEventSeries saveSeries(CalendarEventSeries series, String idempotencyKey) {
+        try {
+            CalendarEventSeries saved = seriesRepository.save(series);
+            seriesRepository.flush();
+            return saved;
+        } catch (DataIntegrityViolationException exception) {
+            String cause = String.valueOf(exception.getMostSpecificCause().getMessage());
+            if (idempotencyKey == null || !cause.contains("idempotency_key")) throw exception;
+            if (metrics != null) metrics.recordFailure(CalendarSeriesMetrics.FailureReason.DUPLICATE_REQUEST);
+            log.info("calendar_series_create_duplicate");
+            throw error(HttpStatus.CONFLICT, "A series with the same idempotency key is already being created", "calendar.series.duplicateRequest");
+        }
+    }
+
     private RequestAlertException error(HttpStatus status, String message, String key) {
         return new RequestAlertException(status, message, "CalendarEventSeries", key);
     }
 
     private record SeriesDefinition(LocalDateTime firstStartLocal, int durationMinutes,
-                                    List<ZonedDateTime> occurrences) {
+                                    List<ZonedDateTime> occurrences, List<YearMonth> skippedMonths) {
     }
 }
