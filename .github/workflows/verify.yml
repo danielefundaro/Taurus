@@ -102,7 +102,19 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-      - run: ./mvnw verify
+      # requireDocker: un test P0 che si salta per Docker assente renderebbe il run incompleto.
+      - run: ./mvnw verify -Dtaurus.test.requireDocker=true
+      - name: Keep the test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            taurus-be/target/surefire-reports
+            taurus-be/target/failsafe-reports
+            taurus-be/target/site/jacoco
+            taurus-be/target/site/jacoco-it
+          retention-days: 30
 
   frontend:
     needs: [changes, documentation]
@@ -119,8 +131,16 @@ jobs:
           cache: npm
           cache-dependency-path: taurus-fe/package-lock.json
       - run: npm ci
-      - run: npm test -- --watch=false --browsers=ChromeHeadless
+      # Esegue i test con la copertura e fallisce se scende sotto la baseline.
+      - run: npm run test:coverage
       - run: npm run build
+      - name: Keep the coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: taurus-fe/coverage
+          retention-days: 30
 
   omr:
     needs: [changes, documentation]
@@ -190,3 +210,31 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
+      # File attesi, metadati di ogni pagina, collegamenti interni, sitemap e intestazioni del server.
+      - run: pnpm test
+
+  security:
+    needs: documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Segreti: il binario di gitleaks, senza l'azione, che per le organizzazioni chiede una licenza.
+      - name: Scan for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2             detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+      # Dipendenze e configurazioni: vulnerabilita' note di Maven, npm, pip e dei Dockerfile.
+      - name: Scan dependencies and configuration
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      # Analisi statica di sicurezza: regole libere di semgrep, senza account.
+      - name: Static analysis
+        run: |
+          docker run --rm -v "$PWD:/src" returntocorp/semgrep:1.97.0             semgrep scan --config p/ci --error --quiet --metrics=off

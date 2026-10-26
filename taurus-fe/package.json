@@ -11,8 +11,10 @@
         "watch": "ng build --watch --configuration development",
         "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
         "test": "ng test",
-        "e2e": "playwright test --config e2e/playwright.config.ts",
-        "e2e:install": "playwright install --with-deps chromium"
+        "test:coverage": "node scripts/check-coverage.mjs",
+        "e2e": "playwright test --config e2e/playwright.config.ts --project=desktop --project=mobile",
+        "e2e:matrix": "playwright test --config e2e/playwright.config.ts",
+        "e2e:install": "playwright install --with-deps chromium firefox webkit"
     },
     "private": true,
     "dependencies": {
@@ -45,6 +47,7 @@
         "@angular-devkit/build-angular": "^19.0.6",
         "@angular/cli": "^19.0.6",
         "@angular/compiler-cli": "^19.0.0",
+        "@axe-core/playwright": "^4.10.1",
         "@playwright/test": "^1.49.1",
         "@types/jasmine": "~5.1.0",
         "autoprefixer": "^10.4.20",

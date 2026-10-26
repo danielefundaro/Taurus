@@ -1,0 +1,23 @@
+# Regole della ricerca di segreti eseguita in CI (job `security` di .github/workflows/verify.yml).
+#
+# Si parte dalle regole di serie di gitleaks e si elencano qui le sole eccezioni, con la ragione:
+# tutto il resto fa fallire la pipeline. La ricerca attraversa l'intera storia del repository,
+# quindi le eccezioni coprono anche file che non esistono più.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valori di prova, di sviluppo e di documentazione: non sono credenziali di produzione"
+paths = [
+  # Chiavi delle fixture dei test del servizio OMR.
+  '''taurus-omr/tests/.*''',
+  # Password dei realm di prova usati dai test del provider Keycloak.
+  '''keycloak-authenticator/src/test/resources/.*realm.*\.json''',
+  # Esempi nelle specifiche: chiavi di idempotenza, token e URL di esempio.
+  '''docs/.*\.md''',
+  # Realm e script dell'ambiente di sviluppo locale, avviato da docker compose.
+  '''taurus-be/src/main/docker/realm-config/.*''',
+  # Compose della prima stesura del progetto, rimosso: resta nella storia.
+  '''suite/docker-compose\.yml''',
+]

@@ -119,6 +119,8 @@ Va prima delle funzionalità che seguono perché quasi tutte hanno fra i requisi
 
 > Secondo lotto, stesso giorno: `TenantRoleFlowIT` copre browser flow e mapper su un Keycloak reale. Restano soglie di coverage, security scan, performance, backup/restore, scheduler multi-replica e i gap di priorità media.
 
+> Il 2026-10-26 affrontato il resto: soglie di copertura, job `security` in CI, Docker imposto in pipeline, controlli del sito costruito, matrice browser, gate di accessibilità, script k6, prova di ripristino e `UploadJobConcurrencyIT`. La voce resta `in-progress` per le decisioni e le esecuzioni che richiedono ambienti reali, elencate nei gap del runbook.
+
 ## 8. `track-pdf-processing`
 
 [Elaborazione asincrona dei PDF](../track-pdf-processing-spec.md) — difficoltà media.

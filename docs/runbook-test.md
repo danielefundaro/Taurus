@@ -18,7 +18,7 @@ Copertura presente nel repository (la data dell'ultima verifica è nel catalogo)
 - sito informativo: type-check e build, senza suite funzionale dedicata;
 - E2E: suite Playwright in `taurus-fe/e2e`, con i profili desktop e mobile, che richiede un'istanza completa e due tenant di prova e non è ancora stata eseguita su un ambiente reale;
 - JaCoCo produce report backend, ma non applica una soglia minima;
-- la CI esegue test/build dei moduli modificati e, per `taurus-omr`, la misura di accuratezza sull'immagine appena costruita, ma non test full-stack, performance, sicurezza dinamica o restore.
+- la CI esegue test/build dei moduli modificati con le soglie di copertura, impone la presenza di Docker, conserva report e copertura come artefatti, verifica il sito costruito e, per `taurus-omr`, misura l'accuratezza sull'immagine appena costruita; il job `security` cerca segreti, vulnerabilità di dipendenze e configurazioni e difetti con analisi statica. Restano fuori dalla CI i test full-stack, le performance, la sicurezza dinamica e il restore.
 
 I gap indicati nella sezione 19 restano rischi espliciti finché non sono risolti o formalmente accettati.
 
@@ -72,16 +72,16 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Area | Gate di release |
 | --- | --- |
 | Build | Tutti i moduli interessati compilano in modalità produzione |
-| Automatici | 100% test obbligatori verdi; nessun test P0 saltato |
+| Automatici | 100% test obbligatori verdi; nessun test P0 saltato, imposto in CI da `-Dtaurus.test.requireDocker=true` |
 | Difetti | 0 difetti aperti P0; 0 P1 senza accettazione esplicita |
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
-| Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate |
-| Copertura | Soglie da approvare; proposta iniziale: 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova |
+| Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
+| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 53% istruzioni, 44% branch e 55% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
-| Restore | Ultima prova entro la finestra di policy e RTO/RPO misurati |
+| Restore | Ultima prova entro la finestra di policy e RTO/RPO misurati con `scripts/ops/restore-test.sh` |
 | Evidenze | Report, log, versione e configurazione non segreta archiviati |
 
 Un gate non ancora misurabile è un punto aperto, non un successo implicito.
@@ -243,6 +243,12 @@ Isolamento tenant per risorsa, CRUD e IDOR:
 
 `TenantIsolationIT` esegue lo stesso giro di prove su ogni risorsa elencata nel suo metodo `resources()`: la riga creata in un tenant non è leggibile, modificabile né cancellabile dall'altro, e resta intatta nel proprio. Una risorsa nuova si aggiunge a quell'elenco e porta con sé le tre prove, invece di richiedere un test scritto a mano. Alcune tabelle nascono con i dati di riferimento del tenant, quindi il controllo confronta la variazione del conteggio, non il totale.
 
+Concorrenza di più repliche sulla coda degli upload:
+
+```powershell
+.\mvnw.cmd "-Dtest=UploadJobConcurrencyIT" test
+```
+
 Broker RabbitMQ reale:
 
 ```powershell
@@ -251,7 +257,9 @@ Broker RabbitMQ reale:
 
 `RabbitMqBrokerIT` avvia RabbitMQ con Testcontainers e verifica consegna, riconsegna dopo un errore di elaborazione, messaggio avvelenato e broker irraggiungibile. Il caso del messaggio avvelenato registra il comportamento attuale: senza una coda di scarto un messaggio che fallisce sempre viene riconsegnato senza fine, quindi la prova osserva le prime riconsegne e ferma il consumatore. Serve Docker.
 
-Verificare che Docker sia realmente disponibile: `TenantSchemaProvisioningServiceIT` usa un'assumption e può risultare saltato se Docker non è raggiungibile. Un test P0 saltato rende il run incompleto.
+I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
+
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,64 e 0,47, appena sotto la copertura misurata (66,1% linee e 49,7% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
@@ -268,7 +276,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-Controllare sia l'exit code sia il report coverage. Attualmente non esiste una soglia configurata: il report non costituisce da solo un gate. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (53% istruzioni, 44% branch, 55% linee, misurati sul ramo principale). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -326,7 +334,21 @@ docker build -t taurus-info:test .
 docker run --rm -p 127.0.0.1:8088:80 taurus-info:test
 ```
 
-In un secondo terminale verificare `http://localhost:8088/health` e le pagine principali. Non è presente una suite automatica dedicata.
+In un secondo terminale verificare `http://localhost:8088/health` e le pagine principali.
+
+I controlli automatici del sito costruito sono in `pnpm test` (`scripts/check-build.mjs`): file attesi, `lang`, titolo, descrizione, canonical e `og:image` di ogni pagina, collegamenti interni che esistono, corrispondenza con la sitemap e intestazioni di sicurezza dichiarate in `nginx.conf`. Lo smoke sull'immagine servita da nginx resta a mano.
+
+### 8.7 Sicurezza
+
+Gli stessi controlli del job `security` della CI, eseguibili in locale con Docker:
+
+```powershell
+docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.21.2 detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+docker run --rm -v "${PWD}:/repo" aquasec/trivy:0.56.2 fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 /repo
+docker run --rm -v "${PWD}:/src" returntocorp/semgrep:1.97.0 semgrep scan --config p/ci --error --quiet --metrics=off
+```
+
+La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni vivono in `.gitleaks.toml` e sono soltanto valori di prova, di sviluppo e di documentazione: una credenziale vera non va aggiunta lì, va ruotata.
 
 ## 9. Selezione delle suite per modifica
 
@@ -753,7 +775,13 @@ Definire prima SLO, dataset e capacità attesa. Profili minimi:
 
 Misurare p50/p95/p99, throughput, errori, CPU, memoria, GC, pool JDBC, query lente, I/O storage, backlog RabbitMQ e durata scheduler. Testare separatamente login, dashboard, liste paginated, upload/download, feed anonimo e notification dispatch.
 
-I limiti di accettazione sono `TBD` finché SLO e volumi non vengono approvati.
+Lo strumento è k6 e lo script vive in `taurus-be/src/test/k6/api-load.js`: i profili si scelgono con `-e PROFILE=` e coprono funzionalità del tenant, liste paginate e dashboard con un token del tenant di prova.
+
+```powershell
+k6 run -e PROFILE=smoke -e BASE_URL=http://localhost:8080 -e TOKEN=$env:TAURUS_TOKEN taurus-be/src/test/k6/api-load.js
+```
+
+Le soglie dello script (`http_req_failed` sotto l'1%, p95 di 400 ms per le funzionalità, 800 ms per le liste, 1500 ms per la dashboard) servono a rilevare un peggioramento: i limiti di accettazione restano `TBD` finché SLO e volumi non vengono approvati, e lo script non è ancora stato eseguito su un ambiente con dati realistici.
 
 Per l'ascolto delle parti la [specifica](track-score-playback-spec.md#copertura-della-fase-4) riporta i tempi misurati nel browser (disegno nell'editor e nel lettore, partitura di 30 parti, caricamento del SoundFont), la memoria della pagina del lettore e la durata del riconoscimento di una pagina: usarli come riferimento per accorgersi di un peggioramento, ripetendo le misure con lo stesso metodo.
 
@@ -768,6 +796,10 @@ Verificare almeno:
 - provisioning tenant simultaneo;
 - più repliche backend con scheduler attivi;
 - upload/delete simultaneo dello stesso media.
+
+`UploadJobConcurrencyIT` qualifica la coda degli upload: la presa in carico e la chiusura di un job passano da un `UPDATE` condizionato sullo stato, quindi fra sei worker simultanei uno solo vince e gli altri si ritirano. È il meccanismo che rende sicure più repliche su quella coda.
+
+I promemoria push (`push_reminders`) e l'outbox delle notifiche non hanno una presa in carico equivalente: leggono le righe dovute e le marcano dopo l'invio, quindi due repliche attive insieme possono inviare due volte lo stesso promemoria. Finché non si introduce una presa in carico condizionata, un lock o un worker dedicato, quegli scheduler vanno eseguiti su una replica sola.
 
 ### 17.3 Resilienza
 
@@ -808,7 +840,9 @@ Ogni finding deve avere severità, exploitability, componente, versione, owner e
 
 ### 17.5 Backup, restore e DR
 
-Usare la procedura del [runbook operativo](runbook-operativo.md). La prova deve dimostrare:
+Usare la procedura del [runbook operativo](runbook-operativo.md). Il database si prova con `scripts/ops/restore-test.sh`, che fa il backup dell'istanza indicata, lo ripristina in un container temporaneo, confronta schemi tenant e migrazioni applicate con l'origine e stampa i tempi da riportare come RPO e RTO. L'origine non viene toccata. Va programmato sull'host che ha accesso al database, perché la CI non lo raggiunge.
+
+La prova deve dimostrare:
 
 - restore di database Taurus e Keycloak;
 - restore dello storage media allo stesso punto;
@@ -868,22 +902,20 @@ Eseguire solo test sintetici non distruttivi:
 
 | Priorità | Gap attuale | Azione |
 | --- | --- | --- |
-| Bloccante | Suite E2E Playwright presente in `taurus-fe/e2e` ma mai eseguita su un'istanza reale | Calibrare i selettori alla prima esecuzione, registrarne l'esito ed estendere gli scenari oltre ruoli e tenant |
-| Alta | Flow e mapper coperti da `TenantRoleFlowIT` su Keycloak reale; temi e tema di posta restano da provare a mano | Coprire le pagine del tema e i modelli di posta, e dichiarare i temi nel JAR invece di montarli |
-| Bloccante | Tenant isolation coperta da `TenantIsolationIT` su tracce, album, strumenti e preferenze | Aggiungere all'elenco `resources()` le altre risorse, inventario ed economia comprese |
-| Alta | Broker reale coperto da `RabbitMqBrokerIT`; un messaggio avvelenato viene però riconsegnato senza fine | Decidere coda di scarto o rifiuto senza rimessa in coda per `upload.files` e `score.recognition`, poi coprirla con un test |
-| Alta | Nessuna soglia coverage | Definire baseline, ratchet e gate per changed code |
-| Alta | Nessun test performance/SLO | Definire carichi e integrare uno strumento ripetibile |
-| Alta | Nessun security scan completo in CI | Aggiungere SAST, SCA, secret e container scan; DAST su staging |
-| Alta | Nessuna automazione backup/restore | Programmare restore test e misurare RPO/RTO |
-| Alta | Scheduler multi-replica non qualificati | Testare concorrenza o introdurre locking/worker dedicato |
-| Media | Specifiche frontend (54) ancora limitate rispetto a pagine e dialoghi | Estendere componenti, form, pagine e casi errore/ruolo |
-| Media | Accuratezza OMR misurata su un corpus scritto per il test; parti reali e telefono solo manuali | Eseguire e registrare `PLY-009` e `PLY-018`; aggiungere al corpus i casi difficili trovati nelle parti reali |
-| Media | Sito informativo senza test | Aggiungere link/header/SEO/accessibilità e smoke container |
-| Media | Nessuna browser/device matrix automatica | Definire browser supportati e pipeline |
-| Media | Nessun gate accessibilità | Integrare scanner più verifica manuale periodica |
-| Media | Test Docker-required potenzialmente skipped | Far fallire la pipeline P0 quando Docker non è disponibile |
-| Media | Nessun controllo sistematico dei test flaky | Raccogliere storico, quarantena con scadenza e owner |
+| Bloccante | Suite E2E Playwright presente in `taurus-fe/e2e` ma mai eseguita su un'istanza reale | Calibrare i selettori alla prima esecuzione, registrarne l'esito ed estendere gli scenari oltre ruoli, tenant e accessibilità |
+| Alta | Promemoria push e outbox delle notifiche senza presa in carico condizionata: due repliche possono inviare due volte | Introdurre presa in carico, lock o worker dedicato, poi coprirla con un test come `UploadJobConcurrencyIT` |
+| Alta | Un messaggio avvelenato viene riconsegnato senza fine | Decidere coda di scarto o rifiuto senza rimessa in coda per `upload.files` e `score.recognition`, poi coprirla con un test |
+| Alta | Script di carico k6 presente ma mai eseguito su dati realistici; SLO non approvati | Preparare il dataset, eseguire i profili e far approvare p95/p99, throughput ed error rate |
+| Alta | Prova di ripristino automatizzabile ma non programmata; RPO/RTO reali non misurati | Programmare `scripts/ops/restore-test.sh` sull'host del database, estenderla a Keycloak e allo storage media, registrare i tempi |
+| Alta | Tema e modelli di posta del provider Keycloak provati solo a mano; il tema nel JAR non viene caricato | Coprire le pagine del tema e i modelli di posta; dichiarare i temi in `META-INF/keycloak-themes.json` e togliere la copia montata |
+| Media | Analisi dinamica (DAST) assente | Aggiungere una scansione su staging, fuori dalla pipeline delle pull request |
+| Media | Soglie di copertura alla baseline misurata, lontane dall'obiettivo | Alzare `jacoco.*.minimum` e la baseline di `scripts/check-coverage.mjs` man mano, fino a 80% linee e 70% branch sul codice modificato |
+| Media | Isolamento tenant parametrizzato su quattro risorse | Aggiungere all'elenco `resources()` di `TenantIsolationIT` le altre risorse, inventario ed economia comprese |
+| Media | Specifiche frontend ancora limitate rispetto a pagine e dialoghi | Estendere componenti, form, pagine e casi errore/ruolo, usando la copertura come guida |
+| Media | Accuratezza OMR misurata su un corpus scritto per il test | Aggiungere al corpus i casi difficili trovati nelle parti reali di `PLY-018` |
+| Media | Sito informativo: file, metadati, collegamenti, sitemap e intestazioni verificati; accessibilità e container no | Aggiungere un controllo di accessibilità delle pagine e uno smoke sull'immagine servita da nginx |
+| Media | Matrice browser definita (desktop, mobile, tablet, Firefox, WebKit) ma eseguita solo alla calibrazione | Eseguire `npm run e2e:matrix` nei cicli di release e registrarne l'esito |
+| Media | Processo flaky definito, storico negli artefatti della CI, nessuna raccolta automatica | Automatizzare il confronto fra esecuzioni se i casi crescono |
 
 ## 20. Gestione difetti e flaky test
 
@@ -895,6 +927,16 @@ Eseguire solo test sintetici non distruttivi:
 | P3/Low | Difetto cosmetico o miglioramento | Pianificabile |
 
 Un test flaky non va semplicemente rilanciato fino al verde. Registrare frequenza, evidenza e ticket; se messo in quarantena, assegnare owner e scadenza. Un flaky P0 rende il gate non affidabile e va risolto prima della release.
+
+Lo storico arriva dagli artefatti della CI: il job backend conserva per trenta giorni `surefire-reports`, `failsafe-reports` e i report JaCoCo, il job frontend la cartella `coverage`. Confrontando i report di esecuzioni diverse si vede quali test cambiano esito senza che il codice cambi.
+
+Quarantena: il test resta nel repository, prende `@Tag("flaky")` (o `test.fixme` in Playwright) e una riga in questa tabella. Si esclude da un run con `-DexcludedGroups=flaky`, mai dal gate in modo silenzioso.
+
+| Test | Sintomo | Owner | Scadenza |
+| --- | --- | --- | --- |
+| nessuno | — | — | — |
+
+Osservato il 2026-10-25 e non ancora riprodotto: `NotificationPreferencesIT.suppressesTheInAppRowAndStillEnqueuesThePushWhenTheCategoryIsDisabled` e `NotificationOutboxPublisherIT.persistsAudienceAndAllowsTheSameEventKeyInDifferentTenants` sono falliti una volta ciascuno nella suite completa, con un timeout di `provisionTenants()` nel secondo caso, e sono passati da soli e nelle esecuzioni successive. Se ricompaiono vanno messi in quarantena con owner e scadenza.
 
 ## 21. Report di esecuzione
 

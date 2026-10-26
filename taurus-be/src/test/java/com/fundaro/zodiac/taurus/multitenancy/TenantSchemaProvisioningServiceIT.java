@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.multitenancy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import com.fundaro.zodiac.taurus.test.DockerRequirement;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,7 +16,6 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.DockerClientFactory;
 
 class TenantSchemaProvisioningServiceIT {
 
@@ -31,7 +30,7 @@ class TenantSchemaProvisioningServiceIT {
         String username = System.getProperty("taurus.test.postgres.username", "taurus");
         String password = System.getProperty("taurus.test.postgres.password", "password");
         if (jdbcUrl == null) {
-            assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker is required for the PostgreSQL integration test");
+            DockerRequirement.required();
             postgres = new PostgreSQLContainer<>("postgres:17.0");
             postgres.start();
             jdbcUrl = postgres.getJdbcUrl();

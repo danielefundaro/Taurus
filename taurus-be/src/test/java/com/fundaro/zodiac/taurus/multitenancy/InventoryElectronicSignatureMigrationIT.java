@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import javax.sql.DataSource;
@@ -19,7 +18,7 @@ import java.sql.Statement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import com.fundaro.zodiac.taurus.test.DockerRequirement;
 
 /**
  * Applies the electronic signature migration on PostgreSQL and checks the constraints the services rely on: a single
@@ -40,7 +39,7 @@ class InventoryElectronicSignatureMigrationIT {
         String username = System.getProperty("taurus.test.postgres.username", "taurus");
         String password = System.getProperty("taurus.test.postgres.password", "password");
         if (jdbcUrl == null) {
-            assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker is required for the PostgreSQL integration test");
+            DockerRequirement.required();
             postgres = new PostgreSQLContainer<>("postgres:17.0");
             postgres.start();
             jdbcUrl = postgres.getJdbcUrl();
