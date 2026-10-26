@@ -30,6 +30,8 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 8, 9, 10, 12, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 11, 14 e 15.
+
 ## 1. `web-push-reminders`
 
 [Promemoria eventi tramite Web Push](../web-push-reminders-spec.md) — difficoltà molto bassa.
@@ -101,6 +103,8 @@ Anche qui non manca codice, ma servono un telefono di fascia media, parti reali 
 
 Un solo intervento di prodotto (il testo della notifica); tutto il resto è verifica con strumenti e persone reali, incluso un parere legale. Il tempo di attesa è il vero costo.
 
+> Il 2026-10-26 è stato chiuso l'unico intervento di prodotto, il testo della notifica di emissione. La voce resta `in-progress` per le cinque verifiche esterne, che nessuna modifica al codice può chiudere: CIE reale, trust anchor delle CA, casella SMTP dell'associazione, stampa A4 di confronto e parere legale.
+
 ## 7. `test-runbook`
 
 [Runbook di test e qualificazione](../runbook-test.md) — difficoltà alta. **Propedeutico alle voci 8–18.**
@@ -171,6 +175,8 @@ I primi due punti sono gli stessi che `event-preparation` elenca fra i propri re
 - Escludere dalle eccezioni le modifiche di compenso e costi fatte con `PATCH /api/finance/events/{id}/budget`.
 - Test di integrazione multi-tenant, autorizzativi e di concorrenza.
 
+> Chiuso il 2026-10-26: la voce è passata a `implemented`. Il `PATCH` riporta le occorrenze conservate, ignorate e non più appartenenti alla regola, le modifiche di compenso e costi non creano più eccezioni e sono arrivati osservabilità, anteprima della regola nel form e i test di integrazione.
+
 ## 12. `track-parts-workspace`
 
 [Workspace per la gestione delle parti](../track-parts-workspace-spec.md) — difficoltà medio-alta, quasi tutta frontend.
@@ -216,6 +222,8 @@ C'è anche una decisione di progetto da sciogliere (il primo punto) prima di toc
 
 La fase 5 chiude anche il debito legacy toccato dalla voce 1, quindi va dopo.
 
+> Chiuso il 2026-10-26: la voce è passata a `implemented`. Ripianificazione selettiva con `schedule_revision` monotono, migrazione dell'origine dei job e chiusura `SKIPPED` dei pendenti scaduti, dispatcher push unico con lock per job, log senza endpoint e identificativi, testi del riepilogo e dei promemoria, spec della pagina profilo e fase 5 compresa la rimozione del legacy.
+
 ## 15. `financial-management`
 
 [Gestione economica, cassa e conti correnti](../financial-management-spec.md) — difficoltà alta.
@@ -231,6 +239,8 @@ La fase 5 chiude anche il debito legacy toccato dalla voce 1, quindi va dopo.
 - Log e metriche del modulo; test di integrazione PostgreSQL, sicurezza, frontend e riporto annuale, multi-tenant, concorrenza e retry compresi.
 
 Il grosso è interfaccia e rendicontazione, ma tocca denaro: i controlli di concorrenza e sicurezza degli allegati vanno fatti prima della parte visibile.
+
+> Chiuso il 2026-10-27: la voce è passata a `implemented`. Nell'ordine previsto, prima le difese — firma del contenuto degli allegati, download negato per un movimento eliminato, versione dal client e `requestKey` anche sui trasferimenti — poi la parte visibile: filtri dei movimenti e degli eventi, registro cassa per conto con progressivo, rendiconto del singolo evento, segnalazioni dell'esercizio, riporto rigenerabile, riordino di conti e categorie, dashboard per periodo e avvisi dell'interfaccia. Aggiunti `FinanceMetrics`, `FinanceServiceGuardsTest`, `FinanceIT` su PostgreSQL e le spec di pagina e dialoghi del frontend.
 
 ## 16. `event-preparation`
 
