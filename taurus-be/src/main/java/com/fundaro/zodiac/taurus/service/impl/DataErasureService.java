@@ -61,6 +61,7 @@ public class DataErasureService {
     private final MediaService mediaService;
     private final TenantStorageService tenantStorageService;
     private final ApplicationProperties.RetentionProperties retentionProperties;
+    private final ApplicationProperties.NotificationPushDeliveryProperties pushDeliveryProperties;
     private final InventoryAssignmentRepository inventoryAssignmentRepository;
     private final InventoryErasureRequestRepository inventoryErasureRequestRepository;
     private final TenantSchemaProvisioningService tenantSchemaProvisioningService;
@@ -103,6 +104,7 @@ public class DataErasureService {
         this.mediaService = mediaService;
         this.tenantStorageService = tenantStorageService;
         this.retentionProperties = applicationProperties.getRetention();
+        this.pushDeliveryProperties = applicationProperties.getNotificationPushDelivery();
         this.inventoryAssignmentRepository = inventoryAssignmentRepository;
         this.inventoryErasureRequestRepository = inventoryErasureRequestRepository;
         this.tenantSchemaProvisioningService = tenantSchemaProvisioningService;
@@ -210,13 +212,18 @@ public class DataErasureService {
         ZonedDateTime now = ZonedDateTime.now();
         long notices = noticesRepository.deleteAllByInsertDateBefore(now.minusDays(retentionProperties.getNoticesDays()));
         long searches = lastResearchRepository.deleteAllByInsertDateBefore(now.minusDays(retentionProperties.getLastResearchDays()));
-        long reminders = pushReminderRepository.deleteAllBySentTrueAndSendAtBefore(
+        long reminders = pushReminderRepository.deleteAllByStatusNotAndSendAtBefore(
+            NotificationStatus.PENDING,
             Instant.now().minusSeconds(retentionProperties.getSentPushRemindersDays() * 86_400L)
         );
+        // La retention dei job push viene dalla configurazione: ogni stato ha la propria finestra.
         long pushDeliveries = notificationPushDeliveryRepository == null ? 0 :
-            notificationPushDeliveryRepository.deleteAllByStatusAndDeliveredAtBefore(NotificationStatus.DELIVERED, now.minusDays(30)) +
-                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.SKIPPED, now.minusDays(30)) +
-                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(NotificationStatus.FAILED, now.minusDays(90));
+            notificationPushDeliveryRepository.deleteAllByStatusAndDeliveredAtBefore(
+                NotificationStatus.DELIVERED, now.minusDays(pushDeliveryProperties.getDeliveredRetentionDays())) +
+                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(
+                    NotificationStatus.SKIPPED, now.minusDays(pushDeliveryProperties.getSkippedRetentionDays())) +
+                notificationPushDeliveryRepository.deleteAllByStatusAndEditDateBefore(
+                    NotificationStatus.FAILED, now.minusDays(pushDeliveryProperties.getFailedRetentionDays()));
         log.info("Retention cleanup physically deleted {} notices, {} searches, {} sent reminders and {} push jobs", notices, searches, reminders, pushDeliveries);
     }
 

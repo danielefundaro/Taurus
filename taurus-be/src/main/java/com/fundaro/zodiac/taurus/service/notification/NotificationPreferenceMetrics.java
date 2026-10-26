@@ -106,11 +106,4 @@ public class NotificationPreferenceMetrics {
     public void recordProfileConflict() {
         registry.counter(PREFIX + "profile.conflicts").increment();
     }
-
-    /**
-     * Righe legacy {@code defaultReminderMinutes} ancora lette durante la migrazione.
-     */
-    public void recordLegacyReminderRead() {
-        registry.counter(PREFIX + "legacy.reminder.reads").increment();
-    }
 }

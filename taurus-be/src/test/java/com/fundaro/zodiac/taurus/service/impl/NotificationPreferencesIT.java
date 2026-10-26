@@ -511,7 +511,6 @@ class NotificationPreferencesIT {
         reminder.setSendAt(Instant.now().minusSeconds(3600));
         reminder.setEventStartAt(Instant.now().plusSeconds(3600));
         reminder.setStatus(NotificationStatus.FAILED);
-        reminder.setSent(true);
         reminder.setAttempts(8);
         reminder.setLastError("PERMANENT_PROVIDER_FAILURE");
         return reminder;

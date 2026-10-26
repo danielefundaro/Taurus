@@ -32,3 +32,42 @@ export const addMonths = (value: Date, months: number): Date => {
     target.setDate(Math.min(value.getDate(), lastDay));
     return target;
 };
+
+/** Reads the wall clock of a zone as a browser-local date, to do arithmetic on the fields of that zone. */
+const wallClockIn = (zone: string, moment: Date): Date => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: zone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).formatToParts(moment);
+    const field = (type: string): number => Number(parts.find((part) => part.type === type)?.value ?? 0);
+    return new Date(field('year'), field('month') - 1, field('day'), field('hour') % 24, field('minute'), field('second'));
+};
+
+/**
+ * The instant of a wall clock time in a zone: the hour chosen is the one the member reads on their own clock,
+ * wherever the browser happens to be. Two passes are enough to settle the offset, daylight saving included.
+ */
+export const instantOfWallClock = (zone: string, wall: Date): Date => {
+    let guess = new Date(wall.getTime());
+    for (let pass = 0; pass < 2; pass++) {
+        guess = new Date(guess.getTime() - (wallClockIn(zone, guess).getTime() - wall.getTime()));
+    }
+    return guess;
+};
+
+/**
+ * The next time the clock of the zone shows that hour, counted from the day after: it is what «Tomorrow morning»
+ * means for someone whose profile lives in another time zone than the browser.
+ */
+export const nextMorningIn = (zone: string, hour = 8, reference: Date = new Date()): Date => {
+    const wall = wallClockIn(zone, reference);
+    wall.setDate(wall.getDate() + 1);
+    wall.setHours(hour, 0, 0, 0);
+    return instantOfWallClock(zone, wall);
+};

@@ -302,7 +302,7 @@ class CalendarEventsServiceImplTest {
         private Integer lastPersonalMinutes;
 
         private RecordingReminderProducer() {
-            super(null, null);
+            super(null);
         }
 
         @Override

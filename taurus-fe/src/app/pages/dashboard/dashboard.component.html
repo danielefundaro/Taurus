@@ -30,7 +30,8 @@
     <app-recents-widget [tracks]="tracks" />
     <app-calendar-events-widget [events]="upcomingEvents" (pageChange)="upcomingEventsPageChange($event)" />
     <div class="col-span-12 xl:col-span-6">
-        <app-notifications-widget [notices]="notices" [view]="noticeView" (viewChange)="changeNoticeView($event)"
+        <app-notifications-widget [notices]="notices" [view]="noticeView" [timeZone]="noticeTimeZone"
+            (viewChange)="changeNoticeView($event)"
             (pageChange)="pageChange($event)" (markAsRead)="markNoticesAsRead($event)"
             (navigateToNotice)="navigateToNotice($event)" (delete)="deleteNotices($event)"
             (snooze)="snoozeNotice($event)" (unsnooze)="unsnoozeNotice($event)"

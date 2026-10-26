@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class NotificationPreferencesService {
 
+    /** Occorrenze per lotto nella ripianificazione dei promemoria. */
+    private static final int RESCHEDULE_BATCH_SIZE = 100;
+
     private final NotificationProfileRepository repository;
     private final UsersRepository usersRepository;
     private final TenantTimeZoneService tenantTimeZoneService;
@@ -109,23 +112,33 @@ public class NotificationPreferencesService {
         profile.setPushPreview(request.pushPreview());
         synchronizeCategories(profile, request.categories(), subject);
         NotificationProfile saved = repository.saveAndFlush(profile);
-        if (reminderScheduleChanged) rescheduleFutureReminders(subject, authentication);
+        if (reminderScheduleChanged) rescheduleFutureReminders(subject);
         return toDto(saved);
     }
 
-    private void rescheduleFutureReminders(String subject, AbstractAuthenticationToken authentication) {
-        calendarEventsRepository.findFutureAvailableForUser(
+    /**
+     * Rifà i promemoria futuri dopo un cambio dell'interruttore o del valore predefinito.
+     *
+     * <p>Le occorrenze vengono trattate a lotti: una ripianificazione di centinaia di occorrenze
+     * resta nella transazione del salvataggio, ma non tiene in memoria tutto il lavoro svolto.
+     */
+    private void rescheduleFutureReminders(String subject) {
+        List<com.fundaro.zodiac.taurus.domain.CalendarEvents> events = calendarEventsRepository.findFutureAvailableForUser(
             subject,
             new java.util.Date(),
             com.fundaro.zodiac.taurus.domain.CalendarEventAvailability.Availability.AVAILABLE
-        ).forEach(event -> {
-            Integer personalMinutes = event.getAvailabilities().stream()
-                .filter(value -> value.getUser().getKeycloakId().equals(subject))
-                .findFirst()
-                .map(value -> value.getReminderMinutes())
-                .orElse(null);
-            eventReminderProducer.scheduleIfNeeded(calendarEventsMapper.toDto(event), subject, personalMinutes);
-        });
+        );
+        for (int from = 0; from < events.size(); from += RESCHEDULE_BATCH_SIZE) {
+            events.subList(from, Math.min(events.size(), from + RESCHEDULE_BATCH_SIZE)).forEach(event -> {
+                Integer personalMinutes = event.getAvailabilities().stream()
+                    .filter(value -> value.getUser().getKeycloakId().equals(subject))
+                    .findFirst()
+                    .map(value -> value.getReminderMinutes())
+                    .orElse(null);
+                eventReminderProducer.rescheduleInherited(calendarEventsMapper.toDto(event), subject, personalMinutes);
+            });
+            eventReminderProducer.flush();
+        }
     }
 
     private void synchronizeCategories(

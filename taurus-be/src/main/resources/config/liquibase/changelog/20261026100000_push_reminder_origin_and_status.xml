@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261026100000-1" author="taurus">
+    <comment>
+      Rebuilds the origin of the reminders created before the column existed, in the order of precedence of the
+      lead time: the value chosen on the occurrence, then the one of the event, then the profile default, then the
+      application default. Without this the rescheduling of a profile default would rebuild jobs that carry a
+      lead time somebody chose by hand.
+    </comment>
+    <sql>
+      UPDATE push_reminders reminder
+      SET reminder_origin = 'PERSONAL'
+      FROM calendar_event_availability availability
+             JOIN app_user member ON member.id = availability.user_id
+      WHERE availability.event_id = reminder.event_id
+        AND member.keycloak_id = reminder.user_id
+        AND availability.reminder_minutes IS NOT NULL;
+
+      UPDATE push_reminders reminder
+      SET reminder_origin = 'EVENT'
+      FROM calendar_event event
+      WHERE event.id = reminder.event_id
+        AND event.reminder_minutes IS NOT NULL
+        AND reminder.reminder_origin &lt;&gt; 'PERSONAL';
+
+      UPDATE push_reminders reminder
+      SET reminder_origin = 'PROFILE'
+      FROM notification_profile profile
+      WHERE profile.user_keycloak_id = reminder.user_id
+        AND profile.deleted = FALSE
+        AND reminder.reminder_origin NOT IN ('PERSONAL', 'EVENT');
+    </sql>
+    <rollback>
+      <sql>UPDATE push_reminders SET reminder_origin = 'APPLICATION';</sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261026100000-2" author="taurus">
+    <comment>
+      Closes the pending reminders that are already past: the event has begun, or the send instant is more than a
+      day old and the start is unknown. Left pending they would be delivered late at the first run.
+    </comment>
+    <sql>
+      UPDATE push_reminders
+      SET status = 'SKIPPED',
+          skip_reason = 'EVENT_STARTED',
+          next_attempt_at = NULL,
+          last_error = NULL
+      WHERE status = 'PENDING'
+        AND event_start_at IS NOT NULL
+        AND event_start_at &lt;= CURRENT_TIMESTAMP;
+
+      UPDATE push_reminders
+      SET status = 'SKIPPED',
+          skip_reason = 'STALE',
+          next_attempt_at = NULL,
+          last_error = NULL
+      WHERE status = 'PENDING'
+        AND event_start_at IS NULL
+        AND send_at &lt; CURRENT_TIMESTAMP - INTERVAL '1 day';
+    </sql>
+    <rollback/>
+  </changeSet>
+
+  <changeSet id="20261026100000-3" author="taurus">
+    <comment>
+      Rebuilds on the status the two indexes that stood on the sent boolean, the unique one included: it is what
+      keeps a single pending reminder per event and member.
+    </comment>
+    <sql>
+      DROP INDEX IF EXISTS uq_push_reminder_pending_event_user;
+      DROP INDEX IF EXISTS idx_push_reminders_send_at_sent;
+      CREATE INDEX idx_push_reminders_status_send_at ON push_reminders (status, send_at);
+      CREATE UNIQUE INDEX uq_push_reminder_pending_event_user
+        ON push_reminders (event_id, user_id) WHERE deleted = FALSE AND status = 'PENDING';
+    </sql>
+    <rollback>
+      <sql>
+        DROP INDEX IF EXISTS uq_push_reminder_pending_event_user;
+        DROP INDEX IF EXISTS idx_push_reminders_status_send_at;
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261026100000-4" author="taurus">
+    <comment>Drops the sent boolean: the status of the job is the only truth, and two flags could disagree.</comment>
+    <dropColumn tableName="push_reminders" columnName="sent"/>
+    <rollback>
+      <sql>
+        ALTER TABLE push_reminders ADD COLUMN sent BOOLEAN NOT NULL DEFAULT FALSE;
+        UPDATE push_reminders SET sent = (status &lt;&gt; 'PENDING');
+        CREATE INDEX idx_push_reminders_send_at_sent ON push_reminders (sent, send_at);
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261026100000-5" author="taurus">
+    <comment>
+      Soft deletes the copies of the legacy defaultReminderMinutes preference: the value lives in the notification
+      profile, and nothing reads the key any more. The rows stay readable for a while instead of disappearing.
+    </comment>
+    <sql>
+      UPDATE preferences
+      SET deleted = TRUE,
+          edit_by = 'notification-preferences-contract',
+          edit_date = CURRENT_TIMESTAMP
+      WHERE key = 'defaultReminderMinutes'
+        AND deleted = FALSE;
+    </sql>
+    <rollback/>
+  </changeSet>
+</databaseChangeLog>

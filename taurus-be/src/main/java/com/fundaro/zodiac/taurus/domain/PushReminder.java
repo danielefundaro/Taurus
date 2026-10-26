@@ -35,9 +35,6 @@ public class PushReminder extends AuditFields implements Serializable {
     @Column(name = "send_at", nullable = false)
     private Instant sendAt;
 
-    @Column(name = "sent", nullable = false)
-    private boolean sent = false;
-
     @Column(name = "event_start_at")
     private Instant eventStartAt;
 
@@ -105,14 +102,6 @@ public class PushReminder extends AuditFields implements Serializable {
 
     public void setSendAt(Instant sendAt) {
         this.sendAt = sendAt;
-    }
-
-    public boolean isSent() {
-        return sent;
-    }
-
-    public void setSent(boolean sent) {
-        this.sent = sent;
     }
 
     public Instant getEventStartAt() {

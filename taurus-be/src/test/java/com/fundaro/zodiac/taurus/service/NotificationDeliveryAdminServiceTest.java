@@ -100,7 +100,7 @@ class NotificationDeliveryAdminServiceTest {
         var result = service().retry(NotificationDeliveryOrigin.REMINDER, 3L, authentication());
 
         assertThat(reminder.getStatus()).isEqualTo(NotificationStatus.PENDING);
-        assertThat(reminder.isSent()).isFalse();
+        assertThat(reminder.getNextAttemptAt()).isNotNull();
         // L'istante di partenza torna a "adesso": è lo scheduler a chiudere il job se l'evento è iniziato.
         assertThat(reminder.getEventStartAt()).isEqualTo(Instant.parse("2026-09-05T09:00:00Z"));
         assertThat(result.source()).isEqualTo(NotificationSource.CALENDAR);
@@ -252,7 +252,6 @@ class NotificationDeliveryAdminServiceTest {
         reminder.setSendAt(Instant.parse("2026-09-05T08:30:00Z"));
         reminder.setEventStartAt(Instant.parse("2026-09-05T09:00:00Z"));
         reminder.setStatus(NotificationStatus.FAILED);
-        reminder.setSent(true);
         reminder.setAttempts(8);
         reminder.setLastError("PERMANENT_PROVIDER_FAILURE");
         return reminder;

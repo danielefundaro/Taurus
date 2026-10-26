@@ -276,7 +276,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (53% istruzioni, 44% branch, 55% linee, misurati sul ramo principale). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (55% istruzioni, 46% branch, 56% linee, misurati sul ramo principale; alzata con le spec delle preferenze di notifica). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 

@@ -47,7 +47,7 @@ File principali:
 
 La tabella `push_reminders` registra almeno evento, destinatario, istante di invio ed esito. Le estensioni della pipeline notifiche aggiungono stato, origine della preferenza, revisione, tentativi, prossimo tentativo, consegna, motivo di salto ed errore.
 
-`sent` rimane durante la fase di compatibilità del contratto, mentre `status` è il campo autorevole per la console amministrativa.
+`status` è il solo campo autorevole: il booleano `sent` è stato rimosso con la fase contract, perché due indicatori dello stesso fatto potevano contraddirsi.
 
 File principali:
 
@@ -102,16 +102,16 @@ Il promemoria personale è modificabile solo con disponibilità confermata.
 
 ### Pianificazione e consegna
 
-`EventReminderProducer` calcola `sendAt`, elimina fisicamente gli eventuali job non inviati (`sent = false`) per la stessa coppia evento/utente, ne crea uno nuovo e non crea job già scaduti. Con la funzionalità `WEB_PUSH_REMINDERS` disattivata non crea job.
+`EventReminderProducer` calcola `sendAt`, elimina fisicamente gli eventuali job `PENDING` per la stessa coppia evento/utente, ne crea uno nuovo e non crea job già scaduti. Con la funzionalità `WEB_PUSH_REMINDERS` disattivata non crea job. Una ripianificazione dovuta al valore predefinito del profilo tocca solo i job che lo ereditano (vedi [Preferenze notifiche granulari](notification-preferences-spec.md)).
 
-`PushReminderScheduler`, ogni minuto:
+`NotificationPushScheduler` è l'unico orchestratore delle code push e tratta anche `push_reminders`; la consegna del singolo promemoria vive in `PushReminderDeliveryService`. A ogni giro:
 
 1. enumera i tenant attivi;
-2. apre una sola transazione nello schema del tenant;
-3. carica i reminder con `sent = false` e `sendAt <= now`, senza lock;
+2. per ciascuno chiede fino a `batch-size` ID pronti, cioè i reminder `PENDING` con `sendAt <= now`;
+3. tratta ogni ID in una transazione propria, con lock pessimista sulla riga: più repliche del backend non si rubano lo stesso promemoria e il fallimento di uno non trascina gli altri;
 4. rivaluta funzionalità tenant, inizio dell'evento, preferenze, pausa e quiet hours;
 5. invia il payload con target `/calendar/{eventId}`;
-6. registra `DELIVERED`, `SKIPPED` o `FAILED`, tutti con `sent = true`: un reminder `FAILED` torna in coda solo con il retry della console amministrativa;
+6. registra `DELIVERED`, `SKIPPED` o `FAILED`: lo stato è l'unica verità del job, e un reminder `FAILED` torna in coda solo con il retry della console amministrativa;
 7. applica backoff ai fallimenti temporanei (1, 2, 4… fino a 60 minuti, massimo 8 tentativi) senza superare l'inizio dell'evento.
 
 Un reminder viene chiuso `SKIPPED` se la funzionalità è disattivata, i promemoria sono disabilitati, l'evento è già iniziato (anche dopo un fermo del backend) o non esistono sottoscrizioni valide.
@@ -178,11 +178,11 @@ La retention elimina i reminder conclusi secondo `application.retention.sent-pus
 La copertura automatica rilevante include:
 
 - `CalendarEventsServiceImplTest`: disponibilità, annullamento e reminder personale;
-- `PushReminderSchedulerTest`: consegna e rotta del dettaglio evento;
+- `PushReminderDeliveryServiceTest`: consegna, rotta del dettaglio evento, lock per job e testo del promemoria;
 - `NotificationPreferencesServiceTest` e `NotificationTimingTest`: preferenze e finestre temporali;
 - `NotificationPushDeliveryServiceTest`: consegna push generalizzata;
 - `NotificationPreferencesIT`: persistenza PostgreSQL e isolamento tenant;
-- `EventReminderProducerTest`: precedenza dell'anticipo e lettura della preferenza legacy del destinatario;
+- `EventReminderProducerTest`: precedenza dell'anticipo, interruttore globale del profilo e ripianificazione dei soli job ereditati;
 - `notification-presentation.service.spec.ts`: presentazione delle notifiche nel frontend;
 - `push-notification.service.spec.ts`: supporto, consenso, registrazione e disattivazione del dispositivo;
 - `app-update.service.spec.ts`: attivazione della versione scaricata, stato non recuperabile e controlli periodici.

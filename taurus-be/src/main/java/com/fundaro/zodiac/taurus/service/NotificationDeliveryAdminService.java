@@ -171,7 +171,6 @@ public class NotificationDeliveryAdminService {
         requireClosable(reminder.getStatus());
         reminder.setStatus(NotificationStatus.SKIPPED);
         reminder.setSkipReason(reason);
-        reminder.setSent(true);
         reminder.setNextAttemptAt(null);
         reminder.setLastError(null);
         reminder.touchAudit(actor);
@@ -241,7 +240,6 @@ public class NotificationDeliveryAdminService {
         requireFailed(reminder.getStatus());
         ZonedDateTime now = ZonedDateTime.now();
         reminder.setStatus(NotificationStatus.PENDING);
-        reminder.setSent(false);
         reminder.setAttempts(0);
         reminder.setSendAt(now.toInstant());
         reminder.setNextAttemptAt(now);

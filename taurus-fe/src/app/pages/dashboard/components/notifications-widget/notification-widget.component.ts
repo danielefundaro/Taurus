@@ -7,8 +7,12 @@ import { DatePipe } from '@angular/common';
 import { DetailSectionComponent } from '../../../../components/detail-section/detail-section.component';
 import { EmptyStateComponent } from '../../../../components/empty-state/empty-state.component';
 import { ListRowComponent } from '../../../../components/list-row/list-row.component';
+import { nextMorningIn } from '../../../../constants';
 import { Notices, Page } from '../../../../module';
 import { ConfirmService, NotificationPresentationService } from '../../../../service';
+
+/** L'ora che vale come mattina per il rinvio di una notifica. */
+const MORNING_HOUR = 8;
 
 @Component({
     standalone: true,
@@ -25,6 +29,8 @@ export class NotificationsWidgetComponent implements OnChanges {
 
     @Input() notices?: Page<Notices>;
     @Input() view: 'ACTIVE' | 'SNOOZED' = 'ACTIVE';
+    /** Fuso del profilo: «Domani mattina» è l'ora che il socio legge sul proprio orologio, non quella del browser. */
+    @Input() timeZone?: string;
     @Output() markAsRead: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
     @Output() navigateToNotice: EventEmitter<Notices> = new EventEmitter<Notices>();
     @Output() delete: EventEmitter<number[] | null> = new EventEmitter<number[] | null>();
@@ -115,10 +121,12 @@ export class NotificationsWidgetComponent implements OnChanges {
     }
 
     protected snoozeUntilTomorrow(notice: Notices): void {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(8, 0, 0, 0);
-        this.snooze.emit({ notice, until: tomorrow });
+        this.snooze.emit({ notice, until: nextMorningIn(this.zone(), MORNING_HOUR) });
+    }
+
+    /** Senza profilo caricato resta il fuso del browser, che è la lettura più vicina al vero. */
+    private zone(): string {
+        return this.timeZone?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone;
     }
 
     protected applyCustomSnooze(notice: Notices): void {
