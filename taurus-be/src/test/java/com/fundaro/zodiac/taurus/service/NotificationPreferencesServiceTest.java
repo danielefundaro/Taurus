@@ -3,8 +3,10 @@ package com.fundaro.zodiac.taurus.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +30,7 @@ import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +48,7 @@ class NotificationPreferencesServiceTest {
     private final UsersRepository usersRepository = mock(UsersRepository.class);
     private final CalendarEventsRepository calendarEventsRepository = mock(CalendarEventsRepository.class);
     private final EventReminderProducer eventReminderProducer = mock(EventReminderProducer.class);
+    private final CalendarEventsMapper calendarEventsMapper = mock(CalendarEventsMapper.class);
     private NotificationPreferencesService service;
 
     @BeforeEach
@@ -54,7 +58,7 @@ class NotificationPreferencesServiceTest {
             usersRepository,
             tenantTimeZoneService,
             calendarEventsRepository,
-            mock(CalendarEventsMapper.class),
+            calendarEventsMapper,
             eventReminderProducer,
             new ApplicationProperties()
         );
@@ -277,6 +281,68 @@ class NotificationPreferencesServiceTest {
             builder.reminderMinutes = 45;
         }), authentication());
         verify(calendarEventsRepository).findFutureAvailableForUser(any(), any(), any());
+    }
+
+    /**
+     * Le occorrenze si trattano a lotti e ogni lotto si chiude sul database: così un socio con
+     * centinaia di occorrenze non tiene in memoria tutta la ripianificazione.
+     */
+    @Test
+    void reschedulesTheOccurrencesInBatchesAndClosesEachOneOnTheDatabase() {
+        activeUser();
+        NotificationProfile profile = persistedProfile();
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
+        when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(calendarEventsRepository.findFutureAvailableForUser(any(), any(), any())).thenReturn(occurrences(250));
+        when(calendarEventsMapper.toDto(any(com.fundaro.zodiac.taurus.domain.CalendarEvents.class)))
+            .thenReturn(new com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO());
+
+        service.save(request(builder -> {
+            builder.version = 0L;
+            builder.reminderMinutes = 45;
+        }), authentication());
+
+        verify(eventReminderProducer, times(250)).rescheduleInherited(any(), eq("user-1"), eq(null));
+        // 250 occorrenze a lotti da 100: tre chiusure, l'ultima sul lotto incompleto.
+        verify(eventReminderProducer, times(3)).flush();
+    }
+
+    /** Il valore personale scelto sull'occorrenza arriva al produttore, che lo rispetta. */
+    @Test
+    void carriesThePersonalLeadTimeOfTheOccurrenceToTheProducer() {
+        activeUser();
+        NotificationProfile profile = persistedProfile();
+        when(repository.findByKeycloakSubjectAndDeletedFalse("user-1")).thenReturn(Optional.of(profile));
+        when(repository.saveAndFlush(any(NotificationProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        com.fundaro.zodiac.taurus.domain.CalendarEvents event = occurrence(15);
+        when(calendarEventsRepository.findFutureAvailableForUser(any(), any(), any())).thenReturn(List.of(event));
+        when(calendarEventsMapper.toDto(any(com.fundaro.zodiac.taurus.domain.CalendarEvents.class)))
+            .thenReturn(new com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO());
+
+        service.save(request(builder -> {
+            builder.version = 0L;
+            builder.reminderMinutes = 45;
+        }), authentication());
+
+        verify(eventReminderProducer).rescheduleInherited(any(), eq("user-1"), eq(15));
+    }
+
+    private static List<com.fundaro.zodiac.taurus.domain.CalendarEvents> occurrences(int count) {
+        List<com.fundaro.zodiac.taurus.domain.CalendarEvents> events = new ArrayList<>();
+        for (int index = 0; index < count; index++) events.add(occurrence(null));
+        return events;
+    }
+
+    private static com.fundaro.zodiac.taurus.domain.CalendarEvents occurrence(Integer personalMinutes) {
+        Users user = new Users();
+        user.setKeycloakId("user-1");
+        com.fundaro.zodiac.taurus.domain.CalendarEventAvailability availability =
+            new com.fundaro.zodiac.taurus.domain.CalendarEventAvailability();
+        availability.setUser(user);
+        availability.setReminderMinutes(personalMinutes);
+        com.fundaro.zodiac.taurus.domain.CalendarEvents event = new com.fundaro.zodiac.taurus.domain.CalendarEvents();
+        event.getAvailabilities().add(availability);
+        return event;
     }
 
     @Test

@@ -48,6 +48,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected upcomingEvents?: Page<CalendarEvents>;
     protected notices?: Page<Notices>;
     protected noticeView: 'ACTIVE' | 'SNOOZED' = 'ACTIVE';
+    protected noticeTimeZone?: string;
     protected inventoryMode: InventoryWidgetMode = 'user';
     protected inventoryAdminSummary?: InventoryAdminSummary;
     protected inventoryUserSummary?: InventoryUserSummary;
@@ -98,6 +99,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     private initializeDashboard(): void {
         this.loadOperations();
+        this.loadNoticeTimeZone();
         const role = this.keycloakService.currentUserRole;
 
         switch (role) {
@@ -203,6 +205,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
                             'I nuovi aggiornamenti di questa categoria non compariranno nel centro notifiche. Le notifiche già presenti restano visibili.'
                         );
                     });
+            });
+    }
+
+    /**
+     * Il fuso del profilo serve al rinvio «Domani mattina»: letto una volta all'avvio, perché un
+     * fallimento qui non deve togliere il centro notifiche dalla dashboard.
+     */
+    private loadNoticeTimeZone(): void {
+        if (!this.tenantFeatureService.notificationPreferencesEnabled()) return;
+        this.notificationPreferencesService
+            .getPreferences()
+            .pipe(
+                first(),
+                catchError(() => of(null))
+            )
+            .subscribe((preferences) => {
+                this.noticeTimeZone = preferences?.timeZone;
             });
     }
 

@@ -59,6 +59,11 @@ describe('NotificationsWidgetComponent', () => {
         expect(fixture.debugElement.query(By.css('button[aria-label^="Disattiva questa categoria"]'))).toBeNull();
     });
 
+    /** L'ora letta sull'orologio di una zona: l'asserzione non dipende dal fuso del browser. */
+    function wallClock(zone: string, moment: Date): string {
+        return new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', minute: '2-digit', hour12: false }).format(moment);
+    }
+
     it('snoozes for one hour and for the next morning with backend-checkable instants', () => {
         const notice = { id: 1, name: 'Prova', source: 'CALENDAR' } as Notices;
         const emitted: { notice: Notices; until: Date }[] = [];
@@ -72,6 +77,30 @@ describe('NotificationsWidgetComponent', () => {
         expect(inOneHour).toBeGreaterThan(59 * 60 * 1000);
         expect(inOneHour).toBeLessThanOrEqual(60 * 60 * 1000 + 1000);
         expect(emitted[1].until.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('reads the next morning on the clock of the profile time zone', () => {
+        const notice = { id: 1, name: 'Prova', source: 'CALENDAR' } as Notices;
+        const emitted: { notice: Notices; until: Date }[] = [];
+        component.snooze.subscribe((value) => emitted.push(value));
+        component.timeZone = 'Asia/Tokyo';
+
+        (component as any).snoozeUntilTomorrow(notice);
+
+        expect(wallClock('Asia/Tokyo', emitted[0].until)).toBe('08:00');
+        expect(emitted[0].until.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('falls back to the clock of the browser when the profile carries no time zone', () => {
+        const notice = { id: 1, name: 'Prova', source: 'CALENDAR' } as Notices;
+        const emitted: { notice: Notices; until: Date }[] = [];
+        component.snooze.subscribe((value) => emitted.push(value));
+        // Il profilo non è ancora arrivato, o porta una stringa vuota.
+        component.timeZone = '   ';
+
+        (component as any).snoozeUntilTomorrow(notice);
+
+        expect(wallClock(Intl.DateTimeFormat().resolvedOptions().timeZone, emitted[0].until)).toBe('08:00');
     });
 
     it('only emits a custom snooze once an instant has been chosen', () => {

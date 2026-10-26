@@ -347,8 +347,8 @@ class RelationalSoftDeleteIT {
         );
 
         Long reminderId = insertReturningId(
-            "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, sent) " +
-                "VALUES (?, 'Cascade event', ?, ?, FALSE) RETURNING id",
+            "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, status) " +
+                "VALUES (?, 'Cascade event', ?, ?, 'PENDING') RETURNING id",
             eventId,
             identityKey,
             Timestamp.from(Instant.now().plusSeconds(3600))
@@ -431,8 +431,8 @@ class RelationalSoftDeleteIT {
             uploadMediaId
         );
         Long userReminderId = insertReturningId(
-            "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, sent) " +
-                "VALUES (?, 'User event', ?, ?, FALSE) RETURNING id",
+            "INSERT INTO " + schema + ".push_reminders (event_id, event_name, user_id, send_at, status) " +
+                "VALUES (?, 'User event', ?, ?, 'PENDING') RETURNING id",
             userEventId,
             identityKey,
             Timestamp.from(Instant.now().plusSeconds(3600))

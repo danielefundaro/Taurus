@@ -189,17 +189,19 @@ Il primo valore presente vince; zero disattiva il promemoria a quel livello. I v
 
 ### Ripianificazione
 
-`push_reminders` riceve `reminder_origin` con valori `PERSONAL`, `EVENT`, `PROFILE` o `APPLICATION` e `schedule_revision`, che resta sempre 0.
+`push_reminders` riceve `reminder_origin` con valori `PERSONAL`, `EVENT`, `PROFILE` o `APPLICATION` e `schedule_revision`, che cresce di uno a ogni rifacimento dello stesso job.
 
 Quando al salvataggio cambiano `eventRemindersEnabled` o il valore predefinito personale, oppure alla prima persistenza del profilo, il backend:
 
-1. carica in un'unica lettura tutte le occorrenze future in cui l'utente è `AVAILABLE`;
-2. per ciascuna elimina fisicamente i job non inviati dell'utente (`sent = false`), compresi i `FAILED` e quelli con override personale o di evento;
-3. ricrea il job con la precedenza dell'anticipo se l'istante calcolato è futuro;
-4. non reinvia job già consegnati;
-5. esegue l'operazione nella stessa transazione del salvataggio preferenze.
+1. carica le occorrenze future in cui l'utente è `AVAILABLE`;
+2. le tratta a lotti di 100, chiudendo ogni lotto sul database, così una ripianificazione di centinaia di occorrenze resta nella transazione del salvataggio senza tenerla tutta in memoria;
+3. per ciascuna elimina soltanto i job `PENDING` che ereditano il valore predefinito, cioè di origine `PROFILE` o `APPLICATION`;
+4. lascia intatti i job con anticipo scelto sull'occorrenza (`PERSONAL`) o sull'evento (`EVENT`), che sono decisioni dell'utente, e i `FAILED`, che appartengono alla console delle consegne;
+5. ricrea il job con la precedenza dell'anticipo se l'istante calcolato è futuro, con `schedule_revision` pari al massimo dei job ereditati rifatti più uno;
+6. non reinvia job già consegnati;
+7. esegue l'operazione nella stessa transazione del salvataggio preferenze.
 
-Con `eventRemindersEnabled = false` i job di origine `PROFILE` non vengono ricreati, mentre quelli `PERSONAL` ed `EVENT` vengono ricreati e poi chiusi `SKIPPED` (`REMINDERS_DISABLED`) all'invio. Riabilitarlo ricalcola quelli futuri ancora utili.
+Con `eventRemindersEnabled = false` non viene pianificato nulla a nessun livello: l'interruttore del profilo è globale e precede anche un anticipo scelto sull'occorrenza o sull'evento. Riabilitarlo ricalcola i job futuri ancora utili.
 
 ### Promemoria durante il silenzioso
 
@@ -263,11 +265,11 @@ Esempio:
 
 ```text
 Titolo: Taurus: riepilogo giornaliero
-Testo: Hai 6 aggiornamenti: 3 calendario, 2 inventario, 1 economia.
+Testo: Hai 6 aggiornamenti: 3 calendario, 2 inventario e 1 economia.
 Destinazione: /dashboard?section=notifications
 ```
 
-Le categorie sono separate solo da virgole e il sostantivo resta plurale anche con un solo elemento (`Hai 1 aggiornamenti: 1 calendario.`). Il digest non include nomi di persone, eventi, oggetti o importi sullo schermo bloccato. Se è presente una sola categoria usa comunque il formato aggregato.
+L'ultima categoria è unita dalla congiunzione `e`, le altre da virgole, e il sostantivo segue il numero: con un solo aggiornamento il testo è `Hai 1 aggiornamento: 1 calendario.`. Il riepilogo si legge sullo schermo bloccato e una frase sgrammaticata si nota. Il digest non include nomi di persone, eventi, oggetti o importi. Se è presente una sola categoria usa comunque il formato aggregato.
 
 ### Bucket e idempotenza
 
@@ -295,7 +297,9 @@ Il profilo espone `pushPreview`:
 Per i promemoria evento:
 
 - `PRIVATE`: `Taurus` / `Hai un promemoria per un evento`;
-- `FULL`: `Promemoria evento` / `L'evento "<nome>" sta per iniziare`, senza l'anticipo.
+- `FULL`: `Promemoria evento` / `L'evento "<nome>" sta per iniziare tra 30 minuti`.
+
+Con `FULL` l'anticipo è scritto in parole dall'istante di invio: minuti sotto l'ora, ore e minuti sopra, `adesso` se l'evento comincia entro un minuto. È l'informazione per cui il promemoria esiste, e senza di essa il socio deve aprire l'app per saperlo.
 
 La preferenza riduce l'esposizione sul dispositivo ma non sostituisce le impostazioni di privacy del sistema operativo.
 
@@ -414,7 +418,7 @@ Indici candidati:
 | `skip_reason` | `VARCHAR(32)` | codice tecnico facoltativo |
 | `last_error` | `VARCHAR(1000)` | sanificato |
 
-Il booleano `sent` resta in uso: `true` è migrato a `DELIVERED`, `false` a `PENDING`, e lo scheduler dei promemoria seleziona ancora i job con `sent = false`. I job esistenti alla migrazione ricevono tutti origine `APPLICATION` e vengono ricalcolati alla successiva modifica rilevante.
+Il booleano `sent` è stato rimosso: lo stato del job è l'unica verità, e due indicatori potevano contraddirsi. I due indici che stavano su `sent` sono stati rifatti su `status`, quello unico compreso: è ciò che tiene un solo promemoria pendente per evento e socio.
 
 ### `notification_push_delivery`
 
@@ -481,12 +485,11 @@ Le righe `notices` e `notification_push_delivery` vengono create nella stessa tr
 
 ## Dispatcher push
 
-Due scheduler multi-tenant distinti elaborano i job push:
+Un solo orchestratore multi-tenant, `NotificationPushScheduler`, elabora entrambe le code ogni `poll-delay`: per ogni tenant attivo estrae fino a `batch-size` ID pronti da `notification_push_delivery` e da `push_reminders`, poi tratta ogni job in una transazione propria con lock pessimista sulla riga (`findByIdForUpdate`). La consegna dei promemoria vive in `PushReminderDeliveryService`, con la stessa forma delle altre consegne push (vedi [Promemoria eventi tramite Web Push](web-push-reminders-spec.md)).
 
-- `NotificationPushScheduler` elabora `notification_push_delivery` ogni `poll-delay`: estrae fino a `batch-size` ID pronti e tratta ogni job in una transazione propria con lock pessimista (`findByIdForUpdate`);
-- `PushReminderScheduler` elabora `push_reminders` ogni minuto, in un'unica transazione per tenant e senza lock sui singoli job (vedi [Promemoria eventi tramite Web Push](web-push-reminders-spec.md)).
+Il lock per job vale per entrambe le code: più repliche del backend non si rubano lo stesso promemoria e il fallimento di uno non trascina gli altri del lotto.
 
-Per ogni job di `notification_push_delivery`:
+Per ogni job, di una coda o dell'altra:
 
 1. acquisisce il lock sul job;
 2. verifica utente attivo, preferenze correnti, scadenza, pausa e ore silenziose;
@@ -500,7 +503,7 @@ Per ogni job di `notification_push_delivery`:
 
 `PushService` non deve più nascondere l'esito in un metodo `@Async void`: restituisce un risultato strutturato per endpoint al dispatcher. Gli errori di un dispositivo non impediscono il tentativo sugli altri.
 
-Politica retry proposta: 1, 2, 4, 8, 16, 32 e 60 minuti, massimo 8 tentativi. `429` e `5xx` sono temporanei; errori permanenti di payload o configurazione portano direttamente a `FAILED`. Le chiavi di sottoscrizione non compaiono nei log; l'endpoint compare solo nel log di debug della cancellazione (vedi [Requisiti aperti](#requisiti-aperti)).
+Politica retry proposta: 1, 2, 4, 8, 16, 32 e 60 minuti, massimo 8 tentativi. `429` e `5xx` sono temporanei; errori permanenti di payload o configurazione portano direttamente a `FAILED`. Né le chiavi di sottoscrizione né l'endpoint compaiono nei log, in nessun livello.
 
 La consegna esterna è almeno una volta. Il backend evita duplicati ordinari, ma non può sapere con certezza se un push accettato sia stato visualizzato.
 
@@ -623,7 +626,7 @@ Stati da comunicare chiaramente:
 Ogni riga non letta aggiunge al menu contestuale:
 
 - **Ricordamelo tra un'ora**;
-- **Domani mattina**, alle 8:00 del fuso orario del browser;
+- **Domani mattina**, alle 8:00 del fuso orario del profilo, non del browser: è l'ora che il socio legge sul proprio orologio anche in viaggio. Senza profilo caricato vale il fuso del browser;
 - **Scegli data e ora**;
 - **Disattiva questa categoria**, soltanto per notifiche configurabili.
 
@@ -646,7 +649,7 @@ La console distingue due origini:
 
 La dashboard aggrega il numero totale ma la console filtra per origine, sorgente, operazione e intervallo. Non espone testo completo, destinatario, endpoint push, chiavi o stack trace. Mostra soltanto ID tecnico, hash della chiave evento, categoria, tipo consegna, tentativi, istanti e classe d'errore sanificata.
 
-Le etichette delle operazioni vengono da `OPERATION_LABELS` in `notification-presentation.service.ts`. Le operazioni non elencate, cioè atti di firma, rotazione QR, segnalazioni inventario, preparazione evento e scadenze `ASSIGNMENT_EXPIRATION_*`, compaiono come `Operazione non catalogata`.
+Le etichette delle operazioni vengono da `OPERATION_LABELS` in `notification-presentation.service.ts`, che copre anche atti di firma, rotazione QR, segnalazioni inventario, preparazione evento e scadenze `ASSIGNMENT_EXPIRATION_*`. Chi legge la console vede che cosa è andato storto, non un codice tecnico; `Operazione non catalogata` resta il ripiego per un'operazione aggiunta dopo e non ancora etichettata.
 
 `SKIPPED` e le soppressioni dovute a preferenze non sono errori e non compaiono tra i `FAILED`. Un retry amministrativo rivalida utente, preferenze e sottoscrizioni; non forza l'invio contro una preferenza corrente.
 
@@ -673,7 +676,7 @@ Le etichette delle operazioni vengono da `OPERATION_LABELS` in `notification-pre
 - Una modifica preferenze concorrente può precedere o seguire atomicamente il fan-out; non esiste uno stato intermedio parziale.
 - Il dispatcher push rivalida le preferenze prima dell'effetto esterno, quindi una disattivazione successiva al fan-out impedisce un job non ancora inviato.
 - Il salvataggio `read`, `snooze`, `unsnooze` o `delete` incrementa la versione della notifica e annulla atomicamente i job snooze superati.
-- I job di `notification_push_delivery` usano lock pessimista e vincoli univoci per supportare più istanze backend; i promemoria di `push_reminders` non hanno lock per job.
+- I job di `notification_push_delivery` e i promemoria di `push_reminders` usano lo stesso lock pessimista per job e gli stessi vincoli univoci, perciò più istanze backend possono elaborarli in parallelo senza consegnare due volte lo stesso promemoria.
 - Il passaggio a `DELIVERED` avviene dopo la risposta del provider; un crash nel confine esterno può produrre un raro duplicato, mai una doppia riga in-app.
 
 ## Migrazione
@@ -685,7 +688,7 @@ Una migration in `tenant-master.xml`:
 - crea `notification_profile` e `notification_category_preference`;
 - aggiunge `preference_policy` a `notification_outbox` con default `CONFIGURABLE`;
 - aggiunge i campi snooze a `notices`;
-- estende `push_reminders` mantenendo temporaneamente `sent`;
+- estende `push_reminders` con `status`, `reminder_origin` e `schedule_revision`, mantenendo temporaneamente `sent` (rimosso nella fase contract);
 - crea `notification_push_delivery` e relativi indici;
 - aggiorna la cascata di soft delete dell'utente;
 - aggiorna retention e cancellazione GDPR.
@@ -702,7 +705,7 @@ La preferenza chiave-valore `defaultReminderMinutes` viene migrata così:
 6. doppia lettura: prima tabella tipizzata, poi chiave legacy;
 7. confronto tramite metriche e test.
 
-La chiave legacy resta in `preferences`: la sua rimozione appartiene alla fase contract (vedi [Requisiti aperti](#requisiti-aperti)).
+La chiave legacy non viene più letta: senza profilo vale direttamente il default applicativo, e le copie rimaste in `preferences` sono cancellate logicamente dalla migrazione della fase contract.
 
 Non vengono creati push generici durante la migrazione. Le categorie mancanti continuano a usare in-app `true` e push `OFF`.
 
@@ -711,7 +714,9 @@ Non vengono creati push generici durante la migrazione. Le categorie mancanti co
 - `sent = true` diventa `status = DELIVERED`;
 - `sent = false` diventa `status = PENDING`;
 - `event_start_at` viene copiato dall'inizio dell'evento;
-- i job pendenti scaduti restano `PENDING`: lo scheduler chiude `SKIPPED` (`EVENT_STARTED`) quelli il cui evento è iniziato e invia in ritardo gli altri.
+- `reminder_origin` viene ricostruita per precedenza: `PERSONAL` dall'anticipo scelto sull'occorrenza, `EVENT` da quello dell'evento, `PROFILE` dal profilo notifiche, `APPLICATION` per il resto. Senza questo passaggio la prima ripianificazione rifarebbe job che portano un anticipo scelto a mano;
+- i job pendenti già scaduti vengono chiusi `SKIPPED` dalla migrazione, con motivo `EVENT_STARTED` quando l'evento è iniziato e `STALE` quando l'inizio è ignoto e l'istante di invio ha più di un giorno: lasciati pendenti sarebbero partiti in ritardo al primo giro;
+- la chiave legacy `defaultReminderMinutes` in `preferences` viene cancellata logicamente: il valore vive nel profilo notifiche e nessuno legge più la chiave.
 
 ## Configurazione
 
@@ -742,7 +747,7 @@ application:
 
 I default di prodotto sono restituiti dal backend nel DTO. Il frontend non legge direttamente questa configurazione.
 
-Le proprietà `*-retention-days` non sono lette: `DataErasureService` elimina i job push `DELIVERED` e `SKIPPED` dopo 30 giorni e i `FAILED` dopo 90 giorni con valori fissi.
+`DataErasureService` legge le proprietà `*-retention-days`: ogni stato ha la propria finestra, e cambiarla nel file di proprietà cambia il taglio senza toccare il codice. I promemoria pendenti non vengono mai cancellati per età, solo quelli già chiusi.
 
 ## Osservabilità
 
@@ -756,10 +761,9 @@ Metriche a bassa cardinalità:
 - retry e `FAILED` per classe di errore normalizzata;
 - reminder rinviati o saltati per ore silenziose;
 - sottoscrizioni eliminate per `404`/`410`;
-- conflitti ottimistici sul profilo;
-- righe legacy del promemoria ancora lette durante la migrazione.
+- conflitti ottimistici sul profilo.
 
-I log non includono titolo, messaggio o chiavi push. Per correlazione usano ID tecnico del job e hash della `source_event_key`. Fanno eccezione l'endpoint nel log di debug di `PushSubscriptionResource` e lo user ID nell'avviso di `NotificationPushDeliveryService` quando la verifica Keycloak di un Super Admin fallisce. Alert:
+I log non includono titolo, messaggio, chiavi push, endpoint o identificativi del socio, in nessun livello, debug compreso. Per correlazione usano ID tecnico del job e hash della `source_event_key`. Le metriche portano soltanto tag a bassa cardinalità — sorgente, canale, tipo, stato, coda, classe d'errore — mai un ID di tenant, utente o notifica. Alert:
 
 - crescita di job `FAILED`;
 - backlog `PENDING` oltre la soglia temporale;
@@ -808,7 +812,7 @@ I log non includono titolo, messaggio o chiavi push. Per correlazione usano ID t
 - ripianificazione dei reminder ereditati senza toccare override personali o evento;
 - disattivazione utente e cancellazione GDPR;
 - scheduler che ripristina sempre il tenant context;
-- migrazione della chiave legacy valida, assente e corrotta;
+- finestre di conservazione dei job push lette dalla configurazione, una per stato;
 - console `FAILED` autorizzata solo ad Admin e Super Admin.
 
 ### Test frontend
@@ -908,7 +912,7 @@ I log non includono titolo, messaggio o chiavi push. Per correlazione usano ID t
 - estensione della console `FAILED` ai job push;
 - runbook operativo e alert.
 
-Le attività di contract sono elencate in [Requisiti aperti](#requisiti-aperti).
+La fase contract ha rimosso la lettura della chiave legacy `defaultReminderMinutes`, cancellato logicamente le sue copie in `preferences` ed eliminato il booleano `push_reminders.sent`.
 
 ## Evoluzioni successive
 
@@ -927,19 +931,4 @@ Ogni nuovo canale deve avere stato, retry, retention e consenso autonomi. Non de
 
 ## Requisiti aperti
 
-- Ripianificazione: annullare e ricreare soltanto i job che ereditano il default (`PROFILE`, `APPLICATION`), senza toccare override personali o di evento né i `FAILED` (criterio 17).
-- Ripianificazione: con `eventRemindersEnabled = false` non ricreare i job `PERSONAL` ed `EVENT`.
-- Ripianificazione: `schedule_revision` monotono ed elaborazione a batch delle occorrenze.
-- Estensione di `push_reminders`: ricostruzione dell'origine dei job esistenti alla migrazione.
-- Migrazione reminder: marcare `SKIPPED` i job pendenti già scaduti invece di inviarli in ritardo.
-- Riepilogo giornaliero: congiunzione `e` prima dell'ultima categoria e singolare con un solo aggiornamento.
-- Anteprima push e privacy: con `FULL` il promemoria evento riporta nome e anticipo dell'evento.
-- Ricordamelo più tardi: **Domani mattina** calcolato nella timezone del profilo.
-- Dispatcher push: un solo orchestratore, con lock per job anche su `push_reminders` e transazioni per job.
-- Stato push del dispositivo e Osservabilità: nessun endpoint push nei log, nemmeno in debug, e nessuno user ID nei log di `NotificationPushDeliveryService`.
-- Configurazione: lettura di `delivered-retention-days`, `skipped-retention-days` e `failed-retention-days` nella retention dei job push.
-- Gestione degli eventi tecnici `FAILED`: etichette in `OPERATION_LABELS` per atti di firma, rotazione QR, segnalazioni inventario, preparazione evento e `ASSIGNMENT_EXPIRATION_*`.
-- Test frontend: spec della pagina profilo e di `notification-preferences.service` (default, matrice categorie, dirty state, conflitto di versione, stati del browser).
-- Fase 5: rimozione della lettura legacy `defaultReminderMinutes` e soft delete delle sue copie in `preferences`.
-- Fase 5: rimozione del booleano `push_reminders.sent`.
-- Fase 5: verifica finale GDPR, retention e assenza di segreti nei log.
+Nessuno: la specifica è coperta dal codice e dai test.

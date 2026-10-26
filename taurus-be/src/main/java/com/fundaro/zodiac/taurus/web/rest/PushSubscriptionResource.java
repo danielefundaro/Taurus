@@ -30,7 +30,8 @@ public class PushSubscriptionResource {
 
     @DeleteMapping
     public ResponseEntity<Void> unsubscribe(@RequestParam String endpoint, AbstractAuthenticationToken token) {
-        log.debug("REST request to unsubscribe from push notifications, endpoint={}", endpoint);
+        // L'endpoint della sottoscrizione è un segreto operativo: non entra nei log, nemmeno in debug.
+        log.debug("REST request to unsubscribe from push notifications");
         pushSubscriptionService.unsubscribe(endpoint, token);
         return ResponseEntity.noContent().build();
     }

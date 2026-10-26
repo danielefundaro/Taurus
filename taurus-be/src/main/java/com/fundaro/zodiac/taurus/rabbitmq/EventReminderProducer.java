@@ -1,11 +1,9 @@
 package com.fundaro.zodiac.taurus.rabbitmq;
 
-import com.fundaro.zodiac.taurus.domain.Preferences;
 import com.fundaro.zodiac.taurus.domain.PushReminder;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.notification.NotificationStatus;
 import com.fundaro.zodiac.taurus.domain.notification.ReminderOrigin;
-import com.fundaro.zodiac.taurus.repository.PreferencesRepository;
 import com.fundaro.zodiac.taurus.repository.PushReminderRepository;
 import com.fundaro.zodiac.taurus.repository.notification.NotificationProfileRepository;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
@@ -24,27 +22,21 @@ public class EventReminderProducer {
 
     private static final Logger log = LoggerFactory.getLogger(EventReminderProducer.class);
     private static final int DEFAULT_REMINDER_MINUTES = 30;
-    private static final String LEGACY_REMINDER_PREFERENCE = "defaultReminderMinutes";
+    /** Le origini che seguono il valore predefinito del profilo, le sole che la ripianificazione rifà. */
+    private static final java.util.Set<ReminderOrigin> INHERITED_ORIGINS =
+        java.util.EnumSet.of(ReminderOrigin.PROFILE, ReminderOrigin.APPLICATION);
 
     private final PushReminderRepository reminderRepository;
-    private final PreferencesRepository preferencesRepository;
     private NotificationProfileRepository notificationProfileRepository;
-    private NotificationPreferenceMetrics metrics;
     private TenantFeatureService tenantFeatureService;
 
-    public EventReminderProducer(PushReminderRepository reminderRepository, PreferencesRepository preferencesRepository) {
+    public EventReminderProducer(PushReminderRepository reminderRepository) {
         this.reminderRepository = reminderRepository;
-        this.preferencesRepository = preferencesRepository;
     }
 
     @Autowired
     void setNotificationProfileRepository(NotificationProfileRepository notificationProfileRepository) {
         this.notificationProfileRepository = notificationProfileRepository;
-    }
-
-    @Autowired
-    void setMetrics(NotificationPreferenceMetrics metrics) {
-        this.metrics = metrics;
     }
 
     @Autowired
@@ -63,6 +55,42 @@ public class EventReminderProducer {
      */
     public void scheduleIfNeeded(CalendarEventsDTO event, String userId, Integer personalMinutes) {
         cancelPending(event.getId(), userId);
+        schedule(event, userId, personalMinutes, 0);
+    }
+
+    /**
+     * Rifà il promemoria di un'occorrenza dopo un cambio del valore predefinito personale.
+     *
+     * <p>Toccare solo i job che ereditano quel valore è la differenza che conta: un anticipo scelto
+     * sull'occorrenza o sull'evento è una decisione dell'utente, e un job già fallito appartiene alla
+     * console delle consegne. La revisione cresce di uno a ogni rifacimento, così la storia del job
+     * resta leggibile.
+     *
+     * @return vero se il promemoria è stato rifatto, falso se l'occorrenza ha un anticipo proprio.
+     */
+    public boolean rescheduleInherited(CalendarEventsDTO event, String userId, Integer personalMinutes) {
+        if (personalMinutes != null || event.getReminderMinutes() != null) return false;
+
+        int revision = reminderRepository
+            .findAllByEventIdAndUserIdAndStatusAndDeletedFalse(event.getId(), userId, NotificationStatus.PENDING)
+            .stream()
+            .filter(reminder -> INHERITED_ORIGINS.contains(reminder.getReminderOrigin()))
+            .mapToInt(PushReminder::getScheduleRevision)
+            .max()
+            .orElse(-1) + 1;
+        reminderRepository.deleteAllByEventIdAndUserIdAndStatusAndReminderOriginIn(
+            event.getId(), userId, NotificationStatus.PENDING, INHERITED_ORIGINS
+        );
+        schedule(event, userId, null, revision);
+        return true;
+    }
+
+    /** Chiude il lotto corrente della ripianificazione sul database. */
+    public void flush() {
+        reminderRepository.flush();
+    }
+
+    private void schedule(CalendarEventsDTO event, String userId, Integer personalMinutes, int scheduleRevision) {
         if (tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.WEB_PUSH_REMINDERS)) return;
         if (event.getStartDate() == null) return;
 
@@ -81,24 +109,24 @@ public class EventReminderProducer {
         reminder.setEventName(event.getName());
         reminder.setUserId(userId);
         reminder.setSendAt(sendAt);
-        reminder.setSent(false);
         reminder.setEventStartAt(event.getStartDate().toInstant());
         reminder.setStatus(NotificationStatus.PENDING);
         reminder.setReminderOrigin(resolved.origin());
-        reminder.setScheduleRevision(0);
+        reminder.setScheduleRevision(scheduleRevision);
         reminder.setAttempts(0);
         reminder.setNextAttemptAt(sendAt.atZone(java.time.ZoneOffset.UTC));
 
         reminderRepository.save(reminder);
-        log.debug("Scheduled reminder for userId={} on event={} at {}", userId, event.getId(), sendAt);
+        // Nessun identificativo del socio nei log, nemmeno in debug: l'evento basta a capire cosa è stato pianificato.
+        log.debug("Scheduled reminder on event={} at {}", event.getId(), sendAt);
     }
 
     public void cancelPending(Long eventId, String userId) {
-        reminderRepository.deleteAllByEventIdAndUserIdAndSentFalse(eventId, userId);
+        reminderRepository.deleteAllByEventIdAndUserIdAndStatus(eventId, userId, NotificationStatus.PENDING);
     }
 
     public void cancelAllPending(Long eventId) {
-        reminderRepository.deleteAllByEventIdAndSentFalse(eventId);
+        reminderRepository.deleteAllByEventIdAndStatus(eventId, NotificationStatus.PENDING);
     }
 
     /**
@@ -112,34 +140,18 @@ public class EventReminderProducer {
     }
 
     private ResolvedReminder resolveReminder(Integer personalMinutes, Integer eventMinutes, String userId) {
+        var profile = notificationProfileRepository == null
+            ? null
+            : notificationProfileRepository.findByKeycloakSubjectAndDeletedFalse(userId).orElse(null);
+        // L'interruttore del profilo è globale: spento, non si pianifica nulla, nemmeno un anticipo
+        // scelto sull'occorrenza o sull'evento.
+        if (profile != null && !profile.isEventRemindersEnabled()) return new ResolvedReminder(0, ReminderOrigin.PROFILE);
         if (personalMinutes != null) return new ResolvedReminder(personalMinutes, ReminderOrigin.PERSONAL);
         if (eventMinutes != null) return new ResolvedReminder(eventMinutes, ReminderOrigin.EVENT);
-        if (notificationProfileRepository != null) {
-            var profile = notificationProfileRepository.findByKeycloakSubjectAndDeletedFalse(userId).orElse(null);
-            if (profile != null) {
-                if (!profile.isEventRemindersEnabled()) return new ResolvedReminder(0, ReminderOrigin.PROFILE);
-                return new ResolvedReminder(profile.getDefaultCalendarReminderMinutes(), ReminderOrigin.PROFILE);
-            }
-        }
-        try {
-            if (metrics != null) metrics.recordLegacyReminderRead();
-            // La preferenza legacy letta è quella del destinatario: chi esegue l'operazione non c'entra.
-            int legacy = preferencesRepository.findFirstByUserIdAndKeyAndDeletedFalseOrderByIdDesc(userId, LEGACY_REMINDER_PREFERENCE)
-                .map(EventReminderProducer::legacyMinutes)
-                .orElse(DEFAULT_REMINDER_MINUTES);
-            return new ResolvedReminder(legacy, ReminderOrigin.APPLICATION);
-        } catch (Exception e) {
-            log.warn("Could not fetch {} preference, using default={}", LEGACY_REMINDER_PREFERENCE, DEFAULT_REMINDER_MINUTES);
-            return new ResolvedReminder(DEFAULT_REMINDER_MINUTES, ReminderOrigin.APPLICATION);
-        }
-    }
-
-    private static int legacyMinutes(Preferences preference) {
-        try {
-            return Integer.parseInt(preference.getValue());
-        } catch (NumberFormatException e) {
-            return DEFAULT_REMINDER_MINUTES;
-        }
+        if (profile != null) return new ResolvedReminder(profile.getDefaultCalendarReminderMinutes(), ReminderOrigin.PROFILE);
+        // Senza profilo vale il default applicativo: la vecchia preferenza chiave-valore è stata
+        // migrata nei profili e non viene più letta.
+        return new ResolvedReminder(DEFAULT_REMINDER_MINUTES, ReminderOrigin.APPLICATION);
     }
 
     private record ResolvedReminder(int minutes, ReminderOrigin origin) {

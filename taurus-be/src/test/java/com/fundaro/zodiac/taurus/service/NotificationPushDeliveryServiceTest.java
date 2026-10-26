@@ -279,6 +279,26 @@ class NotificationPushDeliveryServiceTest {
         assertThat(finance.getStatus()).isEqualTo(NotificationStatus.DELIVERED);
     }
 
+    /**
+     * Il riepilogo si legge sullo schermo bloccato: il numero e il sostantivo devono accordarsi e
+     * l'ultima categoria va unita dalla congiunzione, non da una virgola.
+     */
+    @Test
+    void writesTheDigestSummaryInReadableItalian() {
+        assertThat(NotificationPushDeliveryService.digestBody(new java.util.LinkedHashMap<>(Map.of(NotificationSource.CALENDAR, 1))))
+            .isEqualTo("Hai 1 aggiornamento: 1 calendario.");
+
+        java.util.LinkedHashMap<NotificationSource, Integer> two = new java.util.LinkedHashMap<>();
+        two.put(NotificationSource.CALENDAR, 2);
+        two.put(NotificationSource.FINANCE, 1);
+        assertThat(NotificationPushDeliveryService.digestBody(two)).isEqualTo("Hai 3 aggiornamenti: 2 calendario e 1 economia.");
+
+        java.util.LinkedHashMap<NotificationSource, Integer> three = new java.util.LinkedHashMap<>(two);
+        three.put(NotificationSource.INVENTORY, 4);
+        assertThat(NotificationPushDeliveryService.digestBody(three))
+            .isEqualTo("Hai 7 aggiornamenti: 2 calendario, 1 economia e 4 inventario.");
+    }
+
     @Test
     void excludesReadItemsFromTheDigestAndKeepsTheRest() {
         NotificationPushDelivery kept = digestItem(1L, NotificationSource.CALENDAR);
@@ -299,7 +319,7 @@ class NotificationPushDeliveryServiceTest {
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(pushService).sendToUserNow(anyString(), anyString(), anyString(), body.capture(), any());
-        assertThat(body.getValue()).startsWith("Hai 1 aggiornamenti:");
+        assertThat(body.getValue()).startsWith("Hai 1 aggiornamento:");
         assertThat(read.getStatus()).isEqualTo(NotificationStatus.SKIPPED);
         assertThat(read.getSkipReason()).isEqualTo("NOT_ELIGIBLE");
     }

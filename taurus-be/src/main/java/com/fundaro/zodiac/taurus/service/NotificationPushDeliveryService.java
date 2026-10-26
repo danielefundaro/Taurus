@@ -27,7 +27,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class NotificationPushDeliveryService {
@@ -215,14 +214,26 @@ public class NotificationPushDeliveryService {
         if (eligible.isEmpty()) return;
         if (preferenceMetrics != null) preferenceMetrics.recordDigestSize(eligible.size());
         eligible.forEach(delivery -> counts.merge(delivery.getSource(), 1, Integer::sum));
-        int total = counts.values().stream().mapToInt(Integer::intValue).sum();
-        String summary = counts.entrySet().stream()
-            .map(entry -> entry.getValue() + " " + categoryName(entry.getKey()))
-            .collect(Collectors.joining(", "));
         PushDeliveryResult result = pushService.sendToUserNow(
-            seed.getUserId(), tenant(), "Taurus: riepilogo giornaliero", "Hai " + total + " aggiornamenti: " + summary + ".", "/dashboard?section=notifications"
+            seed.getUserId(), tenant(), "Taurus: riepilogo giornaliero", digestBody(counts), "/dashboard?section=notifications"
         );
         eligible.forEach(delivery -> applyResult(delivery, result, now));
+    }
+
+    /**
+     * Il corpo del riepilogo: nomi di categoria e numeri, mai contenuti. L'ultima categoria è unita
+     * dalla congiunzione e il sostantivo segue il numero, perché il riepilogo si legge sullo schermo
+     * bloccato e una frase sgrammaticata si nota.
+     */
+    static String digestBody(Map<com.fundaro.zodiac.taurus.domain.notification.NotificationSource, Integer> counts) {
+        List<String> parts = counts.entrySet().stream()
+            .map(entry -> entry.getValue() + " " + categoryName(entry.getKey()))
+            .toList();
+        String summary = parts.size() == 1
+            ? parts.get(0)
+            : String.join(", ", parts.subList(0, parts.size() - 1)) + " e " + parts.get(parts.size() - 1);
+        int total = counts.values().stream().mapToInt(Integer::intValue).sum();
+        return "Hai " + total + (total == 1 ? " aggiornamento: " : " aggiornamenti: ") + summary + ".";
     }
 
     private NotificationPreferenceDecision currentPreference(NotificationPushDelivery delivery) {
@@ -242,8 +253,9 @@ public class NotificationPushDeliveryService {
             return keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN).stream()
                 .anyMatch(user -> userId.equals(user.getId()) && Boolean.TRUE.equals(user.getEnabled()));
         } catch (RuntimeException exception) {
+            // Nessuno user ID nei log: per correlare basta l'ID tecnico del job.
             org.slf4j.LoggerFactory.getLogger(NotificationPushDeliveryService.class)
-                .warn("Unable to validate global push recipient against Keycloak userId={}", userId);
+                .warn("Unable to validate a global push recipient against Keycloak");
             return false;
         }
     }
