@@ -670,7 +670,13 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - certificati TLS e chiavi in scadenza;
 - backup fallito o restore test scaduto.
 
-### 10.3 Log
+### 10.3 Telemetria d'uso dell'interfaccia
+
+Il frontend conta gli eventi d'uso di una funzione, li aggrega nel browser e li spedisce in un'unica richiesta a `POST /api/ux-telemetry` al salvataggio e alla chiusura della pagina. Il backend li traduce nel contatore `taurus.ux.events{feature,event}` e nel timer `taurus.ux.session.duration{feature}`: oggi l'unica funzione misurata è `track-parts-workspace`, con gli eventi `open`, `search`, `reorder`, `move`, `merge`, `split`, `undo`, `save`, `save-error`, `conflict` e `reload`.
+
+La misura non lascia l'installazione e non contiene contenuti: né nomi di parti o di file, né testi cercati, né identificativi di tracce. Le etichette arrivano da un browser, quindi la funzione deve essere fra quelle note e il nome dell'evento deve avere la forma di un identificativo; numero di eventi, conteggi e durata sono limitati. Una segnalazione scartata riceve comunque `204`, perché una misura vale meno del lavoro di chi sta usando l'applicazione: un `204` non garantisce che la segnalazione sia stata registrata. Le serie sono utili per confrontare il tempo dalla prima apertura al salvataggio e il numero di operazioni per sessione; non sono un allarme.
+
+### 10.4 Log
 
 Il profilo `prod` usa livello `INFO`; i log non sono JSON per impostazione predefinita e Logstash è disabilitato. La piattaforma di produzione deve acquisire `stdout/stderr`, aggiungere timestamp e identità del pod/container e applicare retention controllata.
 

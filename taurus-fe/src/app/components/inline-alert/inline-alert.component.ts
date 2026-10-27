@@ -12,7 +12,10 @@ export class InlineAlertComponent {
     @Input() actionLabel?: string;
     @Input() actionLink?: string | any[];
     @Input() queryParams?: Params;
+    /** Seconda scelta dell'avviso, quando l'utente ha due modi legittimi di proseguire. */
+    @Input() secondaryActionLabel?: string;
     @Output() action = new EventEmitter<void>();
+    @Output() secondaryAction = new EventEmitter<void>();
     get role(): 'alert' | 'status' {
         return this.severity === 'error' ? 'alert' : 'status';
     }

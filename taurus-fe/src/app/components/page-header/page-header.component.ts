@@ -18,4 +18,6 @@ export class PageHeaderComponent {
     @Input() backLink?: string | any[];
     @Input() state?: string;
     @Input() dirty = false;
+    /** Modifiche appena salvate: vale fino alla modifica successiva. */
+    @Input() saved = false;
 }

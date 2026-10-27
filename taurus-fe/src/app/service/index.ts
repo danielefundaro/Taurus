@@ -43,3 +43,4 @@ export * from './tracks.service';
 export * from './user-inventory.service';
 export * from './user-preference.service';
 export * from './users.service';
+export * from './ux-telemetry.service';

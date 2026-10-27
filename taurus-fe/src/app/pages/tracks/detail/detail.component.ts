@@ -1,5 +1,5 @@
-import { HttpHeaders } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
+import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -7,6 +7,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from '../../../components/type-handler/type-handler.component';
 import { ScoreWorkspaceComponent } from './score-workspace/score-workspace.component';
+import { compareScores, DraftComparison, mergeServerScores } from './score-workspace/score-workspace.operations';
 import { ScorePlaybackPanelComponent } from './score-playback-panel/score-playback-panel.component';
 import { RoleEnums, StateEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { PdfManipulatorDialogComponent } from '../../../dialogs/pdf-manipulator-dialog/pdf-manipulator-dialog.component';
@@ -15,7 +16,7 @@ import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, Instruments, InstrumentsCriteria, SheetsMusic, TrackPageEditResult, TrackUploadJob, TrackUploadJobStatus, Tracks } from '../../../module';
 import { PdfAnnotations } from '../../../module/pdf-annotations.module';
-import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, TenantFeatureService, ToastService, TracksService, withErrorSummary } from '../../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, TenantFeatureService, ToastService, TracksService, UxTelemetryEvent, UxTelemetryService, withErrorSummary, withHandledErrors } from '../../../service';
 
 @Component({
     selector: 'app-track-detail',
@@ -25,7 +26,7 @@ import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, Te
     providers: [TracksService, InstrumentsService, KeycloakService, DialogService],
     changeDetection: ChangeDetectionStrategy.Default
 })
-export class DetailComponent extends DetailPageBase implements OnInit {
+export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy {
     @ViewChild('fu') private fileUpload?: FileUpload;
 
     protected track: Tracks = new Tracks();
@@ -39,6 +40,14 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected uploadJobs: TrackUploadJob[] = [];
     protected activeTab = 'details';
     protected saveError = false;
+    /** Modifiche appena salvate: alimenta il tag «Tutte le modifiche salvate». */
+    protected savedIndicator = false;
+    /** Un job PDF ha prodotto parti che la bozza non ha ancora: alimenta il banner. */
+    protected newPartsAvailable = false;
+    /** Scostamento fra bozza e server, letto dopo un 409. */
+    protected conflict?: DraftComparison;
+    /** Parti come stanno sul server: riferimento del confronto e della bozza del workspace. */
+    protected baselineScores: SheetsMusic[] = [];
     private detailsDirty = false;
     private scoresDirty = false;
 
@@ -58,7 +67,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
         private readonly dialogService: DialogService,
-        private readonly tenantFeatureService: TenantFeatureService
+        private readonly tenantFeatureService: TenantFeatureService,
+        private readonly telemetry: UxTelemetryService
     ) {
         super();
         this.instruments = [];
@@ -66,6 +76,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     ngOnInit() {
+        this.watchBrowserExit();
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
         const requestedTab = this.routeService.snapshot?.queryParamMap?.get('tab');
         this.openRequestedTab(requestedTab);
         // Aperta da un collegamento, per esempio di una notifica, la pagina può precedere le funzioni del tenant.
@@ -100,6 +112,32 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                 }
             });
     }
+
+    ngOnDestroy(): void {
+        this.releaseBrowserExit();
+        document.removeEventListener('visibilitychange', this.onVisibilityChange);
+        this.telemetry?.flush();
+    }
+
+    /**
+     * Rilettura dei job quando la scheda del browser torna visibile.
+     *
+     * Non è polling: una sola richiesta per ritorno, e solo se un job era ancora in lavorazione.
+     * È il modo scelto per accorgersi delle parti nuove senza interrogare il server a intervalli,
+     * che la specifica dell'elaborazione asincrona esclude.
+     */
+    private readonly onVisibilityChange = (): void => {
+        if (document.visibilityState !== 'visible' || !this.canManagePdf || this.track.id === undefined) return;
+        const pending = new Set(this.uploadJobs.filter((job) => this.isPendingUpload(job)).map((job) => job.id));
+        if (!pending.size) return;
+        this.tracksService
+            .getUploadJobs(this.track.id)
+            .pipe(first())
+            .subscribe((jobs) => {
+                this.uploadJobs = jobs;
+                if (jobs.some((job) => pending.has(job.id) && job.status === 'DONE')) this.newPartsAvailable = true;
+            });
+    };
 
     protected get isUser(): boolean {
         return this.keycloakService.isUser || this.keycloakService.isUserExternal;
@@ -147,8 +185,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.normalizeTrackScores();
         this.saving = true;
         this.saveError = false;
+        this.conflict = undefined;
         this.tracksService
-            .update(this.track.id, this.track, withErrorSummary('Salvataggio non riuscito'))
+            // Il 409 di concorrenza lo mostra questa pagina, con il confronto: nessun toast generico.
+            .update(this.track.id, this.track, withHandledErrors(['version.conflict'], withErrorSummary('Salvataggio non riuscito')))
             .pipe(
                 delay(1000),
                 first(),
@@ -159,16 +199,26 @@ export class DetailComponent extends DetailPageBase implements OnInit {
                     this.detailsDirty = false;
                     this.scoresDirty = false;
                     this.clearDirtyUnits();
+                    this.savedIndicator = true;
+                    this.newPartsAvailable = false;
+                    this.baselineScores = structuredClone(track.scores ?? []);
+                    this.telemetry?.record('save');
+                    this.telemetry?.flush();
                     this.toastService.success('Traccia aggiornata', 'Le modifiche sono state salvate.');
                     this.track = track;
                 },
-                error: () => (this.saveError = true)
+                error: (error: HttpErrorResponse) => {
+                    this.saveError = true;
+                    this.telemetry?.record('save-error');
+                    if (DetailComponent.isVersionConflict(error)) this.loadConflict();
+                }
             });
     }
 
     protected onTabChange(tab: string | number | undefined): void {
         if (typeof tab !== 'string') return;
         this.activeTab = tab;
+        if (tab === 'parts') this.telemetry?.start('track-parts-workspace');
         this.router.navigate([], { relativeTo: this.routeService, queryParams: { tab }, queryParamsHandling: 'merge', replaceUrl: true });
     }
 
@@ -179,7 +229,87 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected onScoresDirtyChange(dirty: boolean): void {
         this.scoresDirty = dirty;
+        if (dirty) this.savedIndicator = false;
         this.syncFormDirty();
+    }
+
+    protected onUxEvent(event: UxTelemetryEvent): void {
+        this.telemetry?.record(event);
+    }
+
+    /** La zona Aggiungi del workspace: le pagine nuove nascono da un PDF. */
+    protected openPdfTab(): void {
+        this.onTabChange('pdf');
+    }
+
+    /**
+     * «Ricarica e continua»: le parti create dal worker si aggiungono alla bozza, che resta da
+     * salvare. Con `saveAfter` è «Salva prima»: stesso riallineamento e salvataggio immediato,
+     * perché salvare senza riallinearsi riceverebbe di nuovo un 409.
+     */
+    protected reloadAndContinue(saveAfter = false): void {
+        if (this.track.id === undefined) return;
+        this.tracksService
+            .getById(this.track.id)
+            .pipe(first())
+            .subscribe((server) => {
+                const merged = mergeServerScores(this.track.scores ?? [], server.scores ?? []);
+                const added = merged.length - (this.track.scores?.length ?? 0);
+                this.baselineScores = structuredClone(server.scores ?? []);
+                this.track = { ...this.track, version: server.version, scores: merged };
+                this.newPartsAvailable = false;
+                this.conflict = undefined;
+                this.saveError = false;
+                this.telemetry?.record('reload');
+                this.focusPartsTab();
+                this.toastService.success(
+                    'Bozza riallineata',
+                    added ? `${added} ${added === 1 ? 'nuova parte aggiunta' : 'nuove parti aggiunte'} alla bozza: salva per confermare.` : 'La bozza usa la versione corrente della traccia.'
+                );
+                if (saveAfter) this.save();
+            });
+    }
+
+    /** Il testo del banner di conflitto: dice che cosa è cambiato, non solo che è cambiato. */
+    protected get conflictDetail(): string {
+        const comparison = this.conflict;
+        if (!comparison) return 'La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio.';
+        const differences = [
+            DetailComponent.count(comparison.serverAdded.length, 'parte nuova sul server', 'parti nuove sul server'),
+            DetailComponent.count(comparison.draftChanged, 'parte modificata nella bozza', 'parti modificate nella bozza'),
+            DetailComponent.count(comparison.draftAdded, 'parte creata nella bozza', 'parti create nella bozza'),
+            DetailComponent.count(comparison.draftRemoved, 'parte rimossa dalla bozza', 'parti rimosse dalla bozza'),
+            comparison.draftReordered ? 'ordine delle parti diverso' : undefined
+        ].filter((difference) => difference !== undefined);
+        if (!differences.length) return "La traccia è stata salvata da un'altra richiesta: le parti sono le stesse. Ricarica e riprova il salvataggio.";
+        return `La traccia è cambiata sul server: ${differences.join(', ')}. «Ricarica e continua» tiene le modifiche della bozza e aggiunge le parti nuove.`;
+    }
+
+    private loadConflict(): void {
+        if (this.track.id === undefined) return;
+        this.tracksService
+            .getById(this.track.id)
+            .pipe(first())
+            .subscribe((server) => {
+                this.conflict = compareScores(this.track.scores ?? [], server.scores ?? [], this.baselineScores);
+                this.newPartsAvailable = this.conflict.serverAdded.length > 0;
+                this.telemetry?.record('conflict');
+            });
+    }
+
+    /** Dopo un'azione di organizzazione la scheda Parti si seleziona da sé: l'esito si vede lì. */
+    private focusPartsTab(): void {
+        if (this.activeTab !== 'parts') this.onTabChange('parts');
+    }
+
+    private static count(value: number, singular: string, plural: string): string | undefined {
+        return value ? `${value} ${value === 1 ? singular : plural}` : undefined;
+    }
+
+    /** Il 409 di concorrenza della traccia, l'unico che questa pagina gestisce da sé. */
+    private static isVersionConflict(error: HttpErrorResponse): boolean {
+        const message = (error?.error as { message?: string } | undefined)?.message;
+        return error?.status === 409 && (message === undefined || message.endsWith('version.conflict'));
     }
 
     protected openImageEditor(event: { scoreId: number; media: ChildrenEntities; pageNumber: number; scoreTitle: string }): void {
@@ -215,6 +345,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             return { ...score, media };
         });
         this.track = { ...this.track, version: result.trackVersion, scores };
+        this.baselineScores = structuredClone(scores);
         this.toastService.success(
             result.media.length > 1 ? 'Immagini create' : 'Immagine aggiornata',
             result.media.length > 1 ? `La pagina è stata sostituita con ${result.media.length} nuove immagini.` : 'La nuova versione della pagina è già stata salvata.'
@@ -343,10 +474,14 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             )
             .subscribe((track) => {
                 this.track = track;
+                this.baselineScores = structuredClone(track.scores ?? []);
                 this.detailsDirty = false;
                 this.scoresDirty = false;
                 this.clearDirtyUnits();
                 this.saveError = false;
+                this.savedIndicator = false;
+                this.newPartsAvailable = false;
+                this.conflict = undefined;
             });
     }
 

@@ -9,7 +9,8 @@
         message="Carica un PDF dalla scheda File PDF oppure crea una parte vuota."
         [actionLabel]="readOnly ? undefined : 'Nuova parte'" (action)="addScore()" />
     } @else {
-    <div class="workspace-grid" [class.mobile-detail-visible]="mobileDetail">
+    <div #workspaceGrid class="workspace-grid" [class.mobile-detail-visible]="mobileDetail"
+        [style.grid-template-columns]="gridColumns">
         <aside class="parts-panel" aria-labelledby="parts-list-title">
             <div class="panel-toolbar">
                 <div>
@@ -23,8 +24,8 @@
             </div>
             <p-iconfield class="parts-filter">
                 <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="search" [(ngModel)]="filterQuery" placeholder="Cerca per parte o strumento"
-                    aria-label="Cerca per parte o strumento" />
+                <input pInputText type="search" [ngModel]="filterQuery" (ngModelChange)="onFilterChange($event)"
+                    placeholder="Cerca per parte o strumento" aria-label="Cerca per parte o strumento" />
             </p-iconfield>
             @if (filterQuery.trim() && !readOnly) {
             <p class="reorder-hint"><i class="pi pi-info-circle" aria-hidden="true"></i> Il riordino è disabilitato
@@ -34,46 +35,19 @@
             <app-empty-state compact icon="pi pi-search" heading="Nessun risultato"
                 message="Nessuna parte corrisponde alla ricerca." actionLabel="Azzera ricerca"
                 (action)="clearSearch()" />
+            } @else if (virtualizedParts) {
+            <div class="parts-list parts-scroller" role="listbox" aria-label="Parti della traccia">
+                <p-scroller [items]="filteredScores" [itemSize]="partRowSize" scrollHeight="60vh">
+                    <ng-template #item let-item>
+                        <ng-container [ngTemplateOutlet]="partRowTemplate"
+                            [ngTemplateOutletContext]="{ $implicit: item }" />
+                    </ng-template>
+                </p-scroller>
+            </div>
             } @else {
             <div class="parts-list" role="listbox" aria-label="Parti della traccia">
                 @for (item of filteredScores; track scoreKey(item.score)) {
-                <div class="part-row" [class.active]="item.index === selectedScoreIndex"
-                    [class.part-selected]="selectedPartKeys.has(scoreKey(item.score))" role="option" tabindex="0"
-                    [attr.aria-selected]="item.index === selectedScoreIndex"
-                    [attr.aria-label]="scoreTitle(item.score) + ', ' + (item.score.media?.length ?? 0) + ' pagine'"
-                    (click)="selectScore(item.index)" (keydown)="onPartKeydown(item.index, $event)"
-                    (dragover)="$event.preventDefault()" (drop)="onScoreDrop(item.index, $event)">
-                    @if (selectingParts) {
-                    <p-checkbox [binary]="true" [ngModel]="selectedPartKeys.has(scoreKey(item.score))"
-                        [ariaLabel]="'Seleziona ' + scoreTitle(item.score)" (click)="$event.stopPropagation()"
-                        (ngModelChange)="togglePart(item.score)" />
-                    } @else if (!readOnly) {
-                    <i class="pi pi-bars drag-handle" aria-label="Trascina per riordinare la parte"
-                        [draggable]="!filterQuery.trim()"
-                        (dragstart)="$event.stopPropagation(); onScoreDragStart(item.index)"
-                        (dragend)="onScoreDragEnd()"></i>
-                    }
-                    <span class="part-order">{{ item.index + 1 }}</span>
-                    <span class="part-copy">
-                        <strong>{{ scoreTitle(item.score) }}</strong>
-                        <small>{{ item.score.instruments?.length ? item.score.instruments?.[0]?.name : 'Strumento
-                            mancante' }} · {{ item.score.media?.length ?? 0 }} pagine</small>
-                    </span>
-                    @if (item.score.needsReview) {
-                    <i class="pi pi-exclamation-circle review-icon" aria-label="Parte da verificare"
-                        pTooltip="Parte da verificare"></i>
-                    }
-                    @if (!readOnly && !filterQuery.trim()) {
-                    <span class="part-reorder" aria-label="Comandi di riordino">
-                        <p-button icon="pi pi-angle-up" ariaLabel="Sposta parte su" text size="small"
-                            [disabled]="item.index === 0"
-                            (onClick)="$event.stopPropagation(); moveScore(item.index, -1)" />
-                        <p-button icon="pi pi-angle-down" ariaLabel="Sposta parte giù" text size="small"
-                            [disabled]="item.index === draftScores.length - 1"
-                            (onClick)="$event.stopPropagation(); moveScore(item.index, 1)" />
-                    </span>
-                    }
-                </div>
+                <ng-container [ngTemplateOutlet]="partRowTemplate" [ngTemplateOutletContext]="{ $implicit: item }" />
                 }
             </div>
             }
@@ -96,7 +70,13 @@
             }
         </aside>
 
-        <main class="editor-panel" aria-labelledby="score-editor-title" (dragover)="$event.preventDefault()"
+        <div class="panel-divider" role="separator" tabindex="0" aria-orientation="vertical"
+            aria-label="Larghezza dell’elenco delle parti" [attr.aria-valuenow]="partsRatio" aria-valuemin="24"
+            aria-valuemax="56" pTooltip="Trascina o usa le frecce per cambiare la larghezza dei pannelli"
+            (pointerdown)="onDividerPointerDown($event)" (keydown)="onDividerKeydown($event)"><span
+                aria-hidden="true"></span></div>
+
+        <main class="editor-panel" aria-labelledby="score-editor-title" (dragover)="onPagesDragOver($event)"
             (drop)="onPageDrop(selectedScoreIndex, undefined, $event)">
             @if (selectedScore; as score) {
             <div class="editor-heading">
@@ -191,59 +171,79 @@
             }
 
             @if (!score.media?.length) {
-            <app-empty-state compact icon="pi pi-images" heading="Nessuna pagina"
-                message="Sposta qui pagine da un’altra parte oppure carica un PDF." />
+            <div class="pages-dropzone" [class.drop-target]="pageDropIndex !== undefined"
+                (dragover)="onPagesDragOver($event)" (drop)="onPageDrop(selectedScoreIndex, 0, $event)">
+                <app-empty-state compact icon="pi pi-images" heading="Nessuna pagina"
+                    message="Trascina qui le pagine di un’altra parte, spostale con «Sposta in» oppure carica un PDF."
+                    [actionLabel]="readOnly ? undefined : 'Carica un PDF'" (action)="requestPdf()" />
+            </div>
             } @else {
             <div class="pages-grid" role="listbox" aria-label="Pagine della parte" aria-multiselectable="true">
                 @for (media of score.media; track media.index; let pageIndex = $index) {
-                <article #pageCard class="page-card" [class.selected]="selectedMediaIds.has(media.index)"
-                    [class.current]="activePageIndex === pageIndex" role="option" tabindex="0"
-                    [attr.aria-selected]="selectedMediaIds.has(media.index)"
-                    [attr.aria-label]="pageLabel(score, pageIndex, media)" (focus)="setActivePage(pageIndex)"
-                    (click)="setActivePage(pageIndex)" (dblclick)="thumbnail.openPreview()"
-                    (keydown)="onPageKeydown(pageIndex, media.index, thumbnail, $event)"
-                    (dragover)="$event.preventDefault(); $event.stopPropagation()"
-                    (drop)="$event.stopPropagation(); onPageDrop(selectedScoreIndex, pageIndex, $event)">
-                    @if (!readOnly) {
-                    <div class="page-card-toolbar">
-                        <span class="page-handle" draggable="true"
-                            (dragstart)="$event.stopPropagation(); onPageDragStart(selectedScoreIndex, pageIndex, media.index)"
-                            (dragend)="onPageDragEnd()"><i class="pi pi-bars" aria-hidden="true"></i> Pagina {{
-                            pageIndex + 1 }}</span>
-                        <p-checkbox [binary]="true" [ngModel]="selectedMediaIds.has(media.index)"
-                            [ariaLabel]="'Seleziona pagina ' + (pageIndex + 1)"
-                            (ngModelChange)="toggleMedia(media.index)" />
-                    </div>
-                    } @else {
-                    <div class="page-card-toolbar">
-                        <span>Pagina {{ pageIndex + 1 }}</span>
-                    </div>
+                <div class="page-slot">
+                    <span class="page-gap" [class.active]="pageDropIndex === pageIndex" aria-hidden="true"></span>
+                    @if (pageIndex === (score.media?.length ?? 0) - 1) {
+                    <span class="page-gap page-gap-end" [class.active]="pageDropIndex === pageIndex + 1"
+                        aria-hidden="true"></span>
                     }
-                    <app-media-thumbnail #thumbnail [media]="media" [alt]="pageLabel(score, pageIndex, media)" />
-                    <div class="page-order-actions">
+                    <article #pageCard class="page-card" [class.selected]="selectedMediaIds.has(media.index)"
+                        [class.current]="activePageIndex === pageIndex" role="option" tabindex="0"
+                        [attr.aria-selected]="selectedMediaIds.has(media.index)"
+                        [attr.aria-label]="pageLabel(score, pageIndex, media)" (focus)="setActivePage(pageIndex)"
+                        (click)="setActivePage(pageIndex)" (dblclick)="thumbnail.openPreview()"
+                        (keydown)="onPageKeydown(pageIndex, media.index, thumbnail, $event)"
+                        (dragover)="onPageDragOver(pageIndex, $event)"
+                        (drop)="$event.stopPropagation(); onPageDrop(selectedScoreIndex, pageDropIndex ?? pageIndex, $event)">
                         @if (!readOnly) {
-                        <p-button icon="pi pi-arrow-left" ariaLabel="Riordina: sposta pagina a sinistra"
-                            pTooltip="Riordina a sinistra" text size="small" [disabled]="pageIndex === 0"
-                            (onClick)="$event.stopPropagation(); movePage(pageIndex, -1)" />
+                        <div class="page-card-toolbar">
+                            <span class="page-handle" draggable="true"
+                                (dragstart)="$event.stopPropagation(); onPageDragStart(selectedScoreIndex, pageIndex, media.index)"
+                                (dragend)="onPageDragEnd()"><i class="pi pi-bars" aria-hidden="true"></i> Pagina {{
+                                pageIndex + 1 }}</span>
+                            <p-checkbox [binary]="true" [ngModel]="selectedMediaIds.has(media.index)"
+                                [ariaLabel]="'Seleziona pagina ' + (pageIndex + 1)"
+                                (ngModelChange)="toggleMedia(media.index)" />
+                        </div>
+                        } @else {
+                        <div class="page-card-toolbar">
+                            <span>Pagina {{ pageIndex + 1 }}</span>
+                        </div>
                         }
-                        <span>{{ media.name || 'Pagina ' + (pageIndex + 1) }}</span>
-                        @if (!readOnly) {
-                        <p-button icon="pi pi-image" [ariaLabel]="'Modifica immagine pagina ' + (pageIndex + 1)"
-                            [pTooltip]="trackDirty ? 'Salva prima le modifiche alla traccia' : 'Modifica immagine'" text
-                            size="small" [disabled]="trackDirty || score.id === undefined || saving"
-                            (onClick)="$event.stopPropagation(); editImage(score, media, pageIndex)" />
-                        }
-                        <p-button icon="pi pi-search-plus" [ariaLabel]="'Apri anteprima pagina ' + (pageIndex + 1)"
-                            pTooltip="Apri anteprima" text size="small"
-                            (onClick)="$event.stopPropagation(); thumbnail.openPreview()" />
-                        @if (!readOnly) {
-                        <p-button icon="pi pi-arrow-right" ariaLabel="Riordina: sposta pagina a destra"
-                            pTooltip="Riordina a destra" text size="small"
-                            [disabled]="pageIndex === (score.media?.length ?? 0) - 1"
-                            (onClick)="$event.stopPropagation(); movePage(pageIndex, 1)" />
-                        }
-                    </div>
-                </article>
+                        <app-media-thumbnail #thumbnail [media]="media" [alt]="pageLabel(score, pageIndex, media)" />
+                        <div class="page-order-actions">
+                            @if (!readOnly) {
+                            <p-button icon="pi pi-arrow-left" ariaLabel="Riordina: sposta pagina a sinistra"
+                                pTooltip="Riordina a sinistra" text size="small" [disabled]="pageIndex === 0"
+                                (onClick)="$event.stopPropagation(); movePage(pageIndex, -1)" />
+                            }
+                            <span>{{ media.name || 'Pagina ' + (pageIndex + 1) }}</span>
+                            @if (!readOnly) {
+                            <p-button icon="pi pi-image" [ariaLabel]="'Modifica immagine pagina ' + (pageIndex + 1)"
+                                [pTooltip]="trackDirty ? 'Salva prima le modifiche alla traccia' : 'Modifica immagine'"
+                                text size="small" [disabled]="trackDirty || score.id === undefined || saving"
+                                (onClick)="$event.stopPropagation(); editImage(score, media, pageIndex)" />
+                            }
+                            <p-button icon="pi pi-search-plus" [ariaLabel]="'Apri anteprima pagina ' + (pageIndex + 1)"
+                                pTooltip="Apri anteprima" text size="small"
+                                (onClick)="$event.stopPropagation(); thumbnail.openPreview()" />
+                            @if (!readOnly) {
+                            <p-button icon="pi pi-arrow-right" ariaLabel="Riordina: sposta pagina a destra"
+                                pTooltip="Riordina a destra" text size="small"
+                                [disabled]="pageIndex === (score.media?.length ?? 0) - 1"
+                                (onClick)="$event.stopPropagation(); movePage(pageIndex, 1)" />
+                            }
+                        </div>
+                    </article>
+                </div>
+                }
+                @if (!readOnly) {
+                <button type="button" class="page-add-zone" [class.drop-target]="pageDropIndex === (score.media?.length ?? 0)"
+                    (dragover)="onPagesDragOver($event)"
+                    (drop)="onPageDrop(selectedScoreIndex, score.media?.length ?? 0, $event)" (click)="requestPdf()">
+                    <i class="pi pi-plus-circle" aria-hidden="true"></i>
+                    <strong>Aggiungi pagine</strong>
+                    <small>Trascina qui le pagine di un’altra parte oppure carica un PDF.</small>
+                </button>
                 }
             </div>
             }
@@ -253,3 +253,43 @@
     }
     <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
 </section>
+
+<ng-template #partRowTemplate let-item>
+    <div #partRow class="part-row" [attr.data-part-index]="item.index" [class.active]="item.index === selectedScoreIndex"
+        [class.part-selected]="selectedPartKeys.has(scoreKey(item.score))"
+        [class.drop-target]="partDropIndex === item.index" role="option" tabindex="0"
+        [attr.aria-selected]="item.index === selectedScoreIndex"
+        [attr.aria-label]="scoreTitle(item.score) + ', ' + (item.score.media?.length ?? 0) + ' pagine'"
+        (click)="selectScore(item.index)" (keydown)="onPartKeydown(item.index, $event)"
+        (dragover)="onPartRowDragOver(item.index, $event)" (dragleave)="onPartRowDragLeave(item.index)"
+        (drop)="onPartRowDrop(item.index, $event)">
+        @if (selectingParts) {
+        <p-checkbox [binary]="true" [ngModel]="selectedPartKeys.has(scoreKey(item.score))"
+            [ariaLabel]="'Seleziona ' + scoreTitle(item.score)" (click)="$event.stopPropagation()"
+            (ngModelChange)="togglePart(item.score)" />
+        } @else if (!readOnly) {
+        <i class="pi pi-bars drag-handle" aria-label="Trascina per riordinare la parte"
+            [draggable]="!filterQuery.trim()" (dragstart)="$event.stopPropagation(); onScoreDragStart(item.index)"
+            (dragend)="onScoreDragEnd()"></i>
+        }
+        <span class="part-order">{{ item.index + 1 }}</span>
+        <span class="part-copy">
+            <strong>{{ scoreTitle(item.score) }}</strong>
+            <small>{{ item.score.instruments?.length ? item.score.instruments?.[0]?.name : 'Strumento
+                mancante' }} · {{ item.score.media?.length ?? 0 }} pagine</small>
+        </span>
+        @if (item.score.needsReview) {
+        <i class="pi pi-exclamation-circle review-icon" aria-label="Parte da verificare"
+            pTooltip="Parte da verificare"></i>
+        }
+        @if (!readOnly && !filterQuery.trim()) {
+        <span class="part-reorder" aria-label="Comandi di riordino">
+            <p-button icon="pi pi-angle-up" ariaLabel="Sposta parte su" text size="small" [disabled]="item.index === 0"
+                (onClick)="$event.stopPropagation(); moveScore(item.index, -1)" />
+            <p-button icon="pi pi-angle-down" ariaLabel="Sposta parte giù" text size="small"
+                [disabled]="item.index === draftScores.length - 1"
+                (onClick)="$event.stopPropagation(); moveScore(item.index, 1)" />
+        </span>
+        }
+    </div>
+</ng-template>
