@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 8, 9, 10, 12, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 11, 14 e 15.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 12, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 14 e 15.
 
 ## 1. `web-push-reminders`
 
@@ -136,6 +136,8 @@ Va prima delle funzionalità che seguono perché quasi tutte hanno fra i requisi
 - Test frontend delle etichette, del job del `202` e dell'azione «Riprova».
 
 L'integrazione con RabbitMQ reale arriva dal lotto 7; il resto è lavoro contenuto e ben delimitato.
+
+> Chiuso il 2026-10-27: la voce è passata a `implemented`. `UploadJobRecovery` chiude in errore i job fermi oltre trenta minuti — un `IN_PROGRESS` oltre soglia è un worker arrestato, un `TO_PROCESS` oltre soglia una coda ferma — e chiude invece di riaccodare, perché il messaggio porta il token di chi ha caricato il file. `UploadJobMetrics` espone operazioni, errori, job non terminali, anzianità del più vecchio, durata nel worker e messaggi in coda. Aggiunti il percorso del worker fino a `DONE`, il retry rifiutato, `UploadJobRecoveryTest`, `UploadJobPipelineIT` su PostgreSQL e RabbitMQ reali e i test frontend di etichette, job del `202` e «Riprova».
 
 ## 9. `track-page-image-editing`
 

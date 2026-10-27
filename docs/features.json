@@ -1156,7 +1156,7 @@
       "title": "Elaborazione asincrona dei PDF delle tracce",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/track-pdf-processing-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
@@ -1165,6 +1165,8 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImpl.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/rabbitmq/Receiver.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/upload/UploadJobRecovery.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/upload/UploadJobMetrics.java",
           "taurus-fe/src/app/pages/tracks/detail/detail.component.ts",
           "taurus-fe/src/app/service/tracks.service.ts"
         ],
@@ -1176,12 +1178,15 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImplTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/QueueUploadFilesServiceImplTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/upload/UploadJobRecoveryTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/UploadJobConcurrencyIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/UploadJobPipelineIT.java",
           "taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts"
         ]
       },
-      "notes": "Il caricamento restituisce un job persistente con HTTP 202; il worker aggiorna TO_PROCESS, IN_PROGRESS, DONE ed ERROR. Il dettaglio traccia legge i job una sola volta in ngOnInit, ricostruisce lo stato dopo refresh e consente il retry degli errori senza polling. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Il caricamento restituisce un job persistente con HTTP 202; il worker aggiorna TO_PROCESS, IN_PROGRESS, DONE ed ERROR. Il dettaglio traccia legge i job una sola volta in ngOnInit, ricostruisce lo stato dopo refresh e consente il retry degli errori senza polling. Il 2026-10-27 sono stati chiusi i sei requisiti aperti. UploadJobRecovery chiude in ERROR i job fermi oltre application.upload.stale-after, trenta minuti: un IN_PROGRESS oltre soglia è un worker arrestato, un TO_PROCESS oltre soglia è una coda ferma. Il recupero chiude invece di riaccodare, perché il messaggio porta il token di chi ha caricato il file e il nuovo tentativo riparte dalla richiesta dell'utente; un'elaborazione che finisce su un job già chiuso è contata come LATE e segnalata nei log, perché le parti esistono e un retry le duplicherebbe. UploadJobMetrics espone operazioni, errori, job non terminali per stato, anzianità del più vecchio, durata nel worker e messaggi della coda upload.files, a -1 quando il broker non risponde. Aggiunti il percorso completo fino a DONE e la conclusione tardiva in ReceiverTest, il retry rifiutato e il job di un'altra traccia in TracksServiceImplTest, UploadJobRecoveryTest, UploadJobPipelineIT su PostgreSQL e RabbitMQ reali (percorso completo, consumatore fermato e riavviato, nuovo tentativo, recupero e isolamento fra tenant) e i test frontend di etichette, job del 202, Riprova e limite di cinque righe. La doppia sottoscrizione della coda upload.files, quella configurata e quella dell'annotazione sul worker, è documentata nella specifica e nel runbook. Verificati ./mvnw verify, npm run test:coverage e la build di produzione.",
       "release": null,
-      "lastVerifiedOn": "2026-10-23"
+      "lastVerifiedOn": "2026-10-27"
     },
     {
       "id": "track-score-playback",

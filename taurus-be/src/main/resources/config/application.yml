@@ -253,6 +253,13 @@ application:
       # Certificates of the CIE certification authorities, comma separated. Empty: CieSign is not offered.
       trust-anchors: ${SIGNATURE_CIE_TRUST_ANCHORS:}
       revocation-timeout: PT10S
+  upload:
+    # A PDF upload job stuck in its current state for this long is taken as interrupted and closed
+    # in error, so the user sees it and can retry it.
+    recovery-enabled: ${UPLOAD_RECOVERY_ENABLED:true}
+    stale-after: PT30M
+    recovery-delay: PT5M
+    max-recovered-per-run: 100
   event-preparation:
     enabled: false
   score-playback:

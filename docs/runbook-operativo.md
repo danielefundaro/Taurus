@@ -175,7 +175,7 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 
 Le altre proprietà dell'ascolto (dimensione dei caricamenti, tempi e concorrenza del servizio OMR, recupero dei job, versioni conservate e orario della pulizia) hanno valori predefiniti adatti alla produzione e sono elencate nella [specifica](track-score-playback-spec.md#configurazione-del-backend).
 
-Le proprietà RabbitMQ standard Spring, per esempio `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`, devono essere impostate nell'ambiente distribuito. Le code applicative sono `upload.files` e `score.recognition`, l'exchange è `taurus.rabbitmq`. I messaggi di `score.recognition` sono JSON `{ tenant, jobId }`: la tabella dei job resta la fonte di verità e un messaggio perso viene ripubblicato dal recupero pianificato.
+Le proprietà RabbitMQ standard Spring, per esempio `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`, devono essere impostate nell'ambiente distribuito. Le code applicative sono `upload.files` e `score.recognition`, l'exchange è `taurus.rabbitmq`. La coda `upload.files` ha due consumatori per replica, quello configurato e quello dell'annotazione sul worker: è atteso, e un messaggio resta comunque consegnato a uno solo. I messaggi di `score.recognition` sono JSON `{ tenant, jobId }`: la tabella dei job resta la fonte di verità e un messaggio perso viene ripubblicato dal recupero pianificato.
 
 ### 4.2 Frontend Angular
 
@@ -874,7 +874,8 @@ Non bypassare OIDC e non distribuire client secret nel frontend.
 - osservare ready/unacked, publish rate e redelivery;
 - verificare spazio/memoria e allarmi RabbitMQ;
 - controllare nei log `queueId`/`jobId`, `trackId`, stato e tenant senza esporre contenuto sensibile;
-- confrontare stato e anzianità dei record `upload_job`: molti `TO_PROCESS` indicano in genere una coda o un consumer indisponibile, mentre `IN_PROGRESS` oltre soglia richiede la verifica del worker, delle risorse PDF e dello storage;
+- confrontare stato e anzianità dei record `upload_job`: molti `TO_PROCESS` indicano in genere una coda o un consumer indisponibile, mentre `IN_PROGRESS` oltre soglia richiede la verifica del worker, delle risorse PDF e dello storage. Le stesse grandezze sono su `taurus.upload.jobs.pending`, `taurus.upload.jobs.oldest.age` e `taurus.upload.queue.messages`, che vale `-1` quando il broker non risponde;
+- un job fermo oltre `application.upload.stale-after` (trenta minuti) viene chiuso in `ERROR` dal recupero pianificato e l'utente lo vede con «Riprova»: i contatori sono `taurus.upload.jobs{operation="CLOSED_STALE"}` e `taurus.upload.failures{reason="STALE_WORKER"|"STALE_QUEUE"}`. Il contatore `LATE` segnala invece un'elaborazione conclusa su un job già chiuso, cioè una soglia troppo stretta: in quel caso le parti sono state create e un nuovo tentativo le duplicherebbe;
 - per un job in `ERROR`, conservare il file sorgente e usare il retry applicativo solo dopo aver escluso un consumer ancora attivo sullo stesso job;
 - non eliminare o requeue massivamente i messaggi senza valutarne l'idempotenza;
 - sospendere nuovi upload se il backlog continua a crescere.

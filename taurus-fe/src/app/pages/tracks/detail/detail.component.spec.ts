@@ -1,4 +1,4 @@
-import { Tracks } from '../../../module';
+import { TrackUploadJob, Tracks } from '../../../module';
 import { of } from 'rxjs';
 import { RoleEnums } from '../../../constants';
 import { DetailComponent } from './detail.component';
@@ -118,5 +118,62 @@ describe('Track DetailComponent', () => {
         expect(component['track'].scores![0].media!.map((media) => media.index)).toEqual([8, 9, 7]);
         expect(component['track'].version).toBe(3);
         expect(toastService.success).toHaveBeenCalledWith('Immagini create', 'La pagina è stata sostituita con 2 nuove immagini.');
+    });
+
+    it('names every upload state in Italian and tells the pending ones apart', () => {
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
+
+        expect(component['uploadStatusLabel']('TO_PROCESS')).toBe('In coda');
+        expect(component['uploadStatusLabel']('IN_PROGRESS')).toBe('Elaborazione in corso');
+        expect(component['uploadStatusLabel']('DONE')).toBe('Completato');
+        expect(component['uploadStatusLabel']('ERROR')).toBe('Elaborazione non riuscita');
+        expect(component['uploadStatusLabel']('NOT_FOUND')).toBe('File sorgente non disponibile');
+        expect(component['isPendingUpload']({ id: 1, name: 'a.pdf', trackId: 8, status: 'TO_PROCESS' })).toBeTrue();
+        expect(component['isPendingUpload']({ id: 1, name: 'a.pdf', trackId: 8, status: 'IN_PROGRESS' })).toBeTrue();
+        expect(component['isPendingUpload']({ id: 1, name: 'a.pdf', trackId: 8, status: 'DONE' })).toBeFalse();
+    });
+
+    it('shows the job of the accepted upload at once, without asking the server again', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['uploadPdf']);
+        const toastService = jasmine.createSpyObj('ToastService', ['success']);
+        tracksService.uploadPdf.and.returnValue(of({ id: 12, name: 'partitura.pdf', trackId: 8, status: 'TO_PROCESS' }));
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
+        component['track'] = { id: 8 } as Tracks;
+        component['uploadJobs'] = [{ id: 11, name: 'vecchio.pdf', trackId: 8, status: 'DONE' }];
+
+        component['handleUpload']({ files: [new File([new Uint8Array([1])], 'partitura.pdf', { type: 'application/pdf' })] });
+
+        expect(component['uploadJobs'][0]).toEqual({ id: 12, name: 'partitura.pdf', trackId: 8, status: 'TO_PROCESS' });
+        expect(component['uploadStatusLabel'](component['uploadJobs'][0].status)).toBe('In coda');
+        expect(component['uploading']).toBeFalse();
+        expect(toastService.success).toHaveBeenCalled();
+    });
+
+    it('puts a failed job back in the queue when the user retries it', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['retryUploadJob']);
+        const toastService = jasmine.createSpyObj('ToastService', ['success']);
+        tracksService.retryUploadJob.and.returnValue(of({ id: 12, name: 'partitura.pdf', trackId: 8, status: 'TO_PROCESS' }));
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
+        component['track'] = { id: 8 } as Tracks;
+        const failed: TrackUploadJob = { id: 12, name: 'partitura.pdf', trackId: 8, status: 'ERROR' };
+        component['uploadJobs'] = [failed];
+
+        component['retryUpload'](failed);
+
+        expect(tracksService.retryUploadJob).toHaveBeenCalledOnceWith(8, 12);
+        expect(component['uploadJobs'][0].status).toBe('TO_PROCESS');
+        expect(toastService.success).toHaveBeenCalled();
+    });
+
+    it('shows at most the five most recent jobs', () => {
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
+        component['uploadJobs'] = Array.from({ length: 7 }, (ignored, index) => ({
+            id: index,
+            name: `file-${index}.pdf`,
+            trackId: 8,
+            status: 'DONE' as const
+        }));
+
+        expect(component['visibleUploadJobs'].map((job) => job.id)).toEqual([0, 1, 2, 3, 4]);
     });
 });
