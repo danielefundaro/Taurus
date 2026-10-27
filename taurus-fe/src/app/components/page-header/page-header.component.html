@@ -12,6 +12,8 @@
                 <h1>{{ heading }}</h1>
                 @if (dirty) {
                 <p-tag severity="warn" value="Modifiche non salvate" icon="pi pi-pencil" />
+                } @else if (saved) {
+                <p-tag severity="success" value="Tutte le modifiche salvate" icon="pi pi-check" />
                 } @else if (state) {
                 <p-tag severity="secondary" [value]="state" />
                 }

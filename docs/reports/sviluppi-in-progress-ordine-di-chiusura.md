@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 12, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 14 e 15.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 12, 14 e 15.
 
 ## 1. `web-push-reminders`
 
@@ -193,6 +193,8 @@ I primi due punti sono gli stessi che `event-preparation` elenca fra i propri re
 - Telemetria UX e gate end to end e prestazionali con 200 parti e 1.000 pagine.
 
 Il drag and drop accessibile fra parti e la gestione della bozza concorrente sono la parte costosa.
+
+> Chiuso il 2026-10-27: la voce è passata a `implemented`. Le pagine si trascinano fra parti con lo spazio di inserimento indicato sul lato della card dove cadrebbero, e il rilascio su una riga dell'elenco le sposta in quella parte; la zona «Aggiungi» chiude la griglia, accoglie un rilascio e porta alla scheda File PDF. La bozza è protetta su tre fronti: `beforeunload` chiede conferma a refresh e chiusura della scheda, il tag «Tutte le modifiche salvate» segue il salvataggio e un `409` rilegge la traccia e mostra che cosa è cambiato, confrontando per `id` con le parti lette all'apertura. Le parti create da un job sono rilevate senza polling — al ritorno sulla scheda del browser o con il `409` — e il banner «Nuove parti disponibili» offre «Ricarica e continua» o «Salva prima», che aggiungono in coda le parti del server tenendo le modifiche locali. Arrivate le frecce sull'elenco, Maiusc per la selezione contigua, `Escape` gestito dal workspace, il divisore ridimensionabile, lo scroller virtuale oltre sessanta parti e la telemetria d'uso, aggregata nel browser e tradotta in contatori `taurus.ux.*` dal backend. Il gate prestazionale con 200 parti e 1.000 pagine è misurato nei test di componente; la suite e2e `track-parts-workspace.spec.ts` esiste ma, come il resto della suite, ha bisogno di un'istanza completa e non è stata eseguita.
 
 ## 13. `external-calendar-feed`
 

@@ -39,9 +39,38 @@ p {
 
 .workspace-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 34%) minmax(0, 66%);
+    grid-template-columns: minmax(280px, 34%) auto minmax(0, 66%);
     align-items: start;
     min-height: 38rem;
+}
+
+.panel-divider {
+    position: sticky;
+    top: 1rem;
+    display: grid;
+    width: 0.75rem;
+    height: 100%;
+    min-height: 12rem;
+    place-items: center;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.panel-divider span {
+    width: 2px;
+    height: 2.5rem;
+    border-radius: 999px;
+    background: var(--p-content-border-color);
+}
+
+.panel-divider:hover span,
+.panel-divider:focus-visible span {
+    background: var(--p-primary-color);
+}
+
+.panel-divider:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
 }
 
 .parts-panel,
@@ -122,6 +151,25 @@ p {
 
 .part-row.part-selected {
     background: color-mix(in srgb, var(--p-primary-color) 12%, var(--p-content-background));
+}
+
+// Destinazione di un rilascio: bordo pieno e sfondo, mai il solo colore.
+.part-row.drop-target {
+    border-color: var(--p-primary-color);
+    border-style: dashed;
+    background: color-mix(in srgb, var(--p-primary-color) 18%, var(--p-content-background));
+}
+
+// Lo scroller virtuale impagina per altezze fisse: riga e margine devono valere `itemSize`,
+// quindi sono in pixel e non in rem, che dipendono dalla dimensione del carattere.
+.parts-scroller .part-row {
+    height: 80px;
+    min-height: 0;
+    margin-bottom: 8px;
+}
+
+:host ::ng-deep .parts-scroller .p-virtualscroller {
+    width: 100%;
 }
 
 .drag-handle {
@@ -241,12 +289,74 @@ p {
     padding-bottom: 5rem;
 }
 
+.page-slot {
+    position: relative;
+    min-width: 0;
+}
+
+// Spazio di inserimento: una barra fra le card che mostra dove finiranno le pagine.
+.page-gap {
+    position: absolute;
+    inset-block: 0.5rem;
+    left: -0.625rem;
+    width: 3px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.page-gap.page-gap-end {
+    right: -0.625rem;
+    left: auto;
+}
+
+.page-gap.active {
+    background: var(--p-primary-color);
+    box-shadow: 0 0 0 1px var(--p-primary-color);
+}
+
 .page-card {
     min-width: 0;
+    height: 100%;
     padding: 0.75rem;
     border: 2px solid var(--p-content-border-color);
     border-radius: 1rem;
     background: var(--p-content-background);
+}
+
+// Zona Aggiungi e zona di rilascio di una parte vuota: stesso linguaggio tratteggiato.
+.page-add-zone,
+.pages-dropzone {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 0.25rem;
+    padding: 1.25rem;
+    border: 2px dashed var(--p-content-border-color);
+    border-radius: 1rem;
+    background: transparent;
+    color: var(--p-text-muted-color);
+    font: inherit;
+    text-align: center;
+}
+
+.page-add-zone {
+    min-height: 10rem;
+    cursor: pointer;
+}
+
+.page-add-zone i {
+    color: var(--p-primary-color);
+    font-size: 1.5rem;
+}
+
+.page-add-zone:hover,
+.page-add-zone:focus-visible,
+.page-add-zone.drop-target,
+.pages-dropzone.drop-target {
+    border-color: var(--p-primary-color);
+    border-style: solid;
+    background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+    outline: none;
 }
 
 .page-card:focus-visible,
@@ -292,7 +402,7 @@ p {
 
 @media (max-width: 1023px) {
     .workspace-grid {
-        grid-template-columns: minmax(260px, 40%) minmax(0, 60%);
+        grid-template-columns: minmax(260px, 40%) auto minmax(0, 60%);
     }
 
     .pages-grid {
@@ -314,6 +424,11 @@ p {
         display: block;
         max-height: none;
         min-height: 32rem;
+    }
+
+    // Senza due pannelli affiancati non c’è niente da ridimensionare.
+    .panel-divider {
+        display: none;
     }
 
     .parts-panel,

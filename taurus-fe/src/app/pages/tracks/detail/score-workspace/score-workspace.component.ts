@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, QueryList, SimpleChanges, ViewChild, ViewChildren } from '@angular/core';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { ImportsModule } from '../../../../imports';
 import { ChildrenEntities, Instruments, SheetsMusic } from '../../../../module';
-import { ConfirmService } from '../../../../service';
+import { ConfirmService, UxTelemetryEvent } from '../../../../service';
 import { MediaThumbnailComponent } from '../media-thumbnail/media-thumbnail.component';
 import { cloneAndNormalizeScores, mergeScores, moveMedia, reorderMedia, reorderScore, splitScoreAfter, splitScoreByPage } from './score-workspace.operations';
 
@@ -21,6 +21,11 @@ interface ScoreListItem {
 })
 export class ScoreWorkspaceComponent implements OnChanges {
     @Input() scores: SheetsMusic[] = [];
+    /**
+     * Parti come stanno sul server. Coincidono con `scores` tranne dopo una fusione con le parti
+     * arrivate da un PDF: lì la bozza vale già più del server e deve restare da salvare.
+     */
+    @Input() baseline?: SheetsMusic[];
     @Input() instruments: Instruments[] = [];
     @Input() readOnly = false;
     @Input() saving = false;
@@ -28,7 +33,17 @@ export class ScoreWorkspaceComponent implements OnChanges {
     @Output() scoresChange = new EventEmitter<SheetsMusic[]>();
     @Output() dirtyChange = new EventEmitter<boolean>();
     @Output() imageEdit = new EventEmitter<{ scoreId: number; media: ChildrenEntities; pageNumber: number; scoreTitle: string }>();
+    /** Eventi d'uso, senza contenuti: li aggrega la pagina che ospita il workspace. */
+    @Output() uxEvent = new EventEmitter<UxTelemetryEvent>();
+    /** La zona Aggiungi chiede le pagine dove nascono: il caricamento di un PDF. */
+    @Output() pdfRequested = new EventEmitter<void>();
     @ViewChildren('pageCard') private pageCards?: QueryList<ElementRef<HTMLElement>>;
+    @ViewChildren('partRow') private partRows?: QueryList<ElementRef<HTMLElement>>;
+    @ViewChild('workspaceGrid') private workspaceGrid?: ElementRef<HTMLElement>;
+
+    /** Oltre questa soglia l'elenco delle parti passa allo scroller virtuale. */
+    protected static readonly virtualizationThreshold = 60;
+    protected static readonly partRowSize = 88;
 
     protected draftScores: SheetsMusic[] = [];
     protected selectedScoreIndex = 0;
@@ -41,6 +56,13 @@ export class ScoreWorkspaceComponent implements OnChanges {
     protected mobileDetail = false;
     protected liveMessage = '';
     protected activePageIndex = 0;
+    /** Posizione in cui le pagine trascinate verrebbero inserite; alimenta l'indicatore. */
+    protected pageDropIndex?: number;
+    /** Parte dell'elenco sopra cui si sta trascinando: riceve le pagine al rilascio. */
+    protected partDropIndex?: number;
+    /** Larghezza del pannello sinistro in percento; resta nella sessione, non viene persistita. */
+    protected partsRatio = 34;
+    protected ratioChanged = false;
 
     private undoStack: SheetsMusic[][] = [];
     private baselineScores: SheetsMusic[] = [];
@@ -48,18 +70,22 @@ export class ScoreWorkspaceComponent implements OnChanges {
     private inlineEditActive = false;
     private draggedScoreIndex?: number;
     private draggedPage?: { scoreIndex: number; pageIndex: number; mediaId: number };
+    private partAnchorIndex?: number;
+    private pageAnchorIndex?: number;
+    private resizing = false;
+    private searching = false;
 
     constructor(private readonly confirmService: ConfirmService) { }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['scores'] && this.scores !== this.lastEmitted) {
             this.draftScores = cloneAndNormalizeScores(this.scores);
-            this.baselineScores = cloneAndNormalizeScores(this.scores);
+            this.baselineScores = cloneAndNormalizeScores(this.baseline ?? this.scores);
             this.undoStack = [];
             this.selectedScoreIndex = Math.min(this.selectedScoreIndex, Math.max(0, this.draftScores.length - 1));
             this.activePageIndex = 0;
             this.clearSelections();
-            this.dirtyChange.emit(false);
+            this.dirtyChange.emit(JSON.stringify(this.draftScores) !== JSON.stringify(this.baselineScores));
         }
     }
 
@@ -75,6 +101,23 @@ export class ScoreWorkspaceComponent implements OnChanges {
                 if (!query) return true;
                 return [score.description, ...(score.instruments ?? []).map((instrument) => instrument.name)].some((value) => value?.toLocaleLowerCase('it').includes(query));
             });
+    }
+
+    /**
+     * L'elenco passa allo scroller virtuale solo oltre la soglia: sotto, il DOM completo tiene
+     * trascinamento, riordino e scorrimento del pannello senza altezze fissate.
+     */
+    protected get virtualizedParts(): boolean {
+        return this.filteredScores.length > ScoreWorkspaceComponent.virtualizationThreshold;
+    }
+
+    protected get partRowSize(): number {
+        return ScoreWorkspaceComponent.partRowSize;
+    }
+
+    /** Colonne della griglia: imposte solo dopo che l'utente ha spostato il divisore. */
+    protected get gridColumns(): string | null {
+        return this.ratioChanged ? `minmax(0, ${this.partsRatio}%) auto minmax(0, 1fr)` : null;
     }
 
     protected get canUndo(): boolean {
@@ -121,16 +164,26 @@ export class ScoreWorkspaceComponent implements OnChanges {
         return `${this.scoreTitle(score)}, pagina ${pageIndex + 1}${media.name ? `, ${media.name}` : ''}`;
     }
 
-    protected selectScore(index: number): void {
+    protected selectScore(index: number, openDetail = true): void {
         this.selectedScoreIndex = index;
         this.activePageIndex = 0;
         this.selectedMediaIds = new Set<number>();
         this.moveTargetIndex = null;
-        this.mobileDetail = true;
+        this.pageAnchorIndex = undefined;
+        // Navigando con le frecce il dettaglio non si apre: su mobile si resta nell'elenco.
+        if (openDetail) this.mobileDetail = true;
+    }
+
+    protected onFilterChange(query: string): void {
+        this.filterQuery = query;
+        const active = !!query.trim();
+        // Un solo evento per ricerca: conta che la ricerca sia stata usata, non quante lettere.
+        if (active && !this.searching) this.uxEvent.emit('search');
+        this.searching = active;
     }
 
     protected clearSearch(): void {
-        this.filterQuery = '';
+        this.onFilterChange('');
     }
 
     protected addScore(): void {
@@ -221,6 +274,7 @@ export class ScoreWorkspaceComponent implements OnChanges {
             consequence: 'Le pagine saranno concatenate nell’ordine delle parti selezionate. Gli strumenti duplicati verranno rimossi.',
             actionLabel: 'Unisci',
             accept: () => {
+                this.uxEvent.emit('merge');
                 const first = this.draftScores.findIndex((score) => this.selectedPartKeys.has(this.scoreKey(score)));
                 this.commit(mergeScores(this.draftScores, this.selectedPartKeys, this.scoreKey), `${this.selectedPartKeys.size} parti unite`, Math.max(0, first));
                 this.selectingParts = false;
@@ -289,12 +343,14 @@ export class ScoreWorkspaceComponent implements OnChanges {
     protected moveSelectedPages(): void {
         if (this.moveTargetIndex === null || !this.selectedMediaIds.size || this.moveTargetIndex === this.selectedScoreIndex) return;
         const count = this.selectedMediaIds.size;
+        this.uxEvent.emit('move');
         this.commit(moveMedia(this.draftScores, this.selectedMediaIds, this.moveTargetIndex), `${count} ${count === 1 ? 'pagina spostata' : 'pagine spostate'}`, this.moveTargetIndex);
         this.moveTargetIndex = null;
     }
 
     protected createScoreFromPages(): void {
         if (!this.selectedMediaIds.size || !this.selectedScore) return;
+        this.uxEvent.emit('move');
         const next = cloneAndNormalizeScores(this.draftScores);
         const source = next[this.selectedScoreIndex];
         const media = (source.media ?? []).filter((item) => this.selectedMediaIds.has(item.index));
@@ -315,6 +371,7 @@ export class ScoreWorkspaceComponent implements OnChanges {
             consequence: `Verrà creata una nuova parte con le ${createdPages} pagine successive. Gli strumenti saranno mantenuti in entrambe.`,
             actionLabel: 'Dividi',
             accept: () => {
+                this.uxEvent.emit('split');
                 this.commit(splitScoreAfter(this.draftScores, this.selectedScoreIndex, pageIndex), 'Parte divisa');
             }
         });
@@ -327,13 +384,17 @@ export class ScoreWorkspaceComponent implements OnChanges {
             title: 'Una parte per pagina',
             consequence: `La parte verrà sostituita da ${count} parti, una per pagina. Gli strumenti saranno mantenuti in tutte.`,
             actionLabel: 'Dividi',
-            accept: () => this.commit(splitScoreByPage(this.draftScores, this.selectedScoreIndex), `${count} parti create`)
+            accept: () => {
+                this.uxEvent.emit('split');
+                this.commit(splitScoreByPage(this.draftScores, this.selectedScoreIndex), `${count} parti create`);
+            }
         });
     }
 
     protected undo(): void {
         const previous = this.undoStack.pop();
         if (!previous) return;
+        this.uxEvent.emit('undo');
         this.draftScores = cloneAndNormalizeScores(previous);
         this.selectedScoreIndex = Math.min(this.selectedScoreIndex, Math.max(0, this.draftScores.length - 1));
         this.clearSelections();
@@ -343,12 +404,14 @@ export class ScoreWorkspaceComponent implements OnChanges {
     protected moveScore(index: number, direction: -1 | 1): void {
         const target = index + direction;
         if (!this.draftScores[target] || this.filterQuery.trim()) return;
+        this.uxEvent.emit('reorder');
         this.commit(reorderScore(this.draftScores, index, target), 'Parti riordinate', target);
     }
 
     protected movePage(pageIndex: number, direction: -1 | 1): void {
         const target = pageIndex + direction;
         if (!this.selectedScore?.media?.[target]) return;
+        this.uxEvent.emit('reorder');
         this.commit(reorderMedia(this.draftScores, this.selectedScoreIndex, pageIndex, target), 'Pagine riordinate');
     }
 
@@ -365,6 +428,26 @@ export class ScoreWorkspaceComponent implements OnChanges {
 
     protected onScoreDragEnd(): void {
         this.draggedScoreIndex = undefined;
+        this.partDropIndex = undefined;
+    }
+
+    /** Una riga dell'elenco riceve sia una parte trascinata, sia le pagine di un'altra parte. */
+    protected onPartRowDragOver(index: number, event: DragEvent): void {
+        event.preventDefault();
+        if (this.draggedPage) this.partDropIndex = index;
+    }
+
+    protected onPartRowDragLeave(index: number): void {
+        if (this.partDropIndex === index) this.partDropIndex = undefined;
+    }
+
+    protected onPartRowDrop(index: number, event: DragEvent): void {
+        this.partDropIndex = undefined;
+        if (this.draggedPage) {
+            this.onPageDrop(index, undefined, event);
+            return;
+        }
+        this.onScoreDrop(index, event);
     }
 
     protected onPageDragStart(scoreIndex: number, pageIndex: number, mediaId: number): void {
@@ -374,23 +457,175 @@ export class ScoreWorkspaceComponent implements OnChanges {
 
     protected onPageDragEnd(): void {
         this.draggedPage = undefined;
+        this.pageDropIndex = undefined;
+    }
+
+    /**
+     * Da che lato della card finirebbero le pagine trascinate: è la posizione che l’indicatore
+     * mostra come spazio di inserimento ed è quella che il rilascio usa davvero.
+     */
+    protected onPageDragOver(pageIndex: number, event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!this.draggedPage) return;
+        const bounds = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect();
+        this.pageDropIndex = bounds && event.clientX > bounds.left + bounds.width / 2 ? pageIndex + 1 : pageIndex;
+    }
+
+    /** Il rilascio sul pannello, fuori dalle card, accoda: l'indicatore si sposta in fondo. */
+    protected onPagesDragOver(event: DragEvent): void {
+        event.preventDefault();
+        if (this.draggedPage) this.pageDropIndex = this.selectedScore?.media?.length ?? 0;
     }
 
     protected onPageDrop(targetScoreIndex: number, targetPageIndex: number | undefined, event: DragEvent): void {
         event.preventDefault();
-        if (!this.draggedPage) return;
-        const selected = this.selectedMediaIds.has(this.draggedPage.mediaId) ? this.selectedMediaIds : new Set([this.draggedPage.mediaId]);
-        const next = moveMedia(this.draftScores, selected, targetScoreIndex, targetPageIndex);
-        this.commit(next, targetScoreIndex === this.draggedPage.scoreIndex ? 'Pagine riordinate' : 'Pagine spostate', targetScoreIndex);
+        const dragged = this.draggedPage;
         this.draggedPage = undefined;
+        this.pageDropIndex = undefined;
+        if (!dragged) return;
+        const selected = this.selectedMediaIds.has(dragged.mediaId) ? this.selectedMediaIds : new Set([dragged.mediaId]);
+        const sameScore = targetScoreIndex === dragged.scoreIndex;
+        this.uxEvent.emit(sameScore ? 'reorder' : 'move');
+        const moved = selected.size === 1 ? 'pagina spostata' : 'pagine spostate';
+        const message = sameScore ? 'Pagine riordinate' : `${selected.size} ${moved} nella parte ${targetScoreIndex + 1}`;
+        this.commit(moveMedia(this.draftScores, selected, targetScoreIndex, targetPageIndex), message, targetScoreIndex);
+    }
+
+    /** La zona Aggiungi: le pagine nascono da un PDF, quindi porta alla scheda che lo carica. */
+    protected requestPdf(): void {
+        this.pdfRequested.emit();
+    }
+
+    /**
+     * I movimenti del puntatore si ascoltano solo durante il trascinamento: un listener sempre
+     * attivo sul documento farebbe girare il rilevamento delle modifiche a ogni spostamento del
+     * mouse, in tutta la pagina.
+     */
+    protected onDividerPointerDown(event: PointerEvent): void {
+        if (this.resizing) return;
+        this.resizing = true;
+        (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+        document.addEventListener('pointermove', this.onDividerPointerMove);
+        document.addEventListener('pointerup', this.onDividerPointerUp);
+    }
+
+    private readonly onDividerPointerMove = (event: PointerEvent): void => {
+        const bounds = this.workspaceGrid?.nativeElement.getBoundingClientRect();
+        if (!bounds?.width) return;
+        this.applyRatio(((event.clientX - bounds.left) / bounds.width) * 100);
+    };
+
+    private readonly onDividerPointerUp = (): void => {
+        this.resizing = false;
+        document.removeEventListener('pointermove', this.onDividerPointerMove);
+        document.removeEventListener('pointerup', this.onDividerPointerUp);
+        this.announce(`Elenco delle parti al ${this.partsRatio} per cento`);
+    };
+
+    /** Il divisore si muove anche da tastiera: frecce di due punti per volta, Home ripristina. */
+    protected onDividerKeydown(event: KeyboardEvent): void {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            this.applyRatio(this.partsRatio + (event.key === 'ArrowLeft' ? -2 : 2));
+            this.announce(`Elenco delle parti al ${this.partsRatio} per cento`);
+            return;
+        }
+        if (event.key === 'Home') {
+            event.preventDefault();
+            this.partsRatio = 34;
+            this.ratioChanged = false;
+            this.announce('Larghezza dei pannelli ripristinata');
+        }
+    }
+
+    private applyRatio(ratio: number): void {
+        this.partsRatio = Math.round(Math.min(56, Math.max(24, ratio)));
+        this.ratioChanged = true;
     }
 
     protected onPartKeydown(index: number, event: KeyboardEvent): void {
-        if (event.key === 'Enter') this.selectScore(index);
+        if (event.key === 'Enter') {
+            this.selectScore(index);
+            return;
+        }
         if (event.ctrlKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
             event.preventDefault();
             this.moveScore(index, event.key === 'ArrowUp' ? -1 : 1);
+            return;
         }
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+        event.preventDefault();
+        const order = this.filteredScores;
+        const next = order[order.findIndex((item) => item.index === index) + (event.key === 'ArrowUp' ? -1 : 1)];
+        if (!next) return;
+        if (event.shiftKey) {
+            this.extendPartSelection(index, next.index);
+        } else {
+            this.selectScore(next.index, false);
+            this.partAnchorIndex = next.index;
+        }
+        this.focusPart(next.index);
+    }
+
+    /**
+     * Escape appartiene al workspace: chiude nell'ordine la selezione delle pagine, la modalità di
+     * selezione delle parti e il dettaglio della parte su viewport ridotte. Durante una modifica
+     * inline resta al campo, dove chiude l'elenco dei suggerimenti.
+     */
+    @HostListener('keydown.escape', ['$event'])
+    protected onEscape(event: KeyboardEvent): void {
+        if (this.inlineEditActive) return;
+        if (this.selectedMediaIds.size) {
+            this.selectedMediaIds = new Set<number>();
+            this.moveTargetIndex = null;
+            this.announce('Selezione delle pagine annullata');
+        } else if (this.selectingParts) {
+            this.selectingParts = false;
+            this.selectedPartKeys = new Set<string>();
+            this.announce('Selezione delle parti annullata');
+        } else if (this.mobileDetail) {
+            this.mobileDetail = false;
+            this.announce('Elenco delle parti');
+        } else {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    /** Maiusc più frecce: selezione contigua dall'ancora, nell'ordine in cui l'elenco mostra le parti. */
+    private extendPartSelection(fromIndex: number, toIndex: number): void {
+        if (!this.selectingParts) {
+            this.selectingParts = true;
+            this.selectedPartKeys = new Set<string>();
+        }
+        if (this.partAnchorIndex === undefined || !this.selectedPartKeys.size) this.partAnchorIndex = fromIndex;
+        const order = this.filteredScores;
+        const anchor = order.findIndex((item) => item.index === this.partAnchorIndex);
+        const target = order.findIndex((item) => item.index === toIndex);
+        if (anchor < 0 || target < 0) return;
+        const [first, last] = anchor <= target ? [anchor, target] : [target, anchor];
+        this.selectedPartKeys = new Set(order.slice(first, last + 1).map(({ score }) => this.scoreKey(score)));
+        this.selectedScoreIndex = toIndex;
+        this.announce(`${this.selectedPartKeys.size} parti selezionate`);
+    }
+
+    /** Con l'elenco virtualizzato nel DOM vivono solo le righe visibili: la riga si cerca per indice. */
+    private focusPart(index: number): void {
+        queueMicrotask(() => this.partRows?.find((row) => row.nativeElement.dataset['partIndex'] === String(index))?.nativeElement.focus());
+    }
+
+    /** Maiusc più frecce nella griglia: estende la selezione alle pagine contigue. */
+    private extendPageSelection(fromIndex: number, toIndex: number): void {
+        const media = this.selectedScore?.media ?? [];
+        if (!media[toIndex]) return;
+        if (this.pageAnchorIndex === undefined || !this.selectedMediaIds.size) this.pageAnchorIndex = fromIndex;
+        const [first, last] = this.pageAnchorIndex <= toIndex ? [this.pageAnchorIndex, toIndex] : [toIndex, this.pageAnchorIndex];
+        this.selectedMediaIds = new Set(media.slice(first, last + 1).map((item) => item.index));
+        this.navigateToPage(toIndex);
+        this.announce(`${this.selectedMediaIds.size} ${this.selectedMediaIds.size === 1 ? 'pagina selezionata' : 'pagine selezionate'}`);
     }
 
     protected setActivePage(pageIndex: number): void {
@@ -425,6 +660,7 @@ export class ScoreWorkspaceComponent implements OnChanges {
         }
         if (event.key === ' ') {
             event.preventDefault();
+            this.pageAnchorIndex = pageIndex;
             this.toggleMedia(mediaId);
         }
         if (event.ctrlKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
@@ -434,7 +670,9 @@ export class ScoreWorkspaceComponent implements OnChanges {
         }
         if (!event.ctrlKey && ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(event.key)) {
             event.preventDefault();
-            this.navigateToPage(pageIndex + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1));
+            const step = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+            if (event.shiftKey) this.extendPageSelection(pageIndex, pageIndex + step);
+            else this.navigateToPage(pageIndex + step);
         }
     }
 

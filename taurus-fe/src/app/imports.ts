@@ -24,6 +24,7 @@ import { ImageModule } from 'primeng/image';
 import { MessageModule } from 'primeng/message';
 import { OrderListModule } from 'primeng/orderlist';
 import { PopoverModule } from 'primeng/popover';
+import { ScrollerModule } from 'primeng/scroller';
 import { ScrollTopModule } from 'primeng/scrolltop';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -89,6 +90,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         PopoverModule,
         TooltipModule,
         CheckboxModule,
+        ScrollerModule,
         ScrollTopModule,
         DragDropModule,
         ToggleButtonModule,
@@ -151,6 +153,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         PopoverModule,
         TooltipModule,
         CheckboxModule,
+        ScrollerModule,
         ScrollTopModule,
         DragDropModule,
         ToggleButtonModule,

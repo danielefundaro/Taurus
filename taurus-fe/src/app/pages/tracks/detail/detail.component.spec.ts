@@ -1,10 +1,14 @@
-import { TrackUploadJob, Tracks } from '../../../module';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { fakeAsync, tick } from '@angular/core/testing';
+import { SheetsMusic, TrackUploadJob, Tracks } from '../../../module';
+import { of, throwError } from 'rxjs';
 import { RoleEnums } from '../../../constants';
+import { UxTelemetryService } from '../../../service';
 import { DetailComponent } from './detail.component';
 
 describe('Track DetailComponent', () => {
     const tenantFeatures = { scorePlaybackEnabled: () => false, loaded: () => true } as any;
+    const telemetry = (): jasmine.SpyObj<UxTelemetryService> => jasmine.createSpyObj<UxTelemetryService>('UxTelemetryService', ['start', 'record', 'flush']);
 
     it('loads upload jobs only once during initialization', () => {
         const tracksService = jasmine.createSpyObj('TracksService', ['getById', 'getUploadJobs']);
@@ -14,7 +18,7 @@ describe('Track DetailComponent', () => {
         instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
         const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => null } } };
         const keycloakService = { currentUserRole: RoleEnums.ARCHIVIST };
-        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures, telemetry());
 
         component.ngOnInit();
 
@@ -30,7 +34,7 @@ describe('Track DetailComponent', () => {
             instrumentsService.getAll.and.returnValue(of({ content: [], totalElements: 0 }));
             const route = { params: of({ id: 8 }), snapshot: { queryParamMap: { get: () => 'pdf' } } };
             const keycloakService = { currentUserRole: role, isUser: role === RoleEnums.USER, isUserExternal: role === RoleEnums.USER_EXTERNAL };
-            const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures);
+            const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures, telemetry());
 
             component.ngOnInit();
 
@@ -51,7 +55,7 @@ describe('Track DetailComponent', () => {
             const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, {
                 scorePlaybackEnabled: () => enabled,
                 loaded: () => true
-            } as any);
+            } as any, telemetry());
             component.ngOnInit();
             return component['activeTab'];
         };
@@ -76,7 +80,7 @@ describe('Track DetailComponent', () => {
                 return of({});
             })
         };
-        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures as any);
+        const component = new DetailComponent(tracksService, instrumentsService, null!, keycloakService as any, null!, route as any, null!, null!, null!, tenantFeatures as any, telemetry());
 
         component.ngOnInit();
 
@@ -85,7 +89,7 @@ describe('Track DetailComponent', () => {
     });
 
     it('treats details and parts as one track save unit', () => {
-        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
 
         component['onScoresDirtyChange'](true);
         expect(component.isDirtyForm).toBeTrue();
@@ -97,7 +101,7 @@ describe('Track DetailComponent', () => {
 
     it('replaces one source page with every generated crop image', () => {
         const toastService = jasmine.createSpyObj('ToastService', ['success']);
-        const component = new DetailComponent(null!, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(null!, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures, telemetry());
         component['track'] = {
             id: 4,
             version: 2,
@@ -121,7 +125,7 @@ describe('Track DetailComponent', () => {
     });
 
     it('names every upload state in Italian and tells the pending ones apart', () => {
-        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
 
         expect(component['uploadStatusLabel']('TO_PROCESS')).toBe('In coda');
         expect(component['uploadStatusLabel']('IN_PROGRESS')).toBe('Elaborazione in corso');
@@ -137,7 +141,7 @@ describe('Track DetailComponent', () => {
         const tracksService = jasmine.createSpyObj('TracksService', ['uploadPdf']);
         const toastService = jasmine.createSpyObj('ToastService', ['success']);
         tracksService.uploadPdf.and.returnValue(of({ id: 12, name: 'partitura.pdf', trackId: 8, status: 'TO_PROCESS' }));
-        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures, telemetry());
         component['track'] = { id: 8 } as Tracks;
         component['uploadJobs'] = [{ id: 11, name: 'vecchio.pdf', trackId: 8, status: 'DONE' }];
 
@@ -153,7 +157,7 @@ describe('Track DetailComponent', () => {
         const tracksService = jasmine.createSpyObj('TracksService', ['retryUploadJob']);
         const toastService = jasmine.createSpyObj('ToastService', ['success']);
         tracksService.retryUploadJob.and.returnValue(of({ id: 12, name: 'partitura.pdf', trackId: 8, status: 'TO_PROCESS' }));
-        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures, telemetry());
         component['track'] = { id: 8 } as Tracks;
         const failed: TrackUploadJob = { id: 12, name: 'partitura.pdf', trackId: 8, status: 'ERROR' };
         component['uploadJobs'] = [failed];
@@ -166,7 +170,7 @@ describe('Track DetailComponent', () => {
     });
 
     it('shows at most the five most recent jobs', () => {
-        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures);
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
         component['uploadJobs'] = Array.from({ length: 7 }, (ignored, index) => ({
             id: index,
             name: `file-${index}.pdf`,
@@ -176,4 +180,123 @@ describe('Track DetailComponent', () => {
 
         expect(component['visibleUploadJobs'].map((job) => job.id)).toEqual([0, 1, 2, 3, 4]);
     });
+    it('asks the browser to confirm a refresh only while the draft has changes', () => {
+        const listened: string[] = [];
+        spyOn(window, 'addEventListener').and.callFake((type: string) => listened.push(type));
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+
+        component['watchBrowserExit']();
+        const guard = component['browserExitGuard'];
+        const clean = beforeUnload();
+        guard(clean);
+        component['markDetailsDirty']();
+        const dirty = beforeUnload();
+        guard(dirty);
+
+        expect(listened).toContain('beforeunload');
+        expect(clean.preventDefault).not.toHaveBeenCalled();
+        expect(dirty.preventDefault).toHaveBeenCalled();
+    });
+
+    it('shows that everything is saved until the next change', fakeAsync(() => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['update']);
+        const toastService = jasmine.createSpyObj('ToastService', ['success']);
+        const saved: Tracks = { id: 8, version: 4, scores: [] } as Tracks;
+        tracksService.update.and.returnValue(of(saved));
+        const measures = telemetry();
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, null!, null!, null!, null!, tenantFeatures, measures);
+        component['track'] = { id: 8, version: 3, scores: [] } as Tracks;
+
+        component['save']();
+        tick(1_000);
+
+        expect(component['savedIndicator']).toBeTrue();
+        expect(measures.flush).toHaveBeenCalled();
+
+        component['onScoresDirtyChange'](true);
+        expect(component['savedIndicator']).toBeFalse();
+    }));
+
+    it('compares the draft with the server after a version conflict', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['update', 'getById']);
+        tracksService.update.and.returnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'error.version.conflict' } })));
+        const server: Tracks = { id: 8, version: 9, scores: [{ id: 1, order: 1, description: 'Clarinetto', media: [], instruments: [] }, { id: 2, order: 2, description: 'Flauto', media: [], instruments: [] }] } as Tracks;
+        tracksService.getById.and.returnValue(of(server));
+        const component = new DetailComponent(tracksService, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+        const draft: SheetsMusic[] = [{ id: 1, order: 1, description: 'Clarinetto solo', media: [], instruments: [] }];
+        component['track'] = { id: 8, version: 3, scores: draft } as Tracks;
+        component['baselineScores'] = [{ id: 1, order: 1, description: 'Clarinetto', media: [], instruments: [] }];
+
+        component['save']();
+
+        expect(component['saveError']).toBeTrue();
+        expect(component['conflict']?.serverAdded.map((score) => score.id)).toEqual([2]);
+        expect(component['conflict']?.draftChanged).toBe(1);
+        expect(component['newPartsAvailable']).toBeTrue();
+        expect(component['conflictDetail']).toContain('1 parte nuova sul server');
+        expect(component['conflictDetail']).toContain('1 parte modificata nella bozza');
+    });
+
+    it('adds the new server parts to the draft and opens the parts tab', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['getById']);
+        const toastService = jasmine.createSpyObj('ToastService', ['success']);
+        const router = jasmine.createSpyObj('Router', ['navigate']);
+        const server: Tracks = { id: 8, version: 9, scores: [{ id: 1, order: 1, media: [], instruments: [] }, { id: 2, order: 2, media: [], instruments: [] }] } as Tracks;
+        tracksService.getById.and.returnValue(of(server));
+        const component = new DetailComponent(tracksService, null!, null!, null!, toastService, { snapshot: {} } as any, router, null!, null!, tenantFeatures, telemetry());
+        component['track'] = { id: 8, version: 3, scores: [{ id: 1, order: 1, description: 'Rinominata', media: [], instruments: [] }] } as Tracks;
+        component['newPartsAvailable'] = true;
+
+        component['reloadAndContinue']();
+
+        expect(component['track'].scores?.map((score) => score.id)).toEqual([1, 2]);
+        expect(component['track'].scores?.[0].description).toBe('Rinominata');
+        expect(component['track'].version).toBe(9);
+        expect(component['baselineScores']).toHaveSize(2);
+        expect(component['newPartsAvailable']).toBeFalse();
+        expect(component['activeTab']).toBe('parts');
+    });
+
+    it('notices the parts of a completed job when the browser tab comes back', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['getUploadJobs']);
+        tracksService.getUploadJobs.and.returnValue(of([{ id: 12, name: 'partitura.pdf', trackId: 8, status: 'DONE' }]));
+        const keycloakService = { currentUserRole: RoleEnums.ARCHIVIST };
+        const component = new DetailComponent(tracksService, null!, null!, keycloakService as any, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+        component['track'] = { id: 8 } as Tracks;
+        component['uploadJobs'] = [{ id: 12, name: 'partitura.pdf', trackId: 8, status: 'IN_PROGRESS' }];
+
+        component['onVisibilityChange']();
+
+        expect(tracksService.getUploadJobs).toHaveBeenCalledOnceWith(8);
+        expect(component['newPartsAvailable']).toBeTrue();
+    });
+
+    it('reads the jobs again only when one was still being processed', () => {
+        const tracksService = jasmine.createSpyObj('TracksService', ['getUploadJobs']);
+        const keycloakService = { currentUserRole: RoleEnums.ARCHIVIST };
+        const component = new DetailComponent(tracksService, null!, null!, keycloakService as any, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+        component['track'] = { id: 8 } as Tracks;
+        component['uploadJobs'] = [{ id: 12, name: 'partitura.pdf', trackId: 8, status: 'DONE' }];
+
+        component['onVisibilityChange']();
+
+        expect(tracksService.getUploadJobs).not.toHaveBeenCalled();
+        expect(component['newPartsAvailable']).toBeFalse();
+    });
+
+    it('opens the parts session of the telemetry when the tab is opened', () => {
+        const router = jasmine.createSpyObj('Router', ['navigate']);
+        const measures = telemetry();
+        const component = new DetailComponent(null!, null!, null!, null!, null!, { snapshot: {} } as any, router, null!, null!, tenantFeatures, measures);
+
+        component['onTabChange']('parts');
+        component['onUxEvent']('merge');
+
+        expect(measures.start).toHaveBeenCalledOnceWith('track-parts-workspace');
+        expect(measures.record).toHaveBeenCalledOnceWith('merge');
+    });
 });
+
+function beforeUnload(): BeforeUnloadEvent {
+    return { preventDefault: jasmine.createSpy('preventDefault'), returnValue: undefined } as unknown as BeforeUnloadEvent;
+}

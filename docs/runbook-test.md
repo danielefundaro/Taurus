@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 53% istruzioni, 44% branch e 55% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 56% istruzioni, 47% branch e 58% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -284,7 +284,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (55% istruzioni, 46% branch, 56% linee, misurati sul ramo principale; alzata con le spec delle preferenze di notifica). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (56% istruzioni, 47% branch, 58% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -294,7 +294,7 @@ npm run e2e:install
 npm run e2e
 ```
 
-La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e mobile e richiede un'istanza completa — dipendenze, backend, frontend — più due tenant di prova con utenti per ruolo. Credenziali e codici tenant arrivano dalle variabili d'ambiente descritte in `taurus-fe/e2e/README.md`: nel repository non vive nessuna credenziale e, senza quelle variabili, le prove si saltano invece di fallire. Le prove coprono il menu per ruolo, il nome del tenant nella topbar e l'indirizzo di una traccia non raggiungibile dall'altro tenant. I selettori non sono ancora stati calibrati su un'istanza reale: finché la prima esecuzione non è registrata la suite non è un gate di rilascio.
+La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e mobile e richiede un'istanza completa — dipendenze, backend, frontend — più due tenant di prova con utenti per ruolo. Credenziali e codici tenant arrivano dalle variabili d'ambiente descritte in `taurus-fe/e2e/README.md`: nel repository non vive nessuna credenziale e, senza quelle variabili, le prove si saltano invece di fallire. Le prove coprono il menu per ruolo, il nome del tenant nella topbar, l'indirizzo di una traccia non raggiungibile dall'altro tenant, il gate di accessibilità e, con `specs/track-parts-workspace.spec.ts`, il workspace delle parti: frecce e Maiusc sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera, conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. La prova prestazionale dello stesso file vuole una traccia già preparata con 200 parti e 1.000 pagine, indicata in `E2E_LARGE_TRACK_ID`, e senza quella variabile si salta; la misura delle stesse dimensioni su operazioni, filtro e soglia di virtualizzazione vive nei test di componente di `npm run test:coverage`. I selettori non sono ancora stati calibrati su un'istanza reale: finché la prima esecuzione non è registrata la suite non è un gate di rilascio.
 
 ### 8.4 Provider Keycloak
 

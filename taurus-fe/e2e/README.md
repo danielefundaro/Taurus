@@ -11,7 +11,12 @@ Le prove sono in `specs`:
   traccia non raggiungibile dall'altro tenant;
 - `accessibility.spec.ts`: axe-core con le regole WCAG 2.1 A e AA sulla pagina di accesso e sulle
   pagine principali di un amministratore. Lo scanner trova le violazioni automatiche, non tutte: la
-  verifica a mano con tastiera e lettore di schermo resta nel runbook.
+  verifica a mano con tastiera e lettore di schermo resta nel runbook;
+- `track-parts-workspace.spec.ts`: il workspace delle parti con un archivista — frecce e Maiusc
+  sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera,
+  conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. Le prove si saltano
+  se la traccia aperta non ha almeno due parti e una pagina, perché il workspace non crea pagine:
+  nascono dall'elaborazione di un PDF.
 
 ## Prerequisiti
 
@@ -33,6 +38,7 @@ quando non sono configurati.
 | `E2E_FIRST_ADMIN_USERNAME`, `E2E_FIRST_ADMIN_PASSWORD` | Amministratore del primo tenant |
 | `E2E_FIRST_<RUOLO>_USERNAME`, `E2E_FIRST_<RUOLO>_PASSWORD` | Altri ruoli del primo tenant |
 | `E2E_SECOND_<RUOLO>_USERNAME`, `E2E_SECOND_<RUOLO>_PASSWORD` | Ruoli del secondo tenant |
+| `E2E_LARGE_TRACK_ID` | Traccia del primo tenant con 200 parti e 1.000 pagine, per il gate prestazionale del workspace; senza di essa quella prova si salta |
 
 I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.
 

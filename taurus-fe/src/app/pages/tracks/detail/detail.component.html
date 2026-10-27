@@ -4,7 +4,7 @@
 }
 <p-fluid [class.hidden]="loading">
     <app-page-header kicker="Traccia" [heading]="track.name || 'Nuova traccia'" backLink="/tracks" [dirty]="isDirty"
-        [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
+        [saved]="savedIndicator" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
         <div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
         <div pageActions class="flex gap-2">
             <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
@@ -15,9 +15,15 @@
     </app-page-header>
 
     @if (saveError) {
-    <app-inline-alert severity="error" heading="Modifiche non salvate"
-        detail="La bozza è rimasta in memoria. Puoi continuare a lavorare oppure riprovare il salvataggio."
-        actionLabel="Riprova" (action)="save()" />
+    <app-inline-alert severity="error" heading="Modifiche non salvate" [detail]="conflictDetail"
+        [actionLabel]="conflict ? 'Ricarica e continua' : 'Riprova'" secondaryActionLabel="Riprova"
+        (action)="conflict ? reloadAndContinue() : save()" (secondaryAction)="save()" />
+    }
+    @if (newPartsAvailable && !saveError) {
+    <app-inline-alert severity="info" heading="Nuove parti disponibili"
+        detail="L’elaborazione di un PDF ha aggiunto parti che la bozza non ha ancora. Finché non ti riallinei, il salvataggio non andrebbe a buon fine."
+        actionLabel="Ricarica e continua" secondaryActionLabel="Salva prima" (action)="reloadAndContinue()"
+        (secondaryAction)="reloadAndContinue(true)" />
     }
     <div class="detail-page__zones">
         <p-tabs class="track-tabs" [value]="activeTab" [scrollable]="true" (valueChange)="onTabChange($event)">
@@ -76,10 +82,11 @@
                 <p-tabpanel value="parts">
                     <app-detail-section heading="Parti" [count]="track.scores?.length ?? 0"
                         description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
-                        <app-score-workspace [scores]="track.scores ?? []" [instruments]="instruments"
-                            [readOnly]="isUser" [saving]="saving" [trackDirty]="isDirty"
+                        <app-score-workspace [scores]="track.scores ?? []" [baseline]="baselineScores"
+                            [instruments]="instruments" [readOnly]="isUser" [saving]="saving" [trackDirty]="isDirty"
                             (scoresChange)="onScoresChange($event)" (dirtyChange)="onScoresDirtyChange($event)"
-                            (imageEdit)="openImageEditor($event)" />
+                            (imageEdit)="openImageEditor($event)" (uxEvent)="onUxEvent($event)"
+                            (pdfRequested)="openPdfTab()" />
                     </app-detail-section>
                 </p-tabpanel>
 

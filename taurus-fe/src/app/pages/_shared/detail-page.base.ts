@@ -48,6 +48,26 @@ export abstract class DetailPageBase implements HasUnsavedChanges {
         return this.dirtyUnits.has(label);
     }
 
+    /**
+     * Conferma del browser prima di un refresh o della chiusura della scheda con modifiche non
+     * salvate. La guardia di navigazione copre solo i cambi di route dentro l'applicazione: fuori
+     * resta questo, l'unico avviso che il browser concede, con il suo testo e non il nostro.
+     * Le pagine che lo vogliono lo attivano in `ngOnInit` e lo rilasciano in `ngOnDestroy`.
+     */
+    private readonly browserExitGuard = (event: BeforeUnloadEvent): void => {
+        if (!this.isDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    };
+
+    protected watchBrowserExit(): void {
+        window.addEventListener('beforeunload', this.browserExitGuard);
+    }
+
+    protected releaseBrowserExit(): void {
+        window.removeEventListener('beforeunload', this.browserExitGuard);
+    }
+
     /** Azzera ogni unità: si usa dopo un'eliminazione o un ricaricamento completo. */
     protected clearDirtyUnits(): void {
         this.formDirty = false;
