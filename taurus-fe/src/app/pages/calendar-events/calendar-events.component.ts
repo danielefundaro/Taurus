@@ -7,10 +7,29 @@ import { delay, finalize, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
 import { AddCalendarEventsDialogComponent } from '../../dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component';
 import { ImportsModule } from '../../imports';
-import { CalendarEventDialogResult, CalendarEvents, CalendarEventSeries, CalendarEventsCriteria, Page, Users, UsersCriteria } from '../../module';
-import { DateFilter, StringFilter } from '../../module/criteria/filter';
-import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, KeycloakService, ListLayout, ListLayoutService, ToastService, UsersService } from '../../service';
+import { CalendarEventDialogResult, CalendarEvents, CalendarEventSeries, CalendarEventsCriteria, DashboardCalendarAttention, Page, Users, UsersCriteria } from '../../module';
+import { DateFilter, LongFilter, StringFilter } from '../../module/criteria/filter';
+import {
+    CalendarEventSeriesService,
+    CalendarEventsService,
+    ConfirmService,
+    KeycloakService,
+    ListLayout,
+    ListLayoutService,
+    OperationalDashboardService,
+    ToastService,
+    UsersService
+} from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
+
+type CalendarAttention = 'my-missing-availability' | 'missing-availability' | DashboardCalendarAttention;
+
+const ATTENTION_DETAILS: Record<CalendarAttention, string> = {
+    'my-missing-availability': 'Sono mostrati gli eventi futuri a cui devi ancora rispondere.',
+    'missing-availability': 'Sono mostrati gli eventi futuri con almeno una risposta attesa mancante.',
+    'event-preparation': 'Sono mostrati gli eventi con la preparazione bloccata o da verificare: gli stessi contati dalla dashboard.',
+    'event-follow-up': 'Sono mostrati gli eventi conclusi con le attività successive ancora da completare.'
+};
 
 interface CalendarDay {
     date: Date;
@@ -34,8 +53,9 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     protected events: CalendarEvents[] = [];
     protected selectedEvents: CalendarEvents[] = [];
     protected readonly RolesEnum: typeof RoleEnums = RoleEnums;
-    protected attention?: 'my-missing-availability' | 'missing-availability';
+    protected attention?: CalendarAttention;
     private attentionUsers: Users[] = [];
+    private attentionEventIds?: number[];
     private attentionContextReady = false;
     private attentionContextLoading = false;
 
@@ -56,7 +76,8 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
         private readonly listLayoutService: ListLayoutService,
         private readonly route: ActivatedRoute,
         private readonly usersService: UsersService,
-        private readonly keycloakService: KeycloakService
+        private readonly keycloakService: KeycloakService,
+        private readonly operationalDashboardService: OperationalDashboardService
     ) {
         super();
         this.dataViewLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: 1 };
@@ -65,8 +86,8 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     ngOnInit(): void {
         this.initializeListState('calendar-events');
         const attention = this.route.snapshot.queryParamMap.get('attention');
-        if (attention && ['my-missing-availability', 'missing-availability'].includes(attention)) {
-            this.attention = attention as typeof this.attention;
+        if (attention && Object.keys(ATTENTION_DETAILS).includes(attention)) {
+            this.attention = attention as CalendarAttention;
         }
         this.sortOptions = [
             { label: 'Data ↑', value: 'startDate' },
@@ -75,6 +96,10 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
             { label: 'Nome Z-A', value: '!name' }
         ];
         this.listLayoutService.observe('calendar', (value) => this.applyLayout(this.attention ? 'list' : value));
+    }
+
+    protected get attentionDetail(): string {
+        return this.attention ? ATTENTION_DETAILS[this.attention] : '';
     }
 
     protected onLayoutChange(value: ListLayout): void {
@@ -243,6 +268,10 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     }
 
     protected loadElements(search?: string): void {
+        if (this.attention === 'event-preparation' || this.attention === 'event-follow-up') {
+            this.loadAttentionEvents(this.attention, search);
+            return;
+        }
         if (this.attention && !this.attentionContextReady) {
             this.loadAttentionContext();
             return;
@@ -276,6 +305,64 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
                     const filtered = this.attention ? value.content.filter((event) => this.matchesAttention(event)) : value.content;
                     this.totalRecords = this.attention ? filtered.length : value.totalElements;
                     this.events = this.attention ? filtered.slice(this.pageIndex * this.pageSize, (this.pageIndex + 1) * this.pageSize) : filtered;
+                }
+            });
+    }
+
+    /**
+     * Le righe di preparazione hanno criteri che il client non può ricalcolare: il server restituisce gli eventi che ha
+     * contato e l'elenco li pagina come ogni altra ricerca.
+     */
+    private loadAttentionEvents(attention: DashboardCalendarAttention, search?: string): void {
+        if (!this.attentionEventIds) {
+            if (this.attentionContextLoading) return;
+            this.attentionContextLoading = true;
+            this.loading = true;
+            this.operationalDashboardService
+                .getAttentionEvents(attention)
+                .pipe(
+                    first(),
+                    finalize(() => {
+                        this.attentionContextLoading = false;
+                        this.loading = false;
+                    })
+                )
+                .subscribe({
+                    next: (ids) => {
+                        this.attentionEventIds = ids;
+                        this.loadAttentionEvents(attention, search);
+                    }
+                });
+            return;
+        }
+        this.selectedEvents = [];
+        if (this.attentionEventIds.length === 0) {
+            // Un filtro "in" vuoto non filtra: senza eventi da mostrare non si interroga il server.
+            this.events = [];
+            this.totalRecords = 0;
+            return;
+        }
+        this.loading = true;
+        const criteria = new CalendarEventsCriteria();
+        criteria.page = this.pageIndex;
+        criteria.size = this.pageSize;
+        criteria.sort = this.sortCriteria;
+        criteria.id = new LongFilter();
+        criteria.id.in = this.attentionEventIds;
+        if (search) {
+            criteria.name = new StringFilter();
+            criteria.name.contains = search;
+        }
+        this.calendarEventsService
+            .getAll(criteria)
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
+            .subscribe({
+                next: (value: Page<CalendarEvents>) => {
+                    this.totalRecords = value.totalElements;
+                    this.events = value.content;
                 }
             });
     }

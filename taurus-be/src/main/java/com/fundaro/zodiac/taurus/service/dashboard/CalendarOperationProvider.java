@@ -14,6 +14,8 @@ import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalItemDTO;
+import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.ClosureStatus;
+import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService.DashboardEntry;
@@ -76,41 +78,86 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
         List<OperationalItemDTO> result = new ArrayList<>();
         ZonedDateTime limit = context.generatedAt().plusDays(properties.getCalendarLookAheadDays());
-        List<DashboardEntry> preparationEntries = preparationEntries(context, limit);
-        Set<Long> preparationAvailabilityEvents = preparationEntries.stream()
+        PreparationGroups preparation = preparationGroups(context, limit);
+        // Only an event already counted by a preparation row leaves the missing responses: one between seven and
+        // fourteen days with the sole availability warning is in no preparation row and stays there.
+        Set<Long> preparationAvailabilityEvents = java.util.stream.Stream.concat(preparation.blocked().stream(), preparation.attention().stream())
             .filter(entry -> entry.issueCodes().contains("AVAILABILITY_INCOMPLETE"))
             .map(DashboardEntry::eventId)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
         personalOperation(context, limit).ifPresent(result::add);
         administrativeOperation(context, limit, preparationAvailabilityEvents).ifPresent(result::add);
-        result.addAll(preparationOperations(context, preparationEntries));
+        result.addAll(preparationOperations(preparation));
         return result;
     }
 
-    private List<DashboardEntry> preparationEntries(DashboardRequestContext context, ZonedDateTime limit) {
-        if (eventPreparationService == null
-            || tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.EVENT_PREPARATION)
-            || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return List.of();
-        return eventPreparationService.dashboardEntries(context.generatedAt().minusDays(30), limit);
+    /**
+     * The events behind the preparation rows, nearest first: the calendar list opened by {@code attention} shows exactly
+     * the events counted by the dashboard.
+     */
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+    public List<Long> attentionEventIds(DashboardRequestContext context, CalendarAttention attention) {
+        PreparationGroups preparation = preparationGroups(context, context.generatedAt().plusDays(properties.getCalendarLookAheadDays()));
+        java.util.stream.Stream<DashboardEntry> entries = switch (attention) {
+            case EVENT_PREPARATION -> java.util.stream.Stream.concat(preparation.blocked().stream(), preparation.attention().stream());
+            case EVENT_FOLLOW_UP -> preparation.followUp().stream();
+        };
+        return entries
+            .sorted(java.util.Comparator.comparing(DashboardEntry::dueAt).thenComparing(DashboardEntry::eventId))
+            .map(DashboardEntry::eventId)
+            .distinct()
+            .toList();
     }
 
-    private List<OperationalItemDTO> preparationOperations(DashboardRequestContext context, List<DashboardEntry> entries) {
+    /**
+     * Calendar filters whose events only the dashboard knows, because they derive from the evaluation of the preparation.
+     */
+    public enum CalendarAttention {
+        EVENT_PREPARATION("event-preparation"),
+        EVENT_FOLLOW_UP("event-follow-up");
+
+        private final String parameter;
+
+        CalendarAttention(String parameter) {
+            this.parameter = parameter;
+        }
+
+        public static java.util.Optional<CalendarAttention> fromParameter(String value) {
+            return java.util.Arrays.stream(values()).filter(attention -> attention.parameter.equals(value)).findFirst();
+        }
+    }
+
+    private record PreparationGroups(List<DashboardEntry> blocked, List<DashboardEntry> attention, List<DashboardEntry> followUp) {
+        static final PreparationGroups EMPTY = new PreparationGroups(List.of(), List.of(), List.of());
+    }
+
+    private PreparationGroups preparationGroups(DashboardRequestContext context, ZonedDateTime limit) {
+        if (eventPreparationService == null
+            || tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.EVENT_PREPARATION)
+            || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return PreparationGroups.EMPTY;
+        List<DashboardEntry> entries = eventPreparationService.dashboardEntries(context.generatedAt().minusDays(30), limit);
+        ZonedDateTime now = context.generatedAt();
+        return new PreparationGroups(
+            entries.stream()
+                .filter(entry -> !entry.dueAt().isBefore(now) && entry.preparationStatus() == PreparationStatus.BLOCKED)
+                .toList(),
+            entries.stream()
+                .filter(entry -> !entry.dueAt().isBefore(now) && !entry.dueAt().isAfter(now.plusDays(7)) && entry.preparationStatus() == PreparationStatus.ATTENTION)
+                .toList(),
+            entries.stream()
+                .filter(entry -> entry.closureStatus() == ClosureStatus.TO_CLOSE)
+                .toList()
+        );
+    }
+
+    private static List<OperationalItemDTO> preparationOperations(PreparationGroups preparation) {
         List<OperationalItemDTO> result = new ArrayList<>();
-        List<DashboardEntry> blocked = entries.stream()
-            .filter(entry -> !entry.dueAt().isBefore(context.generatedAt()) && entry.preparationStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus.BLOCKED)
-            .toList();
-        List<DashboardEntry> attention = entries.stream()
-            .filter(entry -> !entry.dueAt().isBefore(context.generatedAt()) && !entry.dueAt().isAfter(context.generatedAt().plusDays(7)) && entry.preparationStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.PreparationStatus.ATTENTION)
-            .toList();
-        List<DashboardEntry> followUp = entries.stream()
-            .filter(entry -> entry.closureStatus() == com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.ClosureStatus.TO_CLOSE)
-            .toList();
-        if (!blocked.isEmpty())
-            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_BLOCKED, DashboardSeverity.DANGER, blocked, "Eventi con preparazione bloccata", "Completa la preparazione", "/calendar?attention=event-preparation"));
-        if (!attention.isEmpty())
-            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_ATTENTION, DashboardSeverity.WARNING, attention, "Eventi da verificare", "Verifica la preparazione", "/calendar?attention=event-preparation"));
-        if (!followUp.isEmpty())
-            result.add(preparationItem(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, DashboardSeverity.WARNING, followUp, "Eventi da chiudere", "Completa le attività successive", "/calendar?attention=event-follow-up"));
+        if (!preparation.blocked().isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_BLOCKED, DashboardSeverity.DANGER, preparation.blocked(), "Eventi con preparazione bloccata", "Completa la preparazione", "/calendar?attention=event-preparation"));
+        if (!preparation.attention().isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_PREPARATION_ATTENTION, DashboardSeverity.WARNING, preparation.attention(), "Eventi da verificare", "Verifica la preparazione", "/calendar?attention=event-preparation"));
+        if (!preparation.followUp().isEmpty())
+            result.add(preparationItem(DashboardOperationType.EVENT_FOLLOW_UP_REQUIRED, DashboardSeverity.WARNING, preparation.followUp(), "Eventi da chiudere", "Completa le attività successive", "/calendar?attention=event-follow-up"));
         return result;
     }
 

@@ -2,11 +2,13 @@ package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.service.OperationalDashboardService;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalDashboardDTO;
+import java.util.List;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -24,5 +26,19 @@ public class OperationalDashboardResource {
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noStore())
             .body(service.getOperations(authentication));
+    }
+
+    /**
+     * Identifiers of the events counted by a preparation row, for {@code /calendar?attention=event-preparation} and
+     * {@code /calendar?attention=event-follow-up}. Reserved to administrators by {@code SecurityConfiguration}.
+     */
+    @GetMapping("/operations/calendar-events")
+    public ResponseEntity<List<Long>> getAttentionEvents(
+        @RequestParam("attention") String attention,
+        AbstractAuthenticationToken authentication
+    ) {
+        return ResponseEntity.ok()
+            .cacheControl(CacheControl.noStore())
+            .body(service.getAttentionEvents(authentication, attention));
     }
 }

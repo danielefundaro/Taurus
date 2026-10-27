@@ -129,6 +129,9 @@ public class SecurityConfiguration {
                     // Endpoints available to every authenticated user.
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/dashboard/operations").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/dashboard/operations/calendar-events")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .requestMatchers("/api/dashboard/**").denyAll()
                     .requestMatchers(HttpMethod.POST, "/api/logout").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/legal/status").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/legal/acceptances").authenticated()

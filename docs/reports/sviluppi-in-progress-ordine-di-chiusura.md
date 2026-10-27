@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 13, 16, 17, 18 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 12, 14 e 15.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 13, 16, 17, 18 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 14 e 15.
 
 ## 1. `web-push-reminders`
 
@@ -165,6 +165,8 @@ L'integrazione con RabbitMQ reale arriva dal lotto 7; il resto è lavoro contenu
 
 I primi due punti sono gli stessi che `event-preparation` elenca fra i propri requisiti aperti: farli qui li chiude in entrambe le voci.
 
+> Chiuso il 2026-10-27: la voce è passata a `implemented`. I due collegamenti di preparazione filtrano l'elenco del calendario con gli eventi che il server ha contato, letti da `GET /api/dashboard/operations/calendar-events` e paginati con `id.in`: righe e filtro usano la stessa selezione, che decide anche la deduplicazione, per cui l'evento fra sette e quattordici giorni con il solo avviso sulle disponibilità resta fra le risposte mancanti. La soglia `inventory-warning-days` era già validata all'avvio e ora ha il suo test. La dashboard dimentica lo snapshot quando il tenant del token cambia, scarta una risposta arrivata dopo il cambio e ricarica subito al ritorno sulla finestra. Aggiunti i test dei provider Economia, Legale e Notifiche, `DashboardSecurityConfigurationTest`, `DashboardPropertiesValidationTest` e `OperationalDashboardIT` su PostgreSQL, con due tenant omonimi, il risultato parziale e il dataset realistico — 150 persone, 700 eventi e 73.500 risposte, 1.500 movimenti, 2.000 assegnazioni, 5.000 notifiche — su cui `p95` resta sotto i 200 ms con 11 query e i piani generici, scritti in `target/dashboard-query-plans.txt`, non chiedono nuovi indici a questi volumi. La suite e2e `operational-dashboard.spec.ts` copre profili, collegamenti, tastiera, axe-core e layout a 320, 768 e 1280 pixel; come il resto della suite ha bisogno di un'istanza completa e non è stata eseguita. Il bilancio di query vale con la preparazione spenta: la valutazione per evento della preparazione è passata fra i requisiti aperti della voce 16.
+
 ## 11. `recurring-calendar-events`
 
 [Eventi ricorrenti del calendario](../recurring-calendar-events-spec.md) — difficoltà medio-alta.
@@ -261,7 +263,7 @@ Il grosso è interfaccia e rendicontazione, ma tocca denaro: i controlli di conc
 - Concorrenza: versione e `409` anche per programma e materiali, oggi previsti solo per la configurazione; limiti di 100 voci programma e 100 righe materiale.
 - Notifiche: conferma materiale invalidata e notifica materiali con oggetto e quantità.
 - Frontend: scomposizione del dettaglio (oggi un monolite da circa 970 righe) in componenti per area, con navigazione ad ancore, azione «Mostra criticità» e gestione del focus.
-- Dashboard: i due punti già elencati nella voce 10.
+- Dashboard: i due punti della voce 10 sono chiusi con quella voce; resta la valutazione degli eventi della dashboard con query aggregate invece che per evento, perché le righe di preparazione stiano nel bilancio di query.
 - Osservabilità: cinque metriche Micrometer a cardinalità limitata e log strutturati; oggi lo scheduler registra solo l'errore di elaborazione di un tenant.
 - Test backend, frontend ed end to end mancanti, accessibilità e prestazioni comprese.
 

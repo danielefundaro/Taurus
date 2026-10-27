@@ -438,6 +438,9 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'eventPreparation.participants.required': 'Indicare il numero minimo di partecipanti',
     'eventPreparation.versionConflict': "La configurazione è stata modificata da un'altra richiesta: ricaricare la pagina",
 
+    // Operational dashboard
+    'dashboard.attention.invalid': 'Filtro delle attività non riconosciuto',
+
     // Calendar: recurring series, reminders and feeds
     'calendar.series.request.invalid': "Indicare l'evento modello e la ricorrenza",
     'calendar.series.template.invalid': "Indicare nome e data di inizio dell'evento",

@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 56% istruzioni, 48% branch e 58% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 68% linee e 52% branch sulla suite intera, frontend 57% istruzioni, 48% branch e 59% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -257,6 +257,14 @@ Percorso completo di un caricamento PDF, con PostgreSQL e RabbitMQ reali:
 
 `UploadJobPipelineIT` carica un PDF vero e segue la catena intera: commit, pubblicazione, consumo, conversione, creazione delle parti e job a `DONE`. Copre anche il consumatore fermato e riavviato con un job in coda, il nuovo tentativo di un job in errore, il recupero di un job rimasto in elaborazione e l'isolamento fra tenant. Serve Docker.
 
+Dashboard operativa su PostgreSQL, con le prestazioni su un dataset realistico:
+
+```powershell
+.\mvnw.cmd "-Dit.test=OperationalDashboardIT" verify
+```
+
+`OperationalDashboardIT` verifica le voci di ogni profilo su dati veri — utenti inattivi, eventi cancellati, in bozza o esclusi da una serie, restituzioni parziali, esercizi riportati, consegne fallite —, due tenant con dati omonimi e lo stesso utente, e il risultato `PARTIAL` quando la tabella dei movimenti non si legge. La prova di carico prepara 150 persone, 700 eventi con 73.500 risposte, 1.500 movimenti, 2.000 assegnazioni con revisioni e prese visione e 5.000 notifiche, poi misura `p95` della richiesta e di ogni provider, query per richiesta e dimensione della risposta, e fallisce oltre 500 ms, 200 ms, 12 query o 32 kB. Numeri e piani generici di PostgreSQL di ogni query finiscono in `taurus-be/target/dashboard-query-plans.txt`: al 2026-10-27 le sole scansioni sequenziali su tabelle che crescono sono quelle di prese visione dell'inventario e outbox, accettabili a questi volumi come spiega la [specifica](operational-dashboard-spec.md#misura-su-dataset-realistico); una nuova scansione su una tabella grande è il segnale per un indice. Serve Docker.
+
 Broker RabbitMQ reale:
 
 ```powershell
@@ -267,7 +275,7 @@ Broker RabbitMQ reale:
 
 I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
 
-La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,64 e 0,47, appena sotto la copertura misurata (66,1% linee e 49,7% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,68 e 0,52, appena sotto la copertura misurata il 2026-10-27 (69,6% linee e 53,4% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
@@ -294,7 +302,7 @@ npm run e2e:install
 npm run e2e
 ```
 
-La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e mobile e richiede un'istanza completa — dipendenze, backend, frontend — più due tenant di prova con utenti per ruolo. Credenziali e codici tenant arrivano dalle variabili d'ambiente descritte in `taurus-fe/e2e/README.md`: nel repository non vive nessuna credenziale e, senza quelle variabili, le prove si saltano invece di fallire. Le prove coprono il menu per ruolo, il nome del tenant nella topbar, l'indirizzo di una traccia non raggiungibile dall'altro tenant, il gate di accessibilità e, con `specs/track-parts-workspace.spec.ts`, il workspace delle parti: frecce e Maiusc sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera, conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. La prova prestazionale dello stesso file vuole una traccia già preparata con 200 parti e 1.000 pagine, indicata in `E2E_LARGE_TRACK_ID`, e senza quella variabile si salta; la misura delle stesse dimensioni su operazioni, filtro e soglia di virtualizzazione vive nei test di componente di `npm run test:coverage`. I selettori non sono ancora stati calibrati su un'istanza reale: finché la prima esecuzione non è registrata la suite non è un gate di rilascio.
+La suite vive in `taurus-fe/e2e`, guida un browser reale sui profili desktop e mobile e richiede un'istanza completa — dipendenze, backend, frontend — più due tenant di prova con utenti per ruolo. Credenziali e codici tenant arrivano dalle variabili d'ambiente descritte in `taurus-fe/e2e/README.md`: nel repository non vive nessuna credenziale e, senza quelle variabili, le prove si saltano invece di fallire. Le prove coprono il menu per ruolo, il nome del tenant nella topbar, l'indirizzo di una traccia non raggiungibile dall'altro tenant, il gate di accessibilità e, con `specs/track-parts-workspace.spec.ts`, il workspace delle parti: frecce e Maiusc sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera, conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. Con `specs/operational-dashboard.spec.ts` copre anche la sezione «Da fare» della dashboard: voci di ogni ruolo dentro la sua matrice, collegamenti già filtrati, **Aggiorna** da tastiera, axe-core sulla sezione e layout a 320, 768 e 1280 pixel. La prova prestazionale del workspace vuole una traccia già preparata con 200 parti e 1.000 pagine, indicata in `E2E_LARGE_TRACK_ID`, e senza quella variabile si salta; la misura delle stesse dimensioni su operazioni, filtro e soglia di virtualizzazione vive nei test di componente di `npm run test:coverage`. I selettori non sono ancora stati calibrati su un'istanza reale: finché la prima esecuzione non è registrata la suite non è un gate di rilascio.
 
 ### 8.4 Provider Keycloak
 
@@ -607,6 +615,10 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `DASH-001 P1`: operazioni aggregate per ruolo senza duplicati.
 - `DASH-002 P1`: blocker, warning e follow-up ordinati e conteggiati.
 - `DASH-003 P0`: nessun dato di moduli/tenant non autorizzati.
+- `DASH-004 P1`: «Eventi con preparazione bloccata», «Eventi da verificare» ed «Eventi da chiudere» aprono il calendario con «Filtro attività applicato» e gli stessi eventi contati dalla riga; con nessun evento l'elenco è vuoto, non l'intero calendario.
+- `DASH-005 P1`: un evento fra sette e quattordici giorni con il solo avviso sulle disponibilità resta in «Risposte agli eventi mancanti»; entro sette giorni passa alla preparazione e non è contato due volte.
+- `DASH-006 P0`: con `inventory-warning-days` maggiore di `inventory-expiration-look-ahead-days` il backend non parte e il messaggio nomina le due proprietà.
+- `DASH-007 P1`: dopo un cambio di tenant la sezione «Da fare» non mostra mai, neppure durante il caricamento, le voci del tenant precedente.
 - `FLAG-001 P0`: tutti i nove flag default `false` per nuovo tenant.
 - `FLAG-002 P0`: capacità globale spenta prevale sul flag tenant acceso.
 - `FLAG-003 P0`: dipendenza spenta rende inefficace l'estensione.
@@ -790,6 +802,8 @@ k6 run -e PROFILE=smoke -e BASE_URL=http://localhost:8080 -e TOKEN=$env:TAURUS_T
 ```
 
 Le soglie dello script (`http_req_failed` sotto l'1%, p95 di 400 ms per le funzionalità, 800 ms per le liste, 1500 ms per la dashboard) servono a rilevare un peggioramento: i limiti di accettazione restano `TBD` finché SLO e volumi non vengono approvati, e lo script non è ancora stato eseguito su un ambiente con dati realistici.
+
+Per la dashboard operativa `OperationalDashboardIT` misura gli obiettivi della [specifica](operational-dashboard-spec.md#prestazioni) su un tenant con il volume di qualche anno di attività: al 2026-10-27 `p95` della richiesta completa resta sotto i 200 ms, nessun provider supera gli 80 ms, una richiesta di un amministratore esegue 11 query e la risposta pesa circa 2,4 kB. È una misura su Testcontainers, non su staging: non sostituisce il profilo dashboard di k6 sull'ambiente reale.
 
 Per l'ascolto delle parti la [specifica](track-score-playback-spec.md#copertura-della-fase-4) riporta i tempi misurati nel browser (disegno nell'editor e nel lettore, partitura di 30 parti, caricamento del SoundFont), la memoria della pagina del lettore e la durata del riconoscimento di una pagina: usarli come riferimento per accorgersi di un peggioramento, ripetendo le misure con lo stesso metodo.
 

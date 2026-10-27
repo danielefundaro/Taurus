@@ -5,8 +5,7 @@
 </app-page-header>
 
 @if (attention) {
-<app-inline-alert class="block mb-4" severity="info" heading="Filtro attività applicato"
-    [detail]="attention === 'my-missing-availability' ? 'Sono mostrati gli eventi futuri a cui devi ancora rispondere.' : 'Sono mostrati gli eventi futuri con almeno una risposta attesa mancante.'" />
+<app-inline-alert class="block mb-4" severity="info" heading="Filtro attività applicato" [detail]="attentionDetail" />
 }
 
 @if (layout === 'grid') {

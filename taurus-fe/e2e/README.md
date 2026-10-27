@@ -16,7 +16,15 @@ Le prove sono in `specs`:
   sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera,
   conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. Le prove si saltano
   se la traccia aperta non ha almeno due parti e una pagina, perché il workspace non crea pagine:
-  nascono dall'elaborazione di un PDF.
+  nascono dall'elaborazione di un PDF;
+- `operational-dashboard.spec.ts`: la sezione «Da fare» per ogni ruolo configurato — voci
+  restituite dal server dentro la matrice del ruolo, risposta `no-store`, una riga per voce o lo
+  stato vuoto —, ogni azione di un amministratore che apre la pagina già filtrata, **Aggiorna** da
+  tastiera con l'annuncio dell'esito, axe-core sulla sezione per amministratore e utente, nessuno
+  scorrimento orizzontale a 320, 768 e 1280 pixel con azioni di riga alte almeno 44 pixel. I dati
+  dei tenant di prova non sono fissati: le prove verificano invarianti, non conteggi, e quella dei
+  collegamenti si salta se l'amministratore non ha attività. Risultato parziale, isolamento fra
+  tenant con dati omonimi e obiettivi di prestazione sono in `OperationalDashboardIT` del backend.
 
 ## Prerequisiti
 

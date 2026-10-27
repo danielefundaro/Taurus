@@ -63,6 +63,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     protected operationsAnnouncement = '';
     protected readonly inventoryEnabled;
     private operationsLoadedAt = 0;
+    /** Tenant del token con cui è stato letto lo snapshot: uno snapshot di un altro tenant non si mostra mai. */
+    private operationsTenant?: string;
     private $readSubscription?: Subscription;
     private $deleteSubscription?: Subscription;
 
@@ -128,7 +130,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     @HostListener('document:visibilitychange')
     protected onVisibilityChange(): void {
-        if (document.visibilityState === 'visible' && this.operationsLoadedAt > 0 && Date.now() - this.operationsLoadedAt >= 5 * 60 * 1000) {
+        if (document.visibilityState !== 'visible' || this.operationsLoadedAt === 0) return;
+        if (this.operationsTenant !== this.keycloakService.currentUserTenantCode || Date.now() - this.operationsLoadedAt >= 5 * 60 * 1000) {
             this.loadOperations();
         }
     }
@@ -385,6 +388,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     private loadOperations(manual = false): void {
+        const tenant = this.keycloakService.currentUserTenantCode;
+        if (this.operations && this.operationsTenant !== tenant) {
+            // Cambio tenant nella sessione: lo snapshot precedente sparisce prima della nuova richiesta.
+            this.operations = undefined;
+            this.operationsLoadedAt = 0;
+        }
         const hasSnapshot = !!this.operations;
         this.operationsInitialLoading = !hasSnapshot;
         this.operationsRefreshing = hasSnapshot;
@@ -402,12 +411,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
             )
             .subscribe({
                 next: (dashboard) => {
+                    if (this.keycloakService.currentUserTenantCode !== tenant) {
+                        // Risposta del tenant precedente arrivata dopo il cambio: si scarta e si rilegge.
+                        this.operations = undefined;
+                        this.operationsLoadedAt = 0;
+                        setTimeout(() => this.loadOperations(manual));
+                        return;
+                    }
                     this.operations = dashboard;
+                    this.operationsTenant = tenant;
                     this.operationsLoadedAt = Date.now();
                     if (manual) this.operationsAnnouncement = 'Attività aggiornate.';
                 },
                 error: () => {
-                    if (hasSnapshot) this.operationsRefreshWarning = true;
+                    if (this.operationsTenant !== this.keycloakService.currentUserTenantCode) this.operations = undefined;
+                    if (this.operations) this.operationsRefreshWarning = true;
                     else this.operationsError = true;
                     if (manual) this.operationsAnnouncement = 'Aggiornamento non riuscito.';
                 }
