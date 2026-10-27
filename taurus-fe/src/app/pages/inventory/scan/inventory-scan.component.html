@@ -21,6 +21,12 @@
     <section class="card scan-card">
         <span class="text-sm text-muted-color">{{ tenantCode }} · {{ result?.inventoryNumber }}</span>
         <h1 #resultTitle tabindex="-1">{{ result?.name }}</h1>
+        @if (result?.conditionStatus) {
+        <div class="flex flex-wrap gap-2">
+            <p-tag [value]="'Stato: ' + conditionLabel(result!.conditionStatus!)"
+                [severity]="conditionSeverity(result?.conditionStatus)" />
+        </div>
+        }
         @if (adminPhotoUrl(); as photoUrl) {
         <img class="scan-photo" [src]="photoUrl | secure | async" [alt]="'Anteprima di ' + result?.name" />
         }
@@ -35,18 +41,60 @@
                 <strong>{{ result?.totalQuantity }}</strong><span>totali</span>
             </div>
         </div>
+        @if (rotatedVersion) {
+        <app-inline-alert severity="warn" heading="Codice ruotato"
+            [detail]="'Il codice appena scansionato non funziona più. Stampa l’etichetta della versione ' + rotatedVersion + ' e sostituisci quella vecchia.'" />
+        }
         @if (result?.unsafe) {
         <app-inline-alert severity="warn" heading="Nuove assegnazioni bloccate"
             detail="È presente almeno una segnalazione di sicurezza aperta." />
         } @else if (result?.openIssueCount) {
         <app-inline-alert severity="info" heading="Segnalazioni aperte"
-            [detail]="result?.openIssueCount + ' segnalazioni richiedono attenzione.'" />
+            [detail]="result?.openIssueCount + (result?.openIssueCount === 1 ? ' segnalazione richiede' : ' segnalazioni richiedono') + ' attenzione.'" />
+        }
+        @if (result?.overdueAssignments) {
+        <app-inline-alert severity="warn" heading="Assegnazioni scadute"
+            [detail]="result?.overdueAssignments + (result?.overdueAssignments === 1 ? ' assegnazione ha' : ' assegnazioni hanno') + ' superato la data di riconsegna.'" />
+        }
+        @if (result?.expiringAssignments) {
+        <app-inline-alert severity="info" heading="Assegnazioni in scadenza"
+            [detail]="result?.expiringAssignments + (result?.expiringAssignments === 1 ? ' assegnazione scade' : ' assegnazioni scadono') + ' entro ' + result?.expiringWithinDays + ' giorni.'" />
+        }
+        @if (result?.pendingDecisions) {
+        <app-inline-alert severity="info" heading="Prese visione da completare"
+            [detail]="result?.pendingDecisions + (result?.pendingDecisions === 1 ? ' assegnatario non ha' : ' assegnatari non hanno') + ' ancora confermato la presa visione.'" />
         }
         <div class="scan-actions">
             <p-button label="Apri scheda completa" icon="pi pi-external-link"
                 [routerLink]="['/inventory/items', result?.itemId]" />
+            @if (rotatedVersion) {
+            <p-button label="Stampa nuova etichetta" icon="pi pi-print" (onClick)="printLabel()" />
+            }
+            @if (can('ASSIGN')) {
+            <p-button label="Assegna" icon="pi pi-user-plus" severity="secondary"
+                [routerLink]="['/inventory/items', result?.itemId]" fragment="assegna" />
+            }
+            @if (can('RETURN')) {
+            <p-button label="Gestisci riconsegna" icon="pi pi-replay" severity="secondary"
+                [routerLink]="['/inventory/items', result?.itemId]" fragment="assegnazioni" />
+            }
+            @if (can('ADD_ITEM_PHOTO')) {
+            <label class="p-button p-component p-button-secondary cursor-pointer justify-center scan-file-button"
+                [class.p-disabled]="uploading" for="scanItemPhoto"><i class="pi pi-camera mr-2"
+                    aria-hidden="true"></i><span>{{ uploading ? 'Caricamento…' : 'Aggiungi fotografia' }}</span></label>
+            <input id="scanItemPhoto" type="file" accept="image/jpeg,image/png" capture="environment" class="sr-only"
+                [disabled]="uploading" (change)="uploadItemPhoto($event)" />
+            }
+            @if (can('REPORT_ISSUE')) {
             <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportAdminIssue()" />
+            }
+            @if (can('PRINT_LABEL') && !rotatedVersion) {
             <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
+            }
+            @if (can('ROTATE_CODE') && !rotatedVersion) {
+            <p-button label="Ruota codice" icon="pi pi-refresh" severity="danger" [outlined]="true"
+                (onClick)="rotateCode()" />
+            }
         </div>
     </section>
     } @else {
@@ -63,12 +111,28 @@
                 <div>
                     <span>{{ assignment.inventoryNumber }}</span>
                     <h2>{{ assignment.itemName }}</h2>
-                    <p>{{ assignment.outstandingQuantity }} {{ assignment.outstandingQuantity === 1 ? 'unità in
-                        possesso' : 'unità in possesso' }}</p>
+                    <p>{{ assignment.outstandingQuantity }} {{ assignment.outstandingQuantity === 1 ? 'unità in possesso'
+                        : 'unità in possesso' }}</p>
+                    <div class="flex flex-wrap gap-2">
+                        @if (assignment.conditionStatus) {
+                        <p-tag [value]="'Stato: ' + conditionLabel(assignment.conditionStatus)"
+                            [severity]="conditionSeverity(assignment.conditionStatus)" />
+                        }
+                        @if (assignment.outstandingQuantity > 0) {
+                        <app-inventory-expiration-badge [expirationDate]="assignment.expirationDate" />
+                        }
+                        @if (assignment.decisionPending) {
+                        <p-tag value="Presa visione da completare" severity="warn" icon="pi pi-exclamation-circle" />
+                        }
+                    </div>
                 </div>
                 <div class="scan-actions">
                     <p-button label="Apri consegna" icon="pi pi-eye"
                         [routerLink]="['/inventory/assignments', assignment.assignmentId]" />
+                    @for (link of assignmentLinks(assignment); track link.action) {
+                    <p-button [label]="link.label" [icon]="link.icon" severity="secondary"
+                        [routerLink]="['/inventory/assignments', assignment.assignmentId]" [fragment]="link.fragment" />
+                    }
                     @if (assignment.allowedActions.includes('REPORT_ISSUE')) {
                     <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn"
                         (onClick)="reportAssignmentIssue(assignment)" />

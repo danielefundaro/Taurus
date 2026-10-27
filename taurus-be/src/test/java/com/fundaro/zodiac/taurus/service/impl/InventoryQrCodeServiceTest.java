@@ -5,6 +5,9 @@ import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryQrRotation;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryQrRotationRepository;
+import com.fundaro.zodiac.taurus.service.notification.NotificationAudience;
+import com.fundaro.zodiac.taurus.service.notification.NotificationCommand;
+import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,7 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class InventoryQrCodeServiceTest {
@@ -46,7 +49,7 @@ class InventoryQrCodeServiceTest {
         item.setQrVersion(1);
         when(items.findForUpdate(42L)).thenReturn(Optional.of(item));
 
-        service.rotate(42L, "Etichetta smarrita", authentication());
+        service.rotate(42L, "  Etichetta smarrita  ", authentication());
 
         assertThat(item.getQrVersion()).isEqualTo(2);
         assertThat(item.getQrPublicId()).isNotEqualTo(UUID.fromString("550e8400-e29b-41d4-a716-446655440000"));
@@ -54,7 +57,31 @@ class InventoryQrCodeServiceTest {
         verify(rotations).save(captor.capture());
         assertThat(captor.getValue().getPreviousCodeDigest()).hasSize(64).doesNotContain("550e8400");
         assertThat(captor.getValue().getNewCodeDigest()).hasSize(64).doesNotContain(item.getQrPublicId().toString());
-        verify(notifications).enqueue(any());
+        assertThat(captor.getValue().getReason()).isEqualTo("Etichetta smarrita");
+        ArgumentCaptor<NotificationCommand> notification = ArgumentCaptor.forClass(NotificationCommand.class);
+        verify(notifications).enqueue(notification.capture());
+        assertThat(notification.getValue().eventKey()).isEqualTo("inventory-qr:42:version:2:admins");
+        assertThat(notification.getValue().message()).isEqualTo("LEG-12 · versione 2 · Etichetta smarrita");
+        assertThat(notification.getValue().audiences()).contains(NotificationAudience.excludedUser("actor-1"));
+        assertThat(notification.getValue().message()).doesNotContain(item.getQrPublicId().toString(), "550e8400");
+    }
+
+    @Test
+    void theRotationMessageIsOnePlainLineWithinTheNotificationLimit() {
+        assertThat(InventoryQrCodeService.notificationMessage("LEG-12 · versione 2 · Etichetta\r\n<b>strappata</b>"))
+            .isEqualTo("LEG-12 · versione 2 · Etichetta bstrappata/b");
+        String message = InventoryQrCodeService.notificationMessage("LEG-12 · versione 2 · " + "a".repeat(500));
+        assertThat(message).hasSize(255).endsWith("…");
+    }
+
+    @Test
+    void aDisabledFeatureHidesTheCodes() {
+        ApplicationProperties disabled = properties();
+        disabled.getInventory().getQr().setEnabled(false);
+        InventoryQrCodeService off = new InventoryQrCodeService(items, rotations, disabled, notifications);
+
+        assertThatThrownBy(off::requireEnabled)
+            .isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getErrorKey()).isEqualTo("inventory.qr.disabled"));
     }
 
     private static ApplicationProperties properties() {

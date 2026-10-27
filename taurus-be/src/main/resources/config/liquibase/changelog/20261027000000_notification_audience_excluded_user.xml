@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261027000000-1" author="taurus">
+    <comment>
+      Adds the EXCLUDED_USER audience: a user removed from the recipients that the other audiences of the same event
+      resolve, so that the author of an action is not notified of it while the rest of the role still is.
+    </comment>
+    <sql>
+      ALTER TABLE notification_outbox_audience DROP CONSTRAINT ck_notification_audience_type;
+      ALTER TABLE notification_outbox_audience
+        ADD CONSTRAINT ck_notification_audience_type CHECK (audience_type IN ('ROLE', 'USER', 'ALL_ACTIVE_USERS', 'EXCLUDED_USER'));
+    </sql>
+    <rollback>
+      <sql>
+        DELETE FROM notification_outbox_audience WHERE audience_type = 'EXCLUDED_USER';
+        ALTER TABLE notification_outbox_audience DROP CONSTRAINT ck_notification_audience_type;
+        ALTER TABLE notification_outbox_audience
+          ADD CONSTRAINT ck_notification_audience_type CHECK (audience_type IN ('ROLE', 'USER', 'ALL_ACTIVE_USERS'));
+      </sql>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

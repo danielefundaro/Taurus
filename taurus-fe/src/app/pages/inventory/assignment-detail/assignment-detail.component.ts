@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
+import { InventoryIssueListComponent } from '../../../components/inventory-issue-list/inventory-issue-list.component';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../../constants';
 import { InventoryIssueDialogComponent } from '../../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
 import { SignatureCodeDialogComponent, SignatureCodeDialogData, SignatureCodeDialogResult } from '../../../dialogs/signature-code-dialog/signature-code-dialog.component';
@@ -9,16 +10,18 @@ import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
 import { SignatureService, TenantFeatureService, ToastService, UserInventoryService } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
+import { focusInventoryFragment } from '../inventory-fragment';
 
 @Component({
     selector: 'app-inventory-assignment-detail',
     standalone: true,
-    imports: [ImportsModule, InventoryExpirationBadgeComponent],
+    imports: [ImportsModule, InventoryExpirationBadgeComponent, InventoryIssueListComponent],
     templateUrl: './assignment-detail.component.html',
     styleUrl: './assignment-detail.component.scss',
     providers: [DialogService]
 })
 export class InventoryAssignmentDetailComponent implements OnInit {
+    @ViewChild(InventoryIssueListComponent) private issueList?: InventoryIssueListComponent;
     protected assignment?: InventoryAssignment;
     protected loading = false;
     protected decision?: InventoryDecisionType;
@@ -162,7 +165,9 @@ export class InventoryAssignmentDetailComponent implements OnInit {
             })
             .onClose.pipe(first())
             .subscribe((issue) => {
-                if (issue) this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato e notificato agli amministratori.');
+                if (!issue) return;
+                this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato e notificato agli amministratori.');
+                this.issueList?.reload();
             });
     }
 
@@ -196,6 +201,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
     }
 
     private load(id: number): void {
+        const firstLoad = !this.assignment;
         this.loading = true;
         this.inventoryService
             .getAssignment(id)
@@ -206,6 +212,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
             .subscribe((value) => {
                 this.assignment = value;
                 this.returnQuantity = Math.min(Math.max(1, this.returnableQuantity), this.returnableQuantity || 1);
+                if (firstLoad) focusInventoryFragment(this.route.snapshot.fragment);
             });
     }
 

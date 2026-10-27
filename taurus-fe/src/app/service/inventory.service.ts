@@ -140,6 +140,9 @@ export class InventoryService {
     issuePhotoUrl(id: number): string {
         return `${this.baseUrl}/issue-photos/${id}`;
     }
+    eraseIssuePhoto(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/issue-photos/${id}`);
+    }
 
     getLoanSheets(userIndex: number): Observable<InventoryLoanSheetSummary[]> {
         return this.http.get<InventoryLoanSheetSummary[]>(`${this.baseUrl}/users/${userIndex}/loan-sheets`);

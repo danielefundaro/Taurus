@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryQrMetrics;
 import com.fundaro.zodiac.taurus.service.impl.InventoryScanRateLimiter;
 import com.fundaro.zodiac.taurus.service.impl.InventoryScanService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,11 +23,18 @@ public class InventoryScanResource {
     private final InventoryScanService scanService;
     private final InventoryScanRateLimiter rateLimiter;
     private final TenantFeatureService tenantFeatures;
+    private final InventoryQrMetrics metrics;
 
-    public InventoryScanResource(InventoryScanService scanService, InventoryScanRateLimiter rateLimiter, TenantFeatureService tenantFeatures) {
+    public InventoryScanResource(
+        InventoryScanService scanService,
+        InventoryScanRateLimiter rateLimiter,
+        TenantFeatureService tenantFeatures,
+        InventoryQrMetrics metrics
+    ) {
         this.scanService = scanService;
         this.rateLimiter = rateLimiter;
         this.tenantFeatures = tenantFeatures;
+        this.metrics = metrics;
     }
 
     @GetMapping("/{publicId}")
@@ -35,8 +43,12 @@ public class InventoryScanResource {
         AbstractAuthenticationToken token,
         HttpServletRequest request
     ) {
-        if (!tenantFeatures.isEnabled(TenantFeature.INVENTORY_QR)) return ResponseEntity.notFound().build();
+        if (!tenantFeatures.isEnabled(TenantFeature.INVENTORY_QR)) {
+            metrics.resolution("disabled", InventoryScanService.roleGroup(token), 0);
+            return ResponseEntity.notFound().build();
+        }
         if (!rateLimiter.tryAcquire(SecurityUtils.getUserIdFromAuthentication(token), request.getRemoteAddr())) {
+            metrics.resolution("rate_limited", InventoryScanService.roleGroup(token), 0);
             ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Troppe scansioni. Riprova tra un minuto.");
             problem.setTitle("Limite scansioni superato");
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)

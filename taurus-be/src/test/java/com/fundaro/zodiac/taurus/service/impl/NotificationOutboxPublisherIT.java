@@ -137,6 +137,25 @@ class NotificationOutboxPublisherIT {
             .containsExactly("ROLE_ADMIN");
     }
 
+    /** Il vincolo della tabella, aggiornato dalla migrazione 20261027000000, ammette l'esclusione dell'autore. */
+    @Test
+    void persistsTheExclusionOfTheAuthor() {
+        NotificationCommand base = command("excluded-author");
+        NotificationCommand command = new NotificationCommand(base.eventKey(), base.source(), base.aggregateType(), base.aggregateId(),
+            base.operation(), base.title(), base.message(), base.severity(), base.targetPath(), base.actorId(), base.actorDisplayName(),
+            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.excludedUser("actor-1")), null);
+
+        transactionExecutor.execute(tenantOne, () -> publisher.enqueue(command));
+
+        assertThat(
+            transactionExecutor.execute(
+                tenantOne,
+                () -> repository.findAll().get(0).getAudiences().stream().map(audience -> audience.getType() + ":" + audience.getValue()).sorted().toList()
+            )
+        )
+            .containsExactly("EXCLUDED_USER:actor-1", "ROLE:ROLE_ADMIN");
+    }
+
     private static NotificationCommand command(String eventKey) {
         return new NotificationCommand(
             eventKey,

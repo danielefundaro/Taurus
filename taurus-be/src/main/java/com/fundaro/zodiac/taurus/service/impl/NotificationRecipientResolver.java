@@ -48,6 +48,15 @@ public class NotificationRecipientResolver {
         return recipients;
     }
 
+    /** Users that the event removes from the recipients of its other audiences, usually the author of the action. */
+    public Set<String> excluded(Collection<NotificationOutboxAudience> audiences) {
+        Set<String> excluded = new LinkedHashSet<>();
+        for (NotificationOutboxAudience audience : audiences) {
+            if (audience.getType() == NotificationAudienceType.EXCLUDED_USER) add(excluded, audience.getValue());
+        }
+        return excluded;
+    }
+
     private static void add(Set<String> recipients, String userId) {
         if (userId != null && !userId.isBlank()) recipients.add(userId.trim());
     }

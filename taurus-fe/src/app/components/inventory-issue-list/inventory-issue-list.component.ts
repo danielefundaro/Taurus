@@ -1,11 +1,16 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
-import { first } from 'rxjs';
+import { first, Observable } from 'rxjs';
 import { InventoryIssueDialogComponent } from '../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
 import { ImportsModule } from '../../imports';
-import { InventoryCondition, InventoryIssue, InventoryIssueStatus } from '../../module';
-import { InventoryService, ToastService } from '../../service';
+import { InventoryCondition, InventoryIssue, InventoryIssuePhoto, InventoryIssueStatus } from '../../module';
+import { ConfirmService, InventoryService, ToastService, UserInventoryService } from '../../service';
 
+/**
+ * Le segnalazioni guasto di un oggetto, nella scheda amministrativa, oppure di una consegna, nella vista personale.
+ * Con {@link assignmentId} il componente usa le API personali: niente transizioni né rimozione di fotografie, e le
+ * fotografie si aggiungono solo alle segnalazioni ancora aperte.
+ */
 @Component({
     selector: 'app-inventory-issue-list',
     standalone: true,
@@ -15,8 +20,11 @@ import { InventoryService, ToastService } from '../../service';
     providers: [DialogService]
 })
 export class InventoryIssueListComponent implements OnChanges {
-    @Input({ required: true }) itemId!: number;
+    @Input() itemId?: number;
+    @Input() assignmentId?: number;
+    /** La quantità massima di una nuova segnalazione: il totale dell'oggetto, o la quantità ancora in carico. */
     @Input({ required: true }) totalQuantity = 1;
+    @Input() headingId?: string;
     protected issues: InventoryIssue[] = [];
     protected loading = false;
     protected resolutionNotes: Record<number, string> = {};
@@ -33,12 +41,18 @@ export class InventoryIssueListComponent implements OnChanges {
 
     constructor(
         private readonly inventoryService: InventoryService,
+        private readonly userInventoryService: UserInventoryService,
         private readonly dialogService: DialogService,
+        private readonly confirmService: ConfirmService,
         private readonly toastService: ToastService
     ) { }
 
+    protected get personal(): boolean {
+        return !!this.assignmentId;
+    }
+
     ngOnChanges(): void {
-        if (this.itemId) this.load();
+        if (this.itemId || this.assignmentId) this.load();
     }
 
     protected create(): void {
@@ -49,7 +63,9 @@ export class InventoryIssueListComponent implements OnChanges {
                 modal: true,
                 width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
-                data: { itemId: this.itemId, maxQuantity: this.totalQuantity }
+                data: this.personal
+                    ? { assignmentId: this.assignmentId, maxQuantity: this.totalQuantity }
+                    : { itemId: this.itemId, maxQuantity: this.totalQuantity }
             })
             .onClose.pipe(first())
             .subscribe((issue) => {
@@ -78,17 +94,34 @@ export class InventoryIssueListComponent implements OnChanges {
             input.value = '';
             return;
         }
-        this.inventoryService
-            .uploadIssuePhoto(issue.id, file)
-            .pipe(first())
-            .subscribe(() => {
-                input.value = '';
-                this.load();
-            });
+        const upload: Observable<unknown> = this.personal
+            ? this.userInventoryService.uploadIssuePhoto(issue.id, file)
+            : this.inventoryService.uploadIssuePhoto(issue.id, file);
+        upload.pipe(first()).subscribe(() => {
+            input.value = '';
+            this.load();
+        });
+    }
+
+    /** Procedura di erasure: per fotografie che ritraggono persone, documenti o altri dati personali. */
+    protected erasePhoto(issue: InventoryIssue, photo: InventoryIssuePhoto): void {
+        this.confirmService.confirmDestructive({
+            title: 'Rimuovere la fotografia?',
+            consequence: `La fotografia «${photo.fileName}» viene tolta dalla segnalazione #${issue.id} e cancellata dall'archivio. Usala per immagini con persone o dati personali: l'operazione non si può annullare.`,
+            actionLabel: 'Rimuovi fotografia',
+            accept: () =>
+                this.inventoryService
+                    .eraseIssuePhoto(photo.id)
+                    .pipe(first())
+                    .subscribe(() => {
+                        this.toastService.success('Fotografia rimossa', 'La segnalazione resta invariata.');
+                        this.load();
+                    })
+        });
     }
 
     protected photoUrl(id: number): string {
-        return this.inventoryService.issuePhotoUrl(id);
+        return this.personal ? this.userInventoryService.issuePhotoUrl(id) : this.inventoryService.issuePhotoUrl(id);
     }
     protected severityLabel(issue: InventoryIssue): string {
         return { MINOR: 'Minore', LIMITING: 'Limitante', UNSAFE: 'Non sicuro' }[issue.severity];
@@ -103,17 +136,20 @@ export class InventoryIssueListComponent implements OnChanges {
         return !!this.resolutionNotes[issue.id]?.trim();
     }
 
+    /** Ricarica l'elenco dopo una segnalazione aperta da fuori, ad esempio dall'intestazione della pagina. */
+    reload(): void {
+        this.load();
+    }
+
     private load(): void {
+        const request = this.personal ? this.userInventoryService.getAssignmentIssues(this.assignmentId!) : this.inventoryService.getIssues(this.itemId!);
         this.loading = true;
-        this.inventoryService
-            .getIssues(this.itemId)
-            .pipe(first())
-            .subscribe({
-                next: (issues) => {
-                    this.issues = issues;
-                    this.loading = false;
-                },
-                error: () => (this.loading = false)
-            });
+        request.pipe(first()).subscribe({
+            next: (issues) => {
+                this.issues = issues;
+                this.loading = false;
+            },
+            error: () => (this.loading = false)
+        });
     }
 }

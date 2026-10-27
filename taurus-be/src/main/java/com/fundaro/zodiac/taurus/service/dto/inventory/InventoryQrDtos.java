@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.List;
 
@@ -20,10 +21,29 @@ public final class InventoryQrDtos {
 
     public enum ScanTarget {ADMIN_ITEM, OWN_ASSIGNMENTS}
 
-    public enum ScanAction {ASSIGN, RETURN, ADD_ITEM_PHOTO, REPORT_ISSUE, PRINT_LABEL, ROTATE_CODE, VIEW, REQUEST_RETURN, COMPLETE_DECISION}
+    public enum ScanAction {
+        ASSIGN,
+        RETURN,
+        ADD_ITEM_PHOTO,
+        REPORT_ISSUE,
+        PRINT_LABEL,
+        ROTATE_CODE,
+        VIEW,
+        REQUEST_RETURN,
+        COMPLETE_DECISION,
+        ADD_RETURN_PHOTO,
+        ADD_ISSUE_PHOTO
+    }
 
     public enum LabelLayout {SINGLE_62X40, A4_GRID_3X8}
 
+    /**
+     * Administrator view of the scanned item, or the assignments of the member on it: never both.
+     *
+     * @param overdueAssignments  outstanding assignments past their expiration date
+     * @param expiringAssignments outstanding assignments that expire within {@code expiringWithinDays}
+     * @param pendingDecisions    outstanding assignments whose current revision waits for the acknowledgment
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record ScanResponse(
         ScanTarget target,
@@ -37,17 +57,25 @@ public final class InventoryQrDtos {
         Long previewPhotoId,
         Long openIssueCount,
         Boolean unsafe,
+        Integer overdueAssignments,
+        Integer expiringAssignments,
+        Integer expiringWithinDays,
+        Long pendingDecisions,
         List<ScanAction> allowedActions,
         List<ScanAssignment> assignments
     ) {
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record ScanAssignment(
         long assignmentId,
         String inventoryNumber,
         String itemName,
+        InventoryCondition conditionStatus,
         int outstandingQuantity,
         InventoryAssignmentStatus status,
+        LocalDate expirationDate,
+        boolean decisionPending,
         Long previewPhotoId,
         List<ScanAction> allowedActions
     ) {

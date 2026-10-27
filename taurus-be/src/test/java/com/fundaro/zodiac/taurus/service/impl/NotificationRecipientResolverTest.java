@@ -50,6 +50,20 @@ class NotificationRecipientResolverTest {
         assertThat(recipients).containsExactly("user-1", "user-2");
     }
 
+    @Test
+    void keepsExcludedUsersOutOfTheResolvedAudienceAndListsThemApart() {
+        when(usersRepository.findActiveKeycloakIdsByRolesIn(anyCollection())).thenReturn(List.of("admin-1", "admin-2"));
+        NotificationRecipientResolver resolver = new NotificationRecipientResolver(usersRepository, keycloakService);
+        List<NotificationOutboxAudience> audiences = List.of(
+            audience(NotificationAudienceType.ROLE, "ROLE_ADMIN"),
+            audience(NotificationAudienceType.EXCLUDED_USER, "admin-1"),
+            audience(NotificationAudienceType.EXCLUDED_USER, " ")
+        );
+
+        assertThat(resolver.resolve(audiences)).containsExactly("admin-1", "admin-2");
+        assertThat(resolver.excluded(audiences)).containsExactly("admin-1");
+    }
+
     private static NotificationOutboxAudience audience(NotificationAudienceType type, String value) {
         NotificationOutboxAudience audience = new NotificationOutboxAudience();
         audience.setType(type);

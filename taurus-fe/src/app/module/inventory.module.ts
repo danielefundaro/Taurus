@@ -386,7 +386,7 @@ export interface InventoryUserSummary {
 export type InventoryLabelLayout = 'SINGLE_62X40' | 'A4_GRID_3X8';
 export type InventoryIssueSeverity = 'MINOR' | 'LIMITING' | 'UNSAFE';
 export type InventoryIssueStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'DISMISSED';
-export type InventoryScanAction = 'ASSIGN' | 'RETURN' | 'ADD_ITEM_PHOTO' | 'REPORT_ISSUE' | 'PRINT_LABEL' | 'ROTATE_CODE' | 'VIEW' | 'REQUEST_RETURN' | 'COMPLETE_DECISION';
+export type InventoryScanAction = 'ASSIGN' | 'RETURN' | 'ADD_ITEM_PHOTO' | 'REPORT_ISSUE' | 'PRINT_LABEL' | 'ROTATE_CODE' | 'VIEW' | 'REQUEST_RETURN' | 'COMPLETE_DECISION' | 'ADD_RETURN_PHOTO' | 'ADD_ISSUE_PHOTO';
 
 export interface InventoryLabelRequest {
     layout: InventoryLabelLayout;
@@ -425,8 +425,11 @@ export interface InventoryScanAssignment {
     assignmentId: number;
     inventoryNumber: string;
     itemName: string;
+    conditionStatus?: InventoryCondition;
     outstandingQuantity: number;
     status: InventoryAssignmentStatus;
+    expirationDate?: string | null;
+    decisionPending: boolean;
     previewPhotoId?: number;
     allowedActions: InventoryScanAction[];
 }
@@ -443,6 +446,10 @@ export interface InventoryScanResult {
     previewPhotoId?: number;
     openIssueCount?: number;
     unsafe?: boolean;
+    overdueAssignments?: number;
+    expiringAssignments?: number;
+    expiringWithinDays?: number;
+    pendingDecisions?: number;
     allowedActions: InventoryScanAction[];
     assignments: InventoryScanAssignment[];
 }

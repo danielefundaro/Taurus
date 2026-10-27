@@ -1146,9 +1146,21 @@ public class ApplicationProperties {
         @Min(1)
         @Max(1000)
         private int resolutionLimitPerMinute = 60;
+        /** Limit of the generation of a labels PDF: beyond it the request answers 503 instead of holding the thread. */
+        @Min(1)
+        @Max(300)
+        private int labelTimeoutSeconds = 30;
 
         public boolean isEnabled() {
             return enabled;
+        }
+
+        public int getLabelTimeoutSeconds() {
+            return labelTimeoutSeconds;
+        }
+
+        public void setLabelTimeoutSeconds(int value) {
+            labelTimeoutSeconds = value;
         }
 
         public void setEnabled(boolean value) {
@@ -1179,8 +1191,9 @@ public class ApplicationProperties {
                 if (!uri.isAbsolute() || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null)
                     return false;
                 if ("https".equalsIgnoreCase(uri.getScheme())) return true;
+                // URI riporta un host IPv6 tra parentesi quadre.
                 return "http".equalsIgnoreCase(uri.getScheme())
-                    && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()) || "::1".equals(uri.getHost()));
+                    && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()) || "[::1]".equals(uri.getHost()));
             } catch (IllegalArgumentException exception) {
                 return false;
             }

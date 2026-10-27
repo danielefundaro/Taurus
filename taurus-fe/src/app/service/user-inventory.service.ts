@@ -50,6 +50,9 @@ export class UserInventoryService {
     createIssue(assignmentId: number, reportedQuantity: number, severity: InventoryIssueSeverity, description: string): Observable<InventoryIssue> {
         return this.http.post<InventoryIssue>(`${this.baseUrl}/assignments/${assignmentId}/issues`, { reportedQuantity, severity, description });
     }
+    getAssignmentIssues(assignmentId: number): Observable<InventoryIssue[]> {
+        return this.http.get<InventoryIssue[]>(`${this.baseUrl}/assignments/${assignmentId}/issues`);
+    }
     getIssue(id: number): Observable<InventoryIssue> {
         return this.http.get<InventoryIssue>(`${this.baseUrl}/issues/${id}`);
     }

@@ -95,7 +95,8 @@
         }
     </app-detail-section>
 
-    <app-detail-section heading="Presa visione" description="La conferma è un’operazione autonoma e definitiva.">
+    <app-detail-section heading="Presa visione" headingId="presa-visione"
+        description="La conferma è un’operazione autonoma e definitiva.">
         @if (value.decision) {
         <div class="flex items-center gap-3">
             <p-tag [value]="decisionLabel(value.decision.decision)"
@@ -128,7 +129,7 @@
         }
     </app-detail-section>
 
-    <app-detail-section heading="Riconsegna" [count]="value.returns.length"
+    <app-detail-section heading="Riconsegna" headingId="riconsegna" [count]="value.returns.length"
         description="Ogni riconsegna si avvia e si documenta per conto proprio.">
         @if (returnableQuantity > 0) {
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
@@ -190,6 +191,11 @@
             message="Non è stata avviata alcuna procedura di riconsegna." />
         }
     </app-detail-section>
+
+    @if (inventoryQrEnabled()) {
+    <app-inventory-issue-list [assignmentId]="value.id" [totalQuantity]="value.outstandingQuantity"
+        headingId="segnalazioni" />
+    }
     }
     <p-scrolltop />
 </p-fluid>

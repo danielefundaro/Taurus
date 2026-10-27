@@ -11,8 +11,8 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 Associare a ogni oggetto inventariale un QR code stabile e stampabile. La scansione da smartphone apre un percorso mobile dell'applicazione che, dopo l'autenticazione, presenta esclusivamente dati e azioni consentiti all'utente:
 
-- admin e super admin consultano il bene o lotto, aprono la scheda completa, registrano un guasto e stampano l'etichetta;
-- l'assegnatario raggiunge rapidamente le proprie consegne relative a quell'oggetto e segnala un guasto;
+- admin e super admin consultano il bene o lotto con stato di conservazione, guasti aperti, scadenze e prese visione mancanti, e da lì assegnano, gestiscono le riconsegne, aggiungono una fotografia, segnalano un guasto, stampano l'etichetta o ruotano il codice;
+- l'assegnatario raggiunge rapidamente le proprie consegne relative a quell'oggetto, direttamente quella giusta se è una sola, e da lì completa la presa visione, richiede la riconsegna, aggiunge fotografie e segnala un guasto con le relative fotografie;
 - gli altri utenti non ricevono informazioni sull'oggetto.
 
 La funzionalità comprende generazione del codice, stampa di etichette singole o in fogli PDF, risoluzione sicura del collegamento, esperienza mobile e gestione strutturata delle segnalazioni di guasto.
@@ -97,11 +97,12 @@ application:
       enabled: false
       public-base-url: https://app.example.org
       resolution-limit-per-minute: 60
+      label-timeout-seconds: 30
 ```
 
-In `application.yml` i valori si leggono da `INVENTORY_QR_ENABLED`, `INVENTORY_QR_PUBLIC_BASE_URL` e `INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE`.
+In `application.yml` i valori si leggono da `INVENTORY_QR_ENABLED`, `INVENTORY_QR_PUBLIC_BASE_URL`, `INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE` e `INVENTORY_QR_LABEL_TIMEOUT_SECONDS`.
 
-L'avvio fallisce con un errore di configurazione chiaro se la generazione etichette è abilitata e l'URL non è valido. HTTP è ammesso soltanto per host di sviluppo locali.
+L'avvio fallisce con un errore di configurazione chiaro se la generazione etichette è abilitata e l'URL non è valido. HTTP è ammesso soltanto per gli host di sviluppo locali `localhost`, `127.0.0.1` e `[::1]`. Il timeout delle etichette deve stare fra 1 e 300 secondi.
 
 Il profilo `dev` abilita automaticamente la funzionalità e usa `http://localhost:4200` come base pubblica, così il frontend locale espone subito i comandi QR. `application-dev.yml` usa valori letterali: in sviluppo `INVENTORY_QR_ENABLED` e `INVENTORY_QR_PUBLIC_BASE_URL` non vengono lette. Gli altri profili mantengono il valore predefinito disabilitato e richiedono una configurazione esplicita dell'URL pubblico. Oltre al kill switch globale serve il flag per tenant `INVENTORY_QR` (vedi [Migrazione e rilascio](#migrazione-e-rilascio)).
 
@@ -192,7 +193,14 @@ Questo preset è pensato per fogli da ritagliare. La compatibilità con formati 
 - ordinamento uguale a quello inviato dal client;
 - nome file `etichette-inventario-YYYYMMDD-HHmm.pdf` nel `Content-Disposition`; il frontend salva comunque il download come `etichette-inventario.pdf`.
 
-Il PDF viene generato in memoria entro un limite controllato e restituito come `application/pdf` con `Content-Disposition: attachment`. Non viene salvato in `media_asset`: non è un documento storico, è rigenerabile e una copia conservata potrebbe contenere codici successivamente ruotati.
+Il PDF viene generato in memoria e restituito come `application/pdf` con `Content-Disposition: attachment`. Non viene salvato in `media_asset`: non è un documento storico, è rigenerabile e una copia conservata potrebbe contenere codici successivamente ruotati.
+
+La generazione ha un tempo massimo di 30 secondi, configurabile con `application.inventory.qr.label-timeout-seconds` (variabile `INVENTORY_QR_LABEL_TIMEOUT_SECONDS`, da 1 a 300). Gli oggetti sono letti in una sola query e trasformati in una proiezione immutabile: numero inventariale, nome, riferimento diagnostico e URL. Il rendering avviene poi fuori da ogni transazione, su un pool dedicato di thread `inventory-label-render-N`: un thread per CPU, almeno due, senza coda.
+
+- Oltre il tempo massimo la richiesta riceve `503 inventory.labels.timeout` e il lavoro abbandonato termina senza effetti.
+- Se tutti i renderer sono occupati, `503 inventory.labels.busy` arriva subito.
+
+In entrambi i casi nessuno stato è cambiato e il client può riprovare.
 
 ## Flusso di stampa
 
@@ -235,12 +243,33 @@ Dopo il login il frontend invoca il resolver backend. Durante la risoluzione mos
 | Profilo | Risultato |
 | --- | --- |
 | Admin o super admin | riepilogo dell'oggetto, quantità e azioni amministrative |
-| Utente con una o più assegnazioni pertinenti | elenco delle proprie assegnazioni sull'oggetto, anche se è una sola |
+| Utente con una o più assegnazioni pertinenti | le proprie assegnazioni sull'oggetto; con una sola il frontend apre direttamente il dettaglio della consegna |
 | Utente senza assegnazioni pertinenti | risposta generica non disponibile |
 | Tenant errato, codice ignoto, ruotato o oggetto cancellato | stessa risposta generica non disponibile |
 | Non autenticato | autenticazione, senza anticipare l'esistenza del codice |
 
-Sono pertinenti le assegnazioni attive, parzialmente riconsegnate oppure storiche visibili nel normale inventario personale. Il backend calcola `allowedActions`: per l'amministratore `ADD_ITEM_PHOTO`, `REPORT_ISSUE`, `PRINT_LABEL`, `ROTATE_CODE`, più `RETURN` con quantità assegnata e `ASSIGN` con quantità disponibile e nessun guasto `UNSAFE` aperto; per l'assegnatario `VIEW`, più `REQUEST_RETURN` e `REPORT_ISSUE` con quantità residua. `COMPLETE_DECISION` è definito ma non viene mai calcolato.
+Sono pertinenti le assegnazioni attive, parzialmente riconsegnate oppure storiche visibili nel normale inventario personale. Il backend calcola `allowedActions` ripetendo le condizioni dei comandi che il frontend apre:
+
+| Profilo | Azione | Condizione |
+| --- | --- | --- |
+| amministratore | `ASSIGN` | quantità disponibile e nessun guasto `UNSAFE` aperto o preso in carico |
+| amministratore | `RETURN` | quantità assegnata maggiore di zero |
+| amministratore | `ADD_ITEM_PHOTO`, `REPORT_ISSUE`, `PRINT_LABEL`, `ROTATE_CODE` | sempre |
+| assegnatario | `VIEW` | sempre |
+| assegnatario | `COMPLETE_DECISION` | assegnazione aperta senza decisione sulla revisione corrente |
+| assegnatario | `REQUEST_RETURN` | quantità residua non già coperta da richieste di riconsegna in attesa |
+| assegnatario | `ADD_RETURN_PHOTO` | almeno una richiesta di riconsegna in attesa |
+| assegnatario | `REPORT_ISSUE` | quantità residua maggiore di zero |
+| assegnatario | `ADD_ISSUE_PHOTO` | almeno una segnalazione dell'assegnazione aperta o presa in carico |
+
+La risposta amministrativa riporta anche:
+
+- lo stato di conservazione;
+- le assegnazioni scadute (`overdueAssignments`);
+- le assegnazioni in scadenza entro `expiringWithinDays` giorni (`expiringAssignments`); la soglia è di 30 giorni, la stessa del badge delle scadenze;
+- gli assegnatari con presa visione da completare (`pendingDecisions`).
+
+Ogni consegna personale riporta stato di conservazione, data di scadenza e `decisionPending`.
 
 Con il flag `INVENTORY_QR` spento per il tenant il resolver risponde `404` senza corpo.
 
@@ -253,16 +282,42 @@ Per evitare un oracolo di esistenza, `404` usa lo stesso problema e lo stesso me
 Per admin e super admin presenta:
 
 1. codice del tenant e numero inventariale;
-2. nome e foto di anteprima, se presente;
+2. nome, stato di conservazione e foto di anteprima, se presente;
 3. quantità disponibili, assegnate e totali;
 4. avviso di nuove assegnazioni bloccate da un guasto `UNSAFE`, oppure del numero di segnalazioni aperte;
-5. le azioni `Apri scheda completa`, `Segnala guasto` e `Stampa etichetta`.
+5. avvisi di assegnazioni scadute, in scadenza e di prese visione da completare, quando presenti;
+6. `Apri scheda completa` e un comando per ogni azione di `allowedActions`.
 
-Rotazione, assegnazioni, riconsegne e fotografie si gestiscono dalla scheda completa.
+| Azione | Comando | Effetto |
+| --- | --- | --- |
+| `ASSIGN` | `Assegna` | apre la scheda sulla sezione `#assegna` |
+| `RETURN` | `Gestisci riconsegna` | apre la scheda sulla sezione `#assegnazioni` |
+| `ADD_ITEM_PHOTO` | `Aggiungi fotografia` | acquisisce una foto con la fotocamera o dalla galleria e la carica sull'oggetto |
+| `REPORT_ISSUE` | `Segnala guasto` | apre il dialogo del guasto |
+| `PRINT_LABEL` | `Stampa etichetta` | apre il dialogo di stampa con l'oggetto già selezionato |
+| `ROTATE_CODE` | `Ruota codice` | apre il dialogo di rotazione con motivazione e conferma esplicita |
 
-Per un assegnatario presenta il codice del tenant e l'elenco delle proprie consegne sull'oggetto, con foto di anteprima, numero inventariale, nome e quantità in possesso. Ogni consegna offre `Apri consegna` e, se `allowedActions` contiene `REPORT_ISSUE`, `Segnala guasto`. Presa visione e richiesta di riconsegna si completano dal dettaglio della consegna.
+Nella scheda completa le sezioni `#codice-qr`, `#fotografie`, `#assegna`, `#assegnazioni` e `#segnalazioni` ricevono scroll e focus appena la pagina è caricata.
 
-La scansione non crea o completa operazioni senza un'ulteriore conferma. Form, vincoli e messaggi riusano quelli dei flussi inventario esistenti.
+Dopo una rotazione la schermata resta aperta e non risolve di nuovo il vecchio codice, che risponderebbe `404`:
+
+- un avviso spiega che il codice appena scansionato non funziona più;
+- `Stampa etichetta` diventa `Stampa nuova etichetta`;
+- `Ruota codice` scompare.
+
+Per un assegnatario con una sola consegna pertinente il frontend apre direttamente `/inventory/assignments/{id}`, sostituendo la voce di cronologia. Con più consegne presenta il codice del tenant e l'elenco delle proprie consegne sull'oggetto. Ogni consegna mostra foto di anteprima, numero inventariale, nome, quantità in possesso, stato di conservazione, badge di scadenza ed evidenza della presa visione da completare. Offre `Apri consegna` e un comando per azione:
+
+| Azione | Comando | Destinazione |
+| --- | --- | --- |
+| `COMPLETE_DECISION` | `Completa presa visione` | dettaglio della consegna, sezione `#presa-visione` |
+| `REQUEST_RETURN` | `Richiedi riconsegna` | dettaglio della consegna, sezione `#riconsegna` |
+| `ADD_RETURN_PHOTO` | `Foto di riconsegna` | dettaglio della consegna, sezione `#riconsegna` |
+| `ADD_ISSUE_PHOTO` | `Foto della segnalazione` | dettaglio della consegna, sezione `#segnalazioni` |
+| `REPORT_ISSUE` | `Segnala guasto` | dialogo del guasto sulla consegna |
+
+Presa visione, richiesta di riconsegna e fotografie si completano nel dettaglio della consegna, con i form e le conferme già esistenti.
+
+La scansione non crea o completa operazioni senza un'azione esplicita: la scelta di una fotografia ne avvia il caricamento, gli altri comandi aprono un dialogo o una sezione con le proprie conferme. Form, vincoli e messaggi riusano quelli dei flussi inventario esistenti.
 
 ## Segnalazione guasti
 
@@ -329,9 +384,10 @@ L'utente non può eliminare o correggere retroattivamente una segnalazione invia
 ### Diritti sulla segnalazione
 
 - Admin e super admin possono creare segnalazioni per qualsiasi oggetto del tenant, consultarle, aggiungere foto e cambiarne stato.
-- Un utente può creare una segnalazione soltanto da una propria assegnazione visibile e può leggere la segnalazione così creata.
+- Un utente può creare una segnalazione soltanto da una propria assegnazione visibile e può leggere le segnalazioni delle proprie assegnazioni.
 - Archivist e user external seguono le stesse regole personali degli altri utenti; il ruolo non concede gestione globale.
-- L'assegnatario può aggiungere foto tramite API finché la segnalazione è `OPEN` o `ACKNOWLEDGED`; l'interfaccia utente non offre il caricamento.
+- L'assegnatario allega fino a cinque foto già nel dialogo di creazione. Consulta poi le segnalazioni nel dettaglio della consegna e vi aggiunge foto finché la segnalazione è `OPEN` o `ACKNOWLEDGED`.
+- Solo admin e super admin rimuovono una fotografia, con la procedura descritta in [GDPR](#gdpr).
 - Nessun utente può leggere segnalazioni o foto riferite ad assegnazioni altrui.
 
 ## Modifiche al modello dell'oggetto
@@ -368,6 +424,8 @@ La migration tenant `20260906000000_inventory_qr_code.xml`, successiva a `202608
 
 Il backfill usa una funzione UUID disponibile e verificata nella versione PostgreSQL supportata da Taurus. Se l'ambiente target non la espone, la migration usa un custom change Java testato; non sono ammessi UUID derivati da `random()` o hash prevedibili.
 
+La migration tenant `20261027000000_notification_audience_excluded_user.xml` aggiunge `EXCLUDED_USER` ai valori ammessi dal vincolo `ck_notification_audience_type` di `notification_outbox_audience`, usato per escludere l'autore dalle notifiche. Il rollback elimina le righe con quel tipo e ripristina il vincolo precedente.
+
 Non viene creata una migration OpenSearch. Il QR viene risolto esclusivamente sul database relazionale.
 
 ## API REST
@@ -392,9 +450,15 @@ Risposta amministrativa esemplificativa:
   "totalQuantity": 10,
   "assignedQuantity": 6,
   "availableQuantity": 4,
+  "previewPhotoId": 15,
   "openIssueCount": 1,
   "unsafe": false,
-  "allowedActions": ["ASSIGN", "RETURN", "ADD_ITEM_PHOTO", "REPORT_ISSUE", "PRINT_LABEL", "ROTATE_CODE"]
+  "overdueAssignments": 1,
+  "expiringAssignments": 2,
+  "expiringWithinDays": 30,
+  "pendingDecisions": 1,
+  "allowedActions": ["ASSIGN", "RETURN", "ADD_ITEM_PHOTO", "REPORT_ISSUE", "PRINT_LABEL", "ROTATE_CODE"],
+  "assignments": []
 }
 ```
 
@@ -403,20 +467,25 @@ Risposta personale esemplificativa:
 ```json
 {
   "target": "OWN_ASSIGNMENTS",
+  "allowedActions": [],
   "assignments": [
     {
       "assignmentId": 91,
       "inventoryNumber": "LEG-0012",
       "itemName": "Leggio pieghevole",
+      "conditionStatus": "GOOD",
       "outstandingQuantity": 1,
       "status": "ACTIVE",
-      "allowedActions": ["VIEW", "REQUEST_RETURN", "REPORT_ISSUE"]
+      "expirationDate": "2026-11-15",
+      "decisionPending": true,
+      "previewPhotoId": 15,
+      "allowedActions": ["VIEW", "COMPLETE_DECISION", "REQUEST_RETURN", "REPORT_ISSUE"]
     }
   ]
 }
 ```
 
-`allowedActions` è calcolato dal backend e serve alla presentazione; ogni endpoint di comando ripete comunque tutte le autorizzazioni e le invarianti.
+I campi nulli sono omessi. `allowedActions` è calcolato dal backend e serve alla presentazione; ogni endpoint di comando ripete comunque tutte le autorizzazioni e le invarianti.
 
 La risposta applica `Cache-Control: no-store` e `Referrer-Policy: no-referrer`. UUID malformato e codice non accessibile producono lo stesso `404` RFC 7807.
 
@@ -461,18 +530,22 @@ GET  /api/inventory/issues/{issueId}
 PATCH /api/inventory/issues/{issueId}/status
 POST /api/inventory/issues/{issueId}/photos
 GET  /api/inventory/issue-photos/{photoId}
+DELETE /api/inventory/issue-photos/{photoId}
 ```
+
+`DELETE` rimuove una fotografia con la procedura descritta in [GDPR](#gdpr) e risponde `204`; una fotografia inesistente o già rimossa risponde `404`.
 
 ### Guasti personali
 
 ```text
+GET  /api/user/inventory/assignments/{assignmentId}/issues
 POST /api/user/inventory/assignments/{assignmentId}/issues
 GET  /api/user/inventory/issues/{issueId}
 POST /api/user/inventory/issues/{issueId}/photos
 GET  /api/user/inventory/issue-photos/{photoId}
 ```
 
-Gli endpoint personali vengono aggiunti puntualmente agli allowlist per metodo HTTP e percorso prima della regola finale `denyAll` su `/api/user/inventory/**`.
+Gli endpoint personali vengono aggiunti puntualmente agli allowlist per metodo HTTP e percorso prima della regola finale `denyAll` su `/api/user/inventory/**`. L'elenco delle segnalazioni di un'assegnazione, dalla più recente, risponde `404` se l'assegnazione non appartiene al richiedente.
 
 Gli endpoint di PNG, etichette, rotazione e guasti, amministrativi e personali, sono annotati con `@RequiresTenantFeature(TenantFeature.INVENTORY_QR)`: con il flag spento rispondono `403 tenantFeature.inventoryQr.disabled`.
 
@@ -507,9 +580,10 @@ Componenti:
 
 - `InventoryQrCodeService`: emissione, rotazione, URL e matrice QR;
 - `InventoryScanRateLimiter`: limite di risoluzioni per utente e IP;
-- `InventoryLabelService`: layout e generazione PDF/PNG;
+- `InventoryLabelService`: layout e generazione PDF/PNG, con pool di rendering dedicato e timeout;
 - `InventoryScanService`: risoluzione tenant/ruolo e calcolo azioni;
-- `InventoryIssueService`: segnalazioni, foto, transizioni e blocco sicurezza;
+- `InventoryIssueService`: segnalazioni, foto e loro rimozione, transizioni, notifiche e blocco sicurezza;
+- `InventoryQrMetrics`: contatori e timer Micrometer a etichette chiuse di resolver, stampa e guasti;
 - `InventoryIssueReportRepository` e `InventoryIssuePhotoRepository`;
 - DTO separati per scan, stampa e guasti;
 - estensione mirata di `InventoryService` per impedire assegnazioni con guasti `UNSAFE` aperti.
@@ -525,8 +599,11 @@ Componenti:
 - `InventoryScanComponent`, lazy-loaded e mobile-first;
 - `InventoryLabelDialogComponent` per singola e multipla selezione;
 - `InventoryQrRotateDialogComponent` per la rotazione con motivazione, aperto dalla scheda amministrativa;
-- `InventoryIssueDialogComponent` per quantità, severità e descrizione, senza campo foto; è aperto dalla scansione, dalla scheda amministrativa e dal dettaglio della consegna;
-- `InventoryIssueListComponent` nella scheda amministrativa, con caricamento delle foto, presa in carico, note di chiusura, nuovo stato del bene, risoluzione e respingimento direttamente nella card di ogni segnalazione;
+- `InventoryIssueDialogComponent` per quantità, severità, descrizione e fino a cinque fotografie; è aperto dalla scansione, dalla scheda amministrativa e dal dettaglio della consegna;
+- `InventoryIssueListComponent`:
+  - nella scheda amministrativa offre, nella card di ogni segnalazione, caricamento e rimozione delle foto, presa in carico, note di chiusura, nuovo stato del bene, risoluzione e respingimento;
+  - nel dettaglio della consegna (`assignmentId`) usa gli endpoint personali, mostra le segnalazioni dell'assegnazione e permette soltanto il caricamento delle foto;
+- `focusInventoryFragment`, che porta scroll e focus sulla sezione indicata dal fragment nella scheda e nel dettaglio della consegna;
 - metodi dedicati in `InventoryService` e `UserInventoryService` e un `InventoryScanService` frontend per il resolver.
 
 La rotta di scansione accetta tutti i ruoli già ammessi alla sezione inventario; il resolver decide il contenuto. Le rotte amministrative esistenti restano protette da admin e super admin.
@@ -538,7 +615,11 @@ Nella scheda amministrativa `InventoryIssueListComponent` partecipa al ritmo ver
 - target tattili di almeno 44 × 44 CSS pixel;
 - azione primaria sempre visibile senza menu contestuale;
 - caricamento e upload con stato esplicito;
-- acquisizione foto dei guasti, nella lista amministrativa, tramite `<input type="file" accept="image/jpeg,image/png" capture="environment">`, lasciando disponibile la scelta dalla galleria; il file viene caricato appena selezionato;
+- acquisizione foto tramite `<input type="file" accept="image/jpeg,image/png" capture="environment">`, lasciando disponibile la scelta dalla galleria. Il file viene caricato appena selezionato nella scheda di scansione, per la foto dell'oggetto, e nelle liste delle segnalazioni, amministrativa e personale. Nel dialogo del guasto viene invece allegato prima dell'invio;
+- nel dialogo del guasto:
+  - le foto, al massimo cinque, sono verificate subito (JPEG o PNG, massimo 10 MB), mostrate in anteprima e rimovibili prima dell'invio;
+  - dopo la creazione vengono caricate una alla volta;
+  - se un caricamento fallisce, la segnalazione resta registrata e un avviso invita ad aggiungere le foto mancanti dalla segnalazione;
 - nessuna dipendenza dalla fotocamera per aprire il QR;
 - messaggi brevi che non espongono dettagli di autorizzazione.
 
@@ -554,15 +635,33 @@ Nella scheda amministrativa `InventoryIssueListComponent` partecipa al ritmo ver
 
 ## Notifiche
 
-Gli eventi sono pubblicati tramite l'outbox generalizzata nella stessa transazione del cambiamento applicativo.
+Gli eventi sono pubblicati tramite l'outbox generalizzata nella stessa transazione del cambiamento applicativo. Ogni gruppo di destinatari ha un evento distinto con il proprio `eventKey`, così la deduplicazione riguarda la coppia evento-destinatario. L'autore dell'azione non riceve mai la propria notifica.
 
-| Evento | Destinatari | Contenuto |
+| Evento | Destinatari | `eventKey` | Collegamento |
+| --- | --- | --- | --- |
+| guasto creato, da utente o da admin | admin e super admin, autore escluso | `inventory-issue:{id}:created:admins` | `/inventory/items/{itemId}` |
+| guasto preso in carico | il segnalante, se non è l'autore della transizione | `inventory-issue:{id}:ACKNOWLEDGED:user:{segnalante}` | consegna per le segnalazioni personali, scheda per quelle amministrative |
+| guasto risolto o respinto | admin e super admin, autore escluso | `inventory-issue:{id}:{stato}:admins` | `/inventory/items/{itemId}` |
+| guasto personale risolto o respinto | l'assegnatario segnalante, se non è l'autore | `inventory-issue:{id}:{stato}:user:{segnalante}` | `/inventory/assignments/{assignmentId}` |
+| codice QR ruotato | admin e super admin, autore escluso | `inventory-qr:{itemId}:version:{versione}:admins` | `/inventory/items/{itemId}` |
+
+| Evento | Titolo | Messaggio |
 | --- | --- | --- |
-| guasto creato, da utente o da admin | admin e super admin, attore compreso | “Nuova segnalazione inventario”: numero inventariale · severità |
-| guasto preso in carico, risolto o respinto | admin e super admin, più l'assegnatario per le segnalazioni personali | “Segnalazione inventario aggiornata”: numero inventariale · stato precedente → nuovo stato |
-| codice QR ruotato | admin e super admin, attore compreso | “Codice QR inventario ruotato”: numero inventariale · versione |
+| creazione | “Nuova segnalazione inventario” | numero inventariale · severità · quantità |
+| transizione | “Segnalazione inventario aggiornata” | numero inventariale · stato precedente → nuovo stato |
+| rotazione | “Codice QR inventario ruotato” | numero inventariale · versione · motivazione |
 
-L'autore è registrato come attore dell'evento. Ogni notifica collega la scheda `/inventory/items/{id}`. La creazione di una segnalazione `UNSAFE` usa `WARNING`, la severità più alta disponibile; le altre creazioni e tutte le transizioni usano `INFO`; la rotazione usa `WARNING` con politica `REQUIRED`. Il messaggio non include fotografie, UUID completo o dati di altri assegnatari. Gli `eventKey` sono `inventory-issue:{id}:created`, `inventory-issue:{id}:{stato}` e `inventory-qr:{itemId}:version:{versione}`: deduplicano l'evento, non il singolo destinatario.
+Il segnalante è l'assegnatario per una segnalazione personale e l'amministratore che l'ha creata per una amministrativa. Quando una segnalazione amministrativa viene risolta o respinta, il segnalante è già tra i destinatari dell'evento agli amministratori.
+
+L'esclusione dell'autore usa l'audience `EXCLUDED_USER` della [consegna generalizzata](notification-delivery-generalization-spec.md). L'utente viene tolto dai destinatari risolti dalle altre audience dello stesso evento. Se non resta nessuno, l'evento risulta consegnato senza destinatari e non viene ritentato: succede, per esempio, quando l'unico amministratore chiude una segnalazione.
+
+Livelli e politiche:
+
+- la creazione di una segnalazione `UNSAFE` usa `WARNING`, la severità più alta disponibile;
+- le altre creazioni e tutte le transizioni usano `INFO` con politica `CONFIGURABLE`;
+- la rotazione usa `WARNING` con politica `REQUIRED`.
+
+La motivazione della rotazione è testo libero e nel messaggio viene ripulita: i caratteri `<` e `>` vengono rimossi, caratteri di controllo e a capo diventano spazi, il testo è troncato a 255 caratteri con `…` per rispettare i vincoli dell'outbox. Il messaggio non include fotografie, UUID completo o dati di altri assegnatari.
 
 ## Dashboard operativa
 
@@ -588,8 +687,10 @@ I collegamenti aprono l'elenco inventario filtrato sugli oggetti con quei guasti
 
 - Il formato UUID rende impraticabile l'enumerazione sequenziale.
 - Il resolver applica un limite configurabile per utente e IP, inizialmente 60 richieste al minuto, con risposta `429` e `Retry-After`.
-- Resolver, stampa e guasti non scrivono log applicativi dedicati. `LoggingAspect` esclude `InventoryScanResource`, quindi l'UUID completo non compare neppure nei log DEBUG del profilo `dev`.
-- Non sono registrate metriche dedicate, quindi nessun tag con UUID, item ID, tenant o subject.
+- Resolver, stampa, rotazione e guasti scrivono log strutturati a chiavi fisse, elencati in [Osservabilità](#osservabilità).
+- L'autore compare solo come `actorHash` e il codice scansionato solo come `codeHash`: i primi 12 caratteri esadecimali dello SHA-256, che bastano a correlare le righe ma non a risalire al codice o all'utente.
+- Motivazioni e descrizioni libere non entrano nei log. `LoggingAspect` esclude `InventoryScanResource`, quindi l'UUID completo non compare neppure nei log DEBUG del profilo `dev`.
+- Le metriche hanno etichette chiuse (esito, gruppo di ruolo, layout, severità, stato): nessun tag con UUID, item ID, tenant o subject.
 - Il frontend imposta `Referrer-Policy: no-referrer` sulla rotta di scansione.
 - Analitiche e strumenti di tracciamento non ricevono il path completo della scansione.
 
@@ -603,11 +704,48 @@ Il codice è legato all'oggetto e non contiene dati personali. Le segnalazioni p
 - dopo la completa riconsegna, l'identità del segnalante viene pseudonimizzata insieme allo storico inventario;
 - descrizione tecnica, stato e fotografie del bene sono conservati per la gestione patrimoniale.
 
-Non esiste una procedura per rimuovere o oscurare le foto dei guasti che ritraggono persone o altri dati personali.
+Una fotografia di guasto che ritrae persone o altri dati personali si rimuove dalla card della segnalazione nella scheda amministrativa, con il pulsante accanto alla foto e una conferma distruttiva, oppure con `DELETE /api/inventory/issue-photos/{photoId}`:
+
+1. la riga `inventory_issue_photo` viene marcata come cancellata, con autore e data della modifica, e resta come traccia;
+2. dopo il commit il file lascia lo storage se nessun'altra entità usa lo stesso `media_asset`;
+3. segnalazione, descrizione e altre fotografie non cambiano;
+4. l'operazione incrementa `taurus.inventory.issue.photo.erased` e scrive `inventory_issue_photo_erased` con identificativi tecnici e `actorHash`.
+
+Solo admin e super admin rimuovono le foto: l'assegnatario che ne chiede la rimozione si rivolge a un amministratore. L'endpoint richiede il flag `INVENTORY_QR`. Se il tenant lo ha spento, l'amministratore lo riattiva temporaneamente per eseguire la rimozione.
 
 ## Osservabilità
 
-Resolver, stampa e guasti non registrano metriche Micrometer né log strutturati dedicati. Le metriche e i log previsti sono elencati nei [Requisiti aperti](#requisiti-aperti).
+`InventoryQrMetrics` registra metriche Micrometer con prefisso `taurus.inventory.` ed etichette chiuse, con valori in minuscolo. I nomi Prometheus seguono la conversione standard.
+
+| Metrica | Tipo | Etichette | Nome Prometheus |
+| --- | --- | --- | --- |
+| `taurus.inventory.qr.resolution` | contatore | `outcome` (`resolved`, `not_found`, `rate_limited`, `disabled`), `role_group` (`admin`, `member`) | `taurus_inventory_qr_resolution_total` |
+| `taurus.inventory.qr.resolution.duration` | timer | `outcome` | `taurus_inventory_qr_resolution_duration_seconds` |
+| `taurus.inventory.label.generation` | contatore | `layout`, `outcome` (`done`, `rejected`, `timeout`, `busy`, `failed`) | `taurus_inventory_label_generation_total` |
+| `taurus.inventory.label.generation.duration` | timer | `layout` | `taurus_inventory_label_generation_duration_seconds` |
+| `taurus.inventory.label.count` | distribuzione con istogramma, solo per richieste con etichette | `layout` | `taurus_inventory_label_count` |
+| `taurus.inventory.issue.created` | contatore | `severity` | `taurus_inventory_issue_created_total` |
+| `taurus.inventory.issue.transition` | contatore | `from`, `to` | `taurus_inventory_issue_transition_total` |
+| `taurus.inventory.issue.photo.erased` | contatore | nessuna | `taurus_inventory_issue_photo_erased_total` |
+
+Log strutturati:
+
+| Evento | Livello | Campi |
+| --- | --- | --- |
+| `inventory_qr_resolution_failed` | INFO | `outcome`, `roleGroup`, `codeHash` |
+| `inventory_labels` | INFO per `done` e `rejected`, WARN per `timeout`, `busy` e `failed` | `layout`, `outcome`, `labels`, `durationMs`, `actorHash` |
+| `inventory_qr_rotated` | INFO | `itemId`, `version`, `actorHash` |
+| `inventory_issue_created` | INFO | `issueId`, `itemId`, `severity`, `personal`, `actorHash` |
+| `inventory_issue_transition` | INFO | `issueId`, `itemId`, `severity`, `from`, `status`, `actorHash` |
+| `inventory_issue_photo_erased` | INFO | `issueId`, `photoId`, `actorHash` |
+
+Le risoluzioni riuscite non producono log: il contatore basta, e una riga per scansione diventerebbe una cronologia comportamentale. Il flag tenant spento e il rate limit sono contati nel resolver senza log.
+
+Segnali da sorvegliare:
+
+- crescita di `timeout` e `busy` in `taurus_inventory_label_generation_total`;
+- picchi di `rate_limited` in `taurus_inventory_qr_resolution_total`;
+- lo stesso `codeHash` ripetuto in `inventory_qr_resolution_failed`, segno di una vecchia etichetta ancora in uso.
 
 Il conteggio corrente delle segnalazioni aperte resta una query tenant-scoped per UI e dashboard e non viene registrato come gauge globale, evitando enumerazione periodica degli schemi e tag ad alta cardinalità.
 
@@ -618,11 +756,11 @@ Non viene conservato un audit persistente di ogni scansione: produrrebbe dati co
 - lookup QR tramite indice univoco, obiettivo p95 inferiore a 300 ms escluso login;
 - risposta resolver compatta e senza caricamento dei binari delle fotografie;
 - anteprima foto caricata separatamente e in modo lazy;
-- generazione di 240 etichette entro 10 secondi su ambiente di staging di riferimento;
-- memoria massima controllata e rifiuto preventivo delle richieste oltre limite;
+- generazione di 240 etichette entro 10 secondi su ambiente di staging di riferimento; il limite rigido è il timeout configurabile di 30 secondi;
+- memoria e CPU controllate: limiti verificati prima di leggere gli oggetti, un solo rendering per thread del pool dedicato e `503` immediato a pool pieno;
 - nessuna chiamata OpenSearch nel percorso di scansione;
 - nessuna chiamata Keycloak remota per la normale risoluzione oltre la validazione token già prevista;
-- transazioni brevi: il PDF viene generato dopo aver letto una proiezione immutabile dei dati autorizzati.
+- nessuna transazione durante il rendering: il PDF viene generato dopo aver letto una proiezione immutabile dei dati autorizzati.
 
 Se il PDF fallisce, nessuno stato dell'oggetto cambia. Se la notifica di un guasto non è immediatamente consegnabile, l'outbox conserva l'intenzione senza annullare la segnalazione.
 
@@ -636,6 +774,9 @@ Se il PDF fallisce, nessuno stato dell'oggetto cambia. Se la notifica di un guas
 | layout, copie o cella iniziale non validi | `400` RFC 7807 |
 | uno degli oggetti batch non valido | `404`, nessun PDF parziale |
 | oggetto ripetuto nel batch | `400 inventory.labels.duplicate` |
+| generazione etichette oltre il tempo massimo | `503 inventory.labels.timeout`, nessun PDF |
+| tutti i renderer delle etichette occupati | `503 inventory.labels.busy`, da riprovare |
+| foto di guasto inesistente o già rimossa | `404` |
 | guasto personale oltre quantità residua o amministrativo oltre la quantità totale | `400` |
 | nuova assegnazione con guasto `UNSAFE` aperto | `409` con messaggio operativo |
 | transizione guasto illegale | `400` |
@@ -647,7 +788,24 @@ Il messaggio mobile offre sempre una via d'uscita: riprova, torna all'inventario
 
 ## Test backend
 
-I test presenti coprono l'emissione di un UUID versione 4 opaco e la rotazione che conserva solo i digest e invalida il vecchio codice (`InventoryQrCodeServiceTest`), l'etichetta singola con dimensioni fisiche, testo atteso e assenza di dati sensibili (`InventoryLabelServiceTest`) e la combinazione dei flag in `TenantFeatureServiceTest`. Gli elenchi seguenti sono la strategia completa; i casi non coperti sono nei [Requisiti aperti](#requisiti-aperti).
+La strategia è coperta da questi test:
+
+| Test | Copertura |
+| --- | --- |
+| `InventoryQrCodeServiceTest` | UUID versione 4 opaco, rotazione con soli digest e vecchio codice invalido, messaggio di rotazione su una riga entro 255 caratteri, codici nascosti a funzionalità spenta |
+| `InventoryScanServiceTest` | risposta amministrativa con quantità, avvisi e azioni; `ASSIGN` assente con `UNSAFE` aperto o quantità esaurita; azioni personali secondo lo stato; stesso `404` contato per ogni esito negativo; impronta breve stabile e non reversibile |
+| `InventoryScanResourceTest` | flag spento con `404` senza corpo, `Cache-Control: no-store` e `Referrer-Policy: no-referrer`, `429` con `Retry-After` per utente e per indirizzo |
+| `InventoryQrSecurityConfigurationTest` | regole per metodo e percorso di resolver, endpoint amministrativi e personali |
+| `InventoryQrPropertiesValidationTest` | URL pubblico HTTPS o host locale; rifiuto di credenziali, query, fragment e HTTP remoto; intervallo del timeout delle etichette |
+| `InventoryLabelServiceTest` | dimensioni fisiche, testo e assenza di dati sensibili, QR vettoriale renderizzato dal PDF e decodificato nell'URL atteso, `startCell` e paginazione, dieci pagine A4, limiti verificati prima della lettura, nessun PDF parziale, timeout, pool occupato, errori di rendering |
+| `InventoryIssueServiceTest` | notifiche con quantità, destinatari ed esclusione dell'autore; quantità massima; assegnazioni e segnalazioni altrui come `404`; foto solo su segnalazioni proprie aperte; elenco personale; transizioni con note, versione e nuovo stato del bene; rimozione GDPR delle foto |
+| `InventoryServiceTest` | emissione del QR prima del salvataggio di un nuovo oggetto, blocco delle assegnazioni con `UNSAFE` aperto |
+| `InventoryErasureServiceTest` | pseudonimizzazione del segnalante con lo stesso pseudonimo delle assegnazioni, pratica sospesa con materiale residuo |
+| `NotificationRecipientResolverTest`, `NotificationDispatcherTest`, `NotificationOutboxPublisherTest`, `NotificationOutboxPublisherIT` | audience `EXCLUDED_USER`, consegna senza destinatari e senza nuovi tentativi, rifiuto di un evento con sole esclusioni, persistenza dell'esclusione |
+| `TenantSchemaProvisioningServiceIT` | colonne QR non nulle e tabelle di rotazione e guasti nello schema tenant |
+| `TenantFeatureServiceTest` | combinazione del kill switch globale e del flag tenant |
+
+Gli elenchi seguenti sono la checklist della strategia.
 
 ### QR e tenant
 
@@ -675,7 +833,7 @@ I test presenti coprono l'emissione di un UUID versione 4 opaco e la rotazione c
 - limiti batch, timeout e atomicità;
 - rifiuto di base URL non attendibile.
 
-Un test di integrazione decodifica almeno un QR renderizzato dal PDF e verifica che l'URL risultante sia quello atteso. La pipeline conserva come artifact un PDF campione soltanto nei test, privo di dati reali.
+`InventoryLabelServiceTest` renderizza a 300 dpi la pagina del PDF, decodifica il QR con ZXing e verifica che l'URL risultante sia quello atteso. Il PDF di prova contiene solo dati fittizi e non viene conservato come artifact: la verifica è ripetuta a ogni build.
 
 ### Guasti
 
@@ -694,7 +852,29 @@ Un test di integrazione decodifica almeno un QR renderizzato dal PDF e verifica 
 
 ## Test frontend
 
-Non esistono spec frontend per scansione, etichette, rotazione e guasti. La strategia prevede:
+Le spec Karma/Jasmine affiancano i componenti:
+
+| Spec | Copertura |
+| --- | --- |
+| `inventory-scan.component.spec.ts` | schermata amministrativa con le sole azioni ammesse, stato non disponibile senza dati, apertura diretta di una sola consegna, collegamenti alle sezioni, foto dell'oggetto, stato dopo la rotazione, guasto personale, stampa |
+| `inventory-label-dialog.component.spec.ts` | copie, layout, limiti distinti, `startCell` e indicatori di taglio |
+| `inventory-qr-rotate-dialog.component.spec.ts` | rotazione solo con motivazione e conferma esplicita |
+| `inventory-issue-dialog.component.spec.ts` | quantità e descrizione, verifica, anteprima e rimozione delle foto, caricamento dopo la creazione, segnalazione conservata se una foto fallisce |
+| `inventory-issue-list.component.spec.ts` | endpoint amministrativi o personali, caricamento delle foto, rimozione con conferma, transizioni con versione e note |
+| `assignment-detail.component.spec.ts` | focus sulla sezione indicata dalla scansione, aggiornamento delle segnalazioni dopo una nuova segnalazione |
+| `inventory-fragment.spec.ts` | scroll e focus sulla sezione del fragment |
+
+La suite Playwright `e2e/specs/inventory-qr.spec.ts`, descritta in `e2e/README.md`, prova su un'istanza completa:
+
+- ritorno alla scansione dopo il login;
+- stesso stato non disponibile per un codice sconosciuto o di un altro tenant, con entrambi i profili;
+- azioni amministrative secondo `allowedActions` e focus sulla sezione `#assegna`;
+- apertura della consegna o dell'elenco delle consegne;
+- uso a 320 px senza scroll orizzontale, target di 44 px e controllo axe WCAG 2.1 AA.
+
+La rotazione resta fuori dalla suite perché invaliderebbe le etichette stampate dell'ambiente.
+
+La checklist della strategia:
 
 - ritorno alla rotta di scansione dopo autenticazione;
 - schermata admin e schermata personale per i diversi resolver target;
@@ -737,15 +917,35 @@ Prima di abilitarla:
 1. eseguire backup PostgreSQL;
 2. applicare Liquibase a tutti gli schemi tenant;
 3. verificare unicità e completezza del backfill;
-4. configurare e validare l'URL pubblico frontend;
+4. configurare e validare l'URL pubblico frontend ed eventualmente `INVENTORY_QR_LABEL_TIMEOUT_SECONDS`;
 5. provare login e ritorno dal deep link dietro il reverse proxy reale;
 6. stampare e scansionare un campione fisico;
 7. verificare autorizzazioni con admin, user, user external e tenant errato;
 8. verificare storage e download delle foto guasto;
-9. monitorare errori resolver, tempi PDF e outbox notifiche;
+9. monitorare errori resolver, tempi PDF e outbox notifiche con le metriche e i log di [Osservabilità](#osservabilità);
 10. attivare il flag `INVENTORY_QR` sui tenant interessati.
 
 La migrazione si applica comunque a tutti gli schemi tenant, anche a quelli con il flag spento.
+
+### Stampa e sostituzione delle etichette
+
+Ristampa o rotazione:
+
+- un'etichetta rovinata, staccata o da duplicare si ristampa: il codice non cambia e le altre copie restano valide;
+- un'etichetta smarrita, applicata al bene sbagliato o fotografata da chi non doveva si ruota: tutte le copie precedenti smettono di funzionare.
+
+Stampa:
+
+1. aprire `Stampa etichetta` dalla scheda, dalla scansione o dalla selezione multipla della lista;
+2. scegliere `SINGLE_62X40` per una stampante di etichette o `A4_GRID_3X8` per un foglio, indicando la prima cella libera se il foglio è già usato;
+3. stampare al 100%, senza “adatta alla pagina”, su supporto bianco opaco;
+4. scansionare l'etichetta prima di applicarla e verificare che apra l'oggetto atteso.
+
+Applicazione:
+
+- applicare l'etichetta su una superficie piana, pulita e visibile, lontano da pieghe e zone di attrito;
+- dopo una rotazione, rimuovere o coprire subito le etichette vecchie: la scansione di una vecchia etichetta mostra solo “Codice non disponibile”;
+- se un `503 inventory.labels.busy` o `inventory.labels.timeout` si ripete, dividere la stampa in richieste più piccole e controllare i log `inventory_labels`.
 
 ## Rollback
 
@@ -796,21 +996,4 @@ Un rollback distruttivo delle tabelle guasto richiede esportazione e conservazio
 
 ## Requisiti aperti
 
-- Azioni amministrative dalla scansione: assegna, gestisci riconsegna, aggiungi fotografia dell'oggetto, ruota il QR ([Schermata mobile](#schermata-mobile)).
-- Stato di conservazione e avvisi di scadenza e presa visione nella schermata di scansione ([Schermata mobile](#schermata-mobile)).
-- Azioni personali dalla scansione: presa visione (`COMPLETE_DECISION` calcolata dal backend), richiesta di riconsegna, foto di riconsegna o segnalazione ([Schermata mobile](#schermata-mobile)).
-- Apertura diretta della consegna quando l'assegnazione pertinente è una sola ([Risoluzione per ruolo](#risoluzione-per-ruolo)).
-- Uso di `allowedActions` nel frontend per tutte le azioni, oltre a `REPORT_ISSUE` ([Risoluzione condivisa](#risoluzione-condivisa)).
-- Foto dei guasti lato utente: campo foto in `InventoryIssueDialogComponent` e caricamento dalla vista personale ([Diritti sulla segnalazione](#diritti-sulla-segnalazione), [Frontend Angular](#frontend-angular)).
-- Anteprima e rimozione della foto prima dell'invio ([Esperienza mobile](#esperienza-mobile)).
-- Notifica di creazione del guasto con la quantità interessata ([Notifiche](#notifiche)).
-- Esclusione dell'attore dai destinatari delle notifiche di guasto amministrativo e di rotazione ([Notifiche](#notifiche)).
-- Notifica della presa in carico al solo segnalante e notifica di rotazione con motivazione ([Notifiche](#notifiche)).
-- `eventKey` comprensivi del destinatario ([Notifiche](#notifiche)).
-- Rimozione o oscuramento, tramite la procedura di erasure, delle foto dei guasti con persone o dati personali ([GDPR](#gdpr)).
-- Metriche Micrometer a cardinalità limitata: `taurus_inventory_qr_resolution_total{outcome,role_group}`, `taurus_inventory_qr_resolution_seconds{outcome}`, `taurus_inventory_label_generation_total{layout,outcome}`, `taurus_inventory_label_generation_seconds{layout}`, `taurus_inventory_label_count{layout}`, `taurus_inventory_issue_created_total{severity}`, `taurus_inventory_issue_transition_total{from,to}` ([Osservabilità](#osservabilità)).
-- Log strutturati di stampa (conteggio, layout, durata, attore), rotazione (item ID, versione, attore), creazione e transizione dei guasti e risoluzioni fallite con hash troncato ([Osservabilità](#osservabilità)).
-- Timeout di generazione PDF di 30 secondi con `503` controllato ([Limiti](#limiti), [Gestione errori](#gestione-errori)).
-- Copertura dei test backend della strategia oltre a quelli presenti, inclusa la decodifica automatica di un QR estratto dal PDF (criterio 11) ([Test backend](#test-backend)).
-- Test frontend di scansione, etichette, rotazione e guasti ([Test frontend](#test-frontend)).
-- Test end-to-end e di sicurezza e documentazione operativa per stampa e sostituzione delle etichette ([Migrazione e rilascio](#migrazione-e-rilascio)).
+Nessuno: la specifica è coperta dal codice e dai test. La suite end-to-end richiede un'istanza completa con le variabili descritte in `e2e/README.md`; le [verifiche fisiche](#verifiche-fisiche) di stampa e scansione restano un collaudo manuale prima di ogni attivazione del flag su un tenant.

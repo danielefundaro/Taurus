@@ -28,7 +28,7 @@ describe('InventoryDetailComponent', () => {
             {} as DialogService,
             {} as ApiErrorService,
             { inventoryQrEnabled: () => false } as unknown as TenantFeatureService,
-            {} as ActivatedRoute,
+            { snapshot: { fragment: null } } as unknown as ActivatedRoute,
             {} as Router
         );
         const item: InventoryItem = { ...component['item'], id: 7, photos: [], assignments: [] };

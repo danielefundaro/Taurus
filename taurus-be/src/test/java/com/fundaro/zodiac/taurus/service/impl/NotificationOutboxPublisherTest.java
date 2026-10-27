@@ -62,6 +62,19 @@ class NotificationOutboxPublisherTest {
     }
 
     @Test
+    void anExclusionAloneHasNoRecipients() {
+        NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
+        NotificationCommand base = command("event-3", "/inventory");
+        NotificationCommand onlyExcluded = new NotificationCommand(base.eventKey(), base.source(), base.aggregateType(), base.aggregateId(),
+            base.operation(), base.title(), base.message(), base.severity(), base.targetPath(), base.actorId(), base.actorDisplayName(),
+            Set.of(NotificationAudience.excludedUser("actor-1")), null);
+
+        assertThatThrownBy(() -> publisher.enqueue(onlyExcluded))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("must include recipients");
+    }
+
+    @Test
     void hashesOverlongEventKeysDeterministically() {
         NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
         String longKey = "finance:movement:" + "component-".repeat(30);

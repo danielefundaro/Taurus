@@ -65,6 +65,35 @@ class NotificationDispatcherTest {
     }
 
     @Test
+    void leavesTheExcludedAuthorOutOfTheDelivery() {
+        NotificationOutbox event = pendingEvent();
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
+        when(recipientResolver.resolve(event.getAudiences())).thenReturn(Set.of("admin-1", "admin-2"));
+        when(recipientResolver.excluded(event.getAudiences())).thenReturn(Set.of("admin-1"));
+
+        dispatcher.dispatch(1L);
+
+        ArgumentCaptor<NotificationDelivery> delivery = ArgumentCaptor.forClass(NotificationDelivery.class);
+        verify(noticesService).addNoticeToUserAndGetId(delivery.capture());
+        assertThat(delivery.getValue().userId()).isEqualTo("admin-2");
+        assertThat(event.getStatus()).isEqualTo(NotificationStatus.DELIVERED);
+    }
+
+    /** L'autore era l'unico destinatario: non manca nessuno, quindi l'evento si chiude invece di essere ritentato. */
+    @Test
+    void anAudienceEmptiedByTheExclusionIsDeliveredToNobody() {
+        NotificationOutbox event = pendingEvent();
+        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));
+        when(recipientResolver.resolve(event.getAudiences())).thenReturn(Set.of("admin-1"));
+        when(recipientResolver.excluded(event.getAudiences())).thenReturn(Set.of("admin-1"));
+
+        dispatcher.dispatch(1L);
+
+        verify(noticesService, org.mockito.Mockito.never()).addNoticeToUserAndGetId(any());
+        assertThat(event.getStatus()).isEqualTo(NotificationStatus.DELIVERED);
+    }
+
+    @Test
     void suppressesAnEventWhenItsTenantFeatureIsDisabled() {
         NotificationOutbox event = pendingEvent();
         when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(event));

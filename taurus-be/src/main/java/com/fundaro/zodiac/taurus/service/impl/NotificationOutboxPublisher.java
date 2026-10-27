@@ -119,6 +119,9 @@ public class NotificationOutboxPublisher {
             }
             audiences.add(new NotificationAudience(rawAudience.type(), value));
         }
+        if (audiences.stream().allMatch(audience -> audience.type() == NotificationAudienceType.EXCLUDED_USER)) {
+            throw new IllegalArgumentException("At least one notification audience must include recipients");
+        }
         return new NotificationCommand(
             eventKey,
             command.source(),

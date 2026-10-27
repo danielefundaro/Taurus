@@ -33,13 +33,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.ZonedDateTime;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @Transactional
 public class InventoryIssueService {
+    private static final Logger LOG = LoggerFactory.getLogger(InventoryIssueService.class);
     private static final String ENTITY = "inventoryIssue";
     private static final long MAX_PHOTO_SIZE = 10L * 1024 * 1024;
     private static final int MAX_PHOTOS = 20;
@@ -62,6 +64,7 @@ public class InventoryIssueService {
     private final NotificationOutboxPublisher notificationPublisher;
     private final InventoryService inventoryService;
     private final InventoryQrCodeService qrCodeService;
+    private final InventoryQrMetrics metrics;
 
     public InventoryIssueService(
         InventoryItemRepository itemRepository,
@@ -72,7 +75,8 @@ public class InventoryIssueService {
         MediaRepository mediaRepository,
         NotificationOutboxPublisher notificationPublisher,
         InventoryService inventoryService,
-        InventoryQrCodeService qrCodeService
+        InventoryQrCodeService qrCodeService,
+        InventoryQrMetrics metrics
     ) {
         this.itemRepository = itemRepository;
         this.assignmentRepository = assignmentRepository;
@@ -83,6 +87,7 @@ public class InventoryIssueService {
         this.notificationPublisher = notificationPublisher;
         this.inventoryService = inventoryService;
         this.qrCodeService = qrCodeService;
+        this.metrics = metrics;
     }
 
     public Response createAdmin(long itemId, CreateRequest request, AbstractAuthenticationToken token) {
@@ -120,6 +125,9 @@ public class InventoryIssueService {
         issue.setStatus(InventoryIssueStatus.OPEN);
         issueRepository.save(issue);
         notifyCreated(issue, token);
+        metrics.issueCreated(issue.getSeverity().name());
+        LOG.info("inventory_issue_created issueId={} itemId={} severity={} personal={} actorHash={}", issue.getId(), item.getId(),
+            issue.getSeverity(), assignment != null, InventoryScanService.shortHash(actor));
         return toDto(issue);
     }
 
@@ -129,6 +137,16 @@ public class InventoryIssueService {
         tenant(token);
         if (itemRepository.findByIdAndDeletedFalse(itemId).isEmpty()) throw notFound();
         return issueRepository.findAllByItem_IdAndDeletedFalseOrderByInsertDateDesc(itemId).stream().map(this::toDto).toList();
+    }
+
+    /** Le segnalazioni di una propria consegna, per la vista personale: chi non ne è l'assegnatario riceve {@code 404}. */
+    @Transactional(readOnly = true)
+    public List<Response> findOwnForAssignment(long assignmentId, AbstractAuthenticationToken token) {
+        qrCodeService.requireEnabled();
+        tenant(token);
+        InventoryAssignment assignment = assignmentRepository.findByIdAndDeletedFalse(assignmentId).orElseThrow(InventoryIssueService::notFound);
+        if (!actor(token).equals(assignment.getUserKeycloakId())) throw notFound();
+        return issueRepository.findAllByAssignment_IdAndDeletedFalseOrderByInsertDateDesc(assignmentId).stream().map(this::toDto).toList();
     }
 
     @Transactional(readOnly = true)
@@ -175,6 +193,9 @@ public class InventoryIssueService {
         issue.touchAudit(actor);
         issueRepository.saveAndFlush(issue);
         notifyTransition(issue, current, token);
+        metrics.issueTransition(current.name(), issue.getStatus().name());
+        LOG.info("inventory_issue_transition issueId={} itemId={} severity={} from={} status={} actorHash={}", issue.getId(), item.getId(),
+            issue.getSeverity(), current, issue.getStatus(), InventoryScanService.shortHash(actor));
         return toDto(issue);
     }
 
@@ -198,9 +219,31 @@ public class InventoryIssueService {
         photo.initializeAudit(actor);
         photo.setIssue(issue);
         photo.setMediaAsset(mediaRepository.getReferenceById(media.getId()));
-        photo.setDisplayOrder((int) photoRepository.countByIssue_IdAndDeletedFalse(issueId));
+        // Dopo una rimozione il conteggio non è più l'ultima posizione: si prosegue dalla più alta ancora presente.
+        photo.setDisplayOrder(photoRepository.findAllByIssue_IdAndDeletedFalseOrderByDisplayOrderAsc(issueId).stream()
+            .mapToInt(InventoryIssuePhoto::getDisplayOrder).max().orElse(-1) + 1);
         photoRepository.save(photo);
         return toPhoto(photo);
+    }
+
+    /**
+     * Rimuove una fotografia di guasto che ritrae persone o altri dati personali: la riga resta come traccia con
+     * {@code deleted = true}, il file lascia lo storage dopo il commit se nessun'altra entità lo usa. È la procedura
+     * di erasure delle fotografie: la segnalazione, la descrizione e le altre fotografie non cambiano.
+     */
+    public void erasePhoto(long photoId, AbstractAuthenticationToken token) {
+        qrCodeService.requireEnabled();
+        tenant(token);
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
+        String actor = actor(token);
+        InventoryIssuePhoto photo = photoRepository.findByIdAndDeletedFalse(photoId).orElseThrow(InventoryIssueService::notFound);
+        photo.setDeleted(true);
+        photo.touchAudit(actor);
+        photoRepository.saveAndFlush(photo);
+        mediaService.deleteIfUnreferenced(photo.getMediaAsset().getId(), tenantCode, actor);
+        metrics.issuePhotoErased();
+        LOG.info("inventory_issue_photo_erased issueId={} photoId={} actorHash={}", photo.getIssue().getId(), photo.getId(),
+            InventoryScanService.shortHash(actor));
     }
 
     @Transactional(readOnly = true)
@@ -233,27 +276,66 @@ public class InventoryIssueService {
         return new Photo(photo.getId(), media.getOriginalFilename(), media.getMimeType(), media.getFileSize(), photo.getDisplayOrder());
     }
 
+    /**
+     * La nuova segnalazione va agli amministratori, autore escluso: chi la scrive non ha bisogno di esserne avvisato.
+     * Il messaggio porta numero inventariale, severità e quantità interessata.
+     */
     private void notifyCreated(InventoryIssueReport issue, AbstractAuthenticationToken token) {
         String actor = actor(token);
-        notificationPublisher.enqueue(new NotificationCommand("inventory-issue:" + issue.getId() + ":created", NotificationSource.INVENTORY,
+        notificationPublisher.enqueue(new NotificationCommand("inventory-issue:" + issue.getId() + ":created:admins", NotificationSource.INVENTORY,
             "INVENTORY_ISSUE", issue.getId().toString(), "CREATED", "Nuova segnalazione inventario",
-            issue.getItem().getInventoryNumber() + " · " + issue.getSeverity(), issue.getSeverity() == InventoryIssueSeverity.UNSAFE ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
-            NotificationPreferencePolicy.CONFIGURABLE, "/inventory/items/" + issue.getItem().getId(), actor, displayName(token), adminAudiences(), null));
+            issue.getItem().getInventoryNumber() + " · " + severityLabel(issue.getSeverity()) + " · quantità " + issue.getReportedQuantity(),
+            issue.getSeverity() == InventoryIssueSeverity.UNSAFE ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
+            NotificationPreferencePolicy.CONFIGURABLE, "/inventory/items/" + issue.getItem().getId(), actor, displayName(token), adminsExcept(actor), null));
     }
 
+    /**
+     * La presa in carico interessa soltanto chi ha segnalato; risoluzione e respingimento arrivano anche agli
+     * amministratori. L'autore della transizione non riceve mai la propria notifica e ogni destinatario ha un evento
+     * distinto, con un {@code eventKey} che lo nomina e un collegamento alla pagina che può aprire.
+     */
     private void notifyTransition(InventoryIssueReport issue, InventoryIssueStatus previous, AbstractAuthenticationToken token) {
-        Set<NotificationAudience> audiences = new LinkedHashSet<>(adminAudiences());
-        if (issue.getAssignment() != null)
-            audiences.add(NotificationAudience.user(issue.getAssignment().getUserKeycloakId()));
         String actor = actor(token);
-        notificationPublisher.enqueue(new NotificationCommand("inventory-issue:" + issue.getId() + ":" + issue.getStatus(), NotificationSource.INVENTORY,
-            "INVENTORY_ISSUE", issue.getId().toString(), issue.getStatus().name(), "Segnalazione inventario aggiornata",
-            issue.getItem().getInventoryNumber() + " · " + previous + " → " + issue.getStatus(), NotificationSeverity.INFO,
-            NotificationPreferencePolicy.CONFIGURABLE, "/inventory/items/" + issue.getItem().getId(), actor, displayName(token), Set.copyOf(audiences), null));
+        String message = issue.getItem().getInventoryNumber() + " · " + statusLabel(previous) + " → " + statusLabel(issue.getStatus());
+        String keyPrefix = "inventory-issue:" + issue.getId() + ":" + issue.getStatus();
+        boolean acknowledged = issue.getStatus() == InventoryIssueStatus.ACKNOWLEDGED;
+        if (!acknowledged)
+            enqueueTransition(issue, keyPrefix + ":admins", message, "/inventory/items/" + issue.getItem().getId(), token, adminsExcept(actor));
+        // Una segnalazione amministrativa ha come segnalante un amministratore, già raggiunto dalla notifica agli admin.
+        boolean personal = issue.getAssignment() != null;
+        String reporter = personal ? issue.getAssignment().getUserKeycloakId() : issue.getInsertBy();
+        if (reporter != null && !reporter.equals(actor) && (personal || acknowledged)) {
+            String targetPath = personal ? "/inventory/assignments/" + issue.getAssignment().getId() : "/inventory/items/" + issue.getItem().getId();
+            enqueueTransition(issue, keyPrefix + ":user:" + reporter, message, targetPath, token, Set.of(NotificationAudience.user(reporter)));
+        }
     }
 
-    private static Set<NotificationAudience> adminAudiences() {
-        return Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN));
+    private void enqueueTransition(InventoryIssueReport issue, String eventKey, String message, String targetPath, AbstractAuthenticationToken token,
+                                   Set<NotificationAudience> audiences) {
+        notificationPublisher.enqueue(new NotificationCommand(eventKey, NotificationSource.INVENTORY, "INVENTORY_ISSUE", issue.getId().toString(),
+            issue.getStatus().name(), "Segnalazione inventario aggiornata", message, NotificationSeverity.INFO, NotificationPreferencePolicy.CONFIGURABLE,
+            targetPath, actor(token), displayName(token), audiences, null));
+    }
+
+    private static Set<NotificationAudience> adminsExcept(String actor) {
+        return Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN), NotificationAudience.excludedUser(actor));
+    }
+
+    private static String severityLabel(InventoryIssueSeverity severity) {
+        return switch (severity) {
+            case MINOR -> "minore";
+            case LIMITING -> "limitante";
+            case UNSAFE -> "non sicuro";
+        };
+    }
+
+    private static String statusLabel(InventoryIssueStatus status) {
+        return switch (status) {
+            case OPEN -> "aperta";
+            case ACKNOWLEDGED -> "presa in carico";
+            case RESOLVED -> "risolta";
+            case DISMISSED -> "respinta";
+        };
     }
 
     private static boolean allowed(InventoryIssueStatus from, InventoryIssueStatus to) {

@@ -256,6 +256,13 @@ public class InventoryResource {
         return photoResponse(inventoryIssueService.getPhoto(id, false, token));
     }
 
+    @DeleteMapping("/issue-photos/{id}")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
+    public ResponseEntity<Void> eraseIssuePhoto(@PathVariable long id, AbstractAuthenticationToken token) {
+        inventoryIssueService.erasePhoto(id, token);
+        return ResponseEntity.noContent().build();
+    }
+
     public static ResponseEntity<byte[]> photoResponse(InventoryService.PhotoContent photo) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(photo.contentType()));

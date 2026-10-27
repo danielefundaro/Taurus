@@ -42,8 +42,8 @@
     <git-commit-id-maven-plugin.version>9.0.1</git-commit-id-maven-plugin.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <!-- Soglia di copertura: baseline misurata, da alzare quando la copertura sale (runbook di test, 4). -->
-    <jacoco.line.minimum>0.68</jacoco.line.minimum>
-    <jacoco.branch.minimum>0.52</jacoco.branch.minimum>
+    <jacoco.line.minimum>0.70</jacoco.line.minimum>
+    <jacoco.branch.minimum>0.54</jacoco.branch.minimum>
     <jhipster-framework.version>8.7.2</jhipster-framework.version>
     <jib-maven-plugin.architecture>amd64</jib-maven-plugin.architecture>
     <jib-maven-plugin.image>eclipse-temurin:17-jre-focal</jib-maven-plugin.image>

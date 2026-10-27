@@ -24,7 +24,15 @@ Le prove sono in `specs`:
   scorrimento orizzontale a 320, 768 e 1280 pixel con azioni di riga alte almeno 44 pixel. I dati
   dei tenant di prova non sono fissati: le prove verificano invarianti, non conteggi, e quella dei
   collegamenti si salta se l'amministratore non ha attività. Risultato parziale, isolamento fra
-  tenant con dati omonimi e obiettivi di prestazione sono in `OperationalDashboardIT` del backend.
+  tenant con dati omonimi e obiettivi di prestazione sono in `OperationalDashboardIT` del backend;
+- `inventory-qr.spec.ts`: la scansione dei QR inventario — deep link senza sessione che passa dal
+  login e torna alla scansione, stesso stato «Codice non disponibile» con `404` per un codice
+  sconosciuto o di un altro tenant, per amministratore e utente, pulsanti amministrativi presenti
+  solo se compaiono in `allowedActions`, collegamento **Assegna** che apre e mette a fuoco la
+  sezione della scheda, apertura diretta della consegna quando il socio ne ha una sola, axe-core e
+  nessuno scorrimento orizzontale a 320 pixel con azioni alte almeno 44 pixel. La rotazione non è
+  provata perché invaliderebbe le etichette dell'ambiente: resta nelle verifiche fisiche. Le prove
+  sull'oggetto si saltano senza `E2E_INVENTORY_QR_CODE`.
 
 ## Prerequisiti
 
@@ -46,6 +54,8 @@ quando non sono configurati.
 | `E2E_FIRST_ADMIN_USERNAME`, `E2E_FIRST_ADMIN_PASSWORD` | Amministratore del primo tenant |
 | `E2E_FIRST_<RUOLO>_USERNAME`, `E2E_FIRST_<RUOLO>_PASSWORD` | Altri ruoli del primo tenant |
 | `E2E_SECOND_<RUOLO>_USERNAME`, `E2E_SECOND_<RUOLO>_PASSWORD` | Ruoli del secondo tenant |
+| `E2E_INVENTORY_QR_CODE` | Identificatore pubblico del QR di un oggetto del primo tenant con `INVENTORY_QR` attivo, letto dall'etichetta stampata; senza di esso le prove sull'oggetto si saltano |
+| `E2E_SECOND_INVENTORY_QR_CODE` | Identificatore di un oggetto del secondo tenant, per provare che dal primo risponde come un codice sconosciuto; facoltativo |
 | `E2E_LARGE_TRACK_ID` | Traccia del primo tenant con 200 parti e 1.000 pagine, per il gate prestazionale del workspace; senza di essa quella prova si salta |
 
 I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.

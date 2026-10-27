@@ -153,6 +153,34 @@ public interface InventoryAssignmentRepository extends JpaRepository<InventoryAs
         """)
     long countPendingDecisionsOfSheet(@Param("sheetId") Long sheetId, @Param("statuses") Collection<InventoryAssignmentStatus> statuses);
 
+    /**
+     * Assignments of an item in the given states whose current revision waits for the acknowledgment of the member.
+     */
+    @Query("""
+        select count(a) from InventoryAssignment a
+        where a.item.id = :itemId
+          and a.deleted = false
+          and a.status in :statuses
+          and not exists (
+            select decision.id from InventoryAssignmentDecision decision
+            where decision.revision.assignment = a
+              and decision.revision.revisionNumber = a.currentRevision
+          )
+        """)
+    long countPendingDecisionsOfItem(@Param("itemId") Long itemId, @Param("statuses") Collection<InventoryAssignmentStatus> statuses);
+
+    /** Among the given assignments, those whose current revision has no acknowledgment yet. */
+    @Query("""
+        select a.id from InventoryAssignment a
+        where a.id in :ids
+          and not exists (
+            select decision.id from InventoryAssignmentDecision decision
+            where decision.revision.assignment = a
+              and decision.revision.revisionNumber = a.currentRevision
+          )
+        """)
+    List<Long> findIdsWithPendingDecision(@Param("ids") Collection<Long> ids);
+
     @Query("""
         select a from InventoryAssignment a
         where a.userKeycloakId = :userId
