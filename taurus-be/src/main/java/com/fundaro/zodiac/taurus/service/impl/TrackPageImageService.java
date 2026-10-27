@@ -7,6 +7,8 @@ import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.TrackPageEditReceipt;
 import com.fundaro.zodiac.taurus.domain.Tracks;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
@@ -18,6 +20,8 @@ import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.TrackPageImageDTOs;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
+import jakarta.annotation.PreDestroy;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,7 +31,18 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -38,6 +53,25 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class TrackPageImageService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TrackPageImageService.class);
+
+    /**
+     * Il rendering gira su un pool dedicato invece che sul thread della richiesta: Java2D non
+     * risponde all'interruzione, quindi il solo modo di non tenere occupato il thread servlet oltre
+     * il limite è aspettare un {@link Future} e abbandonarlo. Il pool non ha coda e rifiuta quando
+     * tutti i posti sono occupati, perché accodare richieste costose dietro a un render lento
+     * trasformerebbe un sovraccarico in un'attesa indistinguibile da un blocco.
+     */
+    private final ThreadPoolExecutor renderer = new ThreadPoolExecutor(
+        0,
+        Math.max(2, Runtime.getRuntime().availableProcessors()),
+        60,
+        TimeUnit.SECONDS,
+        new SynchronousQueue<>(),
+        new RendererThreadFactory(),
+        new ThreadPoolExecutor.AbortPolicy()
+    );
+
     private final TracksRepository tracksRepository;
     private final MediaRepository mediaRepository;
     private final TrackPageEditReceiptRepository receiptRepository;
@@ -45,6 +79,9 @@ public class TrackPageImageService {
     private final ImageTransformationService imageTransformationService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final TrackPageImageMetrics metrics;
+    private final TenantSchemaNameResolver schemaNameResolver;
+    private final long renderTimeoutMillis;
 
     public TrackPageImageService(
         TracksRepository tracksRepository,
@@ -53,7 +90,10 @@ public class TrackPageImageService {
         MediaService mediaService,
         ImageTransformationService imageTransformationService,
         ObjectMapper objectMapper,
-        PlatformTransactionManager transactionManager
+        PlatformTransactionManager transactionManager,
+        TrackPageImageMetrics metrics,
+        TenantSchemaNameResolver schemaNameResolver,
+        ApplicationProperties properties
     ) {
         this.tracksRepository = tracksRepository;
         this.mediaRepository = mediaRepository;
@@ -62,12 +102,45 @@ public class TrackPageImageService {
         this.imageTransformationService = imageTransformationService;
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.metrics = metrics;
+        this.schemaNameResolver = schemaNameResolver;
+        this.renderTimeoutMillis = Math.max(1, properties.getMedia().getImageEditTimeoutSeconds()) * 1_000L;
+    }
+
+    @PreDestroy
+    void stopRenderer() {
+        renderer.shutdownNow();
     }
 
     public TrackPageImageDTOs.Analysis analyze(Long trackId, Long scoreId, Long mediaId, AbstractAuthenticationToken token) {
         requireEditor(token);
-        PageSource source = transactionTemplate.execute(status -> loadSource(trackId, scoreId, mediaId, token));
-        return imageTransformationService.analyze(mediaId, source.content());
+        long started = System.nanoTime();
+        try {
+            PageSource source = transactionTemplate.execute(status -> loadSource(trackId, scoreId, mediaId, token));
+            TrackPageImageDTOs.Analysis analysis = rendered(() -> imageTransformationService.analyze(mediaId, source.content()));
+            metrics.analysis("done", elapsed(started), (long) analysis.width() * analysis.height());
+            LOG.debug(
+                "Page image analysis done tenant={} track={} score={} source={} pixels={} suggestions={}",
+                tenantTag(token),
+                trackId,
+                scoreId,
+                mediaId,
+                (long) analysis.width() * analysis.height(),
+                analysis.suggestions().size()
+            );
+            return analysis;
+        } catch (RequestAlertException exception) {
+            metrics.analysis(exception.getErrorKey(), elapsed(started), 0);
+            LOG.info(
+                "Page image analysis failed tenant={} track={} score={} source={} outcome={}",
+                tenantTag(token),
+                trackId,
+                scoreId,
+                mediaId,
+                exception.getErrorKey()
+            );
+            throw exception;
+        }
     }
 
     public TrackPageImageDTOs.EditResult edit(
@@ -82,22 +155,148 @@ public class TrackPageImageService {
         requireUuidV4(requestKey);
         String actor = requiredActor(token);
         String fingerprint = fingerprint(trackId, scoreId, mediaId, request);
-        TrackPageImageDTOs.EditResult replay = transactionTemplate.execute(status -> replay(actor, requestKey, fingerprint));
-        if (replay != null) return replay;
-
-        PageSource source = transactionTemplate.execute(status -> loadSource(trackId, scoreId, mediaId, token));
-        if (!source.mimeType().startsWith("image/")) {
-            throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Media is not an image", "trackPageImage", "image.unsupported");
-        }
-        List<byte[]> transformed = imageTransformationService.transform(source.content(), request);
-
+        long started = System.nanoTime();
+        AtomicInteger storedAssets = new AtomicInteger();
         try {
-            return transactionTemplate.execute(status -> persistEdit(trackId, scoreId, mediaId, requestKey, request, actor, fingerprint, source.fileName(), transformed, token));
-        } catch (DataIntegrityViolationException exception) {
-            TrackPageImageDTOs.EditResult concurrentReplay = transactionTemplate.execute(status -> replay(actor, requestKey, fingerprint));
-            if (concurrentReplay != null) return concurrentReplay;
+            TrackPageImageDTOs.EditResult replay = transactionTemplate.execute(status -> replay(actor, requestKey, fingerprint));
+            if (replay != null) {
+                metrics.edit("replayed", elapsed(started), 0, 0, replay.media().size());
+                logEdit("replayed", token, trackId, scoreId, mediaId, fingerprint, replay);
+                return replay;
+            }
+
+            PageSource source = transactionTemplate.execute(status -> loadSource(trackId, scoreId, mediaId, token));
+            if (!source.mimeType().startsWith("image/")) {
+                throw new RequestAlertException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Media is not an image", "trackPageImage", "image.unsupported");
+            }
+            List<byte[]> transformed = rendered(() -> imageTransformationService.transform(source.content(), request));
+            recordOperations(request);
+
+            TrackPageImageDTOs.EditResult result;
+            try {
+                result = transactionTemplate.execute(status ->
+                    persistEdit(trackId, scoreId, mediaId, requestKey, request, actor, fingerprint, source.fileName(), transformed, storedAssets, token)
+                );
+            } catch (DataIntegrityViolationException exception) {
+                TrackPageImageDTOs.EditResult concurrentReplay = transactionTemplate.execute(status -> replay(actor, requestKey, fingerprint));
+                if (concurrentReplay == null) throw exception;
+                result = concurrentReplay;
+            }
+
+            metrics.edit("done", elapsed(started), source.content().length, outputBytes(transformed), transformed.size());
+            logEdit("done", token, trackId, scoreId, mediaId, fingerprint, result);
+            return result;
+        } catch (RequestAlertException exception) {
+            metrics.edit(exception.getErrorKey(), elapsed(started), 0, 0, 0);
+            metrics.storageCompensation(storedAssets.get());
+            LOG.info(
+                "Page image edit failed tenant={} track={} score={} source={} digest={} outcome={} compensated={}",
+                tenantTag(token),
+                trackId,
+                scoreId,
+                mediaId,
+                shortDigest(fingerprint),
+                exception.getErrorKey(),
+                storedAssets.get()
+            );
+            throw exception;
+        } catch (RuntimeException exception) {
+            metrics.edit("error", elapsed(started), 0, 0, 0);
+            metrics.storageCompensation(storedAssets.get());
+            LOG.warn(
+                "Page image edit failed tenant={} track={} score={} source={} digest={} compensated={}",
+                tenantTag(token),
+                trackId,
+                scoreId,
+                mediaId,
+                shortDigest(fingerprint),
+                storedAssets.get(),
+                exception
+            );
             throw exception;
         }
+    }
+
+    /**
+     * Il rendering ha un limite di tempo: oltre quello la richiesta risponde {@code 503} invece di
+     * tenere occupato il thread della richiesta. Il lavoro abbandonato finisce da sé, al più tardi
+     * quando il pool si spegne; non lascia righe in sospeso perché avviene fuori da ogni
+     * transazione.
+     */
+    private <T> T rendered(Callable<T> work) {
+        Future<T> pending;
+        try {
+            pending = renderer.submit(work);
+        } catch (RejectedExecutionException rejected) {
+            throw unavailable("Every renderer slot is busy", "image.busy");
+        }
+        try {
+            return pending.get(renderTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException timeout) {
+            pending.cancel(true);
+            throw unavailable("Image rendering exceeded the time limit", "image.timeout");
+        } catch (InterruptedException interrupted) {
+            pending.cancel(true);
+            Thread.currentThread().interrupt();
+            throw unavailable("Image rendering was interrupted", "image.timeout");
+        } catch (ExecutionException failure) {
+            if (failure.getCause() instanceof RuntimeException cause) throw cause;
+            if (failure.getCause() instanceof Error error) throw error;
+            throw new IllegalStateException("Unable to render the page image", failure.getCause());
+        }
+    }
+
+    /** Le operazioni della ricetta, non i loro valori: per la diagnosi bastano i tipi. */
+    private void recordOperations(TrackPageImageDTOs.EditRequest request) {
+        if (request.rotationQuarterTurns() != 0) metrics.operation("rotate");
+        if (request.deskewDegrees() != 0) metrics.operation("deskew");
+        if (!request.crops().isEmpty()) metrics.operation("crop");
+        if (request.grayscale()) metrics.operation("grayscale");
+        if (request.brightness() != 0) metrics.operation("brightness");
+        if (request.contrast() != 0) metrics.operation("contrast");
+        if (request.autoContrast()) metrics.operation("auto_contrast");
+        if (request.threshold() != null) metrics.operation("threshold");
+    }
+
+    private void logEdit(
+        String outcome,
+        AbstractAuthenticationToken token,
+        Long trackId,
+        Long scoreId,
+        Long mediaId,
+        String fingerprint,
+        TrackPageImageDTOs.EditResult result
+    ) {
+        LOG.info(
+            "Page image edit {} tenant={} track={} score={} source={} results={} version={} digest={}",
+            outcome,
+            tenantTag(token),
+            trackId,
+            scoreId,
+            mediaId,
+            result.media().stream().map(ChildrenEntitiesDTO::getIndex).toList(),
+            result.trackVersion(),
+            shortDigest(fingerprint)
+        );
+    }
+
+    /** Lo schema è la forma tecnica del tenant: identifica senza nominare l'associazione. */
+    private String tenantTag(AbstractAuthenticationToken token) {
+        return schemaNameResolver.resolve(SecurityUtils.getTenantIdFromAuthentication(token));
+    }
+
+    private static String shortDigest(String fingerprint) {
+        return fingerprint.length() <= 12 ? fingerprint : fingerprint.substring(0, 12);
+    }
+
+    private static long outputBytes(List<byte[]> transformed) {
+        long total = 0;
+        for (byte[] image : transformed) total += image.length;
+        return total;
+    }
+
+    private static long elapsed(long startedNanos) {
+        return (System.nanoTime() - startedNanos) / 1_000_000L;
     }
 
     private TrackPageImageDTOs.EditResult persistEdit(
@@ -110,6 +309,7 @@ public class TrackPageImageService {
         String fingerprint,
         String sourceFileName,
         List<byte[]> transformed,
+        AtomicInteger storedAssets,
         AbstractAuthenticationToken token
     ) {
         TrackPageImageDTOs.EditResult replay = replay(actor, requestKey, fingerprint);
@@ -117,6 +317,7 @@ public class TrackPageImageService {
 
         Tracks track = requiredTrack(trackId);
         if (!Objects.equals(request.expectedTrackVersion(), track.getEntityVersion())) {
+            metrics.conflict("version");
             throw conflict("Track was modified by another request", "version.conflict");
         }
         SheetsMusic score = requiredScore(track, scoreId);
@@ -133,6 +334,7 @@ public class TrackPageImageService {
                 token
             );
             savedMedia.add(saved);
+            storedAssets.incrementAndGet();
             newMedia.add(mediaRepository.getReferenceById(saved.getId()));
         }
         List<Media> replacementMedia = new ArrayList<>(score.getMedia());
@@ -203,10 +405,12 @@ public class TrackPageImageService {
         TrackPageEditReceipt receipt = receiptRepository.findByRequestedByAndRequestKey(actor, requestKey).orElse(null);
         if (receipt == null) return null;
         if (!MessageDigest.isEqual(receipt.getRequestFingerprint().getBytes(StandardCharsets.US_ASCII), fingerprint.getBytes(StandardCharsets.US_ASCII))) {
+            metrics.conflict("fingerprint");
             throw conflict("Idempotency key already used for a different request", "image.idempotency.conflict");
         }
         Tracks track = requiredTrack(receipt.getTrackId());
         if (!Objects.equals(track.getEntityVersion(), receipt.getResultTrackVersion())) {
+            metrics.conflict("stale");
             throw conflict("Idempotency response is no longer current", "image.idempotency.stale");
         }
         SheetsMusic score = requiredScore(track, receipt.getSheetMusicId());
@@ -278,6 +482,23 @@ public class TrackPageImageService {
 
     private static RequestAlertException conflict(String message, String key) {
         return new RequestAlertException(HttpStatus.CONFLICT, message, "trackPageImage", key);
+    }
+
+    private static RequestAlertException unavailable(String message, String key) {
+        return new RequestAlertException(HttpStatus.SERVICE_UNAVAILABLE, message, "trackPageImage", key);
+    }
+
+    /** Thread con un nome riconoscibile: in un thread dump si vede subito chi sta rendendo. */
+    private static final class RendererThreadFactory implements java.util.concurrent.ThreadFactory {
+
+        private final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public Thread newThread(Runnable runnable) {
+            Thread thread = new Thread(runnable, "image-render-" + counter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        }
     }
 
     private record PageSource(String fileName, String mimeType, byte[] content) {

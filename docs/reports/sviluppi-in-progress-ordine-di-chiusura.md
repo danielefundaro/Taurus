@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 13, 16, 17, 18 e 19; sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 12, 14 e 15.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-27 restano `in-progress` le voci 6, 7, 9, 10, 13, 16, 17, 18 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 11, 12, 14 e 15.
 
 ## 1. `web-push-reminders`
 
@@ -149,6 +149,8 @@ L'integrazione con RabbitMQ reale arriva dal lotto 7; il resto è lavoro contenu
 - Test backend di concorrenza, replay e conflitto idempotente, compensazione storage, ruoli e isolamento tenant.
 - Test di integrazione con input malevolo e timeout controllato.
 - Collaudo prestazionale su scansioni reali anonimizzate.
+
+> Il 2026-10-27 sono stati chiusi cinque dei sei requisiti aperti: riuso della chiave di idempotenza con «Riprova» nel dialogo, limite di tempo del rendering con `503`, metriche e log `taurus.image.*`, i test di replay, conflitti, ruoli, limite di tempo e compensazione, e `TrackPageImageIT` su PostgreSQL e storage veri per isolamento fra tenant, concorrenza, input malevolo e decompression bomb. La voce resta `in-progress` per il collaudo prestazionale su scansioni reali anonimizzate: il budget di tempo di una pagina A4 a 300 DPI è misurato su una pagina sintetica, ma le scansioni vere vanno raccolte e anonimizzate prima di confermare le soglie.
 
 ## 10. `operational-dashboard`
 

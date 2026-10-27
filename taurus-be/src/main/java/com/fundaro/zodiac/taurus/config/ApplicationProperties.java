@@ -340,6 +340,7 @@ public class ApplicationProperties {
         private int temporaryFileHours = 24;
         private int orphanFileHours = 168;
         private int trackPageEditReceiptDays = 7;
+        private int imageEditTimeoutSeconds = 30;
 
         public boolean isCleanupEnabled() {
             return cleanupEnabled;
@@ -379,6 +380,14 @@ public class ApplicationProperties {
 
         public void setTrackPageEditReceiptDays(int trackPageEditReceiptDays) {
             this.trackPageEditReceiptDays = trackPageEditReceiptDays;
+        }
+
+        public int getImageEditTimeoutSeconds() {
+            return imageEditTimeoutSeconds;
+        }
+
+        public void setImageEditTimeoutSeconds(int imageEditTimeoutSeconds) {
+            this.imageEditTimeoutSeconds = imageEditTimeoutSeconds;
         }
     }
 

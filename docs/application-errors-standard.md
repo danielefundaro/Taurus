@@ -888,6 +888,8 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `image.idempotencyKey` | 400 | La richiesta non ha una chiave di idempotenza valida: errore del client | — | «Richiesta non valida: ricaricare la pagina e riprovare» |
 | `image.idempotency.conflict` | 409 | La chiave di idempotenza è già stata usata per una modifica diversa | — | «Richiesta non valida: ricaricare la pagina e riprovare» |
 | `image.idempotency.stale` | 409 | La risposta di una modifica già eseguita non è più attuale: il brano è cambiato | — | «Il brano è cambiato dopo la modifica: ricaricare la pagina» |
+| `image.timeout` | 503 | L'elaborazione dell'immagine ha superato il limite di tempo | — | «L'elaborazione dell'immagine ha superato il tempo massimo: riprovare» |
+| `image.busy` | 503 | Tutti i posti di elaborazione delle immagini sono occupati | — | «L'elaborazione delle immagini è occupata: riprovare fra poco» |
 
 ### Media
 

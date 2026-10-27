@@ -666,6 +666,8 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - Keycloak non raggiungibile o incremento errori OIDC;
 - tenant in stato diverso da `ACTIVE` con `last_error` valorizzato;
 - errori ripetuti degli scheduler;
+- modifiche delle immagini delle pagine respinte dal limite di tempo (`taurus_image_edit_total{outcome="image.timeout"}`) o dal pool pieno (`outcome="image.busy"`): rendering troppo lento per l'hardware o richieste troppo grandi, da leggere insieme ai percentili di `taurus_image_edit_duration_seconds` e alle distribuzioni di pixel e byte;
+- compensazioni storage delle immagini (`taurus_image_storage_compensations_total`) in crescita: un salvataggio sta fallendo dopo la scrittura degli asset, che vengono rimossi ma segnalano un problema di database o di storage;
 - crescita di notification outbox/push fallite;
 - certificati TLS e chiavi in scadenza;
 - backup fallito o restore test scaduto.
@@ -676,7 +678,13 @@ Il frontend conta gli eventi d'uso di una funzione, li aggrega nel browser e li 
 
 La misura non lascia l'installazione e non contiene contenuti: né nomi di parti o di file, né testi cercati, né identificativi di tracce. Le etichette arrivano da un browser, quindi la funzione deve essere fra quelle note e il nome dell'evento deve avere la forma di un identificativo; numero di eventi, conteggi e durata sono limitati. Una segnalazione scartata riceve comunque `204`, perché una misura vale meno del lavoro di chi sta usando l'applicazione: un `204` non garantisce che la segnalazione sia stata registrata. Le serie sono utili per confrontare il tempo dalla prima apertura al salvataggio e il numero di operazioni per sessione; non sono un allarme.
 
-### 10.4 Log
+### 10.4 Modifica delle immagini delle pagine
+
+Analisi e salvataggio delle pagine espongono il prefisso `taurus.image.`: contatori e timer per esito (`done`, `replayed`, `error` o la chiave dell'errore), distribuzioni di pixel e byte in ingresso e in uscita, tipi di trasformazione applicati, conflitti distinti per genere (versione superata, chiave riusata con un'altra ricetta, ricevuta non più attuale) e asset recuperati dalla compensazione. Le etichette sono chiuse: nessun nome di parte, file o tenant, e nessuna coordinata della ricetta.
+
+Il rendering gira su un pool dedicato, fuori da ogni transazione, con il limite di tempo di `application.media.image-edit-timeout-seconds` (30 secondi): oltre il limite la richiesta risponde `503` e non scrive nulla, quindi non lascia asset o ricevute a metà. Alzare il limite ha senso solo con pagine molto grandi e hardware lento; abbassarlo rende più frequenti i `503` su pagine legittime. I log di analisi e salvataggio correlano schema del tenant, traccia, parte, media sorgente, media risultanti, versione e primi dodici caratteri dell'impronta della richiesta: bastano a ricostruire un tentativo senza registrarne il contenuto.
+
+### 10.5 Log
 
 Il profilo `prod` usa livello `INFO`; i log non sono JSON per impostazione predefinita e Logstash è disabilitato. La piattaforma di produzione deve acquisire `stdout/stderr`, aggiungere timestamp e identità del pod/container e applicare retention controllata.
 

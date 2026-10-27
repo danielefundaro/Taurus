@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 56% istruzioni, 47% branch e 58% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 64% linee e 47% branch sulla suite intera, frontend 56% istruzioni, 48% branch e 58% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -284,7 +284,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (56% istruzioni, 47% branch, 58% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (56% istruzioni, 48% branch, 58% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti e poi con quelle dell'editor delle immagini). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -806,6 +806,8 @@ Verificare almeno:
 - upload/delete simultaneo dello stesso media.
 
 `UploadJobConcurrencyIT` qualifica la coda degli upload: la presa in carico e la chiusura di un job passano da un `UPDATE` condizionato sullo stato, quindi fra sei worker simultanei uno solo vince e gli altri si ritirano. È il meccanismo che rende sicure più repliche su quella coda.
+
+`TrackPageImageIT` qualifica la modifica di una pagina sullo stesso terreno: quattro salvataggi simultanei sulla stessa immagine con la versione attesa della traccia producono un solo vincitore, gli altri non toccano la relazione, e lo stesso tentativo ripetuto con la stessa chiave riceve il replay della prima risposta senza scrivere un secondo asset. Lo stesso test copre l'isolamento fra tenant, i byte che si dichiarano immagine senza esserlo, una decompression bomb rifiutata dall'header e il limite di tempo del rendering, che risponde `503` senza lasciare asset o ricevute a metà.
 
 I promemoria push (`push_reminders`) e l'outbox delle notifiche non hanno una presa in carico equivalente: leggono le righe dovute e le marcano dopo l'invio, quindi due repliche attive insieme possono inviare due volte lo stesso promemoria. Finché non si introduce una presa in carico condizionata, un lock o un worker dedicato, quegli scheduler vanno eseguiti su una replica sola.
 

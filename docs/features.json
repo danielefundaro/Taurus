@@ -1054,6 +1054,7 @@
         "implementation": [
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationService.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageMetrics.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TrackPageImageResource.java",
           "taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.ts",
           "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts",
@@ -1066,6 +1067,7 @@
         "tests": [
       "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/ImageTransformationServiceTest.java",
       "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageServiceTest.java",
+      "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TrackPageImageIT.java",
       "taurus-be/src/test/java/com/fundaro/zodiac/taurus/domain/RelationalSoftDeleteIT.java",
       "taurus-fe/src/app/dialogs/image-editor-dialog/image-editor-dialog.component.spec.ts",
       "taurus-fe/src/app/pages/tracks/detail/detail.component.spec.ts",
@@ -1074,9 +1076,9 @@
       "taurus-fe/src/app/service/tracks.service.spec.ts"
         ]
       },
-    "notes": "Editing copy-on-write disponibile sulle pagine persistite delle parti, con analisi tecnica, preview locale e raddrizzamento 0°-360° a passi di 0,1°. Durante il raddrizzamento canvas e scala del contenuto restano fissi: l'immagine non viene adattata al canvas e le porzioni esterne vengono tagliate allo stesso modo in anteprima e nel PNG salvato. Sono inoltre disponibili controlli tonali con valori visibili, fino a otto zone ordinate, anteprima live del rettangolo durante il disegno, preset di divisione A4/A5 e ridimensionamento tramite otto maniglie. Ogni zona produce un PNG distinto. Il salvataggio usa controllo ottimistico, ricevute idempotenti e ricostruzione in due fasi delle relazioni ordinate per evitare collisioni sugli indici unici. Sono inoltre corretti apertura dell'anteprima, icone di rotazione e layout della spalla strumenti. Restano i requisiti aperti elencati nella specifica. Il 2026-10-24 Modifica immagine nella barra delle pagine è invariata dopo le modifiche al workspace Parti.",
+    "notes": "Editing copy-on-write disponibile sulle pagine persistite delle parti, con analisi tecnica, preview locale e raddrizzamento 0°-360° a passi di 0,1°. Durante il raddrizzamento canvas e scala del contenuto restano fissi: l'immagine non viene adattata al canvas e le porzioni esterne vengono tagliate allo stesso modo in anteprima e nel PNG salvato. Sono inoltre disponibili controlli tonali con valori visibili, fino a otto zone ordinate, anteprima live del rettangolo durante il disegno, preset di divisione A4/A5 e ridimensionamento tramite otto maniglie. Ogni zona produce un PNG distinto. Il salvataggio usa controllo ottimistico, ricevute idempotenti e ricostruzione in due fasi delle relazioni ordinate per evitare collisioni sugli indici unici. Sono inoltre corretti apertura dell'anteprima, icone di rotazione e layout della spalla strumenti. Il 2026-10-24 Modifica immagine nella barra delle pagine è invariata dopo le modifiche al workspace Parti. Il 2026-10-27 sono stati chiusi cinque dei sei requisiti aperti. La chiave di idempotenza identifica il tentativo e non la richiesta: il dialogo la conserva finché la ricetta non cambia e «Riprova», offerto solo quando la risposta è andata persa, ripete lo stesso tentativo, che riceve il replay della prima risposta invece di una seconda modifica; una ricetta modificata o una risposta negativa definitiva fanno dimenticare la chiave. Il rendering gira su un pool dedicato con un limite di tempo configurabile (application.media.image-edit-timeout-seconds, 30 secondi) perché Java2D non risponde all'interruzione: oltre il limite la risposta è 503 image.timeout e, senza posti liberi, 503 image.busy, in entrambi i casi prima di qualsiasi scrittura. TrackPageImageMetrics espone esiti e durate di analisi e salvataggio, distribuzioni di pixel e byte, tipi di trasformazione, i tre conflitti e gli asset recuperati dalla compensazione, con etichette chiuse e senza nomi di parti, file o tenant; i log correlano schema del tenant, identificativi, impronta breve ed esito, senza le coordinate della ricetta. I test coprono replay, chiave riusata, ricevuta non più attuale, versione superata, ruoli, limite di tempo e compensazione, e TrackPageImageIT lavora su PostgreSQL e storage veri su catena autorizzata, isolamento fra tenant, pagina già sostituita, replay senza secondo asset, quattro salvataggi concorrenti, byte che si dichiarano PNG senza esserlo e decompression bomb. Resta aperto il collaudo prestazionale su scansioni reali anonimizzate: il budget di tempo di una pagina A4 a 300 DPI è misurato su una pagina sintetica nei test di componente, mentre le scansioni vere vanno raccolte e anonimizzate.",
       "release": null,
-      "lastVerifiedOn": "2026-10-24"
+      "lastVerifiedOn": "2026-10-27"
     },
     {
       "id": "track-parts-workspace",

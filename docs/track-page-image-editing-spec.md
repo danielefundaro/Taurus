@@ -51,7 +51,9 @@ Una stessa immagine può essere referenziata da più parti, per esempio dopo una
 | Anteprima | Rendering locale nel browser; il backend ricalcola autorevolmente il risultato al salvataggio |
 | Analisi | Tecnica e deterministica: bordi vuoti, inclinazione, luminosità e contrasto; nessuna analisi del contenuto musicale |
 | Concorrenza | Versione attesa della traccia e verifica della relazione corrente |
-| Retry | `Idempotency-Key` UUID v4 con ricevuta persistente a durata limitata; il frontend ne genera una nuova a ogni invio |
+| Retry | `Idempotency-Key` UUID v4 con ricevuta persistente a durata limitata; il frontend tiene la stessa chiave finché la ricetta non cambia, così un nuovo invio dopo una risposta persa ottiene il replay |
+| Limite di tempo | Il rendering gira su un pool dedicato con un limite di tempo (`application.media.image-edit-timeout-seconds`, 30 secondi); oltre il limite la richiesta risponde `503` e non lascia nulla a metà |
+| Osservabilità | Contatori, durate e distribuzioni Micrometer `taurus.image.*` con etichette chiuse, e un log per analisi e salvataggio con schema del tenant, identificativi, impronta breve ed esito |
 | Formato risultante | PNG lossless nella categoria storage `scores` |
 | Autorizzazioni | `SUPER_ADMIN`, `ADMIN`, `ARCHIVIST`; utenti interni ed esterni restano in sola lettura |
 
@@ -151,10 +153,11 @@ Stati espliciti del dialogo:
 | Pronto | Controlli attivi e «Salva immagine» disabilitato finché la ricetta è vuota |
 | Modificato | Confronto prima/dopo e riepilogo trasformazioni |
 | Salvataggio | Un solo invio; chiusura e navigazione bloccate |
-| Errore recuperabile | Ricetta mantenuta e messaggio; «Salva immagine» resta disponibile e invia una chiave nuova |
+| Risposta persa (nessuna risposta, `408`, `5xx`) | Ricetta mantenuta; messaggio che spiega l'incertezza e azione «Riprova» accanto al messaggio |
+| Errore recuperabile (`4xx` diverso da `409`) | Ricetta mantenuta e messaggio; «Salva immagine» resta disponibile e il tentativo successivo è un'operazione nuova |
 | Conflitto (`409`) | Ricetta mantenuta; messaggio «La traccia o la pagina è stata modificata. Ricarica la traccia prima di riprovare.» |
 
-Un nuovo invio dopo una risposta persa usa una chiave diversa e non riceve il replay. La pagina sorgente è già stata sostituita, quindi la risposta è `404` `image.notFound` e il dialogo mostra il messaggio generico di errore.
+La chiave di idempotenza identifica il tentativo, non la richiesta: il dialogo la genera al primo invio e la conserva finché la ricetta non cambia. «Riprova» ripete quindi lo stesso tentativo e, se la modifica era già stata registrata mentre la risposta si perdeva, riceve il replay della prima risposta invece di una seconda modifica. Una ricetta modificata è un'altra operazione e ottiene una chiave nuova, altrimenti il server riconoscerebbe la chiave con un'impronta diversa e risponderebbe `409`. Dopo una risposta negativa definitiva la chiave viene dimenticata, perché quel tentativo non ha prodotto nulla da rigiocare.
 
 La chiusura con ricetta non vuota richiede conferma. Dopo il salvataggio il dialogo si chiude e la pagina sorgente viene sostituita da tutte le immagini generate, nello stesso punto e nell'ordine visualizzato; le miniature vengono ricaricate e un toast riporta il numero di immagini create. Il comando generale «Salva traccia» non si attiva per questa operazione già persistita.
 
@@ -252,7 +255,7 @@ Risposta `200 OK` indicativa:
 }
 ```
 
-La risposta a una ripetizione con la stessa chiave e lo stesso fingerprint è identica finché il risultato è ancora la pagina corrente. La stessa chiave con payload diverso restituisce `409 Conflict` (`image.idempotency.conflict`). Una ricevuta riferita a un risultato non più corrente restituisce `409` (`image.idempotency.stale`), senza rieseguire implicitamente la modifica. Una ricevuta scaduta non esiste più: la richiesta è trattata come nuova e, poiché la pagina sorgente è già stata sostituita, riceve `404`.
+La risposta a una ripetizione con la stessa chiave e lo stesso fingerprint è identica finché il risultato è ancora la pagina corrente, e non produce né un secondo asset né una seconda ricevuta. La stessa chiave con payload diverso restituisce `409 Conflict` (`image.idempotency.conflict`). Una ricevuta riferita a un risultato non più corrente restituisce `409` (`image.idempotency.stale`), senza rieseguire implicitamente la modifica. Una ricevuta scaduta non esiste più: la richiesta è trattata come nuova e, poiché la pagina sorgente è già stata sostituita, riceve `404`.
 
 ### Errori
 
@@ -265,8 +268,9 @@ La risposta a una ripetizione con la stessa chiave e lo stesso fingerprint è id
 | `413` | file o immagine decodificata oltre i limiti |
 | `415` | media corrente non supportato come immagine |
 | `422` | immagine non decodificabile o risultato non codificabile (`image.decode`, `image.encode`) |
+| `503` | rendering oltre il limite di tempo (`image.timeout`) o nessun posto libero nel pool di rendering (`image.busy`) |
 
-Il rendering non ha un timeout.
+Il rendering ha un limite di tempo, `application.media.image-edit-timeout-seconds` (30 secondi): oltre quel limite la richiesta risponde `503` `image.timeout` invece di tenere occupato il thread della richiesta. Il lavoro abbandonato non lascia righe in sospeso, perché avviene fuori da ogni transazione e prima di qualsiasi scrittura. Quando tutti i posti del pool sono occupati la risposta è `503` `image.busy`: una richiesta costosa accodata dietro a un rendering lento diventerebbe un'attesa indistinguibile da un blocco. Entrambe sono risposte perse dal punto di vista del client, che le ritenta con la stessa chiave.
 
 Il frontend non distingue un oggetto inesistente da uno appartenente a un altro tenant.
 
@@ -330,6 +334,8 @@ Limiti fissi, definiti come costanti in `ImageTransformationService`:
 - massimo otto zone e otto immagini risultanti per operazione;
 - protezione persistente da richieste concorrenti tramite versione e idempotenza.
 
+Il rendering non gira sul thread della richiesta: Java2D non risponde all'interruzione, quindi l'unico modo di rispettare un limite di tempo è aspettare il risultato su un pool dedicato e abbandonarlo alla scadenza. Il pool non ha coda e rifiuta quando tutti i posti sono occupati, così un sovraccarico si presenta come un `503` immediato e non come un'attesa.
+
 Il formato viene riconosciuto dai byte tramite i lettori ImageIO; le pagine sorgente sono PNG o JPEG e il risultato è sempre PNG. Le dimensioni vengono lette dall'header (`ImageReader`) e un'immagine oltre i limiti è rifiutata prima di decodificarne i pixel, per contrastare decompression bomb. Il backend elimina metadati EXIF e profili non necessari, conserva l'orientamento già applicato e non incorpora path o dati utente nel file.
 
 ## Modello dati e compatibilità
@@ -349,16 +355,20 @@ I client precedenti continuano a leggere il nuovo asset come una normale pagina.
 
 ## Osservabilità
 
-Analisi e salvataggio non registrano log né metriche dedicate; gli errori arrivano al client come chiavi `image.*`. Il monitoraggio previsto comprende:
+`TrackPageImageMetrics` espone le metriche Micrometer del prefisso `taurus.image.`:
 
-- numero e durata di analisi e trasformazioni per esito;
-- pixel e byte in ingresso/uscita in bucket;
-- frequenza delle operazioni applicate;
-- conflitti di versione e replay idempotenti;
-- errori di decode, limiti superati e compensazioni storage;
-- media derivati rimasti senza riferimento dopo errore.
+| Metrica | Tipo | Etichette |
+| --- | --- | --- |
+| `taurus.image.analysis`, `taurus.image.analysis.duration` | contatore e timer | `outcome`: `done` o la chiave dell'errore |
+| `taurus.image.edit`, `taurus.image.edit.duration` | contatore e timer | `outcome`: `done`, `replayed`, `error` o la chiave dell'errore |
+| `taurus.image.analysis.pixels`, `taurus.image.edit.input.bytes`, `taurus.image.edit.output.bytes`, `taurus.image.edit.results` | distribuzioni con istogramma | — |
+| `taurus.image.operations` | contatore | `operation`: `rotate`, `deskew`, `crop`, `grayscale`, `brightness`, `contrast`, `auto_contrast`, `threshold` |
+| `taurus.image.conflicts` | contatore | `kind`: `version`, `fingerprint`, `stale` |
+| `taurus.image.storage.compensations` | contatore | — |
 
-I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceMediaId`, `resultMediaId`, idempotency digest ed esito. Non registrano il contenuto della ricetta se include coordinate puntuali; per diagnosi sono sufficienti i tipi di trasformazione.
+Le etichette sono chiuse: niente traccia, parte, media o tenant, perché una serie temporale per oggetto moltiplicherebbe le serie senza aggiungere nulla alla diagnosi. Pixel e byte sono distribuzioni e si leggono dai percentili. I conflitti distinguono la versione superata dalla chiave riusata con un'altra ricetta e dalla ricevuta non più attuale; le compensazioni contano gli asset che un tentativo fallito ha lasciato indietro e che la compensazione di `MediaService` ha poi rimosso.
+
+Analisi e salvataggio registrano una riga di log con lo schema del tenant — la sua forma tecnica, che identifica senza nominare l'associazione —, `trackId`, `scoreId`, `sourceMediaId`, gli identificativi dei media risultanti, la versione restituita, i primi dodici caratteri dell'impronta della richiesta e l'esito. Non registrano il contenuto della ricetta: le coordinate restano fuori e per la diagnosi bastano i tipi di trasformazione, che sono nelle metriche.
 
 ## Strategia di test
 
@@ -369,7 +379,9 @@ I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceM
 - auto-crop su bordo bianco, pagina quasi vuota e contenuto a contatto col bordo;
 - stima inclinazione, luminosità e contrasto entro tolleranze dichiarate;
 - validazione di limiti, ricetta, formato e dimensioni;
-- nessuna mutazione dei byte sorgente.
+- nessuna mutazione dei byte sorgente;
+- replay di una ricevuta senza secondo rendering, chiave riusata con un'altra ricetta, ricevuta non più attuale, versione superata, ruolo non autorizzato, limite di tempo superato e conteggio degli asset lasciati indietro da una transazione fallita;
+- budget di tempo su una pagina A4 a 300 DPI, con un margine larghissimo: la prova coglie una regressione di ordine di grandezza, non la lentezza di una macchina occupata.
 
 ### Backend integrazione
 
@@ -381,7 +393,8 @@ I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceM
 - ricostruzione in due fasi della lista ordinata: disattivazione e flush dei collegamenti correnti, quindi inserimento del nuovo ordine senza violare `uq_sheet_music_media_active_relation` o `uq_sheet_music_media_active_order`;
 - asset sorgente condiviso non cancellato; asset non più referenziato eliminato dopo commit;
 - errore DB dopo scrittura con cancellazione compensativa;
-- input malevolo, decompression bomb simulata e timeout controllato;
+- input malevolo (byte che si dichiarano PNG senza esserlo: nessun lettore li riconosce e la risposta è `415`), decompression bomb (un PNG minuscolo il cui header dichiara miliardi di pixel, rifiutato dall'header prima di allocare i pixel) e limite di tempo controllato, con la lentezza del rendering simulata perché quello che conta intorno al limite è il `503` e l'assenza di asset e ricevute a metà;
+- quattro salvataggi concorrenti sulla stessa pagina: un solo vincitore e nessuna modifica dagli altri;
 - anteprima e stampa della traccia usano il nuovo media.
 
 ### Frontend
@@ -392,6 +405,7 @@ I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceM
 - slider di raddrizzamento 0°–360° con passo 0,1°, normalizzazione dei suggerimenti negativi, canvas e scala del contenuto fissi, senza adattamento automatico dell'immagine;
 - parità della preview rispetto a fixture del backend entro tolleranza visuale;
 - chiusura con conferma, retry che conserva la ricetta e gestione `409`;
+- riuso della stessa chiave di idempotenza finché la ricetta non cambia, chiave nuova dopo una ricetta modificata o una risposta negativa definitiva, e comparsa di «Riprova» soltanto quando la risposta è andata persa;
 - aggiornamento immutabile della pagina sorgente con tutti i risultati, della versione traccia e delle miniature;
 - apertura effettiva dell'overlay PrimeNG dal comando «Apri anteprima» anche con change detection `OnPush`;
 - icone di rotazione presenti e verso dell'azione «Destra» rappresentato correttamente;
@@ -404,14 +418,14 @@ I log previsti correlano tenant in forma tecnica, `trackId`, `scoreId`, `sourceM
 
 ### Prestazioni
 
-- analisi e salvataggio di una pagina A4 a 300 DPI entro le soglie concordate sull'ambiente di riferimento;
+- analisi e salvataggio di una pagina A4 a 300 DPI entro le soglie concordate sull'ambiente di riferimento, misurati su una pagina sintetica nei test di componente;
 - memoria stabile dopo almeno 30 aperture consecutive del dialogo;
 - nessuna transazione database mantenuta durante il rendering;
 - due salvataggi concorrenti sulla stessa pagina producono un solo vincitore e un `409`.
 
 ### Copertura attuale
 
-`ImageTransformationServiceTest` copre renderer, analisi e limiti; `TrackPageImageServiceTest` ha un solo test, la sostituzione di una pagina con tutti i risultati dei crop; `RelationalSoftDeleteIT` copre la ricostruzione ordinata di `sheet_music_media` su PostgreSQL. Il frontend ha spec di editor, dettaglio, miniature, workspace e client HTTP.
+`ImageTransformationServiceTest` copre renderer, analisi, limiti e il budget di tempo su una pagina A4 a 300 DPI; `TrackPageImageServiceTest` copre la sostituzione con tutti i risultati dei crop, il replay, i tre conflitti, i ruoli, il limite di tempo, la compensazione e le metriche; `TrackPageImageIT` lavora su PostgreSQL e sullo storage veri per catena autorizzata, isolamento fra tenant, pagina già sostituita, replay senza secondo asset, chiave riusata, concorrenza, input malevolo, decompression bomb e limite di tempo; `RelationalSoftDeleteIT` copre la ricostruzione ordinata di `sheet_music_media`. Il frontend ha spec di editor — riuso della chiave e «Riprova» compresi —, dettaglio, miniature, workspace e client HTTP.
 
 ## Compatibilità e rollback
 
@@ -448,9 +462,4 @@ In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini 
 
 ## Requisiti aperti
 
-- Riuso della stessa `Idempotency-Key` nei nuovi tentativi e azione «Riprova» nel dialogo, così che una risposta persa ottenga il replay (Stati espliciti del dialogo; Idempotenza; criterio 9).
-- Timeout controllato del rendering con risposta `503` (Errori).
-- Metriche e log di analisi e salvataggio (Osservabilità).
-- Test backend di concorrenza, replay e conflitto idempotente, compensazione storage, ruoli e isolamento tenant (Strategia di test; criterio 15).
-- Test di integrazione con input malevolo e timeout controllato (Backend integrazione).
-- Collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate (Prestazioni).
+- Collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate (Prestazioni): il budget di tempo è misurato su una pagina sintetica, ma le scansioni vere — rumore, grigi, inclinazione reale — vanno raccolte e anonimizzate prima di poter confermare le soglie sull'ambiente di riferimento.
