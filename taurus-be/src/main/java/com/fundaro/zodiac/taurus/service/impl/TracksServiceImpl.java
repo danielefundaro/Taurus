@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.upload.UploadJobMetrics;
 import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
@@ -52,6 +53,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private final InstrumentsRepository instrumentsRepository;
     private final Sender sender;
     private final ImageTransformationService imageTransformationService;
+    private final UploadJobMetrics uploadJobMetrics;
     private final ObjectMapper annotationsMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public TracksServiceImpl(
@@ -61,7 +63,8 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         MediaRepository mediaRepository,
         InstrumentsRepository instrumentsRepository,
         Sender sender,
-        ImageTransformationService imageTransformationService
+        ImageTransformationService imageTransformationService,
+        UploadJobMetrics uploadJobMetrics
     ) {
         super(repository, mapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
@@ -69,6 +72,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         this.instrumentsRepository = instrumentsRepository;
         this.sender = sender;
         this.imageTransformationService = imageTransformationService;
+        this.uploadJobMetrics = uploadJobMetrics;
     }
 
     @Override
@@ -184,8 +188,10 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             byte[] message = Converter.objectToBytes(new UploadFilesPackage(queued.getId(), token));
             sendAfterCommit(queued.getId(), message, token);
         } catch (Exception exception) {
+            uploadJobMetrics.recordFailure(UploadJobMetrics.FailureReason.PUBLISH_FAILED);
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
+        uploadJobMetrics.record(UploadJobMetrics.Operation.QUEUED);
         return queued;
     }
 
@@ -226,17 +232,21 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             .filter(value -> id.equals(value.getTrackId()))
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Upload job not found", getEntityName(), "track.upload.notFound"));
         if (job.getStatus() != UploadFileStatusEnum.ERROR) {
+            uploadJobMetrics.recordFailure(UploadJobMetrics.FailureReason.NOT_RETRYABLE);
             throw new RequestAlertException(HttpStatus.CONFLICT, "Only failed upload jobs can be retried", getEntityName(), "track.upload.notRetryable");
         }
         if (!queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.ERROR, UploadFileStatusEnum.TO_PROCESS, token)) {
+            uploadJobMetrics.recordFailure(UploadJobMetrics.FailureReason.STATE_CHANGED);
             throw new RequestAlertException(HttpStatus.CONFLICT, "Upload job state changed", getEntityName(), "track.upload.versionConflict");
         }
         try {
             sendAfterCommit(jobId, Converter.objectToBytes(new UploadFilesPackage(jobId, token)), token);
         } catch (Exception exception) {
             queueUploadFilesService.transitionStatus(jobId, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.ERROR, token);
+            uploadJobMetrics.recordFailure(UploadJobMetrics.FailureReason.PUBLISH_FAILED);
             throw new RequestAlertException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to queue the uploaded file", getEntityName(), "track.queue.failed");
         }
+        uploadJobMetrics.record(UploadJobMetrics.Operation.RETRIED);
         return queueUploadFilesService.findOne(jobId, token).orElseThrow();
     }
 
@@ -255,6 +265,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
                     sender.send(message);
                 } catch (RuntimeException exception) {
                     getLogger().error("Unable to publish the committed upload job {}", jobId, exception);
+                    uploadJobMetrics.recordFailure(UploadJobMetrics.FailureReason.PUBLISH_FAILED);
                     try {
                         queueUploadFilesService.markUnpublished(jobId, token);
                     } catch (RuntimeException markFailure) {

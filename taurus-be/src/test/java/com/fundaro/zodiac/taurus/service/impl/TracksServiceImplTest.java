@@ -9,6 +9,8 @@ import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
+import com.fundaro.zodiac.taurus.service.upload.UploadJobMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
@@ -56,7 +58,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             sender,
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         JwtAuthenticationToken token = authentication();
         MultipartFile file = mock(MultipartFile.class);
@@ -94,7 +97,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             sender,
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         JwtAuthenticationToken token = authentication();
         MultipartFile file = mock(MultipartFile.class);
@@ -132,7 +136,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             sender,
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         JwtAuthenticationToken token = authentication();
         Tracks track = new Tracks();
@@ -157,6 +162,88 @@ class TracksServiceImplTest {
         verify(sender).send(any(byte[].class));
     }
 
+    /**
+     * Un nuovo tentativo si chiede su un job in errore: su un job ancora in coda o già concluso la
+     * richiesta è un doppio clic o una pagina vecchia, e accodarlo di nuovo rischierebbe parti
+     * duplicate.
+     */
+    @Test
+    void refusesToRequeueAJobThatIsNotInError() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        Sender sender = mock(Sender.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            sender,
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
+        );
+        JwtAuthenticationToken token = authentication();
+        Tracks track = new Tracks();
+        track.setId(8L);
+        TracksDTO trackDto = new TracksDTO();
+        trackDto.setId(8L);
+        QueueUploadFilesDTO running = new QueueUploadFilesDTO();
+        running.setId(3L);
+        running.setTrackId(8L);
+        running.setStatus(UploadFileStatusEnum.IN_PROGRESS);
+
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(track));
+        when(mapper.toDto(track)).thenReturn(trackDto);
+        when(queueUploadFilesService.findOne(3L, token)).thenReturn(Optional.of(running));
+
+        assertThatThrownBy(() -> service.retryUploadJob(8L, 3L, token))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Only failed upload jobs can be retried");
+        verifyNoInteractions(sender);
+        verify(queueUploadFilesService, never()).transitionStatus(anyLong(), any(), any(), any());
+    }
+
+    /**
+     * Il job esiste ma appartiene a un'altra traccia, cioè tipicamente a un altro tenant: la
+     * risposta è la stessa di un job inesistente, senza rivelare che quell'identificativo esiste.
+     */
+    @Test
+    void hidesAJobThatBelongsToAnotherTrack() {
+        TracksRepository repository = mock(TracksRepository.class);
+        TracksMapper mapper = mock(TracksMapper.class);
+        QueueUploadFilesService queueUploadFilesService = mock(QueueUploadFilesService.class);
+        Sender sender = mock(Sender.class);
+        TracksServiceImpl service = new TracksServiceImpl(
+            repository,
+            mapper,
+            queueUploadFilesService,
+            mock(MediaRepository.class),
+            mock(InstrumentsRepository.class),
+            sender,
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
+        );
+        JwtAuthenticationToken token = authentication();
+        Tracks track = new Tracks();
+        track.setId(8L);
+        TracksDTO trackDto = new TracksDTO();
+        trackDto.setId(8L);
+        QueueUploadFilesDTO foreign = new QueueUploadFilesDTO();
+        foreign.setId(3L);
+        foreign.setTrackId(99L);
+        foreign.setStatus(UploadFileStatusEnum.ERROR);
+
+        when(repository.findByIdAndDeletedFalse(8L)).thenReturn(Optional.of(track));
+        when(mapper.toDto(track)).thenReturn(trackDto);
+        when(queueUploadFilesService.findOne(3L, token)).thenReturn(Optional.of(foreign));
+
+        assertThatThrownBy(() -> service.retryUploadJob(8L, 3L, token))
+            .isInstanceOf(RequestAlertException.class)
+            .hasMessageContaining("Upload job not found");
+        verifyNoInteractions(sender);
+    }
+
     @Test
     void defaultsMissingSheetMusicReviewFlagToFalse() {
         TracksRepository repository = mock(TracksRepository.class);
@@ -168,7 +255,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         Tracks entity = new Tracks();
         TracksDTO request = new TracksDTO();
@@ -202,7 +290,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -246,7 +335,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -287,7 +377,8 @@ class TracksServiceImplTest {
             mediaRepository,
             instrumentsRepository,
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -332,7 +423,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         Tracks entity = new Tracks();
         entity.setId(8L);
@@ -356,7 +448,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -378,7 +471,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -403,7 +497,8 @@ class TracksServiceImplTest {
             mock(MediaRepository.class),
             mock(InstrumentsRepository.class),
             mock(Sender.class),
-            new ImageTransformationService()
+            new ImageTransformationService(),
+            new UploadJobMetrics(new SimpleMeterRegistry())
         );
         MultipartFile file = mock(MultipartFile.class);
         Tracks track = new Tracks();

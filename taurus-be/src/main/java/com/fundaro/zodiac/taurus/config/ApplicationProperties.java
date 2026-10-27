@@ -62,6 +62,9 @@ public class ApplicationProperties {
     @Valid
     private SignatureProperties signature = new SignatureProperties();
 
+    @Valid
+    private UploadProperties upload = new UploadProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -180,6 +183,14 @@ public class ApplicationProperties {
 
     public void setInventory(InventoryProperties value) {
         inventory = value;
+    }
+
+    public UploadProperties getUpload() {
+        return upload;
+    }
+
+    public void setUpload(UploadProperties value) {
+        upload = value;
     }
 
     public SignatureProperties getSignature() {
@@ -1569,6 +1580,46 @@ public class ApplicationProperties {
 
         public void setTsaUrl(String value) {
             tsaUrl = value;
+        }
+    }
+
+    /**
+     * I job di caricamento dei PDF. Un worker che si arresta lascia il job in {@code IN_PROGRESS} e
+     * un broker non raggiungibile lo lascia in {@code TO_PROCESS}: oltre {@code staleAfter} il job
+     * viene chiuso in {@code ERROR}, così l'utente lo vede e può riprovarlo.
+     */
+    public static class UploadProperties {
+        private boolean recoveryEnabled = true;
+
+        /** Da quanto tempo un job deve essere fermo nello stato corrente per considerarlo interrotto. */
+        private Duration staleAfter = Duration.ofMinutes(30);
+
+        /** Quanti job chiudere al massimo in un giro, per non bloccare lo scheduler su un arretrato grande. */
+        @Min(1)
+        private int maxRecoveredPerRun = 100;
+
+        public boolean isRecoveryEnabled() {
+            return recoveryEnabled;
+        }
+
+        public void setRecoveryEnabled(boolean value) {
+            recoveryEnabled = value;
+        }
+
+        public Duration getStaleAfter() {
+            return staleAfter;
+        }
+
+        public void setStaleAfter(Duration value) {
+            staleAfter = value;
+        }
+
+        public int getMaxRecoveredPerRun() {
+            return maxRecoveredPerRun;
+        }
+
+        public void setMaxRecoveredPerRun(int value) {
+            maxRecoveredPerRun = value;
         }
     }
 

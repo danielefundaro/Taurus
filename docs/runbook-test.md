@@ -249,6 +249,14 @@ Concorrenza di più repliche sulla coda degli upload:
 .\mvnw.cmd "-Dtest=UploadJobConcurrencyIT" test
 ```
 
+Percorso completo di un caricamento PDF, con PostgreSQL e RabbitMQ reali:
+
+```powershell
+.\mvnw.cmd "-Dit.test=UploadJobPipelineIT" verify
+```
+
+`UploadJobPipelineIT` carica un PDF vero e segue la catena intera: commit, pubblicazione, consumo, conversione, creazione delle parti e job a `DONE`. Copre anche il consumatore fermato e riavviato con un job in coda, il nuovo tentativo di un job in errore, il recupero di un job rimasto in elaborazione e l'isolamento fra tenant. Serve Docker.
+
 Broker RabbitMQ reale:
 
 ```powershell

@@ -128,24 +128,39 @@ Il pulsante di caricamento impedisce invii duplicati durante la sola richiesta H
 - Il consumer ricava il tenant dal messaggio validato e ripristina il contesto al termine.
 - La lavorazione e il retry sono idempotenti rispetto allo stesso job: il worker ignora un messaggio il cui job non è più `TO_PROCESS`, e il retry usa la transizione condizionata `ERROR -> TO_PROCESS`, quindi una richiesta concorrente riceve `409`.
 - `DONE` implica che la successiva lettura della traccia osservi le parti create.
-- Non esiste rilevamento né recupero dei job non terminali. Un job rimasto `IN_PROGRESS` dopo un arresto del worker resta tale: il messaggio riconsegnato viene ignorato e il job non è ritentabile.
+- I job fermi vengono rilevati e chiusi. `UploadJobRecovery` gira a intervalli regolari su tutti i tenant attivi e chiude in `ERROR` i job fermi nello stato corrente da più di `application.upload.stale-after`: un `IN_PROGRESS` oltre soglia è un worker arrestato, un `TO_PROCESS` oltre soglia è una coda ferma o senza consumer. Chiuso il job, l'interfaccia mostra «Elaborazione non riuscita» con «Riprova».
+- La chiusura è preferita al riaccodamento automatico perché il messaggio porta il token di chi ha caricato il file: riaccodare dal recupero significherebbe fabbricare un'identità di sistema con i permessi di scrittura di un utente. Il nuovo tentativo riparte invece dalla richiesta dell'utente, con il suo token. Un messaggio ancora in coda per un job chiuso è innocuo: il worker lo scarta, perché la presa in carico è condizionata a `TO_PROCESS`.
+- La soglia deve restare più larga della conversione più lenta plausibile. Un job chiuso mentre il worker sta ancora lavorando produce comunque le sue parti ma non raggiunge `DONE`: il worker lo registra come conclusione tardiva (log di avviso e contatore `LATE`) e un nuovo tentativo dell'utente duplicherebbe le parti. È il motivo del valore predefinito di trenta minuti.
 - Il file sorgente non viene eliminato mentre il job può essere riprovato.
+
+Configurazione (`application.upload`):
+
+| Proprietà | Valore predefinito | Significato |
+|---|---|---|
+| `recovery-enabled` | `true` | Attiva il recupero pianificato. |
+| `stale-after` | `PT30M` | Da quanto un job deve essere fermo nello stato corrente per considerarlo interrotto. |
+| `recovery-delay` | `PT5M` | Intervallo fra due giri di recupero. |
+| `max-recovered-per-run` | `100` | Job chiusi al massimo in un giro per tenant. |
 
 ## Osservabilità e gestione operativa
 
-I log del worker riportano `jobId`, tenant e media sorgente senza il contenuto del PDF; gli errori includono l'eccezione. Non esistono metriche applicative dedicate. Il monitoraggio previsto riguarda:
+I log del worker riportano `jobId`, tenant e media sorgente senza il contenuto del PDF; gli errori includono l'eccezione. `UploadJobMetrics` espone le metriche del modulo, con tag a cardinalità nota e senza tenant, identificativi o nomi di file:
 
-- numero e anzianità dei job `TO_PROCESS` e `IN_PROGRESS`;
-- tasso e cause aggregate dei job `ERROR`;
-- tempo da accettazione a `DONE`;
-- backlog, consumer e redelivery della coda `upload.files`;
-- spazio disponibile nello storage media.
+- `taurus.upload.jobs` con `operation`: `QUEUED`, `STARTED`, `COMPLETED`, `FAILED`, `RETRIED`, `CLOSED_STALE` (chiuso dal recupero), `IGNORED` (messaggio scartato perché il job non era più in coda) e `LATE` (elaborazione conclusa su un job già chiuso);
+- `taurus.upload.failures` con `reason`: `PUBLISH_FAILED`, `PROCESSING_FAILED`, `STALE_WORKER`, `STALE_QUEUE`, `MISSING_JOB`, `MISSING_TENANT`, `NOT_RETRYABLE`, `STATE_CHANGED`;
+- `taurus.upload.jobs.pending` per stato (`TO_PROCESS`, `IN_PROGRESS`) e `taurus.upload.jobs.oldest.age` in secondi, scritte dal giro di recupero sommando tutti i tenant: sono il numero e l'anzianità dei job non terminali;
+- `taurus.upload.job.duration` con `outcome`, la durata dell'elaborazione nel worker. Misura il lavoro, non l'attesa: il tempo passato in coda si legge sull'anzianità, perché il messaggio non porta la data di accettazione del job;
+- `taurus.upload.queue.messages`, i messaggi ancora nella coda `upload.files`, a `-1` quando il broker non risponde — valore che distingue «coda vuota» da «broker non raggiungibile».
+
+Il monitoraggio previsto riguarda inoltre il backlog, i consumer e la redelivery della coda `upload.files` e lo spazio disponibile nello storage media.
+
+La coda `upload.files` ha due consumatori nello stesso contesto applicativo: quello dichiarato in `RabbitMQConfig` e quello generato dall'annotazione `@RabbitListener` sul `Receiver`. Non è un problema di correttezza, perché un messaggio va a un solo consumatore, ma chi conta i consumer sul broker ne vede due per replica.
 
 Un job in `TO_PROCESS` con coda ferma indica tipicamente indisponibilità di RabbitMQ o assenza di consumer. Un job bloccato in `IN_PROGRESS` richiede verifica del worker, delle risorse PDF e dello storage. Prima di un nuovo tentativo manuale va controllato che non sia ancora attivo un consumer sullo stesso job.
 
 ## Test richiesti
 
-`TracksServiceImplTest` copre pubblicazione dopo il commit, pubblicazione fallita e retry di un job `ERROR`; `ReceiverTest` copre contesto tenant, passaggio a `ERROR` e redelivery ignorata; lo spec del dettaglio verifica la lettura unica in `ngOnInit`. Gli altri casi sono elencati nei requisiti aperti.
+Le verifiche elencate qui sono coperte da: `TracksServiceImplTest` (pubblicazione dopo il commit, pubblicazione fallita, retry di un job `ERROR`, retry rifiutato su uno stato non compatibile e job di un'altra traccia nascosto), `ReceiverTest` (contesto tenant, percorso completo fino a `DONE` su un PDF vero, passaggio a `ERROR`, redelivery ignorata, conclusione tardiva e messaggio senza tenant), `UploadJobRecoveryTest` (chiusura dei job fermi, misure dei job non terminali, tenant in errore che non blocca gli altri), `UploadJobConcurrencyIT` (più repliche sullo stesso job), `UploadJobPipelineIT` (PostgreSQL e RabbitMQ reali: percorso completo, consumatore fermato e riavviato, nuovo tentativo, recupero di un job in elaborazione e isolamento fra tenant) e, sul frontend, `detail.component.spec.ts` (lettura unica in `ngOnInit`, etichette dei cinque stati, job del `202` mostrato subito, «Riprova» e limite di cinque righe).
 
 ### Backend
 
@@ -197,9 +212,4 @@ La funzionalità è completa quando:
 
 ## Requisiti aperti
 
-- Rilevamento dei job `TO_PROCESS` e `IN_PROGRESS` oltre una soglia operativa e procedura di recupero (nuovo accodamento o chiusura in `ERROR`), anche per i job rimasti `IN_PROGRESS` dopo un arresto del worker (Coerenza, concorrenza e recupero).
-- Metriche Micrometer su anzianità, errori, durata e coda (Osservabilità e gestione operativa; criterio 8).
-- Test del worker fino a `DONE` (Test richiesti, Backend).
-- Test del retry rifiutato per stato non compatibile e per accesso cross-tenant (Test richiesti, Backend).
-- Test di integrazione con PostgreSQL e RabbitMQ reali (Test richiesti, Integrazione; criterio 7).
-- Test frontend delle etichette, del job del `202` e dell'azione «Riprova» (Test richiesti, Frontend; criterio 7).
+Nessuno: la specifica è coperta dal codice e dai test.

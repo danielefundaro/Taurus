@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
+import com.fundaro.zodiac.taurus.service.upload.UploadJobMetrics;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import org.apache.logging.log4j.util.Strings;
@@ -42,6 +43,7 @@ public class Receiver {
     private final MediaService mediaService;
     private final ObjectMapper objectMapper;
     private final ImageTransformationService imageTransformationService;
+    private final UploadJobMetrics metrics;
 
     public Receiver(
         QueueUploadFilesService queueUploadFilesService,
@@ -49,7 +51,8 @@ public class Receiver {
         PdfProcessingService pdfProcessingService,
         TenantStorageService tenantStorageService,
         MediaService mediaService,
-        ImageTransformationService imageTransformationService
+        ImageTransformationService imageTransformationService,
+        UploadJobMetrics metrics
     ) {
         this.tracksService = tracksService;
         this.pdfProcessingService = pdfProcessingService;
@@ -58,6 +61,7 @@ public class Receiver {
         this.tenantStorageService = tenantStorageService;
         this.mediaService = mediaService;
         this.imageTransformationService = imageTransformationService;
+        this.metrics = metrics;
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -67,6 +71,7 @@ public class Receiver {
         AbstractAuthenticationToken token = uploadFilesPackage.getAbstractAuthenticationToken();
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(token);
         if (tenantCode == null || tenantCode.isBlank()) {
+            metrics.recordFailure(UploadJobMetrics.FailureReason.MISSING_TENANT);
             throw new IllegalArgumentException("Upload job message does not contain a tenant");
         }
         log.debug("Received upload job message: queueId={}, tenant={}", uploadFilesPackage.getQueueId(), tenantCode);
@@ -79,14 +84,18 @@ public class Receiver {
     private void process(UploadFilesPackage uploadFilesPackage, AbstractAuthenticationToken token, String tenantCode) {
         QueueUploadFilesDTO upload = queueUploadFilesService.findOne(uploadFilesPackage.getQueueId(), token).orElse(null);
         if (upload == null) {
+            metrics.recordFailure(UploadJobMetrics.FailureReason.MISSING_JOB);
             log.error("Could not find upload job {} in tenant {}", uploadFilesPackage.getQueueId(), tenantCode);
             return;
         }
 
         if (!queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, token)) {
+            metrics.record(UploadJobMetrics.Operation.IGNORED);
             log.info("Ignoring upload job {} because it is no longer queued", upload.getId());
             return;
         }
+        metrics.record(UploadJobMetrics.Operation.STARTED);
+        long startedAt = System.nanoTime();
         try {
             TracksDTO track = tracksService.findOne(upload.getTrackId(), token)
                 .orElseThrow(() -> new IllegalStateException("Track " + upload.getTrackId() + " not found"));
@@ -103,13 +112,29 @@ public class Receiver {
 
                 List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
                 tracksService.appendScores(track.getId(), sheets, token);
-                queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token);
+                if (queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token)) {
+                    metrics.record(UploadJobMetrics.Operation.COMPLETED);
+                    metrics.recordDuration(System.nanoTime() - startedAt, UploadJobMetrics.Operation.COMPLETED);
+                } else {
+                    // Il recupero ha già chiuso il job credendo il worker fermo: le parti però ci sono,
+                    // e un nuovo tentativo dell'utente le duplicherebbe. Va detto nei log.
+                    metrics.record(UploadJobMetrics.Operation.LATE);
+                    log.warn(
+                        "Upload job {} in tenant {} finished after it had been closed: {} parts were created anyway",
+                        upload.getId(),
+                        tenantCode,
+                        sheets.size()
+                    );
+                }
                 log.info("Updated track with {} sheet music parts", sheets.size());
             } finally {
                 tenantStorageService.deleteDirectoryIfManaged(tenantCode, temporaryDirectory);
             }
         } catch (Exception exception) {
             queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.ERROR, token);
+            metrics.record(UploadJobMetrics.Operation.FAILED);
+            metrics.recordFailure(UploadJobMetrics.FailureReason.PROCESSING_FAILED);
+            metrics.recordDuration(System.nanoTime() - startedAt, UploadJobMetrics.Operation.FAILED);
             log.error("Could not process upload job {} in tenant {}", upload.getId(), tenantCode, exception);
         }
     }
