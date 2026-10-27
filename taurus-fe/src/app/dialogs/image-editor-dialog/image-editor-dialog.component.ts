@@ -33,6 +33,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
     protected saving = false;
     protected failed = false;
     protected saveError?: string;
+    protected saveRetryable = false;
     protected analysis?: TrackPageAnalysis;
     protected view: 'edited' | 'original' = 'edited';
     protected thresholdEnabled = false;
@@ -46,6 +47,8 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
     private cropDraft?: ImageCrop;
     private cropResize?: { cropIndex: number; handle: CropHandle };
     private cropRenderFrame?: number;
+    private saveKey?: string;
+    private saveKeyRecipe?: string;
 
     constructor(
         config: DynamicDialogConfig,
@@ -262,8 +265,9 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         if (!this.dirty || this.saving) return;
         this.saving = true;
         this.saveError = undefined;
+        this.saveRetryable = false;
         this.tracksService
-            .editPage(this.data.trackId, this.data.scoreId, this.data.media.index, this.recipe, crypto.randomUUID())
+            .editPage(this.data.trackId, this.data.scoreId, this.data.media.index, this.recipe, this.attemptKey())
             .pipe(
                 first(),
                 finalize(() => (this.saving = false))
@@ -271,10 +275,54 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
             .subscribe({
                 next: (result: TrackPageEditResult) => this.dialogRef.close(result),
                 error: (error: HttpErrorResponse) => {
-                    this.saveError = error.status === 409 ? 'La traccia o la pagina è stata modificata. Ricarica la traccia prima di riprovare.' : 'Non è stato possibile salvare l’immagine. La modifica è ancora disponibile.';
+                    this.saveRetryable = ImageEditorDialogComponent.responseLost(error);
+                    if (!this.saveRetryable) this.forgetAttempt();
+                    this.saveError = this.saveMessage(error);
                     this.announce(this.saveError);
                 }
             });
+    }
+
+    /** «Riprova» ripete lo stesso tentativo: la chiave non cambia, quindi il server fa il replay. */
+    protected retry(): void {
+        this.save();
+    }
+
+    /**
+     * La chiave identifica il tentativo, non la richiesta: resta la stessa finché la ricetta è la
+     * stessa, così un nuovo invio dopo una risposta persa ottiene il replay della modifica già
+     * eseguita invece di una seconda modifica. Una ricetta diversa è un'altra operazione e vuole
+     * una chiave nuova, altrimenti il server riconoscerebbe la chiave con un'impronta diversa e
+     * risponderebbe `409`.
+     */
+    private attemptKey(): string {
+        const recipe = JSON.stringify(this.recipe);
+        if (this.saveKey === undefined || this.saveKeyRecipe !== recipe) {
+            this.saveKey = crypto.randomUUID();
+            this.saveKeyRecipe = recipe;
+        }
+        return this.saveKey;
+    }
+
+    private forgetAttempt(): void {
+        this.saveKey = undefined;
+        this.saveKeyRecipe = undefined;
+    }
+
+    private saveMessage(error: HttpErrorResponse): string {
+        if (error.status === 409) return 'La traccia o la pagina è stata modificata. Ricarica la traccia prima di riprovare.';
+        if (this.saveRetryable)
+            return 'Il salvataggio non ha ricevuto risposta. «Riprova» ripete lo stesso tentativo: se la modifica è già stata registrata la riporta senza duplicarla.';
+        return 'Non è stato possibile salvare l’immagine. La modifica è ancora disponibile.';
+    }
+
+    /**
+     * Risposta persa, non risposta negativa: senza risposta non si sa se la modifica è avvenuta,
+     * quindi il tentativo va ripetuto con la stessa chiave. Un `4xx` invece è una risposta, e il
+     * tentativo successivo è un'operazione nuova.
+     */
+    private static responseLost(error: HttpErrorResponse): boolean {
+        return error.status === 0 || error.status === 408 || error.status >= 500;
     }
 
     protected cancel(): void {

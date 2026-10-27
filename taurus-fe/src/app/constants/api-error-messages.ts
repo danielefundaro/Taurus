@@ -522,6 +522,8 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'image.idempotencyKey': 'Richiesta non valida: ricaricare la pagina e riprovare',
     'image.idempotency.conflict': 'Richiesta non valida: ricaricare la pagina e riprovare',
     'image.idempotency.stale': 'Il brano è cambiato dopo la modifica: ricaricare la pagina',
+    'image.timeout': "L'elaborazione dell'immagine ha superato il tempo massimo: riprovare",
+    'image.busy': "L'elaborazione delle immagini è occupata: riprovare fra poco",
 
     // Media
     'media.managedOnly': 'Richiesta non valida: ricaricare la pagina e riprovare',

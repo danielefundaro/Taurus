@@ -1,9 +1,32 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
+import { throwError } from 'rxjs';
+import { TracksService } from '../../service';
 import { ImageEditorDialogComponent } from './image-editor-dialog.component';
 
 describe('ImageEditorDialogComponent', () => {
     function createComponent(): ImageEditorDialogComponent {
         return new ImageEditorDialogComponent({ data: { trackVersion: 1 } } as DynamicDialogConfig, null!, null!, null!, null!);
+    }
+
+    /** Un servizio che risponde sempre con l'errore indicato e tiene il conto delle chiavi usate. */
+    function createFailingComponent(status: () => number): { component: ImageEditorDialogComponent; keys: string[] } {
+        const keys: string[] = [];
+        const tracksService = {
+            editPage: (_trackId: number, _scoreId: number, _mediaId: number, _recipe: unknown, key: string) => {
+                keys.push(key);
+                return throwError(() => new HttpErrorResponse({ status: status() }));
+            }
+        } as unknown as TracksService;
+        const component = new ImageEditorDialogComponent(
+            { data: { trackId: 1, trackVersion: 1, scoreId: 2, media: { index: 3 } } } as DynamicDialogConfig,
+            null!,
+            tracksService,
+            null!,
+            null!
+        );
+        component['recipe'].grayscale = true;
+        return { component, keys };
     }
 
     it('positions slider values across their configured range', () => {
@@ -72,6 +95,40 @@ describe('ImageEditorDialogComponent', () => {
         expect(bounded.y).toBe(0.2);
         expect(bounded.width).toBeCloseTo(0.9);
         expect(bounded.height).toBeCloseTo(0.5);
+    });
+
+    it('repeats a lost save with the same idempotency key and a new one for a different recipe', () => {
+        const { component, keys } = createFailingComponent(() => 503);
+
+        component['save']();
+        component['retry']();
+
+        expect(keys.length).toBe(2);
+        expect(keys[1]).toBe(keys[0]);
+        expect(component['saveRetryable']).toBeTrue();
+        expect(component['saveError']).toContain('Riprova');
+
+        component['recipe'].contrast = 10;
+        component['save']();
+
+        expect(keys.length).toBe(3);
+        expect(keys[2]).not.toBe(keys[0]);
+    });
+
+    it('forgets the attempt after an answer that is not a lost response', () => {
+        let status = 409;
+        const { component, keys } = createFailingComponent(() => status);
+
+        component['save']();
+
+        expect(component['saveRetryable']).toBeFalse();
+        expect(component['saveError']).toContain('Ricarica la traccia');
+
+        status = 503;
+        component['save']();
+
+        expect(keys.length).toBe(2);
+        expect(keys[1]).not.toBe(keys[0]);
     });
 
     it('builds the live crop rectangle in every drag direction', () => {

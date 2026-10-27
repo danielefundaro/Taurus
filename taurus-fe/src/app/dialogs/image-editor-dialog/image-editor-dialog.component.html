@@ -12,7 +12,14 @@
     </header>
 
     @if (saveError) {
-    <p-message severity="error">{{ saveError }}</p-message>
+    <p-message severity="error">
+        <div class="save-error">
+            <span>{{ saveError }}</span>
+            @if (saveRetryable) {
+            <p-button label="Riprova" icon="pi pi-refresh" severity="secondary" size="small" [disabled]="saving" (onClick)="retry()" />
+            }
+        </div>
+    </p-message>
     }
 
     <div class="editor-layout">

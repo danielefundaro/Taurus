@@ -43,6 +43,13 @@
     text-transform: uppercase;
 }
 
+.save-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .editor-layout {
     display: grid;
     min-height: 0;

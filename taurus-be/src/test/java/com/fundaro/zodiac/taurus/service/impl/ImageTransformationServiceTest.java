@@ -141,6 +141,53 @@ class ImageTransformationServiceTest {
             .hasMessageContaining("Decoded image is too large");
     }
 
+    /**
+     * Una pagina A4 a 300 DPI, la dimensione di lavoro reale: analisi e ricetta completa devono
+     * restare nell'ordine dei secondi. Il margine è larghissimo rispetto ai tempi misurati perché
+     * la prova deve cogliere una regressione di ordine di grandezza, non la lentezza di una
+     * macchina occupata; il collaudo sulle scansioni vere resta un'altra cosa.
+     */
+    @Test
+    void staysWithinTheTimeBudgetOnAnA4PageAt300Dpi() throws Exception {
+        byte[] page = png(scan(2480, 3508));
+
+        long analysisStarted = System.nanoTime();
+        TrackPageImageDTOs.Analysis analysis = service.analyze(11L, page);
+        long analysisMillis = (System.nanoTime() - analysisStarted) / 1_000_000L;
+
+        long transformStarted = System.nanoTime();
+        List<byte[]> results = service.transform(page, new TrackPageImageDTOs.EditRequest(
+            1L,
+            1,
+            1,
+            359.6,
+            List.of(new TrackPageImageDTOs.Crop(0, 0, 0.5, 1), new TrackPageImageDTOs.Crop(0.5, 0, 0.5, 1)),
+            true,
+            5,
+            10,
+            true,
+            null
+        ));
+        long transformMillis = (System.nanoTime() - transformStarted) / 1_000_000L;
+
+        assertThat(analysis.width()).isEqualTo(2480);
+        assertThat(results).hasSize(2);
+        assertThat(analysisMillis).as("analisi di una pagina A4 a 300 DPI in ms").isLessThan(5_000);
+        assertThat(transformMillis).as("rotazione, raddrizzamento, due ritagli e toni in ms").isLessThan(20_000);
+    }
+
+    /** Una pagina con righe di pentagramma: contenuto ovunque, come in una scansione vera. */
+    private static BufferedImage scan(int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, width, height);
+        graphics.setColor(Color.BLACK);
+        for (int line = 0; line < height - 200; line += 24) graphics.drawLine(120, 100 + line, width - 120, 100 + line);
+        graphics.dispose();
+        return image;
+    }
+
     private static byte[] pngHeader(int width, int height) {
         ByteBuffer header = ByteBuffer.allocate(13).putInt(width).putInt(height).put((byte) 8).put((byte) 2).put((byte) 0).put((byte) 0).put((byte) 0);
         ByteBuffer png = ByteBuffer.allocate(8 + 25 + 12);
