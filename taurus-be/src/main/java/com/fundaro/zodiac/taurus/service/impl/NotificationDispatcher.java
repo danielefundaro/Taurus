@@ -20,6 +20,7 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceMetr
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -116,8 +117,10 @@ public class NotificationDispatcher {
             return;
         }
         metrics.recordAttempt(event);
-        Set<String> recipients = recipientResolver.resolve(event.getAudiences());
+        Set<String> recipients = new LinkedHashSet<>(recipientResolver.resolve(event.getAudiences()));
         if (recipients.isEmpty()) throw new IllegalStateException("No active notification recipients are available");
+        // An audience left empty by the exclusion of the author is delivered to nobody, not retried: nothing is missing.
+        recipients.removeAll(recipientResolver.excluded(event.getAudiences()));
         var decisions = preferenceResolver == null
             ? java.util.Map.<String, com.fundaro.zodiac.taurus.service.notification.NotificationPreferenceDecision>of()
             : preferenceResolver.resolve(event.getSource(), event.getPreferencePolicy(), recipients);

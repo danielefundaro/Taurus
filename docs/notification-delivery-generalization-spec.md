@@ -148,6 +148,7 @@ Responsabilità:
 - includere i Super Admin ottenuti da Keycloak quando è richiesto `ROLE_SUPER_ADMIN`;
 - accettare un destinatario diretto `USER` anche quando non deriva da una query per ruolo, preservando le notifiche personali dell'inventario;
 - unire i risultati in un `LinkedHashSet`, eliminando duplicati tra ruoli e selettori;
+- togliere dall'unione gli utenti indicati da `EXCLUDED_USER`, dopo aver risolto tutte le inclusioni;
 - scartare identificativi nulli o vuoti.
 
 La risoluzione rimane dinamica: un ruolo assegnato o rimosso prima della consegna influenza i destinatari effettivi. Questa scelta evita chiamate a Keycloak nella transazione di dominio e conserva il comportamento della finanza.
@@ -220,9 +221,10 @@ Valori di `NotificationAudienceType`:
 
 - `ROLE`: `value` contiene un valore valido di `RoleEnum`;
 - `USER`: `value` contiene il Keycloak user ID;
-- `ALL_ACTIVE_USERS`: `value` è `*`.
+- `ALL_ACTIVE_USERS`: `value` è `*`;
+- `EXCLUDED_USER`: `value` contiene il Keycloak user ID da togliere dai destinatari risolti dalle altre audience dello stesso evento.
 
-Non viene introdotto un selettore di esclusione. I pubblici esistenti sono tutti esprimibili come unione di inclusioni.
+`EXCLUDED_USER` è l'unico selettore di esclusione e serve a non notificare all'autore la propria azione, mentre il resto del ruolo la riceve: lo usano le segnalazioni di guasto e la rotazione dei QR dell'[inventario](inventory-qr-code-spec.md#notifiche). Un comando con sole esclusioni viene rifiutato dal publisher. Se le esclusioni svuotano l'elenco risolto, l'evento passa a `DELIVERED` senza notifiche e senza nuovi tentativi: non è un errore di consegna.
 
 ### Sorgenti
 
@@ -316,13 +318,13 @@ Nuova tabella normalizzata:
 | --- | --- | --- |
 | `id` | `BIGSERIAL` | PK |
 | `notification_event_id` | `BIGINT` | FK con `ON DELETE CASCADE` |
-| `audience_type` | `VARCHAR(32)` | `ROLE`, `USER`, `ALL_ACTIVE_USERS` |
+| `audience_type` | `VARCHAR(32)` | `ROLE`, `USER`, `ALL_ACTIVE_USERS`, `EXCLUDED_USER` |
 | `audience_value` | `VARCHAR(255)` | Ruolo, user ID o `*` |
 
 Vincoli:
 
 - unique su `(notification_event_id, audience_type, audience_value)`;
-- check sui tipi ammessi;
+- check sui tipi ammessi (`ck_notification_audience_type`; `EXCLUDED_USER` è aggiunto dalla migration tenant `20261027000000_notification_audience_excluded_user.xml`);
 - valore sempre non nullo e non vuoto.
 
 La normalizzazione è preferita a CSV o JSON perché consente validazione, migrazione controllata e assenza di parsing fragile. La vecchia colonna `recipient_roles` viene rimossa soltanto nella fase di contract.
@@ -450,7 +452,7 @@ Stato iniziale. L'evento è pronto quando `next_attempt_at <= now`.
 
 ### `DELIVERED`
 
-Tutti i destinatari risolti hanno una notifica persistita. Vengono valorizzati `delivered_at` e audit; `last_error` viene azzerato.
+Tutti i destinatari risolti hanno una notifica persistita. Vengono valorizzati `delivered_at` e audit; `last_error` viene azzerato. Un evento i cui destinatari sono stati tutti tolti da `EXCLUDED_USER` è `DELIVERED` senza notifiche.
 
 ### `FAILED`
 
@@ -501,7 +503,7 @@ Il publisher deve verificare:
 - nessun URL esterno o schema come `javascript:`;
 - ruoli appartenenti a `RoleEnum`;
 - user ID non vuoti;
-- almeno un selettore di pubblico;
+- almeno un selettore di pubblico che includa destinatari, oltre alle eventuali esclusioni `EXCLUDED_USER`;
 - chiave evento non vuota e non superiore a 160 caratteri dopo la normalizzazione.
 
 ## Multi-tenancy

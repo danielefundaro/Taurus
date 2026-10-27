@@ -15,4 +15,8 @@ public record NotificationAudience(NotificationAudienceType type, String value) 
     public static NotificationAudience allActiveUsers() {
         return new NotificationAudience(NotificationAudienceType.ALL_ACTIVE_USERS, "*");
     }
+
+    public static NotificationAudience excludedUser(String userId) {
+        return new NotificationAudience(NotificationAudienceType.EXCLUDED_USER, userId);
+    }
 }

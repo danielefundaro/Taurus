@@ -216,6 +216,7 @@ application:
       enabled: ${INVENTORY_QR_ENABLED:false}
       public-base-url: ${INVENTORY_QR_PUBLIC_BASE_URL:https://app.example.org}
       resolution-limit-per-minute: ${INVENTORY_QR_RESOLUTION_LIMIT_PER_MINUTE:60}
+      label-timeout-seconds: ${INVENTORY_QR_LABEL_TIMEOUT_SECONDS:30}
   signature:
     # Electronic signature can be enabled by a tenant only with this secret, an SMTP server (spring.mail) and a seal.
     otp-secret: ${SIGNATURE_OTP_SECRET:}

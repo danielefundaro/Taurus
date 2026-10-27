@@ -100,7 +100,7 @@
         detail="Salva l’oggetto per poter aggiungere fotografie, assegnazioni e riconsegne." />
     } @else {
     @if (inventoryQrEnabled()) {
-    <app-detail-section heading="Codice QR"
+    <app-detail-section heading="Codice QR" headingId="codice-qr"
         description="Il codice apre una scheda mobile autenticata. La ristampa mantiene lo stesso identificatore.">
         <div sectionActions class="flex flex-wrap gap-2">
             <p-button label="Stampa etichetta" icon="pi pi-print" severity="secondary" (onClick)="printLabel()" />
@@ -116,7 +116,7 @@
     </app-detail-section>
     }
 
-    <app-detail-section heading="Fotografie" [count]="item.photos?.length"
+    <app-detail-section heading="Fotografie" headingId="fotografie" [count]="item.photos?.length"
         description="JPEG o PNG, massimo 10 MB ciascuna: puoi sceglierne più di una alla volta. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
         [dirty]="photoOrderDirty">
         <div sectionActions class="flex flex-wrap gap-2">
@@ -161,7 +161,7 @@
         }
     </app-detail-section>
 
-    <app-detail-section heading="Assegna a un utente"
+    <app-detail-section heading="Assegna a un utente" headingId="assegna"
         description="L’assegnazione è un’operazione autonoma: si applica subito, senza passare da «Salva oggetto».">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
             <div class="md:col-span-4">
@@ -208,7 +208,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section heading="Assegnazioni e riconsegne" [count]="item.assignments?.length"
+    <app-detail-section heading="Assegnazioni e riconsegne" headingId="assegnazioni" [count]="item.assignments?.length"
         description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»."
         [dirty]="dirtyAssignments.size > 0">
         <p-table [value]="item.assignments || []" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
@@ -378,7 +378,7 @@
     </app-detail-section>
 
     @if (inventoryQrEnabled()) {
-    <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" />
+    <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" headingId="segnalazioni" />
     }
 
     <app-danger-zone

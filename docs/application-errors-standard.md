@@ -608,6 +608,8 @@ Il messaggio di Keycloak e lo stato della sua risposta finiscono solo nel log.
 | `inventory.labels.duplicate` | 400 | Lo stesso oggetto compare più volte nella richiesta di etichette | — | «Ogni oggetto può comparire una sola volta» |
 | `inventory.labels.singleLimit` | 400 | Formato singolo con troppe etichette o con una posizione iniziale diversa dalla prima | `maximum` | «Il formato singolo ammette al massimo {maximum} etichette, a partire dalla prima posizione» |
 | `inventory.labels.sheetLimit` | 400 | Le etichette richieste non stanno nel numero massimo di pagine A4 | `maxPages` | «Le etichette non possono superare {maxPages} pagine A4» |
+| `inventory.labels.timeout` | 503 | La generazione del PDF delle etichette ha superato il limite di tempo (`INVENTORY_QR_LABEL_TIMEOUT_SECONDS`, 30 secondi) | — | «La generazione delle etichette ha superato il tempo massimo: riprovare con meno etichette» |
+| `inventory.labels.busy` | 503 | Tutti i posti di generazione delle etichette sono occupati | — | «La stampa delle etichette è occupata: riprovare fra poco» |
 | `inventory.qr.size.invalid` | 400 | Dimensione del PNG non ammessa | `sizes` | «La dimensione del QR code deve essere di {sizes} pixel», con le dimensioni unite da «o» |
 | `inventory.qr.notFound` | 404 | Codice QR inesistente o revocato, oggetto eliminato, nessuna assegnazione visibile; anche scansione senza identità o tenant, per non rivelare se il codice esiste | — | «Codice inventario non disponibile» |
 | `inventory.qr.disabled` | 404 | QR code disattivati nella configurazione dell'applicazione, indipendentemente dal tenant | — | «I QR code dell'inventario non sono disponibili» |

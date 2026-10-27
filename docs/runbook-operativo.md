@@ -156,6 +156,7 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 | URL pubblico feed | `TAURUS_PUBLIC_BASE_URL` | HTTPS pubblico del backend/feed |
 | URL pubblico QR | `INVENTORY_QR_PUBLIC_BASE_URL` | HTTPS pubblico della SPA |
 | Kill switch QR | `INVENTORY_QR_ENABLED` | Un flag tenant non supera un kill switch globale spento |
+| Timeout etichette QR | `INVENTORY_QR_LABEL_TIMEOUT_SECONDS` | Facoltativo, predefinito 30, da 1 a 300; oltre il limite la stampa risponde `503 inventory.labels.timeout` |
 | Kill switch feed | `CALENDAR_FEED_ENABLED` | Come sopra |
 | Ascolto delle parti | `SCORE_PLAYBACK_ENABLED` | Capacità di installazione; il tenant la attiva con il proprio flag |
 | URL servizio OMR | `SCORE_PLAYBACK_OMR_URL` | Indirizzo interno di `taurus-omr`; vuoto nasconde riconoscimento e caricamento MIDI |

@@ -22,6 +22,10 @@ public interface InventoryIssueReportRepository extends JpaRepository<InventoryI
 
     Optional<InventoryIssueReport> findByIdAndAssignment_UserKeycloakIdAndDeletedFalse(Long id, String userId);
 
+    List<InventoryIssueReport> findAllByAssignment_IdAndDeletedFalseOrderByInsertDateDesc(Long assignmentId);
+
+    boolean existsByAssignment_IdAndStatusInAndDeletedFalse(Long assignmentId, Collection<InventoryIssueStatus> statuses);
+
     long countByItem_IdAndDeletedFalseAndStatusIn(Long itemId, Collection<InventoryIssueStatus> statuses);
 
     boolean existsByItem_IdAndSeverityAndStatusInAndDeletedFalse(Long itemId, InventoryIssueSeverity severity, Collection<InventoryIssueStatus> statuses);

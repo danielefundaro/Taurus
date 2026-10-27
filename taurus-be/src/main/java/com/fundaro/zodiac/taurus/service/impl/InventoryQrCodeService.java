@@ -20,9 +20,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -31,7 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class InventoryQrCodeService {
+    private static final Logger LOG = LoggerFactory.getLogger(InventoryQrCodeService.class);
     private static final String ENTITY = "inventoryQrCode";
+    private static final int MESSAGE_LIMIT = 255;
     private final InventoryItemRepository itemRepository;
     private final InventoryQrRotationRepository rotationRepository;
     private final ApplicationProperties.QrProperties properties;
@@ -84,22 +89,26 @@ public class InventoryQrCodeService {
         rotation.setRotatedAt(now);
         rotation.setRotatedBy(actor);
         rotationRepository.save(rotation);
+        // L'autore conosce già la rotazione: la notifica va agli altri amministratori, con la motivazione.
         notificationPublisher.enqueue(new NotificationCommand(
-            "inventory-qr:" + item.getId() + ":version:" + item.getQrVersion(),
+            "inventory-qr:" + item.getId() + ":version:" + item.getQrVersion() + ":admins",
             NotificationSource.INVENTORY,
             "INVENTORY_ITEM",
             item.getId().toString(),
             "QR_ROTATED",
             "Codice QR inventario ruotato",
-            item.getInventoryNumber() + " · versione " + item.getQrVersion(),
+            notificationMessage(item.getInventoryNumber() + " · versione " + item.getQrVersion() + " · " + rotation.getReason()),
             NotificationSeverity.WARNING,
             NotificationPreferencePolicy.REQUIRED,
             "/inventory/items/" + item.getId(),
             actor,
-            actor,
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)),
+            displayName(token),
+            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
+                NotificationAudience.excludedUser(actor)),
             null
         ));
+        // Né il codice né la motivazione finiscono nel log: la motivazione è testo libero e resta nella cronologia.
+        LOG.info("inventory_qr_rotated itemId={} version={} actorHash={}", item.getId(), item.getQrVersion(), InventoryScanService.shortHash(actor));
         return new RotateResponse(item.getQrVersion(), now);
     }
 
@@ -120,6 +129,22 @@ public class InventoryQrCodeService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is not available", exception);
         }
+    }
+
+    /**
+     * Testo semplice su una riga, entro il limite del messaggio di notifica: la motivazione può contenere a capo o
+     * caratteri che l'outbox rifiuterebbe come markup.
+     */
+    static String notificationMessage(String value) {
+        String normalized = value.replaceAll("[<>]", "").replaceAll("[\\p{Cntrl}\\s]+", " ").trim();
+        return normalized.length() <= MESSAGE_LIMIT ? normalized : normalized.substring(0, MESSAGE_LIMIT - 1).trim() + "…";
+    }
+
+    private static String displayName(AbstractAuthenticationToken token) {
+        String first = Objects.requireNonNullElse(SecurityUtils.getFirstNameFromAuthentication(token), "");
+        String last = Objects.requireNonNullElse(SecurityUtils.getLastNameFromAuthentication(token), "");
+        String value = (first + " " + last).trim();
+        return value.isBlank() ? actor(token) : value;
     }
 
     private static String actor(AbstractAuthenticationToken token) {

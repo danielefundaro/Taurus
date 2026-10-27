@@ -85,4 +85,5 @@
   <include file="config/liquibase/changelog/20261022000001_onboarding_retention.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261026000000_calendar_series_idempotency.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261026100000_push_reminder_origin_and_status.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261027000000_notification_audience_excluded_user.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

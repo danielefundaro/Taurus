@@ -178,6 +178,23 @@ class InventoryServiceTest {
     }
 
     @Test
+    void shouldIssueTheQrCodeOfANewItemBeforeSavingIt() {
+        InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, BigDecimal.TEN, "EUR", InventoryCondition.GOOD, null, null, null, null);
+        when(itemRepository.save(any(InventoryItem.class))).thenAnswer(invocation -> {
+            InventoryItem item = invocation.getArgument(0);
+            item.setId(1L);
+            return item;
+        });
+
+        service.createItem(request, authentication());
+
+        // Un numero inventariale riusato dopo una cancellazione crea un record nuovo, quindi un codice nuovo.
+        var inOrder = org.mockito.Mockito.inOrder(qrCodeService, itemRepository);
+        inOrder.verify(qrCodeService).issueNew(any(InventoryItem.class), anyString());
+        inOrder.verify(itemRepository).save(any(InventoryItem.class));
+    }
+
+    @Test
     void shouldDefaultMissingEstimatedUnitValueToZero() {
         InventoryItemRequest request = new InventoryItemRequest("INV-1", "Leggio", null, 1, null, "EUR", InventoryCondition.GOOD, null, null, null, null);
         when(itemRepository.save(any(InventoryItem.class)))
@@ -250,6 +267,20 @@ class InventoryServiceTest {
 
         verifyNotification("Inventario: oggetto assegnato", "ha assegnato 2 unità dell'oggetto “INV-1 — Leggio” a Mario Rossi");
         verifyNotification("Inventario: presa visione richiesta", "revisione 1 della tua assegnazione dell'oggetto “INV-1 — Leggio”");
+    }
+
+    @Test
+    void shouldBlockNewAssignmentsWhileAnUnsafeIssueIsOpen() {
+        when(itemRepository.findForUpdate(1L)).thenReturn(Optional.of(item(1L)));
+        when(issueRepository.existsByItem_IdAndSeverityAndStatusInAndDeletedFalse(
+            eq(1L),
+            eq(com.fundaro.zodiac.taurus.domain.inventory.InventoryIssueSeverity.UNSAFE),
+            any()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> service.assign(1L, new InventoryAssignmentRequest(42L, 0, 1, null, null, null), authentication()))
+            .isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getErrorKey()).isEqualTo("inventory.issue.unsafe"));
+        verify(assignmentRepository, never()).save(any(InventoryAssignment.class));
     }
 
     @Test

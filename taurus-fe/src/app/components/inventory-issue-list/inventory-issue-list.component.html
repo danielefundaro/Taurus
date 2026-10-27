@@ -1,12 +1,15 @@
-<app-detail-section heading="Segnalazioni guasto" [count]="issues.length"
-    description="Le segnalazioni mantengono uno storico indipendente dalle note di conservazione.">
-    <div sectionActions><p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="create()" />
+<app-detail-section heading="Segnalazioni guasto" [headingId]="headingId" [count]="issues.length"
+    [description]="personal ? 'I guasti segnalati su questa consegna e il loro esito.' : 'Le segnalazioni mantengono uno storico indipendente dalle note di conservazione.'">
+    <div sectionActions>
+        @if (!personal || totalQuantity > 0) {
+        <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="create()" />
+        }
     </div>
     @if (loading) {
     <p-skeleton height="8rem" />
     } @else if (!issues.length) {
     <app-empty-state compact icon="pi pi-check-circle" heading="Nessun guasto segnalato"
-        message="Non risultano segnalazioni per questo oggetto." />
+        [message]="personal ? 'Non hai segnalato guasti su questa consegna.' : 'Non risultano segnalazioni per questo oggetto.'" />
     } @else {
     <div class="flex flex-col gap-4">
         @for (issue of issues; track issue.id) {
@@ -27,19 +30,26 @@
             <app-inline-alert severity="info" heading="Esito" [detail]="issue.resolutionNotes" />
             }
             @if (issue.photos.length) {
-            <div class="flex flex-wrap gap-2">
+            <ul class="issue-photos" [attr.aria-label]="'Fotografie della segnalazione ' + issue.id">
                 @for (photo of issue.photos; track photo.id) {
-                <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName"
-                    class="w-20 h-20 object-cover rounded-lg border border-surface" />
+                <li>
+                    <img [src]="photoUrl(photo.id) | secure | async" [alt]="photo.fileName"
+                        class="w-20 h-20 object-cover rounded-lg border border-surface" />
+                    @if (!personal) {
+                    <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                        [ariaLabel]="'Rimuovi la fotografia ' + photo.fileName" (onClick)="erasePhoto(issue, photo)" />
+                    }
+                </li>
                 }
-            </div>
+            </ul>
             }
             @if (!isTerminal(issue)) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-surface">
                 <label class="p-button p-component p-button-secondary cursor-pointer justify-center"><i
-                        class="pi pi-camera mr-2"></i><span>Aggiungi fotografia</span><input type="file"
+                        class="pi pi-camera mr-2" aria-hidden="true"></i><span>Aggiungi fotografia</span><input type="file"
                         accept="image/jpeg,image/png" capture="environment" class="hidden"
                         (change)="upload(issue, $event)" /></label>
+                @if (!personal) {
                 @if (issue.status === 'OPEN') {
                 <p-button label="Prendi in carico" icon="pi pi-user-edit" severity="secondary"
                     (onClick)="transition(issue, 'ACKNOWLEDGED')" />
@@ -56,6 +66,7 @@
                     (onClick)="transition(issue, 'RESOLVED')" />
                 <p-button label="Respingi" icon="pi pi-times" severity="danger" [outlined]="true"
                     [disabled]="!hasResolutionNotes(issue)" (onClick)="transition(issue, 'DISMISSED')" />
+                }
             </div>
             }
         </article>

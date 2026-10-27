@@ -404,7 +404,7 @@
       "title": "QR code ed etichette per l'inventario",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/inventory-qr-code-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
@@ -413,23 +413,42 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryLabelService.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryScanService.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryIssueService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InventoryQrMetrics.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/NotificationRecipientResolver.java",
           "taurus-be/src/main/resources/config/application-dev.yml",
           "taurus-fe/src/app/pages/inventory/scan/inventory-scan.component.ts",
+          "taurus-fe/src/app/pages/inventory/inventory-fragment.ts",
+          "taurus-fe/src/app/dialogs/inventory-issue-dialog/inventory-issue-dialog.component.ts",
           "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.ts",
           "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.scss"
         ],
         "migrations": [
-          "taurus-be/src/main/resources/config/liquibase/changelog/20260906000000_inventory_qr_code.xml"
+          "taurus-be/src/main/resources/config/liquibase/changelog/20260906000000_inventory_qr_code.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261027000000_notification_audience_excluded_user.xml"
         ],
         "tests": [
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryQrCodeServiceTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryLabelServiceTest.java",
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryScanServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryIssueServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryErasureServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/InventoryScanResourceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/InventoryQrSecurityConfigurationTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/InventoryQrPropertiesValidationTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationOutboxPublisherIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/TenantSchemaProvisioningServiceIT.java",
+          "taurus-fe/src/app/pages/inventory/scan/inventory-scan.component.spec.ts",
+          "taurus-fe/src/app/dialogs/inventory-label-dialog/inventory-label-dialog.component.spec.ts",
+          "taurus-fe/src/app/dialogs/inventory-qr-rotate-dialog/inventory-qr-rotate-dialog.component.spec.ts",
+          "taurus-fe/src/app/dialogs/inventory-issue-dialog/inventory-issue-dialog.component.spec.ts",
+          "taurus-fe/src/app/components/inventory-issue-list/inventory-issue-list.component.spec.ts",
+          "taurus-fe/src/app/pages/inventory/assignment-detail/assignment-detail.component.spec.ts",
+          "taurus-fe/e2e/specs/inventory-qr.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Implementazione verificata con test unitari, build Angular e applicazione Liquibase su PostgreSQL 17. Il profilo dev abilita i QR con il frontend locale e la card delle segnalazioni rispetta la separazione prevista prima della zona pericolosa; le ultime modifiche sono state verificate con compilazione backend e build Angular. Prima del rilascio resta la validazione fisica delle etichette su stampanti e dispositivi reali prevista dalla specifica. Restano i requisiti aperti elencati nella specifica."
+      "lastVerifiedOn": "2026-10-27",
+      "notes": "Il 2026-10-27 sono stati chiusi i diciotto requisiti aperti della specifica. La scansione mostra all'amministratore stato, guasti, scadenze e prese visione mancanti, con un comando per ogni azione di allowedActions, e apre le sezioni della scheda con il focus; il socio con una sola consegna arriva direttamente al dettaglio, altrimenti trova i collegamenti a presa visione, riconsegna e segnalazioni. Il dialogo del guasto allega fino a cinque foto con anteprima e rimozione, il dettaglio della consegna elenca le segnalazioni personali e accetta foto, gli amministratori rimuovono le foto con dati personali. Le notifiche escludono l'autore con la nuova audience EXCLUDED_USER (migration 20261027000000), hanno eventKey per destinatario, la quantità nella creazione, la presa in carico al solo segnalante e la motivazione ripulita nella rotazione. Aggiunte otto metriche taurus.inventory.* a etichette chiuse e log strutturati con impronte SHA-256 troncate; la stampa usa un pool dedicato con timeout configurabile (INVENTORY_QR_LABEL_TIMEOUT_SECONDS, 30 secondi) e risponde 503 inventory.labels.timeout o inventory.labels.busy. Aggiunti i test backend della strategia, compresa la decodifica del QR renderizzato dal PDF, le spec Angular di scansione, etichette, rotazione e guasti e la suite e2e inventory-qr.spec.ts, che richiede un'istanza completa e non è stata eseguita. Corretto il rifiuto dell'host locale IPv6 [::1] come URL pubblico di sviluppo. Verificati ./mvnw verify -Dtaurus.test.requireDocker=true, npm run test:coverage e la build di produzione. Prima di attivare il flag su un tenant restano le verifiche fisiche di stampa e scansione previste dalla specifica."
     },
     {
       "id": "media-asset",

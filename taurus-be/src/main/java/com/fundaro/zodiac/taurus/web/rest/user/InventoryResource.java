@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController("UserInventoryResource")
 @RequestMapping("/api/user/inventory")
@@ -104,6 +105,12 @@ public class InventoryResource {
     @GetMapping("/return-photos/{id}")
     public ResponseEntity<byte[]> getReturnPhoto(@PathVariable long id, AbstractAuthenticationToken token) throws IOException {
         return com.fundaro.zodiac.taurus.web.rest.InventoryResource.photoResponse(inventoryService.getReturnPhoto(id, true, token));
+    }
+
+    @GetMapping("/assignments/{id}/issues")
+    @RequiresTenantFeature(TenantFeature.INVENTORY_QR)
+    public List<InventoryIssueDtos.Response> getAssignmentIssues(@PathVariable long id, AbstractAuthenticationToken token) {
+        return inventoryIssueService.findOwnForAssignment(id, token);
     }
 
     @PostMapping("/assignments/{id}/issues")

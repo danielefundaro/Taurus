@@ -17,6 +17,29 @@
             hint="Massimo 2000 caratteri.">
             <textarea pTextarea id="issueDescription" rows="5" maxlength="2000" [(ngModel)]="description"></textarea>
         </app-form-field>
+        <fieldset class="issue-photos" aria-describedby="issuePhotosHint">
+            <legend class="font-medium">Fotografie</legend>
+            <p id="issuePhotosHint" class="m-0 text-sm text-muted-color">Facoltative, JPEG o PNG fino a 10 MB, al massimo
+                {{ maxPhotos }}. Evita di ritrarre persone o documenti.</p>
+            @if (photos.length) {
+            <ul class="issue-photo-list" aria-label="Fotografie da inviare">
+                @for (photo of photos; track photo.previewUrl; let index = $index) {
+                <li>
+                    <img [src]="photo.previewUrl" [alt]="'Anteprima della fotografia ' + (index + 1)" />
+                    <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                        [ariaLabel]="'Rimuovi la fotografia ' + (index + 1)" (onClick)="removePhoto(index)" />
+                </li>
+                }
+            </ul>
+            }
+            @if (photos.length < maxPhotos) {
+            <label class="p-button p-component p-button-secondary p-button-outlined cursor-pointer justify-center issue-photo-add"
+                for="issuePhotoInput"><i class="pi pi-camera mr-2" aria-hidden="true"></i><span>Aggiungi
+                    fotografia</span></label>
+            <input id="issuePhotoInput" type="file" accept="image/jpeg,image/png" capture="environment" multiple
+                class="sr-only" (change)="addPhotos($event)" />
+            }
+        </fieldset>
         @if (severity === 'UNSAFE') {
         <app-inline-alert severity="warn" heading="Blocco prudenziale"
             detail="Una segnalazione non sicura blocca nuove assegnazioni finché un amministratore non la chiude." />

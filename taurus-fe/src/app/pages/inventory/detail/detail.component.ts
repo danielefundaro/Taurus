@@ -27,6 +27,7 @@ import {
 } from '../../../module';
 import { ApiErrorService, ConfirmService, InventoryService, TenantFeatureService, ToastService, UsersService, withErrorSummary, withHandledErrors } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
+import { focusInventoryFragment } from '../inventory-fragment';
 
 /** Expiration errors shown under the date field instead of a toast: duration rules of the tenant or of the issued sheet. */
 const EXPIRATION_ERRORS: readonly string[] = ['inventory.loanDuration.*', 'inventory.loanSheet.missingExpiration', 'inventory.loanSheet.precariousExpiration', 'inventory.loanSheet.expirationOutOfRange'];
@@ -61,6 +62,8 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected returnRequestNotes: Record<number, string> = {};
     protected returnConditions: Record<number, InventoryCondition | undefined> = {};
     protected returnCompletionNotes: Record<number, string> = {};
+    /** Il frammento dell'URL, come `#assegna` dalla scansione, si segue solo al primo caricamento. */
+    private fragmentFocused = false;
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },
         { label: 'Eccellente', value: 'EXCELLENT' },
@@ -583,6 +586,10 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                 });
                 this.clearDirtyUnits();
                 this.dirtyAssignments.clear();
+                if (!this.fragmentFocused) {
+                    this.fragmentFocused = true;
+                    focusInventoryFragment(this.route.snapshot.fragment);
+                }
             });
     }
 

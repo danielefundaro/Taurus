@@ -255,6 +255,8 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'inventory.labels.duplicate': 'Ogni oggetto può comparire una sola volta',
     'inventory.labels.singleLimit': 'Il formato singolo ammette al massimo {maximum} etichette, a partire dalla prima posizione',
     'inventory.labels.sheetLimit': 'Le etichette non possono superare {maxPages} pagine A4',
+    'inventory.labels.timeout': 'La generazione delle etichette ha superato il tempo massimo: riprovare con meno etichette',
+    'inventory.labels.busy': 'La stampa delle etichette è occupata: riprovare fra poco',
     'inventory.qr.size.invalid': 'La dimensione del QR code deve essere di {sizes} pixel',
     'inventory.qr.notFound': 'Codice inventario non disponibile',
     'inventory.qr.disabled': "I QR code dell'inventario non sono disponibili",
