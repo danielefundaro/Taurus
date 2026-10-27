@@ -112,7 +112,7 @@
           "taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts"
         ]
       },
-      "notes": "Completati workspace e viste minimizzate per amministratore, archivista, partecipante interno, partecipante esterno e tesoriere; selettori paginati lato server; notifiche outbox aggregate e promemoria temporali idempotenti; dashboard con blocker, warning, follow-up e deduplicazione delle disponibilità mancanti. Verificati test backend mirati, test Angular dei contratti HTTP/dashboard e build di produzione. Restano i requisiti aperti elencati nella specifica.",
+      "notes": "Completati workspace e viste minimizzate per amministratore, archivista, partecipante interno, partecipante esterno e tesoriere; selettori paginati lato server; notifiche outbox aggregate e promemoria temporali idempotenti; dashboard con blocker, warning, follow-up e deduplicazione delle disponibilità mancanti. Verificati test backend mirati, test Angular dei contratti HTTP/dashboard e build di produzione. Il 2026-10-27, con la chiusura della dashboard operativa, i collegamenti di preparazione filtrano il calendario sugli eventi contati dal server e la deduplicazione usa la stessa selezione; fra i requisiti aperti resta la valutazione per evento, da portare a query aggregate. Restano i requisiti aperti elencati nella specifica.",
       "release": null,
       "lastVerifiedOn": "2026-10-23"
     },
@@ -636,7 +636,7 @@
       "title": "Dashboard operativa trasversale",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "in-progress",
+      "deliveryStatus": "implemented",
       "spec": "docs/operational-dashboard-spec.md",
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
@@ -650,7 +650,10 @@
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/InventoryOperationProvider.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/FinanceOperationProvider.java",
           "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/NotificationOperationProvider.java",
-          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/LegalOperationProvider.java"
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dashboard/LegalOperationProvider.java",
+          "taurus-fe/src/app/pages/dashboard/dashboard.component.ts",
+          "taurus-fe/src/app/pages/calendar-events/calendar-events.component.ts",
+          "taurus-fe/src/app/service/operational-dashboard.service.ts"
         ],
         "migrations": [],
         "tests": [
@@ -658,12 +661,21 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/NotificationDeliveryAdminServiceTest.java",
           "taurus-fe/src/app/pages/dashboard/components/operations-widget/operations-widget.component.spec.ts",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/CalendarOperationProviderTest.java",
-          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/InventoryOperationProviderTest.java"
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/InventoryOperationProviderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/FinanceOperationProviderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/LegalOperationProviderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/NotificationOperationProviderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/DashboardPropertiesValidationTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/DashboardSecurityConfigurationTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardIT.java",
+          "taurus-fe/src/app/pages/dashboard/dashboard.component.spec.ts",
+          "taurus-fe/src/app/pages/calendar-events/calendar-events.component.spec.ts",
+          "taurus-fe/e2e/specs/operational-dashboard.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Il 2026-10-22 i guasti inventario UNSAFE e LIMITING sono ammessi tra i collegamenti della dashboard. Restano i requisiti aperti elencati nella specifica."
+      "lastVerifiedOn": "2026-10-27",
+      "notes": "Il 2026-10-22 i guasti inventario UNSAFE e LIMITING sono ammessi tra i collegamenti della dashboard. Il 2026-10-27 sono stati chiusi i sei requisiti aperti della specifica. I collegamenti event-preparation ed event-follow-up filtrano l'elenco del calendario con gli eventi contati dal server, letti da GET /api/dashboard/operations/calendar-events e paginati con id.in; la stessa selezione decide la deduplicazione con le risposte mancanti, che conservano l'evento fra sette e quattordici giorni con il solo avviso sulle disponibilità. La soglia inventory-warning-days, già validata all'avvio, ha il suo test. La dashboard dimentica lo snapshot quando il tenant del token cambia e scarta le risposte arrivate dopo il cambio. Aggiunti i test dei provider Economia, Legale e Notifiche, i test di sicurezza e di configurazione e OperationalDashboardIT su PostgreSQL, con due tenant omonimi, il risultato parziale e un dataset realistico che misura p95, query per richiesta, dimensione della risposta e piani generici; la suite e2e operational-dashboard.spec.ts esiste ma, come il resto della suite, richiede un'istanza completa e non è stata eseguita. Verificati ./mvnw verify, npm run test:coverage e la build di produzione."
     },
     {
       "id": "operational-runbook",

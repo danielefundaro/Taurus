@@ -48,6 +48,9 @@ export interface OperationalDashboard {
     unavailableDomains: DashboardDomain[];
 }
 
+/** Filtri del calendario che il server risolve con la stessa selezione delle righe della dashboard. */
+export type DashboardCalendarAttention = 'event-preparation' | 'event-follow-up';
+
 export type NotificationDeliveryStatus = 'PENDING' | 'DELIVERED' | 'FAILED' | 'SKIPPED';
 
 export type NotificationDeliveryOrigin = 'OUTBOX' | 'PUSH' | 'REMINDER';

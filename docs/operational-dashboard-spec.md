@@ -129,7 +129,7 @@ Quando non esistono attivita viene mostrato:
 I dati vengono caricati:
 
 - all'ingresso nella dashboard;
-- quando la finestra torna visibile dopo almeno cinque minuti;
+- quando la finestra torna visibile dopo almeno cinque minuti, o subito se nel frattempo il tenant del token è cambiato;
 - dopo il ritorno da una pagina aperta tramite una voce operativa;
 - quando l'utente usa il comando **Aggiorna**.
 
@@ -199,7 +199,7 @@ Severita:
 
 Collegamento: `/calendar?attention=missing-availability`.
 
-Con la funzionalita `EVENT_PREPARATION` attiva, un evento la cui preparazione ha la criticita `AVAILABILITY_INCOMPLETE` (avviso o blocco) non entra in questo conteggio, per non duplicare le voci di preparazione.
+Con la funzionalita `EVENT_PREPARATION` attiva, un evento non entra in questo conteggio soltanto quando una voce di preparazione lo conta gia con la criticita `AVAILABILITY_INCOMPLETE`: un blocco entro l'orizzonte del calendario o un avviso entro sette giorni. Un evento tra sette e quattordici giorni con il solo avviso sulle disponibilita resta quindi in `CALENDAR_RESPONSES_MISSING`; la deduplicazione usa la stessa selezione che produce le righe di preparazione, non la sola presenza della criticita.
 
 Questa euristica deve essere sostituita da un pubblico invitato esplicito se in futuro gli eventi vengono indirizzati a sottoinsiemi di utenti. Fino ad allora non si devono inventare filtri per strumento o sezione musicale.
 
@@ -215,9 +215,11 @@ Regole, sulla valutazione della [preparazione operativa](event-preparation-spec.
 
 Conteggio principale: eventi coinvolti. La descrizione nomina l'evento piu vicino.
 
-Collegamenti: `/calendar?attention=event-preparation` per le prime due voci, `/calendar?attention=event-follow-up` per il follow-up.
+Collegamenti: `/calendar?attention=event-preparation` per le prime due voci, `/calendar?attention=event-follow-up` per il follow-up. L'elenco del calendario chiede a `GET /api/dashboard/operations/calendar-events` gli eventi contati dalle righe e li pagina sul server: i criteri di preparazione non si ricalcolano nel client.
 
-Un evento tra sette e quattordici giorni con il solo avviso sulle disponibilita non compare ne in `EVENT_PREPARATION_ATTENTION` ne in `CALENDAR_RESPONSES_MISSING`.
+Un evento tra sette e quattordici giorni con il solo avviso sulle disponibilita non compare in `EVENT_PREPARATION_ATTENTION` e resta in `CALENDAR_RESPONSES_MISSING`.
+
+La valutazione della preparazione esegue alcune query per ogni evento candidato. Con 6-10 eventi nell'orizzonte il costo e contenuto, ma il bilancio di query delle [Prestazioni](#prestazioni) vale con la preparazione spenta: il costo per evento e un requisito aperto della [preparazione operativa](event-preparation-spec.md#requisiti-aperti).
 
 ### Inventario personale: `INVENTORY_DECISION_REQUIRED`
 
@@ -403,6 +405,12 @@ L'endpoint:
 - restituisce `Cache-Control: no-store` per evitare riuso tra sessioni o tenant;
 - usa date ISO 8601 e istanti con offset.
 
+```http
+GET /api/dashboard/operations/calendar-events?attention=event-preparation|event-follow-up
+```
+
+Restituisce gli identificativi degli eventi che le righe di preparazione contano, ordinati per scadenza e poi per identificativo, con `Cache-Control: no-store`. È riservato a Super Admin e Admin; usa la stessa selezione delle righe (`CalendarOperationProvider.attentionEventIds`), quindi l'elenco filtrato e il conteggio della dashboard coincidono. Un valore di `attention` diverso dai due ammessi risponde `400` con `dashboard.attention.invalid`. Senza `EVENT_PREPARATION` l'elenco è vuoto. Non dipende da `application.dashboard.enabled`: il collegamento resta valido anche se il widget non è attivo.
+
 ### Risposta indicativa
 
 ```json
@@ -552,9 +560,10 @@ application:
 Le proprieta sono validate all'avvio:
 
 - valori maggiori o uguali a zero;
-- orizzonti massimi di 366 giorni.
+- orizzonti massimi di 366 giorni;
+- `inventory-warning-days` non superiore a `inventory-expiration-look-ahead-days`: con un valore maggiore l'applicazione non parte e il messaggio nomina le due proprieta.
 
-Il vincolo `inventory-warning-days` non superiore all'orizzonte inventario non e verificato.
+`DashboardPropertiesValidationTest` verifica i valori predefiniti, il caso limite con soglie uguali e i tre rifiuti.
 
 ### Autorizzazioni
 
@@ -562,9 +571,12 @@ In `SecurityConfiguration`:
 
 ```java
 .requestMatchers(HttpMethod.GET, "/api/dashboard/operations").authenticated()
+.requestMatchers(HttpMethod.GET, "/api/dashboard/operations/calendar-events")
+    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+.requestMatchers("/api/dashboard/**").denyAll()
 ```
 
-Questa regola rende raggiungibile l'aggregatore, ma non sostituisce le verifiche nei provider. Il frontend non e un confine di sicurezza e le direttive `hasRoles` controllano soltanto la presentazione.
+Ogni altro metodo o percorso sotto `/api/dashboard` è rifiutato. Questa regola rende raggiungibile l'aggregatore, ma non sostituisce le verifiche nei provider. Il frontend non e un confine di sicurezza e le direttive `hasRoles` controllano soltanto la presentazione.
 
 Il provider non deve accettare user ID, tenant o ruolo dal client. L'identita personale deriva dal subject autenticato; il tenant deriva dal contesto gia validato.
 
@@ -590,7 +602,14 @@ taurus-fe/src/app/pages/dashboard/components/operations-widget/
 taurus-fe/src/app/pages/admin/notification-delivery/
 ```
 
-`OperationalDashboardService` espone `getOperations()` e non conserva dati globali tra tenant. Il frontend non gestisce un cambio tenant nella stessa sessione: il tenant e quello del token e il widget non ha una logica di invalidazione dedicata.
+`OperationalDashboardService` espone `getOperations()` e `getAttentionEvents(attention)` e non conserva dati globali tra tenant. `DashboardComponent` ricorda il tenant del token con cui ha letto lo snapshot:
+
+- se al ricaricamento il tenant del token è cambiato, lo snapshot sparisce prima della nuova richiesta e il widget torna allo scheletro del primo caricamento;
+- una risposta arrivata dopo un cambio di tenant viene scartata e la lettura si ripete per il tenant nuovo;
+- al ritorno sulla finestra un tenant diverso fa ricaricare subito, senza attendere i cinque minuti;
+- un errore di lettura del tenant nuovo è un errore iniziale, non un avviso sopra i dati del tenant precedente.
+
+Oggi il tenant cambia soltanto con un nuovo accesso, che ricarica l'applicazione; l'invalidazione protegge anche un token rinnovato con un altro tenant.
 
 `OperationsWidgetComponent` riceve il DTO gia ordinato e produce:
 
@@ -619,8 +638,8 @@ Le pagine di destinazione devono interpretare i parametri senza eseguire automat
 | `/inventory?view=mine&attention=expiring` | proprie assegnazioni scadute o in scadenza |
 | `/inventory?attention=issues-unsafe` | guasti non sicuri aperti |
 | `/inventory?attention=issues-limiting` | guasti limitanti aperti |
-| `/calendar?attention=event-preparation` | elenco calendario senza filtro: il parametro non e gestito |
-| `/calendar?attention=event-follow-up` | elenco calendario senza filtro: il parametro non e gestito |
+| `/calendar?attention=event-preparation` | eventi con preparazione bloccata o da verificare contati dalla dashboard, paginati sul server |
+| `/calendar?attention=event-follow-up` | eventi conclusi con le attivita successive da chiudere, paginati sul server |
 | `/finance?section=movements&reconciled=false` | movimenti ordinari non riconciliati |
 | `/admin/notification-delivery?status=FAILED` | consegne tecniche fallite |
 
@@ -723,6 +742,28 @@ Obiettivi iniziali su ambiente di staging con un tenant realistico:
 
 Se un provider supera stabilmente 200 ms, deve essere ottimizzato o reso facoltativo prima di introdurre cache. Un'eventuale cache futura deve avere chiave composta da tenant, subject e insieme delle autorita e deve essere invalidata al cambio tenant; nella prima versione non e prevista.
 
+### Misura su dataset realistico
+
+`OperationalDashboardIT` prepara un tenant con il volume di qualche anno di attività — 150 persone, 700 eventi con 73.500 risposte, 1.500 movimenti, 2.000 assegnazioni con revisioni e prese visione, 5.000 righe di outbox —, esegue `ANALYZE` e misura la richiesta completa di un amministratore con la preparazione spenta. Al 2026-10-27, su PostgreSQL in Testcontainers e in tre esecuzioni:
+
+| Misura | Obiettivo | Valore misurato |
+| --- | --- | --- |
+| `p95` della richiesta completa | sotto 500 ms | 157-181 ms |
+| `p95` del provider più lento | sotto 200 ms | 48-79 ms (Calendario o Inventario) |
+| Query per richiesta | al massimo 12 | 11 |
+| Dimensione della risposta | sotto 32 kB | circa 2,4 kB |
+
+I piani generici di PostgreSQL (`EXPLAIN (GENERIC_PLAN)`) di ogni query finiscono in `taurus-be/target/dashboard-query-plans.txt`:
+
+- calendario: gli eventi del periodo usano `idx_calendar_event_range`, le risposte `uq_calendar_event_availability_active_user` con sola lettura dell'indice; `app_user` si legge per intero o per `keycloak_id` a seconda di quanti utenti sono attesi;
+- economia: `idx_financial_movement_reconciled_date` sui movimenti non riconciliati;
+- scadenze inventario: `idx_inventory_assignment_expiration`, anche con il filtro facoltativo sull'utente;
+- riconsegne, consegne push e promemoria: indici esistenti;
+- prese visione dell'inventario: anti join con scansione sequenziale di assegnazioni, revisioni e decisioni, la query più costosa per il pianificatore; il costo cresce con le assegnazioni del tenant;
+- notifiche: `notification_outbox` si legge per intero, perché il solo indice parziale riguarda le righe `PENDING`; con 5.000 righe il provider resta sotto i 40 ms.
+
+A questi volumi nessun indice nuovo è giustificato: i primi quattro candidati di [Query](#query) esistono già e i piani li usano. `notification_outbox(status, occurred_at)` e un indice per le prese visione servono soltanto se outbox o assegnazioni crescono di un ordine di grandezza; il file dei piani è la verifica da ripetere. La misura non sostituisce quella su staging, che resta al profilo dashboard di k6 del [runbook](runbook-test.md).
+
 ## Osservabilita
 
 Metriche Micrometer (`DashboardMetrics`):
@@ -738,7 +779,13 @@ Alert raccomandato: rapporto di risposte `PARTIAL` o `failed` maggiore al 5% per
 
 ## Strategia di test
 
-I test presenti sono `OperationalDashboardServiceTest`, `CalendarOperationProviderTest`, `InventoryOperationProviderTest` e `NotificationDeliveryAdminServiceTest` nel backend, `operations-widget.component.spec.ts` e `notification-delivery-admin.service.spec.ts` nel frontend. Mancano i test dei provider Economia, Legale e Notifiche, gli integration test PostgreSQL, i security test e i casi di cambio tenant: sono tra i [Requisiti aperti](#requisiti-aperti).
+I test sono:
+
+- backend, unitari: `OperationalDashboardServiceTest`, `CalendarOperationProviderTest`, `InventoryOperationProviderTest`, `FinanceOperationProviderTest`, `LegalOperationProviderTest`, `NotificationOperationProviderTest` e `NotificationDeliveryAdminServiceTest`;
+- backend, configurazione e sicurezza: `DashboardPropertiesValidationTest` e `DashboardSecurityConfigurationTest`;
+- backend, PostgreSQL: `OperationalDashboardIT`, che copre anche le [Prestazioni](#prestazioni);
+- frontend: `operations-widget.component.spec.ts`, `dashboard.component.spec.ts`, `calendar-events.component.spec.ts` e `notification-delivery-admin.service.spec.ts`;
+- end-to-end: `taurus-fe/e2e/specs/operational-dashboard.spec.ts`.
 
 ### Unit test backend
 
@@ -756,6 +803,8 @@ I test presenti sono `OperationalDashboardServiceTest`, `CalendarOperationProvid
 
 ### Integration test PostgreSQL
 
+`OperationalDashboardIT` usa tenant provisionati con Liquibase e dati scritti dai servizi di dominio o in SQL dove il servizio non li produce (eventi esclusi da una serie, restituzioni parziali, consegne fallite):
+
 - query delle disponibilita con utenti attivi, inattivi e risposte esistenti;
 - evento escluso da serie e record cancellati non producono attivita;
 - conteggi inventario con restituzioni parziali;
@@ -767,7 +816,10 @@ I test presenti sono `OperationalDashboardServiceTest`, `CalendarOperationProvid
 
 ### Security test
 
+`DashboardSecurityConfigurationTest` verifica le regole HTTP; i controlli sul tenant e sulle autorita sono nei test del servizio, dei provider e in `OperationalDashboardIT`:
+
 - endpoint anonimo rifiutato;
+- il filtro `calendar-events` e riservato a Super Admin e Admin, ogni altro percorso o metodo sotto `/api/dashboard` e rifiutato;
 - nessun parametro puo selezionare tenant o user ID;
 - Tesoriere non riceve inventario amministrativo o notifiche tecniche;
 - Utente Esterno non riceve eventi `COMPLETE`;
@@ -788,6 +840,14 @@ I test presenti sono `OperationalDashboardServiceTest`, `CalendarOperationProvid
 - layout a 320, 768 e 1280 pixel.
 
 ### End-to-end principali
+
+`operational-dashboard.spec.ts` verifica per ogni ruolo configurato nei tenant di prova che le voci restino nella matrice del ruolo e che il widget le mostri tutte, che ogni azione di un amministratore apra la pagina gia filtrata, il comando **Aggiorna** da tastiera, axe-core sulla sezione e il layout a 320, 768 e 1280 pixel. I dati dei tenant di prova non sono fissati, quindi la suite verifica invarianti; i percorsi che modificano dati sono coperti cosi:
+
+- scomparsa della voce dopo la risoluzione nel dominio (percorsi 1-4): `OperationalDashboardIT` per le disponibilita, i test dei provider per gli altri domini;
+- risultato parziale (percorso 5): `OperationalDashboardIT`, che rende illeggibile la tabella dei movimenti;
+- Utente Esterno (percorso 6): suite end-to-end e `OperationalDashboardIT`.
+
+I percorsi di riferimento sono:
 
 1. Un utente apre la dashboard, vede due eventi senza risposta, risponde al primo e al ritorno il conteggio diventa uno.
 2. Un Admin apre le prese visione pendenti, filtra l'inventario e verifica che la riga scompaia dopo la decisione dell'utente.
@@ -862,6 +922,19 @@ taurus-fe/src/app/pages/dashboard/components/operations-widget/
 taurus-fe/src/app/pages/admin/notification-delivery/
 ```
 
+### Test
+
+```text
+taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardIT.java
+taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java
+taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/dashboard/
+taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/DashboardPropertiesValidationTest.java
+taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/DashboardSecurityConfigurationTest.java
+taurus-fe/src/app/pages/dashboard/dashboard.component.spec.ts
+taurus-fe/src/app/pages/calendar-events/calendar-events.component.spec.ts
+taurus-fe/e2e/specs/operational-dashboard.spec.ts
+```
+
 ### Frontend estesi
 
 ```text
@@ -890,9 +963,4 @@ Queste evoluzioni devono continuare a derivare dal dominio autorevole e non intr
 
 ## Requisiti aperti
 
-- Filtro dell'elenco calendario per `attention=event-preparation` ed `attention=event-follow-up` ([Collegamenti profondi](#collegamenti-profondi)).
-- Evento tra sette e quattordici giorni con il solo avviso sulle disponibilita, oggi assente da preparazione e risposte mancanti ([Preparazione eventi](#preparazione-eventi-event_preparation_blocked-event_preparation_attention-event_follow_up_required)).
-- Verifica all'avvio di `inventory-warning-days` non superiore all'orizzonte inventario ([Soglie configurabili](#soglie-configurabili)).
-- Invalidazione dello snapshot al cambio tenant, se il frontend permettera di cambiare tenant nella sessione ([Moduli e componenti](#moduli-e-componenti), criterio 16).
-- Test dei provider Economia, Legale e Notifiche, integration test PostgreSQL, security test e test di cambio tenant ([Strategia di test](#strategia-di-test)).
-- Test end-to-end per ogni profilo, verifica di accessibilita e responsive, misura di `p95` e dei query plan su dataset realistico ([Prestazioni](#prestazioni), [End-to-end principali](#end-to-end-principali)).
+Nessuno: la specifica è coperta dal codice e dai test. La suite end-to-end richiede un'istanza completa con due tenant di prova e, come il resto della suite, non è ancora stata eseguita su un ambiente reale; il costo per evento delle voci di preparazione è un requisito aperto della [preparazione operativa](event-preparation-spec.md#requisiti-aperti).

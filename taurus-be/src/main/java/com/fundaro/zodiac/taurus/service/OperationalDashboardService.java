@@ -4,6 +4,7 @@ import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
+import com.fundaro.zodiac.taurus.service.dashboard.CalendarOperationProvider;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardOperationProvider;
 import com.fundaro.zodiac.taurus.service.dashboard.DashboardRequestContext;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.*;
@@ -35,19 +36,22 @@ public class OperationalDashboardService {
     private final DashboardMetrics metrics;
     private final ApplicationProperties.DashboardProperties properties;
     private final TenantFeatureService tenantFeatureService;
+    private final CalendarOperationProvider calendarOperations;
 
     public OperationalDashboardService(
         List<DashboardOperationProvider> providers,
         TenantTimeZoneService tenantTimeZoneService,
         DashboardMetrics metrics,
         ApplicationProperties applicationProperties,
-        TenantFeatureService tenantFeatureService
+        TenantFeatureService tenantFeatureService,
+        CalendarOperationProvider calendarOperations
     ) {
         this.providers = List.copyOf(providers);
         this.tenantTimeZoneService = tenantTimeZoneService;
         this.metrics = metrics;
         this.properties = applicationProperties.getDashboard();
         this.tenantFeatureService = tenantFeatureService;
+        this.calendarOperations = calendarOperations;
     }
 
     public OperationalDashboardDTO getOperations(AbstractAuthenticationToken authentication) {
@@ -60,7 +64,19 @@ public class OperationalDashboardService {
         }
     }
 
-    private OperationalDashboardDTO buildOperations(AbstractAuthenticationToken authentication, long startedAt) {
+    /**
+     * The events counted by the preparation rows of the dashboard, for the calendar list opened by their link. The
+     * filter does not depend on {@code application.dashboard.enabled}: it only reads what the evaluation of the
+     * preparation already shows to the administrators.
+     */
+    public List<Long> getAttentionEvents(AbstractAuthenticationToken authentication, String attention) {
+        CalendarOperationProvider.CalendarAttention value = CalendarOperationProvider.CalendarAttention.fromParameter(attention).orElseThrow(() ->
+            new RequestAlertException(HttpStatus.BAD_REQUEST, "Unsupported dashboard attention", "OperationalDashboard", "dashboard.attention.invalid")
+        );
+        return calendarOperations.attentionEventIds(requestContext(authentication), value);
+    }
+
+    private DashboardRequestContext requestContext(AbstractAuthenticationToken authentication) {
         String subject = SecurityUtils.getUserIdFromAuthentication(authentication);
         if (subject == null || subject.isBlank()) {
             throw new RequestAlertException(HttpStatus.UNAUTHORIZED, "Missing user claim", "OperationalDashboard", "auth.identity.missing");
@@ -76,9 +92,14 @@ public class OperationalDashboardService {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Tenant context mismatch", "OperationalDashboard", "auth.tenant.mismatch");
         }
         ZoneId zoneId = tenantTimeZoneService.currentZoneId();
-        ZonedDateTime generatedAt = ZonedDateTime.now(zoneId);
         Set<String> authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(java.util.stream.Collectors.toUnmodifiableSet());
-        DashboardRequestContext context = new DashboardRequestContext(subject, authorities, generatedAt, zoneId, authentication);
+        return new DashboardRequestContext(subject, authorities, ZonedDateTime.now(zoneId), zoneId, authentication);
+    }
+
+    private OperationalDashboardDTO buildOperations(AbstractAuthenticationToken authentication, long startedAt) {
+        DashboardRequestContext context = requestContext(authentication);
+        ZonedDateTime generatedAt = context.generatedAt();
+        String activeTenant = TenantContext.getTenantCode().orElseThrow();
 
         if (!properties.isEnabled()) {
             OperationalDashboardDTO disabled = complete(generatedAt, List.of(), List.of());

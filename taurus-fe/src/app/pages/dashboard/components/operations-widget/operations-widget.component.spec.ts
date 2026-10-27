@@ -100,6 +100,67 @@ describe('OperationsWidgetComponent', () => {
         expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/calendar?attention=event-preparation');
     });
 
+    it('labels every severity with text, not only with colour', () => {
+        component.dashboard = dashboard([
+            { ...item, key: 'a', severity: 'DANGER' },
+            { ...item, key: 'b', severity: 'WARNING', count: 3 },
+            { ...item, key: 'c', severity: 'INFO', count: 0 }
+        ]);
+        fixture.detectChanges();
+
+        const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.operations-list > li'));
+        expect(rows.map((row) => row.querySelector('p-tag')?.textContent?.trim())).toEqual(['Scaduto o bloccante', 'Da gestire', 'Da verificare']);
+        expect(rows.map((row) => ['danger', 'warning', 'info'].find((value) => row.querySelector('.operation-icon')?.classList.contains(`operation-icon--${value}`)))).toEqual([
+            'danger',
+            'warning',
+            'info'
+        ]);
+        // Singolare solo per uno: tre e zero sono «elementi».
+        expect(rows.map((row) => row.querySelector('.operation-count small')?.textContent)).toEqual(['elemento', 'elementi', 'elementi']);
+        expect(rows[1].querySelector('.operation-count')?.getAttribute('aria-label')).toBe('Quantità 3');
+    });
+
+    it('keeps the last snapshot with a warning when a refresh fails', () => {
+        component.dashboard = dashboard([item]);
+        component.refreshWarning = true;
+        component.error = true;
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.textContent).toContain('Aggiornamento non riuscito');
+        expect(fixture.nativeElement.textContent).toContain('Disponibilità da indicare');
+        expect(fixture.nativeElement.textContent).not.toContain('Attività non disponibili');
+    });
+
+    it('announces the outcome of a manual refresh to assistive technologies', () => {
+        component.dashboard = dashboard([item]);
+        component.announcement = 'Attività aggiornate.';
+        fixture.detectChanges();
+
+        const live: HTMLElement = fixture.nativeElement.querySelector('[aria-live="polite"]');
+        expect(live.textContent?.trim()).toBe('Attività aggiornate.');
+    });
+
+    it('disables the refresh button while a request is running and exposes native buttons to the keyboard', () => {
+        spyOn(component.refreshRequested, 'emit');
+        component.dashboard = dashboard([item]);
+        component.refreshing = true;
+        fixture.detectChanges();
+
+        const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
+        const refresh = buttons.find((button) => button.textContent?.includes('Aggiorna'))!;
+        expect(refresh.disabled).toBeTrue();
+        // L'azione della riga è un <button>: Invio e Spazio la attivano senza gestori dedicati.
+        const action = buttons.find((button) => button.textContent?.includes('Rispondi'))!;
+        expect(action.tagName).toBe('BUTTON');
+        action.click();
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/calendar?attention=my-missing-availability');
+
+        fixture.componentRef.setInput('refreshing', false);
+        fixture.detectChanges();
+        refresh.click();
+        expect(component.refreshRequested.emit).toHaveBeenCalledTimes(1);
+    });
+
     it('opens the personal inventory, with the signatures box, for a required signature', () => {
         component['navigate']({
             ...item,

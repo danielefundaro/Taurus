@@ -792,6 +792,12 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `eventPreparation.participants.required` | 400 | Partecipanti richiesti senza numero minimo | — | «Indicare il numero minimo di partecipanti» |
 | `eventPreparation.versionConflict` | 409 | Un'altra richiesta ha modificato la configurazione della preparazione | — | «La configurazione è stata modificata da un'altra richiesta: ricaricare la pagina» |
 
+### Dashboard operativa
+
+| Chiave | HTTP | Quando si verifica | Parametri | Messaggio |
+| --- | --- | --- | --- | --- |
+| `dashboard.attention.invalid` | 400 | `GET /api/dashboard/operations/calendar-events` con un valore di `attention` diverso da `event-preparation` ed `event-follow-up` | — | «Filtro delle attività non riconosciuto» |
+
 ### Calendario: serie ricorrenti, promemoria e feed
 
 | Chiave | HTTP | Quando si verifica | Parametri | Messaggio |

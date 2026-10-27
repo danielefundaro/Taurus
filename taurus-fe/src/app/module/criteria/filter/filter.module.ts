@@ -2,8 +2,8 @@ export class Filter<T> {
     equals?: T;
     notEquals?: T;
     specified?: boolean;
-    in?: T;
-    notIn?: T;
+    in?: T[];
+    notIn?: T[];
 
     constructor(t?: Filter<T>) {
         this.equals = t?.equals;

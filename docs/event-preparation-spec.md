@@ -737,9 +737,11 @@ Per admin e super admin, con la funzionalità `EVENT_PREPARATION` attiva, il pro
 - `EVENT_PREPARATION_ATTENTION` (`WARNING`) per eventi entro 7 giorni con stato `ATTENTION`;
 - `EVENT_FOLLOW_UP_REQUIRED` (`WARNING`) per eventi terminati negli ultimi 30 giorni con chiusura `TO_CLOSE`.
 
-La dashboard mostra conteggio eventi ed evento più vicino, senza il numero di risposte. I collegamenti sono `/calendar?attention=event-preparation` per le prime due righe e `/calendar?attention=event-follow-up` per il follow-up; l'elenco del calendario gestisce però solo `my-missing-availability` e `missing-availability` e mostra questi link senza filtro. Non duplica tutte le criticità.
+La dashboard mostra conteggio eventi ed evento più vicino, senza il numero di risposte. I collegamenti sono `/calendar?attention=event-preparation` per le prime due righe e `/calendar?attention=event-follow-up` per il follow-up: l'elenco del calendario chiede a `GET /api/dashboard/operations/calendar-events` gli eventi che quelle righe contano e li pagina sul server, così elenco e conteggio coincidono. Non duplica tutte le criticità.
 
-Le righe sulle disponibilità mancanti vengono deduplicate: un evento con la criticità `AVAILABILITY_INCOMPLETE`, di qualunque severità, non entra in `CALENDAR_RESPONSES_MISSING`. Un evento tra 7 e 14 giorni con il solo avviso sulle disponibilità non compare quindi in nessuna delle due righe.
+Le righe sulle disponibilità mancanti vengono deduplicate: un evento esce da `CALENDAR_RESPONSES_MISSING` solo quando una riga di preparazione lo conta già con la criticità `AVAILABILITY_INCOMPLETE`, cioè un blocco entro la finestra o un avviso entro 7 giorni. Un evento tra 7 e 14 giorni con il solo avviso sulle disponibilità resta quindi nelle risposte mancanti.
+
+La dashboard valuta ogni evento candidato con le stesse letture della vista completa: alcune query per evento, accettabili con le 6-10 occorrenze di una finestra di 14 giorni ma non incluse nel bilancio di 12 query della [dashboard](operational-dashboard-spec.md#prestazioni), misurato con la preparazione spenta.
 
 ## Sicurezza e privacy
 
@@ -820,7 +822,7 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 
 ## Test backend
 
-`EventPreparationServiceTest` copre piano assente, profilo senza verifiche, vincolo spartiti/programma, separazione da `state`, disponibilità prima della scadenza, percentuale, `DRAFT` lontano, viste personali, esterne, archivista ed economiche e la notifica unica del programma. `EventPreparationNotificationSchedulerTest` e `CalendarOperationProviderTest` coprono scheduler e dashboard. Gli altri casi elencati in questa sezione e nelle successive sono tra i [Requisiti aperti](#requisiti-aperti).
+`EventPreparationServiceTest` copre piano assente, profilo senza verifiche, vincolo spartiti/programma, separazione da `state`, disponibilità prima della scadenza, percentuale, `DRAFT` lontano, viste personali, esterne, archivista ed economiche e la notifica unica del programma. `EventPreparationNotificationSchedulerTest` e `CalendarOperationProviderTest` coprono scheduler e dashboard, compresi la deduplicazione per finestra e gli eventi del filtro del calendario. Gli altri casi elencati in questa sezione e nelle successive sono tra i [Requisiti aperti](#requisiti-aperti).
 
 ### Valutazione
 
@@ -1011,8 +1013,7 @@ Il rollback non modifica eventi, tracce, spartiti, assegnazioni, presenze o movi
 - Collegamento al dettaglio inventario, numero inventariale e quantità residua nella sezione materiali ([Flusso](#flusso), [Materiali](#materiali-1)).
 - Notifica di conferma materiale invalidata e notifica materiali con oggetto e quantità ([Notifiche](#notifiche)).
 - Scomposizione del dettaglio Angular in componenti per area, navigazione ad ancore, azione “Mostra criticità” e gestione del focus ([Struttura della pagina](#struttura-della-pagina)).
-- Filtro dell'elenco calendario per `attention=event-preparation` ed `attention=event-follow-up`, oggi mostrati senza filtro ([Integrazione con dashboard operativa](#integrazione-con-dashboard-operativa)).
-- Evento tra 7 e 14 giorni con il solo avviso sulle disponibilità, oggi assente sia dalla preparazione sia dalle risposte mancanti della dashboard ([Integrazione con dashboard operativa](#integrazione-con-dashboard-operativa)).
+- Valutazione degli eventi della dashboard con query aggregate invece che per evento, perché le righe di preparazione restino nel bilancio di query della dashboard ([Integrazione con dashboard operativa](#integrazione-con-dashboard-operativa), [Prestazioni](#prestazioni)).
 - Decidere se un'area richiesta ma disabilitata per il tenant debba produrre `UNKNOWN` (criterio 27) invece di essere tolta dai requisiti ([Contratto della vista completa](#contratto-della-vista-completa)).
 - Metriche Micrometer e log strutturati ([Osservabilità](#osservabilità)).
 - Test backend, frontend ed end-to-end mancanti, compresi accessibilità e prestazioni ([Test backend](#test-backend), [Test frontend](#test-frontend), [Test end-to-end](#test-end-to-end)).
