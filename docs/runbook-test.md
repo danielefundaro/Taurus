@@ -380,7 +380,7 @@ La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni v
 | --- | --- |
 | Entità/repository/migration | Backend completo, fresh DB, upgrade DB, due tenant, soft delete e backup/restore se distruttiva |
 | Security/ruoli/OIDC | Matrice ruoli, token negativi, due tenant, login/logout/refresh E2E |
-| Feature flag | Tutte le combinazioni dipendenti, API negate, menu/route, cambio senza nuovo login |
+| Feature flag | Tutte le combinazioni dipendenti, API negate, menu/route, cambio senza nuovo login, `TenantFeaturesSecurityConfigurationTest` |
 | Scheduler/outbox | Idempotenza, retry, concorrenza, clock/timezone, multi-replica |
 | Media/PDF/OCR | Tipi file, path traversal, limiti, rollback DB/file, cleanup e malware/content handling |
 | RabbitMQ | Pubblicazione, consumo, redelivery, poison message, outage e recupero |
@@ -647,6 +647,7 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `FLAG-005 P0`: UI, route, API, scheduler e notifiche reagiscono coerentemente.
 - `FLAG-006 P0`: disabilitare/riabilitare conserva i dati.
 - `FLAG-007 P1`: update concorrente dei flag non perde modifiche.
+- `FLAG-008 P0`: `GET /api/tenant-features/capabilities` risponde `200` al solo super amministratore, `403` ad admin, tesoriere, archivista, utente ed esterno e `401` senza token, mentre `GET /api/tenant-features/current` resta leggibile da ogni ruolo; automatizzato in `TenantFeaturesSecurityConfigurationTest`.
 
 ### 14.12 Anteprima e stampa spartiti
 
