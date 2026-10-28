@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261027100000-1" author="taurus">
+    <comment>
+      Program and materials get their own versions, so that a stale save answers 409 without touching the version of
+      the configuration; the no-movements confirmation keeps an optional reason.
+    </comment>
+    <addColumn tableName="calendar_event_preparation">
+      <column name="program_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="materials_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="no_movements_confirmation_reason" type="varchar(500)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="calendar_event_preparation" columnName="no_movements_confirmation_reason"/>
+      <dropColumn tableName="calendar_event_preparation" columnName="materials_version"/>
+      <dropColumn tableName="calendar_event_preparation" columnName="program_version"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261027100000-2" author="taurus">
+    <comment>
+      A program entry can be an encore and keeps the name of the track when it was saved, so that the program still
+      reads correctly after the track is renamed or deleted.
+    </comment>
+    <addColumn tableName="calendar_event_program_entry">
+      <column name="encore" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="track_name_snapshot" type="varchar(255)"/>
+    </addColumn>
+    <sql>
+      UPDATE calendar_event_program_entry entry
+      SET track_name_snapshot = track.name
+      FROM track
+      WHERE track.id = entry.track_id
+    </sql>
+    <rollback>
+      <dropColumn tableName="calendar_event_program_entry" columnName="track_name_snapshot"/>
+      <dropColumn tableName="calendar_event_program_entry" columnName="encore"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,187 @@
+<div class="flex flex-col gap-4">
+    @if (editable) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="flex flex-col sm:flex-row gap-3 sm:items-end min-w-0">
+            <app-form-field class="flex-1 min-w-0" label="Traccia da aggiungere" forId="preparationTrack">
+                <p-autocomplete inputId="preparationTrack" class="w-full" inputStyleClass="w-full"
+                    [(ngModel)]="selectedTrack" [suggestions]="trackSuggestions" (completeMethod)="searchTracks($event)"
+                    optionLabel="name" [forceSelection]="true" [dropdown]="true" placeholder="Cerca una traccia"
+                    [disabled]="full">
+                    <ng-template let-track #item>
+                        <div class="flex w-full items-center justify-between gap-3">
+                            <span class="truncate">{{ track.name }}</span>
+                            <small class="text-surface-500">{{ trackStateLabel(track.state) }}</small>
+                        </div>
+                    </ng-template>
+                    <ng-template #footer>
+                        @if (hasMoreTracks) {
+                        <div class="px-3 py-2 flex items-center justify-between gap-2">
+                            <small class="text-surface-500">{{ trackSuggestions.length }} di {{ trackTotal }}</small>
+                            <button pButton type="button" size="small" severity="secondary" [text]="true"
+                                label="Altri risultati" icon="pi pi-angle-down" (mousedown)="$event.preventDefault()"
+                                (click)="loadMoreTracks()"></button>
+                        </div>
+                        }
+                    </ng-template>
+                </p-autocomplete>
+            </app-form-field>
+            <p-button label="Aggiungi" icon="pi pi-plus" severity="secondary" [disabled]="!selectedTrack || full"
+                (onClick)="addTrack()" />
+        </div>
+        <div class="flex flex-col gap-[0.4rem] min-w-0">
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                <app-form-field class="flex-1 min-w-0" label="Album da collegare" forId="preparationAlbum">
+                    <p-autocomplete inputId="preparationAlbum" class="w-full" inputStyleClass="w-full"
+                        [(ngModel)]="selectedAlbum" [suggestions]="albumSuggestions" (completeMethod)="searchAlbums($event)"
+                        optionLabel="name" [forceSelection]="true" [dropdown]="true" placeholder="Cerca un album">
+                        <ng-template let-album #item>
+                            <div class="flex w-full items-center justify-between gap-3">
+                                <span class="truncate">{{ album.name }}</span>
+                                <small class="text-surface-500">{{ album.tracks?.length ?? 0 }} {{ album.tracks?.length
+                                    === 1 ? 'traccia' : 'tracce' }}</small>
+                            </div>
+                        </ng-template>
+                    </p-autocomplete>
+                </app-form-field>
+                <p-button label="Collega album" icon="pi pi-link" severity="secondary" [disabled]="!selectedAlbum"
+                    (onClick)="connectAlbum()" />
+            </div>
+            <small class="text-muted-color">La scaletta attuale verrà sostituita dalle tracce dell’album.</small>
+        </div>
+    </div>
+    @if (full) {
+    <small class="text-surface-500" role="note">Il programma ha raggiunto il limite di {{ maxRows }} brani.</small>
+    }
+    }
+
+    @if (rows.length) {
+    <ol class="preparation-program list-none p-0 m-0 flex flex-col gap-3" cdkDropList
+        [cdkDropListDisabled]="!editable" (cdkDropListDropped)="drop($event)" aria-label="Scaletta dell’evento">
+        @for (row of rows; track row.key; let i = $index; let last = $last) {
+        <li cdkDrag [cdkDragDisabled]="!editable"
+            class="preparation-program__row rounded border border-surface-200 dark:border-surface-700 p-3">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                <div class="md:col-span-4 flex items-start gap-2 min-w-0">
+                    @if (editable) {
+                    <span cdkDragHandle class="preparation-program__handle text-surface-500 pt-1" aria-hidden="true"
+                        title="Trascina per riordinare"><i class="pi pi-bars"></i></span>
+                    }
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <strong class="break-words">{{ i + 1 }}.
+                                @if (row.trackAvailable) {
+                                <a class="text-primary" [routerLink]="['/tracks', row.trackId]">{{ row.trackName }}</a>
+                                } @else {
+                                {{ row.trackName }}
+                                }
+                            </strong>
+                            @if (row.encore) {
+                            <p-tag value="Bis" severity="info" [rounded]="true" />
+                            }
+                        </div>
+                        @if (row.trackState) {
+                        <small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
+                        }
+                        @if (!row.trackAvailable) {
+                        <small class="block text-orange-600 dark:text-orange-300">La traccia non è più disponibile
+                            nel catalogo: rimuovila o sostituiscila.</small>
+                        }
+                        @if (row.savedTrackName) {
+                        <small class="block text-surface-500">Salvata nel programma come «{{ row.savedTrackName
+                            }}»</small>
+                        }
+                    </div>
+                </div>
+                @if (editable) {
+                <div class="md:col-span-2">
+                    <p-inputnumber class="w-full" [(ngModel)]="row.plannedDurationSeconds" [min]="1" [max]="86400"
+                        suffix=" sec" placeholder="Durata" [ariaLabel]="'Durata in secondi del brano ' + (i + 1)"
+                        (ngModelChange)="markDirty()" />
+                </div>
+                <div class="md:col-span-3">
+                    <input pInputText class="w-full" [(ngModel)]="row.notes" maxlength="2000"
+                        placeholder="Note per questa esecuzione" [attr.aria-label]="'Note del brano ' + (i + 1)"
+                        (ngModelChange)="markDirty()" />
+                </div>
+                } @else {
+                <div class="md:col-span-5 text-sm">
+                    @if (row.plannedDurationSeconds) {
+                    <span class="block">Durata {{ formatDuration(row.plannedDurationSeconds) }}</span>
+                    }
+                    @if (row.notes) {
+                    <span class="block text-surface-500">{{ row.notes }}</span>
+                    }
+                </div>
+                }
+                <div class="md:col-span-3 flex flex-wrap items-center justify-end gap-1">
+                    @if (editable) {
+                    <label class="flex items-center gap-2 mr-2 text-sm">
+                        <p-checkbox [(ngModel)]="row.encore" [binary]="true" [inputId]="'encore-' + row.key"
+                            (onChange)="markDirty()" />
+                        <span>Bis</span>
+                    </label>
+                    }
+                    <button pButton type="button" size="small" severity="secondary" [text]="true"
+                        [label]="'Spartiti (' + row.scores.length + ')'"
+                        [icon]="expanded.has(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                        [attr.aria-expanded]="expanded.has(row.key)" [attr.aria-controls]="'program-scores-' + row.key"
+                        (click)="toggleScores(row)"></button>
+                    @if (editable) {
+                    <p-button icon="pi pi-arrow-up" severity="secondary" text rounded
+                        [ariaLabel]="'Sposta prima ' + row.trackName" [disabled]="i === 0" (onClick)="moveBy(i, -1)" />
+                    <p-button icon="pi pi-arrow-down" severity="secondary" text rounded
+                        [ariaLabel]="'Sposta dopo ' + row.trackName" [disabled]="last" (onClick)="moveBy(i, 1)" />
+                    <p-button icon="pi pi-copy" severity="secondary" text rounded
+                        [ariaLabel]="'Duplica ' + row.trackName" [disabled]="full" (onClick)="duplicate(i)" />
+                    <p-button icon="pi pi-trash" severity="danger" text rounded
+                        [ariaLabel]="'Rimuovi ' + row.trackName + ' dal programma'" (onClick)="remove(i)" />
+                    }
+                </div>
+            </div>
+            <div [id]="'program-scores-' + row.key" [hidden]="!expanded.has(row.key)"
+                class="mt-3 border-t border-surface-200 dark:border-surface-700 pt-3">
+                @if (row.scores.length) {
+                <ul class="list-none p-0 m-0 flex flex-col gap-2">
+                    @for (score of row.scores; track score.id) {
+                    <li class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <strong class="text-sm">{{ score.description || 'Parte senza descrizione' }}</strong>
+                                <p-tag [value]="scoreState(score).label" [severity]="scoreState(score).severity" />
+                            </div>
+                            <small class="block text-surface-500">{{ score.instruments.length ?
+                                score.instruments.join(', ') : 'Nessuno strumento indicato' }}</small>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            @for (file of score.files; track file.mediaId) {
+                            <p-button [label]="file.fileName || 'Spartito'" icon="pi pi-download" size="small"
+                                severity="secondary" [text]="true" [ariaLabel]="'Scarica ' + (file.fileName || 'lo spartito')"
+                                (onClick)="download(file)" />
+                            }
+                        </div>
+                    </li>
+                    }
+                </ul>
+                } @else if (!row.id) {
+                <small class="text-surface-500">Salva il programma per vedere gli spartiti della traccia.</small>
+                } @else {
+                <small class="text-surface-500">{{ personal ? 'Nessuno spartito pronto per i tuoi strumenti.' :
+                    'Nessuno spartito per questa traccia.' }}</small>
+                }
+            </div>
+        </li>
+        }
+    </ol>
+    } @else {
+    <app-empty-state compact icon="pi pi-list" heading="Programma vuoto"
+        [message]="editable ? 'Aggiungi le tracce una alla volta o collega un album.' : 'Il programma non è ancora stato pubblicato.'" />
+    }
+
+    <div class="sr-only" aria-live="polite">{{ announcement }}</div>
+
+    @if (editable) {
+    <div class="flex justify-end">
+        <p-button label="Salva programma" icon="pi pi-check" [loading]="saving" [disabled]="!dirty" (onClick)="save()" />
+    </div>
+    }
+</div>

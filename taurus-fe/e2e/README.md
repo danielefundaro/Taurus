@@ -33,6 +33,14 @@ Le prove sono in `specs`:
   nessuno scorrimento orizzontale a 320 pixel con azioni alte almeno 44 pixel. La rotazione non è
   provata perché invaliderebbe le etichette dell'ambiente: resta nelle verifiche fisiche. Le prove
   sull'oggetto si saltano senza `E2E_INVENTORY_QR_CODE`.
+- `event-preparation.spec.ts`: la preparazione di un evento per ruolo — stato, avanzamento e
+  criticità dell'amministratore con risposta `no-store`, collegamento di una criticità che aggiorna
+  il fragment e mette a fuoco la sezione, archivista che legge soltanto la vista di catalogo e
+  riordina il programma da tastiera con l'annuncio nella live region e la guardia che elenca
+  l'unità «programma», socio che legge il programma senza stato né strumenti di modifica, tesoriere
+  che chiama soltanto `/api/finance/**`, axe-core e nessuno scorrimento orizzontale a 320 pixel. Le
+  prove non salvano nulla e si saltano senza `E2E_PREPARATION_EVENT_ID`; isolamento fra tenant,
+  limiti, conflitti di versione e prestazioni sono in `EventPreparationIT` del backend.
 
 ## Prerequisiti
 
@@ -56,6 +64,7 @@ quando non sono configurati.
 | `E2E_SECOND_<RUOLO>_USERNAME`, `E2E_SECOND_<RUOLO>_PASSWORD` | Ruoli del secondo tenant |
 | `E2E_INVENTORY_QR_CODE` | Identificatore pubblico del QR di un oggetto del primo tenant con `INVENTORY_QR` attivo, letto dall'etichetta stampata; senza di esso le prove sull'oggetto si saltano |
 | `E2E_SECOND_INVENTORY_QR_CODE` | Identificatore di un oggetto del secondo tenant, per provare che dal primo risponde come un codice sconosciuto; facoltativo |
+| `E2E_PREPARATION_EVENT_ID` | Evento del primo tenant con `EVENT_PREPARATION` attivo, piano configurato e programma richiesto, possibilmente con almeno due brani e una criticità; senza di esso le prove della preparazione si saltano |
 | `E2E_LARGE_TRACK_ID` | Traccia del primo tenant con 200 parti e 1.000 pagine, per il gate prestazionale del workspace; senza di essa quella prova si salta |
 
 I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.

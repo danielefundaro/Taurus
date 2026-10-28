@@ -381,7 +381,7 @@ Sorgente: `CONTENT`.
 - creazione, aggiornamento, pubblicazione, rimozione dalla pubblicazione ed eliminazione di eventi;
 - disponibilità confermata, rifiutata o annullata;
 - aggiornamento delle presenze;
-- preparazione dell'evento (aggregato `EVENT_PREPARATION`): programma e materiali aggiornati (`EventPreparationService`), soglia di disponibilità mancata, presenze da confermare e chiusura economica richiesta (`EventPreparationNotificationScheduler`).
+- preparazione dell'evento (aggregato `EVENT_PREPARATION`): programma e materiali aggiornati (`EventPreparationService`), soglia di disponibilità mancata, presenze da confermare, chiusura economica richiesta e conferma materiale non più valida (`EventPreparationNotificationScheduler`).
 
 Sorgente: `CALENDAR`.
 

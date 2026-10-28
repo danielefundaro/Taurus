@@ -3,35 +3,30 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
-import { inventoryConditionLabel, RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
+import { RoleEnums, StateLabel, StateLabelsMap } from '../../../constants';
 import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone.component';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
+import { focusFragment } from '../../_shared/focus-fragment';
 import {
-    Albums,
-    AlbumsCriteria,
     CalendarEventSeries,
     CalendarEventSeriesPreview,
     CalendarEventSeriesRequest,
     CalendarEvents,
-    ClosureStatus,
     EventCost,
-    EventPreparationConfiguration,
-    EventPreparationMaterial,
-    EventPreparationProgramEntry,
     EventPreparationView,
     FinancialEventSummary,
-    InventoryAssignment,
-    InventoryItem,
-    PreparationProfile,
     EventPresentUser,
     RecurrenceWeekDay,
     Users
 } from '../../../module';
-import { StringFilter } from '../../../module/criteria/filter';
 import { DateConverterPipe } from '../../../pipe';
-import { AlbumsService, CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, InventoryService, KeycloakService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../../service';
-import { programFromAlbum } from './event-program';
+import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, KeycloakService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../../service';
+import { PreparationConfigurationComponent } from './preparation/preparation-configuration.component';
+import { PreparationConfirmationComponent } from './preparation/preparation-confirmation.component';
+import { PreparationMaterialsComponent } from './preparation/preparation-materials.component';
+import { PreparationProgramComponent } from './preparation/preparation-program.component';
+import { PreparationSummaryComponent } from './preparation/preparation-summary.component';
 
 interface UserPresenceRow {
     id: number;
@@ -44,7 +39,7 @@ interface UserPresenceRow {
 
 @Component({
     selector: 'app-calendar-event-detail',
-    imports: [ImportsModule],
+    imports: [ImportsModule, PreparationSummaryComponent, PreparationConfigurationComponent, PreparationConfirmationComponent, PreparationProgramComponent, PreparationMaterialsComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [CalendarEventsService, CalendarEventSeriesService]
@@ -53,6 +48,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     private static readonly PREPARATION_UNIT = 'preparazione';
     private static readonly PROGRAM_UNIT = 'programma';
     private static readonly MATERIALS_UNIT = 'materiali';
+    /** The units of the preparation, as the exit guard lists them. */
+    protected readonly preparationUnits = { configuration: DetailComponent.PREPARATION_UNIT, program: DetailComponent.PROGRAM_UNIT, materials: DetailComponent.MATERIALS_UNIT };
     protected isSavingPresence = false;
 
     /** Seconda unità salvabile della pagina, con il proprio pulsante «Salva presenze». */
@@ -99,24 +96,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected readonly eventPreparationEnabled;
     protected readonly webPushRemindersEnabled;
     protected preparation?: EventPreparationView;
-    protected preparationConfiguration: EventPreparationConfiguration = this.profileConfiguration('OTHER');
-    protected savingPreparation = false;
-    protected savingProgram = false;
-    protected savingMaterials = false;
-    protected programDraft: EventPreparationProgramEntry[] = [];
-    protected materialsDraft: EventPreparationMaterial[] = [];
-    protected availableAlbums: Albums[] = [];
-    protected availableItems: InventoryItem[] = [];
-    protected availableAssignments: InventoryAssignment[] = [];
-    protected selectedAlbum?: Albums;
-    protected selectedItem?: InventoryItem;
-    protected selectedAssignmentId?: number;
-    protected selectedMaterialQuantity = 1;
-    protected readonly preparationProfiles: { label: string; value: PreparationProfile }[] = [
-        { label: 'Esibizione o concerto', value: 'PERFORMANCE' },
-        { label: 'Prova', value: 'REHEARSAL' },
-        { label: 'Altro evento', value: 'OTHER' }
-    ];
+    protected preparationLoadFailed = false;
+    /** Text of the polite live region: what the last save or confirmation of the preparation did. */
+    protected preparationAnnouncement = '';
+    private preparationFragmentFocused = false;
 
     protected presenceRows: UserPresenceRow[] = [];
     protected currentUserId?: number;
@@ -158,8 +141,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         private readonly router: Router,
         private readonly confirmService: ConfirmService,
         private readonly eventPreparationService: EventPreparationService,
-        private readonly albumsService: AlbumsService,
-        private readonly inventoryService: InventoryService,
         private readonly dateConverterPipe: DateConverterPipe,
         tenantFeatureService: TenantFeatureService
     ) {
@@ -210,190 +191,36 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected get isDirtyMaterials(): boolean {
         return this.isUnitDirty(DetailComponent.MATERIALS_UNIT);
     }
-    protected markPreparationDirty(): void {
-        this.setUnitDirty(DetailComponent.PREPARATION_UNIT, true);
+
+    protected get currentRole(): RoleEnums {
+        return this.keycloakService.currentUserRole;
     }
 
-    protected applyPreparationProfile(profile: PreparationProfile): void {
-        const version = this.preparationConfiguration.version;
-        this.preparationConfiguration = { ...this.profileConfiguration(profile), version };
-        this.markPreparationDirty();
+    /** Members and external users read the personal view: only the parts of their instruments. */
+    protected get personalPreparation(): boolean {
+        return this.isUser || this.keycloakService.isUserExternal;
     }
 
-    protected savePreparation(): void {
-        if (this.preparationConfiguration.availabilityRequired && !this.preparationConfiguration.minimumAvailableParticipants) return;
-        this.savingPreparation = true;
-        this.eventPreparationService
-            .configure(this.event.id, this.preparationConfiguration)
-            .pipe(
-                first(),
-                finalize(() => (this.savingPreparation = false))
-            )
-            .subscribe({
-                next: (view) => {
-                    this.preparation = view;
-                    this.preparationConfiguration = { ...view.configuration! };
-                    this.setUnitDirty(DetailComponent.PREPARATION_UNIT, false);
-                    this.toastService.success('Preparazione aggiornata', 'Le verifiche applicabili sono state ricalcolate.');
-                }
-            });
+    protected get preparationFollowUp(): boolean {
+        return this.preparation?.evaluation?.phase === 'FOLLOW_UP';
     }
 
-    protected confirmPreparationArea(area: 'budget' | 'presence' | 'finance' | 'material', materialId?: number): void {
-        const operation =
-            area === 'budget'
-                ? this.eventPreparationService.confirmBudget(this.event.id, this.keycloakService.currentUserRole)
-                : area === 'presence'
-                    ? this.eventPreparationService.confirmPresence(this.event.id)
-                    : area === 'finance'
-                        ? this.eventPreparationService.confirmNoMovements(this.event.id, this.keycloakService.currentUserRole)
-                        : this.eventPreparationService.confirmMaterial(this.event.id, materialId!);
-        operation.pipe(first()).subscribe((view) => {
-            this.preparation = view;
-            this.toastService.success('Verifica confermata', 'Lo stato della preparazione è stato ricalcolato.');
-        });
+    /** Each area of the preparation is its own unit: the exit guard lists it while it has changes. */
+    protected setPreparationUnitDirty(unit: string, dirty: boolean): void {
+        this.setUnitDirty(unit, dirty);
     }
 
-    protected preparationStatusLabel(): string {
-        const status = this.preparation?.evaluation?.preparationStatus;
-        return ({ NOT_CONFIGURED: 'Da configurare', BLOCKED: 'Preparazione incompleta', ATTENTION: 'Da verificare', READY: 'Evento pronto', UNKNOWN: 'Valutazione non disponibile' } as Record<string, string>)[status ?? 'NOT_CONFIGURED'];
+    /** A save or a confirmation returns the whole view: every area shows the recalculated state. */
+    protected onPreparationChanged(view: EventPreparationView, heading: string, detail: string): void {
+        this.preparation = view;
+        this.preparationAnnouncement = `${heading}. ${detail}`;
+        this.toastService.success(heading, detail);
     }
 
-    protected closureStatusLabel(status: ClosureStatus): string {
-        return {
-            TO_CLOSE: 'Da completare',
-            CLOSED_WITH_WARNINGS: 'Completata con verifiche',
-            CLOSED: 'Completata',
-            NOT_REQUIRED: 'Non richiesta',
-            UNKNOWN: 'Stato non disponibile'
-        }[status];
-    }
-
-    protected trackStateLabel(state: string): string {
-        return StateLabelsMap.find((value) => value.code === state)?.name ?? 'Stato non disponibile';
-    }
-
-    protected readonly materialConditionLabel = inventoryConditionLabel;
-
-    protected preparationSeverity(): 'success' | 'warn' | 'danger' | 'secondary' {
-        const status = this.preparation?.evaluation?.preparationStatus;
-        return status === 'READY' ? 'success' : status === 'BLOCKED' || status === 'UNKNOWN' ? 'danger' : status === 'ATTENTION' ? 'warn' : 'secondary';
-    }
-
-    protected connectAlbum(): void {
-        const album = this.selectedAlbum;
-        if (!album?.tracks?.length) {
-            this.toastService.warn('Album vuoto', 'Aggiungi almeno una traccia all’album prima di collegarlo all’evento.');
-            return;
-        }
-        this.programDraft = programFromAlbum(album, this.programDraft);
-        this.selectedAlbum = undefined;
-        this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
-    }
-
-    protected searchPreparationAlbums(event: AutoCompleteCompleteEvent): void {
-        const criteria = new AlbumsCriteria();
-        criteria.page = 0;
-        criteria.size = 25;
-        criteria.sort = ['name,asc'];
-        const query = event.query.trim();
-        if (query) {
-            criteria.name = new StringFilter();
-            criteria.name.contains = query;
-        }
-        this.albumsService
-            .getAll(criteria)
-            .pipe(first())
-            .subscribe((page) => (this.availableAlbums = page.content));
-    }
-    protected markProgramDirty(): void {
-        this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
-    }
-
-    protected moveProgramEntry(index: number, offset: number): void {
-        const target = index + offset;
-        if (target < 0 || target >= this.programDraft.length) return;
-        [this.programDraft[index], this.programDraft[target]] = [this.programDraft[target], this.programDraft[index]];
-        this.programDraft.forEach((row, order) => (row.order = order));
-        this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
-    }
-
-    protected removeProgramEntry(index: number): void {
-        this.programDraft.splice(index, 1);
-        this.programDraft.forEach((row, order) => (row.order = order));
-        this.setUnitDirty(DetailComponent.PROGRAM_UNIT, true);
-    }
-    protected saveProgram(): void {
-        this.savingProgram = true;
-        this.eventPreparationService
-            .replaceProgram(this.event.id, this.programDraft)
-            .pipe(
-                first(),
-                finalize(() => (this.savingProgram = false))
-            )
-            .subscribe((view) => {
-                this.applyPreparationView(view);
-                this.setUnitDirty(DetailComponent.PROGRAM_UNIT, false);
-                this.toastService.success('Programma aggiornato', 'La prontezza è stata ricalcolata.');
-            });
-    }
-
-    protected searchPreparationItems(event: AutoCompleteCompleteEvent): void {
-        this.inventoryService
-            .getItems(event.query, 0, 25)
-            .pipe(first())
-            .subscribe((page) => (this.availableItems = page.content));
-    }
-
-    protected selectMaterialItem(item?: InventoryItem): void {
-        this.selectedAssignmentId = undefined;
-        this.availableAssignments = [];
-        const itemId = item?.id;
-        if (!itemId) return;
-        this.inventoryService
-            .getItem(itemId)
-            .pipe(first())
-            .subscribe((item) => (this.availableAssignments = (item.assignments ?? []).filter((assignment) => ['ACTIVE', 'PARTIALLY_RETURNED'].includes(assignment.status))));
-    }
-
-    protected addMaterial(): void {
-        const item = this.selectedItem;
-        if (!item?.id || this.selectedMaterialQuantity < 1) return;
-        const assignment = this.availableAssignments.find((value) => value.id === this.selectedAssignmentId);
-        this.materialsDraft.push({
-            id: 0,
-            itemId: item.id,
-            itemName: item.name,
-            assignmentId: assignment?.id,
-            assignee: assignment ? `${assignment.userName} ${assignment.userLastName}` : undefined,
-            requiredQuantity: this.selectedMaterialQuantity,
-            condition: item.conditionStatus,
-            confirmed: false
-        });
-        this.selectedItem = undefined;
-        this.selectedAssignmentId = undefined;
-        this.selectedMaterialQuantity = 1;
-        this.availableAssignments = [];
-        this.setUnitDirty(DetailComponent.MATERIALS_UNIT, true);
-    }
-
-    protected removeMaterial(index: number): void {
-        this.materialsDraft.splice(index, 1);
-        this.setUnitDirty(DetailComponent.MATERIALS_UNIT, true);
-    }
-    protected saveMaterials(): void {
-        this.savingMaterials = true;
-        this.eventPreparationService
-            .replaceMaterials(this.event.id, this.materialsDraft)
-            .pipe(
-                first(),
-                finalize(() => (this.savingMaterials = false))
-            )
-            .subscribe((view) => {
-                this.applyPreparationView(view);
-                this.setUnitDirty(DetailComponent.MATERIALS_UNIT, false);
-                this.toastService.success('Materiali aggiornati', 'Le assegnazioni sono state rivalutate.');
-            });
+    /** Another request saved first: the preparation is read again and the units without changes show it at once. */
+    protected reloadPreparation(): void {
+        this.loadPreparation();
+        this.preparationAnnouncement = 'Preparazione ricaricata con i dati aggiornati.';
     }
 
     protected get recurrenceLabel(): string {
@@ -732,52 +559,21 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return total ? `La risposta verrà applicata alle occorrenze future della serie, fino a ${total}` : 'La risposta verrà applicata a tutte le occorrenze future della serie';
     }
 
-    private loadPreparation(): void {
+    protected loadPreparation(): void {
+        this.preparationLoadFailed = false;
         this.eventPreparationService
             .get(this.event.id, this.keycloakService.currentUserRole)
             .pipe(first())
-            .subscribe((view) => {
-                this.applyPreparationView(view);
-                this.setUnitDirty(DetailComponent.PREPARATION_UNIT, false);
+            .subscribe({
+                next: (view) => {
+                    this.preparation = view;
+                    // A link from a notification or the dashboard opens a section of the preparation, once drawn.
+                    if (this.preparationFragmentFocused) return;
+                    this.preparationFragmentFocused = true;
+                    focusFragment(this.activatedRoute.snapshot.fragment);
+                },
+                error: () => (this.preparationLoadFailed = true)
             });
-    }
-
-    private applyPreparationView(view: EventPreparationView): void {
-        this.preparation = view;
-        this.preparationConfiguration = view.configuration ? { ...view.configuration } : this.profileConfiguration('OTHER');
-        this.programDraft = view.program.map((row) => ({ ...row }));
-        this.materialsDraft = view.materials.map((row) => ({ ...row }));
-    }
-
-    private profileConfiguration(profile: PreparationProfile): EventPreparationConfiguration {
-        const common = { profile, availabilityDeadlineMinutes: 1440, materialsDeadlineMinutes: 180, version: 0 };
-        if (profile === 'PERFORMANCE')
-            return {
-                ...common,
-                locationRequired: true,
-                programRequired: true,
-                scoresRequired: true,
-                availabilityRequired: true,
-                minimumAvailableParticipants: 1,
-                materialsRequired: false,
-                budgetRequired: true,
-                presenceClosureRequired: true,
-                financialClosureRequired: true
-            };
-        if (profile === 'REHEARSAL')
-            return {
-                ...common,
-                locationRequired: false,
-                programRequired: true,
-                scoresRequired: true,
-                availabilityRequired: true,
-                minimumAvailableParticipants: 1,
-                materialsRequired: false,
-                budgetRequired: false,
-                presenceClosureRequired: false,
-                financialClosureRequired: false
-            };
-        return { ...common, locationRequired: false, programRequired: false, scoresRequired: false, availabilityRequired: false, materialsRequired: false, budgetRequired: false, presenceClosureRequired: false, financialClosureRequired: false };
     }
 
     protected cancelAvailability(): void {

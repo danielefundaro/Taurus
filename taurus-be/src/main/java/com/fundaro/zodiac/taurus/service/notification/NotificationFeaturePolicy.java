@@ -20,7 +20,7 @@ public class NotificationFeaturePolicy {
         if ("EVENT_PREPARATION".equals(aggregateType)) {
             result.add(TenantFeature.EVENT_PREPARATION);
             if ("FINANCE_FOLLOW_UP".equals(operation)) result.add(TenantFeature.FINANCE);
-            if ("MATERIALS_UPDATED".equals(operation)) result.add(TenantFeature.INVENTORY);
+            if ("MATERIALS_UPDATED".equals(operation) || "MATERIAL_CONFIRMATION_INVALIDATED".equals(operation)) result.add(TenantFeature.INVENTORY);
         }
         return Set.copyOf(result);
     }

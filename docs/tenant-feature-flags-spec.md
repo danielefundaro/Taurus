@@ -490,7 +490,7 @@ Quando `eventPreparationEnabled` è `false`:
 - lo scheduler non produce promemoria o follow-up di preparazione per il tenant;
 - programma, configurazione, materiali e conferme restano nelle relative tabelle.
 
-Calendario, disponibilità, presenze, tracce, spartiti, Inventario ed Economia continuano a funzionare secondo i rispettivi flag. Se Preparazione è attiva ma Economia o Inventario sono disabilitati, le aree che ne dipendono (materiali, preventivo, chiusura economica) escono dalla valutazione e i relativi requisiti sono restituiti come non richiesti; la valutazione non diventa `UNKNOWN` e le altre aree restano utilizzabili. Non vengono eseguite chiamate ai moduli disabilitati.
+Calendario, disponibilità, presenze, tracce, spartiti, Inventario ed Economia continuano a funzionare secondo i rispettivi flag. Se Preparazione è attiva ma Economia o Inventario sono disabilitati, le aree che ne dipendono (materiali, preventivo, chiusura economica) escono dalla valutazione e i relativi requisiti sono restituiti come non richiesti; la valutazione non diventa `UNKNOWN`, elenca in `excludedAreas` le aree richieste dal piano ma non valutate, che l'amministratore vede segnalate, e le altre aree restano utilizzabili. Non vengono eseguite chiamate ai moduli disabilitati.
 
 Alla riattivazione gli hash di conferma vengono rivalutati sui dati correnti. Taurus non forza una conferma precedente a tornare valida e non genera retroattivamente notifiche la cui scadenza è trascorsa.
 

@@ -85,6 +85,7 @@ const OPERATION_LABELS: Readonly<Record<string, string>> = {
     INVENTARIO_RICONSEGNA_COMPLETATA: 'Riconsegna completata',
     INVENTARIO_RICONSEGNA_RICHIESTA: 'Riconsegna richiesta',
     MATERIALS_UPDATED: 'Materiali evento aggiornati',
+    MATERIAL_CONFIRMATION_INVALIDATED: 'Conferma materiale non più valida',
     MOVEMENT_CREATED: 'Movimento registrato',
     MOVEMENT_RECONCILED: 'Movimento riconciliato',
     MOVEMENT_REMOVED: 'Movimento rimosso',

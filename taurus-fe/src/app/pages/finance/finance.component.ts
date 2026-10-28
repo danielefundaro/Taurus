@@ -127,6 +127,9 @@ export class FinanceComponent implements OnInit {
         const params = this.route.snapshot.queryParamMap;
         if (params.get('section') === 'movements') this.activeTab = 'movements';
         if (params.get('reconciled') === 'false') this.movementFilters.reconciled = false;
+        // The preparation of an event links its own unreconciled movements: the list opens already filtered.
+        const eventId = Number(params.get('eventId'));
+        if (params.get('section') === 'movements' && Number.isFinite(eventId) && eventId > 0) this.movementFilters.eventId = eventId;
         this.loadReferenceData();
         this.loadMovements(this.movementLazyEvent);
     }
@@ -685,7 +688,7 @@ export class FinanceComponent implements OnInit {
             return;
         }
 
-        if (Number.isFinite(eventId) && eventId > 0) {
+        if (Number.isFinite(eventId) && eventId > 0 && params.get('section') !== 'movements') {
             this.financeService
                 .getEvent(eventId)
                 .pipe(first())

@@ -10,7 +10,7 @@ import { ImportsModule } from '../../../imports';
 import { InventoryAssignment, InventoryCondition, InventoryDecisionType, InventoryReturn } from '../../../module';
 import { SignatureService, TenantFeatureService, ToastService, UserInventoryService } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
-import { focusInventoryFragment } from '../inventory-fragment';
+import { focusFragment } from '../../_shared/focus-fragment';
 
 @Component({
     selector: 'app-inventory-assignment-detail',
@@ -212,7 +212,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
             .subscribe((value) => {
                 this.assignment = value;
                 this.returnQuantity = Math.min(Math.max(1, this.returnableQuantity), this.returnableQuantity || 1);
-                if (firstLoad) focusInventoryFragment(this.route.snapshot.fragment);
+                if (firstLoad) focusFragment(this.route.snapshot.fragment);
             });
     }
 

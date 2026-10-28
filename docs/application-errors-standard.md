@@ -792,7 +792,11 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `eventPreparation.movements.exists` | 400 | Conferma dell'assenza di movimenti economici quando ce ne sono | — | «Sono presenti movimenti economici per l'evento» |
 | `eventPreparation.program.required` | 400 | Spartiti richiesti senza programma | — | «Gli spartiti richiedono il programma dell'evento» |
 | `eventPreparation.participants.required` | 400 | Partecipanti richiesti senza numero minimo | — | «Indicare il numero minimo di partecipanti» |
-| `eventPreparation.versionConflict` | 409 | Un'altra richiesta ha modificato la configurazione della preparazione | — | «La configurazione è stata modificata da un'altra richiesta: ricaricare la pagina» |
+| `eventPreparation.requirement.required` | 400 | Configurazione senza la scelta di un'area: ogni requisito va indicato come richiesto o no | — | «Scegliere se ogni area della preparazione è richiesta» |
+| `eventPreparation.program.tooLarge` | 400 | Programma con più di 100 voci | — | «Il programma può contenere al massimo 100 brani» |
+| `eventPreparation.materials.tooLarge` | 400 | Materiali con più di 100 righe | — | «I materiali possono contenere al massimo 100 righe» |
+| `eventPreparation.reason.tooLong` | 400 | Motivo della conferma “nessun movimento” oltre i 500 caratteri | — | «Il motivo può contenere al massimo 500 caratteri» |
+| `eventPreparation.versionConflict` | 409 | Un'altra richiesta ha modificato configurazione, programma o materiali della preparazione dopo la lettura: la versione inviata non è più quella corrente | — | «La preparazione è stata modificata da un'altra richiesta: la pagina mostra ora i dati aggiornati». Le sezioni della pagina chiedono prima se ricaricare, così le modifiche locali non vanno perse senza conferma |
 
 ### Dashboard operativa
 

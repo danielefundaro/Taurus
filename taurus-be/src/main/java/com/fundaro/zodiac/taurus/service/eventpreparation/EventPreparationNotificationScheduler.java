@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,7 @@ public class EventPreparationNotificationScheduler {
     private final TenantTransactionExecutor tenantTransactionExecutor;
     private final EventPreparationService preparationService;
     private final NotificationOutboxPublisher notificationPublisher;
+    private EventPreparationMetrics metrics;
 
     public EventPreparationNotificationScheduler(
         TenantSchemaRegistry tenantSchemaRegistry,
@@ -48,6 +50,11 @@ public class EventPreparationNotificationScheduler {
         this.tenantTransactionExecutor = tenantTransactionExecutor;
         this.preparationService = preparationService;
         this.notificationPublisher = notificationPublisher;
+    }
+
+    @Autowired(required = false)
+    void setMetrics(EventPreparationMetrics metrics) {
+        this.metrics = metrics;
     }
 
     @Scheduled(
@@ -66,31 +73,39 @@ public class EventPreparationNotificationScheduler {
     }
 
     void notifyCurrentTenant(ZonedDateTime now) {
-        preparationService.dashboardEntries(now.minusDays(30), now.plusDays(31)).forEach(entry -> {
+        preparationService.scheduledEntries(now.minusDays(30), now.plusDays(31)).forEach(entry -> {
             if (entry.availabilityDeadline() != null && !now.isBefore(entry.availabilityDeadline()) && entry.issueCodes().contains("AVAILABILITY_INCOMPLETE")) {
-                enqueue(entry, "AVAILABILITY_THRESHOLD_MISSED", entry.availabilityDeadline(), "Disponibilità insufficienti", "La soglia di disponibilità per “" + entry.eventName() + "” non è stata raggiunta.", ADMIN_AUDIENCE);
+                enqueue(entry, "AVAILABILITY_THRESHOLD_MISSED", entry.availabilityDeadline().toInstant().toString(), "Disponibilità insufficienti", "La soglia di disponibilità per “" + entry.eventName() + "” non è stata raggiunta.", ADMIN_AUDIENCE);
             }
             if (!now.isBefore(entry.endedAt()) && entry.issueCodes().contains("PRESENCE_NOT_CONFIRMED")) {
-                enqueue(entry, "PRESENCE_FOLLOW_UP", entry.endedAt(), "Presenze da confermare", "Verifica le presenze di “" + entry.eventName() + "”.", ADMIN_AUDIENCE);
+                enqueue(entry, "PRESENCE_FOLLOW_UP", entry.endedAt().toInstant().toString(), "Presenze da confermare", "Verifica le presenze di “" + entry.eventName() + "”.", ADMIN_AUDIENCE);
             }
             if (!now.isBefore(entry.endedAt()) && entry.issueCodes().contains("FINANCE_NOT_CLOSED")) {
                 Set<NotificationAudience> financeAudience = new LinkedHashSet<>(ADMIN_AUDIENCE);
                 financeAudience.add(NotificationAudience.role(RoleEnum.ROLE_TREASURER));
-                enqueue(entry, "FINANCE_FOLLOW_UP", entry.endedAt(), "Chiusura economica richiesta", "Completa la chiusura economica di “" + entry.eventName() + "”.", Set.copyOf(financeAudience));
+                enqueue(entry, "FINANCE_FOLLOW_UP", entry.endedAt().toInstant().toString(), "Chiusura economica richiesta", "Completa la chiusura economica di “" + entry.eventName() + "”.", Set.copyOf(financeAudience));
             }
+            // A confirmation is notified once per obsolete hash: confirming again and changing again notifies again.
+            if (now.isBefore(entry.endedAt()))
+                entry.obsoleteMaterialConfirmations().forEach(obsolete -> {
+                    boolean recorded = enqueue(entry, "MATERIAL_CONFIRMATION_INVALIDATED", obsolete.materialId() + ":" + obsolete.confirmationHash(),
+                        "Conferma materiale non più valida",
+                        "La preparazione di “" + obsolete.itemName() + "” per “" + entry.eventName() + "” è cambiata dopo la conferma: verificala di nuovo.", ADMIN_AUDIENCE);
+                    if (recorded && metrics != null) metrics.confirmationInvalidated("material");
+                });
         });
     }
 
-    private void enqueue(
+    private boolean enqueue(
         DashboardEntry entry,
         String operation,
-        ZonedDateTime triggerAt,
+        String revision,
         String title,
         String message,
         Set<NotificationAudience> audiences
     ) {
-        notificationPublisher.enqueue(new NotificationCommand(
-            "event-preparation:" + entry.eventId() + ":" + operation + ":" + triggerAt.toInstant(),
+        return notificationPublisher.enqueue(new NotificationCommand(
+            "event-preparation:" + entry.eventId() + ":" + operation + ":" + revision,
             NotificationSource.CALENDAR,
             "EVENT_PREPARATION",
             entry.eventId().toString(),
@@ -99,7 +114,7 @@ public class EventPreparationNotificationScheduler {
             message,
             NotificationSeverity.WARNING,
             NotificationPreferencePolicy.CONFIGURABLE,
-            "/calendar/" + entry.eventId() + "#preparation",
+            "/calendar/" + entry.eventId() + (operation.startsWith("MATERIAL") ? "#preparation-materials" : "#preparation"),
             SYSTEM_ACTOR,
             "Taurus",
             audiences,

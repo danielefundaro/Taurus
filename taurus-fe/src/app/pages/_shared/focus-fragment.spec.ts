@@ -1,7 +1,7 @@
 import { fakeAsync, tick } from '@angular/core/testing';
-import { focusInventoryFragment } from './inventory-fragment';
+import { focusFragment } from './focus-fragment';
 
-describe('focusInventoryFragment', () => {
+describe('focusFragment', () => {
     let section: HTMLElement;
 
     beforeEach(() => {
@@ -15,7 +15,7 @@ describe('focusInventoryFragment', () => {
     it('scrolls to the named section and focuses it once the page is drawn', fakeAsync(() => {
         spyOn(section, 'scrollIntoView');
 
-        focusInventoryFragment('segnalazioni-test');
+        focusFragment('segnalazioni-test');
         expect(document.activeElement).not.toBe(section);
         tick();
 
@@ -26,8 +26,8 @@ describe('focusInventoryFragment', () => {
 
     it('ignores a missing fragment or section', fakeAsync(() => {
         expect(() => {
-            focusInventoryFragment(null);
-            focusInventoryFragment('assente');
+            focusFragment(null);
+            focusFragment('assente');
             tick();
         }).not.toThrow();
     }));

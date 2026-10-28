@@ -51,7 +51,7 @@ Altri elementi utili al progetto:
 - Tracce e strumenti sono gestiti dagli stessi ruoli: super amministratore, amministratore e archivista.
 - Il nome dello strumento non ha un vincolo di unicità nel database.
 - Un socio vede solo le parti dei propri strumenti.
-- Nella [preparazione dell'evento](event-preparation-spec.md#spartiti) una parte senza strumenti produce un blocco, perché non è distribuibile ai soci.
+- Nella [preparazione dell'evento](event-preparation-spec.md#spartiti) una parte senza strumenti non conta come pronta, perché non è distribuibile ai soci: blocca se la traccia non ha un'altra parte pronta.
 
 ## Scelte di fondo
 

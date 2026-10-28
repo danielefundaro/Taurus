@@ -17,4 +17,14 @@ class NotificationFeaturePolicyTest {
         assertThat(policy.requiredFeatures(NotificationSource.INVENTORY, "INVENTARIO", "OGGETTO_ASSEGNATO"))
             .containsExactly(TenantFeature.INVENTORY);
     }
+
+    @Test
+    void tiesTheMaterialNoticesOfThePreparationToTheInventory() {
+        assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "MATERIALS_UPDATED"))
+            .containsExactlyInAnyOrder(TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
+        assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "MATERIAL_CONFIRMATION_INVALIDATED"))
+            .containsExactlyInAnyOrder(TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
+        assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "PROGRAM_UPDATED"))
+            .containsExactly(TenantFeature.EVENT_PREPARATION);
+    }
 }

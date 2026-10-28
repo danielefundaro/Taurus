@@ -55,6 +55,14 @@ public class CalendarEventPreparation extends TenantAuditedEntity {
     private ZonedDateTime noMovementsConfirmationAt;
     @Column(name = "no_movements_confirmation_by")
     private String noMovementsConfirmationBy;
+    @Column(name = "no_movements_confirmation_reason", length = 500)
+    private String noMovementsConfirmationReason;
+    /** Version of the program, advanced by each save; kept apart from the entity version of the configuration. */
+    @Column(name = "program_version", nullable = false)
+    private long programVersion;
+    /** Version of the materials, advanced by each save; kept apart from the entity version of the configuration. */
+    @Column(name = "materials_version", nullable = false)
+    private long materialsVersion;
 
     public CalendarEvents getEvent() {
         return event;
@@ -230,5 +238,29 @@ public class CalendarEventPreparation extends TenantAuditedEntity {
 
     public void setNoMovementsConfirmationBy(String value) {
         noMovementsConfirmationBy = value;
+    }
+
+    public String getNoMovementsConfirmationReason() {
+        return noMovementsConfirmationReason;
+    }
+
+    public void setNoMovementsConfirmationReason(String value) {
+        noMovementsConfirmationReason = value;
+    }
+
+    public long getProgramVersion() {
+        return programVersion;
+    }
+
+    public void setProgramVersion(long value) {
+        programVersion = value;
+    }
+
+    public long getMaterialsVersion() {
+        return materialsVersion;
+    }
+
+    public void setMaterialsVersion(long value) {
+        materialsVersion = value;
     }
 }

@@ -1224,6 +1224,18 @@ public class FinanceService {
         );
     }
 
+    /**
+     * The economic status of an event, the one its summary shows: the preparation closes the economic area of an event
+     * on {@code SETTLED} instead of repeating the calculation.
+     */
+    public static String economicStatus(CalendarEvents event, List<FinancialMovement> movements) {
+        BigDecimal fee = moneyOrZero(event.getFee());
+        BigDecimal costs = event.getCosts().stream().map(EventCost::getAmount).filter(Objects::nonNull).reduce(ZERO, BigDecimal::add);
+        BigDecimal received = movements.stream().filter(value -> value.getDirection() == FinancialDirection.INCOME).map(FinancialMovement::getAmount).reduce(ZERO, BigDecimal::add);
+        BigDecimal paid = movements.stream().filter(value -> value.getDirection() == FinancialDirection.EXPENSE).map(FinancialMovement::getAmount).reduce(ZERO, BigDecimal::add);
+        return economicStatus(fee, costs, movements, fee.subtract(received), costs.subtract(paid));
+    }
+
     private static String economicStatus(
         BigDecimal fee,
         BigDecimal costs,

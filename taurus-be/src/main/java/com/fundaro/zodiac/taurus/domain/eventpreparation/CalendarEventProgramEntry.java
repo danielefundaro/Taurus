@@ -20,6 +20,11 @@ public class CalendarEventProgramEntry extends TenantAuditedEntity {
     private String notes;
     @Column(name = "planned_duration_seconds")
     private Integer plannedDurationSeconds;
+    @Column(name = "encore", nullable = false)
+    private boolean encore;
+    /** Name of the track when the program was saved, shown when the track is renamed or deleted afterwards. */
+    @Column(name = "track_name_snapshot")
+    private String trackNameSnapshot;
 
     public CalendarEvents getEvent() {
         return event;
@@ -59,5 +64,21 @@ public class CalendarEventProgramEntry extends TenantAuditedEntity {
 
     public void setPlannedDurationSeconds(Integer value) {
         plannedDurationSeconds = value;
+    }
+
+    public boolean isEncore() {
+        return encore;
+    }
+
+    public void setEncore(boolean value) {
+        encore = value;
+    }
+
+    public String getTrackNameSnapshot() {
+        return trackNameSnapshot;
+    }
+
+    public void setTrackNameSnapshot(String value) {
+        trackNameSnapshot = value;
     }
 }

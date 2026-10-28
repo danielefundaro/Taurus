@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 70% linee e 54% branch sulla suite intera, frontend 58% istruzioni, 49% branch e 60% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 73% linee e 57% branch sulla suite intera, frontend 61% istruzioni, 51% branch e 63% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -265,6 +265,14 @@ Dashboard operativa su PostgreSQL, con le prestazioni su un dataset realistico:
 
 `OperationalDashboardIT` verifica le voci di ogni profilo su dati veri — utenti inattivi, eventi cancellati, in bozza o esclusi da una serie, restituzioni parziali, esercizi riportati, consegne fallite —, due tenant con dati omonimi e lo stesso utente, e il risultato `PARTIAL` quando la tabella dei movimenti non si legge. La prova di carico prepara 150 persone, 700 eventi con 73.500 risposte, 1.500 movimenti, 2.000 assegnazioni con revisioni e prese visione e 5.000 notifiche, poi misura `p95` della richiesta e di ogni provider, query per richiesta e dimensione della risposta, e fallisce oltre 500 ms, 200 ms, 12 query o 32 kB. Numeri e piani generici di PostgreSQL di ogni query finiscono in `taurus-be/target/dashboard-query-plans.txt`: al 2026-10-27 le sole scansioni sequenziali su tabelle che crescono sono quelle di prese visione dell'inventario e outbox, accettabili a questi volumi come spiega la [specifica](operational-dashboard-spec.md#misura-su-dataset-realistico); una nuova scansione su una tabella grande è il segnale per un indice. Serve Docker.
 
+Preparazione dell'evento su PostgreSQL, con il bilancio di query della dashboard e le prestazioni di un evento grande:
+
+```powershell
+.\mvnw.cmd "-Dit.test=EventPreparationIT" verify
+```
+
+`EventPreparationIT` verifica la migrazione `20261027100000` con i valori predefiniti delle colonne nuove, il `409` di programma e materiali salvati con una versione superata senza toccare la configurazione, l'isolamento fra due tenant su eventi, tracce e oggetti, le 8 query fisse con cui la dashboard valuta 2 o 15 eventi (la richiesta completa passa da 11 a 19 query) e gli obiettivi della [specifica](event-preparation-spec.md#prestazioni) su un evento con 100 brani, 1.000 utenti con la loro risposta e 100 materiali assegnati: p95 della vista amministrativa sotto 700 ms e di quella personale sotto 400 ms. Serve Docker; le query sono contate da `RecordingStatementInspector`, un `StatementInspector` di Hibernate che i test attivano e fermano intorno all'operazione misurata.
+
 Broker RabbitMQ reale:
 
 ```powershell
@@ -275,7 +283,7 @@ Broker RabbitMQ reale:
 
 I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
 
-La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,68 e 0,52, appena sotto la copertura misurata il 2026-10-27 (69,6% linee e 53,4% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,73 e 0,57, appena sotto la copertura misurata il 2026-10-28 (74,0% linee e 58,0% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
@@ -292,7 +300,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (56% istruzioni, 48% branch, 58% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti e poi con quelle dell'editor delle immagini). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (61% istruzioni, 51% branch, 63% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti, dell'editor delle immagini, della dashboard e dei QR dell'inventario, e il 2026-10-28 con quelle della preparazione evento). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -379,6 +387,7 @@ La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni v
 | Frontend condiviso/layout | Tutti i ruoli, responsive, tastiera, temi, build e smoke browser |
 | Anteprima e stampa spartiti | Casi `PRV-*`, con stampa reale su almeno due browser e un documento per orientamento |
 | QR, etichette e guasti inventario | Casi `QR-*`, test di `InventoryQr*`, `InventoryScan*`, `InventoryLabelServiceTest` e `InventoryIssueServiceTest`, spec di scansione, etichette e guasti, `e2e/specs/inventory-qr.spec.ts`, stampa e scansione reali come nelle [verifiche fisiche](inventory-qr-code-spec.md#verifiche-fisiche) |
+| Preparazione evento | Casi `PREP-*`, `EventPreparationServiceTest`, `PreparationHashesTest`, `EventPreparationIT`, `EventPreparationSecurityConfigurationTest`, `EventPreparationNotificationSchedulerTest`, `CalendarOperationProviderTest` e `OperationalDashboardIT`, spec di `calendar-events/detail` e `detail/preparation/`, `e2e/specs/event-preparation.spec.ts` con `E2E_PREPARATION_EVENT_ID` |
 | Firma elettronica | Casi `SIG-*` interessati, `SignatureIT`, `LoanSheetSignatureIT` e test di `service/signature`, specifiche delle finestre di firma e del codice, invio reale con Mailpit e con il server SMTP dell'ambiente, stampa del modello predefinito; per l'app di autenticazione anche `mvnw verify` di `keycloak-authenticator` |
 | Ascolto, riconoscimento e correzione delle parti | Casi `PLY-*` interessati, `ScorePlaybackIT` e `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, prova nel browser anche a larghezza di telefono |
 | Servizio OMR, motori o modelli | `pytest`, build dell'immagine, test di accuratezza sul corpus e, se cambiano i motori, `PLY-018` |
@@ -529,6 +538,10 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `PREP-004 P1`: tesoriere conferma budget o assenza movimenti.
 - `PREP-005 P0`: scadenze generano una sola notifica per destinatario.
 - `PREP-006 P0`: feature disabilitata blocca endpoint e scheduler.
+- `PREP-007 P1`: con l'evento di `E2E_PREPARATION_EVENT_ID` la suite `e2e/specs/event-preparation.spec.ts` passa per amministratore, archivista, socio e tesoriere: criticità che portano alla sezione con il focus, riordino da tastiera con la guardia che elenca il programma, sola lettura del socio, sole API economiche del tesoriere, axe e 320 px.
+- `PREP-008 P1`: due schede sulla stessa preparazione; salvare il programma in una e poi nell'altra produce il dialogo «Programma modificato da un'altra persona»: «Ricarica» mostra il programma della prima scheda, le modifiche dei materiali aperte nella seconda restano e la guardia di uscita le elenca. Lo stesso per materiali e configurazione.
+- `PREP-009 P1`: dopo il rilascio le conferme di preventivo, presenze, assenza di movimenti e materiali date prima compaiono come superate e si possono ripetere; con Inventario disattivato un piano che richiedeva i materiali li mostra fra le «Aree escluse dalla valutazione» e non diventa `UNKNOWN`.
+- `PREP-010 P1`: cambiare dall'Inventario la condizione dell'oggetto o la quantità ancora in carico dell'assegnazione di un materiale confermato, prima dell'evento, produce una sola notifica «Conferma materiale non più valida» agli amministratori, che apre la sezione Materiali con il focus; una nuova conferma seguita da un altro cambiamento ne produce un'altra.
 
 ### 14.6 Inventario e QR
 
@@ -812,6 +825,8 @@ k6 run -e PROFILE=smoke -e BASE_URL=http://localhost:8080 -e TOKEN=$env:TAURUS_T
 Le soglie dello script (`http_req_failed` sotto l'1%, p95 di 400 ms per le funzionalità, 800 ms per le liste, 1500 ms per la dashboard) servono a rilevare un peggioramento: i limiti di accettazione restano `TBD` finché SLO e volumi non vengono approvati, e lo script non è ancora stato eseguito su un ambiente con dati realistici.
 
 Per la dashboard operativa `OperationalDashboardIT` misura gli obiettivi della [specifica](operational-dashboard-spec.md#prestazioni) su un tenant con il volume di qualche anno di attività: al 2026-10-27 `p95` della richiesta completa resta sotto i 200 ms, nessun provider supera gli 80 ms, una richiesta di un amministratore esegue 11 query e la risposta pesa circa 2,4 kB. È una misura su Testcontainers, non su staging: non sostituisce il profilo dashboard di k6 sull'ambiente reale.
+
+Per la preparazione dell'evento `EventPreparationIT` misura gli obiettivi della [specifica](event-preparation-spec.md#prestazioni) su un evento con 100 brani, 1.000 utenti e 100 materiali: al 2026-10-28 il p95 della vista amministrativa è 81 ms (obiettivo 700) e quello della vista personale 46 ms (obiettivo 400); la dashboard valuta 15 eventi con le stesse 8 query di 2. Lo script k6 non ha ancora un profilo per queste viste.
 
 Per l'ascolto delle parti la [specifica](track-score-playback-spec.md#copertura-della-fase-4) riporta i tempi misurati nel browser (disegno nell'editor e nel lettore, partitura di 30 parti, caricamento del SoundFont), la memoria della pagina del lettore e la durata del riconoscimento di una pagina: usarli come riferimento per accorgersi di un peggioramento, ripetendo le misure con lo stesso metodo.
 

@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RoleEnums } from '../constants';
-import { EventPreparationConfiguration, EventPreparationMaterial, EventPreparationProgramEntry, EventPreparationView } from '../module';
+import { EventPreparationConfiguration, EventPreparationMaterialRequest, EventPreparationProgramRequest, EventPreparationView } from '../module';
 
 @Injectable({ providedIn: 'root' })
 export class EventPreparationService {
@@ -22,14 +22,16 @@ export class EventPreparationService {
                             : `${this.baseUrl}/${eventId}/preparation`;
         return this.http.get<EventPreparationView>(url);
     }
-    configure(eventId: number, configuration: EventPreparationConfiguration): Observable<EventPreparationView> {
-        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/configuration`, configuration);
+    configure(eventId: number, configuration: EventPreparationConfiguration, context?: HttpContext): Observable<EventPreparationView> {
+        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/configuration`, configuration, { context });
     }
-    replaceProgram(eventId: number, entries: Pick<EventPreparationProgramEntry, 'trackId' | 'plannedDurationSeconds' | 'notes'>[]): Observable<EventPreparationView> {
-        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/program`, { entries });
+    /** `version` is the `programVersion` read with the view: a stale one is rejected with 409. */
+    replaceProgram(eventId: number, entries: EventPreparationProgramRequest[], version: number, context?: HttpContext): Observable<EventPreparationView> {
+        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/program`, { entries, version }, { context });
     }
-    replaceMaterials(eventId: number, materials: { itemId: number; assignmentId?: number; requiredQuantity: number; notes?: string }[]): Observable<EventPreparationView> {
-        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/materials`, { materials });
+    /** `version` is the `materialsVersion` read with the view: a stale one is rejected with 409. */
+    replaceMaterials(eventId: number, materials: EventPreparationMaterialRequest[], version: number, context?: HttpContext): Observable<EventPreparationView> {
+        return this.http.put<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/materials`, { materials, version }, { context });
     }
     confirmMaterial(eventId: number, materialId: number): Observable<EventPreparationView> {
         return this.http.post<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/materials/${materialId}/confirm`, {});
@@ -41,8 +43,8 @@ export class EventPreparationService {
     confirmPresence(eventId: number): Observable<EventPreparationView> {
         return this.http.post<EventPreparationView>(`${this.baseUrl}/${eventId}/preparation/presence-confirmation`, {});
     }
-    confirmNoMovements(eventId: number, role: RoleEnums = RoleEnums.ADMIN): Observable<EventPreparationView> {
+    confirmNoMovements(eventId: number, role: RoleEnums = RoleEnums.ADMIN, reason?: string): Observable<EventPreparationView> {
         const url = role === RoleEnums.TREASURER ? `${environment.baseUrl}/finance/events/${eventId}/no-movements-confirmation` : `${this.baseUrl}/${eventId}/preparation/no-movements-confirmation`;
-        return this.http.post<EventPreparationView>(url, {});
+        return this.http.post<EventPreparationView>(url, { reason: reason?.trim() || undefined });
     }
 }

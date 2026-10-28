@@ -47,11 +47,11 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
 import com.fundaro.zodiac.taurus.service.impl.FinanceService;
 import com.fundaro.zodiac.taurus.service.impl.InventoryService;
 import com.fundaro.zodiac.taurus.test.DockerRequirement;
+import com.fundaro.zodiac.taurus.test.RecordingStatementInspector;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import javax.sql.DataSource;
-import org.hibernate.resource.jdbc.spi.StatementInspector;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -118,7 +118,7 @@ import static org.mockito.Mockito.when;
         "spring.security.oauth2.client.registration.oidc.client-id=test",
         "spring.security.oauth2.client.registration.oidc.client-secret=test",
         "application.dashboard.enabled=true",
-        "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.fundaro.zodiac.taurus.service.OperationalDashboardIT$RecordingStatementInspector",
+        "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.fundaro.zodiac.taurus.test.RecordingStatementInspector",
     }
 )
 // Ogni test prepara uno o due schemi tenant con Liquibase: il limite di progetto di 15 secondi non basta.
@@ -646,31 +646,6 @@ class OperationalDashboardIT {
         } catch (SQLException exception) {
             // Un parametro di cui PostgreSQL non deduce il tipo non ha piano generico: il resto del report resta valido.
             return "piano generico non disponibile: " + String.valueOf(exception.getMessage()).lines().findFirst().orElse("");
-        }
-    }
-
-    /**
-     * Registra le istruzioni SQL preparate da Hibernate sul thread del test, mentre la registrazione è attiva.
-     */
-    public static class RecordingStatementInspector implements StatementInspector {
-
-        private static final ThreadLocal<List<String>> RECORDED = new ThreadLocal<>();
-
-        static void start() {
-            RECORDED.set(new ArrayList<>());
-        }
-
-        static List<String> stop() {
-            List<String> statements = RECORDED.get();
-            RECORDED.remove();
-            return statements;
-        }
-
-        @Override
-        public String inspect(String sql) {
-            List<String> statements = RECORDED.get();
-            if (statements != null) statements.add(sql);
-            return sql;
         }
     }
 
