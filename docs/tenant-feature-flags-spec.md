@@ -180,7 +180,7 @@ La pagina amministrativa interroga inoltre:
 GET /api/tenant-features/capabilities
 ```
 
-L'endpoint è riservato al super amministratore e restituisce, per ogni funzionalità opzionale, soltanto:
+L'endpoint è riservato al super amministratore da un matcher esplicito di `SecurityConfiguration`, posto prima della regola generale `/api/**`, perché le annotazioni `@PreAuthorize` delle risorse non sono applicate: gli altri ruoli ricevono `403` e una richiesta senza autenticazione `401`, mentre `GET /api/tenant-features/current` resta leggibile da ogni ruolo autenticato. Per ogni funzionalità opzionale restituisce soltanto:
 
 - `available`, calcolato dalla configurazione applicativa e dalla presenza dei prerequisiti tecnici;
 - `reasonCode`, valorizzato quando non disponibile;
@@ -712,6 +712,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - creazione di un tenant con valori omessi da un vecchio client, verificando tutti i flag a `false`;
 - aggiornamento da un vecchio client con campi omessi, verificando la conservazione dei valori persistiti;
 - lettura delle funzionalità del tenant corrente;
+- capacità dell'installazione leggibili dal solo super amministratore, con `403` per gli altri ruoli e `401` senza autenticazione (`TenantFeaturesSecurityConfigurationTest`);
 - calcolo centralizzato tra kill switch globale, flag tenant e dipendenze;
 - rifiuto in assenza di un tenant valido;
 - `403` su ogni endpoint Economia e Inventario disabilitato;

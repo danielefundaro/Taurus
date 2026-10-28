@@ -206,6 +206,10 @@ public class SecurityConfiguration {
                     .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/documents/**", "/api/tenants/**")
                     .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
+                    // What every module could offer is tenant administration; the features of the current tenant
+                    // stay readable by every role. Method annotations are not enforced, so the rule lives here.
+                    .requestMatchers("/api/tenant-features/capabilities")
+                    .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/**").denyAll()
 
                     // User administration. Self-service endpoints are matched above.
