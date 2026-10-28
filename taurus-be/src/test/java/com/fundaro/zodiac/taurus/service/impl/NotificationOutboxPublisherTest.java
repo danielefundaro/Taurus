@@ -39,6 +39,8 @@ class NotificationOutboxPublisherTest {
         verify(repository).save(captor.capture());
         NotificationOutbox event = captor.getValue();
         assertThat(event.getStatus()).isEqualTo(NotificationStatus.PENDING);
+        // Stored exactly as PostgreSQL keeps it, so a dispatch within the same clock tick finds the event ready.
+        assertThat(event.getNextAttemptAt().getNano() % 1_000).isZero();
         assertThat(event.getSource()).isEqualTo(NotificationSource.INVENTORY);
         assertThat(event.getAudiences()).singleElement().satisfies(audience -> {
             assertThat(audience.getValue()).isEqualTo("ROLE_ADMIN");

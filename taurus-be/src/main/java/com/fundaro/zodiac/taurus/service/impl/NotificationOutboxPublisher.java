@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.service.notification.NotificationFeaturePolicy;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -56,7 +57,9 @@ public class NotificationOutboxPublisher {
             return false;
         if (repository.existsByEventKey(command.eventKey())) return false;
 
-        ZonedDateTime now = ZonedDateTime.now();
+        // PostgreSQL keeps microseconds and may round up: an event dispatched within the same clock tick
+        // would otherwise read its own next attempt as still in the future and be skipped.
+        ZonedDateTime now = ZonedDateTime.now().truncatedTo(ChronoUnit.MICROS);
         NotificationOutbox event = new NotificationOutbox();
         event.initializeAudit(command.actorId());
         event.setEventKey(command.eventKey());
