@@ -180,7 +180,7 @@ La pagina amministrativa interroga inoltre:
 GET /api/tenant-features/capabilities
 ```
 
-L'endpoint è riservato al super amministratore da un matcher esplicito di `SecurityConfiguration`, posto prima della regola generale `/api/**`, perché le annotazioni `@PreAuthorize` delle risorse non sono applicate: gli altri ruoli ricevono `403` e una richiesta senza autenticazione `401`, mentre `GET /api/tenant-features/current` resta leggibile da ogni ruolo autenticato. Per ogni funzionalità opzionale restituisce soltanto:
+L'endpoint è riservato al super amministratore da un matcher esplicito di `SecurityConfiguration`, posto prima della regola generale `/api/**`, e dall'annotazione `@PreAuthorize` della risorsa: gli altri ruoli ricevono `403` e una richiesta senza autenticazione `401`, mentre `GET /api/tenant-features/current` resta leggibile da ogni ruolo autenticato. Per ogni funzionalità opzionale restituisce soltanto:
 
 - `available`, calcolato dalla configurazione applicativa e dalla presenza dei prerequisiti tecnici;
 - `reasonCode`, valorizzato quando non disponibile;
