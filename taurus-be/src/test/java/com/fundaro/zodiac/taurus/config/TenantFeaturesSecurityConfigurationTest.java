@@ -39,8 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Le funzionalità del tenant corrente servono a ogni ruolo per comporre menu e pagine, mentre ciò che ogni modulo
- * potrebbe offrire è amministrazione dei tenant e resta al super admin. La method security non è attiva, quindi
- * l'{@code @PreAuthorize} della risorsa non basta: si verificano le regole vere di {@link SecurityConfiguration}.
+ * potrebbe offrire è amministrazione dei tenant e resta al super admin. La regola HTTP di
+ * {@link SecurityConfiguration} e l'{@code @PreAuthorize} della risorsa dicono la stessa cosa e si verificano insieme.
  */
 @WebMvcTest(controllers = TenantFeaturesResource.class)
 @Import({SecurityConfiguration.class, SecurityProblemSupport.class, TenantFeaturesResource.class})

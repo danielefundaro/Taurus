@@ -499,7 +499,7 @@ POST /api/calendar-events/{eventId}/preparation/no-movements-confirmation
 
 La lettura completa e tutte le conferme esposte sotto `/api/calendar-events` sono riservate ad admin e super admin. Le conferme economiche sono disponibili anche al tesoriere tramite la vista economica `/api/finance/events` e richiedono il modulo finanza. Il `PUT` del programma è autorizzato anche per l'archivista tramite matcher esplicito posizionato prima della regola generale del calendario.
 
-Le annotazioni `@PreAuthorize` delle risorse non sono applicate, perché la method security non è attiva nel backend: l'autorizzazione è quella delle regole HTTP di `SecurityConfiguration`. Per questo la vista amministrativa (`GET .../preparation`) e la configurazione hanno un matcher riservato ad admin e super admin, e la vista archivista (`GET .../preparation/catalogue`) uno per admin, super admin e archivista, entrambi prima della regola generale del calendario che ammette l'archivista. `EventPreparationSecurityConfigurationTest` verifica che un archivista riceva `403` sulla vista amministrativa e sulla configurazione.
+L'autorizzazione è data dalle regole HTTP di `SecurityConfiguration` e, dopo di esse, dalle annotazioni `@PreAuthorize` delle risorse, applicate dalla method security: le due restano allineate. La vista amministrativa (`GET .../preparation`) e la configurazione hanno un matcher riservato ad admin e super admin, e la vista archivista (`GET .../preparation/catalogue`) uno per admin, super admin e archivista, entrambi prima della regola generale del calendario che ammette l'archivista. `EventPreparationSecurityConfigurationTest` verifica che un archivista riceva `403` sulla vista amministrativa e sulla configurazione.
 
 ### Vista archivista
 

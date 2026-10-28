@@ -379,7 +379,7 @@ La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni v
 | Modifica | Suite minima aggiuntiva |
 | --- | --- |
 | Entità/repository/migration | Backend completo, fresh DB, upgrade DB, due tenant, soft delete e backup/restore se distruttiva |
-| Security/ruoli/OIDC | Matrice ruoli, token negativi, due tenant, login/logout/refresh E2E |
+| Security/ruoli/OIDC | Matrice ruoli, token negativi, due tenant, login/logout/refresh E2E, i `*SecurityConfigurationTest` compreso `MethodSecurityConfigurationTest` |
 | Feature flag | Tutte le combinazioni dipendenti, API negate, menu/route, cambio senza nuovo login, `TenantFeaturesSecurityConfigurationTest` |
 | Scheduler/outbox | Idempotenza, retry, concorrenza, clock/timezone, multi-replica |
 | Media/PDF/OCR | Tipi file, path traversal, limiti, rollback DB/file, cleanup e malware/content handling |

@@ -13,6 +13,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -49,7 +50,10 @@ import java.util.function.Consumer;
 import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.security.oauth2.core.oidc.StandardClaimNames.PREFERRED_USERNAME;
 
+// The HTTP rules of the filter chain are the first barrier. A @PreAuthorize on a resource method is checked after
+// its rule, so it can only narrow access: keep the two aligned.
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
     private final JHipsterProperties jHipsterProperties;
@@ -207,7 +211,7 @@ public class SecurityConfiguration {
                     .requestMatchers("/api/legal/documents/**", "/api/tenants/**")
                     .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     // What every module could offer is tenant administration; the features of the current tenant
-                    // stay readable by every role. Method annotations are not enforced, so the rule lives here.
+                    // stay readable by every role.
                     .requestMatchers("/api/tenant-features/capabilities")
                     .hasAuthority(AuthoritiesConstants.SUPER_ADMIN)
                     .requestMatchers("/api/legal/**").denyAll()
@@ -234,9 +238,9 @@ public class SecurityConfiguration {
                     .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
 
-                    // Calendar event administration and personal availability. The method annotations of the
-                    // resources are not enforced, so the preparation views are split here: the administrative one
-                    // carries materials and budget, the catalogue one only what an archivist edits.
+                    // Calendar event administration and personal availability. The preparation views are split here
+                    // as in the method annotations of the resources: the administrative one carries materials and
+                    // budget, the catalogue one only what an archivist edits.
                     .requestMatchers(HttpMethod.GET, "/api/calendar-events/{eventId}/preparation/catalogue")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers("/api/calendar-events/{eventId}/preparation", "/api/calendar-events/{eventId}/preparation/configuration")
