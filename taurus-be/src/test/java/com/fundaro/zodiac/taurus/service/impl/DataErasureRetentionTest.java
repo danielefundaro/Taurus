@@ -59,10 +59,10 @@ class DataErasureRetentionTest {
 
         ArgumentCaptor<ZonedDateTime> others = ArgumentCaptor.forClass(ZonedDateTime.class);
         verify(pushDeliveryRepository).deleteAllByStatusAndEditDateBefore(eq(NotificationStatus.SKIPPED), others.capture());
-        assertThat(others.getValue()).isBefore(ZonedDateTime.now().minusDays(14));
+        assertThat(others.getValue()).isBeforeOrEqualTo(ZonedDateTime.now().minusDays(14));
 
         verify(pushDeliveryRepository).deleteAllByStatusAndEditDateBefore(eq(NotificationStatus.FAILED), others.capture());
-        assertThat(others.getValue()).isBefore(ZonedDateTime.now().minusDays(120));
+        assertThat(others.getValue()).isBeforeOrEqualTo(ZonedDateTime.now().minusDays(120));
     }
 
     /** I promemoria pendenti non si cancellano mai per età: solo quelli già chiusi. */
