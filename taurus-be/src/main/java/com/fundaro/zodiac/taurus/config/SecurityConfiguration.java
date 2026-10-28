@@ -230,7 +230,13 @@ public class SecurityConfiguration {
                     .hasAuthority(AuthoritiesConstants.USER_EXTERNAL)
                     .requestMatchers("/api/external/albums/**", "/api/external/tracks/**").denyAll()
 
-                    // Calendar event administration and personal availability.
+                    // Calendar event administration and personal availability. The method annotations of the
+                    // resources are not enforced, so the preparation views are split here: the administrative one
+                    // carries materials and budget, the catalogue one only what an archivist edits.
+                    .requestMatchers(HttpMethod.GET, "/api/calendar-events/{eventId}/preparation/catalogue")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .requestMatchers("/api/calendar-events/{eventId}/preparation", "/api/calendar-events/{eventId}/preparation/configuration")
+                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
                     .requestMatchers(HttpMethod.PUT, "/api/calendar-events/{eventId}/preparation/program")
                     .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
                     .requestMatchers(

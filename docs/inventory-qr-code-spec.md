@@ -603,7 +603,7 @@ Componenti:
 - `InventoryIssueListComponent`:
   - nella scheda amministrativa offre, nella card di ogni segnalazione, caricamento e rimozione delle foto, presa in carico, note di chiusura, nuovo stato del bene, risoluzione e respingimento;
   - nel dettaglio della consegna (`assignmentId`) usa gli endpoint personali, mostra le segnalazioni dell'assegnazione e permette soltanto il caricamento delle foto;
-- `focusInventoryFragment`, che porta scroll e focus sulla sezione indicata dal fragment nella scheda e nel dettaglio della consegna;
+- `focusFragment` (`pages/_shared/focus-fragment.ts`, condiviso con la preparazione evento), che porta scroll e focus sulla sezione indicata dal fragment nella scheda e nel dettaglio della consegna;
 - metodi dedicati in `InventoryService` e `UserInventoryService` e un `InventoryScanService` frontend per il resolver.
 
 La rotta di scansione accetta tutti i ruoli già ammessi alla sezione inventario; il resolver decide il contenuto. Le rotte amministrative esistenti restano protette da admin e super admin.
@@ -862,7 +862,7 @@ Le spec Karma/Jasmine affiancano i componenti:
 | `inventory-issue-dialog.component.spec.ts` | quantità e descrizione, verifica, anteprima e rimozione delle foto, caricamento dopo la creazione, segnalazione conservata se una foto fallisce |
 | `inventory-issue-list.component.spec.ts` | endpoint amministrativi o personali, caricamento delle foto, rimozione con conferma, transizioni con versione e note |
 | `assignment-detail.component.spec.ts` | focus sulla sezione indicata dalla scansione, aggiornamento delle segnalazioni dopo una nuova segnalazione |
-| `inventory-fragment.spec.ts` | scroll e focus sulla sezione del fragment |
+| `focus-fragment.spec.ts` | scroll e focus sulla sezione del fragment |
 
 La suite Playwright `e2e/specs/inventory-qr.spec.ts`, descritta in `e2e/README.md`, prova su un'istanza completa:
 

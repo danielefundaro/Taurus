@@ -5,9 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface EventProgramEntryRepository extends JpaRepository<CalendarEventProgramEntry, Long> {
     @Query("select e from CalendarEventProgramEntry e join fetch e.track t where e.event.id = :eventId and e.deleted = false order by e.displayOrder")
     List<CalendarEventProgramEntry> findCurrent(@Param("eventId") Long eventId);
+
+    @Query("select e from CalendarEventProgramEntry e join fetch e.track t where e.event.id in :eventIds and e.deleted = false order by e.event.id, e.displayOrder")
+    List<CalendarEventProgramEntry> findCurrentByEventIds(@Param("eventIds") Collection<Long> eventIds);
 }

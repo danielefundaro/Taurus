@@ -438,7 +438,11 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'eventPreparation.movements.exists': "Sono presenti movimenti economici per l'evento",
     'eventPreparation.program.required': "Gli spartiti richiedono il programma dell'evento",
     'eventPreparation.participants.required': 'Indicare il numero minimo di partecipanti',
-    'eventPreparation.versionConflict': "La configurazione è stata modificata da un'altra richiesta: ricaricare la pagina",
+    'eventPreparation.versionConflict': "La preparazione è stata modificata da un'altra richiesta: la pagina mostra ora i dati aggiornati",
+    'eventPreparation.requirement.required': 'Scegliere se ogni area della preparazione è richiesta',
+    'eventPreparation.program.tooLarge': 'Il programma può contenere al massimo 100 brani',
+    'eventPreparation.materials.tooLarge': 'I materiali possono contenere al massimo 100 righe',
+    'eventPreparation.reason.tooLong': 'Il motivo può contenere al massimo 500 caratteri',
 
     // Operational dashboard
     'dashboard.attention.invalid': 'Filtro delle attività non riconosciuto',

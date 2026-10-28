@@ -23,10 +23,19 @@ describe('programFromAlbum', () => {
                 trackState: 'PUBLIC',
                 order: 4,
                 plannedDurationSeconds: 180,
-                notes: 'Bis'
+                notes: 'Bis',
+                encore: true,
+                scores: [{ id: 3, instruments: ['Tromba'], ready: true, needsReview: false, files: [] }]
             }
-        ] as EventPreparationProgramEntry[];
+        ] as unknown as EventPreparationProgramEntry[];
 
-        expect(programFromAlbum(album, current)).toEqual([jasmine.objectContaining({ id: 0, trackId: 10, trackName: 'Primo', trackState: 'PUBLIC', order: 0, plannedDurationSeconds: 180, notes: 'Bis' })]);
+        expect(programFromAlbum(album, current)).toEqual([jasmine.objectContaining({ id: 0, trackId: 10, trackName: 'Primo', trackState: 'PUBLIC', trackAvailable: true, encore: true, order: 0, plannedDurationSeconds: 180, notes: 'Bis' })]);
+        expect(programFromAlbum(album, current)[0].scores.length).toBe(1);
+    });
+
+    it('starts the tracks new to the program as available and without encore', () => {
+        const album = { tracks: [{ index: 10, name: 'Primo', order: 1 }] } as Albums;
+
+        expect(programFromAlbum(album)).toEqual([jasmine.objectContaining({ trackAvailable: true, encore: false, scores: [] })]);
     });
 });

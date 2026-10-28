@@ -1,0 +1,63 @@
+<div class="flex flex-col gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <app-form-field label="Natura dell’evento" forId="preparationProfile"
+            [hint]="configured ? 'Il profilo è informativo: i requisiti si modificano singolarmente.' : 'Il profilo propone i requisiti iniziali; le aree evidenziate richiedono una tua scelta.'">
+            <p-select inputId="preparationProfile" class="w-full" [options]="profiles" optionLabel="label"
+                optionValue="value" placeholder="Scegli il profilo" [ngModel]="draft?.profile"
+                (ngModelChange)="changeProfile($event)" />
+        </app-form-field>
+        @if (draft?.availabilityRequired) {
+        <app-form-field label="Partecipanti minimi" forId="minimumAvailableParticipants" required
+            [error]="participantsMissing ? 'Indica almeno un partecipante.' : undefined">
+            <p-inputnumber inputId="minimumAvailableParticipants" [(ngModel)]="draft!.minimumAvailableParticipants"
+                [min]="1" [showButtons]="true" (ngModelChange)="markDirty()" />
+        </app-form-field>
+        <app-form-field label="Scadenza disponibilità" forId="availabilityDeadlineMinutes"
+            hint="Minuti prima dell’inizio">
+            <p-inputnumber inputId="availabilityDeadlineMinutes" [(ngModel)]="draft!.availabilityDeadlineMinutes"
+                [min]="0" [max]="43200" suffix=" min" (ngModelChange)="markDirty()" />
+        </app-form-field>
+        }
+        @if (draft?.materialsRequired) {
+        <app-form-field label="Scadenza materiali" forId="materialsDeadlineMinutes" hint="Minuti prima dell’inizio">
+            <p-inputnumber inputId="materialsDeadlineMinutes" [(ngModel)]="draft!.materialsDeadlineMinutes" [min]="0"
+                [max]="43200" suffix=" min" (ngModelChange)="markDirty()" />
+        </app-form-field>
+        }
+    </div>
+
+    @if (draft) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @for (requirement of requirements; track requirement.key) {
+        <fieldset class="m-0 p-3 rounded border flex flex-col gap-2 min-w-0"
+            [ngClass]="draft[requirement.key] === null ? 'border-orange-400' : 'border-surface-200 dark:border-surface-700'">
+            <legend class="px-1 text-sm font-medium" [id]="'requirement-' + requirement.key">{{ requirement.label }}
+            </legend>
+            <p-selectbutton [options]="choices" optionLabel="label" optionValue="value" [allowEmpty]="false"
+                [ngModel]="draft[requirement.key]" (ngModelChange)="setRequirement(requirement.key, $event)"
+                [disabled]="!!disabledReason(requirement.key)" [ariaLabelledBy]="'requirement-' + requirement.key" />
+            @if (draft[requirement.key] === null) {
+            <small class="text-orange-600 dark:text-orange-300">Scelta richiesta: il profilo non propone un
+                valore.</small>
+            } @else if (disabledReason(requirement.key)) {
+            <small class="text-surface-500">{{ disabledReason(requirement.key) }}</small>
+            } @else if (explicit(requirement.key)) {
+            <small class="text-surface-500">Scelta tua, non proposta dal profilo.</small>
+            }
+        </fieldset>
+        }
+    </div>
+    } @else {
+    <app-empty-state compact icon="pi pi-sliders-h" heading="Preparazione da configurare"
+        message="Scegli la natura dell’evento: il profilo propone i requisiti, che puoi poi modificare." />
+    }
+
+    <div class="flex flex-wrap items-center justify-end gap-3">
+        @if (draft && undecided.length) {
+        <small class="text-surface-500" role="note">Da scegliere: {{ undecided.length }} {{ undecided.length === 1 ?
+            'area' : 'aree' }}.</small>
+        }
+        <p-button label="Salva preparazione" icon="pi pi-check" [loading]="saving" [disabled]="!canSave"
+            (onClick)="save()" />
+    </div>
+</div>

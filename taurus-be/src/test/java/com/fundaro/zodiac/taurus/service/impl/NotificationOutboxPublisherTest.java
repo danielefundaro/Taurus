@@ -33,7 +33,7 @@ class NotificationOutboxPublisherTest {
         NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
         when(repository.existsByEventKey("event-1")).thenReturn(false);
 
-        publisher.enqueue(command("event-1", "/inventory"));
+        assertThat(publisher.enqueue(command("event-1", "/inventory"))).isTrue();
 
         ArgumentCaptor<NotificationOutbox> captor = ArgumentCaptor.forClass(NotificationOutbox.class);
         verify(repository).save(captor.capture());
@@ -90,6 +90,16 @@ class NotificationOutboxPublisherTest {
     }
 
     @Test
+    void reportsAnAlreadyRecordedKeyWithoutSavingItAgain() {
+        NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
+        when(repository.existsByEventKey("event-1")).thenReturn(true);
+
+        assertThat(publisher.enqueue(command("event-1", "/inventory"))).isFalse();
+
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void suppressesNotificationsOwnedByADisabledFeature() {
         NotificationOutboxPublisher publisher = new NotificationOutboxPublisher(repository);
         TenantFeatureService tenantFeatures = mock(TenantFeatureService.class);
@@ -97,12 +107,13 @@ class NotificationOutboxPublisherTest {
         publisher.setTenantFeatures(tenantFeatures);
         NotificationCommand base = command("issue-1", "/inventory/issues/1");
 
-        publisher.enqueue(new NotificationCommand(
+        boolean recorded = publisher.enqueue(new NotificationCommand(
             base.eventKey(), base.source(), "INVENTORY_ISSUE", base.aggregateId(), base.operation(),
             base.title(), base.message(), base.severity(), base.targetPath(), base.actorId(),
             base.actorDisplayName(), base.audiences(), null
         ));
 
+        assertThat(recorded).isFalse();
         verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 

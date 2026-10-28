@@ -77,7 +77,8 @@ public class EventPreparationResource {
     @PostMapping("/no-movements-confirmation")
     @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
     @RequiresTenantFeature({TenantFeature.EVENT_PREPARATION, TenantFeature.FINANCE})
-    public View confirmNoMovements(@PathVariable Long eventId, AbstractAuthenticationToken token) {
-        return service.confirmNoMovements(eventId, token);
+    public View confirmNoMovements(@PathVariable Long eventId, @Valid @RequestBody(required = false) NoMovementsRequest request,
+                                   AbstractAuthenticationToken token) {
+        return service.confirmNoMovements(eventId, request == null ? null : request.reason(), token);
     }
 }

@@ -90,9 +90,9 @@ Alla prima configurazione un admin o super admin sceglie un profilo, che propone
 | `REHEARSAL` | decisione esplicita | sì | sì | sì | decisione esplicita | no | facoltativa | no |
 | `OTHER` | decisione esplicita | no | no | decisione esplicita | no | no | no | no |
 
-“Decisione esplicita” significa che l'amministratore deve scegliere se l'area è richiesta. Il frontend propone però `false` per queste aree (luogo e presenze per `REHEARSAL`, materiali per `PERFORMANCE`, disponibilità per `OTHER`), modificabile prima del salvataggio.
+“Decisione esplicita” significa che l'amministratore deve scegliere se l'area è richiesta: il profilo non propone alcun valore (luogo e materiali per `REHEARSAL`, materiali per `PERFORMANCE`, luogo e disponibilità per `OTHER`), la scelta compare come “Scelta richiesta” con un bordo arancione e il salvataggio resta disattivato finché ogni area non è decisa. Anche il backend rifiuta un requisito assente con `400 eventPreparation.requirement.required`. “Facoltativa” è proposta come non richiesta e resta modificabile. Le aree di un modulo disattivato (materiali senza Inventario, preventivo e chiusura economica senza Economia) sono proposte come non richieste e bloccate, con il motivo accanto alla scelta.
 
-Dopo la creazione del piano, ogni requisito può essere modificato singolarmente. Il profilo resta informativo e non sovrascrive più le personalizzazioni.
+Dopo la creazione del piano, ogni requisito può essere modificato singolarmente. Il profilo resta informativo e, cambiato su un piano salvato, non sovrascrive le personalizzazioni.
 
 Vincoli:
 
@@ -172,18 +172,45 @@ Ogni criticità restituita dal backend (`Issue`) contiene:
   "area": "SCORES",
   "severity": "BLOCKER",
   "message": "Completa gli spartiti e i relativi file",
-  "action": "#preparation-program"
+  "action": "#preparation-program",
+  "relatedId": 12,
+  "details": [
+    {
+      "relatedId": 12,
+      "label": "2. Marcia trionfale",
+      "reason": "NO_READY_SCORE",
+      "message": "Nessuno spartito pronto: 1 in revisione",
+      "action": "/tracks/12"
+    }
+  ],
+  "detailCount": 1
 }
 ```
 
 Valori di severità:
 
 - `BLOCKER`: impedisce `READY` o `CLOSED`;
-- `WARNING`: produce `ATTENTION` o `CLOSED_WITH_WARNINGS` ma non blocca operazioni.
+- `WARNING`: produce `ATTENTION` o `CLOSED_WITH_WARNINGS` ma non blocca operazioni;
+- `INFO`: indicazione di contesto, che non cambia stato né percentuale.
 
-Ogni verifica non superata produce una sola criticità per area, senza dettaglio per riga. I codici sono `EVENT_DATA`, `PROGRAM_MISSING`, `SCORE_NOT_READY`, `AVAILABILITY_INCOMPLETE`, `MATERIAL_NOT_READY`, `BUDGET_NOT_CONFIRMED`, `PRESENCE_NOT_CONFIRMED` e `FINANCE_NOT_CLOSED`. Gli avvisi `PROGRAM_TOO_LONG` e `MOVEMENTS_UNRECONCILED` non contano nel denominatore. L'elenco non ha un limite massimo.
+Ogni verifica non superata produce una sola criticità per area, con il dettaglio delle righe che la causano. I codici delle verifiche sono `EVENT_DATA`, `PROGRAM_MISSING`, `SCORE_NOT_READY`, `AVAILABILITY_INCOMPLETE`, `MATERIAL_NOT_READY`, `BUDGET_NOT_CONFIRMED`, `PRESENCE_NOT_CONFIRMED` e `FINANCE_NOT_CLOSED`. Gli avvisi `PROGRAM_TOO_LONG`, `SCORE_ALTERNATIVE_IN_REVIEW` e `MOVEMENTS_UNRECONCILED` e l'informazione `INSTRUMENT_NOT_COVERED` non contano nel denominatore.
 
-Il catalogo dei codici è stabile; il messaggio è presentazione localizzata e non deve essere interpretato dal frontend. `action` è un'ancora fissa della pagina (per esempio `#preparation-program`), uguale per tutti i ruoli; il frontend mostra il messaggio ma non la usa come collegamento.
+Ogni dettaglio (`IssueDetail`) indica la riga con un'etichetta leggibile (posizione e nome del brano, numero d'inventario e nome dell'oggetto), un motivo stabile (`reason`), un messaggio e, se il ruolo può agire, un collegamento proprio; `relatedId` della criticità vale l'identificativo della riga quando il dettaglio è uno solo. Le criticità sono ordinate per severità (`BLOCKER`, `WARNING`, `INFO`), poi per area nell'ordine delle verifiche e infine per codice; la risposta ne contiene al più 20 e al più 20 dettagli ciascuna, mentre `issueCount` e `detailCount` riportano i totali, così la pagina può dire quante ne restano fuori.
+
+Il catalogo dei codici è stabile; il messaggio è presentazione localizzata e non deve essere interpretato dal frontend. `action` dipende dal ruolo che legge la valutazione ed è assente quando quel ruolo non può agire:
+
+| Area | Admin e super admin | Archivista | Tesoriere |
+| --- | --- | --- | --- |
+| dati evento | `#event-data` | — | — |
+| programma e spartiti | `#preparation-program`; dettaglio `/tracks/{id}` | come admin | — |
+| disponibilità | `#availability` | — | — |
+| materiali | `#preparation-materials`; dettaglio `/inventory/items/{id}` | — | — |
+| preventivo | `#preparation-confirmations` | — | come admin |
+| presenze | `#presence` | — | — |
+| chiusura economica | `#preparation-finance` | — | come admin |
+| movimenti non riconciliati | `/finance?section=movements&reconciled=false&eventId={id}` | — | come admin |
+
+Le ancore portano alla sezione della stessa pagina e vi spostano il focus; i percorsi aprono il dettaglio della traccia, dell'oggetto o l'elenco dei movimenti dell'evento. La dashboard riceve le criticità senza collegamenti, perché porta all'elenco del calendario.
 
 ## Regole di valutazione
 
@@ -222,7 +249,9 @@ Se richiesti, il programma deve contenere almeno una voce e ogni voce deve avere
 
 Media `MIGRATION_PENDING`, `PROCESSING`, `FAILED`, `INVALID` o `DELETED` non soddisfano la verifica. Anche la visibilità della traccia deve essere compatibile con quella dell'evento.
 
-`SCORE_NOT_READY` compare solo quando almeno una voce non ha nessuno spartito pronto. Uno spartito senza strumenti o in revisione non blocca se la traccia ha un'alternativa pronta, ma non conta come pronto. Le alternative in revisione non generano avvisi e non esiste un controllo di copertura strumentale.
+`SCORE_NOT_READY` compare quando almeno una voce non ha nessuno spartito pronto, o quando in un evento `PUBLIC` la traccia non è `PUBLIC`; il dettaglio dice quanti spartiti sono in revisione, senza strumenti o senza file pronti. Uno spartito senza strumenti o in revisione non blocca se la traccia ha un'alternativa pronta, ma non conta come pronto: le alternative ancora in revisione producono l'avviso `SCORE_ALTERNATIVE_IN_REVIEW`, con una riga per parte.
+
+`INSTRUMENT_NOT_COVERED` (`INFO`) è una stima, non un organico: per ogni strumento dei partecipanti attesi che hanno risposto “disponibile”, conta i brani con parti pronte che non hanno una parte pronta per quello strumento. Il dettaglio riporta soltanto conteggi (“3 brani su 8 senza una parte pronta · 2 disponibili”), mai chi suona cosa, e la criticità non cambia stato né percentuale.
 
 ### Disponibilità
 
@@ -257,13 +286,12 @@ Se richiesti:
 - l'assegnazione deve riferirsi allo stesso oggetto;
 - la quantità residua assegnata deve essere almeno pari a quella richiesta;
 - l'oggetto non deve essere `TO_REPAIR` o `OUT_OF_SERVICE`;
+- l'oggetto non deve avere un guasto `UNSAFE` aperto o preso in carico; la verifica vale quando il tenant ha la funzionalità `INVENTORY_QR`, che porta le segnalazioni dei guasti;
 - la preparazione materiale deve essere confermata sullo snapshot corrente.
 
-I guasti `UNSAFE` aperti non sono considerati.
+Una conferma materiale salva l'hash di item, assegnazione, quantità residua, stato dell'assegnazione, condizione dell'oggetto e quantità richiesta. Se uno di questi dati cambia, la conferma non è più corrente e la riga torna da verificare con il motivo “conferma non più valida”.
 
-Una conferma materiale salva l'hash di item, assegnazione, quantità residua, stato dell'assegnazione, condizione dell'oggetto e quantità richiesta. Se uno di questi dati cambia, la conferma non è più corrente e la riga torna da verificare.
-
-Tutte le righe non pronte confluiscono nell'unica criticità `MATERIAL_NOT_READY`: `WARNING` prima della scadenza materiali e `BLOCKER` dopo, qualunque sia il motivo (assegnazione mancante, condizione, quantità o conferma). La scadenza predefinita proposta è 180 minuti prima dell'evento.
+Tutte le righe non pronte confluiscono nell'unica criticità `MATERIAL_NOT_READY`, con una riga di dettaglio per materiale che elenca i problemi (`ASSIGNMENT_MISSING`, `ASSIGNMENT_INACTIVE`, `ASSIGNMENT_ITEM_MISMATCH`, `QUANTITY_INSUFFICIENT`, `ITEM_NOT_USABLE`, `UNSAFE_ISSUE`, `CONFIRMATION_MISSING`, `CONFIRMATION_OBSOLETE`). Un'assegnazione mancante, non più attiva o di un altro oggetto, un oggetto non utilizzabile e un guasto non sicuro rendono la criticità `BLOCKER` subito, perché non si risolvono con il tempo; quantità insufficiente e conferma mancante o superata sono `WARNING` prima della scadenza materiali e `BLOCKER` dopo. La scadenza predefinita proposta è 180 minuti prima dell'evento.
 
 La prima versione non riserva stock libero. Un materiale senza assegnazione può essere pianificato, ma non risulta pronto: l'amministratore deve creare una normale assegnazione inventario e collegarla. In questo modo quantità, responsabilità, riconsegne e prese visione rimangono governate dall'inventario senza una seconda contabilità di magazzino.
 
@@ -274,9 +302,8 @@ Se richiesto, il preventivo deve essere confermato da admin, super admin o tesor
 La conferma salva un hash di:
 
 - compenso previsto;
-- descrizione e importo delle voci di costo, nel loro ordine.
-
-La valuta non entra nell'hash.
+- descrizione e importo delle voci di costo, nel loro ordine;
+- valuta, `EUR` in questa versione: il preventivo dell'evento non ne ha una propria e usa quella della gestione economica.
 
 Qualunque modifica successiva invalida la conferma. Un preventivo interamente a zero è valido soltanto se confermato esplicitamente; l'assenza di valori non può essere interpretata automaticamente come “nessun costo previsto”.
 
@@ -294,12 +321,12 @@ Il salvataggio delle presenze e la conferma restano due operazioni distinte. La 
 
 Se richiesta, la verifica è soddisfatta quando:
 
-- esiste almeno un movimento o un preventivo non nullo, gli incassi eguagliano il compenso previsto e le spese eguagliano la somma dei costi; oppure
+- lo stato economico dell'evento calcolato dalla gestione economica è `SETTLED`: incassi pari al compenso previsto e spese pari alla somma dei costi; oppure
 - non sono presenti movimenti e un utente economico autorizzato conferma esplicitamente “nessun movimento previsto”.
 
-Il saldo è ricalcolato dal servizio di preparazione sui movimenti dell'evento; non usa lo stato economico derivato della gestione economica.
+Lo stato è lo stesso che la gestione economica mostra per l'evento (`FinanceService.economicStatus`), così le due pagine non possono dare esiti diversi; il dettaglio della criticità ne riporta il motivo (nessun preventivo, movimenti senza preventivo, preventivo senza movimenti, importi oltre il preventivo o ancora da incassare o pagare).
 
-La seconda decisione salva un hash di preventivo e movimenti correnti, senza motivazione. Con movimenti presenti la conferma è rifiutata (`400 eventPreparation.movements.exists`). L'aggiunta di un movimento oppure la modifica del preventivo la invalida.
+La seconda decisione salva un hash di preventivo e movimenti correnti e, facoltativamente, un motivo di al più 500 caratteri, mostrato accanto alla conferma (`400 eventPreparation.reason.tooLong` oltre il limite). Con movimenti presenti la conferma è rifiutata (`400 eventPreparation.movements.exists`). L'aggiunta di un movimento oppure la modifica del preventivo la invalida.
 
 Ogni altra combinazione mantiene `TO_CLOSE`; un preventivo assente senza movimenti richiede la conferma esplicita.
 
@@ -319,34 +346,40 @@ Tabella `calendar_event_program_entry`:
 | `display_order` | ordine univoco tra righe attive dell'evento |
 | `planned_duration_seconds` | facoltativo, da 1 a 86.400 |
 | `notes` | facoltative, massimo 2.000 caratteri |
+| `encore` | booleano, falso per impostazione predefinita: la voce è un bis |
+| `track_name_snapshot` | nome della traccia al momento del salvataggio |
 | audit/versione | campi audit tenant, `deleted` ed `entity_version` |
 
-Non esiste un vincolo univoco su `(event_id, track_id)`: una traccia può ricomparire, per esempio come bis, senza un indicatore dedicato. L'ordine usa un indice univoco parziale sulle righe non cancellate.
+Non esiste un vincolo univoco su `(event_id, track_id)`: una traccia può ricomparire, per esempio come bis, e la voce lo indica con `encore`. L'ordine usa un indice univoco parziale sulle righe non cancellate.
 
-Il programma non conserva snapshot della traccia: mostra sempre nome e stato correnti del catalogo.
+Il programma mostra nome e stato correnti del catalogo e conserva il nome con cui la traccia è stata salvata. Se la traccia viene rinominata, la voce riporta anche il nome salvato (`savedTrackName`); se viene cancellata logicamente, la voce resta leggibile con il nome salvato, `trackAvailable` vale falso, gli spartiti non sono più offerti e la verifica del programma segnala la traccia non più nel catalogo.
 
 ### Gestione
 
 Admin, super admin e archivista possono:
 
-- collegare un album: le sue tracce, nel relativo ordine, sostituiscono la scaletta corrente;
-- riordinare le voci con i pulsanti “sposta prima/dopo” e rimuoverle;
-- indicare durata e note esecutive;
+- cercare le tracce con un selettore paginato (20 risultati per pagina, “Altri risultati” per proseguire), senza caricare il catalogo intero;
+- collegare un album: le sue tracce, nel relativo ordine, sostituiscono la scaletta corrente, conservando bis e note delle voci che restano;
+- duplicare una voce, per esempio per un bis, e rimuoverla;
+- riordinare le voci trascinandole oppure, da tastiera, con i pulsanti “sposta prima/dopo” di ogni riga; ogni spostamento è annunciato agli screen reader;
+- indicare bis, durata e note esecutive;
 - salvare l'intero programma come unità atomica.
 
-Il client invia, nell'ordine, ID traccia, durata e note. Nome e stato della traccia sono riletti dal backend; una traccia inesistente o cancellata produce `400 eventPreparation.track.notFound`.
+Il client invia, nell'ordine, ID traccia, bis, durata e note, insieme alla versione del programma letta (`programVersion`). Nome e stato della traccia sono riletti dal backend; una traccia inesistente o cancellata produce `400 eventPreparation.track.notFound`.
 
-Il numero di voci non ha un limite.
+Il programma contiene al più 100 voci: la pagina disattiva l'aggiunta al limite e rifiuta un album più lungo, il backend risponde `400 eventPreparation.program.tooLarge`.
 
 ### Fruizione degli spartiti
 
-Il DTO della preparazione non contiene spartiti né media per nessun ruolo: ogni voce riporta solo traccia, nome, stato, ordine, durata e note. Gli spartiti si consultano dalle pagine del catalogo, con le loro regole di visibilità.
+Ogni voce del programma riporta gli spartiti della traccia: descrizione, strumenti, se lo spartito è pronto o in revisione e i file `READY` con identificativo e nome. Il DTO non contiene binari né URL: i file si scaricano tramite l'endpoint media autorizzato (`/api/media/{id}/stream`), che verifica di nuovo il lettore.
 
-- L'utente interno vede nel programma soltanto tracce `COMPLETE` o `PUBLIC`.
-- L'utente esterno vede soltanto eventi e tracce `PUBLIC`.
+- Admin, super admin e archivista ricevono tutti gli spartiti di ogni voce, pronti o no, e li aprono dal programma.
+- L'utente interno vede nel programma soltanto tracce `COMPLETE` o `PUBLIC` e, per ciascuna, soltanto gli spartiti pronti dei propri strumenti.
+- L'utente esterno vede soltanto eventi e tracce `PUBLIC`, con la stessa regola sugli spartiti.
+- Le voci di tracce cancellate non compaiono nelle viste personali.
 - Il tesoriere non riceve il programma.
 
-La pagina non offre il download degli spartiti dal programma. Il pacchetto ZIP di tutti gli spartiti è rinviato perché richiede limiti, autorizzazione file-per-file e gestione di documenti voluminosi.
+Il pacchetto ZIP di tutti gli spartiti resta rinviato perché richiede limiti, autorizzazione file-per-file e gestione di documenti voluminosi.
 
 ## Materiali dell'evento
 
@@ -375,10 +408,12 @@ La stessa assegnazione può servire più eventi. Questa relazione non modifica q
 
 1. L'amministratore aggiunge un oggetto e la quantità richiesta.
 2. Può collegare subito un'assegnazione dello stesso oggetto oppure lasciare la riga da assegnare.
-3. L'assegnazione si crea o si corregge dalla pagina Inventario: la sezione non offre un collegamento diretto.
+3. L'assegnazione si crea o si corregge dalla pagina Inventario: ogni riga porta al dettaglio dell'oggetto (`/inventory/items/{id}`) e ne mostra numero d'inventario, assegnatario e quantità ancora in carico.
 4. Dopo la verifica fisica, l'amministratore conferma la preparazione della riga.
 5. Taurus salva l'hash dello snapshot corrente.
-6. Variazioni a quantità, assegnazione, residuo o condizione rendono la conferma obsoleta.
+6. Variazioni a quantità, assegnazione, residuo o condizione rendono la conferma obsoleta: la riga mostra “Conferma non più valida” e il pulsante diventa “Conferma di nuovo”.
+
+Ogni riga riporta i problemi che la tengono non pronta, con le stesse etichette della criticità. I materiali si salvano insieme, con la versione letta (`materialsVersion`), e sono al più 100 righe (`400 eventPreparation.materials.tooLarge`). Mentre l'amministratore modifica le righe, una ricarica causata da un'altra sezione aggiorna lo stato di conferma delle righe già salvate senza scartare le modifiche.
 
 Non vengono create automaticamente assegnazioni o riconsegne. Questo preserva conferme, notifiche, foto e regole di concorrenza già presenti nell'inventario.
 
@@ -405,9 +440,12 @@ Tabella `calendar_event_preparation` in relazione uno-a-uno con `calendar_event`
 | `budget_confirmation_hash/at/by` | conferma preventivo corrente |
 | `presence_confirmation_hash/at/by` | conferma registro presenze corrente |
 | `no_movements_confirmation_hash/at/by` | conferma economica a zero |
-| audit/versione | tenant audit e lock ottimistico |
+| `no_movements_confirmation_reason` | motivo facoltativo della conferma economica a zero, massimo 500 caratteri |
+| `program_version` | versione del programma, per il controllo di concorrenza del suo salvataggio |
+| `materials_version` | versione dei materiali, per il controllo di concorrenza del loro salvataggio |
+| audit/versione | tenant audit e lock ottimistico della configurazione |
 
-Gli hash sono SHA-256 della rappresentazione testuale dei valori (`Arrays.deepToString`), senza versione di schema. Non sono firme elettroniche e non attestano identità oltre all'audit autenticato già presente.
+Gli hash sono SHA-256 di un JSON canonico (chiavi in ordine alfabetico, importi come stringhe decimali senza zeri finali, istanti ISO-8601) che dichiara l'area e la versione di schema, oggi `2`. Un cambio di schema rende obsolete tutte le conferme precedenti, così un dato attestato diverso non passa mai per quello vecchio: con il passaggio allo schema 2 le conferme date prima vanno ripetute. Gli hash non sono firme elettroniche e non attestano identità oltre all'audit autenticato già presente.
 
 Il piano viene creato soltanto per eventi già persistiti. Un evento nuovo viene prima salvato; la pagina propone subito dopo la configurazione guidata.
 
@@ -438,7 +476,7 @@ Regole:
 | Gestire preventivo e consuntivo | sì | sì | sì | no | no | no |
 | Gestire e confermare presenze | sì | sì | no | no | no | no |
 
-Le righe sugli spartiti descrivono l'accesso tramite il catalogo: la vista di preparazione non contiene spartiti.
+Le righe sugli spartiti valgono anche per il programma della preparazione: admin, super admin e archivista ricevono tutti gli spartiti delle voci, utenti ed esterni soltanto quelli pronti dei propri strumenti, e il download passa comunque dalle regole di visibilità dell'endpoint media.
 
 La sessione corrente continua a usare un solo ruolo effettivo. I dati restituiti dipendono dal ruolo nel token; la pagina non carica sezioni non autorizzate per poi nasconderle con CSS.
 
@@ -460,6 +498,8 @@ POST /api/calendar-events/{eventId}/preparation/no-movements-confirmation
 ```
 
 La lettura completa e tutte le conferme esposte sotto `/api/calendar-events` sono riservate ad admin e super admin. Le conferme economiche sono disponibili anche al tesoriere tramite la vista economica `/api/finance/events` e richiedono il modulo finanza. Il `PUT` del programma è autorizzato anche per l'archivista tramite matcher esplicito posizionato prima della regola generale del calendario.
+
+Le annotazioni `@PreAuthorize` delle risorse non sono applicate, perché la method security non è attiva nel backend: l'autorizzazione è quella delle regole HTTP di `SecurityConfiguration`. Per questo la vista amministrativa (`GET .../preparation`) e la configurazione hanno un matcher riservato ad admin e super admin, e la vista archivista (`GET .../preparation/catalogue`) uno per admin, super admin e archivista, entrambi prima della regola generale del calendario che ammette l'archivista. `EventPreparationSecurityConfigurationTest` verifica che un archivista riceva `403` sulla vista amministrativa e sulla configurazione.
 
 ### Vista archivista
 
@@ -530,15 +570,21 @@ Risposta esemplificativa abbreviata:
     "applicableChecks": 6,
     "blockerCount": 1,
     "warningCount": 2,
+    "infoCount": 1,
     "issues": [
       {
         "code": "SCORE_NOT_READY",
         "area": "SCORES",
-        "severity": "BLOCKER"
+        "severity": "BLOCKER",
+        "details": [],
+        "detailCount": 0
       }
-    ]
+    ],
+    "issueCount": 4,
+    "excludedAreas": []
   },
   "program": [],
+  "programVersion": 3,
   "availability": {
     "expected": 45,
     "available": 30,
@@ -547,13 +593,23 @@ Risposta esemplificativa abbreviata:
     "minimumRequired": 28,
     "deadline": "2026-10-09T20:30:00+02:00"
   },
-  "materials": []
+  "materials": [],
+  "materialsVersion": 1,
+  "confirmations": {
+    "budgetAt": "2026-10-01T18:00:00+02:00",
+    "budgetCurrent": true,
+    "presenceAt": null,
+    "presenceCurrent": false,
+    "noMovementsAt": null,
+    "noMovementsCurrent": false,
+    "noMovementsReason": null
+  }
 }
 ```
 
-La vista (`View`) contiene soltanto `configuration`, `evaluation`, `program`, `availability` e `materials`. Dati dell'evento, economia e presenze restano nelle API già esistenti del dettaglio evento.
+La vista (`View`) contiene `configuration`, `evaluation`, `program` con la sua versione, `availability`, `materials` con la loro versione e `confirmations`, cioè quando sono state date le conferme di preventivo, presenze e assenza di movimenti e se corrispondono ancora ai dati correnti. Le versioni compaiono soltanto nelle viste che possono salvare quella sezione; le conferme soltanto nella vista amministrativa (tutte) e in quella economica (preventivo e assenza di movimenti). Dati dell'evento, economia e presenze restano nelle API già esistenti del dettaglio evento.
 
-Se il tenant non ha la funzionalità Inventario o Finanza, le relative aree escono dalla valutazione e i requisiti corrispondenti (materiali, preventivo, chiusura economica) vengono restituiti come non richiesti; i materiali sono una lista vuota. La valutazione non diventa `UNKNOWN`.
+Se il tenant non ha la funzionalità Inventario o Finanza, le relative aree escono dalla valutazione e i requisiti corrispondenti (materiali, preventivo, chiusura economica) vengono restituiti come non richiesti; i materiali sono una lista vuota. La valutazione non diventa `UNKNOWN`: quando il piano richiedeva una di quelle aree, `excludedAreas` la elenca e la pagina avvisa l'amministratore che l'area non è valutata finché il modulo resta disattivato. `UNKNOWN` resta riservato alle date dell'evento non valutabili.
 
 L'endpoint usa `Cache-Control: no-store`. Non accetta tenant, ruolo, user ID o timezone dal client.
 
@@ -569,7 +625,9 @@ Ogni area è una propria unità di salvataggio:
 - preventivo;
 - singola disponibilità personale.
 
-Solo la configurazione porta la versione (`version`) e risponde `409 eventPreparation.versionConflict` in caso di modifica concorrente. Programma e materiali non hanno controllo di versione: vale l'ultimo salvataggio. Il salvataggio di una sezione non ricarica o scarta modifiche pendenti nelle altre.
+Configurazione, programma e materiali hanno ciascuno la propria versione: `version` della configurazione, `programVersion` e `materialsVersion` della vista. Il salvataggio invia la versione letta; il backend la avanza in modo condizionale e, se nel frattempo un'altra richiesta l'ha cambiata, risponde `409 eventPreparation.versionConflict` senza toccare i dati. Le versioni sono indipendenti: salvare il programma non fa fallire il salvataggio dei materiali o della configurazione aperti in un'altra scheda.
+
+Al conflitto la sezione chiede se ricaricare, avvisando che le modifiche fatte lì andranno perse: solo dopo la conferma la pagina rilegge la preparazione e annuncia “Preparazione ricaricata con i dati aggiornati”. Il salvataggio o la ricarica di una sezione non scartano le modifiche pendenti nelle altre, che restano elencate dalla guardia di uscita.
 
 Il programma viene sostituito atomicamente in una transazione, dopo validazione di tutte le tracce. I materiali seguono la stessa regola. Una riga non valida fa fallire l'intero comando.
 
@@ -586,16 +644,21 @@ ExternalEventPreparationResource, FinanceEventPreparationResource
 EventPreparationService
 ```
 
-Un unico `EventPreparationService` calcola fase, verifiche, severità, conteggi e percentuale, e non salva stato derivato. Le viste per ruolo (`get`, `getCatalogue`, `getPersonal`, `getFinance`) costruiscono lo stesso DTO `View` limitando aree e campi.
+`EventPreparationService` espone viste e comandi e non salva stato derivato. Le viste per ruolo (`get`, `getCatalogue`, `getPersonal`, `getFinance`) e le valutazioni della dashboard e dello scheduler (`dashboardEntries`, `scheduledEntries`) leggono gli stessi snapshot con `EventPreparationLoader` e li valutano con `EventPreparationEvaluator`, costruendo lo stesso DTO `View` limitato per aree e campi. Una vista singola e la dashboard valutano quindi gli stessi dati nello stesso modo.
 
-Non vengono eseguite chiamate HTTP interne tra moduli. Tutti i dati appartengono allo stesso schema tenant e vengono letti tramite repository. Il servizio legge direttamente movimenti, item e assegnazioni e ricalcola in locale la chiusura economica.
+Non vengono eseguite chiamate HTTP interne tra moduli. Tutti i dati appartengono allo stesso schema tenant e vengono letti tramite repository. Lo stato economico usato dalla chiusura è quello di `FinanceService.economicStatus`, calcolato sui movimenti dell'evento letti nello snapshot.
 
 ### Componenti
 
 - entità `CalendarEventPreparation`, `CalendarEventProgramEntry` e `CalendarEventMaterial`;
 - repository `EventPreparationRepository`, `EventProgramEntryRepository` ed `EventMaterialRepository`;
-- `EventPreparationService` per viste, comandi, valutazione e hash;
-- `EventPreparationNotificationScheduler` per le notifiche a scadenza;
+- `EventPreparationLoader`, che legge gli snapshot di più eventi con un numero fisso di query (programma, parti delle tracce, materiali con i guasti non sicuri aperti, risposte, partecipanti con i loro strumenti, movimenti e presenze), eseguendo una query solo se un evento della richiesta ne ha bisogno;
+- `PreparationSnapshot`, ciò che la valutazione di un evento legge;
+- `EventPreparationEvaluator`, che dallo snapshot ricava fase, verifiche, criticità ordinate e limitate, percentuale e stato dei materiali, senza leggere né salvare altro;
+- `PreparationHashes`, che calcola gli hash canonici delle conferme e delle revisioni di programma e materiali usate nelle chiavi delle notifiche;
+- `EventPreparationService` per viste, comandi, log e notifiche dei salvataggi;
+- `EventPreparationMetrics` per le metriche descritte in [Osservabilità](#osservabilità);
+- `EventPreparationNotificationScheduler` per le notifiche a scadenza e le conferme materiali invalidate;
 - DTO unico `View` in `EventPreparationDtos`, ridotto per ruolo dal servizio.
 
 Le conferme non vengono invalidate da altri servizi: a ogni lettura il servizio ricalcola l'hash corrente e lo confronta con quello salvato.
@@ -618,15 +681,37 @@ La migration tenant `20260905040000_event_preparation.xml` crea:
 
 Non viene effettuato backfill dei piani: gli eventi esistenti rimangono `NOT_CONFIGURED`. Non vengono creati programma, materiali o conferme deducendoli da descrizioni libere.
 
+La migration tenant `20261027100000_event_preparation_closure.xml`, inclusa nel `tenant-master.xml`, aggiunge:
+
+1. a `calendar_event_preparation` le colonne `program_version` e `materials_version` (bigint, non nulle, `0` per i piani esistenti) e `no_movements_confirmation_reason` (varchar 500, facoltativa);
+2. a `calendar_event_program_entry` le colonne `encore` (booleano, non nullo, falso per le voci esistenti) e `track_name_snapshot` (varchar 255), valorizzata per le voci esistenti con il nome corrente della traccia.
+
+Entrambi i changeset hanno il rollback che rimuove le colonne. Il passaggio degli hash allo schema 2 non richiede migrazione dei dati, ma rende obsolete le conferme di preventivo, presenze, assenza di movimenti e materiali date prima del rilascio: la pagina le mostra come “Dati cambiati dopo la conferma” (per i materiali “Conferma non più valida”) e vanno ripetute.
+
 Le nuove tabelle non sono indicizzate in OpenSearch. Il dettaglio e la valutazione usano PostgreSQL; la ricerca di tracce continua a usare i meccanismi catalogo esistenti.
 
 ## Frontend Angular
 
 ### Struttura della pagina
 
-La rotta canonica resta `/calendar/:id`, preservando link, dashboard e notifiche esistenti. L'unico `DetailComponent` aggiunge le sezioni `Preparazione operativa` (`#preparation`), `Programma` (`#preparation-program`) e `Materiali` (`#preparation-materials`).
+La rotta canonica resta `/calendar/:id`, preservando link, dashboard e notifiche esistenti. L'unico `DetailComponent` compone le sezioni della preparazione con componenti dedicati in `pages/calendar-events/detail/preparation/`:
 
-La pagina non viene trasformata in un unico form. Configurazione, programma e materiali sono unità sporche distinte registrate tramite `DetailPageBase`, mantenendo la protezione da perdita dati già introdotta nello standard di layout.
+| Sezione e ancora | Componente | Ruoli |
+| --- | --- | --- |
+| Preparazione operativa (`#preparation`) | `app-preparation-summary` e, per admin e super admin, `app-preparation-configuration` | admin, super admin, archivista, tesoriere |
+| Conferma del preventivo (`#preparation-confirmations`) | `app-preparation-confirmation` | admin, super admin, tesoriere |
+| Programma (`#preparation-program`) | `app-preparation-program` | tutti tranne il tesoriere |
+| Materiali (`#preparation-materials`) | `app-preparation-materials` | admin e super admin |
+| Dati evento (`#event-data`) | sezione esistente | tutti tranne il tesoriere |
+| Consuntivo economico (`#preparation-finance`) | sezione esistente con la conferma “nessun movimento” | admin, super admin, tesoriere |
+| Utenti disponibili (`#availability`) | sezione esistente | tutti tranne il tesoriere |
+| Gestisci presenze (`#presence`) | sezione esistente con la conferma del registro | admin e super admin |
+
+Le ancore sono le stesse che il backend usa nelle azioni delle criticità; `preparation-labels.ts` raccoglie etichette, profili, ordinamento delle criticità e limiti condivisi dai componenti.
+
+La pagina non viene trasformata in un unico form. Configurazione (“preparazione”), programma e materiali sono unità sporche distinte registrate tramite `DetailPageBase`: la guardia di uscita elenca quelle con modifiche e una ricarica causata da un'altra sezione non le scarta. Se la lettura della preparazione fallisce, la sezione mostra “Preparazione non disponibile” con l'azione “Riprova” e il resto della pagina resta utilizzabile. Salvataggi, conferme e ricariche sono annunciati in una live region `polite` della pagina.
+
+Un collegamento con un frammento, per esempio da una notifica (`/calendar/{id}#preparation-materials`), sposta il focus sulla sezione dopo il primo caricamento.
 
 ### Sezione Preparazione operativa
 
@@ -634,48 +719,53 @@ La sezione è visibile ad admin, super admin, archivista e tesoriere quando la v
 
 - stato `Da configurare`, `Preparazione incompleta`, `Da verificare`, `Evento pronto` o `Valutazione non disponibile`;
 - tag di fase `Preparazione`, `In corso` o `Chiusura`;
-- percentuale e numero di verifiche completate;
+- una barra di avanzamento con percentuale e numero di verifiche completate, e i conteggi di blocchi, avvisi e informazioni;
 - stato della chiusura successiva, se richiesta: `Da completare`, `Completata con verifiche`, `Completata` o `Stato non disponibile`;
-- un avviso per ogni criticità, con il solo messaggio;
-- configurazione dei requisiti e pulsanti "Conferma preventivo", "Conferma presenze" e "Nessun movimento previsto".
+- l'azione “Mostra criticità (N)”, aperta all'arrivo quando c'è almeno un blocco, che rivela l'elenco e vi sposta il focus;
+- per l'amministratore, l'avviso “Aree escluse dalla valutazione” quando un modulo disattivato toglie un'area richiesta;
+- conteggi rapidi di disponibilità, brani e materiali richiesti.
 
-Non esistono navigazione ad ancore, azione “Mostra criticità” né collegamenti dalle criticità alle sezioni.
+L'elenco delle criticità è semantico: un titolo per l'elenco e uno per ogni criticità, con severità come testo, area, dettagli delle righe (“e altri N” oltre i 20 mostrati) e il collegamento indicato dal backend per il ruolo. Un'ancora porta alla sezione della pagina e vi sposta il focus senza ricaricare; un percorso apre la traccia, l'oggetto o i movimenti non riconciliati dell'evento. Se le criticità sono più di 20, una nota dice quante non sono elencate.
+
+La configurazione mostra profilo, requisiti come scelte “Richiesto/Non richiesto”, partecipanti minimi e scadenze di disponibilità e materiali. Un requisito non ancora deciso è segnato da “Scelta richiesta” e impedisce il salvataggio; i requisiti di un modulo disattivato e gli spartiti senza programma sono bloccati con il motivo.
 
 ### Programma
 
-- elenco ordinato con nome e stato della traccia, durata e note;
-- collegamento di un album, che sostituisce la scaletta con le sue tracce;
-- riordinamento con pulsanti “sposta prima/dopo” e rimozione;
-- salvataggio esplicito dell'intero programma.
+- elenco ordinato con posizione, nome della traccia collegato al suo dettaglio, stato, bis, durata e note;
+- avviso per la traccia rinominata (con il nome salvato) o non più nel catalogo;
+- selettore paginato delle tracce e collegamento di un album, con i limiti di 100 voci;
+- riordinamento trascinando la maniglia o con i pulsanti “sposta prima/dopo”, duplicazione e rimozione, ognuno annunciato agli screen reader;
+- espansione “Spartiti” di ogni voce con descrizione, strumenti, stato e download dei file pronti;
+- salvataggio esplicito dell'intero programma con la versione letta.
 
-Non sono presenti selettore delle singole tracce, indicatore di bis, espansione per spartiti e strumenti né download.
+Utenti ed esterni vedono lo stesso elenco in sola lettura, con i soli spartiti pronti dei propri strumenti.
 
 ### Disponibilità
 
-Admin e super admin vedono conteggi, soglia, scadenza e tabella nominativa già disponibile, con filtri per risposta. Gli altri utenti vedono soltanto la propria risposta e il proprio promemoria.
+Admin e super admin vedono conteggi, soglia, scadenza e tabella nominativa già disponibile, con filtri per risposta. Gli altri utenti vedono soltanto la propria risposta e il proprio promemoria. Il tesoriere non vede le sezioni di disponibilità, indisponibilità e presenze.
 
 L'archivista vede la propria risposta e conteggi aggregati necessari alla diagnostica spartiti; non riceve l'elenco nominativo dal nuovo endpoint.
 
 ### Materiali
 
-La sezione amministrativa mostra oggetto, quantità richiesta, assegnatario, condizione e stato della conferma. Le azioni sono:
+La sezione amministrativa mostra per ogni riga l'oggetto con il collegamento al suo dettaglio, il numero d'inventario, la quantità richiesta, l'assegnatario con la quantità ancora in carico, la condizione, i problemi e lo stato della conferma. Le azioni sono:
 
 - selettore oggetto;
 - selettore assegnazione dell'oggetto;
-- quantità e aggiunta della riga;
-- conferma della preparazione e rimozione della riga.
+- quantità e aggiunta della riga, fino a 100 righe;
+- conferma della preparazione (“Conferma di nuovo” se superata) e rimozione della riga.
 
 La pagina non replica modifica oggetto, presa visione o riconsegna.
 
 ### Economia
 
-Admin, super admin e tesoriere vedono preventivo, incassato, pagato, residui, risultato e stato economico. I comandi riusano i dialoghi economici esistenti e i deep link a `/finance` con `eventId`.
+Admin, super admin e tesoriere vedono preventivo, incassato, pagato, residui, risultato e stato economico. I comandi riusano i dialoghi economici esistenti; “Movimenti dell'evento” apre l'elenco dei movimenti filtrato sull'evento (`/finance?section=movements&eventId={id}`).
 
-Conferma preventivo e conferma “nessun movimento previsto” mostrano lo snapshot economico che verrà attestato. Non bloccano future correzioni.
+Le conferme del preventivo e di “nessun movimento previsto” sono schede che dicono cosa attestano, quando sono state date e se i dati sono cambiati dopo; la seconda accetta un motivo facoltativo di al più 500 caratteri. Non bloccano future correzioni.
 
 ### Presenze
 
-La griglia esistente rimane un'unità autonoma. Dopo il salvataggio, un secondo comando conferma il registro corrente. Una modifica successiva mostra “Registro modificato dopo l'ultima conferma”.
+La griglia esistente rimane un'unità autonoma. Dopo il salvataggio, un secondo comando conferma il registro corrente: con presenze non salvate la conferma è disattivata (“Salva le presenze prima di confermare il registro”). Una modifica successiva mostra “Dati cambiati dopo la conferma”.
 
 ## Esperienza per ruolo
 
@@ -689,11 +779,11 @@ Usa la pagina come workspace musicale: programma, stato tracce e diagnostica spa
 
 ### Utente e utente esterno
 
-Vedono informazioni evento consentite, programma pubblicato in sola lettura, disponibilità personale e promemoria. L'intera sezione **Preparazione operativa** è esclusa per `ROLE_USER` e `ROLE_USER_EXTERNAL`, compresi percentuale, stato aggregato e avvisi di preparazione: le viste personali non contengono la valutazione, che potrebbe rivelare indirettamente problemi economici o materiali. Gli spartiti si consultano dal catalogo.
+Vedono informazioni evento consentite, programma pubblicato in sola lettura, disponibilità personale e promemoria. L'intera sezione **Preparazione operativa** è esclusa per `ROLE_USER` e `ROLE_USER_EXTERNAL`, compresi percentuale, stato aggregato e avvisi di preparazione: le viste personali non contengono la valutazione, che potrebbe rivelare indirettamente problemi economici o materiali. Dal programma scaricano gli spartiti pronti dei propri strumenti; gli altri si consultano dal catalogo, con le sue regole.
 
 ### Tesoriere
 
-La rotta padre `calendar` ammette `ROLE_TREASURER`: il tesoriere apre il dettaglio `/calendar/:id`, per esempio dalle notifiche di chiusura economica, mentre l'elenco del calendario e la voce di menu restano esclusi. Il dettaglio carica soltanto intestazione minima e sezione economica tramite `/api/finance/**`. Non può leggere o modificare programma, disponibilità, presenze, materiali o dati generali dell'evento.
+La rotta padre `calendar` ammette `ROLE_TREASURER`: il tesoriere apre il dettaglio `/calendar/:id`, per esempio dalle notifiche di chiusura economica, mentre l'elenco del calendario e la voce di menu restano esclusi. Il dettaglio carica soltanto intestazione minima, riepilogo limitato a preventivo e chiusura economica, conferme e sezione economica tramite `/api/finance/**`. Non può leggere o modificare programma, disponibilità, presenze, materiali o dati generali dell'evento, e la pagina non ne mostra nemmeno le sezioni vuote.
 
 ## Accessibilità
 
@@ -718,14 +808,15 @@ Le notifiche sono prodotte tramite l'outbox generalizzata e non dal frontend.
 | disponibilità confermata | admin e super admin | una notifica dopo l'aggiornamento riuscito |
 | indisponibilità comunicata | admin e super admin | una notifica dopo l'aggiornamento riuscito |
 | risposta di disponibilità annullata | admin e super admin | una notifica dopo l'annullamento riuscito |
-| materiali salvati (`MATERIALS_UPDATED`) | assegnatari delle righe, admin e super admin | messaggio generico “I materiali di … sono stati aggiornati”, senza oggetto né quantità |
+| materiali salvati (`MATERIALS_UPDATED`) | assegnatari delle righe, admin e super admin | admin e super admin ricevono oggetti e quantità di tutte le righe; ogni assegnatario soltanto quelli delle proprie assegnazioni (“Per … ti sono richiesti: Leggio × 2”), al più 5 oggetti nominati e “e altri N” |
+| conferma materiale invalidata (`MATERIAL_CONFIRMATION_INVALIDATED`) | admin e super admin | una volta per conferma superata, prima della fine dell'evento: nomina oggetto ed evento e invita a verificare di nuovo |
 | disponibilità incompleta (`AVAILABILITY_THRESHOLD_MISSED`) | admin e super admin | una volta alla scadenza disponibilità, se `AVAILABILITY_INCOMPLETE` è ancora presente |
 | presenze da confermare (`PRESENCE_FOLLOW_UP`) | admin e super admin | una volta dopo la fine, se richieste |
 | chiusura economica aperta (`FINANCE_FOLLOW_UP`) | admin, super admin e tesoriere | una volta dopo la fine, se richiesta |
 
-Non esiste una notifica di conferma materiale invalidata. Le notifiche a scadenza sono prodotte da `EventPreparationNotificationScheduler` (cron `application.event-preparation.notification-cron`, default ogni minuto) sui soli tenant con la funzionalità, per eventi tra 30 giorni fa e i prossimi 31 giorni. Le notifiche del servizio e dello scheduler aprono `/calendar/{id}#preparation`.
+Le notifiche a scadenza e quelle delle conferme materiali invalidate sono prodotte da `EventPreparationNotificationScheduler` (cron `application.event-preparation.notification-cron`, default ogni minuto) sui soli tenant con la funzionalità, per eventi tra 30 giorni fa e i prossimi 31 giorni. Le notifiche del servizio e dello scheduler aprono `/calendar/{id}#preparation`, quella della conferma materiale `/calendar/{id}#preparation-materials`; la pagina porta il focus sulla sezione. La notifica sui materiali richiede anche il modulo Inventario.
 
-Per evitare spam, il salvataggio atomico del programma genera un solo evento anche se contiene molti riordini. Anche ogni comando di disponibilità genera una sola notifica: il punto di pubblicazione intercetta esclusivamente il servizio core transazionale, non le facciate per utenti interni o esterni che lo delegano. In questo modo l'evento outbox viene registrato nella stessa transazione della modifica e non viene pubblicato una seconda volta fuori transazione. I promemoria a scadenza usano chiavi evento deterministiche composte da tipo, evento e istante di scadenza; l'outbox impedisce duplicazioni senza rendere persistito lo stato di prontezza autorevole.
+Per evitare spam, il salvataggio atomico del programma genera un solo evento anche se contiene molti riordini. Anche ogni comando di disponibilità genera una sola notifica: il punto di pubblicazione intercetta esclusivamente il servizio core transazionale, non le facciate per utenti interni o esterni che lo delegano. In questo modo l'evento outbox viene registrato nella stessa transazione della modifica e non viene pubblicato una seconda volta fuori transazione. I promemoria a scadenza usano chiavi evento deterministiche composte da tipo, evento e istante di scadenza; la conferma materiale invalidata usa `event-preparation:{eventId}:MATERIAL_CONFIRMATION_INVALIDATED:{materialId}:{hash}`, con l'hash della conferma superata, così una nuova conferma seguita da un nuovo cambiamento produce una nuova notifica. L'outbox impedisce duplicazioni senza rendere persistito lo stato di prontezza autorevole.
 
 I messaggi utente non contengono importi, risposte altrui o materiale assegnato ad altre persone.
 
@@ -741,7 +832,7 @@ La dashboard mostra conteggio eventi ed evento più vicino, senza il numero di r
 
 Le righe sulle disponibilità mancanti vengono deduplicate: un evento esce da `CALENDAR_RESPONSES_MISSING` solo quando una riga di preparazione lo conta già con la criticità `AVAILABILITY_INCOMPLETE`, cioè un blocco entro la finestra o un avviso entro 7 giorni. Un evento tra 7 e 14 giorni con il solo avviso sulle disponibilità resta quindi nelle risposte mancanti.
 
-La dashboard valuta ogni evento candidato con le stesse letture della vista completa: alcune query per evento, accettabili con le 6-10 occorrenze di una finestra di 14 giorni ma non incluse nel bilancio di 12 query della [dashboard](operational-dashboard-spec.md#prestazioni), misurato con la preparazione spenta.
+La dashboard valuta tutti gli eventi candidati con le stesse letture e la stessa valutazione della vista completa, ma con un numero fisso di query qualunque sia il numero di eventi: `EventPreparationLoader` legge programma, parti, materiali, risposte, partecipanti, movimenti e presenze di tutti gli eventi insieme. Il bilancio è separato da quello della [dashboard](operational-dashboard-spec.md#prestazioni): al più 12 query per le altre righe, misurate con la preparazione spenta, più al più 8 query fisse della preparazione. `EventPreparationIT` misura 8 query sia con 2 sia con 15 eventi, e la richiesta completa passa da 11 a 19 query.
 
 ## Sicurezza e privacy
 
@@ -767,45 +858,50 @@ Note esecutive e finalità del materiale sono testo non fidato: vengono validate
 
 ## Osservabilità
 
-Il servizio non registra metriche Micrometer né log strutturati dedicati; lo scheduler delle notifiche registra solo l'errore di elaborazione di un tenant. Le misure seguenti sono tra i [Requisiti aperti](#requisiti-aperti).
+`EventPreparationMetrics` registra metriche Micrometer a cardinalità limitata, esposte da Prometheus con i nomi seguenti:
 
-Metriche Micrometer a cardinalità limitata:
+- `taurus_event_preparation_evaluation_total{status,closure,phase}`: ogni evento valutato in una vista, nella dashboard o, senza conteggio, nello scheduler;
+- `taurus_event_preparation_evaluation_duration_seconds{view}`: durata di ogni vista (`admin`, `catalogue`, `personal`, `finance`, `dashboard`, `scheduler`);
+- `taurus_event_preparation_issue_total{area,severity,code}`: le criticità elencate dalle valutazioni;
+- `taurus_event_preparation_command_total{area,outcome}`: comandi con esito `success`, `conflict`, `invalid`, `not_found` o `error`;
+- `taurus_event_preparation_confirmation_invalidated_total{area}`: conferme trovate superate per la prima volta, oggi quelle dei materiali notificate dallo scheduler.
 
-- `taurus_event_preparation_evaluation_total{status,phase}`;
-- `taurus_event_preparation_evaluation_seconds{role_group}`;
-- `taurus_event_preparation_issue_total{area,severity,code}`;
-- `taurus_event_preparation_command_total{area,outcome}`;
-- `taurus_event_preparation_confirmation_invalidated_total{area}`.
+I tag sono chiusi: `eventId`, tenant, user ID, track ID e item ID non sono tag metrici.
 
-`eventId`, tenant, user ID, track ID e item ID non sono tag metrici.
+Log strutturati in formato chiave=valore:
 
-Log strutturati:
+- `event_preparation_evaluation_failed` con vista, event ID interno (o numero di eventi per la lettura), area e classe errore;
+- `event_preparation_command` con event ID, area, versione, esito e `actorHash`;
+- `event_preparation_confirmation` con event ID, area, hash troncato a 12 cifre e `actorHash`;
+- `event_preparation_reference_rejected` per un riferimento di un altro tenant o incoerente, con event ID, area e motivo, senza identificativo né dati della risorsa estranea.
 
-- valutazione fallita con event ID interno, area e classe errore;
-- comando con event ID, area, attore, versione e risultato;
-- conferma creata o invalidata con area e hash troncato;
-- tentativo cross-tenant o riferimento incoerente senza dati della risorsa estranea.
+`actorHash` sono le prime 12 cifre esadecimali dello SHA-256 dell'utente: permette di correlare i comandi di una stessa persona senza scriverne l'identificativo nel log. Lo scheduler delle notifiche registra inoltre l'errore di elaborazione di un tenant.
 
 ## Prestazioni
 
-Obiettivi su ambiente di staging:
+Obiettivi:
 
-- p95 della vista amministrativa sotto 700 ms con 100 programmi, 1.000 utenti e 100 materiali;
+- p95 della vista amministrativa sotto 700 ms con 100 voci di programma, 1.000 utenti e 100 materiali;
 - p95 delle viste personali sotto 400 ms;
 - nessun caricamento binario nel DTO;
-- nessuna query per riga.
+- nessuna query per riga e, nella dashboard, nessuna query per evento.
 
-Programma e materiali non hanno un numero massimo di righe; le criticità sono al più una per verifica.
+`EventPreparationIT` li verifica su PostgreSQL con un evento di 100 brani, 1.000 utenti con uno strumento e la loro risposta e 100 materiali assegnati: il 2026-10-28 la vista amministrativa ha misurato un p95 di 81 ms e quella personale di 46 ms. È una misura su Testcontainers: non sostituisce una prova di carico su staging con dati reali, che lo script k6 del [runbook](runbook-test.md#171-performance) non copre ancora per questa vista.
 
-Le query usano proiezioni e aggregazioni:
+Programma e materiali hanno al più 100 righe; la valutazione restituisce al più 20 criticità con al più 20 dettagli ciascuna, con i totali in `issueCount` e `detailCount`.
 
-- disponibilità aggregate in una singola query;
-- programma con tracce e conteggi spartiti/media;
-- materiali con item e assegnazioni tramite fetch mirato;
-- finanza tramite i movimenti dell'evento (`FinancialMovementRepository`);
-- presenze aggregate e hash calcolato su ordine deterministico.
+`EventPreparationLoader` legge con un numero fisso di query, indipendente da righe ed eventi:
 
-La prima versione non usa cache: le mutazioni attraversano domini diversi e una cache aumenterebbe il rischio di mostrare “pronto” su dati obsoleti. La pagina ricarica la valutazione dopo ogni comando riuscito e offre un aggiornamento manuale.
+- programma con le tracce di tutti gli eventi richiesti;
+- parti delle tracce con strumenti e media `READY`;
+- materiali con item, assegnazioni e guasti `UNSAFE` aperti;
+- risposte di disponibilità e partecipanti attivi con i loro strumenti;
+- movimenti degli eventi (`FinancialMovementRepository`);
+- presenze, con hash calcolato su ordine deterministico.
+
+Una query viene eseguita solo se un evento della richiesta ne ha bisogno: la vista economica, per esempio, non legge programma né materiali.
+
+La prima versione non usa cache: le mutazioni attraversano domini diversi e una cache aumenterebbe il rischio di mostrare “pronto” su dati obsoleti. Ogni comando riuscito restituisce la vista ricalcolata, che la pagina mostra subito; dopo un conflitto o una lettura fallita la pagina rilegge la preparazione.
 
 ## Gestione errori
 
@@ -813,7 +909,8 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 | --- | --- |
 | evento non visibile o altro tenant | `404` |
 | ruolo non autorizzato a un comando | `403` |
-| versione della configurazione superata | `409 eventPreparation.versionConflict` con invito a ricaricare |
+| versione di configurazione, programma o materiali superata | `409 eventPreparation.versionConflict`; la sezione chiede se ricaricare e scarta le proprie modifiche solo dopo la conferma |
+| requisito senza scelta, oltre 100 righe, motivo oltre 500 caratteri | `400` con le chiavi `eventPreparation.requirement.required`, `program.tooLarge`, `materials.tooLarge`, `reason.tooLong` |
 | traccia/item/assegnazione inesistente o incoerente | `400` senza dettagli cross-tenant |
 | hash di conferma diventato obsoleto | verifica non superata, non errore di lettura |
 | funzionalità Inventario o Finanza disabilitata | area esclusa dalla valutazione e requisito restituito come non richiesto |
@@ -822,7 +919,16 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 
 ## Test backend
 
-`EventPreparationServiceTest` copre piano assente, profilo senza verifiche, vincolo spartiti/programma, separazione da `state`, disponibilità prima della scadenza, percentuale, `DRAFT` lontano, viste personali, esterne, archivista ed economiche e la notifica unica del programma. `EventPreparationNotificationSchedulerTest` e `CalendarOperationProviderTest` coprono scheduler e dashboard, compresi la deduplicazione per finestra e gli eventi del filtro del calendario. Gli altri casi elencati in questa sezione e nelle successive sono tra i [Requisiti aperti](#requisiti-aperti).
+I casi elencati sotto sono coperti da queste classi:
+
+- `EventPreparationServiceTest`: valutazione, viste per ruolo, scelte esplicite, limiti, versioni, materiali e loro problemi, chiusura economica da `SETTLED`, motivo di “nessun movimento”, alternative in revisione, copertura strumentale, tracce rinominate o cancellate, notifiche dei salvataggi, metriche;
+- `PreparationHashesTest`: JSON canonico con valuta e schema, importi con scale diverse, invalidazione per ogni valore attestato, conferme dello schema precedente non più valide, `actorHash`;
+- `EventPreparationIT` su PostgreSQL: migrazione con i valori predefiniti, `409` sulle versioni senza toccare i dati, isolamento tra tenant, numero fisso di query della dashboard, obiettivi prestazionali;
+- `EventPreparationSecurityConfigurationTest`: matrice ruolo/endpoint di tutte le viste e i comandi, `no-store`, validazione del motivo e dei salvataggi prima del servizio;
+- `EventPreparationNotificationSchedulerTest`: notifiche a scadenza deterministiche e notifica della conferma materiale invalidata, una per hash superato e solo prima della fine dell'evento;
+- `CalendarOperationProviderTest` e `OperationalDashboardIT`: righe della dashboard, deduplicazione per finestra, eventi del filtro del calendario e bilancio di query.
+
+Le disponibilità e le loro notifiche sono coperte dai test del calendario indicati nel [runbook di test](runbook-test.md).
 
 ### Valutazione
 
@@ -831,8 +937,9 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 - calcolo di fase con e senza `endDate`;
 - denominatore composto soltanto da verifiche applicabili;
 - priorità blocker rispetto alla percentuale;
-- limite e ordinamento deterministico delle criticità;
-- area obbligatoria disabilitata produce `UNKNOWN`;
+- limite e ordinamento deterministico delle criticità e dei dettagli;
+- area richiesta con il modulo disattivato restituita come non richiesta ed elencata in `excludedAreas`, mai `UNKNOWN`;
+- ogni requisito richiede una scelta esplicita;
 - nessuno stato derivato salvato nel database.
 
 ### Programma e spartiti
@@ -894,7 +1001,20 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 
 ## Test frontend
 
-`event-preparation.service.spec.ts` verifica gli endpoint per ruolo e la separazione dei salvataggi; `event-program.spec.ts` verifica il programma creato da un album. Gli altri casi sono tra i requisiti aperti.
+I casi elencati sotto sono coperti dalle specifiche Karma accanto ai componenti:
+
+- `event-preparation.service.spec.ts`: endpoint per ruolo, versioni nei corpi dei salvataggi, motivo di “nessun movimento” ripulito;
+- `event-program.spec.ts`: programma creato da un album, con bis e spartiti delle voci che restano;
+- `preparation/preparation-labels.spec.ts`: ordinamento delle criticità, scelte esplicite dei profili, moduli disattivati, ancore e percorsi, conflitto di versione;
+- `preparation/preparation-summary.component.spec.ts`: stato, fase e barra di avanzamento, criticità con collegamenti e dettagli, “Mostra criticità” e focus, aree escluse, criticità non elencate;
+- `preparation/preparation-configuration.component.spec.ts`: scelte esplicite, profilo su piano salvato, vincoli, moduli disattivati, ricarica senza perdita, salvataggio e conflitto;
+- `preparation/preparation-confirmation.component.spec.ts`: conferma nuova, corrente e superata, API economica del tesoriere, attesa delle presenze non salvate, motivo con limite;
+- `preparation/preparation-program.component.spec.ts`: selettore paginato, duplicazione, riordino con trascinamento e pulsanti, limite, album, salvataggio con bis e versione, conflitto, spartiti e download, sola lettura;
+- `preparation/preparation-materials.component.spec.ts`: numero d'inventario, quantità in carico, collegamento e problemi, assegnazione dell'oggetto scelto, limite, salvataggio con versione, conflitto;
+- `detail.component.spec.ts`: sezioni e chiamate HTTP per ogni ruolo, guardia delle unità sporche attraverso una ricarica, live region, focus dal frammento, lettura fallita con “Riprova”;
+- `finance.component.spec.ts`: movimenti non riconciliati dell'evento aperti dal collegamento della criticità.
+
+Casi coperti:
 
 - composizione delle sezioni per ogni ruolo;
 - testata per tutti gli stati e fasi;
@@ -914,6 +1034,10 @@ La prima versione non usa cache: le mutazioni attraversano domini diversi e una 
 - guardia modifiche non salvate con elenco delle unità sporche.
 
 ## Test end-to-end
+
+La suite Playwright `taurus-fe/e2e/specs/event-preparation.spec.ts`, descritta in `e2e/README.md`, verifica su un'istanza completa e su un evento indicato da `E2E_PREPARATION_EVENT_ID`: per l'amministratore `Cache-Control: no-store`, barra di avanzamento e criticità che portano alla sezione con il focus; per l'archivista la sola vista catalogo, il riordino da tastiera con l'annuncio e la guardia che elenca il programma; per il socio la vista personale in sola lettura; per il tesoriere le sole API economiche; per amministratore e socio l'analisi axe e il layout a 320 px. Le prove non salvano nulla.
+
+I percorsi seguenti, che modificano i dati, restano un collaudo manuale su staging (`PREP-001`…`PREP-010` del [runbook di test](runbook-test.md#145-preparazione-evento)); isolamento tra tenant, conflitti e passaggi di stato sono comunque coperti dai test backend.
 
 1. Admin crea un evento, configura profilo performance e vede le criticità iniziali.
 2. Archivista compone il programma e corregge uno spartito non pronto.
@@ -944,6 +1068,8 @@ Prima dell'abilitazione:
 9. smoke test mobile e accessibilità.
 
 Gli eventi esistenti restano utilizzabili nella pagina attuale e mostrano un invito amministrativo non bloccante a configurare la preparazione. Utenti ed esterni non vedono `NOT_CONFIGURED` come errore.
+
+Il rilascio della migration `20261027100000` e degli hash con schema 2 rende superate tutte le conferme date in precedenza: preventivo, presenze, assenza di movimenti e materiali tornano da confermare. Su un tenant che usa già la preparazione, avvisare gli amministratori prima del rilascio; gli eventi conclusi con le conferme ripetute tornano `CLOSED`, quelli futuri riprendono la prontezza alla nuova conferma. Al primo passaggio dello scheduler dopo il rilascio parte una notifica «Conferma materiale non più valida» per ogni materiale confermato degli eventi non ancora terminati dei prossimi 31 giorni: è l'effetto atteso del cambio di schema, non un guasto.
 
 ## Rollback
 
@@ -979,7 +1105,7 @@ Il rollback non modifica eventi, tracce, spartiti, assegnazioni, presenze o movi
 24. Il caricamento non esegue query per riga e rispetta gli obiettivi prestazionali.
 25. La dashboard deduplica disponibilità e preparazione per lo stesso evento.
 26. Le notifiche sono aggregate per comando e non espongono informazioni non autorizzate.
-27. Un'area obbligatoria indisponibile produce `UNKNOWN`, mai un falso `READY`.
+27. Un'area richiesta il cui modulo è disattivato per il tenant esce dai requisiti, restituita come non richiesta, ed è elencata in `excludedAreas` con un avviso all'amministratore: non produce `UNKNOWN` né un falso `READY` silenzioso. `UNKNOWN` resta riservato alle date dell'evento non valutabili.
 28. La rotta `/calendar/:id` e i collegamenti esistenti restano validi.
 29. La pagina è utilizzabile a 320 px, da tastiera e con screen reader.
 30. Feature flag e rollback preservano tutti i dati applicativi e di preparazione.
@@ -999,21 +1125,4 @@ Il rollback non modifica eventi, tracce, spartiti, assegnazioni, presenze o movi
 
 ## Requisiti aperti
 
-- Collegamento dalle criticità alla sezione o al modulo in cui risolverle, con azione filtrata per ruolo, `relatedId` e dettaglio per riga ([Modello delle criticità](#modello-delle-criticità)).
-- Scelta esplicita, senza valore proposto, per le aree a “decisione esplicita” dei profili ([Profili di preparazione](#profili-di-preparazione)).
-- Avviso per le alternative di spartito in revisione e controllo di copertura strumentale ([Spartiti](#spartiti)).
-- Criticità `BLOCKER` immediata per materiale senza assegnazione o con oggetto `TO_REPAIR`/`OUT_OF_SERVICE`, e blocco per guasti `UNSAFE` aperti ([Materiali](#materiali)).
-- Valuta nell'hash del preventivo e hash su JSON canonico con versione di schema ([Preventivo](#preventivo), [Configurazione persistita](#configurazione-persistita)).
-- Chiusura economica basata sullo stato economico derivato della gestione economica (`SETTLED`) invece del calcolo locale, con motivazione facoltativa per “nessun movimento previsto” ([Chiusura economica dopo l'evento](#chiusura-economica-dopo-levento)).
-- Indicatore di bis e snapshot storico della traccia nel programma ([Modello dati](#modello-dati)).
-- Selettore paginato delle singole tracce, drag and drop accessibile, apertura della traccia, espansione per spartiti e strumenti, download autorizzato e messaggio per tracce non più visibili ([Gestione](#gestione), [Programma](#programma)).
-- Spartiti filtrati per gli strumenti dell'utente nelle viste personali ([Fruizione degli spartiti](#fruizione-degli-spartiti)).
-- Limite di 100 voci di programma e 100 righe materiale, e limite delle criticità restituite ([Gestione](#gestione), [Prestazioni](#prestazioni)).
-- Versione e `409` anche per programma e materiali ([Comandi e concorrenza](#comandi-e-concorrenza)).
-- Collegamento al dettaglio inventario, numero inventariale e quantità residua nella sezione materiali ([Flusso](#flusso), [Materiali](#materiali-1)).
-- Notifica di conferma materiale invalidata e notifica materiali con oggetto e quantità ([Notifiche](#notifiche)).
-- Scomposizione del dettaglio Angular in componenti per area, navigazione ad ancore, azione “Mostra criticità” e gestione del focus ([Struttura della pagina](#struttura-della-pagina)).
-- Valutazione degli eventi della dashboard con query aggregate invece che per evento, perché le righe di preparazione restino nel bilancio di query della dashboard ([Integrazione con dashboard operativa](#integrazione-con-dashboard-operativa), [Prestazioni](#prestazioni)).
-- Decidere se un'area richiesta ma disabilitata per il tenant debba produrre `UNKNOWN` (criterio 27) invece di essere tolta dai requisiti ([Contratto della vista completa](#contratto-della-vista-completa)).
-- Metriche Micrometer e log strutturati ([Osservabilità](#osservabilità)).
-- Test backend, frontend ed end-to-end mancanti, compresi accessibilità e prestazioni ([Test backend](#test-backend), [Test frontend](#test-frontend), [Test end-to-end](#test-end-to-end)).
+Nessuno.

@@ -1,8 +1,10 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
+import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.NoMovementsRequest;
 import com.fundaro.zodiac.taurus.service.dto.eventpreparation.EventPreparationDtos.View;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationService;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +37,8 @@ public class FinanceEventPreparationResource {
 
     @PostMapping("/no-movements-confirmation")
     @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
-    public View confirmNoMovements(@PathVariable Long eventId, AbstractAuthenticationToken token) {
-        return service.confirmNoMovements(eventId, token);
+    public View confirmNoMovements(@PathVariable Long eventId, @Valid @RequestBody(required = false) NoMovementsRequest request,
+                                   AbstractAuthenticationToken token) {
+        return service.confirmNoMovements(eventId, request == null ? null : request.reason(), token);
     }
 }

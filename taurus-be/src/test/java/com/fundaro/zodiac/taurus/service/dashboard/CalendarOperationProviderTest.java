@@ -267,7 +267,8 @@ class CalendarOperationProviderTest {
             closure,
             status == PreparationStatus.BLOCKED ? 1 : 0,
             status == PreparationStatus.ATTENTION ? 1 : 0,
-            Set.of(issues)
+            Set.of(issues),
+            List.of()
         );
     }
 

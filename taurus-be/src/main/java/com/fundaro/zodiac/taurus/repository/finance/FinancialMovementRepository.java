@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,8 @@ public interface FinancialMovementRepository extends JpaRepository<FinancialMove
     List<FinancialMovement> findAllByAccount_IdAndDeletedFalseAndInitialBalanceTrue(Long accountId);
 
     List<FinancialMovement> findAllByEvent_IdAndDeletedFalseOrderByBookingDateAscIdAsc(Long eventId);
+
+    List<FinancialMovement> findAllByEvent_IdInAndDeletedFalseOrderByBookingDateAscIdAsc(Collection<Long> eventIds);
 
     List<FinancialMovement> findAllByTransferGroupAndDeletedFalse(UUID transferGroup);
 

@@ -669,6 +669,7 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - errori ripetuti degli scheduler;
 - modifiche delle immagini delle pagine respinte dal limite di tempo (`taurus_image_edit_total{outcome="image.timeout"}`) o dal pool pieno (`outcome="image.busy"`): rendering troppo lento per l'hardware o richieste troppo grandi, da leggere insieme ai percentili di `taurus_image_edit_duration_seconds` e alle distribuzioni di pixel e byte;
 - compensazioni storage delle immagini (`taurus_image_storage_compensations_total`) in crescita: un salvataggio sta fallendo dopo la scrittura degli asset, che vengono rimossi ma segnalano un problema di database o di storage;
+- valutazioni della preparazione evento fallite (`event_preparation_evaluation_failed` nel log) e conflitti di versione in crescita costante (`taurus_event_preparation_command_total{outcome="conflict"}`): più persone salvano la stessa sezione, oppure una pagina rimasta aperta a lungo continua a inviare versioni superate;
 - crescita di notification outbox/push fallite;
 - certificati TLS e chiavi in scadenza;
 - backup fallito o restore test scaduto.
@@ -707,7 +708,7 @@ Gli orari cron senza `zone` esplicita usano il timezone del processo JVM. Impost
 | Cleanup tombstone feed | 03:15 giornaliero | Elimina tombstone calendario scadute |
 | Avvisi scadenza inventario | 08:00 Europe/Rome | Genera notifiche scadenze |
 | Rollover economia | 00:10 Europe/Rome | Aggiorna saldi/aperture annuali |
-| Scadenze preparazione evento | ogni minuto Europe/Rome | Genera notifiche operative |
+| Scadenze preparazione evento | ogni minuto Europe/Rome | Genera notifiche operative e quelle delle conferme materiali non più valide |
 | Recupero riconoscimenti | ogni minuto | Rimette in coda i riconoscimenti interrotti da oltre 30 minuti (al massimo tre tentativi) e ripubblica quelli in coda da oltre 30 minuti |
 | Pulizia versioni delle parti | 04:15 giornaliero | Elimina le versioni oltre le ultime 20 di ogni parte che non sono correnti né approvate |
 | Pulizia conferme di firma | 03:45 giornaliero | Elimina per tenant le conferme con codice chiuse da oltre 30 giorni (`application.signature.cleanup-cron`, `challenge-retention-days`) |

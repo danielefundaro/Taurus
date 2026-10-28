@@ -48,12 +48,13 @@ public class NotificationOutboxPublisher {
         this.tenantFeatures = tenantFeatures;
     }
 
+    /** Records the event once per key; false when its module is off or the key is already recorded. */
     @Transactional(propagation = Propagation.MANDATORY)
-    public void enqueue(NotificationCommand rawCommand) {
+    public boolean enqueue(NotificationCommand rawCommand) {
         NotificationCommand command = normalizeAndValidate(rawCommand);
         if (featurePolicy != null && tenantFeatures != null && featurePolicy.requiredFeatures(command.source(), command.aggregateType(), command.operation()).stream().anyMatch(feature -> !tenantFeatures.isEnabled(feature)))
-            return;
-        if (repository.existsByEventKey(command.eventKey())) return;
+            return false;
+        if (repository.existsByEventKey(command.eventKey())) return false;
 
         ZonedDateTime now = ZonedDateTime.now();
         NotificationOutbox event = new NotificationOutbox();
@@ -81,6 +82,7 @@ public class NotificationOutboxPublisher {
             event.addAudience(audience);
         });
         repository.save(event);
+        return true;
     }
 
     NotificationCommand normalizeAndValidate(NotificationCommand command) {

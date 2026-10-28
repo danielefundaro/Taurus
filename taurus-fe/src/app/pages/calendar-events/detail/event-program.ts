@@ -11,9 +11,12 @@ export function programFromAlbum(album: Albums, currentProgram: EventPreparation
             trackId: track.index,
             trackName: track.name ?? '',
             trackState: current?.trackState ?? '',
+            trackAvailable: true,
+            encore: current?.encore ?? false,
             order,
             plannedDurationSeconds: current?.plannedDurationSeconds,
-            notes: current?.notes
+            notes: current?.notes,
+            scores: current?.scores ?? []
         };
     });
 }

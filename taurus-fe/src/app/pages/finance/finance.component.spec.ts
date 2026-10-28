@@ -189,6 +189,20 @@ describe('FinanceComponent', () => {
         expect(financeService.getMovements.calls.mostRecent().args[0].eventId).toBe(70);
     });
 
+    it('opens the unreconciled movements of the event linked by its preparation', () => {
+        TestBed.overrideProvider(ActivatedRoute, {
+            useValue: { snapshot: { queryParamMap: new Map([['section', 'movements'], ['reconciled', 'false'], ['eventId', '70']]) } }
+        });
+        const { component, financeService } = create();
+        financeService.getEvent = jasmine.createSpy('getEvent');
+
+        component.ngOnInit();
+
+        expect(component['activeTab']).toBe('movements');
+        expect(financeService.getMovements.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ eventId: 70, reconciled: false }));
+        expect(financeService.getEvent).not.toHaveBeenCalled();
+    });
+
     it('reloads the dashboard on the chosen period', () => {
         const { component, financeService } = create();
         component['dashboardFrom'] = new Date(2025, 0, 1);

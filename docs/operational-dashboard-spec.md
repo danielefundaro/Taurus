@@ -219,7 +219,7 @@ Collegamenti: `/calendar?attention=event-preparation` per le prime due voci, `/c
 
 Un evento tra sette e quattordici giorni con il solo avviso sulle disponibilita non compare in `EVENT_PREPARATION_ATTENTION` e resta in `CALENDAR_RESPONSES_MISSING`.
 
-La valutazione della preparazione esegue alcune query per ogni evento candidato. Con 6-10 eventi nell'orizzonte il costo e contenuto, ma il bilancio di query delle [Prestazioni](#prestazioni) vale con la preparazione spenta: il costo per evento e un requisito aperto della [preparazione operativa](event-preparation-spec.md#requisiti-aperti).
+La valutazione della preparazione legge tutti gli eventi candidati con un numero fisso di query, indipendente dal loro numero, e li valuta come la vista completa della [preparazione operativa](event-preparation-spec.md#integrazione-con-dashboard-operativa). Il suo costo ha un bilancio a parte, sommato a quello delle [Prestazioni](#prestazioni): al più 8 query fisse con la preparazione attiva.
 
 ### Inventario personale: `INVENTORY_DECISION_REQUIRED`
 
@@ -734,7 +734,7 @@ Non si usano lock pessimisti per costruire la dashboard. Le operazioni di domini
 Obiettivi iniziali su ambiente di staging con un tenant realistico:
 
 - `p95` inferiore a 500 ms;
-- massimo 12 query aggregate per richiesta completa;
+- massimo 12 query aggregate per richiesta completa con la preparazione evento spenta, più al più 8 query fisse quando è attiva, qualunque sia il numero di eventi;
 - nessun caricamento N+1;
 - risposta inferiore a 32 kB;
 - nessun accesso a file binari o OpenSearch per costruire le attivita;
@@ -752,6 +752,8 @@ Se un provider supera stabilmente 200 ms, deve essere ottimizzato o reso facolta
 | `p95` del provider più lento | sotto 200 ms | 48-79 ms (Calendario o Inventario) |
 | Query per richiesta | al massimo 12 | 11 |
 | Dimensione della risposta | sotto 32 kB | circa 2,4 kB |
+
+Con la preparazione evento attiva `EventPreparationIT` misura la stessa richiesta di un amministratore: le query passano da 11 a 19, cioè 8 della preparazione, le stesse con 2 o con 15 eventi candidati.
 
 I piani generici di PostgreSQL (`EXPLAIN (GENERIC_PLAN)`) di ogni query finiscono in `taurus-be/target/dashboard-query-plans.txt`:
 
@@ -963,4 +965,4 @@ Queste evoluzioni devono continuare a derivare dal dominio autorevole e non intr
 
 ## Requisiti aperti
 
-Nessuno: la specifica è coperta dal codice e dai test. La suite end-to-end richiede un'istanza completa con due tenant di prova e, come il resto della suite, non è ancora stata eseguita su un ambiente reale; il costo per evento delle voci di preparazione è un requisito aperto della [preparazione operativa](event-preparation-spec.md#requisiti-aperti).
+Nessuno: la specifica è coperta dal codice e dai test. La suite end-to-end richiede un'istanza completa con due tenant di prova e, come il resto della suite, non è ancora stata eseguita su un ambiente reale. Le voci di preparazione hanno un bilancio di query a parte, descritto in [Prestazioni](#prestazioni).

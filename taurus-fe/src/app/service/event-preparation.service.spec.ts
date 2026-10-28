@@ -55,15 +55,27 @@ describe('EventPreparationService', () => {
         request.flush({});
     });
 
-    it('keeps program and material writes on separate endpoints', () => {
-        service.replaceProgram(42, [{ trackId: 7, plannedDurationSeconds: 180 }]).subscribe();
+    it('keeps program and material writes on separate endpoints, each with its own version', () => {
+        service.replaceProgram(42, [{ trackId: 7, encore: true, plannedDurationSeconds: 180 }], 3).subscribe();
         const program = http.expectOne(`${environment.baseUrl}/calendar-events/42/preparation/program`);
-        expect(program.request.body).toEqual({ entries: [{ trackId: 7, plannedDurationSeconds: 180 }] });
+        expect(program.request.body).toEqual({ entries: [{ trackId: 7, encore: true, plannedDurationSeconds: 180 }], version: 3 });
         program.flush({});
-        service.replaceMaterials(42, [{ itemId: 9, assignmentId: 11, requiredQuantity: 2 }]).subscribe();
+        service.replaceMaterials(42, [{ itemId: 9, assignmentId: 11, requiredQuantity: 2 }], 4).subscribe();
         const materials = http.expectOne(`${environment.baseUrl}/calendar-events/42/preparation/materials`);
-        expect(materials.request.body).toEqual({ materials: [{ itemId: 9, assignmentId: 11, requiredQuantity: 2 }] });
+        expect(materials.request.body).toEqual({ materials: [{ itemId: 9, assignmentId: 11, requiredQuantity: 2 }], version: 4 });
         materials.flush({});
+    });
+
+    it('sends the optional reason of no movements, trimmed', () => {
+        service.confirmNoMovements(42, RoleEnums.ADMIN, '  Concerto gratuito ').subscribe();
+        const withReason = http.expectOne(`${environment.baseUrl}/calendar-events/42/preparation/no-movements-confirmation`);
+        expect(withReason.request.body).toEqual({ reason: 'Concerto gratuito' });
+        withReason.flush({});
+
+        service.confirmNoMovements(42, RoleEnums.ADMIN, '   ').subscribe();
+        const blank = http.expectOne(`${environment.baseUrl}/calendar-events/42/preparation/no-movements-confirmation`);
+        expect(blank.request.body).toEqual({ reason: undefined });
+        blank.flush({});
     });
 
     it('keeps treasurer confirmations inside the finance API', () => {

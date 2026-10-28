@@ -27,7 +27,7 @@ import {
 } from '../../../module';
 import { ApiErrorService, ConfirmService, InventoryService, TenantFeatureService, ToastService, UsersService, withErrorSummary, withHandledErrors } from '../../../service';
 import { DialogService } from 'primeng/dynamicdialog';
-import { focusInventoryFragment } from '../inventory-fragment';
+import { focusFragment } from '../../_shared/focus-fragment';
 
 /** Expiration errors shown under the date field instead of a toast: duration rules of the tenant or of the issued sheet. */
 const EXPIRATION_ERRORS: readonly string[] = ['inventory.loanDuration.*', 'inventory.loanSheet.missingExpiration', 'inventory.loanSheet.precariousExpiration', 'inventory.loanSheet.expirationOutOfRange'];
@@ -588,7 +588,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                 this.dirtyAssignments.clear();
                 if (!this.fragmentFocused) {
                     this.fragmentFocused = true;
-                    focusInventoryFragment(this.route.snapshot.fragment);
+                    focusFragment(this.route.snapshot.fragment);
                 }
             });
     }
