@@ -56,6 +56,16 @@ export interface OnboardingSectionSummary {
     skip: number;
     applied: number;
 }
+export interface OnboardingOutcome {
+    status: OnboardingJobStatus;
+    startedAt?: string;
+    completedAt?: string;
+    durationMillis?: number;
+    identitiesCreated: number;
+    identitiesLinked: number;
+    setupEmailFailures: number;
+    sections: OnboardingSectionSummary[];
+}
 export interface OnboardingRow {
     id: number;
     section: OnboardingSection;

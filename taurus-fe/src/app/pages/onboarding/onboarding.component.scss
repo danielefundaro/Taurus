@@ -111,7 +111,7 @@ fieldset {
     padding: 2rem;
 }
 
-.outcome>i {
+.outcome > i {
     font-size: 3rem;
 }
 
@@ -143,6 +143,60 @@ fieldset {
     color: var(--p-text-muted-color);
 }
 
+.values-list dd.value-with-problem {
+    border-bottom: 2px solid var(--p-yellow-500);
+}
+
+.outcome-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1rem;
+    margin: 2rem auto 0;
+    max-width: 44rem;
+    text-align: left;
+}
+
+.outcome-figures dt {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
+}
+
+.outcome-figures dd {
+    margin: 0.2rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.outcome-sections {
+    width: 100%;
+    max-width: 44rem;
+    margin: 2rem auto 0;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.outcome-sections caption {
+    text-align: left;
+    padding-bottom: 0.5rem;
+    color: var(--p-text-muted-color);
+}
+
+.outcome-sections th,
+.outcome-sections td {
+    border-bottom: 1px solid var(--p-content-border-color);
+    padding: 0.5rem 0.75rem;
+}
+
+.outcome-sections thead th,
+.outcome-sections td {
+    text-align: right;
+}
+
+.outcome-sections thead th:first-child,
+.outcome-sections tbody th {
+    text-align: left;
+}
+
 @media (max-width: 767px) {
     .step-actions.between {
         flex-direction: column-reverse;
@@ -152,15 +206,46 @@ fieldset {
         width: 100%;
     }
 
-    .values-list {
-        min-width: 20rem;
-    }
-
-    .filters>* {
+    .filters > * {
         width: 100%;
     }
 
     .count-callout {
         grid-template-columns: auto 1fr;
+    }
+    .step-content {
+        padding-top: 0.75rem;
+    }
+
+    .outcome {
+        padding: 1rem 0;
+    }
+
+    .values-list {
+        grid-template-columns: 1fr;
+        min-width: 0;
+    }
+
+    .onboarding-issue {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .outcome-figures {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .outcome-figures dd {
+        font-size: 1.1rem;
+    }
+
+    .outcome-sections {
+        font-size: 0.875rem;
+    }
+
+    .outcome-sections th,
+    .outcome-sections td {
+        padding: 0.4rem 0.35rem;
     }
 }

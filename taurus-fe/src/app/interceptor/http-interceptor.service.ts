@@ -1,6 +1,6 @@
-import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
+import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Injectable, Injector } from '@angular/core';
-import { BehaviorSubject, finalize, Observable, switchMap, throwError } from 'rxjs';
+import { BehaviorSubject, finalize, Observable, of, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
 import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
 import { ActivatedRouteSnapshot, Router } from '@angular/router';
@@ -80,7 +80,13 @@ export class HttpInterceptorService implements HttpInterceptor {
                     this.loadingService.loading = false;
                 }
             }),
-            catchError((error: HttpErrorResponse) => this.apiErrorService.readBody(error).pipe(switchMap((readable) => this.handleError(readable, authReq, next, true))))
+            catchError((error: HttpErrorResponse) =>
+                // A conditional read answered «not modified» is the success the caller asked for by sending the
+                // validator, not an error: it must not reach the error catalog nor raise a toast.
+                error.status === 304
+                    ? of(new HttpResponse<any>({ status: 304, headers: error.headers, url: error.url ?? undefined }))
+                    : this.apiErrorService.readBody(error).pipe(switchMap((readable) => this.handleError(readable, authReq, next, true)))
+            )
         );
     }
 

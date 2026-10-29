@@ -30,12 +30,12 @@ L'onboarding non sostituisce le normali pagine gestionali. Accelera il caricamen
 | Formato completo | `.xlsx` multi-foglio, versione esplicita |
 | Formato semplice | `.csv` per una sola sezione alla volta |
 | Modalità prima versione | Additiva, senza aggiornamenti o cancellazioni massive |
-| Validazione | Completa prima dell'applicazione; all'avvio dell'applicazione si ricontrollano solo le funzionalità tenant delle sezioni |
+| Validazione | Completa prima dell'applicazione e ripetuta per intero nel preflight, con verifica dell'impronta del file |
 | Elaborazione | Asincrona e riprendibile tramite job persistente |
 | Dati di staging | Tenant-scoped, temporanei e soggetti a retention |
 | PostgreSQL | Commit unico per tutti i dati relazionali selezionati |
 | Keycloak | Saga compensabile; non è parte della transazione PostgreSQL |
-| Notifiche | Nessuna notifica per riga importata e nessun riepilogo finale |
+| Notifiche | Nessuna notifica per riga importata; una sola notifica di riepilogo con i soli conteggi |
 | E-mail utenti | Solo dopo il commit applicativo; gli errori di invio non annullano l'importazione |
 | Riprova | Lo stesso job non applica mai due volte gli stessi dati |
 
@@ -53,7 +53,7 @@ Solo dopo che `tenant_schema_registry.status = ACTIVE` il wizard può essere ape
 
 Questa separazione è necessaria perché la sessione autenticata e il tenant context devono essere già validi prima di scrivere nello schema. Il wizard non accetta l'ID della pagina tenant come scorciatoia per cambiare destinazione.
 
-Dal dettaglio globale dell'istanza il pulsante **Configura dati** è mostrato soltanto quando il tenant visualizzato coincide con il tenant attivo. Negli altri casi il pulsante non compare.
+Dal dettaglio globale dell'istanza il pulsante **Configura dati** è mostrato soltanto quando il tenant visualizzato coincide con il tenant attivo. Su un'altra istanza attiva con la funzionalità abilitata il pulsante lascia il posto a un avviso che spiega dove il wizard scriverebbe e invita ad accedere con un'utenza di quell'istanza; negli altri casi non compare nulla.
 
 ### Stato dell'onboarding
 
@@ -66,7 +66,7 @@ La pagina mostra invece una checklist derivata:
 - **Utenti presenti**: almeno un utente attivo nello schema tenant;
 - **Inventario configurato**: numero di oggetti presenti, senza considerarlo obbligatorio;
 - **Economia configurata**: numero di conti attivi, senza considerarlo obbligatorio;
-- **Ultima importazione**: esito e data dell'ultimo job, esposti dal contesto (`lastImport`) ma non mostrati dall'interfaccia.
+- **Ultima importazione**: data ed esito dell'ultimo job, dal contesto (`lastImport`), mostrati nel riepilogo in testa alla pagina.
 
 La checklist informa, non blocca l'utilizzo dei moduli. Un tenant può eseguire più importazioni additive nel tempo.
 
@@ -151,7 +151,7 @@ Per un'identità Keycloak già esistente, nome e cognome importati vengono conse
 
 - massimo una riga per conto nel file;
 - il conto può essere creato nello stesso job o riutilizzato se equivalente;
-- il conto non deve avere movimenti attivi; la validazione non lo verifica: un conto esistente con movimenti fa fallire il commit (`OPENING_BALANCE_NOT_ALLOWED`), il job passa in compensazione e termina `FAILED`;
+- il conto non deve avere movimenti attivi: un conto esistente con movimenti è un errore di validazione (`OPENING_BALANCE_NOT_ALLOWED`) e il job resta `INVALID`, senza arrivare al commit;
 - l'importo è firmato: positivo per saldo attivo, negativo per saldo passivo, zero consentito ma ignorato;
 - la data determina l'esercizio contabile, creato se assente;
 - la scrittura creata usa `FinancialMovementNature.OPENING`, `initial_balance = true` e la descrizione "Saldo iniziale", come il saldo iniziale inserito alla creazione di un conto: il riporto annuale non la modifica.
@@ -162,13 +162,13 @@ Per un'identità Keycloak già esistente, nome e cognome importati vengono conse
 
 Il file ufficiale si chiama `taurus-onboarding-v1.xlsx` e contiene:
 
-- un foglio `Istruzioni`, non importato;
+- un foglio `Istruzioni`, non importato, con le regole dell'importazione additiva, i limiti, la legenda italiana dei codici — ruoli, `attivo`, `condizione`, `direzione` e `tipo` — e una riga di esempio per ogni sezione disponibile, scritta come «colonna = valore»;
 - un foglio nascosto `_taurus` con `templateVersion=1` e identificatore del prodotto;
 - i fogli dati `Strumenti`, `Utenti`, `Inventario`, `Categorie`, `Conti` e `Saldi iniziali`, limitati alle sezioni disponibili per il tenant;
 - elenchi di convalida Excel con i codici di `attivo`, `condizione`, `direzione` e `tipo`;
 - intestazioni bloccate e filtri attivi.
 
-Il template non contiene righe di esempio. Il CSV di sezione contiene la sola riga di intestazione.
+Gli esempi vivono nelle istruzioni e non nei fogli dati di proposito: una riga di esempio lasciata in un foglio dati sarebbe una riga ben formata, e l'importazione la applicherebbe senza che nessuno l'abbia chiesto. I fogli dati e il CSV di sezione contengono quindi la sola riga di intestazione.
 
 I nomi e le intestazioni dei fogli devono coincidere esattamente con il template; fanno eccezione le colonne facoltative aggiunte in coda dopo la prima versione, che un file preparato prima può omettere tutte insieme. Fogli sconosciuti producono un avviso; colonne sconosciute producono un errore, per evitare che un errore ortografico venga ignorato silenziosamente.
 
@@ -273,11 +273,14 @@ Valori predefiniti:
 | Righe utenti | 2.000 nel file (`TOO_MANY_USER_ROWS`); le nuove membership oltre il limite residuo del tenant producono `TENANT_USER_LIMIT_EXCEEDED` |
 | Colonne per foglio | 64 |
 | Lunghezza singola cella | 10.000 caratteri, verificata dopo la lettura della cella |
+| Celle lette per file | 400.000 (`TOO_MANY_CELLS`), contate durante la lettura in streaming |
+| Problemi conservati per job | 10.000 (`max-issues`); oltre il limite il job conserva i primi problemi e un problema globale `TOO_MANY_ISSUES` |
+| Job caricati, in validazione o pronti per utente | 3 (`409` `onboarding.pendingJobs.tooMany`, parametro `maxPendingJobs`) |
 | Job in applicazione contemporanea per tenant | 1 |
 
 Il limite applicativo da 10 MB è indipendente dal limite multipart globale, attualmente molto più ampio. Il backend rifiuta il file prima di memorizzarlo quando la dimensione dichiarata supera il limite (`413` `onboarding.file.tooLarge`).
 
-Il numero di problemi conservati per job non è limitato: `max-issues` è configurabile ma non viene applicato. Non esiste un limite di job caricati o in validazione per utente.
+Il limite dei job in attesa conta per autore e per tenant i job `UPLOADED`, `VALIDATING` e `READY` non eliminati: completarne o annullarne uno libera un posto.
 
 ## Flusso utente
 
@@ -310,8 +313,10 @@ La pagina mostra:
 - riepilogo per sezione: totali, validi, avvisi, errori, riutilizzati e nuovi;
 - tabella paginata delle righe normalizzate;
 - filtri per sezione e stato;
-- elenco di problemi con foglio, riga, colonna quando nota, etichetta italiana, messaggio e suggerimento; il codice tecnico stabile resta disponibile nell'API e nel rapporto;
+- elenco paginato di problemi, 25 per pagina, con foglio, riga, colonna quando nota, etichetta italiana, messaggio e suggerimento; il codice tecnico stabile resta disponibile nell'API e nel rapporto;
 - download del rapporto errori XLSX.
+
+Ogni valore segnalato rimanda con `aria-describedby` al messaggio del proprio problema, quando il problema è fra quelli elencati nella pagina aperta: un lettore di schermo legge il motivo insieme al valore invece di affidarsi al solo colore. Sotto 768 pixel i valori normalizzati passano a una colonna sola, i problemi impilano etichetta e testo e le azioni dei passi occupano l'intera larghezza.
 
 Le celle non sono modificabili nel browser nella prima versione. L'utente corregge il proprio file e crea un nuovo job; questo evita che l'anteprima diverga dal documento conservato e rende riproducibile ogni applicazione.
 
@@ -336,7 +341,8 @@ Al completamento mostra:
 - stato e fase del job;
 - l'avviso **Ripristino incompleto** con **Ritenta ripristino** per `COMPENSATION_REQUIRED`;
 - le e-mail da ritentare, con **Ritenta e-mail**;
-- collegamenti a Utenti, Inventario ed Economia, mostrati anche quando il modulo è disattivato.
+- l'esito letto da `GET /api/onboarding/imports/{id}/outcome`: durata dell'applicazione, identità Keycloak create e collegate, e-mail non inviate e, per ogni sezione con righe, quante sono state create, riutilizzate e ignorate;
+- collegamenti a Utenti e, soltanto quando il modulo è attivo per il tenant, a Inventario ed Economia.
 
 Il rapporto resta scaricabile dal pulsante **Rapporto** nell'intestazione della pagina.
 
@@ -346,10 +352,10 @@ La validazione è divisa in livelli e non produce scritture di dominio.
 
 ### Livello 1 - File
 
-- per XLSX, firma ZIP (`PK`) iniziale; il MIME del contenuto non viene rilevato;
-- dimensione e numero di righe entro i limiti;
+- formato riconosciuto dal contenuto e non dall'estensione né dal MIME dichiarato dal client: firma ZIP (`PK`) per XLSX, con messaggio dedicato per una cartella `.xls` (firma OLE2) rinominata; un CSV con firma di archivio o con byte nulli è rifiutato come binario (`FILE_UNSUPPORTED_FORMAT`);
+- dimensione, numero di righe e numero di celle entro i limiti;
 - workbook leggibile: un file cifrato o danneggiato produce `FILE_XLSX_INVALID`;
-- assenza di macro (`MACRO_NOT_ALLOWED`), celle formula (`FORMULA_NOT_ALLOWED`) e collegamenti esterni (`FILE_EXTERNAL_LINKS`);
+- assenza di macro (`MACRO_NOT_ALLOWED`), celle formula (`FORMULA_NOT_ALLOWED`), collegamenti esterni e DDE (`FILE_EXTERNAL_LINKS`) e oggetti incorporati, OLE o ActiveX (`FILE_EMBEDDED_OBJECT`): le parti del pacchetto che non sono fogli, stili o stringhe condivise vengono rifiutate prima di leggere i dati;
 - limiti `ZipSecureFile` su rapporto di compressione, dimensione delle voci e testo;
 - template e versione riconosciuti;
 - fogli e intestazioni validi;
@@ -361,8 +367,8 @@ Un errore di questo livello porta il job in `INVALID` con un unico problema glob
 
 - obbligatorietà;
 - lunghezza;
-- tipo e formato: un numero, una data o un enum di dominio non validi producono `VALUE_INVALID_FORMAT` senza colonna;
-- enum ammessi: `VALUE_INVALID_ENUM`, con colonna, soltanto per `ruoli` e `attivo`;
+- tipo e formato: ogni problema di formato indica la colonna che lo ha prodotto;
+- enum ammessi: `VALUE_INVALID_ENUM`, con colonna, per tutti gli enum di dominio — `ruoli`, `attivo`, `condizione`, `tipo` e `direzione` dei conti e delle categorie;
 - date valide;
 - importi rappresentabili con `BigDecimal` e massimo quattro decimali;
 - e-mail sintatticamente valida;
@@ -387,13 +393,19 @@ Gli spazi esterni vengono rimossi. Gli spazi interni significativi non vengono c
 - nome e direzione categorie;
 - nome, tipo e valuta conti;
 - strumenti già esistenti;
-- stato attivo del tenant.
-
-La presenza di movimenti sui conti che ricevono un saldo iniziale è verificata soltanto al commit.
+- stato attivo del tenant;
+- movimenti già registrati sui conti che riceverebbero un saldo iniziale: la riga è un errore `OPENING_BALANCE_NOT_ALLOWED` in validazione, prima di qualunque scrittura;
+- identità Keycloak già presenti per l'indirizzo di un utente nuovo: avviso `KEYCLOAK_IDENTITY_WILL_BE_LINKED`, perché l'applicazione collegherà l'utenza esistente invece di crearne una.
 
 ### Livello 5 - Controllo all'avvio dell'applicazione
 
-Al comando di applicazione il backend ricontrolla soltanto che le sezioni del job siano ancora disponibili per le funzionalità tenant. Se non lo sono, il job torna `INVALID` con fase e codice `FEATURE_DEPENDENCY_DISABLED` e non avvia alcuna modifica esterna. I conflitti con record creati dopo la validazione emergono al commit: la transazione fallisce, le identità vengono compensate e il job termina `FAILED`.
+Al comando di applicazione, con il job già bloccato, il backend esegue un preflight completo prima di qualunque modifica esterna:
+
+1. ricontrolla che le sezioni del job siano ancora disponibili per le funzionalità tenant; se non lo sono, il job torna `INVALID` con fase e codice `FEATURE_DEPENDENCY_DISABLED`;
+2. rilegge il file dallo storage e ne verifica l'impronta SHA-256; un file che non corrisponde più porta il job in `INVALID` con fase, codice ed errore `SOURCE_INTEGRITY_FAILURE` e staging svuotato, perché l'anteprima non descrive più il documento conservato;
+3. ripete l'intera validazione sul contenuto riletto, quindi anche i controlli dinamici del livello 4. Se il nuovo esito non è `READY`, il job conserva i problemi appena trovati e prende fase e codice `PREFLIGHT_CONFLICT`: nessuna identità viene preparata e nessun dato viene scritto.
+
+Un conflitto nato dopo la prima validazione — un numero di inventario creato a mano nel frattempo, per esempio — viene quindi incontrato qui e non al commit: il job resta `INVALID` e l'utente corregge il file e ne carica uno nuovo. Il commit conserva comunque la propria compensazione per i guasti che solo la scrittura può rivelare.
 
 ## Errori e avvisi
 
@@ -423,9 +435,14 @@ Esempi di codici:
 - `TENANT_USER_LIMIT_EXCEEDED`;
 - `EXISTING_RECORD_WILL_BE_REUSED`;
 - `EXISTING_RECORD_WILL_BE_SKIPPED`;
+- `KEYCLOAK_IDENTITY_WILL_BE_LINKED`;
+- `OPENING_BALANCE_NOT_ALLOWED`;
+- `SOURCE_INTEGRITY_FAILURE`;
+- `TOO_MANY_CELLS`, `TOO_MANY_ISSUES`;
+- `FILE_EMBEDDED_OBJECT`;
 - `PLAYBACK_PROPOSED`, `PLAYBACK_NOT_CONFIGURED`, `PLAYBACK_NOT_APPLIED`.
 
-`OPENING_BALANCE_NOT_ALLOWED` non è un problema di validazione: è il motivo del fallimento del commit descritto in Saldi iniziali.
+`TOO_MANY_ISSUES` e `SOURCE_INTEGRITY_FAILURE` sono problemi globali del job, senza sezione né riga.
 
 Gli `ERROR` bloccano l'applicazione. I `WARNING` richiedono una conferma unica nel passo finale e restano nel rapporto di audit. Nell'interfaccia questi valori e i codici problema sono presentati tramite etichette italiane; i codici originali non vengono modificati nel contratto API.
 
@@ -458,6 +475,7 @@ Le tabelle risiedono nello schema del tenant e non contengono `tenant_code`.
 | `started_at`, `completed_at` | istanti operativi |
 | `last_error_code` | codice tecnico sanificato |
 | `source_removed_at` | istante in cui la retention ha rimosso file, righe e problemi |
+| `resume_claimed_at` | istante in cui la ricognizione ha preso il job per l'ultima volta |
 | campi audit | autore e date standard Taurus |
 
 ### `onboarding_import_section`
@@ -517,15 +535,17 @@ Il comando `apply`, in una transazione:
 
 1. acquisisce il lock pessimista sul job;
 2. verifica tenant attivo, stato `READY`, chiave di applicazione e accettazione degli avvisi;
-3. rifiuta l'avvio se un altro job è `APPLYING` (`existsByStatus`, `409` `onboarding.tenant.busy`); l'indice unico parziale `uq_onboarding_single_apply` ammette un solo job `APPLYING` o `COMPENSATING`;
-4. ricontrolla le funzionalità tenant delle sezioni;
+3. prende l'advisory lock di transazione dello schema (`pg_try_advisory_xact_lock` su `current_schema() || ':onboarding-apply'`) e rifiuta l'avvio se non lo ottiene o se un altro job è già `APPLYING` (`409` `onboarding.tenant.busy`); il lock rende atomico il controllo anche fra più istanze, e l'indice unico parziale `uq_onboarding_single_apply` resta l'ultima difesa ammettendo un solo job `APPLYING` o `COMPENSATING`. L'ordine è sempre lock della riga e poi advisory lock, così due applicazioni non possono bloccarsi a vicenda;
+4. esegue il preflight completo del livello 5: funzionalità tenant, impronta del file e nuova validazione;
 5. porta il job in `APPLYING` e affida l'applicazione a `OnboardingWorker` dopo il commit.
 
 Nessuna chiamata Keycloak avviene se questi controlli falliscono.
 
 ### Fase B - Preparazione identità
 
-Per ogni utente, in ordine stabile di riga:
+Le identità vengono preparate con una concorrenza configurabile, per impostazione predefinita 4 righe alla volta (`identity-concurrency`); con una sola riga da preparare il lavoro resta sul thread chiamante. Ogni thread lavora nel contesto del tenant, il journal è l'unico punto di sincronizzazione e l'elenco delle utenze esistenti viene letto una volta sola e condiviso, invece di interrogare Keycloak riga per riga. Il primo errore interrompe la fase e porta alla compensazione.
+
+Per ogni utente:
 
 1. cercare l'identità per e-mail normalizzata;
 2. se assente, creare l'utente senza inviare e-mail e registrare immediatamente l'ID nel journal;
@@ -557,9 +577,10 @@ Se la transazione fallisce, nessun dato PostgreSQL del pacchetto resta applicato
 Dopo il commit `OnboardingWorker`:
 
 1. invia le e-mail di configurazione ai soli utenti creati dal job, se richiesto, registrando separatamente ogni esito;
-2. marca il job `COMPLETED` con il numero di e-mail fallite (`OnboardingJobStateService.complete`).
+2. marca il job `COMPLETED` con il numero di e-mail fallite (`OnboardingJobStateService.complete`);
+3. accoda nell'outbox una sola notifica `IMPORT_COMPLETED` con i conteggi del job — righe applicate per sezione, identità create e collegate, e-mail non inviate — e nessun dato personale.
 
-Non viene pubblicata alcuna notifica di riepilogo.
+La notifica è unica per importazione perché l'applicazione scrive tramite i repository e non passa dai servizi di dominio: non esiste una notifica per riga da sopprimere, quindi non serve alcun `BulkOperationContext`. Un errore della notifica non cambia l'esito del job, che resta `COMPLETED`.
 
 Un errore di e-mail non annulla dati validi. Il risultato resta `COMPLETED` con `setupEmailFailures > 0` e offre **Ritenta e-mail** per i destinatari falliti.
 
@@ -580,7 +601,10 @@ Ogni passo è idempotente. Un riavvio riprende dalle operazioni del journal non 
 - Upload e applicazione richiedono un header `Idempotency-Key` UUID.
 - La chiave di upload è univoca per autore nel tenant (`uq_onboarding_upload_actor`) e restituisce lo stesso job in caso di retry HTTP.
 - La chiave di applicazione è salvata sul job. Durante `APPLYING` la stessa chiave restituisce il job e una chiave diversa produce `409` `onboarding.job.notReady`; su un job `COMPLETED` qualunque chiave restituisce il job.
+- Il frontend conserva la chiave usata e la ripete nei tentativi dopo un errore di rete o un timeout del gateway, così la seconda richiesta è riconosciuta come lo stesso tentativo; dopo un rifiuto con risposta la chiave viene dimenticata, perché il tentativo successivo è un'altra cosa.
 - Il job viene bloccato con `PESSIMISTIC_WRITE` (`findForUpdate`) durante i comandi.
+- La ricognizione seleziona i job in volo con `SELECT … FOR UPDATE SKIP LOCKED`, salta le righe già prese da un'altra istanza e considera soltanto i job fermi da almeno `resume-after-millis` (un minuto per impostazione predefinita), valutando `coalesce(resume_claimed_at, edit_date)`. Il momento in cui li prende viene scritto in `resume_claimed_at` e committato: le scansioni successive ignorano un job appena ripreso, quindi la stessa applicazione non riparte due volte.
+- La ripresa di una validazione avviene nel contesto del tenant del job, come quella dell'applicazione e della compensazione.
 - Validazione e applicazione partono dopo il commit come eventi asincroni (`OnboardingWorker`). `OnboardingRecoveryScheduler`, ogni `worker-delay` millisecondi e su tutti i tenant attivi, riprende fino a 5 job per tenant in `UPLOADED`, `VALIDATING`, `APPLYING` o `COMPENSATING`, senza lock e senza controllarne l'anzianità: un job ancora in lavorazione può essere ripreso una seconda volta. Con Onboarding disattivato riprende soltanto applicazioni e compensazioni. Lo scheduler si disattiva con `recovery-enabled: false`.
 - Nessun job può essere cancellato dopo l'ingresso in `APPLYING`.
 
@@ -606,6 +630,7 @@ I download impostano `Content-Disposition: attachment`, `X-Content-Type-Options:
 POST   /api/onboarding/imports
 GET    /api/onboarding/imports?page=0&size=20&sort=insertDate,desc
 GET    /api/onboarding/imports/{id}
+GET    /api/onboarding/imports/{id}/outcome
 DELETE /api/onboarding/imports/{id}
 POST   /api/onboarding/imports/{id}/retry-validation
 POST   /api/onboarding/imports/{id}/apply
@@ -621,7 +646,7 @@ L'upload usa `multipart/form-data` con:
 - `selectedSections` obbligatorio per XLSX;
 - header `Idempotency-Key` obbligatorio.
 
-Restituisce `202 Accepted`, il DTO del job e `Location: /api/onboarding/imports/{id}`.
+Restituisce `202 Accepted`, il DTO del job e `Location: /api/onboarding/imports/{id}`. Con tre importazioni dello stesso autore già caricate, in validazione o pronte, l'upload risponde `409` `onboarding.pendingJobs.tooMany` con il parametro `maxPendingJobs`.
 
 Il comando `apply` usa un secondo `Idempotency-Key` e un body:
 
@@ -674,7 +699,26 @@ Le pagine hanno dimensione massima 100. Rapporti e anteprime usano `Cache-Contro
 }
 ```
 
-Lo stato del job è ottenuto con polling ogni due secondi, che si ferma sugli stati finali. La risposta non supporta `ETag` né `If-Modified-Since`.
+`GET /api/onboarding/imports/{id}` risponde con un `ETag` costruito su ciò che il wizard mostra — identificativo, stato, fase, avanzamento, totale righe ed e-mail fallite — e con `Cache-Control: no-store`. Con `If-None-Match` uguale la risposta è `304` senza corpo: il polling di una validazione lunga non ritrasmette lo stesso stato. L'intercettore del frontend tratta quel `304` come la risposta vuota che la lettura condizionale ha chiesto, non come un errore.
+
+Lo stato del job è ottenuto con un polling adattivo: due secondi fra le letture, intervallo moltiplicato per 1,5 fino a quindici secondi finché la fase non cambia, e ritorno all'intervallo minimo a ogni cambio di fase. Con la pagina nascosta il polling si sospende e riprende con una lettura immediata al ritorno; si ferma del tutto sugli stati finali.
+
+### DTO esito
+
+```json
+{
+  "status": "COMPLETED",
+  "startedAt": "2026-09-03T18:04:11+02:00",
+  "completedAt": "2026-09-03T18:05:46+02:00",
+  "durationMillis": 95000,
+  "identitiesCreated": 23,
+  "identitiesLinked": 4,
+  "setupEmailFailures": 0,
+  "sections": [
+    { "section": "USERS", "total": 27, "valid": 27, "warnings": 0, "errors": 0, "create": 23, "reuse": 4, "skip": 0, "applied": 27 }
+  ]
+}
+```
 
 ## Architettura backend
 
@@ -696,6 +740,8 @@ OnboardingWorker
 OnboardingRecoveryScheduler
 OnboardingCleanupScheduler
         +-- OnboardingRetentionService
+OnboardingMetrics
+OnboardingNotifier
 ```
 
 Responsabilità:
@@ -712,13 +758,15 @@ Responsabilità:
 - `OnboardingJobStateService`: transizioni finali del job in transazioni proprie;
 - `OnboardingReportService`: rapporto XLSX;
 - `OnboardingRecoveryScheduler`: ripresa dei job interrotti;
-- `OnboardingCleanupScheduler` e `OnboardingRetentionService`: retention di file, staging e job.
+- `OnboardingCleanupScheduler` e `OnboardingRetentionService`: retention di file, staging e job, compreso l'annullamento delle importazioni abbandonate;
+- `OnboardingMetrics`: contatori, timer e distribuzioni Micrometer della funzionalità;
+- `OnboardingNotifier`: la notifica unica di riepilogo nell'outbox.
 
 Non si riusa `upload_job`, perché quel modello descrive la lavorazione di PDF musicali e ha semantica, stati e relazioni incompatibili.
 
 ### Parsing
 
-Il backend possiede già Apache POI. Il file XLSX viene caricato interamente in memoria con `XSSFWorkbook`, entro i limiti `ZipSecureFile` su rapporto di compressione (0,01), dimensione delle voci (20 MB) e testo (10 MB). Non esistono limiti sul numero di celle; la lunghezza di una cella è verificata dopo la lettura.
+Il backend possiede già Apache POI. Il file XLSX viene letto in streaming con il modello a eventi (`OPCPackage`, `XSSFReader` e un gestore SAX per foglio), entro i limiti `ZipSecureFile` su rapporto di compressione (0,01), dimensione delle voci (20 MB) e testo (10 MB): un file al limite di dimensione non diventa mai un modello a oggetti in memoria. Il pacchetto viene comunque aperto per esaminare le parti che il workbook porta oltre ai fogli. La lettura avviene in due passaggi sui fogli, il primo per versione del template e nomi, il secondo per i dati. Celle e numero di celle sono contati durante la lettura: oltre i limiti il file è rifiutato con `TOO_MANY_CELLS` o `CELL_TOO_LONG`.
 
 Per CSV si introduce Apache Commons CSV con versione fissata nel `pom.xml`. Non si implementa un parser artigianale basato su `split`, perché virgolette, ritorni a capo e delimitatori nei valori renderebbero il formato fragile.
 
@@ -728,7 +776,7 @@ Il parser produce record intermedi tipizzati e non entità JPA. Le formule vengo
 
 Il file originale viene salvato tramite il catalogo `media_asset` nella categoria `onboarding-imports`, con MIME dichiarato dal client, dimensione e SHA-256. La chiave di storage è tenant-scoped e non contiene nome del tenant, e-mail o nome file originale.
 
-Il job conserva il digest del file, che non viene riverificato prima della validazione o dell'applicazione.
+Il job conserva il digest del file e la colonna non è aggiornabile, come il documento che descrive. Il digest viene riverificato ogni volta che il contenuto viene riletto — validazione, nuova validazione e preflight dell'applicazione: se non corrisponde, il job va in `INVALID` con `SOURCE_INTEGRITY_FAILURE` e lo staging viene svuotato, perché le righe descrivevano un altro file.
 
 ### Riutilizzo della logica di dominio
 
@@ -740,7 +788,7 @@ Le scritture massive non invocano i controller e non aprono una transazione per 
 
 Tutte le entità create hanno come autore il subject che ha avviato l'applicazione, non il thread tecnico del worker. Il job conserva sia `requestedBy` sia `executedBy`; coincidono, salvo ripresa amministrativa di una compensazione.
 
-L'importazione non genera notifiche: né per inserimento né di riepilogo.
+L'importazione non genera notifiche per riga: ne pubblica una sola di riepilogo, descritta nella Fase D.
 
 ## Sicurezza
 
@@ -759,10 +807,10 @@ La regola HTTP non sostituisce le verifiche applicative su tenant attivo, propri
 
 ### File ostili
 
-- non fidarsi di estensione, MIME dichiarato o nome originale: il formato è riconosciuto dal parser;
+- non fidarsi di estensione, MIME dichiarato o nome originale: il formato è riconosciuto dalla firma del contenuto prima di aprire qualunque parser;
 - impedire path traversal e non estrarre il contenuto XLSX sul filesystem applicativo;
-- limiti POI contro ZIP bomb e decompressione eccessiva;
-- rifiutare macro, celle formula e collegamenti esterni del workbook;
+- limiti POI contro ZIP bomb e decompressione eccessiva, più i limiti propri su celle e lunghezza delle celle;
+- rifiutare macro, celle formula, collegamenti esterni, relazioni DDE e oggetti incorporati del workbook, esaminando le parti del pacchetto e non soltanto i fogli;
 - non risolvere URL contenuti nelle celle;
 - neutralizzare formula injection nei rapporti esportati;
 - non scrivere valori delle celle nei log;
@@ -786,14 +834,15 @@ I file possono contenere e-mail e date di nascita. Di conseguenza:
 
 - dopo `source-retention-days` (default 30), per i job `INVALID`, `CANCELLED`, `FAILED` e `COMPLETED`: elimina righe di staging e problemi, riduce il journal identità (`row_id` e `previous_roles` azzerati; restano tipo, ID Keycloak ed esiti), imposta `source_removed_at` e libera il file sorgente tramite `MediaService.deleteIfUnreferenced`;
 - dopo `audit-retention-days` (default 365), per i job con `source_removed_at` valorizzato: elimina il job, con sezioni e journal in cascata;
+- dopo `abandoned-retention-days` (default 7), calcolati da `insert_date`, per i job `UPLOADED` e `READY` mai confermati: il job passa a `CANCELLED` con fase e codice `ABANDONED` e il file sorgente viene liberato subito, perché un'importazione abbandonata non deve conservare documenti e dati personali senza limite;
 - job `COMPENSATION_REQUIRED`: nessuna pulizia automatica;
-- job non conclusi (`UPLOADED`, `VALIDATING`, `READY`, `APPLYING`, `COMPENSATING`): nessuna pulizia automatica, anche se abbandonati.
+- job in volo (`VALIDATING`, `APPLYING`, `COMPENSATING`): nessuna pulizia automatica, perché la ripresa li riporta a uno stato finale.
 
 `MediaRepository.isUnreferenced` considera referenziato il file di un job finché `source_removed_at` è vuoto. I rapporti non sono conservati: vengono generati al momento dalle righe di staging, quindi dopo la pulizia non contengono più righe.
 
 Dopo la pulizia il job resta consultabile con conteggi, hash, versione template, autore, esito e date, ma l'anteprima non è più disponibile. Una nuova validazione o un nuovo invio delle e-mail rispondono `409` `onboarding.job.sourceRemoved`.
 
-La migrazione tenant `20261022000001_onboarding_retention.xml` aggiunge `source_removed_at` e rende `onboarding_identity_operation.row_id` facoltativo con `ON DELETE SET NULL`.
+La migrazione tenant `20261022000001_onboarding_retention.xml` aggiunge `source_removed_at` e rende `onboarding_identity_operation.row_id` facoltativo con `ON DELETE SET NULL`. La migrazione `20261028000000_onboarding_resume_claim.xml` aggiunge `resume_claimed_at`, il momento in cui la ricognizione ha preso il job per l'ultima volta.
 
 ## Configurazione
 
@@ -808,14 +857,19 @@ application:
     max-user-rows: 2000
     max-columns: 64
     max-cell-length: 10000
+    max-cells: 400000
     max-issues: 10000
+    max-pending-jobs-per-user: 3
+    resume-after-millis: 60000
+    identity-concurrency: 4
+    abandoned-retention-days: 7
     source-retention-days: 30
     audit-retention-days: 365
     worker-batch-size: 5
     cleanup-cron: "0 30 4 * * *"
 ```
 
-Le proprietà sono validate all'avvio con vincoli di minimo (`worker-delay` almeno 250, limiti, retention e batch size positivi, `max-columns` al massimo 256). `recovery-enabled` attiva `OnboardingRecoveryScheduler`. `max-issues` e `worker-batch-size` non sono usati: lo scheduler di ripresa prende al massimo 5 job per tenant a ogni giro.
+Le proprietà sono validate all'avvio con vincoli di minimo (`worker-delay` almeno 250, `resume-after-millis` almeno 1000, limiti, retention e batch size positivi, `max-columns` al massimo 256, `identity-concurrency` fra 1 e 16). `recovery-enabled` attiva `OnboardingRecoveryScheduler`, che prende al massimo `worker-batch-size` job per tenant a ogni giro e soltanto quelli fermi da `resume-after-millis`.
 
 ## Frontend
 
@@ -828,7 +882,7 @@ Nuova route:
 /onboarding/imports/:id
 ```
 
-Il menu mostra **Configurazione iniziale** a Super Admin e Admin quando il tenant attivo è valido. Il dettaglio tenant globale può mostrare **Configura dati** soltanto nel contesto sicuro descritto in precedenza.
+Il menu mostra **Configurazione iniziale** a Super Admin e Admin quando il tenant attivo è valido. Il dettaglio tenant globale può mostrare **Configura dati** soltanto nel contesto sicuro descritto in precedenza; su un altro tenant attivo con la funzionalità abilitata, al posto del pulsante compare un avviso che spiega che il wizard importa sempre nei dati dell'istanza della sessione e invita ad accedere con un'utenza di quell'istanza.
 
 La pagina principale mostra anche gli ultimi job, così un amministratore può riprendere una validazione o un'applicazione avviata da un collega.
 
@@ -851,12 +905,12 @@ Il file usa `p-fileupload` con `customUpload`, `multiple=false`, caricamento non
 - `p-table` paginata lato server;
 - filtri per sezione ed esito;
 - valori della riga letti dalla mappa `values` del DTO;
-- riga e cella con errore non collegate al messaggio tramite `aria-describedby`;
+- cella segnalata collegata al messaggio del proprio problema con `aria-describedby`, quando il problema è nella pagina aperta;
 - `p-tag` con stati italiani `Valida`, `Avviso`, `Errore`, `Applicata`, `Saltata`;
 - azioni delle righe localizzate come `Crea`, `Riutilizza`, `Ignora`;
 - nessun editor di cella;
-- elenco dei problemi senza paginazione;
-- nessuna vista dedicata sotto 768 pixel.
+- elenco dei problemi paginato a 25 per pagina, con `p-paginator` mostrato soltanto oltre la prima pagina;
+- vista compatta sotto 768 pixel: valori in colonna singola, problemi impilati, azioni a larghezza piena ed esito a due colonne.
 
 ### Progresso e stati
 
@@ -888,11 +942,22 @@ Gli errori del backend mostrano i testi del catalogo `api-error-messages.ts` (ch
 - un file non conforme al template non produce un errore HTTP: il job termina `INVALID` con il problema globale;
 - risultato `COMPENSATION_REQUIRED`: avviso **Ripristino incompleto** con il comando **Ritenta ripristino**.
 
-Il riepilogo dell'errore porta il titolo **Caricamento non riuscito**, **Importazione non avviata** oppure **Onboarding non disponibile** per il contesto. Un nuovo tentativo dopo un errore di rete usa una nuova `Idempotency-Key`.
+Il riepilogo dell'errore porta il titolo **Caricamento non riuscito**, **Importazione non avviata** oppure **Onboarding non disponibile** per il contesto. Un nuovo tentativo dopo un errore di rete o un timeout del gateway ripete la stessa `Idempotency-Key`, così una richiesta persa non viene applicata due volte; dopo un rifiuto con risposta la chiave viene dimenticata.
 
 ## Osservabilità
 
-Il modulo non registra metriche Micrometer. I log contengono tenant e job ID, il riepilogo della retention (`onboarding_retention`) e gli errori di ripresa e pulizia; non contengono valori delle righe.
+Il modulo registra metriche Micrometer con il prefisso `taurus.onboarding.` ed etichette a insieme chiuso, senza codici tenant né valori delle righe:
+
+| Metrica | Tipo | Etichette |
+| --- | --- | --- |
+| `taurus.onboarding.validation`, `taurus.onboarding.validation.duration` | contatore e timer | `outcome`: `ready`, `invalid` o il codice che ha rifiutato il file |
+| `taurus.onboarding.validation.rows`, `taurus.onboarding.validation.issues` | distribuzioni con istogramma | — |
+| `taurus.onboarding.apply`, `taurus.onboarding.apply.duration` | contatore e timer | `outcome`: `completed`, `failed`, `compensation_required` |
+| `taurus.onboarding.identities` | contatore | `operation`: `create`, `link_existing`, compensazioni; `outcome`: `done`, `failed` |
+| `taurus.onboarding.setup.emails` | contatore | `outcome`: `sent`, `failed` |
+| `taurus.onboarding.retention` | contatore | `phase`: `abandoned`, `sources`, `records` |
+
+I log contengono tenant e job ID, il riepilogo della retention (`onboarding_retention`) e gli errori di ripresa e pulizia; non contengono valori delle righe.
 
 Alert raccomandati:
 
@@ -993,6 +1058,15 @@ I test Keycloak devono usare un container o un ambiente isolato, non mockare l'i
 8. Le e-mail fallite vengono ritentate senza reinviare quelle già riuscite.
 9. Due tenant importano file omonimi senza condividere file, staging o dati.
 
+### Copertura attuale
+
+- `OnboardingFileInspectionServiceTest`: CSV con delimitatori e virgolette, colonne opzionali, formule, parti ostili del pacchetto (macro, collegamenti esterni, oggetti OLE e ActiveX), formato dichiarato diverso dal contenuto, limiti di cella e di celle, workbook e CSV da 5.000 righe entro l'obiettivo;
+- `OnboardingImportIT`: isolamento fra tenant, idempotenza di upload e applicazione, rifiuto dei dati non validi, suono e trasposizione degli strumenti, preflight su impronta e conflitti nati dopo la validazione, altra importazione in corso, limite di importazioni in attesa, lettura condizionale con `ETag`, esito del job, rifiuto di ogni endpoint a chi non amministra il tenant, ripresa dopo riavvio in validazione, applicazione e compensazione, importazione completa da 5.000 righe;
+- `OnboardingKeycloakIT` e `OnboardingIdentitySagaServiceTest`: identità create e collegate, journal, compensazione e concorrenza della preparazione;
+- `OnboardingRecoverySchedulerTest`, `OnboardingRetentionServiceTest`, `OnboardingReportServiceTest`, `OnboardingTemplateServiceTest`, `OnboardingInstrumentPlaybackTest`: ripresa, retention, rapporto, template e suoni;
+- frontend: `onboarding.component.spec.ts` (passi, etichette italiane, esito, moduli attivi, chiave di idempotenza conservata, collegamento `aria-describedby`, ultima importazione), `onboarding.service.spec.ts` (chiavi di idempotenza, lettura condizionale, esito) e `http-interceptor.service.spec.ts` (`304` trattato come risposta vuota);
+- end to end: `onboarding-import.spec.ts` apre la procedura guidata per ruolo, scarica il modello, verifica accessibilità e larghezze. Gli scenari 1-9 non vengono automatizzati, perché un'importazione lascerebbe nell'ambiente dati che la modalità additiva non può togliere: restano verifiche manuali del runbook di test.
+
 ## Migrazione Liquibase
 
 Il changelog tenant `20260905030000_tenant_onboarding_import.xml` crea:
@@ -1017,9 +1091,9 @@ Vincoli minimi:
 - indice sui problemi per `(job_id, severity, section, row_number)`;
 - indice sulle righe per `(job_id, section, status, row_number)`.
 
-La garanzia di un solo job in applicazione è data dall'indice unico parziale `uq_onboarding_single_apply`, che ammette una sola riga `APPLYING` o `COMPENSATING` non eliminata, e dal controllo `existsByStatus` al comando `apply`. Non si usa un advisory lock.
+La garanzia di un solo job in applicazione è data da tre difese in fila: l'advisory lock di transazione dello schema preso al comando `apply`, il controllo `existsByStatus` eseguito mentre il lock è tenuto e l'indice unico parziale `uq_onboarding_single_apply`, che ammette una sola riga `APPLYING` o `COMPENSATING` non eliminata.
 
-`20260906020000_onboarding_recovery.xml` aggiunge al journal lo stato di consegna delle e-mail (`setup_email_status`), così il nuovo invio resta selettivo dopo un riavvio. `20261022000001_onboarding_retention.xml` introduce `source_removed_at` e il `row_id` facoltativo del journal.
+`20260906020000_onboarding_recovery.xml` aggiunge al journal lo stato di consegna delle e-mail (`setup_email_status`), così il nuovo invio resta selettivo dopo un riavvio. `20261022000001_onboarding_retention.xml` introduce `source_removed_at` e il `row_id` facoltativo del journal. `20261028000000_onboarding_resume_claim.xml` aggiunge `resume_claimed_at`, su cui si appoggia la ripresa con `FOR UPDATE SKIP LOCKED`.
 
 ## Criteri di accettazione
 
@@ -1084,6 +1158,7 @@ taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/OnboardingResource.ja
 taurus-be/src/main/resources/config/liquibase/changelog/20260905030000_tenant_onboarding_import.xml
 taurus-be/src/main/resources/config/liquibase/changelog/20260906020000_onboarding_recovery.xml
 taurus-be/src/main/resources/config/liquibase/changelog/20261022000001_onboarding_retention.xml
+taurus-be/src/main/resources/config/liquibase/changelog/20261028000000_onboarding_resume_claim.xml
 ```
 
 ### Backend modificati
@@ -1113,6 +1188,8 @@ taurus-fe/src/app/pages/onboarding/onboarding.component.*
 taurus-fe/src/app/components/menu/menu.component.ts
 taurus-fe/src/app/pages/tenants/detail/detail.component.ts
 taurus-fe/src/app/pages/tenants/detail/detail.component.html
+taurus-fe/src/app/constants/api-error-messages.ts
+taurus-fe/src/app/interceptor/http-interceptor.service.ts
 taurus-fe/src/app/service/index.ts
 taurus-fe/src/app/module/index.ts
 ```
@@ -1133,26 +1210,6 @@ Ogni evoluzione che modifica dati esistenti deve introdurre una modalità distin
 
 ## Requisiti aperti
 
-- Preflight completo all'avvio dell'applicazione, con verifica dell'hash del file e ripetizione dei controlli dinamici: un conflitto riporta il job in `INVALID` senza modifiche esterne (Validazione, Livello 5; Fase A; Criteri di accettazione 10).
-- `OPENING_BALANCE_NOT_ALLOWED` segnalato in validazione per i conti con movimenti (Saldi iniziali; Livello 4).
-- Limite dei problemi conservati con `max-issues` e problema globale `TOO_MANY_ISSUES` (Limiti).
-- Limite di 3 job caricati o in validazione per utente (Limiti).
-- Notifica unica di riepilogo nell'outbox con `BulkOperationContext` (Decisioni principali; Fase D; Audit e notifiche).
-- Metriche Micrometer `taurus.onboarding.*` e alert su `COMPENSATION_REQUIRED`, job bloccati e fallimenti (Osservabilità).
-- Lettura XLSX in streaming SAX (`XSSFReader`) con limiti per cella e sul numero di celle (Parsing; Limiti).
-- Rilevamento del MIME reale e rifiuto di relazioni esterne e DDE, oltre a macro, formule e collegamenti (Validazione, Livello 1; File ostili).
-- Selezione dei job con `FOR UPDATE SKIP LOCKED` e ripresa dei soli job fermi da un tempo minimo, per escludere la doppia applicazione (Concorrenza e idempotenza; Architettura backend).
-- Coordinamento dell'applicazione con advisory lock PostgreSQL (Fase A; Migrazione Liquibase).
-- Codice `SOURCE_INTEGRITY_FAILURE` per un file che non corrisponde al digest (Storage del file).
-- Colonna valorizzata per ogni problema di formato e `VALUE_INVALID_ENUM` per tutti gli enum di dominio (Validazione, Livello 2; Errori e avvisi).
-- Avviso `KEYCLOAK_IDENTITY_WILL_BE_LINKED` in validazione per identità Keycloak esistenti (Utenti; Errori e avvisi).
-- Template con righe di esempio, legenda ed etichette italiane di ruoli e condizioni (Workbook XLSX completo; Colonne dei template).
-- Invito a cambiare istanza quando il tenant visualizzato non è quello attivo (Separazione tra creazione del tenant e onboarding).
-- **Ultima importazione** nella checklist (Stato dell'onboarding).
-- Esito con dati creati, riutilizzati e saltati per sezione, utenti Keycloak creati o collegati e durata; collegamenti a Inventario ed Economia solo con il modulo attivo (Passo 5 - Esito).
-- Elenco problemi paginato, collegamento `aria-describedby` tra cella e messaggio e vista compatta sotto 768 pixel (Anteprima).
-- Polling adattivo con pausa a pagina nascosta e supporto `ETag` o `If-Modified-Since` (DTO job; Frontend test).
-- Riuso della stessa `Idempotency-Key` nei tentativi dopo un errore di rete (Errori frontend).
-- Elaborazione delle identità Keycloak con concorrenza configurabile, predefinita 4 (Prestazioni attese).
-- Decidere una scadenza per i job `UPLOADED` e `READY` abbandonati, che oggi conservano file e dati personali senza limite (Retention).
-- Test di sicurezza, frontend ed end-to-end non coperti dai test esistenti (`OnboardingImportIT`, `OnboardingKeycloakIT` e unit test dei servizi), carico da 5.000 righe e simulazione di riavvio in ogni fase della saga (Strategia di test; Prestazioni attese).
+- Alert su `COMPENSATION_REQUIRED`, job bloccati e tasso di fallimenti: le metriche `taurus.onboarding.*` sono pubblicate, ma le soglie vanno configurate nel sistema di monitoraggio dell'installazione, fuori da questo repository (Osservabilità).
+- Scenari end to end 1-9: restano verifiche manuali del runbook di test (`ONB-001`…`ONB-016` di [Runbook di test e qualificazione Taurus](runbook-test.md)), perché una suite automatica dovrebbe importare dati che la modalità additiva non può rimuovere (Strategia di test).
+- Obiettivi di prestazione del `p95` su 5.000 righe: misurati in staging con l'ambiente completo; i test automatici verificano il completamento entro un tempo massimo, non i percentili (Prestazioni attese).

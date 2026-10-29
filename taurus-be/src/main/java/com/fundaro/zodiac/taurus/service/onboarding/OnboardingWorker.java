@@ -21,15 +21,20 @@ public class OnboardingWorker {
     private final OnboardingIdentitySagaService identities;
     private final OnboardingDomainApplicationService domains;
     private final OnboardingJobStateService states;
+    private final OnboardingNotifier notifier;
+    private final OnboardingMetrics metrics;
 
     public OnboardingWorker(OnboardingValidationService validation, OnboardingImportJobRepository jobs, OnboardingImportRowRepository rows,
-                            OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains, OnboardingJobStateService states) {
+                            OnboardingIdentitySagaService identities, OnboardingDomainApplicationService domains, OnboardingJobStateService states,
+                            OnboardingNotifier notifier, OnboardingMetrics metrics) {
         this.validation = validation;
         this.jobs = jobs;
         this.rows = rows;
         this.identities = identities;
         this.domains = domains;
         this.states = states;
+        this.notifier = notifier;
+        this.metrics = metrics;
     }
 
     @Async
@@ -49,10 +54,11 @@ public class OnboardingWorker {
     }
 
     public void resumeCompensation(Long jobId, String tenantCode) {
-        TenantContext.run(tenantCode, () -> compensateCurrentTenant(jobId, tenantCode));
+        TenantContext.run(tenantCode, () -> compensateCurrentTenant(jobId, tenantCode, System.currentTimeMillis()));
     }
 
     private void applyCurrentTenant(OnboardingWorkEvents.Apply event) {
+        long startedAt = System.currentTimeMillis();
         OnboardingImportJob job = jobs.findByIdAndDeletedFalse(event.jobId()).orElseThrow();
         List<OnboardingImportRow> staged = rows.findAllByJob_IdOrderBySectionAscRowNumberAsc(event.jobId());
         List<OnboardingImportRow> userRows = staged.stream()
@@ -64,13 +70,15 @@ public class OnboardingWorker {
             domains.apply(job.getId(), staged, prepared, event.tenantCode(), event.actor());
             int emailFailures = job.isSendSetupEmails() ? identities.sendSetupEmails(job.getId()) : 0;
             states.complete(job.getId(), emailFailures);
+            metrics.application("completed", System.currentTimeMillis() - startedAt);
+            notifier.summary(job.getId(), event.actor(), emailFailures);
         } catch (RuntimeException exception) {
             states.markCompensating(job.getId());
-            compensateCurrentTenant(job.getId(), event.tenantCode());
+            compensateCurrentTenant(job.getId(), event.tenantCode(), startedAt);
         }
     }
 
-    private void compensateCurrentTenant(Long jobId, String tenantCode) {
+    private void compensateCurrentTenant(Long jobId, String tenantCode, long startedAt) {
         boolean compensated;
         try {
             compensated = identities.compensate(jobId, tenantCode);
@@ -78,5 +86,6 @@ public class OnboardingWorker {
             compensated = false;
         }
         states.fail(jobId, compensated);
+        metrics.application(compensated ? "failed" : "compensation_required", System.currentTimeMillis() - startedAt);
     }
 }

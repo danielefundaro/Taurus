@@ -286,7 +286,12 @@ application:
     max-user-rows: 2000
     max-columns: 64
     max-cell-length: 10000
+    max-cells: 400000
     max-issues: 10000
+    max-pending-jobs-per-user: 3
+    resume-after-millis: 60000
+    identity-concurrency: 4
+    abandoned-retention-days: 7
     source-retention-days: 30
     audit-retention-days: 365
     worker-batch-size: 5

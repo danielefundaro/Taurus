@@ -1,16 +1,22 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, forkJoin, interval, startWith, switchMap } from 'rxjs';
+import { Subscription, forkJoin, switchMap, timer } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { OnboardingContext, OnboardingIssue, OnboardingJob, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../../module';
+import { OnboardingContext, OnboardingIssue, OnboardingJob, OnboardingOutcome, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../../module';
 import { OnboardingService, withErrorSummary } from '../../service';
+import { PaginatorModule } from 'primeng/paginator';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { StepperModule } from 'primeng/stepper';
+
+/** The shortest and the longest interval between two reads of a job in progress. */
+const POLL_MIN = 2000;
+const POLL_MAX = 15000;
+const PROBLEM_PAGE_SIZE = 25;
 
 @Component({
     selector: 'app-onboarding',
     standalone: true,
-    imports: [ImportsModule, ProgressBarModule, StepperModule],
+    imports: [ImportsModule, PaginatorModule, ProgressBarModule, StepperModule],
     templateUrl: './onboarding.component.html',
     styleUrl: './onboarding.component.scss'
 })
@@ -18,11 +24,14 @@ export class OnboardingComponent implements OnInit {
     protected context?: OnboardingContext;
     protected recentJobs: OnboardingJob[] = [];
     protected job?: OnboardingJob;
+    protected outcome?: OnboardingOutcome;
     protected summaries: OnboardingSectionSummary[] = [];
     protected preview: OnboardingRow[] = [];
     protected problems: OnboardingIssue[] = [];
     protected previewTotal = 0;
     protected problemTotal = 0;
+    protected problemPage = 0;
+    protected readonly problemPageSize = PROBLEM_PAGE_SIZE;
     protected selectedFile?: File;
     protected format: 'XLSX' | 'CSV' = 'XLSX';
     protected csvSection: OnboardingSection = 'USERS';
@@ -74,6 +83,7 @@ export class OnboardingComponent implements OnInit {
         FILE_UNSUPPORTED_FORMAT: 'Formato del file non supportato',
         MACRO_NOT_ALLOWED: 'Macro non consentite',
         FILE_EXTERNAL_LINKS: 'Collegamenti esterni non consentiti',
+        FILE_EMBEDDED_OBJECT: 'Oggetti incorporati non consentiti',
         TEMPLATE_VERSION_UNSUPPORTED: 'Versione del modello non supportata',
         SHEET_HEADER_MISSING: 'Intestazione del foglio mancante',
         FORMULA_NOT_ALLOWED: 'Formule non consentite',
@@ -103,7 +113,11 @@ export class OnboardingComponent implements OnInit {
         PLAYBACK_PROPOSED: 'Suono proposto dal nome',
         PLAYBACK_NOT_CONFIGURED: "Strumento da configurare per l'ascolto",
         PLAYBACK_NOT_APPLIED: 'Suono indicato non applicato',
-        OPENING_BALANCE_NOT_ALLOWED: 'Saldo iniziale non consentito'
+        OPENING_BALANCE_NOT_ALLOWED: 'Saldo iniziale non consentito',
+        KEYCLOAK_IDENTITY_WILL_BE_LINKED: 'Utenza Keycloak esistente collegata',
+        SOURCE_INTEGRITY_FAILURE: 'Il file caricato non corrisponde più',
+        TOO_MANY_ISSUES: 'Troppi problemi: elenco troncato',
+        TOO_MANY_CELLS: 'Troppe celle nel file'
     };
     private readonly stageLabels: Record<string, string> = {
         QUEUED_FOR_VALIDATION: 'In attesa di validazione',
@@ -117,17 +131,43 @@ export class OnboardingComponent implements OnInit {
         COMPLETED: 'Elaborazione completata',
         COMPENSATED: 'Modifiche annullate correttamente',
         COMPENSATION_REQUIRED: 'Ripristino manuale richiesto',
-        CANCELLED: 'Importazione annullata'
+        CANCELLED: 'Importazione annullata',
+        SOURCE_INTEGRITY_FAILURE: 'File non più corrispondente',
+        PREFLIGHT_CONFLICT: 'Controlli prima dell’avvio non superati',
+        FEATURE_DEPENDENCY_DISABLED: 'Funzionalità richiesta non attiva',
+        VALIDATION_TECHNICAL_FAILURE: 'Validazione interrotta da un errore tecnico',
+        APPLICATION_FAILED: 'Importazione non applicata',
+        KEYCLOAK_PREPARE_FAILED: 'Preparazione delle identità non riuscita',
+        KEYCLOAK_COMPENSATION_FAILED: 'Ripristino delle identità non riuscito',
+        COMPENSATION_INCOMPLETE: 'Ripristino incompleto',
+        SETUP_EMAIL_FAILED: 'E-mail di configurazione non inviate',
+        ABANDONED: 'Importazione scaduta senza conferma'
     };
     private polling?: Subscription;
+    private pollingId?: number;
+    private pollDelay = POLL_MIN;
+    private jobEtag?: string;
+    /** Kept across a retry so a request lost on the network is not applied twice by the second attempt. */
+    private uploadKey?: string;
+    private applyKey?: string;
     private readonly destroyRef = inject(DestroyRef);
+    private readonly onVisibilityChange = () => {
+        if (document.hidden) {
+            this.polling?.unsubscribe();
+            return;
+        }
+        if (this.pollingId && this.job && this.inProgress(this.job)) {
+            this.pollDelay = POLL_MIN;
+            this.poll(0);
+        }
+    };
 
     constructor(
         private readonly onboarding: OnboardingService,
         private readonly route: ActivatedRoute,
         private readonly router: Router
     ) {
-        this.destroyRef.onDestroy(() => this.polling?.unsubscribe());
+        this.destroyRef.onDestroy(() => this.stopPolling());
     }
     get isDirty(): boolean {
         return !!this.selectedFile && !this.job;
@@ -153,30 +193,52 @@ export class OnboardingComponent implements OnInit {
     protected upload(): void {
         if (!this.selectedFile || this.busy) return;
         this.busy = true;
-        this.onboarding.upload(this.selectedFile, this.format, this.format === 'CSV' ? this.csvSection : undefined, this.format === 'XLSX' ? this.selectedSections : [], crypto.randomUUID(), withErrorSummary('Caricamento non riuscito')).subscribe({
+        this.uploadKey ??= crypto.randomUUID();
+        this.onboarding.upload(this.selectedFile, this.format, this.format === 'CSV' ? this.csvSection : undefined, this.format === 'XLSX' ? this.selectedSections : [], this.uploadKey, withErrorSummary('Caricamento non riuscito')).subscribe({
             next: (job) => {
                 this.busy = false;
+                this.uploadKey = undefined;
                 this.selectedFile = undefined;
+                this.jobEtag = undefined;
                 this.job = job;
                 this.activeStep = 3;
                 this.router.navigate(['/onboarding/imports', job.id], { replaceUrl: true });
                 this.startPolling(job.id);
             },
-            error: () => (this.busy = false)
+            error: (error) => {
+                this.busy = false;
+                this.forgetKeyUnlessLost(error, 'upload');
+            }
         });
     }
     protected apply(): void {
         if (!this.job || !this.canApply || this.busy) return;
         this.busy = true;
-        this.onboarding.apply(this.job.id, this.warningsAccepted, this.sendSetupEmails, crypto.randomUUID(), withErrorSummary('Importazione non avviata')).subscribe({
+        this.applyKey ??= crypto.randomUUID();
+        this.onboarding.apply(this.job.id, this.warningsAccepted, this.sendSetupEmails, this.applyKey, withErrorSummary('Importazione non avviata')).subscribe({
             next: (job) => {
                 this.busy = false;
+                this.applyKey = undefined;
                 this.job = job;
                 this.activeStep = 5;
                 this.startPolling(job.id);
             },
-            error: () => (this.busy = false)
+            error: (error) => {
+                this.busy = false;
+                this.forgetKeyUnlessLost(error, 'apply');
+            }
         });
+    }
+    /**
+     * A request lost before an answer keeps its key, so the retry is recognized as the same attempt instead of
+     * uploading the file twice or starting a second application. An answered refusal forgets it: the next attempt is
+     * a different one.
+     */
+    private forgetKeyUnlessLost(error: unknown, command: 'upload' | 'apply'): void {
+        const status = (error as { status?: number } | undefined)?.status;
+        if (status === 0 || status === undefined || status === 504) return;
+        if (command === 'upload') this.uploadKey = undefined;
+        else this.applyKey = undefined;
     }
     protected retryValidation(): void {
         if (!this.job) return;
@@ -202,10 +264,15 @@ export class OnboardingComponent implements OnInit {
     }
     protected loadProblems(page = 0): void {
         if (!this.job) return;
-        this.onboarding.issues(this.job.id, undefined, this.sectionFilter, page, 50).subscribe((result) => {
+        this.problemPage = page;
+        this.onboarding.issues(this.job.id, undefined, this.sectionFilter, page, PROBLEM_PAGE_SIZE).subscribe((result) => {
             this.problems = result.content;
             this.problemTotal = result.totalElements;
         });
+    }
+    /** The page chosen in the problems paginator: a file with thousands of problems is read a page at a time. */
+    protected onProblemPage(event: { first?: number; rows?: number }): void {
+        this.loadProblems(Math.floor((event.first ?? 0) / (event.rows ?? PROBLEM_PAGE_SIZE)));
     }
     protected resetFilters(): void {
         this.sectionFilter = undefined;
@@ -250,6 +317,31 @@ export class OnboardingComponent implements OnInit {
     protected entries(row: OnboardingRow): Array<{ key: string; value: unknown }> {
         return Object.entries(row.values).map(([key, value]) => ({ key, value }));
     }
+    /**
+     * The problem shown on a value among those listed below, so the cell can point to its message with
+     * aria-describedby: a screen reader then reads the reason together with the value instead of a lone colour.
+     */
+    protected problemOf(row: OnboardingRow, column: string): OnboardingIssue | undefined {
+        return this.problems.find((issue) => issue.rowNumber === row.rowNumber && issue.columnName === column && (!issue.section || issue.section === row.section));
+    }
+    protected problemId(issue?: OnboardingIssue): string | null {
+        return issue ? `onboarding-problem-${issue.id}` : null;
+    }
+    /** How long the import took, from the first write to the last one. */
+    protected durationLabel(millis?: number): string {
+        if (millis === undefined || millis === null) return 'non disponibile';
+        const seconds = Math.round(millis / 1000);
+        if (seconds < 60) return `${seconds} s`;
+        const minutes = Math.floor(seconds / 60);
+        return `${minutes} min ${String(seconds % 60).padStart(2, '0')} s`;
+    }
+    /** Whether the module that owns the section is active for the tenant: its link is offered only then. */
+    protected moduleActive(section: OnboardingSection): boolean {
+        return !!this.context?.availableSections.includes(section);
+    }
+    protected get appliedSections(): OnboardingSectionSummary[] {
+        return (this.outcome?.sections ?? []).filter((section) => section.total > 0);
+    }
 
     private loadContext(): void {
         const context = withErrorSummary('Onboarding non disponibile');
@@ -265,8 +357,11 @@ export class OnboardingComponent implements OnInit {
         });
     }
     private loadJob(id: number, poll: boolean): void {
+        this.jobEtag = undefined;
         this.onboarding.job(id).subscribe({
-            next: (job) => {
+            next: ({ job, etag }) => {
+                if (!job) return;
+                this.jobEtag = etag;
                 this.job = job;
                 this.syncStep();
                 this.loadDetails();
@@ -275,33 +370,73 @@ export class OnboardingComponent implements OnInit {
             error: () => this.router.navigate(['/onboarding'])
         });
     }
+    /**
+     * Follows the import while it works. The interval grows while nothing moves and goes back to the shortest one as
+     * soon as the phase changes; a hidden page polls nothing at all and reads again as soon as it comes back.
+     */
     private startPolling(id: number): void {
-        this.polling?.unsubscribe();
-        this.polling = interval(2000)
-            .pipe(
-                startWith(0),
-                switchMap(() => this.onboarding.job(id))
-            )
-            .subscribe((job) => {
-                const changedStage = job.stage !== this.job?.stage;
-                this.job = job;
-                this.syncStep();
-                if (changedStage || !this.inProgress(job)) this.loadDetails();
-                if (!this.inProgress(job)) this.polling?.unsubscribe();
+        this.stopPolling();
+        this.pollingId = id;
+        this.pollDelay = POLL_MIN;
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
+        this.poll(0);
+    }
+    private poll(delay: number): void {
+        const id = this.pollingId;
+        if (id === undefined) return;
+        this.polling = timer(delay)
+            .pipe(switchMap(() => this.onboarding.job(id, this.jobEtag)))
+            .subscribe({
+                next: ({ job, etag }) => {
+                    this.jobEtag = etag;
+                    if (job) {
+                        const changedStage = job.stage !== this.job?.stage;
+                        this.job = job;
+                        this.syncStep();
+                        if (changedStage || !this.inProgress(job)) this.loadDetails();
+                        this.pollDelay = changedStage ? POLL_MIN : this.slower();
+                        if (!this.inProgress(job)) {
+                            this.stopPolling();
+                            return;
+                        }
+                    } else {
+                        this.pollDelay = this.slower();
+                    }
+                    if (!document.hidden) this.poll(this.pollDelay);
+                },
+                error: () => this.stopPolling()
             });
+    }
+    private slower(): number {
+        return Math.min(POLL_MAX, Math.round(this.pollDelay * 1.5));
+    }
+    private stopPolling(): void {
+        this.polling?.unsubscribe();
+        this.polling = undefined;
+        this.pollingId = undefined;
+        document.removeEventListener('visibilitychange', this.onVisibilityChange);
     }
     private loadDetails(): void {
         if (!this.job) return;
+        this.problemPage = 0;
         forkJoin({
             sections: this.onboarding.sections(this.job.id),
             rows: this.onboarding.rows(this.job.id, this.sectionFilter, this.rowStatusFilter, 0, 50),
-            issues: this.onboarding.issues(this.job.id, undefined, this.sectionFilter, 0, 50)
+            issues: this.onboarding.issues(this.job.id, undefined, this.sectionFilter, 0, PROBLEM_PAGE_SIZE)
         }).subscribe(({ sections, rows, issues }) => {
             this.summaries = sections;
             this.preview = rows.content;
             this.previewTotal = rows.totalElements;
             this.problems = issues.content;
             this.problemTotal = issues.totalElements;
+        });
+        if (this.finished(this.job)) this.loadOutcome(this.job.id);
+    }
+    /** What the import left behind, read once it has finished: it is the closing report of the last step. */
+    private loadOutcome(id: number): void {
+        this.onboarding.outcome(id).subscribe({
+            next: (outcome) => (this.outcome = outcome),
+            error: () => (this.outcome = undefined)
         });
     }
     private syncStep(): void {
@@ -313,6 +448,9 @@ export class OnboardingComponent implements OnInit {
     }
     private inProgress(job: OnboardingJob): boolean {
         return ['UPLOADED', 'VALIDATING', 'APPLYING', 'COMPENSATING'].includes(job.status);
+    }
+    private finished(job: OnboardingJob): boolean {
+        return ['COMPLETED', 'FAILED', 'COMPENSATION_REQUIRED'].includes(job.status);
     }
     private download(blob: Blob, name: string): void {
         const url = URL.createObjectURL(blob);

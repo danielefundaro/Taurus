@@ -12,6 +12,7 @@ import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.User;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.impl.KeycloakServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -49,6 +50,7 @@ class OnboardingKeycloakIT {
         .withStartupTimeout(Duration.ofMinutes(3));
 
     private static KeycloakService keycloakService;
+    private static final OnboardingMetrics metrics = new OnboardingMetrics(new SimpleMeterRegistry());
 
     @BeforeAll
     static void configureClient() throws Exception {
@@ -105,7 +107,7 @@ class OnboardingKeycloakIT {
         String tenant = createTenantGroup();
         String email = "new-" + UUID.randomUUID() + "@example.org";
         Journal journal = new Journal();
-        OnboardingIdentitySagaService saga = new OnboardingIdentitySagaService(keycloakService, journal.repository());
+        OnboardingIdentitySagaService saga = new OnboardingIdentitySagaService(keycloakService, journal.repository(), metrics, new ApplicationProperties());
         OnboardingImportRow row = userRow(1L, email, "Nuovo", "Utente", "ADMIN|USER");
 
         String userId = saga.prepare(new OnboardingImportJob(), List.of(row), tenant).get(1L);
@@ -132,7 +134,7 @@ class OnboardingKeycloakIT {
         keycloakService.saveUser(original);
         String userId = keycloakService.getUserIdByUsernameOrEmail(email, email);
         Journal journal = new Journal();
-        OnboardingIdentitySagaService saga = new OnboardingIdentitySagaService(keycloakService, journal.repository());
+        OnboardingIdentitySagaService saga = new OnboardingIdentitySagaService(keycloakService, journal.repository(), metrics, new ApplicationProperties());
         OnboardingImportRow row = userRow(2L, email, "Nome", "Importato", "TREASURER");
 
         saga.prepare(new OnboardingImportJob(), List.of(row), tenant);

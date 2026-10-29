@@ -1,11 +1,13 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingIdentityOperation;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportJob;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportRow;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingRowAction;
 import com.fundaro.zodiac.taurus.repository.onboarding.OnboardingIdentityOperationRepository;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,7 +22,9 @@ class OnboardingIdentitySagaServiceTest {
 
     private final KeycloakService keycloak = mock(KeycloakService.class);
     private final OnboardingIdentityOperationRepository operations = mock(OnboardingIdentityOperationRepository.class);
-    private final OnboardingIdentitySagaService service = new OnboardingIdentitySagaService(keycloak, operations);
+    private final OnboardingIdentitySagaService service = new OnboardingIdentitySagaService(
+        keycloak, operations, new OnboardingMetrics(new SimpleMeterRegistry()), new ApplicationProperties()
+    );
 
     @Test
     void doesNotTreatAKeycloakReadFailureAsAMissingIdentity() {

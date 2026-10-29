@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.service.dto.onboarding.OnboardingDtos;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -32,6 +33,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class OnboardingImportService {
     private static final String ENTITY = "onboardingImport";
+    private static final String PREFLIGHT_CONFLICT = "PREFLIGHT_CONFLICT";
+    /**
+     * A job whose file is waiting for the validation or for the confirmation of its author. A rejected job does not
+     * count, so a corrected file can always be uploaded.
+     */
+    private static final Set<OnboardingJobStatus> PENDING = EnumSet.of(
+        OnboardingJobStatus.UPLOADED, OnboardingJobStatus.VALIDATING, OnboardingJobStatus.READY
+    );
     private final ApplicationProperties.OnboardingProperties properties;
     private final OnboardingImportJobRepository jobs;
     private final OnboardingImportSectionRepository sections;
@@ -47,13 +56,16 @@ public class OnboardingImportService {
     private final FinancialAccountRepository accounts;
     private final ApplicationEventPublisher events;
     private final OnboardingIdentitySagaService identitySaga;
+    private final OnboardingIdentityOperationRepository identities;
+    private final OnboardingValidationService validation;
     private TenantFeatureService tenantFeatures;
 
     public OnboardingImportService(ApplicationProperties applicationProperties, OnboardingImportJobRepository jobs,
                                    OnboardingImportSectionRepository sections, OnboardingImportRowRepository rows, OnboardingImportIssueRepository issues,
                                    MediaRepository media, MediaService mediaService, TenantsRepository tenants, TenantSchemaRegistry schemas,
                                    UsersRepository users, InstrumentsRepository instruments, InventoryItemRepository inventory, FinancialAccountRepository accounts,
-                                   ApplicationEventPublisher events, OnboardingIdentitySagaService identitySaga) {
+                                   ApplicationEventPublisher events, OnboardingIdentitySagaService identitySaga,
+                                   OnboardingIdentityOperationRepository identities, OnboardingValidationService validation) {
         this.properties = applicationProperties.getOnboarding();
         this.jobs = jobs;
         this.sections = sections;
@@ -69,6 +81,8 @@ public class OnboardingImportService {
         this.accounts = accounts;
         this.events = events;
         this.identitySaga = identitySaga;
+        this.identities = identities;
+        this.validation = validation;
     }
 
     @Autowired(required = false)
@@ -100,6 +114,9 @@ public class OnboardingImportService {
             throw problem(HttpStatus.BAD_REQUEST, "La sezione CSV è obbligatoria", "onboarding.csvSection.required");
         if (format == OnboardingImportFormat.XLSX && (selectedSections == null || selectedSections.isEmpty()))
             throw problem(HttpStatus.BAD_REQUEST, "Selezionare almeno una sezione", "onboarding.selectedSections.required");
+        if (jobs.countByRequestedByAndStatusInAndDeletedFalse(actor, PENDING) >= properties.getMaxPendingJobsPerUser())
+            throw problem(HttpStatus.CONFLICT, "Troppe importazioni in attesa", "onboarding.pendingJobs.tooMany")
+                .with("maxPendingJobs", properties.getMaxPendingJobsPerUser());
         requireAvailableSections(format == OnboardingImportFormat.CSV ? Set.of(csvSection) : selectedSections);
         try {
             byte[] content = file.getBytes();
@@ -144,6 +161,24 @@ public class OnboardingImportService {
     }
 
     @Transactional(readOnly = true)
+    public OnboardingDtos.Outcome outcome(Long id, AbstractAuthenticationToken token) {
+        tenant(token);
+        OnboardingImportJob job = required(id);
+        ZonedDateTime startedAt = job.getStartedAt();
+        ZonedDateTime completedAt = job.getCompletedAt();
+        return new OnboardingDtos.Outcome(
+            job.getStatus(),
+            startedAt,
+            completedAt,
+            startedAt == null || completedAt == null ? null : Duration.between(startedAt, completedAt).toMillis(),
+            identities.countByJob_IdAndOperationTypeAndStatus(id, OnboardingIdentityOperation.Type.CREATE, OnboardingIdentityOperation.Status.APPLIED),
+            identities.countByJob_IdAndOperationTypeAndStatus(id, OnboardingIdentityOperation.Type.LINK_EXISTING, OnboardingIdentityOperation.Status.APPLIED),
+            job.getSetupEmailFailures(),
+            sections.findAllByJob_IdOrderBySectionAsc(id).stream().map(this::dto).toList()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public Page<OnboardingDtos.Row> rows(Long id, OnboardingSection section, OnboardingRowStatus status, Pageable pageable, AbstractAuthenticationToken token) {
         tenant(token);
         required(id);
@@ -174,12 +209,27 @@ public class OnboardingImportService {
             throw problem(HttpStatus.CONFLICT, "Chiave di applicazione differente", "onboarding.idempotency.conflict");
         if (job.getWarningRows() > 0 && !Boolean.TRUE.equals(request.warningsAccepted()))
             throw problem(HttpStatus.CONFLICT, "È necessario accettare gli avvisi", "onboarding.warnings.notAccepted");
-        if (jobs.existsByStatus(OnboardingJobStatus.APPLYING))
+        // The advisory lock holds until this transaction ends and makes the check atomic: without it two replicas can
+        // both read no job applying and both start one.
+        if (!jobs.tryLockApply() || jobs.existsByStatus(OnboardingJobStatus.APPLYING))
             throw problem(HttpStatus.CONFLICT, "Un'altra importazione è già in corso", "onboarding.tenant.busy");
         if (!jobSectionsAvailable(job)) {
             job.setStatus(OnboardingJobStatus.INVALID);
             job.setStage("FEATURE_DEPENDENCY_DISABLED");
             job.setLastErrorCode("FEATURE_DEPENDENCY_DISABLED");
+            return dto(jobs.save(job));
+        }
+        requireSource(job);
+        byte[] content = mediaService.getContent(job.getSourceMediaAsset().getId(), token).bytes();
+        if (!OnboardingValidationService.matchesDigest(job, content)) {
+            validation.rejectSourceIntegrity(job);
+            return dto(job);
+        }
+        // The preflight reads the file again and repeats the dynamic checks: a conflict born after the first
+        // validation stops the job here, before any change in PostgreSQL or Keycloak.
+        if (!validation.revalidate(job, content)) {
+            job.setStage(PREFLIGHT_CONFLICT);
+            job.setLastErrorCode(PREFLIGHT_CONFLICT);
             return dto(jobs.save(job));
         }
         job.setApplyIdempotencyKey(key);

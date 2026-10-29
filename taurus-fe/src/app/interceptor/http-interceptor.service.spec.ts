@@ -114,3 +114,44 @@ describe('HttpInterceptorService when a tenant feature is disabled', () => {
         expect(router.navigate).not.toHaveBeenCalled();
     });
 });
+
+describe('HttpInterceptorService on a conditional read', () => {
+    let http: HttpClient;
+    let controller: HttpTestingController;
+    let toast: jasmine.SpyObj<ToastService>;
+    const url = `${environment.baseUrl}/onboarding/imports/42`;
+
+    beforeEach(() => {
+        toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
+        TestBed.configureTestingModule({
+            providers: [
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+                { provide: KeycloakService, useValue: jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: true, token: 'token' }) },
+                { provide: ToastService, useValue: toast },
+                { provide: LoadingService, useValue: { loading: false } },
+                { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) }
+            ]
+        });
+        http = TestBed.inject(HttpClient);
+        controller = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+        controller.verify();
+        TestBed.resetTestingModule();
+    });
+
+    it('turns «not modified» into the empty answer the caller asked for', () => {
+        let status: number | undefined;
+        let failed = false;
+        http.get(url, { observe: 'response' }).subscribe({ next: (response) => (status = response.status), error: () => (failed = true) });
+
+        controller.expectOne(url).flush(null, { status: 304, statusText: 'Not Modified' });
+
+        expect(status).toBe(304);
+        expect(failed).toBeFalse();
+        expect(toast.error).not.toHaveBeenCalled();
+    });
+});

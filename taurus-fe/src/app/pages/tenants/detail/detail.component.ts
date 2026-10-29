@@ -196,6 +196,18 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return !!this.tenant.id && this.tenant.active !== false && this.tenant.code === this.keycloakService.currentUserTenantCode && this.tenantFeatureService.onboardingImportEnabled();
     }
 
+    /**
+     * Il wizard di configurazione iniziale lavora solo sull'istanza della sessione: su un altro tenant la pagina
+     * invita a cambiare istanza invece di offrire un pulsante che importerebbe i dati nel posto sbagliato.
+     */
+    public get activeTenantCode(): string {
+        return this.keycloakService.currentUserTenantCode ?? '';
+    }
+
+    public get configureDataElsewhere(): boolean {
+        return !!this.tenant.id && this.tenant.active !== false && this.tenant.code !== this.keycloakService.currentUserTenantCode && this.tenant.onboardingImportEnabled === true;
+    }
+
     protected featureStatus(item: { feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
         const capability = this.tenantFeatureService.capabilities()?.[item.feature];
         if (capability && !capability.available) return 'Non disponibile nell’installazione';
@@ -226,7 +238,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.loading = true;
         this.tenantsService
             .getById(Number(id))
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe({
                 next: (tenant: Tenants) => {
                     this.tenant = tenant;
@@ -256,4 +271,15 @@ interface TenantFeatureItem {
     dependency?: TenantFeatureField;
 }
 
-type TenantFeatureField = 'financeEnabled' | 'inventoryEnabled' | 'onboardingImportEnabled' | 'externalCalendarFeedEnabled' | 'inventoryQrEnabled' | 'notificationPreferencesEnabled' | 'webPushRemindersEnabled' | 'eventPreparationEnabled' | 'scorePlaybackEnabled' | 'inventoryLoanSheetEnabled' | 'inventorySignatureEnabled';
+type TenantFeatureField =
+    | 'financeEnabled'
+    | 'inventoryEnabled'
+    | 'onboardingImportEnabled'
+    | 'externalCalendarFeedEnabled'
+    | 'inventoryQrEnabled'
+    | 'notificationPreferencesEnabled'
+    | 'webPushRemindersEnabled'
+    | 'eventPreparationEnabled'
+    | 'scorePlaybackEnabled'
+    | 'inventoryLoanSheetEnabled'
+    | 'inventorySignatureEnabled';

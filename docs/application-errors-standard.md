@@ -961,4 +961,5 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `onboarding.idempotency.conflict` | 409 | Applicazione con una chiave diversa da quella già registrata per l'importazione | — | «L'importazione è già in applicazione da un'altra richiesta» |
 | `onboarding.warnings.notAccepted` | 409 | Applicazione di un'importazione con avvisi non accettati | — | «Accettare gli avvisi prima di applicare l'importazione» |
 | `onboarding.tenant.busy` | 409 | Un'altra importazione del tenant è in applicazione | — | «Un'altra importazione è già in corso» |
+| `onboarding.pendingJobs.tooMany` | 409 | Caricamento con il limite di importazioni in attesa dello stesso utente già raggiunto | `maxPendingJobs` | «Ci sono già {maxPendingJobs} importazioni in attesa: completarle o annullarle prima di caricarne un'altra» |
 | `onboarding.email.retryNotAllowed` | 409 | Nuovo invio delle e-mail su un'importazione non completata o senza invii falliti | — | «Nessuna e-mail da inviare di nuovo» |
