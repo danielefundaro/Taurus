@@ -10,21 +10,30 @@ import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.finance.*;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.onboarding.*;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
+import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 
 import java.math.BigDecimal;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OnboardingValidationService {
+    public static final String SOURCE_INTEGRITY_FAILURE = "SOURCE_INTEGRITY_FAILURE";
+    private static final Logger LOG = LoggerFactory.getLogger(OnboardingValidationService.class);
     private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Set<String> ROLES = Set.of("ADMIN", "TREASURER", "ARCHIVIST", "USER", "USER_EXTERNAL");
     private final OnboardingFileInspectionService inspection;
@@ -37,14 +46,19 @@ public class OnboardingValidationService {
     private final InventoryItemRepository inventory;
     private final FinancialCategoryRepository categories;
     private final FinancialAccountRepository accounts;
+    private final FinancialMovementRepository movements;
     private final TenantsRepository tenants;
     private final TenantFeatureService tenantFeatures;
+    private final KeycloakService keycloak;
+    private final OnboardingMetrics metrics;
+    private final int maxIssues;
 
     public OnboardingValidationService(OnboardingFileInspectionService inspection, OnboardingImportJobRepository jobs,
                                        OnboardingImportRowRepository rows, OnboardingImportIssueRepository issues, OnboardingImportSectionRepository sections,
                                        InstrumentsRepository instruments, UsersRepository users, InventoryItemRepository inventory,
-                                       FinancialCategoryRepository categories, FinancialAccountRepository accounts, TenantsRepository tenants,
-                                       TenantFeatureService tenantFeatures) {
+                                       FinancialCategoryRepository categories, FinancialAccountRepository accounts, FinancialMovementRepository movements,
+                                       TenantsRepository tenants, TenantFeatureService tenantFeatures, KeycloakService keycloak,
+                                       OnboardingMetrics metrics, ApplicationProperties applicationProperties) {
         this.inspection = inspection;
         this.jobs = jobs;
         this.rows = rows;
@@ -55,8 +69,12 @@ public class OnboardingValidationService {
         this.inventory = inventory;
         this.categories = categories;
         this.accounts = accounts;
+        this.movements = movements;
         this.tenants = tenants;
         this.tenantFeatures = tenantFeatures;
+        this.keycloak = keycloak;
+        this.metrics = metrics;
+        this.maxIssues = applicationProperties.getOnboarding().getMaxIssues();
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -68,6 +86,24 @@ public class OnboardingValidationService {
                 job.getStatus() != OnboardingJobStatus.INVALID &&
                 job.getStatus() != OnboardingJobStatus.FAILED
         ) return;
+        if (!matchesDigest(job, content)) {
+            rejectSourceIntegrity(job);
+            return;
+        }
+        revalidate(job, content);
+    }
+
+    /**
+     * Repeats the whole validation on a job the caller has already loaded and locked, and tells whether it is still
+     * applicable. The preflight of the application uses it to read the file again and to meet the conflicts born
+     * after the first validation before any external change.
+     *
+     * @return whether the job ends the validation in {@code READY}
+     */
+    @Transactional
+    public boolean revalidate(OnboardingImportJob job, byte[] content) {
+        long startedAt = System.currentTimeMillis();
+        Long jobId = job.getId();
         job.setStatus(OnboardingJobStatus.VALIDATING);
         job.setStage("INSPECTING_FILE");
         job.setProgressPercentage(5);
@@ -85,6 +121,7 @@ public class OnboardingValidationService {
             job.setProgressPercentage(20);
             ValidationState state = new ValidationState(job, existingInstruments(), existingUsers(), existingCategories(), existingAccounts());
             state.scorePlayback = TenantContext.getTenantCode().map(code -> tenantFeatures.isEnabledForTenant(code, TenantFeature.SCORE_PLAYBACK)).orElse(false);
+            state.keycloakEmails = keycloakEmails(parsed.rows());
             for (String warning : parsed.warnings())
                 state.global(OnboardingIssueSeverity.WARNING, "SHEET_UNKNOWN", warning);
             for (OnboardingFileInspectionService.ParsedRow source : parsed.rows()) validateRow(state, source);
@@ -119,6 +156,53 @@ public class OnboardingValidationService {
             job.setCompletedAt(ZonedDateTime.now());
         }
         jobs.save(job);
+        metrics.validation(
+            job.getStatus() == OnboardingJobStatus.READY ? "ready" : Objects.requireNonNullElse(job.getLastErrorCode(), "invalid"),
+            System.currentTimeMillis() - startedAt,
+            job.getTotalRows(),
+            job.getWarningRows() + job.getErrorRows()
+        );
+        return job.getStatus() == OnboardingJobStatus.READY;
+    }
+
+    /**
+     * The stored file no longer matches the digest recorded at upload. Nothing is validated and nothing is applied:
+     * the job keeps only the global problem, and the staging it had goes with the rows it described.
+     */
+    @Transactional
+    public void rejectSourceIntegrity(OnboardingImportJob job) {
+        issues.deleteAllByJob_Id(job.getId());
+        rows.deleteAllByJob_Id(job.getId());
+        sections.deleteAllByJob_Id(job.getId());
+        OnboardingImportIssue issue = new OnboardingImportIssue();
+        issue.setJob(job);
+        issue.setSeverity(OnboardingIssueSeverity.ERROR);
+        issue.setCode(SOURCE_INTEGRITY_FAILURE);
+        issue.setMessage("Il file caricato non corrisponde più all'impronta registrata: caricarlo di nuovo");
+        issues.save(issue);
+        job.setStatus(OnboardingJobStatus.INVALID);
+        job.setStage(SOURCE_INTEGRITY_FAILURE);
+        job.setLastErrorCode(SOURCE_INTEGRITY_FAILURE);
+        job.setTotalRows(0);
+        job.setValidRows(0);
+        job.setWarningRows(0);
+        job.setErrorRows(1);
+        job.setProgressPercentage(100);
+        job.setCompletedAt(ZonedDateTime.now());
+        jobs.save(job);
+    }
+
+    /** Whether the content read from the storage still matches the digest the job recorded at upload. */
+    public static boolean matchesDigest(OnboardingImportJob job, byte[] content) {
+        return job.getFileSha256() != null && job.getFileSha256().equalsIgnoreCase(sha256(content));
+    }
+
+    private static String sha256(byte[] content) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is not available", exception);
+        }
     }
 
     private void validateRow(ValidationState state, OnboardingFileInspectionService.ParsedRow source) {
@@ -155,58 +239,107 @@ public class OnboardingValidationService {
             if (text(p, field).isBlank()) error(d, "VALUE_REQUIRED", field, "Valore obbligatorio mancante");
     }
 
+    /**
+     * Every problem of this level names the column it comes from, and a value outside a domain enum is always a
+     * {@code VALUE_INVALID_ENUM}: a report that says only «one or more values have an invalid format» leaves the
+     * author to look for the cell by hand.
+     */
     private void validateTypes(OnboardingSection section, Map<String, Object> p, List<IssueDraft> d) {
-        try {
-            switch (section) {
-                case INSTRUMENTS -> {
-                    for (OnboardingInstrumentPlayback.Problem problem : playback(p).problems())
-                        error(d, "VALUE_INVALID_FORMAT", problem.column(), problem.message());
-                }
-                case USERS -> {
-                    if (!text(p, "email").isBlank() && !EMAIL.matcher(text(p, "email")).matches())
-                        error(d, "VALUE_INVALID_EMAIL", "email", "Indirizzo e-mail non valido");
-                    for (String role : split(text(p, "ruoli")))
-                        if (!ROLES.contains(role))
-                            error(d, "VALUE_INVALID_ENUM", "ruoli", "Ruolo non ammesso: " + role);
-                    if (!text(p, "data_nascita").isBlank()) LocalDate.parse(text(p, "data_nascita"));
-                    if (!Set.of("SI", "NO").contains(text(p, "attivo")))
-                        error(d, "VALUE_INVALID_ENUM", "attivo", "Usare SI oppure NO");
-                }
-                case INVENTORY -> {
-                    int quantity = Integer.parseInt(text(p, "quantita_totale"));
-                    if (quantity < 0) throw new NumberFormatException();
-                    p.put("quantita_totale", quantity);
-                    if (!text(p, "valore_unitario_stimato").isBlank()) {
-                        BigDecimal value = decimal(text(p, "valore_unitario_stimato"));
-                        if (value.signum() < 0) throw new NumberFormatException();
-                        p.put("valore_unitario_stimato", value);
-                    }
-                    if (!text(p, "condizione").isBlank()) InventoryCondition.valueOf(text(p, "condizione"));
-                    currency(p, "valuta", !text(p, "valore_unitario_stimato").isBlank(), d);
-                }
-                case CATEGORIES -> {
-                    FinancialCategoryDirection.valueOf(text(p, "direzione"));
-                    optionalInteger(p, "ordine");
-                }
-                case ACCOUNTS -> {
-                    FinancialAccountType type = FinancialAccountType.valueOf(text(p, "tipo"));
-                    currency(p, "valuta", true, d);
-                    optionalInteger(p, "ordine");
-                    if (type == FinancialAccountType.CASH && (!text(p, "iban").isBlank() || !text(p, "banca").isBlank()))
-                        error(d, "VALUE_NOT_ALLOWED", "iban", "IBAN e banca sono ammessi soltanto per conti BANK");
-                    if (text(p, "iban").length() > 34) error(d, "VALUE_TOO_LONG", "iban", "IBAN oltre 34 caratteri");
-                }
-                case OPENING_BALANCES -> {
-                    LocalDate.parse(text(p, "data"));
-                    p.put("importo", decimal(text(p, "importo")));
-                }
-                default -> {
-                }
+        switch (section) {
+            case INSTRUMENTS -> {
+                for (OnboardingInstrumentPlayback.Problem problem : playback(p).problems())
+                    error(d, "VALUE_INVALID_FORMAT", problem.column(), problem.message());
             }
-        } catch (IllegalArgumentException exception) {
-            error(d, "VALUE_INVALID_FORMAT", null, "Uno o più valori hanno formato non valido");
+            case USERS -> {
+                if (!text(p, "email").isBlank() && !EMAIL.matcher(text(p, "email")).matches())
+                    error(d, "VALUE_INVALID_EMAIL", "email", "Indirizzo e-mail non valido");
+                for (String role : split(text(p, "ruoli")))
+                    if (!ROLES.contains(role))
+                        error(d, "VALUE_INVALID_ENUM", "ruoli", "Ruolo non ammesso: " + role);
+                date(p, "data_nascita", d);
+                if (!Set.of("SI", "NO").contains(text(p, "attivo")))
+                    error(d, "VALUE_INVALID_ENUM", "attivo", "Usare SI oppure NO");
+            }
+            case INVENTORY -> {
+                integer(p, "quantita_totale", d);
+                decimal(p, "valore_unitario_stimato", false, d);
+                enumeration(p, "condizione", InventoryCondition.class, d);
+                currency(p, "valuta", !text(p, "valore_unitario_stimato").isBlank(), d);
+            }
+            case CATEGORIES -> {
+                enumeration(p, "direzione", FinancialCategoryDirection.class, d);
+                integer(p, "ordine", d);
+            }
+            case ACCOUNTS -> {
+                boolean cash = enumeration(p, "tipo", FinancialAccountType.class, d)
+                    .filter(FinancialAccountType.CASH::equals)
+                    .isPresent();
+                currency(p, "valuta", true, d);
+                integer(p, "ordine", d);
+                if (cash && (!text(p, "iban").isBlank() || !text(p, "banca").isBlank()))
+                    error(d, "VALUE_NOT_ALLOWED", "iban", "IBAN e banca sono ammessi soltanto per conti BANK");
+                if (text(p, "iban").length() > 34) error(d, "VALUE_TOO_LONG", "iban", "IBAN oltre 34 caratteri");
+            }
+            case OPENING_BALANCES -> {
+                date(p, "data", d);
+                decimal(p, "importo", true, d);
+            }
         }
         lengths(section, p, d);
+    }
+
+    /** The value of a domain enum, and the column and the admitted values in the problem when it is not one. */
+    private static <E extends Enum<E>> Optional<E> enumeration(Map<String, Object> p, String key, Class<E> type, List<IssueDraft> d) {
+        String value = text(p, key);
+        if (value.isBlank()) return Optional.empty();
+        Optional<E> constant = Arrays.stream(type.getEnumConstants()).filter(c -> c.name().equals(value)).findFirst();
+        if (constant.isEmpty())
+            error(d, "VALUE_INVALID_ENUM", key, "Valore non ammesso: " + value + ". Valori ammessi: "
+                + Arrays.stream(type.getEnumConstants()).map(Enum::name).collect(Collectors.joining(", ")));
+        return constant;
+    }
+
+    /**
+     * A whole number, not negative, normalized in the payload. A missing value is not a problem of this level: the
+     * mandatory columns are already reported by {@code VALUE_REQUIRED}.
+     */
+    private static void integer(Map<String, Object> p, String key, List<IssueDraft> d) {
+        String value = text(p, key);
+        if (value.isBlank()) return;
+        try {
+            int parsed = Integer.parseInt(value);
+            if (parsed < 0) throw new NumberFormatException();
+            p.put(key, parsed);
+        } catch (NumberFormatException exception) {
+            error(d, "VALUE_INVALID_FORMAT", key, "Numero intero non negativo non valido: " + value);
+        }
+    }
+
+    /**
+     * An amount with at most four decimals, normalized in the payload. Only the opening balance is signed: there a
+     * negative value is a liability, everywhere else it is an error.
+     */
+    private static void decimal(Map<String, Object> p, String key, boolean signed, List<IssueDraft> d) {
+        String value = text(p, key);
+        if (value.isBlank()) return;
+        try {
+            BigDecimal parsed = new BigDecimal(value);
+            if (parsed.scale() > 4) throw new NumberFormatException();
+            if (!signed && parsed.signum() < 0) throw new NumberFormatException();
+            p.put(key, parsed);
+        } catch (NumberFormatException exception) {
+            error(d, "VALUE_INVALID_FORMAT", key, "Importo non valido: " + value);
+        }
+    }
+
+    private static void date(Map<String, Object> p, String key, List<IssueDraft> d) {
+        String value = text(p, key);
+        if (value.isBlank()) return;
+        try {
+            LocalDate.parse(value);
+        } catch (RuntimeException exception) {
+            error(d, "VALUE_INVALID_FORMAT", key, "Data non valida, attesa AAAA-MM-GG: " + value);
+        }
     }
 
     private void reconcile(ValidationState state, OnboardingImportRow row, List<IssueDraft> d) {
@@ -222,6 +355,9 @@ public class OnboardingValidationService {
                     boolean same = normalizeKey(existing.getName()).equals(normalizeKey(text(p, "nome"))) && normalizeKey(existing.getLastName()).equals(normalizeKey(text(p, "cognome")));
                     if (same) skip(row, d, "Utente già presente con gli stessi dati");
                     else error(d, "CONFLICT_EXISTING_RECORD", "email", "Utente già presente con dati differenti");
+                } else if (state.keycloakEmails.contains(text(p, "email"))) {
+                    warning(d, "KEYCLOAK_IDENTITY_WILL_BE_LINKED", "email",
+                        "Identità già presente in Keycloak: viene collegata a questa istanza senza modificarne il profilo");
                 }
             }
             case INVENTORY -> {
@@ -244,6 +380,13 @@ public class OnboardingValidationService {
                         reuse(row, d, "Conto esistente: verrà riutilizzato");
                     else error(d, "CONFLICT_EXISTING_RECORD", "nome", "Conto esistente con tipo o valuta differenti");
                 }
+            }
+            // An account that already holds movements cannot receive an opening balance. Reading it here keeps the
+            // refusal in the report instead of letting the commit fail and compensate the identities.
+            case OPENING_BALANCES -> {
+                FinancialAccount existing = state.accountsByName.get(normalizeKey(text(p, "conto")));
+                if (existing != null && movements.countByAccount_IdAndDeletedFalse(existing.getId()) > 0)
+                    error(d, "OPENING_BALANCE_NOT_ALLOWED", "conto", "Il conto ha già movimenti: il saldo iniziale non è ammesso");
             }
             default -> {
             }
@@ -316,8 +459,16 @@ public class OnboardingValidationService {
 
     private void persist(ValidationState state) {
         rows.saveAll(state.persistedRows);
+        // The counts of the rows stay complete: only the list of problems is cut, so a file whose every row is wrong
+        // does not fill the staging with one problem per cell.
+        int stored = 0;
+        boolean truncated = false;
         for (Map.Entry<OnboardingImportRow, List<IssueDraft>> entry : state.drafts.entrySet())
             for (IssueDraft draft : entry.getValue()) {
+                if (stored >= maxIssues) {
+                    truncated = true;
+                    continue;
+                }
                 OnboardingImportIssue issue = new OnboardingImportIssue();
                 issue.setJob(state.job);
                 issue.setRow(entry.getKey());
@@ -328,7 +479,11 @@ public class OnboardingValidationService {
                 issue.setColumnName(draft.column);
                 issue.setMessage(draft.message);
                 issues.save(issue);
+                stored++;
             }
+        if (truncated)
+            state.global(OnboardingIssueSeverity.WARNING, "TOO_MANY_ISSUES",
+                "Il rapporto conserva i primi " + maxIssues + " problemi: correggere questi e validare di nuovo il file");
         for (OnboardingSection value : OnboardingSection.values()) {
             List<OnboardingImportRow> scoped = state.persistedRows.stream().filter(r -> r.getSection() == value).toList();
             if (scoped.isEmpty()) continue;
@@ -381,16 +536,6 @@ public class OnboardingValidationService {
             error(d, "VALUE_INVALID_CURRENCY", key, "Valuta ISO 4217 non valida");
     }
 
-    private void optionalInteger(Map<String, Object> p, String key) {
-        if (!text(p, key).isBlank()) p.put(key, Integer.parseInt(text(p, key)));
-    }
-
-    private BigDecimal decimal(String value) {
-        BigDecimal d = new BigDecimal(value);
-        if (d.scale() > 4) throw new NumberFormatException();
-        return d;
-    }
-
     private String key(OnboardingSection s, Map<String, Object> p) {
         return switch (s) {
             case INSTRUMENTS, USERS, ACCOUNTS -> text(p, "riferimento").toUpperCase(Locale.ROOT);
@@ -407,6 +552,25 @@ public class OnboardingValidationService {
             case CATEGORIES -> "nome";
             case OPENING_BALANCES -> "conto";
         };
+    }
+
+    /**
+     * The addresses already known to Keycloak, to tell that an identity will be linked instead of created. The notice
+     * is informative: when Keycloak does not answer, the validation goes on without it.
+     */
+    private Set<String> keycloakEmails(List<OnboardingFileInspectionService.ParsedRow> parsed) {
+        if (parsed.stream().noneMatch(row -> row.section() == OnboardingSection.USERS)) return Set.of();
+        try {
+            return keycloak.getUsers().stream()
+                .flatMap(user -> Stream.of(user.getUsername(), user.getEmail()))
+                .filter(Objects::nonNull)
+                .map(value -> value.trim().toLowerCase(Locale.ROOT))
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.toSet());
+        } catch (RuntimeException exception) {
+            LOG.warn("Keycloak identities not readable while validating an onboarding import", exception);
+            return Set.of();
+        }
     }
 
     private Set<String> existingInstruments() {
@@ -477,6 +641,7 @@ public class OnboardingValidationService {
         final Map<OnboardingSection, Set<String>> keys = new EnumMap<>(OnboardingSection.class);
         final List<IssueDraft> globalDrafts = new ArrayList<>();
         boolean scorePlayback;
+        Set<String> keycloakEmails = Set.of();
 
         ValidationState(OnboardingImportJob job, Set<String> i, Map<String, Users> u, Map<String, FinancialCategory> c, Map<String, FinancialAccount> a) {
             this.job = job;

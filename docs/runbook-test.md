@@ -619,6 +619,8 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 
 ### 14.10 Onboarding e importazione
 
+Riferimento: [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md). Backend e frontend sono automatizzati (`OnboardingImportIT` per preflight, concorrenza, limiti, sicurezza per ruolo, riavvio in ogni fase della saga e carico da 5.000 righe, `OnboardingKeycloakIT` per la saga delle identità su Keycloak reale, `OnboardingFileInspectionServiceTest` per formato reale e file ostili, le specifiche di `onboarding/` e `onboarding.service` e la suite end to end `onboarding-import.spec.ts`, che non carica e non applica nulla); i casi seguenti richiedono un browser, Mailpit (`http://localhost:8025`) o una casella reale e un tenant di prova, e scrivono nell’ambiente dati che la modalità additiva non può togliere.
+
 - `ONB-001 P0`: template e import valido end-to-end.
 - `ONB-002 P0`: validazione limiti file, 5.000 righe, 2.000 utenti, 64 colonne e cella da 10.000 caratteri.
 - `ONB-003 P0`: CSV injection, encoding, delimitatori, quote e newline.
@@ -630,6 +632,11 @@ Lo stato della feature è `in-progress`; un rilascio che la abilita deve include
 - `ONB-009 P0`: sezioni Economia/Inventario filtrate dai feature flag.
 - `ONB-010 P1`: retention: dopo 30 giorni dalla conclusione file, righe e problemi rimossi, journal ridotto agli esiti e `409 onboarding.job.sourceRemoved` su nuova validazione o nuovo invio delle e-mail; dopo 365 giorni il job è eliminato; i job `COMPENSATION_REQUIRED` e quelli non conclusi restano intatti.
 - `ONB-011 P1`: il foglio `Strumenti` accetta il formato precedente e quello con le colonne di suono e trasposizione; valori non validi sono errori di validazione; per uno strumento già esistente suono e trasposizione indicati non vengono applicati e la validazione lo avvisa.
+- `ONB-012 P0`: preflight dell’applicazione: file sostituito dopo il caricamento rifiutato con `SOURCE_INTEGRITY_FAILURE`, conflitto nato dopo la prima validazione rifiutato con `PREFLIGHT_CONFLICT`, seconda applicazione contemporanea respinta con `409 onboarding.tenant.busy` e nessuna scrittura parziale.
+- `ONB-013 P1`: limiti oltre il file: celle complessive, lunghezza della singola cella, problemi conservati (`TOO_MANY_ISSUES`) e tre importazioni in attesa per autore (`409 onboarding.pendingJobs.tooMany`).
+- `ONB-014 P0`: file ostili: macro, formule, collegamenti esterni, DDE, oggetti incorporati e ActiveX rifiutati; estensione mentita riconosciuta dal contenuto e non dal nome.
+- `ONB-015 P1`: interfaccia: esito del passo 5 con conteggi per sezione e identità, elenco problemi paginato con il valore che rimanda al suo problema, vista compatta sotto 768 pixel, «Ultima importazione» nel riepilogo, invito a cambiare istanza nel dettaglio di un altro tenant, `304` al polling con lo stesso ETag e polling sospeso a pagina nascosta.
+- `ONB-016 P1`: notifica di riepilogo recapitata una sola volta con i soli conteggi, metriche `taurus.onboarding.*` esposte e importazioni abbandonate annullate dopo sette giorni.
 
 ### 14.11 Dashboard e feature flag
 

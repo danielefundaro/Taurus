@@ -844,7 +844,22 @@ public class ApplicationProperties {
         @Min(1)
         private int maxCellLength = 10000;
         @Min(1)
+        private int maxCells = 400_000;
+        @Min(1)
         private int maxIssues = 10000;
+        /** Imports waiting for the validation or the confirmation of one author, beyond which the upload is refused. */
+        @Min(1)
+        private int maxPendingJobsPerUser = 3;
+        /** How long a job in flight is left alone before the recovery may take it again. */
+        @Min(1000)
+        private long resumeAfterMillis = 60_000;
+        /** Keycloak identities prepared at the same time during the application. */
+        @Min(1)
+        @Max(16)
+        private int identityConcurrency = 4;
+        /** After how many days an import left in {@code UPLOADED} or {@code READY} is cancelled with its file. */
+        @Min(1)
+        private int abandonedRetentionDays = 7;
         @Min(1)
         private int sourceRetentionDays = 30;
         @Min(1)
@@ -918,12 +933,52 @@ public class ApplicationProperties {
             maxCellLength = value;
         }
 
+        public int getMaxCells() {
+            return maxCells;
+        }
+
+        public void setMaxCells(int value) {
+            maxCells = value;
+        }
+
         public int getMaxIssues() {
             return maxIssues;
         }
 
         public void setMaxIssues(int value) {
             maxIssues = value;
+        }
+
+        public int getMaxPendingJobsPerUser() {
+            return maxPendingJobsPerUser;
+        }
+
+        public void setMaxPendingJobsPerUser(int value) {
+            maxPendingJobsPerUser = value;
+        }
+
+        public long getResumeAfterMillis() {
+            return resumeAfterMillis;
+        }
+
+        public void setResumeAfterMillis(long value) {
+            resumeAfterMillis = value;
+        }
+
+        public int getIdentityConcurrency() {
+            return identityConcurrency;
+        }
+
+        public void setIdentityConcurrency(int value) {
+            identityConcurrency = value;
+        }
+
+        public int getAbandonedRetentionDays() {
+            return abandonedRetentionDays;
+        }
+
+        public void setAbandonedRetentionDays(int value) {
+            abandonedRetentionDays = value;
         }
 
         public int getSourceRetentionDays() {

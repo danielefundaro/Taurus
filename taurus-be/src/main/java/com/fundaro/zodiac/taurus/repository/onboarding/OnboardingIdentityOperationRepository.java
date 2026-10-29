@@ -15,4 +15,7 @@ public interface OnboardingIdentityOperationRepository extends JpaRepository<Onb
     Optional<OnboardingIdentityOperation> findByRow_Id(Long rowId);
 
     List<OnboardingIdentityOperation> findAllByJob_Id(Long jobId);
+
+    /** The identities the import created in Keycloak, or the ones it only linked to the instance. */
+    int countByJob_IdAndOperationTypeAndStatus(Long jobId, OnboardingIdentityOperation.Type type, OnboardingIdentityOperation.Status status);
 }

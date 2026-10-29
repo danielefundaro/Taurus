@@ -87,4 +87,5 @@
   <include file="config/liquibase/changelog/20261026100000_push_reminder_origin_and_status.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261027000000_notification_audience_excluded_user.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261027100000_event_preparation_closure.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261028000000_onboarding_resume_claim.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261028000000-1" author="taurus">
+    <comment>When the recovery took the import for the last time: a job taken a moment ago is not taken again.</comment>
+    <addColumn tableName="onboarding_import_job">
+      <column name="resume_claimed_at" type="timestamp with time zone"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="onboarding_import_job" columnName="resume_claimed_at"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

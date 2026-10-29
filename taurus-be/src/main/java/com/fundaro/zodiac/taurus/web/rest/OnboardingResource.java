@@ -72,9 +72,25 @@ public class OnboardingResource {
         return imports.list(pageable, token);
     }
 
+    /**
+     * The state of an import. The response carries an {@code ETag} built on what the wizard shows, so the polling of
+     * a long validation answers {@code 304} while nothing moves instead of sending the same body again.
+     */
     @GetMapping("/imports/{id}")
-    public ResponseEntity<OnboardingDtos.Job> get(@PathVariable Long id, AbstractAuthenticationToken token) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(imports.get(id, token));
+    public ResponseEntity<OnboardingDtos.Job> get(@PathVariable Long id,
+                                                  @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
+                                                  AbstractAuthenticationToken token) {
+        OnboardingDtos.Job job = imports.get(id, token);
+        String tag = "\"" + job.id() + "-" + job.status() + "-" + job.stage() + "-" + job.progressPercentage()
+            + "-" + job.counts().total() + "-" + job.setupEmailFailures() + "\"";
+        if (tag.equals(ifNoneMatch))
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(tag).cacheControl(CacheControl.noStore()).build();
+        return ResponseEntity.ok().eTag(tag).cacheControl(CacheControl.noStore()).body(job);
+    }
+
+    @GetMapping("/imports/{id}/outcome")
+    public ResponseEntity<OnboardingDtos.Outcome> outcome(@PathVariable Long id, AbstractAuthenticationToken token) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(imports.outcome(id, token));
     }
 
     @DeleteMapping("/imports/{id}")

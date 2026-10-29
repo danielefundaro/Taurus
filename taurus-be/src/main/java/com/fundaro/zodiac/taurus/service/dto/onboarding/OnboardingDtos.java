@@ -48,4 +48,14 @@ public final class OnboardingDtos {
 
     public record ApplyRequest(@NotNull Boolean warningsAccepted, @NotNull Boolean sendSetupEmails) {
     }
+
+    /**
+     * What an import did, for the last step of the wizard: the counts of every section, the identities created or
+     * linked in Keycloak, the e-mails still to retry and how long the whole application took.
+     */
+    public record Outcome(
+        OnboardingJobStatus status, ZonedDateTime startedAt, ZonedDateTime completedAt, Long durationMillis,
+        int identitiesCreated, int identitiesLinked, int setupEmailFailures, List<Section> sections
+    ) {
+    }
 }

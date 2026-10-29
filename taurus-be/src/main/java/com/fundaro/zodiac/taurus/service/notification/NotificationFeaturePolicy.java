@@ -15,6 +15,8 @@ public class NotificationFeaturePolicy {
         if (source == NotificationSource.FINANCE) result.add(TenantFeature.FINANCE);
         if (source == NotificationSource.INVENTORY) result.add(TenantFeature.INVENTORY);
         if ("INVENTORY_ISSUE".equals(aggregateType)) result.add(TenantFeature.INVENTORY_QR);
+        // The summary of an initial import: it has no meaning for an instance where the import is off.
+        if ("ONBOARDING_IMPORT".equals(aggregateType)) result.add(TenantFeature.ONBOARDING_IMPORT);
         // Requests, outcomes and reminders of the acts of the loan sheets, for the signers and the administrators.
         if ("SIGNATURE_ACT".equals(aggregateType)) result.add(TenantFeature.INVENTORY_SIGNATURE);
         if ("EVENT_PREPARATION".equals(aggregateType)) {

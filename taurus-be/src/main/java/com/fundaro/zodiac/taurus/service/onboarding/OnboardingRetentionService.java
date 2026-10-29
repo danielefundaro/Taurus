@@ -31,6 +31,9 @@ public class OnboardingRetentionService {
         OnboardingJobStatus.COMPLETED
     );
 
+    /** Nothing concludes an import in these states: only the author or the abandon retention does. */
+    static final Set<OnboardingJobStatus> ABANDONED = EnumSet.of(OnboardingJobStatus.UPLOADED, OnboardingJobStatus.READY);
+
     private final OnboardingImportJobRepository jobs;
     private final OnboardingImportRowRepository rows;
     private final OnboardingImportIssueRepository issues;
@@ -54,21 +57,41 @@ public class OnboardingRetentionService {
     @Transactional
     public int removeSources(ZonedDateTime completedBefore, String tenantCode, String actor) {
         List<OnboardingImportJob> due = jobs.findAllByStatusInAndSourceRemovedAtIsNullAndCompletedAtBefore(CONCLUDED, completedBefore);
+        for (OnboardingImportJob job : due) removeSource(job, tenantCode, actor);
+        return due.size();
+    }
+
+    /**
+     * An import left in {@code UPLOADED} or {@code READY} keeps its file and the personal data of its rows with no
+     * limit, because nothing concludes it. After the abandon retention it is cancelled and its source goes at once,
+     * without waiting for the source retention of a concluded import.
+     */
+    @Transactional
+    public int cancelAbandoned(ZonedDateTime idleBefore, String tenantCode, String actor) {
+        List<OnboardingImportJob> due = jobs.findAllByStatusInAndDeletedFalseAndEditDateBefore(ABANDONED, idleBefore);
         for (OnboardingImportJob job : due) {
-            List<OnboardingIdentityOperation> journal = identities.findAllByJob_Id(job.getId());
-            journal.forEach(operation -> {
-                operation.setRow(null);
-                operation.setPreviousRoles(null);
-            });
-            identities.saveAll(journal);
-            issues.deleteAllByJob_Id(job.getId());
-            rows.deleteAllByJob_Id(job.getId());
-            job.setSourceRemovedAt(ZonedDateTime.now());
-            // Flushed before the file is released: the media reference check reads the database.
-            jobs.saveAndFlush(job);
-            media.deleteIfUnreferenced(job.getSourceMediaAsset().getId(), tenantCode, actor);
+            job.setStatus(OnboardingJobStatus.CANCELLED);
+            job.setStage("ABANDONED");
+            job.setLastErrorCode("ABANDONED");
+            job.setCompletedAt(ZonedDateTime.now());
+            removeSource(job, tenantCode, actor);
         }
         return due.size();
+    }
+
+    private void removeSource(OnboardingImportJob job, String tenantCode, String actor) {
+        List<OnboardingIdentityOperation> journal = identities.findAllByJob_Id(job.getId());
+        journal.forEach(operation -> {
+            operation.setRow(null);
+            operation.setPreviousRoles(null);
+        });
+        identities.saveAll(journal);
+        issues.deleteAllByJob_Id(job.getId());
+        rows.deleteAllByJob_Id(job.getId());
+        job.setSourceRemovedAt(ZonedDateTime.now());
+        // Flushed before the file is released: the media reference check reads the database.
+        jobs.saveAndFlush(job);
+        media.deleteIfUnreferenced(job.getSourceMediaAsset().getId(), tenantCode, actor);
     }
 
     @Transactional

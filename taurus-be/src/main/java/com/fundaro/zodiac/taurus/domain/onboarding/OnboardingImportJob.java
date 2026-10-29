@@ -65,6 +65,9 @@ public class OnboardingImportJob extends TenantAuditedEntity {
     /** When the retention removed the source file, the staging rows and the problems of the import. */
     @Column(name = "source_removed_at")
     private ZonedDateTime sourceRemovedAt;
+    /** When the recovery took the job for the last time: a job taken a moment ago is not taken again. */
+    @Column(name = "resume_claimed_at")
+    private ZonedDateTime resumeClaimedAt;
 
     public Media getSourceMediaAsset() {
         return sourceMediaAsset;
@@ -264,5 +267,13 @@ public class OnboardingImportJob extends TenantAuditedEntity {
 
     public void setSourceRemovedAt(ZonedDateTime v) {
         sourceRemovedAt = v;
+    }
+
+    public ZonedDateTime getResumeClaimedAt() {
+        return resumeClaimedAt;
+    }
+
+    public void setResumeClaimedAt(ZonedDateTime v) {
+        resumeClaimedAt = v;
     }
 }

@@ -33,6 +33,14 @@ Le prove sono in `specs`:
   nessuno scorrimento orizzontale a 320 pixel con azioni alte almeno 44 pixel. La rotazione non è
   provata perché invaliderebbe le etichette dell'ambiente: resta nelle verifiche fisiche. Le prove
   sull'oggetto si saltano senza `E2E_INVENTORY_QR_CODE`.
+- `onboarding-import.spec.ts`: la configurazione iniziale — amministratore che apre la procedura
+  guidata con il nome dell'organizzazione, **Ultima importazione** e i limiti del tenant in risposta
+  `no-store` e senza stati tecnici a schermo, scaricamento del modello XLSX, socio che non vede la
+  voce di menu e riceve `403` dal contesto, axe-core e nessuno scorrimento orizzontale a 320, 768 e
+  1280 pixel. Le prove non caricano e non applicano nulla, perché l'importazione è additiva e
+  lascerebbe dati nell'ambiente: validazione, file ostili, preflight, concorrenza, riavvio in ogni
+  fase della saga e carico da 5.000 righe sono in `OnboardingImportIT` del backend. Si saltano se il
+  tenant di prova non ha la funzionalità di importazione iniziale;
 - `event-preparation.spec.ts`: la preparazione di un evento per ruolo — stato, avanzamento e
   criticità dell'amministratore con risposta `no-store`, collegamento di una criticità che aggiorna
   il fragment e mette a fuoco la sezione, archivista che legge soltanto la vista di catalogo e

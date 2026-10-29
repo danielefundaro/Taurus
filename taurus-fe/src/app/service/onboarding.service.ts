@@ -1,26 +1,82 @@
 import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { OnboardingContext, OnboardingFormat, OnboardingIssue, OnboardingJob, OnboardingPage, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../module';
+import { OnboardingContext, OnboardingFormat, OnboardingIssue, OnboardingJob, OnboardingOutcome, OnboardingPage, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../module';
+
+/** The job read from the backend, absent when the read answered «not modified», with the validator to send next. */
+export interface OnboardingJobState {
+    job?: OnboardingJob;
+    etag?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class OnboardingService {
     private readonly baseUrl = `${environment.baseUrl}/onboarding`;
-    constructor(private readonly http: HttpClient) { }
-    context(context?: HttpContext): Observable<OnboardingContext> { return this.http.get<OnboardingContext>(`${this.baseUrl}/context`, { context }); }
-    jobs(page = 0, size = 20, context?: HttpContext): Observable<OnboardingPage<OnboardingJob>> { return this.http.get<OnboardingPage<OnboardingJob>>(`${this.baseUrl}/imports`, { params: { page, size, sort: 'insertDate,desc' }, context }); }
-    job(id: number): Observable<OnboardingJob> { return this.http.get<OnboardingJob>(`${this.baseUrl}/imports/${id}`); }
-    sections(id: number): Observable<OnboardingSectionSummary[]> { return this.http.get<OnboardingSectionSummary[]>(`${this.baseUrl}/imports/${id}/sections`); }
-    rows(id: number, section?: OnboardingSection, status?: OnboardingRowStatus, page = 0, size = 50): Observable<OnboardingPage<OnboardingRow>> { let params = new HttpParams().set('page', page).set('size', size).set('sort', 'rowNumber,asc'); if (section) params = params.set('section', section); if (status) params = params.set('status', status); return this.http.get<OnboardingPage<OnboardingRow>>(`${this.baseUrl}/imports/${id}/rows`, { params }); }
-    issues(id: number, severity?: 'ERROR' | 'WARNING', section?: OnboardingSection, page = 0, size = 50): Observable<OnboardingPage<OnboardingIssue>> { let params = new HttpParams().set('page', page).set('size', size).set('sort', 'rowNumber,asc'); if (severity) params = params.set('severity', severity); if (section) params = params.set('section', section); return this.http.get<OnboardingPage<OnboardingIssue>>(`${this.baseUrl}/imports/${id}/issues`, { params }); }
-    upload(file: File, format: OnboardingFormat, csvSection: OnboardingSection | undefined, selectedSections: OnboardingSection[], key: string, context?: HttpContext): Observable<OnboardingJob> { const data = new FormData(); data.append('file', file); let params = new HttpParams().set('format', format); if (csvSection) params = params.set('csvSection', csvSection); for (const section of selectedSections) params = params.append('selectedSections', section); return this.http.post<OnboardingJob>(`${this.baseUrl}/imports`, data, { params, headers: { 'Idempotency-Key': key }, context }); }
-    apply(id: number, warningsAccepted: boolean, sendSetupEmails: boolean, key: string, context?: HttpContext): Observable<OnboardingJob> { return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/apply`, { warningsAccepted, sendSetupEmails }, { headers: { 'Idempotency-Key': key }, context }); }
-    retryValidation(id: number): Observable<OnboardingJob> { return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-validation`, null); }
-    retryCompensation(id: number): Observable<OnboardingJob> { return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-compensation`, null); }
-    retryEmails(id: number): Observable<OnboardingJob> { return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-setup-emails`, null); }
-    cancel(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/imports/${id}`); }
-    templateXlsx(): Observable<Blob> { return this.http.get(`${this.baseUrl}/templates/xlsx`, { responseType: 'blob' }); }
-    templateCsv(section: OnboardingSection): Observable<Blob> { return this.http.get(`${this.baseUrl}/templates/csv`, { params: { section }, responseType: 'blob' }); }
-    report(id: number, final = false): Observable<Blob> { return this.http.get(`${this.baseUrl}/imports/${id}/${final ? 'final-report' : 'validation-report'}`, { responseType: 'blob' }); }
+    constructor(private readonly http: HttpClient) {}
+    context(context?: HttpContext): Observable<OnboardingContext> {
+        return this.http.get<OnboardingContext>(`${this.baseUrl}/context`, { context });
+    }
+    jobs(page = 0, size = 20, context?: HttpContext): Observable<OnboardingPage<OnboardingJob>> {
+        return this.http.get<OnboardingPage<OnboardingJob>>(`${this.baseUrl}/imports`, { params: { page, size, sort: 'insertDate,desc' }, context });
+    }
+    /**
+     * The state of an import. Passing the ETag of the previous read makes the backend answer «not modified» while
+     * nothing moves: the reply then carries no job, only the same validator.
+     */
+    job(id: number, etag?: string): Observable<OnboardingJobState> {
+        return this.http
+            .get<OnboardingJob>(`${this.baseUrl}/imports/${id}`, { observe: 'response', headers: etag ? { 'If-None-Match': etag } : {} })
+            .pipe(map((response) => ({ job: response.body ?? undefined, etag: response.headers.get('ETag') ?? etag })));
+    }
+    outcome(id: number): Observable<OnboardingOutcome> {
+        return this.http.get<OnboardingOutcome>(`${this.baseUrl}/imports/${id}/outcome`);
+    }
+    sections(id: number): Observable<OnboardingSectionSummary[]> {
+        return this.http.get<OnboardingSectionSummary[]>(`${this.baseUrl}/imports/${id}/sections`);
+    }
+    rows(id: number, section?: OnboardingSection, status?: OnboardingRowStatus, page = 0, size = 50): Observable<OnboardingPage<OnboardingRow>> {
+        let params = new HttpParams().set('page', page).set('size', size).set('sort', 'rowNumber,asc');
+        if (section) params = params.set('section', section);
+        if (status) params = params.set('status', status);
+        return this.http.get<OnboardingPage<OnboardingRow>>(`${this.baseUrl}/imports/${id}/rows`, { params });
+    }
+    issues(id: number, severity?: 'ERROR' | 'WARNING', section?: OnboardingSection, page = 0, size = 50): Observable<OnboardingPage<OnboardingIssue>> {
+        let params = new HttpParams().set('page', page).set('size', size).set('sort', 'rowNumber,asc');
+        if (severity) params = params.set('severity', severity);
+        if (section) params = params.set('section', section);
+        return this.http.get<OnboardingPage<OnboardingIssue>>(`${this.baseUrl}/imports/${id}/issues`, { params });
+    }
+    upload(file: File, format: OnboardingFormat, csvSection: OnboardingSection | undefined, selectedSections: OnboardingSection[], key: string, context?: HttpContext): Observable<OnboardingJob> {
+        const data = new FormData();
+        data.append('file', file);
+        let params = new HttpParams().set('format', format);
+        if (csvSection) params = params.set('csvSection', csvSection);
+        for (const section of selectedSections) params = params.append('selectedSections', section);
+        return this.http.post<OnboardingJob>(`${this.baseUrl}/imports`, data, { params, headers: { 'Idempotency-Key': key }, context });
+    }
+    apply(id: number, warningsAccepted: boolean, sendSetupEmails: boolean, key: string, context?: HttpContext): Observable<OnboardingJob> {
+        return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/apply`, { warningsAccepted, sendSetupEmails }, { headers: { 'Idempotency-Key': key }, context });
+    }
+    retryValidation(id: number): Observable<OnboardingJob> {
+        return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-validation`, null);
+    }
+    retryCompensation(id: number): Observable<OnboardingJob> {
+        return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-compensation`, null);
+    }
+    retryEmails(id: number): Observable<OnboardingJob> {
+        return this.http.post<OnboardingJob>(`${this.baseUrl}/imports/${id}/retry-setup-emails`, null);
+    }
+    cancel(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/imports/${id}`);
+    }
+    templateXlsx(): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/templates/xlsx`, { responseType: 'blob' });
+    }
+    templateCsv(section: OnboardingSection): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/templates/csv`, { params: { section }, responseType: 'blob' });
+    }
+    report(id: number, final = false): Observable<Blob> {
+        return this.http.get(`${this.baseUrl}/imports/${id}/${final ? 'final-report' : 'validation-report'}`, { responseType: 'blob' });
+    }
 }

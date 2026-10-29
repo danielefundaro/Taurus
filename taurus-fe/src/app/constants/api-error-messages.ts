@@ -583,6 +583,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'onboarding.idempotency.conflict': "L'importazione è già in applicazione da un'altra richiesta",
     'onboarding.warnings.notAccepted': "Accettare gli avvisi prima di applicare l'importazione",
     'onboarding.tenant.busy': "Un'altra importazione è già in corso",
+    'onboarding.pendingJobs.tooMany': 'Ci sono già {maxPendingJobs} importazioni in attesa: completarle o annullarle prima di caricarne un’altra',
     'onboarding.email.retryNotAllowed': 'Nessuna e-mail da inviare di nuovo'
 };
 
