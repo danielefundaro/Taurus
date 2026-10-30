@@ -1,0 +1,14 @@
+<p-fluid>
+    @if (failed) {
+        <app-empty-state
+            icon="pi pi-calendar-times"
+            heading="Evento non disponibile"
+            message="L'evento collegato non esiste più oppure non è visibile con il tuo profilo. Il calendario esterno può mostrare una copia più vecchia finché non si aggiorna."
+            actionLabel="Vai al calendario"
+            (action)="openCalendar()"
+        />
+    } @else {
+        <p-skeleton height="10rem" />
+        <span class="sr-only" role="status" aria-live="polite">Apertura dell'evento in corso</span>
+    }
+</p-fluid>

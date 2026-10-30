@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { CalendarFeed, CalendarFeedCreate, CalendarFeedDetailLevel, CalendarFeedScope, CalendarFeedSecret } from '../../module';
+import { CalendarFeed, CalendarFeedAuditEntry, CalendarFeedCreate, CalendarFeedDetailLevel, CalendarFeedScope, CalendarFeedSecret } from '../../module';
 import { CalendarFeedService, ConfirmService, ToastService, withErrorSummary } from '../../service';
 
 @Component({
@@ -19,7 +19,22 @@ export class CalendarFeedPanelComponent implements OnInit {
     protected nameTouched = false;
     protected secret?: CalendarFeedSecret;
     protected draft: CalendarFeedCreate = this.emptyDraft();
+    protected historyFeed?: CalendarFeed;
+    protected historyEntries: CalendarFeedAuditEntry[] = [];
+    protected historyLoading = false;
     private readonly rotationKeys = new Map<string, string>();
+    private static readonly ACTIONS: Record<string, string> = {
+        CREATED: 'Creato',
+        ROTATED: 'Nuovo link generato',
+        REVOKED: 'Revocato',
+        REMOVED: "Eliminato dall'elenco"
+    };
+    private static readonly SOURCES: Record<string, string> = {
+        OWNER: 'Proprietario',
+        ADMIN: 'Amministratore',
+        OWNER_CHANGED: "Modifica dell'utente",
+        TENANT_DISABLED: 'Tenant disattivato'
+    };
     protected readonly details = [
         { label: 'Minimo: nome, orari e luogo', value: 'MINIMAL' as CalendarFeedDetailLevel },
         { label: 'Standard: include descrizione e link Taurus', value: 'STANDARD' as CalendarFeedDetailLevel }
@@ -32,7 +47,7 @@ export class CalendarFeedPanelComponent implements OnInit {
         private readonly service: CalendarFeedService,
         private readonly confirm: ConfirmService,
         private readonly toast: ToastService
-    ) { }
+    ) {}
     ngOnInit(): void {
         this.load();
     }
@@ -125,6 +140,28 @@ export class CalendarFeedPanelComponent implements OnInit {
     }
     protected canRotate(feed: CalendarFeed): boolean {
         return feed.status === 'ACTIVE' && (!this.admin || feed.feedType === 'TENANT');
+    }
+    protected openHistory(feed: CalendarFeed): void {
+        this.historyFeed = feed;
+        this.historyEntries = [];
+        this.historyLoading = true;
+        this.service
+            .history(feed.id, this.admin, withErrorSummary('Cronologia non disponibile'))
+            .pipe(
+                first(),
+                finalize(() => (this.historyLoading = false))
+            )
+            .subscribe({ next: (entries) => (this.historyEntries = entries), error: () => (this.historyFeed = undefined) });
+    }
+    protected closeHistory(): void {
+        this.historyFeed = undefined;
+        this.historyEntries = [];
+    }
+    protected actionLabel(action: string): string {
+        return CalendarFeedPanelComponent.ACTIONS[action] ?? action;
+    }
+    protected sourceLabel(source: string): string {
+        return CalendarFeedPanelComponent.SOURCES[source] ?? source;
     }
     private load(): void {
         this.loading = true;

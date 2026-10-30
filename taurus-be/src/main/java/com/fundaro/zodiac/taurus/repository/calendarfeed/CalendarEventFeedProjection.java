@@ -19,6 +19,4 @@ public interface CalendarEventFeedProjection {
     String getLocation();
 
     String getDescription();
-
-    Long getEventId();
 }

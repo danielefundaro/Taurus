@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.*;
@@ -26,6 +27,18 @@ public class CalendarFeedResource {
     @GetMapping
     public List<Feed> list(AbstractAuthenticationToken auth) {
         return service.listPersonal(auth);
+    }
+
+    /** The history of a feed the caller owns: who created, rotated or revoked it, and when. */
+    @GetMapping("/{id}/audit")
+    public List<AuditEntry> history(@PathVariable UUID id, AbstractAuthenticationToken auth) {
+        return service.history(id, false, auth);
+    }
+
+    /** From the UID written in the ICS file to the event page, without a database id in the feed. */
+    @GetMapping("/events/{uid}")
+    public Map<String, Long> event(@PathVariable UUID uid, AbstractAuthenticationToken auth) {
+        return Map.of("id", service.resolveEventByUid(uid, auth));
     }
 
     @PostMapping

@@ -5,6 +5,7 @@ import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedManagementServ
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,9 @@ import static com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDto
 @RestController
 @RequestMapping("/api/admin/calendar-feeds")
 @RequiresTenantFeature(TenantFeature.EXTERNAL_CALENDAR_FEED)
+// The HTTP rule of /api/admin/** already keeps everyone else out: the annotation is the second
+// control, applied by the method security, and it travels with the class.
+@PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN')")
 public class AdminCalendarFeedResource {
     private final CalendarFeedManagementService service;
 
@@ -26,6 +30,12 @@ public class AdminCalendarFeedResource {
     @GetMapping
     public List<Feed> list() {
         return service.listAdmin();
+    }
+
+    /** The history of any feed of the tenant, personal ones included, for incident response. */
+    @GetMapping("/{id}/audit")
+    public List<AuditEntry> history(@PathVariable UUID id, AbstractAuthenticationToken auth) {
+        return service.history(id, true, auth);
     }
 
     @PostMapping

@@ -9,6 +9,7 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.TenantsService;
+import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedTenantRevocationService;
 import com.fundaro.zodiac.taurus.service.dto.TenantsDTO;
 import com.fundaro.zodiac.taurus.service.mapper.TenantsMapper;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.Group;
@@ -27,6 +28,7 @@ import java.time.DateTimeException;
 import java.time.ZoneId;
 
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -41,6 +43,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
     private final KeycloakService keycloakService;
     private final DataErasureService dataErasureService;
     private final TenantSchemaProvisioningService provisioningService;
+    private CalendarFeedTenantRevocationService calendarFeedRevocationService;
 
     public TenantsServiceImpl(
         TenantsRepository repository,
@@ -53,6 +56,11 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         this.keycloakService = keycloakService;
         this.dataErasureService = dataErasureService;
         this.provisioningService = provisioningService;
+    }
+
+    @Autowired
+    void setCalendarFeedRevocationService(CalendarFeedTenantRevocationService value) {
+        calendarFeedRevocationService = value;
     }
 
     @Override
@@ -87,7 +95,14 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             throw new RequestAlertException(HttpStatus.CONFLICT, "Tenant was modified by another request", getEntityName(), "version.conflict");
         }
         Map<String, Boolean> previousFeatures = featureFlags(previous);
+        boolean wasActive = Boolean.TRUE.equals(previous.getActive());
+        String tenantCode = previous.getCode();
         TenantsDTO saved = super.update(id, dto, token);
+        // A deactivated tenant is no longer served: its calendar links are closed here, so they do
+        // not resume by themselves if the tenant comes back.
+        if (wasActive && !Boolean.TRUE.equals(saved.getActive()) && calendarFeedRevocationService != null) {
+            calendarFeedRevocationService.revokeAll(id, tenantCode, SecurityUtils.getUserIdFromAuthentication(token), "tenant_deactivated");
+        }
         Map<String, Boolean> savedFeatures = featureFlags(saved);
         if (!previousFeatures.equals(savedFeatures)) {
             getLogger().info(
@@ -111,6 +126,9 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         Tenants tenant = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Tenant not found", getEntityName(), "id.notFound"));
         String groupId = keycloakService.getGroupIdByName(tenant.getCode());
+        if (calendarFeedRevocationService != null) {
+            calendarFeedRevocationService.revokeAll(id, tenant.getCode(), SecurityUtils.getUserIdFromAuthentication(token), "tenant_deleted");
+        }
         TenantsDTO deleted = super.delete(id, token);
         provisioningService.deactivate(tenant.getCode(), SecurityUtils.getUserIdFromAuthentication(token));
         keycloakService.deleteGroup(groupId);

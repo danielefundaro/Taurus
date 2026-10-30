@@ -282,6 +282,12 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         UsersDTO user = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        // Before the soft delete, while the row is still readable: the personal feeds of a user who
+        // leaves the tenant are closed at once, and the history says why.
+        if (calendarFeedRevocationService != null) {
+            getRepository().findByIdAndDeletedFalse(id).ifPresent(entity ->
+                calendarFeedRevocationService.revokeAll(entity, SecurityUtils.getUserIdFromAuthentication(abstractAuthenticationToken)));
+        }
         UsersDTO deleted = super.delete(id, abstractAuthenticationToken);
         removeUserFromTenant(user.getKeycloakId(), tenantCode);
         return deleted;

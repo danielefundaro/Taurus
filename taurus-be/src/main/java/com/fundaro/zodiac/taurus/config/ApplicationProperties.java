@@ -493,6 +493,9 @@ public class ApplicationProperties {
         private int maxComponents = 10000;
         @Min(1)
         private int tombstoneRetentionDays = 90;
+        /** How long an idempotency receipt, and the token it keeps encrypted, answers a retry. */
+        @Min(1)
+        private int idempotencyRetentionDays = 30;
         private String suggestedRefresh = "PT6H";
         @Min(1)
         private int rateLimitPerTokenHour = 120;
@@ -547,6 +550,14 @@ public class ApplicationProperties {
 
         public void setTombstoneRetentionDays(int v) {
             tombstoneRetentionDays = v;
+        }
+
+        public int getIdempotencyRetentionDays() {
+            return idempotencyRetentionDays;
+        }
+
+        public void setIdempotencyRetentionDays(int v) {
+            idempotencyRetentionDays = v;
         }
 
         public String getSuggestedRefresh() {
@@ -1671,6 +1682,8 @@ public class ApplicationProperties {
         /** Da quanto tempo un job deve essere fermo nello stato corrente per considerarlo interrotto. */
         private Duration staleAfter = Duration.ofMinutes(30);
 
+        private Duration recoveryDelay = Duration.ofMinutes(5);
+
         /** Quanti job chiudere al massimo in un giro, per non bloccare lo scheduler su un arretrato grande. */
         @Min(1)
         private int maxRecoveredPerRun = 100;
@@ -1689,6 +1702,14 @@ public class ApplicationProperties {
 
         public void setStaleAfter(Duration value) {
             staleAfter = value;
+        }
+
+        public Duration getRecoveryDelay() {
+            return recoveryDelay;
+        }
+
+        public void setRecoveryDelay(Duration recoveryDelay) {
+            this.recoveryDelay = recoveryDelay;
         }
 
         public int getMaxRecoveredPerRun() {

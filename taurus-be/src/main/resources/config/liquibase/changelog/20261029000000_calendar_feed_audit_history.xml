@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20261029000000-1" author="taurus">
+    <comment>Historical audit of the calendar feed credentials: one row per creation, rotation, revocation or removal.</comment>
+    <createTable tableName="calendar_feed_audit">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="subscription_id" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="feed_type" type="varchar(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="action" type="varchar(24)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="source" type="varchar(24)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="token_version" type="integer">
+        <constraints nullable="false"/>
+      </column>
+      <column name="token_fingerprint" type="varchar(12)"/>
+      <column name="actor" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="reason" type="varchar(255)"/>
+      <column name="occurred_at" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex tableName="calendar_feed_audit" indexName="idx_calendar_feed_audit_subscription">
+      <column name="subscription_id"/>
+      <column name="occurred_at" descending="true"/>
+    </createIndex>
+    <sql>ALTER TABLE calendar_feed_audit
+      ADD CONSTRAINT chk_calendar_feed_audit_action
+      CHECK (action IN ('CREATED', 'ROTATED', 'REVOKED', 'REMOVED'))</sql>
+  </changeSet>
+</databaseChangeLog>

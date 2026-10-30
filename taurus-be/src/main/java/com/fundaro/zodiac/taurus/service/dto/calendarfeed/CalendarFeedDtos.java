@@ -26,8 +26,15 @@ public final class CalendarFeedDtos {
     public record Feed(
         UUID id, String name, CalendarFeedType feedType, CalendarFeedScope visibilityScope,
         CalendarFeedDetailLevel detailLevel, int pastDays, int futureMonths,
-        CalendarFeedStatus status, String tokenFingerprint, Long ownerUserId,
+        CalendarFeedStatus status, String tokenFingerprint, Long ownerUserId, String ownerName,
         String createdBy, Instant createdAt, Instant lastAccessedAt
+    ) {
+    }
+
+    /** One step of a credential's history: never the token, only the fingerprint that names it. */
+    public record AuditEntry(
+        String action, String source, int tokenVersion, String tokenFingerprint,
+        String actor, String reason, Instant occurredAt
     ) {
     }
 
@@ -45,6 +52,11 @@ public final class CalendarFeedDtos {
     public record RenderCalendar(String name, CalendarFeedDetailLevel detailLevel, java.util.List<RenderEvent> events) {
     }
 
-    public record Download(byte[] body, String etag, Instant lastModified) {
+    /**
+     * A generated representation. {@code feedType} and {@code scope} only label the metrics;
+     * {@code touchId} is the subscription whose last access is still to be written, outside the
+     * transaction that produced the body.
+     */
+    public record Download(byte[] body, String etag, Instant lastModified, String feedType, String scope, UUID touchId) {
     }
 }
