@@ -1,11 +1,13 @@
 package com.fundaro.zodiac.taurus.repository.calendarfeed;
 
+import com.fundaro.zodiac.taurus.domain.calendarfeed.CalendarFeedStatus;
 import com.fundaro.zodiac.taurus.domain.calendarfeed.CalendarFeedTokenRegistry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +25,12 @@ public interface CalendarFeedTokenRegistryRepository extends JpaRepository<Calen
     @Modifying
     @Query("update CalendarFeedTokenRegistry r set r.status = 'REVOKED', r.revokedAt = :now where r.subscriptionId = :id and r.status = 'ACTIVE'")
     int revokeActive(@Param("id") UUID subscriptionId, @Param("now") java.time.Instant now);
+
+    @Modifying
+    @Query("update CalendarFeedTokenRegistry r set r.status = 'REVOKED', r.revokedAt = :now where r.tenantId = :tenantId and r.status = 'ACTIVE'")
+    int revokeAllActiveOfTenant(@Param("tenantId") Long tenantId, @Param("now") java.time.Instant now);
+
+    List<CalendarFeedTokenRegistry> findAllByStatus(CalendarFeedStatus status);
 
     void deleteAllByTenantId(Long tenantId);
 }

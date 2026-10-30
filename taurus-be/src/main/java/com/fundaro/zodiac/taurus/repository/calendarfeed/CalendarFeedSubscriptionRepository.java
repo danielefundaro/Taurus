@@ -26,6 +26,10 @@ public interface CalendarFeedSubscriptionRepository extends JpaRepository<Calend
 
     List<CalendarFeedSubscription> findAllByOwner_IdAndStatusAndDeletedFalse(Long ownerId, CalendarFeedStatus status);
 
+    List<CalendarFeedSubscription> findAllByStatusAndDeletedFalse(CalendarFeedStatus status);
+
+    List<CalendarFeedSubscription> findAllByIdIn(java.util.Collection<UUID> ids);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from CalendarFeedSubscription s where s.id = :id and s.deleted = false")
     Optional<CalendarFeedSubscription> findByIdForUpdate(@Param("id") UUID id);

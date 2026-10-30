@@ -48,4 +48,29 @@ describe('CalendarFeedService', () => {
         expect(remove.request.method).toBe('DELETE');
         remove.flush(null);
     });
+
+    it('reads the history of a feed from the endpoint of the role in use', () => {
+        service.history('feed-id').subscribe();
+        const personal = http.expectOne(`${environment.baseUrl}/calendar-feeds/feed-id/audit`);
+        expect(personal.request.method).toBe('GET');
+        personal.flush([]);
+
+        service.history('feed-id', true).subscribe();
+        const administrative = http.expectOne(`${environment.baseUrl}/admin/calendar-feeds/feed-id/audit`);
+        expect(administrative.request.method).toBe('GET');
+        administrative.flush([]);
+    });
+
+    it('resolves the event of a feed link by calendar uid', () => {
+        const uid = 'd1f4c0de-0000-4000-8000-000000000001';
+        let resolved: number | undefined;
+        service.eventByUid(uid).subscribe((event) => (resolved = event.id));
+
+        const request = http.expectOne(`${environment.baseUrl}/calendar-feeds/events/${uid}`);
+        expect(request.request.method).toBe('GET');
+        expect(request.request.urlWithParams).not.toContain('?');
+        request.flush({ id: 42 });
+
+        expect(resolved).toBe(42);
+    });
 });

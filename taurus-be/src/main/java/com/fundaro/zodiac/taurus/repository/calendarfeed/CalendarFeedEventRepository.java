@@ -9,13 +9,15 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface CalendarFeedEventRepository extends JpaRepository<CalendarEvents, Long> {
     @Query("""
         select e.calendarUid as uid, e.calendarSequence as sequence,
                e.calendarFeedModifiedAt as modifiedAt, e.startDate as startAt,
                e.endDate as endAt, e.name as summary, e.location as location,
-               e.description as description, e.id as eventId
+               e.description as description
         from CalendarEvents e
         where e.deleted = false and (e.seriesExcluded = false or e.seriesExcluded is null)
           and e.state in :states and e.endDate >= :from and e.startDate <= :to
@@ -26,4 +28,11 @@ public interface CalendarFeedEventRepository extends JpaRepository<CalendarEvent
         @Param("from") Date from,
         @Param("to") Date to
     );
+
+    @Query("""
+        select e.id from CalendarEvents e
+        where e.calendarUid = :uid and e.deleted = false
+          and (e.seriesExcluded = false or e.seriesExcluded is null) and e.state in :states
+        """)
+    Optional<Long> findIdByCalendarUid(@Param("uid") UUID uid, @Param("states") Collection<StateEnum> states);
 }

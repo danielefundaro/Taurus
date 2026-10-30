@@ -50,7 +50,7 @@ class CalendarFeedTenantIsolationTest {
         when(subscriptions.findByIdAndDeletedFalse(route.getSubscriptionId())).thenReturn(Optional.empty());
 
         CalendarFeedTokenResolver resolver = new CalendarFeedTokenResolver(tokenService, registry, schemas, transactions,
-            subscriptions, events, tombstones, renderer, limiter, properties, tenantFeatures);
+            subscriptions, events, tombstones, renderer, limiter, properties, tenantFeatures, metrics());
 
         assertThat(resolver.resolve(token.value(), "192.0.2.1")).isEmpty();
         verify(transactions).execute(eq("tenant-a"), ArgumentMatchers.<Supplier<Optional<Download>>>any());
@@ -78,9 +78,13 @@ class CalendarFeedTenantIsolationTest {
 
         CalendarFeedTokenResolver resolver = new CalendarFeedTokenResolver(tokenService, registry, schemas, transactions,
             mock(CalendarFeedSubscriptionRepository.class), mock(CalendarFeedEventRepository.class),
-            mock(CalendarEventFeedTombstoneRepository.class), mock(IcalendarRenderer.class), limiter, new ApplicationProperties(), tenantFeatures);
+            mock(CalendarEventFeedTombstoneRepository.class), mock(IcalendarRenderer.class), limiter, new ApplicationProperties(), tenantFeatures, metrics());
 
         assertThat(resolver.resolve(token.value(), "192.0.2.1")).isEmpty();
         verifyNoInteractions(transactions);
+    }
+
+    private static CalendarFeedMetrics metrics() {
+        return new CalendarFeedMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 }

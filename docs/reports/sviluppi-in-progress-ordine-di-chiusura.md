@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-28 restano `in-progress` le voci 6, 7, 9, 13, 18 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 14, 15, 16 e 17.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-29 restano `in-progress` le voci 6, 7, 9 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17 e 18.
 
 ## 1. `web-push-reminders`
 
@@ -215,6 +215,8 @@ Il drag and drop accessibile fra parti e la gestione della bozza concorrente son
 
 C'è anche una decisione di progetto da sciogliere (il primo punto) prima di toccare il formato degli URL.
 
+> Chiuso il 2026-10-29: la voce è passata a `implemented`. La decisione sugli ID numerici è stata presa nel senso più stretto: l'`URL` del livello `STANDARD` porta ora il `calendar_uid` già esportato come `UID` (`/calendar/uid/<uuid>`), che `GET /api/calendar-feeds/events/{uid}` risolve con le regole di visibilità del feed e la rotta Angular `uid/:uid` sostituisce nella cronologia del browser; nessun link era ancora stato emesso, quindi non serviva compatibilità all'indietro. La revoca è proattiva anche alla cancellazione dell'utente, alla cancellazione GDPR e alla disattivazione o cancellazione del tenant, dove `CalendarFeedTenantRevocationService` chiude prima le righe globali — quelle che il download risolve — e poi le sottoscrizioni dello schema, senza considerare un errore lo schema già eliminato. La cronologia della credenziale ha una tabella propria, `calendar_feed_audit` (migration `20261029000000`), con operazione, origine, versione e fingerprint del token, autore e motivo: la espongono `/audit` e un pannello nell'elenco, e ogni riga produce un log `calendar_feed_credential` con l'autore in hash. Arrivate le metriche `taurus.calendar_feed.*` a etichette chiuse, il log `calendar_feed_download` con correlation ID e il controllo notturno delle righe globali orfane, che ora pulisce anche le ricevute di idempotenza oltre i 30 giorni. L'aggiornamento di `last_accessed_at` è passato fuori dalla transazione del calendario ed è best effort: un suo errore non trasforma più una risposta corretta in un `503`. L'elenco amministrativo mostra tipo, proprietario, creatore e data, l'avvertenza invita a generare subito un nuovo link se quello vecchio è finito dove non doveva, e `AdminCalendarFeedResource` richiede `ROLE_ADMIN` o `ROLE_SUPER_ADMIN`. Aggiunti `CalendarFeedIT` su PostgreSQL reale — ambito e `DRAFT`, isolamento fra tenant, `304`, `HEAD`, calendario vuoto, `429`, perdita del ruolo, tenant disattivato, cancellazione GDPR senza righe globali orfane, ultimo accesso al massimo una volta al giorno con al più otto query e nessuna lettura di disponibilità, presenze o costi — `CalendarFeedEventLifecycleTest`, `CalendarFeedTokenResolverTest` per il rifiuto oltre il limite dei componenti e per l’ultimo accesso che fallisce senza rovinare la risposta, i casi di ora legale e di taglio della descrizione del renderer e le spec Angular del pannello, del servizio e della rotta UID. Soglie di copertura alzate: backend 0,74 linee e 0,58 branch, frontend 62/51/64. Restano il collaudo manuale sui client, la verifica della redazione del token su reverse proxy, WAF e APM e il rilascio progressivo.
+
 ## 14. `notification-preferences`
 
 [Preferenze notifiche granulari](../notification-preferences-spec.md) — difficoltà alta. **Dipende dalla voce 1.**
@@ -299,6 +301,8 @@ Sono almeno quattro lotti indipendenti: dominio e valutazione backend, concorren
 
 È la voce più costosa: tocca parsing di file ostili, una saga distribuita con compensazione e Keycloak, e una procedura di prova non banale.
 
+> Chiuso il 2026-10-29: la voce è passata a `implemented`; il dettaglio degli interventi è nelle note della voce nel [Catalogo funzionalità](../features.md#tenant-onboarding-import-evidenze).
+
 ## 19. `operational-runbook`
 
 [Runbook operativo](../runbook-operativo.md) — difficoltà molto alta, è lavoro infrastrutturale.
@@ -315,5 +319,5 @@ Non blocca il passaggio a `implemented` delle altre voci, ma blocca ogni `releas
 
 - I conteggi della tabella sono il numero di voci elencate sotto «Requisiti aperti» di ogni specifica, o di righe della tabella dei gap per i due runbook; non misurano l'effort, che è stimato nella colonna «Difficoltà».
 - La propedeuticità del [Runbook di test](#7-test-runbook) riguarda il primo lotto (runner end to end, Testcontainers RabbitMQ, test parametrizzati di isolamento tenant): il resto dei suoi gap può procedere in parallelo alle funzionalità.
-- Alcune voci contengono decisioni ancora da prendere, non solo sviluppo: ID numerici negli URL in `external-calendar-feed`, scadenza dei job abbandonati in `tenant-onboarding-import`. Vanno sciolte prima di aprire il lotto che le riguarda. Il criterio 27 di `event-preparation` è stato deciso il 2026-10-28: l'area richiesta con il modulo disattivato esce dai requisiti ed è segnalata all'amministratore, invece di produrre `UNKNOWN`; il costo della preparazione nella dashboard ha un bilancio di query a parte.
+- Alcune voci contengono decisioni da prendere, non solo sviluppo: la scadenza dei job abbandonati in `tenant-onboarding-import`. Vanno sciolte prima di aprire il lotto che le riguarda. Quella sugli ID numerici negli URL di `external-calendar-feed` è stata sciolta il 2026-10-29: il feed non contiene ID del database e il link del livello `STANDARD` usa il `calendar_uid` già esportato come `UID`. Il criterio 27 di `event-preparation` è stato deciso il 2026-10-28: l'area richiesta con il modulo disattivato esce dai requisiti ed è segnalata all'amministratore, invece di produrre `UNKNOWN`; il costo della preparazione nella dashboard ha un bilancio di query a parte.
 - Il passaggio a `implemented` richiede, per ogni voce, codice, test e migrazioni applicabili sul ramo di riferimento e le verifiche di modulo superate, come stabilito dalla [governance di allineamento](../documentation-implementation-alignment-spec.md).

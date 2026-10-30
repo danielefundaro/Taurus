@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.calendarfeed.*;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.*;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
@@ -33,13 +34,16 @@ public class CalendarFeedManagementService {
     private final TenantsRepository tenants;
     private final CalendarFeedTokenService tokens;
     private final CalendarFeedIdempotencyCodec idempotencyCodec;
+    private final CalendarFeedAuditService audit;
+    private final CalendarFeedEventRepository events;
     private final EntityManager entityManager;
     private final ApplicationProperties.CalendarFeedProperties properties;
 
     public CalendarFeedManagementService(CalendarFeedSubscriptionRepository subscriptions,
                                          CalendarFeedTokenRegistryRepository registry, CalendarFeedIdempotencyRepository idempotency,
                                          UsersRepository users, TenantsRepository tenants, CalendarFeedTokenService tokens,
-                                         CalendarFeedIdempotencyCodec idempotencyCodec, EntityManager entityManager, ApplicationProperties properties) {
+                                         CalendarFeedIdempotencyCodec idempotencyCodec, CalendarFeedAuditService audit,
+                                         CalendarFeedEventRepository events, EntityManager entityManager, ApplicationProperties properties) {
         this.subscriptions = subscriptions;
         this.registry = registry;
         this.idempotency = idempotency;
@@ -47,6 +51,8 @@ public class CalendarFeedManagementService {
         this.tenants = tenants;
         this.tokens = tokens;
         this.idempotencyCodec = idempotencyCodec;
+        this.audit = audit;
+        this.events = events;
         this.entityManager = entityManager;
         this.properties = properties.getCalendarFeed();
     }
@@ -60,6 +66,38 @@ public class CalendarFeedManagementService {
     @Transactional(readOnly = true)
     public List<Feed> listAdmin() {
         return subscriptions.findAllByDeletedFalseOrderByInsertDateDesc().stream().map(this::dto).toList();
+    }
+
+    /** The history of one feed: the owner reads their own, an administrator any of the tenant. */
+    @Transactional(readOnly = true)
+    public List<AuditEntry> history(UUID id, boolean admin, AbstractAuthenticationToken auth) {
+        CalendarFeedSubscription subscription = subscriptions.findById(id).orElseThrow(this::notFound);
+        if (!admin) {
+            Users caller = currentUser(auth);
+            if (subscription.getFeedType() != CalendarFeedType.PERSONAL || !Objects.equals(subscription.getOwner().getId(), caller.getId()))
+                throw notFound();
+        }
+        return audit.history(id).stream()
+            .map(e -> new AuditEntry(e.getAction().name(), e.getSource().name(), e.getTokenVersion(), e.getTokenFingerprint(), e.getActor(), e.getReason(), e.getOccurredAt()))
+            .toList();
+    }
+
+    /**
+     * The event behind a feed link: the calendar UID, never the database id, travels in the ICS file.
+     *
+     * <p>The answer is limited to what a feed may carry — a live event, {@code COMPLETE} or
+     * {@code PUBLIC} — and to the scope of the caller, so a link cannot be used to learn that a
+     * draft, or an internal event, exists.
+     */
+    @Transactional(readOnly = true)
+    public Long resolveEventByUid(UUID uid, AbstractAuthenticationToken auth) {
+        requireEnabled();
+        Users caller = currentUser(auth);
+        Collection<StateEnum> states = caller.getRoles().contains(RoleEnum.ROLE_USER) || caller.getRoles().contains(RoleEnum.ROLE_SUPER_ADMIN)
+            || caller.getRoles().contains(RoleEnum.ROLE_ADMIN) || caller.getRoles().contains(RoleEnum.ROLE_ARCHIVIST)
+            || caller.getRoles().contains(RoleEnum.ROLE_TREASURER)
+            ? List.of(StateEnum.COMPLETE, StateEnum.PUBLIC) : List.of(StateEnum.PUBLIC);
+        return events.findIdByCalendarUid(uid, states).orElseThrow(this::notFound);
     }
 
     public SecretFeed createPersonal(CreateRequest request, AbstractAuthenticationToken auth) {
@@ -118,6 +156,7 @@ public class CalendarFeedManagementService {
         subscriptions.save(subscription);
         saveRegistry(subscription, token.digest(), now);
         saveIdempotency(requestDigest, fingerprint, request.idempotencyKey(), subscription, token.value(), now);
+        audit.record(subscription, CalendarFeedAuditAction.ROTATED, source(admin), actor, null, now);
         return secret(subscription, token.value());
     }
 
@@ -131,11 +170,13 @@ public class CalendarFeedManagementService {
         }
         if (subscription.getStatus() == CalendarFeedStatus.REVOKED) return;
         Instant now = Instant.now();
+        String actor = actor(auth);
         subscription.setStatus(CalendarFeedStatus.REVOKED);
         subscription.setEditDate(now);
-        subscription.setEditBy(actor(auth));
+        subscription.setEditBy(actor);
         registry.revokeActive(id, now);
         subscriptions.save(subscription);
+        audit.record(subscription, CalendarFeedAuditAction.REVOKED, source(admin), actor, null, now);
     }
 
     public void deleteRevoked(UUID id, boolean admin, AbstractAuthenticationToken auth) {
@@ -155,6 +196,7 @@ public class CalendarFeedManagementService {
         subscription.setEditDate(now);
         subscription.setEditBy(actor);
         subscriptions.save(subscription);
+        audit.record(subscription, CalendarFeedAuditAction.REMOVED, source(admin), actor, null, now);
     }
 
     private SecretFeed create(CreateRequest request, CalendarFeedType type, CalendarFeedScope scope, Users owner, String actor,
@@ -181,6 +223,7 @@ public class CalendarFeedManagementService {
         subscriptions.save(s);
         saveRegistry(s, token.digest(), now);
         saveIdempotency(requestDigest, fingerprint, request.idempotencyKey(), s, token.value(), now);
+        audit.record(s, CalendarFeedAuditAction.CREATED, type == CalendarFeedType.TENANT ? CalendarFeedAuditSource.ADMIN : CalendarFeedAuditSource.OWNER, actor, null, now);
         return secret(s, token.value());
     }
 
@@ -265,7 +308,15 @@ public class CalendarFeedManagementService {
     }
 
     private Feed dto(CalendarFeedSubscription s) {
-        return new Feed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), s.getStatus(), s.getTokenFingerprint(), s.getOwner() == null ? null : s.getOwner().getId(), s.getInsertBy(), s.getInsertDate(), s.getLastAccessedAt());
+        Users owner = s.getOwner();
+        return new Feed(s.getId(), s.getName(), s.getFeedType(), s.getVisibilityScope(), s.getDetailLevel(), s.getPastDays(), s.getFutureMonths(), s.getStatus(), s.getTokenFingerprint(), owner == null ? null : owner.getId(), ownerName(owner), s.getInsertBy(), s.getInsertDate(), s.getLastAccessedAt());
+    }
+
+    /** The administrative list says whose feed it is; a deleted owner keeps the placeholder name of the erasure. */
+    private static String ownerName(Users owner) {
+        if (owner == null) return null;
+        String name = String.join(" ", Objects.toString(owner.getName(), ""), Objects.toString(owner.getLastName(), "")).trim();
+        return name.isBlank() ? null : name;
     }
 
     private SecretFeed secret(CalendarFeedSubscription s, String token) {
@@ -279,6 +330,10 @@ public class CalendarFeedManagementService {
 
     private void requireEnabled() {
         if (!properties.isEnabled()) throw notFound();
+    }
+
+    private static CalendarFeedAuditSource source(boolean admin) {
+        return admin ? CalendarFeedAuditSource.ADMIN : CalendarFeedAuditSource.OWNER;
     }
 
     private RequestAlertException notFound() {

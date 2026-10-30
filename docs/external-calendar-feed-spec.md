@@ -87,7 +87,7 @@ L'ambito viene fissato alla creazione in base ai ruoli correnti e validato a ogn
 
 La presenza dei soli ruoli `ROLE_SUPER_ADMIN`, `ROLE_ADMIN`, `ROLE_ARCHIVIST` o `ROLE_TREASURER` non abilita un feed personale. Un amministratore che possiede anche `ROLE_USER` riceve il normale ambito interno, mai gli eventi `DRAFT`.
 
-Questa regola evita che un URL di lunga durata trasformi l'accesso amministrativo in una pubblicazione permanente. Il feed non cambia silenziosamente significato: se viene meno il ruolo richiesto dal suo ambito, viene revocato e dalla richiesta successiva restituisce `404`. L'utente può creare un nuovo feed con l'ambito consentito. La revoca proattiva avviene solo durante la modifica dell'utente (`UsersServiceImpl.update`, tramite `CalendarFeedOwnerRevocationService`). Negli altri casi, per esempio cancellazione o disattivazione per altre vie, il feed resta `ACTIVE`, ma ogni download ricontrolla utente e ruoli e risponde `404`.
+Questa regola evita che un URL di lunga durata trasformi l'accesso amministrativo in una pubblicazione permanente. Il feed non cambia silenziosamente significato: se viene meno il ruolo richiesto dal suo ambito, viene revocato e dalla richiesta successiva restituisce `404`. L'utente può creare un nuovo feed con l'ambito consentito. La revoca proattiva avviene alla modifica dell'utente (`UsersServiceImpl.update`), alla sua cancellazione (`UsersServiceImpl.delete` e `DataErasureService`, tramite `CalendarFeedOwnerRevocationService`) e alla disattivazione o cancellazione del tenant (`TenantsServiceImpl`, tramite `CalendarFeedTenantRevocationService`, che chiude prima le righe globali e poi le sottoscrizioni dello schema). Resta comunque il controllo a ogni download: utente e ruoli vengono riletti e una credenziale non più ammessa riceve `404`.
 
 ### Feed tenant
 
@@ -111,11 +111,11 @@ Ogni feed salva un livello esplicito:
 | `MINIMAL` | nome, inizio, fine e luogo |
 | `STANDARD` | contenuto `MINIMAL`, descrizione in testo semplice e collegamento autenticato al dettaglio Taurus |
 
-Il valore predefinito è `MINIMAL`. Il collegamento al dettaglio ha la forma `<public-base-url>/calendar/<id>` e non concede accesso: l'apertura continua a richiedere autenticazione e ruolo compatibile.
+Il valore predefinito è `MINIMAL`. Il collegamento al dettaglio ha la forma `<public-base-url>/calendar/uid/<calendar_uid>` e non concede accesso: l'apertura continua a richiedere autenticazione e ruolo compatibile. La pagina risolve l'UID nell'evento (`GET /api/calendar-feeds/events/{uid}`, con le stesse regole di visibilità del feed) e sostituisce il proprio passaggio nella cronologia del browser; se l'evento non esiste più o non è visibile con il profilo che apre il link, mostra un messaggio invece di una pagina vuota.
 
 Non vengono mai esportati, indipendentemente dal livello:
 
-- ID numerici del database, con un'eccezione: l'`URL` del livello `STANDARD` contiene `calendar_event.id` (`CalendarFeedTokenResolver`);
+- ID numerici del database: l'`URL` del livello `STANDARD` contiene soltanto il `calendar_uid`, già esportato come `UID` (`CalendarFeedTokenResolver`);
 - elenco utenti, disponibilità e presenze;
 - compenso, costi, preventivo e movimenti;
 - promemoria personali o di evento;
@@ -139,9 +139,10 @@ Nelle impostazioni profilo compare la sezione **Calendario esterno**. Se l'utent
 4. leggere le istruzioni specifiche per il proprio client;
 5. vedere metadati, stato e ultimo accesso approssimativo;
 6. ruotare l'URL ("Genera nuovo link") oppure revocare il feed;
-7. eliminare dall'elenco un feed revocato ("Elimina dall'elenco").
+7. eliminare dall'elenco un feed revocato ("Elimina dall'elenco");
+8. aprire la cronologia del feed, con creazione, rotazioni e revoche.
 
-La sezione mostra sempre l'avviso **Il link viene mostrato una sola volta**: chi possiede il link può leggere gli eventi inclusi e, se lo si perde, occorre generarne uno nuovo. L'avviso non invita a ruotare il link quando è stato esposto.
+La sezione mostra sempre l'avviso **Il link viene mostrato una sola volta**: chi possiede il link può leggere gli eventi inclusi e, se lo si perde, occorre generarne uno nuovo. L'avviso invita inoltre a generare subito un nuovo link se il precedente è finito in una chat, in un messaggio inoltrato o in un calendario condiviso per errore: è l'unico modo per togliere l'accesso a chi lo ha ricevuto.
 
 La rotazione richiede conferma perché interrompe la sottoscrizione esistente. Dopo la rotazione il nuovo URL è mostrato una sola volta e il precedente smette di funzionare.
 
@@ -152,10 +153,12 @@ Nell'amministrazione del tenant compare **Feed calendario** con:
 - nome riconoscibile, livello di dettaglio e fingerprint;
 - ambito `INTERNAL` o `PUBLIC_ONLY`;
 - finestra temporale;
+- tipo (tenant o personale) e proprietario;
+- creatore e data di creazione;
 - stato e ultimo accesso approssimativo;
-- azioni di rotazione (solo feed tenant), revoca ed eliminazione dall'elenco dei feed revocati.
+- azioni di cronologia, rotazione (solo feed tenant), revoca ed eliminazione dall'elenco dei feed revocati.
 
-Il DTO contiene anche tipo, proprietario, creatore e data di creazione, ma la tabella non li mostra.
+La cronologia mostra operazione, origine, versione e fingerprint del token, autore e momento; non mostra mai un valore segreto.
 
 La UI distingue chiaramente **sottoscrizione** da **importazione**: importare un file produce una fotografia statica, mentre aggiungere l'URL come calendario sottoscritto consente gli aggiornamenti periodici.
 
@@ -242,7 +245,7 @@ La tabella tenant `calendar_feed_idempotency` conserva l'esito di creazioni e ro
 | `token_ciphertext`, `token_nonce` | `BYTEA` | token cifrato con AES-GCM (`CalendarFeedIdempotencyCodec`) |
 | `created_at` | `TIMESTAMPTZ` | indicizzato |
 
-La chiave AES deriva dalla chiave di idempotenza del client, che non viene salvata; il digest della richiesta è il dato autenticato. Il retry restituisce lo stesso URL solo se il feed è attivo e la versione del token è ancora quella registrata. Nessun job elimina le ricevute: restano finché esiste il feed.
+La chiave AES deriva dalla chiave di idempotenza del client, che non viene salvata; il digest della richiesta è il dato autenticato. Il retry restituisce lo stesso URL solo se il feed è attivo e la versione del token è ancora quella registrata. Le ricevute più vecchie di `application.calendar-feed.idempotency-retention-days` (default 30) vengono eliminate dallo stesso job che fa retention dei tombstone: oltre quella finestra nessun client ripete una creazione o una rotazione e il token cifrato non ha ragione di sopravvivere.
 
 ### Registro globale del token
 
@@ -449,6 +452,8 @@ Base path: `/api/calendar-feeds`.
 | `POST /api/calendar-feeds/{id}/rotate` | ruota il token del feed posseduto |
 | `DELETE /api/calendar-feeds/{id}` | revoca il feed posseduto; idempotente |
 | `DELETE /api/calendar-feeds/{id}/record` | cancella logicamente un feed posseduto già revocato; `409 calendarFeed.active` se è attivo |
+| `GET /api/calendar-feeds/{id}/audit` | cronologia del feed posseduto: operazione, origine, versione e fingerprint del token, autore, motivo e momento |
+| `GET /api/calendar-feeds/events/{uid}` | risolve il `calendar_uid` di un evento nel suo id, con le regole di visibilità del feed; `404` se non esiste o non è visibile |
 
 Esempio di creazione:
 
@@ -491,8 +496,9 @@ Base path: `/api/admin/calendar-feeds`.
 | `POST /api/admin/calendar-feeds/{id}/rotate` | ruota un feed tenant |
 | `DELETE /api/admin/calendar-feeds/{id}` | revoca un feed del tenant |
 | `DELETE /api/admin/calendar-feeds/{id}/record` | cancella logicamente un feed revocato del tenant; `409 calendarFeed.active` se è attivo |
+| `GET /api/admin/calendar-feeds/{id}/audit` | cronologia di un feed del tenant |
 
-L'amministratore non può ruotare un feed personale perché riceverebbe la nuova credenziale dell'utente; può soltanto revocarlo.
+L'amministratore non può ruotare un feed personale perché riceverebbe la nuova credenziale dell'utente; può soltanto revocarlo. L'intera resource richiede `ROLE_ADMIN` o `ROLE_SUPER_ADMIN`.
 
 ### Download anonimo autenticato dal token
 
@@ -547,20 +553,22 @@ L'URL è una credenziale a lunga durata. Le seguenti misure sono prerequisiti di
 - nessun cookie di sessione necessario per la lettura;
 - validazione stretta di nome, descrizione, luogo e URL per prevenire injection ICS;
 - URL pubblico costruito soltanto da una base URL di configurazione fidata, mai dall'header `Host` della richiesta;
-- audit di creazione, rotazione e revoca senza valore segreto, limitato ai campi `insert_*` ed `edit_*` della sottoscrizione;
-- revoca automatica quando proprietario o tenant vengono disattivati o cancellati: proattiva solo nella modifica dell'utente, negli altri casi garantita dal `404` del download;
+- audit storico di creazione, rotazione, revoca ed eliminazione in `calendar_feed_audit`, con operazione, origine, versione e fingerprint del token, autore e motivo, mai il valore segreto; la stessa operazione produce un log `calendar_feed_credential` con l'autore in forma di hash;
+- revoca automatica e proattiva quando proprietario o tenant vengono disattivati o cancellati, con il controllo a ogni download come seconda difesa;
 - esclusione di `service.calendarfeed` e delle resource dei feed dal `LoggingAspect`, così argomenti e risultati non finiscono nei log DEBUG.
 
-Il campo `last_accessed_at` è informativo: un accesso può appartenere al provider e non dimostra che l'utente abbia aperto il calendario. Per evitare una scrittura a ogni polling viene aggiornato al massimo una volta ogni 24 ore, in modo sincrono nella stessa transazione della lettura.
+La procedura da seguire quando un link viene esposto — contenimento, revoca, verifica e verbale — è nel [Runbook operativo](runbook-operativo.md#158-revoca-dei-feed-calendario-per-incidente).
+
+Il campo `last_accessed_at` è informativo: un accesso può appartenere al provider e non dimostra che l'utente abbia aperto il calendario. Per evitare una scrittura a ogni polling viene aggiornato al massimo una volta ogni 24 ore, in una transazione propria dopo la generazione del calendario.
 
 ## Concorrenza e consistenza
 
 - Rotazione e revoca bloccano la riga della sottoscrizione (`SELECT ... FOR UPDATE`); la creazione prende advisory lock sulla chiave di idempotenza e sul limite.
 - Due rotazioni concorrenti vengono serializzate: con chiavi diverse riescono entrambe e resta accettato solo l'ultimo token; con la stessa chiave la seconda riceve la risposta idempotente già registrata.
 - Generazione e revoca concorrenti possono completare una risposta già autenticata prima del commit di revoca; ogni nuova richiesta successiva al commit fallisce. Questo è il limite transazionale dichiarato.
-- La query legge eventi e tombstone in una singola transazione tenant, non read-only perché può aggiornare `last_accessed_at`.
+- La query legge eventi e tombstone in una singola transazione tenant di sola lettura.
 - La modifica di un evento, l'incremento della sequenza e la creazione dei tombstone avvengono nella stessa transazione del dominio.
-- Un errore al commit dell'aggiornamento di `last_accessed_at` fa rispondere `503` anche se il calendario era stato generato.
+- L'aggiornamento di `last_accessed_at` sta fuori dalla transazione che genera il calendario ed è best effort: un suo errore viene registrato come `calendar_feed_last_access outcome=failed` e non cambia la risposta, che resta il calendario corretto.
 
 ## Componenti backend
 
@@ -577,8 +585,11 @@ I componenti sono separati dalle API calendario amministrative:
 - `IcalendarRenderer` per la rappresentazione RFC 5545;
 - `CalendarSubscriptionResource` per `GET` e `HEAD` pubblici; `CalendarFeedResource` e `AdminCalendarFeedResource` per la gestione;
 - `CalendarFeedEventLifecycle`, servizio di dominio che aggiorna UID, sequenza e tombstone su tutte le mutazioni evento/serie;
-- `CalendarFeedOwnerRevocationService` per la revoca dei feed personali alla modifica dell'utente;
-- `CalendarFeedTombstoneScheduler`, job multi-tenant di retention dei tombstone.
+- `CalendarFeedOwnerRevocationService` per la revoca dei feed personali quando il proprietario perde i ruoli o viene cancellato;
+- `CalendarFeedTenantRevocationService` per la revoca di tutti i feed di un tenant disattivato, cancellato o cancellato per GDPR;
+- `CalendarFeedAuditService` e l'entità `CalendarFeedAuditEntry` per la cronologia delle credenziali;
+- `CalendarFeedMetrics` per le misure Micrometer a bassa cardinalità;
+- `CalendarFeedTombstoneScheduler`, job multi-tenant di retention di tombstone e ricevute, con controllo di coerenza delle righe globali.
 
 Il renderer riceve DTO dedicati e già minimizzati; non deve ricevere `CalendarEventsDTO`, che contiene campi non esportabili. Questo rende più difficile una futura esposizione accidentale di costi o partecipanti.
 
@@ -593,13 +604,14 @@ application:
     default-future-months: 18
     max-components: 10000
     tombstone-retention-days: 90
+    idempotency-retention-days: 30
     suggested-refresh: PT6H
     rate-limit-per-token-hour: 120
     rate-limit-per-ip-hour: ${CALENDAR_FEED_RATE_LIMIT_PER_IP_HOUR:2000}
     rate-limit-global-hour: ${CALENDAR_FEED_RATE_LIMIT_GLOBAL_HOUR:100000}
 ```
 
-La chiave facoltativa `application.calendar-feed.cleanup-cron` pianifica la pulizia dei tombstone (default `0 15 3 * * *`).
+La chiave facoltativa `application.calendar-feed.cleanup-cron` pianifica la pulizia di tombstone e ricevute e il controllo di coerenza del registro globale (default `0 15 3 * * *`).
 
 Oltre al flag globale, ogni tenant deve avere la funzionalità `EXTERNAL_CALENDAR_FEED` (colonna `public.tenant.external_calendar_feed_enabled`, default `false`). Senza di essa le API di gestione sono negate e il download risponde `404`.
 
@@ -607,12 +619,13 @@ Nessun segreto viene inserito nella configurazione per generare i token: la sicu
 
 ## Migrazioni
 
-Le migration Liquibase coordinate sono quattro:
+Le migration Liquibase coordinate sono cinque:
 
 1. `master.xml`, `20260905020000_calendar_feed_registry.xml`: creazione di `public.calendar_feed_token_registry` con indici e FK globali;
 2. `tenant-master.xml`, `20260905020001_external_calendar_feed.xml`: estensione `calendar_event`, creazione di `calendar_feed_subscription` e `calendar_event_feed_tombstone`;
 3. `tenant-master.xml`, `20260906010000_calendar_feed_idempotency.xml`: creazione di `calendar_feed_idempotency`;
-4. `tenant-master.xml`, `20260907000000_calendar_feed_audit.xml`: campi audit standard e colonna `deleted` della sottoscrizione.
+4. `tenant-master.xml`, `20260907000000_calendar_feed_audit.xml`: campi audit standard e colonna `deleted` della sottoscrizione;
+5. `tenant-master.xml`, `20261029000000_calendar_feed_audit_history.xml`: creazione di `calendar_feed_audit`, la cronologia delle operazioni sulla credenziale.
 
 Per gli eventi esistenti la migration tenant:
 
@@ -628,25 +641,24 @@ Rollback applicativo: disabilitare la feature flag rende il percorso pubblico in
 
 ## Osservabilità
 
-Il package `service.calendarfeed` e le resource dei feed non registrano metriche né log dedicati. Le misure seguenti sono tra i [Requisiti aperti](#requisiti-aperti).
+`CalendarFeedMetrics` registra le misure Micrometer sotto il prefisso `taurus.calendar_feed.`:
 
-Metriche a bassa cardinalità:
+| Misura | Etichette |
+| --- | --- |
+| `requests`, `request.duration` | `outcome` (`200`, `304`, `404`, `429`, `503`), `type`, `scope` |
+| `resolution.duration` | `outcome` della risoluzione del token |
+| `generation.duration`, `components` | nessuna |
+| `generation.errors` | `kind`: `render` o `limit` |
+| `rate.limited` | `scope`: `token`, `ip` o `global` |
+| `operations` | `action` (`created`, `rotated`, `revoked`, `removed`), `outcome` |
+| `tombstones`, `receipts.deleted` | `operation` della retention |
+| `registry.orphans` | `outcome` del controllo di coerenza |
 
-- richieste feed per esito, `feedType` e ambito;
-- durata risoluzione token;
-- durata generazione ICS;
-- numero componenti per risposta;
-- percentuale risposte `304`;
-- errori di rendering;
-- rate limit applicati;
-- tombstone creati ed eliminati;
-- righe globali orfane rilevate dal controllo di coerenza.
-
-Nessuna metrica contiene ID di feed, tenant, utente, UID evento, fingerprint o token. I log applicativi usano un correlation ID generato dal server e registrano soltanto esito e classe dell'errore. Un alert segnala aumento di `5xx`, tempi di generazione elevati, superamento del limite componenti o incoerenze tra registro globale e schema tenant.
+Le etichette sono chiuse e nessuna contiene ID di feed, tenant, utente, UID evento, fingerprint o token; la percentuale di `304` si legge dall'etichetta `outcome` delle richieste, senza un contatore dedicato. Il download registra un log `calendar_feed_download` con correlation ID generato dal server, esito, tipo, ambito e durata, mai il path tokenizzato; le operazioni sulla credenziale registrano `calendar_feed_credential` con l'autore in forma di hash. Un alert segnala aumento di `5xx`, tempi di generazione elevati, superamento del limite componenti o righe globali orfane rilevate dal controllo di coerenza del job notturno.
 
 ## Strategia di test
 
-I test presenti coprono generazione del token, codec di idempotenza, replay della creazione, cancellazione logica dei feed revocati, rate limiter, instradamento verso il solo tenant del registro, rendering (UTF-8, `CRLF`, escaping, folding, campi esclusi, cancellazione) e migration (`CalendarFeedMigrationIT`). Nel frontend `calendar-feed-panel.component.spec.ts` copre nome obbligatorio, creazione con link mostrato una volta ed eliminazione di un feed revocato. Gli altri casi elencati sotto sono tra i [Requisiti aperti](#requisiti-aperti).
+I casi elencati sotto sono coperti da `CalendarFeedTokenServiceTest`, `CalendarFeedIdempotencyCodecTest`, `CalendarFeedManagementServiceTest`, `CalendarFeedTenantIsolationTest`, `CalendarFeedRateLimiterTest`, `CalendarFeedEventLifecycleTest`, `IcalendarRendererTest`, `CalendarFeedTokenResolverTest`, `CalendarFeedMigrationIT` e `CalendarFeedIT`, che esercita con PostgreSQL reale l'intero percorso pubblico. Il file prodotto è sempre rileggibile da un parser iCalendar, perché `IcalendarRenderer` lo rilegge con `ical4j` prima di restituirlo. Due casi non hanno test automatico: la revoca concorrente a un download già autenticato, che è il limite transazionale dichiarato sopra, e la negoziazione gzip, che appartiene al server davanti all'applicazione. Nel frontend li coprono `calendar-feed-panel.component.spec.ts`, `calendar-feed.service.spec.ts` ed `event-by-uid.component.spec.ts`. Restano fuori dalla verifica automatica soltanto il collaudo manuale sui client e le verifiche d'infrastruttura, che sono tra i [Requisiti aperti](#requisiti-aperti).
 
 ### Unit test
 
@@ -682,13 +694,14 @@ I test presenti coprono generazione del token, codec di idempotenza, replay dell
 
 ### Test frontend
 
-- visibilità della sezione per ruoli partecipanti;
-- gestione personale e amministrativa separata;
+- endpoint personali e amministrativi separati nel servizio;
+- colonne di tipo, proprietario e creazione presenti solo nell'elenco amministrativo;
 - URL mostrato solo nella risposta di creazione/rotazione;
-- copy-to-clipboard, avvertenza e conferma di rotazione/revoca;
-- assenza del token nello stato persistito del browser e nei messaggi analytics;
-- messaggi su sottoscrizione, ritardo di aggiornamento e importazione statica;
-- gestione accessibile da tastiera e screen reader.
+- avvertenza che invita a ruotare un link esposto e conferma di rotazione/revoca;
+- chiave di idempotenza riusata finché una rotazione non riesce, così un retry non produce due link validi;
+- assenza del token nello stato persistito del browser;
+- cronologia leggibile da screen reader (`role="region"` con etichetta) e messaggi su sottoscrizione, ritardo di aggiornamento e importazione statica;
+- risoluzione dell'UID del link e messaggio per un evento non più visibile.
 
 ### Compatibilità manuale
 
@@ -753,16 +766,6 @@ Token feed, registro pubblico e endpoint anonimo resteranno invece una capacità
 
 ## Requisiti aperti
 
-- Decidere se mantenere l'esclusione degli ID numerici del database: l'`URL` del livello `STANDARD` contiene `calendar_event.id` ([Livelli di dettaglio](#livelli-di-dettaglio)).
-- Revoca proattiva dei feed personali alla cancellazione o disattivazione del proprietario e alla disattivazione del tenant, oltre alla modifica dell'utente ([Feed personale](#feed-personale), [Sicurezza e privacy](#sicurezza-e-privacy)).
-- Invito a ruotare il link se esposto nell'avvertenza della UI ([Gestione personale](#gestione-personale)).
-- Creatore, data di creazione, tipo e proprietario nell'elenco amministrativo ([Gestione tenant](#gestione-tenant)).
-- Pulizia periodica delle ricevute in `calendar_feed_idempotency` ([Ricevute di idempotenza](#ricevute-di-idempotenza)).
-- Aggiornamento best effort di `last_accessed_at` che non faccia fallire una risposta ICS corretta ([Concorrenza e consistenza](#concorrenza-e-consistenza)).
-- Audit storico di creazione, rotazione e revoca, oggi ridotto ai campi audit della sottoscrizione ([Sicurezza e privacy](#sicurezza-e-privacy)).
-- Metriche, log con correlation ID, alert e controllo di coerenza delle righe globali orfane ([Osservabilità](#osservabilità)).
-- Test backend della strategia senza copertura: visibilità per ruolo e stato, esclusione dei `DRAFT`, UID e `SEQUENCE`, tombstone, finestra temporale, ETag e `304`, lifecycle con PostgreSQL reale, revoca concorrente, esiti HTTP, cancellazione GDPR e query count ([Strategia di test](#strategia-di-test)).
-- Test frontend su visibilità per ruolo, gestione amministrativa, rotazione, assenza del token nello stato persistito e accessibilità ([Test frontend](#test-frontend)).
 - Collaudo manuale su Google Calendar, Apple Calendar e Outlook ([Compatibilità manuale](#compatibilità-manuale)).
 - Verifica della redazione del token su reverse proxy, WAF, APM e analytics ([Sicurezza e privacy](#sicurezza-e-privacy)).
-- Rilascio progressivo: pilota con feed personali `MINIMAL`, poi feed tenant e livello `STANDARD`, infine abilitazione a tutti i tenant con alert, runbook di revoca per incidente e verifica periodica dell'assenza di token nei log.
+- Rilascio progressivo: pilota con feed personali `MINIMAL`, poi feed tenant e livello `STANDARD`, infine abilitazione a tutti i tenant con alert attivi e verifica periodica dell'assenza di token nei log.

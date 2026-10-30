@@ -340,6 +340,7 @@ application:
     default-future-months: 18
     max-components: 10000
     tombstone-retention-days: 90
+    idempotency-retention-days: 30
     suggested-refresh: PT6H
     rate-limit-per-token-hour: 120
     rate-limit-per-ip-hour: ${CALENDAR_FEED_RATE_LIMIT_PER_IP_HOUR:2000}

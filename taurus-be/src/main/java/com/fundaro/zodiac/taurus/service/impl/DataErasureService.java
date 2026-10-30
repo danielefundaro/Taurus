@@ -40,6 +40,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.CalendarFeedTokenRegistryRepository;
+import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedOwnerRevocationService;
 import com.fundaro.zodiac.taurus.repository.signature.SignatureLinkRegistryRepository;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 
@@ -69,6 +70,7 @@ public class DataErasureService {
     private NotificationProfileRepository notificationProfileRepository;
     private NotificationPushDeliveryRepository notificationPushDeliveryRepository;
     private CalendarFeedTokenRegistryRepository calendarFeedTokenRegistryRepository;
+    private CalendarFeedOwnerRevocationService calendarFeedRevocationService;
     private SignatureLinkRegistryRepository signatureLinkRegistryRepository;
     private TenantsRepository tenantsRepository;
     private ScoreErrorReportRepository scoreErrorReportRepository;
@@ -124,6 +126,11 @@ public class DataErasureService {
     void setCalendarFeedErasureRepositories(CalendarFeedTokenRegistryRepository registry, TenantsRepository tenantsRepository) {
         this.calendarFeedTokenRegistryRepository = registry;
         this.tenantsRepository = tenantsRepository;
+    }
+
+    @Autowired
+    void setCalendarFeedRevocationService(CalendarFeedOwnerRevocationService calendarFeedRevocationService) {
+        this.calendarFeedRevocationService = calendarFeedRevocationService;
     }
 
     @Autowired
@@ -190,6 +197,8 @@ public class DataErasureService {
             user.setEditBy(userId);
             user.setEditDate(new Date());
             usersRepository.save(user);
+            // The account is closed: its calendar links stop working now, not at the next download.
+            if (calendarFeedRevocationService != null) calendarFeedRevocationService.revokeAll(user, userId);
         }));
     }
 
@@ -254,6 +263,7 @@ public class DataErasureService {
             user.getRoles().clear();
             user.getInstruments().clear();
             usersRepository.save(user);
+            if (calendarFeedRevocationService != null) calendarFeedRevocationService.revokeAll(user, userId);
         }
 
         long deleted = 0;

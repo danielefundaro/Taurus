@@ -995,6 +995,21 @@ La chiave pubblica è incorporata nel frontend. La rotazione richiede coordiname
 
 Monitorare scadenza con anticipo, aggiornare reverse proxy/ingress, verificare catena completa e hostname, quindi provare login OIDC, API, service worker e feed calendario da una rete esterna.
 
+### 15.8 Revoca dei feed calendario per incidente
+
+Un URL di sottoscrizione è una credenziale: chi lo possiede legge gli eventi inclusi finché il token resta valido. Vale per un link finito in una chat, in un messaggio inoltrato o in un calendario condiviso, e per il sospetto che un elenco di token sia stato esposto.
+
+1. Delimitare l'incidente. Un singolo feed si riconosce dal fingerprint mostrato nell'elenco; `GET /api/admin/calendar-feeds` elenca i feed tenant e i metadati di quelli personali, e `/audit` ne dà la cronologia (creazione, rotazioni, revoche, autore e momento). I log `calendar_feed_credential` e `calendar_feed_download` non contengono mai il token.
+2. Un solo feed compromesso: dal pannello, «Genera nuovo link» se il proprietario deve continuare a usarlo, «Revoca» se no. Un amministratore non può ruotare un feed personale — riceverebbe la credenziale dell'utente — e può soltanto revocarlo, chiedendo al proprietario di crearne uno nuovo.
+3. Più feed o esposizione di origine ignota su un tenant: togliere la funzionalità `EXTERNAL_CALENDAR_FEED` al tenant (`public.tenant.external_calendar_feed_enabled = false`). Da quel momento ogni download risponde `404` e le API di gestione sono negate, senza toccare le sottoscrizioni: riattivando la funzionalità i link tornano validi, quindi è una misura di contenimento, non una revoca.
+4. Incidente sull'intera istanza: `CALENDAR_FEED_ENABLED=false` e riavvio. Stesso effetto del punto precedente su tutti i tenant.
+5. Revoca definitiva: dopo il contenimento revocare i feed interessati, così il registro globale chiude le righe e il token non è più risolvibile nemmeno riattivando la funzionalità.
+6. Comunicare che cosa resta visibile. Rotazione e revoca non eliminano le copie già memorizzate dai provider: Google, Apple e Outlook continuano a mostrare l'ultimo calendario scaricato finché non riprovano l'aggiornamento, e l'intervallo lo decide il provider.
+7. Verificare la chiusura. Nessun feed interessato resta `ACTIVE` nell'elenco; il job notturno (`application.calendar-feed.cleanup-cron`) non deve segnalare righe globali orfane (`taurus.calendar_feed.registry.orphans`); un calo a zero di `taurus.calendar_feed.requests` con `outcome=200` sui feed revocati conferma che nessuno li sta più scaricando.
+8. Annotare nel verbale dell'incidente fingerprint, momento della revoca e tenant coinvolti, leggendoli dalla cronologia: il valore del token non esiste in chiaro da nessuna parte e non va ricostruito.
+
+La revoca di tutti i feed di un tenant avviene anche da sola quando il tenant viene disattivato o cancellato, e quella dei feed personali quando il proprietario perde i ruoli partecipanti o viene cancellato.
+
 ## 16. Manutenzione ricorrente
 
 ### Giornaliera

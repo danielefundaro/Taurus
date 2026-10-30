@@ -13,6 +13,7 @@ import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.*;
 import com.fundaro.zodiac.taurus.service.dto.calendarfeed.CalendarFeedDtos.*;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 
@@ -58,7 +59,7 @@ class CalendarFeedManagementServiceTest {
         properties.getCalendarFeed().setPublicBaseUrl("https://taurus.example");
         CalendarFeedManagementService service = new CalendarFeedManagementService(subscriptions, registry, idempotency,
             mock(UsersRepository.class), tenants, new CalendarFeedTokenService(), new CalendarFeedIdempotencyCodec(),
-            entityManager, properties);
+            audit(), mock(CalendarFeedEventRepository.class), entityManager, properties);
         JwtAuthenticationToken authentication = mock(JwtAuthenticationToken.class);
         when(authentication.getTokenAttributes()).thenReturn(Map.of("sub", "actor-1"));
         CreateRequest request = new CreateRequest("Tenant calendar", CalendarFeedScope.INTERNAL,
@@ -116,7 +117,12 @@ class CalendarFeedManagementServiceTest {
         ApplicationProperties properties = new ApplicationProperties();
         return new CalendarFeedManagementService(subscriptions, mock(CalendarFeedTokenRegistryRepository.class),
             mock(CalendarFeedIdempotencyRepository.class), mock(UsersRepository.class), mock(TenantsRepository.class),
-            new CalendarFeedTokenService(), new CalendarFeedIdempotencyCodec(), mock(EntityManager.class), properties);
+            new CalendarFeedTokenService(), new CalendarFeedIdempotencyCodec(), audit(),
+            mock(CalendarFeedEventRepository.class), mock(EntityManager.class), properties);
+    }
+
+    private static CalendarFeedAuditService audit() {
+        return new CalendarFeedAuditService(mock(CalendarFeedAuditRepository.class), new CalendarFeedMetrics(new SimpleMeterRegistry()));
     }
 
     private static JwtAuthenticationToken authentication(String subject) {

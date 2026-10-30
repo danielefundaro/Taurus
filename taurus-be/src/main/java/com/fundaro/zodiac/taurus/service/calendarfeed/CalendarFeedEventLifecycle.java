@@ -14,10 +14,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class CalendarFeedEventLifecycle {
     private final CalendarEventFeedTombstoneRepository tombstones;
+    private final CalendarFeedMetrics metrics;
     private final int retentionDays;
 
-    public CalendarFeedEventLifecycle(CalendarEventFeedTombstoneRepository tombstones, ApplicationProperties properties) {
+    public CalendarFeedEventLifecycle(CalendarEventFeedTombstoneRepository tombstones, CalendarFeedMetrics metrics, ApplicationProperties properties) {
         this.tombstones = tombstones;
+        this.metrics = metrics;
         retentionDays = properties.getCalendarFeed().getTombstoneRetentionDays();
     }
 
@@ -54,6 +56,7 @@ public class CalendarFeedEventLifecycle {
             t.setCancelledAt(now);
             t.setExpiresAt(now.plus(retentionDays, java.time.temporal.ChronoUnit.DAYS));
             tombstones.save(t);
+            metrics.tombstones("created", 1);
         } else if (visible) tombstones.deleteByEventUidAndAudience(event.getCalendarUid(), audience);
     }
 

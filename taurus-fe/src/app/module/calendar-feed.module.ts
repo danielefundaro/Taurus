@@ -14,9 +14,23 @@ export interface CalendarFeed {
     status: CalendarFeedStatus;
     tokenFingerprint: string;
     ownerUserId: number | null;
+    ownerName: string | null;
     createdBy: string;
     createdAt: string;
     lastAccessedAt: string | null;
+}
+
+export type CalendarFeedAuditAction = 'CREATED' | 'ROTATED' | 'REVOKED' | 'REMOVED';
+export type CalendarFeedAuditSource = 'OWNER' | 'ADMIN' | 'OWNER_CHANGED' | 'TENANT_DISABLED';
+
+export interface CalendarFeedAuditEntry {
+    action: CalendarFeedAuditAction;
+    source: CalendarFeedAuditSource;
+    tokenVersion: number;
+    tokenFingerprint: string | null;
+    actor: string;
+    reason: string | null;
+    occurredAt: string;
 }
 
 export interface CalendarFeedCreate {
