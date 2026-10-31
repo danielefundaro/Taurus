@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { Locator, Page, Response } from '@playwright/test';
-import { Credentials, environmentMissing, expect, Role, signIn, test } from '../fixtures/session';
+import { Credentials, environmentMissing, expect, expectNoHorizontalOverflow, Role, signIn, test } from '../fixtures/session';
 
 interface OperationalItem {
     type: string;
@@ -140,8 +140,7 @@ test.describe('dashboard operativa', () => {
             await openDashboard(page, first.users[role]!, role);
             await expect(widget(page).locator('[aria-busy="true"]')).toHaveCount(0);
 
-            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-            expect(overflow).toBeLessThanOrEqual(0);
+            await expectNoHorizontalOverflow(page, width);
             // Ogni azione di riga mantiene un'area di attivazione di almeno 44 pixel.
             for (const button of await widget(page).getByRole('listitem').getByRole('button').all()) {
                 const box = await button.boundingBox();

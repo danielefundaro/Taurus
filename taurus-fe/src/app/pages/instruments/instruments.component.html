@@ -28,7 +28,7 @@
                 @for (item of items; track item.id) {
                 <app-list-row>
                     <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)"
-                        (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                        (ngModelChange)="toggleSelection(item)" [ariaLabel]="'Seleziona ' + item.name" />
                     <p-avatar rowMedia [label]="item.name | initials" size="large" shape="circle" />
                     <div rowIdentity>
                         <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name
@@ -58,7 +58,7 @@
                 <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
                     <app-entity-card [selected]="isSelected(item)">
                         <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)"
-                            (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                            (ngModelChange)="toggleSelection(item)" [ariaLabel]="'Seleziona ' + item.name" />
                         <p-avatar cardMedia [label]="item.name | initials" size="xlarge" shape="circle" />
                         <div cardBody>
                             <a class="text-base font-semibold block" [routerLink]="item.id">{{ item.name }}</a>

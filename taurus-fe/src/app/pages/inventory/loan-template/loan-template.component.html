@@ -26,7 +26,7 @@
                     </p>
                 } @else {
                     <p class="m-0"><strong>Modello predefinito di Taurus</strong> · {{ overview.defaultLabel }}</p>
-                    <p class="m-0 text-sm text-surface-500">Riproduce il modello dell’associazione con le dieci sezioni del foglio. Scaricalo come punto di partenza per il tuo modello.</p>
+                    <p class="m-0 text-sm text-muted-color">Riproduce il modello dell’associazione con le dieci sezioni del foglio. Scaricalo come punto di partenza per il tuo modello.</p>
                 }
                 <div class="flex flex-wrap gap-2">
                     <p-button label="Scarica il modello predefinito" icon="pi pi-download" severity="secondary" [outlined]="true" [loading]="busy === 'download-default'" [disabled]="!!busy" (onClick)="downloadDefault()" />
@@ -184,7 +184,7 @@
                 <p-tabpanels>
                     @for (group of overview.variables; track group.label; let index = $index) {
                         <p-tabpanel [value]="index">
-                            <p class="mt-0 text-sm text-surface-500">{{ group.description }}</p>
+                            <p class="mt-0 text-sm text-muted-color">{{ group.description }}</p>
                             <p-table [value]="group.variables">
                                 <ng-template #header>
                                     <tr>
@@ -201,7 +201,7 @@
                                         </td>
                                         <td><p-tag [value]="typeLabel(variable.type)" severity="secondary" /></td>
                                         <td>{{ variable.description }}</td>
-                                        <td class="text-sm text-surface-500 break-all">{{ variable.example }}</td>
+                                        <td class="text-sm text-muted-color break-all">{{ variable.example }}</td>
                                     </tr>
                                     @for (field of variable.fields; track field.name) {
                                         <tr>
@@ -210,7 +210,7 @@
                                             </td>
                                             <td><p-tag [value]="typeLabel(field.type)" severity="secondary" /></td>
                                             <td>{{ field.description }}</td>
-                                            <td class="text-sm text-surface-500 break-all">{{ field.example }}</td>
+                                            <td class="text-sm text-muted-color break-all">{{ field.example }}</td>
                                         </tr>
                                     }
                                 </ng-template>
@@ -276,7 +276,7 @@
                     </ng-template>
                 </p-table>
             } @else {
-                <p class="m-0 text-sm text-surface-500">Nessun modello caricato: i fogli usano il modello predefinito di Taurus.</p>
+                <p class="m-0 text-sm text-muted-color">Nessun modello caricato: i fogli usano il modello predefinito di Taurus.</p>
             }
         </app-detail-section>
     }

@@ -10,13 +10,13 @@
                     <ng-template let-track #item>
                         <div class="flex w-full items-center justify-between gap-3">
                             <span class="truncate">{{ track.name }}</span>
-                            <small class="text-surface-500">{{ trackStateLabel(track.state) }}</small>
+                            <small class="text-muted-color">{{ trackStateLabel(track.state) }}</small>
                         </div>
                     </ng-template>
                     <ng-template #footer>
                         @if (hasMoreTracks) {
                         <div class="px-3 py-2 flex items-center justify-between gap-2">
-                            <small class="text-surface-500">{{ trackSuggestions.length }} di {{ trackTotal }}</small>
+                            <small class="text-muted-color">{{ trackSuggestions.length }} di {{ trackTotal }}</small>
                             <button pButton type="button" size="small" severity="secondary" [text]="true"
                                 label="Altri risultati" icon="pi pi-angle-down" (mousedown)="$event.preventDefault()"
                                 (click)="loadMoreTracks()"></button>
@@ -37,7 +37,7 @@
                         <ng-template let-album #item>
                             <div class="flex w-full items-center justify-between gap-3">
                                 <span class="truncate">{{ album.name }}</span>
-                                <small class="text-surface-500">{{ album.tracks?.length ?? 0 }} {{ album.tracks?.length
+                                <small class="text-muted-color">{{ album.tracks?.length ?? 0 }} {{ album.tracks?.length
                                     === 1 ? 'traccia' : 'tracce' }}</small>
                             </div>
                         </ng-template>
@@ -50,7 +50,7 @@
         </div>
     </div>
     @if (full) {
-    <small class="text-surface-500" role="note">Il programma ha raggiunto il limite di {{ maxRows }} brani.</small>
+    <small class="text-muted-color" role="note">Il programma ha raggiunto il limite di {{ maxRows }} brani.</small>
     }
     }
 
@@ -63,7 +63,7 @@
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                 <div class="md:col-span-4 flex items-start gap-2 min-w-0">
                     @if (editable) {
-                    <span cdkDragHandle class="preparation-program__handle text-surface-500 pt-1" aria-hidden="true"
+                    <span cdkDragHandle class="preparation-program__handle text-muted-color pt-1" aria-hidden="true"
                         title="Trascina per riordinare"><i class="pi pi-bars"></i></span>
                     }
                     <div class="min-w-0">
@@ -80,14 +80,14 @@
                             }
                         </div>
                         @if (row.trackState) {
-                        <small class="block text-surface-500">{{ trackStateLabel(row.trackState) }}</small>
+                        <small class="block text-muted-color">{{ trackStateLabel(row.trackState) }}</small>
                         }
                         @if (!row.trackAvailable) {
                         <small class="block text-orange-600 dark:text-orange-300">La traccia non è più disponibile
                             nel catalogo: rimuovila o sostituiscila.</small>
                         }
                         @if (row.savedTrackName) {
-                        <small class="block text-surface-500">Salvata nel programma come «{{ row.savedTrackName
+                        <small class="block text-muted-color">Salvata nel programma come «{{ row.savedTrackName
                             }}»</small>
                         }
                     </div>
@@ -109,7 +109,7 @@
                     <span class="block">Durata {{ formatDuration(row.plannedDurationSeconds) }}</span>
                     }
                     @if (row.notes) {
-                    <span class="block text-surface-500">{{ row.notes }}</span>
+                    <span class="block text-muted-color">{{ row.notes }}</span>
                     }
                 </div>
                 }
@@ -149,7 +149,7 @@
                                 <strong class="text-sm">{{ score.description || 'Parte senza descrizione' }}</strong>
                                 <p-tag [value]="scoreState(score).label" [severity]="scoreState(score).severity" />
                             </div>
-                            <small class="block text-surface-500">{{ score.instruments.length ?
+                            <small class="block text-muted-color">{{ score.instruments.length ?
                                 score.instruments.join(', ') : 'Nessuno strumento indicato' }}</small>
                         </div>
                         <div class="flex flex-wrap gap-1">
@@ -163,9 +163,9 @@
                     }
                 </ul>
                 } @else if (!row.id) {
-                <small class="text-surface-500">Salva il programma per vedere gli spartiti della traccia.</small>
+                <small class="text-muted-color">Salva il programma per vedere gli spartiti della traccia.</small>
                 } @else {
-                <small class="text-surface-500">{{ personal ? 'Nessuno spartito pronto per i tuoi strumenti.' :
+                <small class="text-muted-color">{{ personal ? 'Nessuno spartito pronto per i tuoi strumenti.' :
                     'Nessuno spartito per questa traccia.' }}</small>
                 }
             </div>

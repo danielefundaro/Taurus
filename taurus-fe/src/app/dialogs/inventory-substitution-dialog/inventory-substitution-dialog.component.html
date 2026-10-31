@@ -38,7 +38,7 @@
                 <ng-template pTemplate="item" let-value>
                     <span class="flex flex-col">
                         <span>{{ value.inventoryNumber }} – {{ value.name }}</span>
-                        <small class="text-surface-500">{{ loanTypeLabel(value.loanType) }} · disponibili {{ value.availableQuantity }}</small>
+                        <small class="text-muted-color">{{ loanTypeLabel(value.loanType) }} · disponibili {{ value.availableQuantity }}</small>
                     </span>
                 </ng-template>
             </p-select>

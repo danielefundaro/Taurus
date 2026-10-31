@@ -37,10 +37,13 @@ Le prove sono in `specs`:
   guidata con il nome dell'organizzazione, **Ultima importazione** e i limiti del tenant in risposta
   `no-store` e senza stati tecnici a schermo, scaricamento del modello XLSX, socio che non vede la
   voce di menu e riceve `403` dal contesto, axe-core e nessuno scorrimento orizzontale a 320, 768 e
-  1280 pixel. Le prove non caricano e non applicano nulla, perché l'importazione è additiva e
-  lascerebbe dati nell'ambiente: validazione, file ostili, preflight, concorrenza, riavvio in ogni
-  fase della saga e carico da 5.000 righe sono in `OnboardingImportIT` del backend. Si saltano se il
-  tenant di prova non ha la funzionalità di importazione iniziale;
+  1280 pixel. Il suo audit esclude la regola `aria-required-children`: `p-stepper` di PrimeNG 19 si
+  dichiara `tablist` e ci annida dentro i propri pannelli `tabpanel`, con i passi a `presentation`,
+  ed è il markup del componente, non del nostro modello. Le prove non caricano e non applicano
+  nulla, perché l'importazione è additiva e lascerebbe dati nell'ambiente: validazione, file
+  ostili, preflight, concorrenza, riavvio in ogni fase della saga e carico da 5.000 righe sono in
+  `OnboardingImportIT` del backend. Si saltano se il tenant di prova non ha la funzionalità di
+  importazione iniziale;
 - `event-preparation.spec.ts`: la preparazione di un evento per ruolo — stato, avanzamento e
   criticità dell'amministratore con risposta `no-store`, collegamento di una criticità che aggiorna
   il fragment e mette a fuoco la sezione, archivista che legge soltanto la vista di catalogo e
@@ -56,7 +59,25 @@ Le prove sono in `specs`:
 2. Backend in esecuzione: `cd ../taurus-be && ./mvnw`.
 3. Frontend in esecuzione: `npm start` (serve su `http://localhost:4200`).
 4. Browser di Playwright installati una volta sola: `npm run e2e:install` (Chromium, Firefox e WebKit).
-5. Due tenant di prova in Keycloak, con utenti per i ruoli usati dalle prove.
+5. Due tenant di prova, con utenti per i ruoli usati dalle prove (vedi [Ambiente di prova](#ambiente-di-prova)).
+
+## Ambiente di prova
+
+I due tenant non nascono da soli: il codice del tenant vive in tre posti, che vanno allineati.
+
+1. **Base dati**: una riga in `public.tenant` per ogni codice — con le funzionalità da provare attive — e
+   una in `public.tenant_schema_registry` con `status = 'ACTIVE'` e `schema_name` uguale a
+   `tenant_` più i primi 32 caratteri esadecimali dello SHA-256 del codice, come fa
+   `TenantSchemaNameResolver`. Al riavvio il backend crea lo schema e vi esegue Liquibase.
+2. **Keycloak**: un gruppo per ogni codice — la descrizione è il nome mostrato nella scelta del
+   tenant — e un utente per ruolo, iscritto al gruppo, con l'attributo `<CODICE>_roles` che vale
+   `ROLE_ADMIN`, `ROLE_ARCHIVIST`, `ROLE_USER`, `ROLE_TREASURER`, `ROLE_USER_EXTERNAL` o
+   `ROLE_SUPER_ADMIN`: l'authenticator legge i tenant dai gruppi e i ruoli da quell'attributo.
+3. **Schema del tenant**: per ogni utente una riga in `public.user_identity`, una in
+   `public.tenant_user_membership` e una in `<schema>.app_user` con il suo `<schema>.app_user_role`.
+
+Le prove sull'elenco delle tracce vogliono almeno una traccia nel primo tenant; quelle del workspace
+si saltano finché la traccia non ha due parti, che nascono solo dall'elaborazione di un PDF.
 
 ## Variabili d'ambiente
 
@@ -94,8 +115,29 @@ Tracce, video e report delle prove fallite restano in `target/e2e` e `target/e2e
 
 ## Prima esecuzione
 
-I selettori delle prove usano ruoli ed etichette accessibili, non classi CSS, ma non sono ancora
-stati eseguiti contro un'istanza reale: la prima esecuzione va fatta a mano, correggendo le
-etichette che l'ambiente mostra in modo diverso (in particolare la pagina di accesso di Keycloak e
-la scelta del ruolo). Finché quella calibrazione non è registrata, la suite non è un gate di
-rilascio.
+La prima esecuzione è del 2026-10-31, su un'istanza completa di sviluppo con due tenant di prova.
+Il primo giro ha dato 38 prove passate, 34 saltate per mancanza di dati o di variabili e 8 fallite;
+dopo la correzione dei difetti che aveva trovato la suite passa interamente: **46 passate, 34
+saltate, nessuna fallita** in 5,3 minuti sui profili desktop e mobile. Le prove saltate aspettano
+dati che l'ambiente non ha — una traccia con due parti e pagine, un oggetto con QR, un evento con
+programma, la traccia grande della prova prestazionale — e le variabili che le abilitano.
+
+La calibrazione ha riguardato sette punti, utili a chi scriverà nuove prove:
+
+- l'host `<app-topbar>` non ha un riquadro proprio, perché la barra è a posizione fissa: l'ingresso
+  nell'applicazione si aspetta dal landmark del menu, `navigation` con nome «Menu principale»;
+- il nome accessibile dei pulsanti PrimeNG comprende l'icona, che è contenuto generato: i nomi
+  ancorati come `/^logout$/` non combaciano mai;
+- la conferma di PrimeNG è un `alertdialog`, non un `dialog`, e la pagina ne tiene più d'uno in
+  attesa nel DOM;
+- sotto i 992 pixel il menu laterale sta fuori schermo e la sua maschera intercetta ogni clic:
+  `goToSection` lo apre quando serve e aspetta che si richiuda;
+- la navigazione iniziale del router finisce dopo il menu: un clic anticipato viene annullato, e
+  `signIn` aspetta la quiete della rete prima di restituire il controllo; per lo stesso motivo
+  l'indirizzo raggiunto da un clic si legge dopo `waitForURL`, non subito dopo il clic;
+- dopo un cambio di viewport il layout anima per 0,2 secondi il margine del contenitore
+  principale: una misura letta subito vede la pagina sporgere di quanto resta all'animazione, e
+  `expectNoHorizontalOverflow` ripete la lettura finché si assesta — era la causa dei 212 pixel
+  attribuiti allo stepper della configurazione iniziale, che in realtà non sporge;
+- axe va lanciato su una pagina ferma: subito dopo `goto` l'analisi muore con «Execution context
+  was destroyed», perché il router sta ancora navigando.

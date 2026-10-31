@@ -110,7 +110,7 @@
                         @if (canSignDecision(entry)) {
                         <p-checkbox rowSelection [binary]="true" [ngModel]="isAssignmentSelected(entry)"
                             (ngModelChange)="toggleAssignment(entry)"
-                            [attr.aria-label]="'Seleziona per accettare ' + entry.itemName" />
+                            [ariaLabel]="'Seleziona per accettare ' + entry.itemName" />
                         }
                         <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
                             [attr.aria-label]="entry.itemName">
@@ -153,7 +153,7 @@
                     <app-list-row>
                         @if (canSelect) {
                         <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(entry)"
-                            (ngModelChange)="toggleSelection(entry)" [attr.aria-label]="'Seleziona ' + entry.name" />
+                            (ngModelChange)="toggleSelection(entry)" [ariaLabel]="'Seleziona ' + entry.name" />
                         }
                         <a rowMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]"
                             [attr.aria-label]="entry.name">
@@ -204,7 +204,7 @@
                             @if (canSignDecision(entry)) {
                             <p-checkbox cardSelection [binary]="true" [ngModel]="isAssignmentSelected(entry)"
                                 (ngModelChange)="toggleAssignment(entry)"
-                                [attr.aria-label]="'Seleziona per accettare ' + entry.itemName" />
+                                [ariaLabel]="'Seleziona per accettare ' + entry.itemName" />
                             }
                             <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/assignments', entry.id]"
                                 [attr.aria-label]="entry.itemName">
@@ -246,7 +246,7 @@
                             @if (canSelect) {
                             <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(entry)"
                                 (ngModelChange)="toggleSelection(entry)"
-                                [attr.aria-label]="'Seleziona ' + entry.name" />
+                                [ariaLabel]="'Seleziona ' + entry.name" />
                             }
                             <a cardMedia class="list-thumbnail" [routerLink]="['/inventory/items', entry.id]"
                                 [attr.aria-label]="entry.name">

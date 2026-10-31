@@ -20,7 +20,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2 p-3 border border-surface rounded-lg">
                     <span>
                         <strong>{{ assignment.inventoryNumber }} – {{ assignment.itemName }}</strong>
-                        <span class="text-sm text-surface-500"> · {{ loanTypeLabel(assignment.loanType) }} · quantità {{ assignment.outstandingQuantity }}</span>
+                        <span class="text-sm text-muted-color"> · {{ loanTypeLabel(assignment.loanType) }} · quantità {{ assignment.outstandingQuantity }}</span>
                         @for (issue of assignment.issues; track issue.code) {
                             <span class="block text-sm text-red-600 dark:text-red-400">{{ issueMessage(issue) }}</span>
                         }
@@ -45,7 +45,7 @@
             <tr>
                 <td>
                     <strong>n. {{ sheet.sheetNumber }}</strong>
-                    <div class="text-xs text-surface-500">del {{ sheet.issuedOn | date: 'dd/MM/yyyy' }} · modello {{ sheet.templateLabel }}</div>
+                    <div class="text-xs text-muted-color">del {{ sheet.issuedOn | date: 'dd/MM/yyyy' }} · modello {{ sheet.templateLabel }}</div>
                 </td>
                 <td>
                     <p-tag [value]="statusLabel(sheet.status)" [severity]="statusSeverity(sheet.status)" />
@@ -53,7 +53,7 @@
                         <p-tag class="ml-1" value="Firma elettronica" severity="info" />
                     }
                     @if (sheet.personalDataPurged) {
-                        <div class="text-xs text-surface-500 mt-1">Dati personali rimossi</div>
+                        <div class="text-xs text-muted-color mt-1">Dati personali rimossi</div>
                     }
                 </td>
                 <td>{{ roleLabel(sheet.holderRole) }}</td>
@@ -123,7 +123,7 @@
                             <td>{{ line.lineNumber }}</td>
                             <td>
                                 {{ line.itemName }}
-                                <div class="text-xs text-surface-500">{{ line.brandModel }}</div>
+                                <div class="text-xs text-muted-color">{{ line.brandModel }}</div>
                             </td>
                             <td>{{ line.serialNumber ? line.serialNumber + ' / ' : '' }}{{ line.inventoryNumber }}</td>
                             <td>{{ loanTypeLabel(line.loanType) }}</td>
@@ -153,7 +153,7 @@
                                 <td>{{ entry.operation }} · {{ operationLabels[entry.operation] }}</td>
                                 <td>
                                     {{ entry.itemName }}
-                                    <div class="text-xs text-surface-500">{{ entry.brandModelSerial }}</div>
+                                    <div class="text-xs text-muted-color">{{ entry.brandModelSerial }}</div>
                                 </td>
                                 <td>{{ entry.expirationDate ? (entry.expirationDate | date: 'dd/MM/yyyy') : '—' }}</td>
                                 <td class="whitespace-pre-line">{{ entry.authorization || '—' }}</td>
@@ -161,7 +161,7 @@
                         </ng-template>
                     </p-table>
                 } @else {
-                    <p class="text-sm text-surface-500">Nessuna variazione registrata dopo l’emissione.</p>
+                    <p class="text-sm text-muted-color">Nessuna variazione registrata dopo l’emissione.</p>
                 }
             </div>
             @if (detail.summary.status === 'CANCELLED') {

@@ -87,7 +87,7 @@
         @for (group of featureGroups; track group.heading) {
             <h3 class="text-base font-semibold mb-1" [class.mt-0]="$first" [class.mt-8]="!$first">{{ group.heading }}</h3>
             @if (group.description) {
-                <p class="text-surface-500 text-sm mt-0 mb-4">{{ group.description }}</p>
+                <p class="text-muted-color text-sm mt-0 mb-4">{{ group.description }}</p>
             }
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6" [class.mt-4]="!group.description">
                 @for (item of group.items; track item.key) {
@@ -95,12 +95,12 @@
                         <p-checkbox [inputId]="item.key" [binary]="true" [(ngModel)]="tenant[item.key]" (ngModelChange)="isDirty = true" />
                         <div>
                             <label [for]="item.key" class="font-medium cursor-pointer">{{ item.label }}</label>
-                            <p class="text-surface-500 text-sm mt-1 mb-0">{{ item.description }} I dati saranno conservati.</p>
+                            <p class="text-muted-color text-sm mt-1 mb-0">{{ item.description }} I dati saranno conservati.</p>
                             @if (featureStatus(item); as status) {
                                 <small [class.text-green-600]="status === 'Disponibile'" [class.text-warn-600]="status !== 'Disponibile'">{{ status }}</small>
                             }
                             @if (featureHint(item); as hint) {
-                                <small class="block text-surface-500 mt-1">{{ hint }}</small>
+                                <small class="block text-muted-color mt-1">{{ hint }}</small>
                             }
                         </div>
                     </div>

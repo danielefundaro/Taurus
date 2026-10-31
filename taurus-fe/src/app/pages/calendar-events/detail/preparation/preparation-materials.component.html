@@ -8,7 +8,7 @@
                 <ng-template let-item #item>
                     <div class="flex w-full items-center justify-between gap-3">
                         <span class="truncate">{{ item.name }}</span>
-                        <small class="text-surface-500">{{ item.inventoryNumber }}</small>
+                        <small class="text-muted-color">{{ item.inventoryNumber }}</small>
                     </div>
                 </ng-template>
             </p-autocomplete>
@@ -28,7 +28,7 @@
             [disabled]="!selectedItem || full" (onClick)="add()" />
     </div>
     @if (full) {
-    <small class="text-surface-500" role="note">I materiali hanno raggiunto il limite di {{ maxRows }} righe.</small>
+    <small class="text-muted-color" role="note">I materiali hanno raggiunto il limite di {{ maxRows }} righe.</small>
     }
 
     @if (rows.length) {
@@ -40,14 +40,14 @@
                     <a class="font-semibold text-primary" [routerLink]="['/inventory/items', row.itemId]">{{
                         row.itemName }}</a>
                     @if (row.inventoryNumber) {
-                    <small class="text-surface-500">N. {{ row.inventoryNumber }}</small>
+                    <small class="text-muted-color">N. {{ row.inventoryNumber }}</small>
                     }
                     <span>× {{ row.requiredQuantity }}</span>
                     @if (row.id && row.ready) {
                     <p-tag value="Pronto" severity="success" [rounded]="true" />
                     }
                 </div>
-                <small class="block text-surface-500">
+                <small class="block text-muted-color">
                     {{ row.assignee || 'Nessuna assegnazione collegata' }}
                     @if (row.assignmentId && row.outstandingQuantity !== undefined && row.outstandingQuantity !== null) {
                     · {{ row.outstandingQuantity }} in carico

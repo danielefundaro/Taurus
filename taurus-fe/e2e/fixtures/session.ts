@@ -39,6 +39,9 @@ export const tenants = (): Tenant[] =>
             )
         }));
 
+/** Il menu principale dell'applicazione: le prove ne leggono le voci, che dipendono dal ruolo. */
+export const mainMenu = (page: Page) => page.getByRole('navigation', { name: /menu principale/i });
+
 /**
  * Entra nell'applicazione con un utente dell'ambiente di prova. Il percorso attraversa la pagina
  * di accesso di Keycloak e, quando l'utente ha più ruoli nel tenant, la scelta del ruolo.
@@ -56,13 +59,60 @@ export const signIn = async (page: Page, user: Credentials, role?: Role): Promis
     const roleChoice = page.getByRole('button', { name: roleLabel(role) });
     if (role && (await roleChoice.count()) > 0) await roleChoice.first().click();
 
-    await expect(page.getByRole('navigation').or(page.locator('app-topbar'))).toBeVisible();
+    // Il landmark del menu: l'host <app-topbar> non ha un box proprio, perché la barra è a posizione fissa.
+    await expect(mainMenu(page)).toBeVisible();
+
+    // La navigazione iniziale del router finisce dopo il menu: un clic anticipato verrebbe annullato.
+    await page.waitForLoadState('networkidle');
+};
+
+/** Vero quando il menu laterale sta fuori dallo schermo e va aperto prima di usarlo. */
+const narrow = (page: Page): boolean => (page.viewportSize()?.width ?? 0) < 992;
+
+/**
+ * Entra in una sezione dal menu principale. Su schermo stretto il menu va aperto, e la maschera
+ * che lo accompagna intercetta ogni clic finché la navigazione non lo richiude.
+ */
+export const openNavigation = async (page: Page): Promise<void> => {
+    if (!narrow(page)) return;
+    // Se il menu è già aperto, la sua maschera copre la topbar e un altro clic lo richiuderebbe.
+    if (await page.locator('.layout-wrapper.layout-mobile-active').count()) return;
+    await page.getByRole('button', { name: /apri menu/i }).click();
+};
+
+export const goToSection = async (page: Page, name: RegExp): Promise<void> => {
+    await openNavigation(page);
+    await mainMenu(page).getByRole('link', { name }).click();
+    if (narrow(page)) await expect(page.locator('.layout-mask')).toBeHidden();
+};
+
+/**
+ * Verifica che la pagina non scorra in orizzontale. La misura si ripete perché il layout anima il
+ * margine del contenitore principale per 0,2 secondi dopo un cambio di viewport: letta subito, la
+ * pagina sembra sporgere di quanto resta all'animazione.
+ */
+export const expectNoHorizontalOverflow = async (page: Page, width: number): Promise<void> => {
+    await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), {
+            message: `Scorrimento orizzontale a ${width} pixel`
+        })
+        .toBeLessThanOrEqual(0);
 };
 
 export const signOut = async (page: Page): Promise<void> => {
-    await page.getByRole('button', { name: /esci|logout|profilo/i }).first().click();
-    const confirm = page.getByRole('menuitem', { name: /esci|logout/i });
-    if ((await confirm.count()) > 0) await confirm.first().click();
+    // Fuori dalla modalità di primo accesso l'uscita sta nel profilo, non nella topbar.
+    const actions = page.getByRole('button', { name: /apri azioni utente/i });
+    if (await actions.isVisible()) await actions.click();
+    await page.getByRole('button', { name: /^profilo$/i }).click();
+    await page.waitForURL('**/profile');
+    // Nome non ancorato: l'icona dei pulsanti PrimeNG è contenuto generato e finisce nel nome accessibile.
+    await page.getByRole('button', { name: /logout/i }).click();
+
+    // L'uscita chiede conferma in un dialogo prima di chiudere la sessione.
+    await page.getByRole('alertdialog').getByRole('button', { name: /esci/i }).click();
+
+    // L'uscita passa da Keycloak: la sessione è chiusa quando torna la pagina di accesso.
+    await expect(page.getByLabel(/username|nome utente|utente/i).first()).toBeVisible();
 };
 
 const roleLabel = (role?: Role): RegExp => {

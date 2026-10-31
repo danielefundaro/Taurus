@@ -100,20 +100,20 @@
                 </div>
                 }
                 @if (!bootstrap) {
-                <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']" pTooltip="Calendario"
-                    tooltipPosition="bottom">
+                <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']" aria-label="Calendario"
+                    pTooltip="Calendario" tooltipPosition="bottom">
                     <i class="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
-                <button type="button" class="layout-topbar-action" [routerLink]="['']" pTooltip="Notifiche"
-                    tooltipPosition="bottom">
+                <button type="button" class="layout-topbar-action" [routerLink]="['']" aria-label="Notifiche"
+                    pTooltip="Notifiche" tooltipPosition="bottom">
                     <i class="pi pi-bell"></i>
                     <p-overlaybadge *ngIf="layoutService.notificationNumber()" class="blink-animation"
                         [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
                     <span>Notifiche</span>
                 </button>
-                <button type="button" class="layout-topbar-action" [routerLink]="['/profile']" pTooltip="Profilo"
-                    tooltipPosition="bottom">
+                <button type="button" class="layout-topbar-action" [routerLink]="['/profile']" aria-label="Profilo"
+                    pTooltip="Profilo" tooltipPosition="bottom">
                     <i class="pi pi-user"></i>
                     <span>Profilo</span>
                 </button>

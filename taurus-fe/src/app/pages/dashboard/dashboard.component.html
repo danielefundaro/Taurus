@@ -1,13 +1,15 @@
 <p-confirmdialog />
 <header class="mb-6">
     <h1 class="text-3xl font-semibold m-0">Dashboard</h1>
-    <p class="text-surface-500 mt-2 mb-0">Panoramica delle attività e dei contenuti più recenti.</p>
+    <p class="text-muted-color mt-2 mb-0">Panoramica delle attività e dei contenuti più recenti.</p>
     @if (operations?.generatedAt) {
-    <p class="text-surface-500 text-sm mt-1 mb-0">Ultimo aggiornamento: {{ operations!.generatedAt | date: 'dd/MM/yyyy
+    <p class="text-muted-color text-sm mt-1 mb-0">Ultimo aggiornamento: {{ operations!.generatedAt | date: 'dd/MM/yyyy
         HH:mm' }}</p>
     }
 </header>
-<div class="grid grid-cols-12 gap-8">
+<!-- A 320 px i soli spazi di `gap-8` chiedono 308 px e la griglia sporge dalla pagina: lo spazio
+     ridotto, come nelle altre pagine, torna a quello pieno quando lo schermo lo consente. -->
+<div class="grid grid-cols-12 gap-4 md:gap-8">
     <app-operations-widget [dashboard]="operations" [initialLoading]="operationsInitialLoading"
         [refreshing]="operationsRefreshing" [error]="operationsError" [refreshWarning]="operationsRefreshWarning"
         [announcement]="operationsAnnouncement" (refreshRequested)="refreshOperations()" />

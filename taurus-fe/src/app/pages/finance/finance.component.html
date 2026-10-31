@@ -196,7 +196,7 @@
                                 <td>
                                     <strong>{{ movement.description }}</strong>
                                     @if (movement.counterparty) {
-                                    <small class="block text-surface-500">{{ movement.counterparty }}</small>
+                                    <small class="block text-muted-color">{{ movement.counterparty }}</small>
                                     }
                                     @if (movement.nature !== 'ORDINARY') {
                                     <p-tag [value]="movement.nature === 'TRANSFER' ? 'Trasferimento' : 'Apertura'"
@@ -210,7 +210,7 @@
                                 <td>
                                     <span>{{ movement.categoryName || '—' }}</span>
                                     @if (movement.eventName) {
-                                    <small class="block text-surface-500">{{ movement.eventName }}</small>
+                                    <small class="block text-muted-color">{{ movement.eventName }}</small>
                                     }
                                 </td>
                                 <td class="text-right font-semibold"
@@ -278,12 +278,12 @@
                         <ng-template #body let-account>
                             <tr>
                                 <td>
-                                    <strong>{{ account.name }}</strong><small class="block text-surface-500">{{
+                                    <strong>{{ account.name }}</strong><small class="block text-muted-color">{{
                                         account.description }}</small>
                                 </td>
                                 <td>{{ account.accountType === 'CASH' ? 'Cassa' : 'Conto corrente' }}</td>
                                 <td>
-                                    {{ account.bankName || '—' }}<small class="block text-surface-500">{{ account.iban
+                                    {{ account.bankName || '—' }}<small class="block text-muted-color">{{ account.iban
                                         }}</small>
                                 </td>
                                 <td class="text-right font-semibold">{{ account.balance | currency: account.currency :
@@ -398,7 +398,7 @@
                                     <td>
                                         <span>{{ line.movement.categoryName || '—' }}</span>
                                         @if (line.movement.eventName) {
-                                        <small class="block text-surface-500">{{ line.movement.eventName }}</small>
+                                        <small class="block text-muted-color">{{ line.movement.eventName }}</small>
                                         }
                                     </td>
                                     <td class="text-right" [class.amount-income]="line.movement.direction === 'INCOME'"
@@ -559,18 +559,18 @@
                                 </td>
                                 <td class="text-right">
                                     Compenso {{ event.expectedFee | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
-                                    }}<small class="block text-surface-500">Costi {{ event.expectedCosts | currency:
+                                    }}<small class="block text-muted-color">Costi {{ event.expectedCosts | currency:
                                         'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td class="text-right">
                                     Incassato {{ event.received | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT'
-                                    }}<small class="block text-surface-500">Pagato {{ event.paid | currency: 'EUR' :
+                                    }}<small class="block text-muted-color">Pagato {{ event.paid | currency: 'EUR' :
                                         'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td class="text-right">
                                     Da incassare {{ event.remainingIncome | currency: 'EUR' : 'symbol' : '1.2-2' :
                                     'it-IT'
-                                    }}<small class="block text-surface-500">Da pagare {{ event.remainingExpense |
+                                    }}<small class="block text-muted-color">Da pagare {{ event.remainingExpense |
                                         currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
                                 </td>
                                 <td><p-tag [value]="eventStatusLabel(event.economicStatus)"

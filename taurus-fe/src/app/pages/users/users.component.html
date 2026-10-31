@@ -23,7 +23,7 @@
                 @for (item of items; track item.id) {
                 <app-list-row>
                     <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)"
-                        (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                        (ngModelChange)="toggleSelection(item)" [ariaLabel]="'Seleziona ' + item.name" />
                     <a rowMedia class="list-thumbnail" [routerLink]="item.id"
                         [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
                         }}</a>
@@ -66,7 +66,7 @@
                 <div class="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
                     <app-entity-card [selected]="isSelected(item)">
                         <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)"
-                            (ngModelChange)="toggleSelection(item)" [attr.aria-label]="'Seleziona ' + item.name" />
+                            (ngModelChange)="toggleSelection(item)" [ariaLabel]="'Seleziona ' + item.name" />
                         <a cardMedia class="list-thumbnail" [routerLink]="item.id"
                             [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
                             }}</a>

@@ -35,7 +35,7 @@
                     <p-checkbox [inputId]="'loan-assignment-' + assignment.assignmentId" [binary]="true" [(ngModel)]="selected[assignment.assignmentId]" />
                     <span class="flex flex-col gap-1">
                         <strong>{{ assignment.inventoryNumber }} – {{ assignment.itemName }}</strong>
-                        <span class="text-sm text-surface-500">
+                        <span class="text-sm text-muted-color">
                             {{ loanTypeLabel(assignment.loanType) }} · quantità {{ assignment.outstandingQuantity }} · consegnato il {{ assignment.assignedOn | date: 'dd/MM/yyyy' }}
                             @if (assignment.expirationDate) {
                                 · scadenza {{ assignment.expirationDate | date: 'dd/MM/yyyy' }}

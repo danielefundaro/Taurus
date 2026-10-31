@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { environmentMissing, expect, signIn, test } from '../fixtures/session';
+import { environmentMissing, expect, goToSection, mainMenu, openNavigation, signIn, test } from '../fixtures/session';
 
 /**
  * I percorsi del workspace Parti con un browser vero: tastiera, trascinamento fra parti,
@@ -21,11 +21,14 @@ test.describe('workspace delle parti', () => {
         if (trackId) {
             await page.goto(`/tracks/${trackId}?tab=parts`);
         } else {
-            await page.getByRole('link', { name: /tracce/i }).click();
-            await page.getByRole('link').filter({ hasNotText: /tracce/i }).first().click();
+            await goToSection(page, /tracce/i);
+            // I nomi delle tracce dipendono dall'ambiente: la prima riga dell'elenco si trova dal suo indirizzo.
+            await page.locator('a[href^="/tracks/"]:visible').first().click();
             await page.getByRole('tab', { name: /parti/i }).click();
         }
-        await expect(page.getByRole('listbox', { name: /parti della traccia/i })).toBeVisible();
+        // Senza parti il workspace mostra lo stato vuoto: la prova si salta nel passo dopo, non qui.
+        const list = page.getByRole('listbox', { name: /parti della traccia/i });
+        await expect(list.or(page.getByText(/nessuna parte/i)).first()).toBeVisible();
     };
 
     test('l’elenco delle parti si percorre con le frecce e Maiusc estende la selezione', async ({ page, environment }) => {
@@ -72,6 +75,7 @@ test.describe('workspace delle parti', () => {
 
         await signIn(page, first.users.archivist!, 'archivist');
         await openWorkspace(page);
+        test.skip((await page.getByRole('option').count()) < 1, 'Serve una traccia con almeno una parte');
 
         const divider = page.getByRole('separator', { name: /larghezza dell/i });
         await divider.focus();
@@ -90,9 +94,11 @@ test.describe('workspace delle parti', () => {
         await page.getByRole('button', { name: /nuova parte/i }).first().click();
         await expect(page.getByText(/modifiche non salvate/i).first()).toBeVisible();
 
-        await page.getByRole('link', { name: /tracce/i }).click();
+        await openNavigation(page);
+        await mainMenu(page).getByRole('link', { name: /tracce/i }).click();
 
-        await expect(page.getByRole('dialog')).toContainText(/modifiche non salvate/i);
+        // La conferma di PrimeNG è un alertdialog, e la pagina ne tiene più d'uno in attesa nel DOM.
+        await expect(page.getByRole('alertdialog').filter({ hasText: /modifiche non salvate/i })).toBeVisible();
     });
 
     test('sotto 768 px il dettaglio della parte è una vista a sé', async ({ page, environment }) => {
@@ -102,6 +108,7 @@ test.describe('workspace delle parti', () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await signIn(page, first.users.archivist!, 'archivist');
         await openWorkspace(page);
+        test.skip((await page.getByRole('option').count()) < 1, 'Serve una traccia con almeno una parte');
 
         await page.getByRole('option').first().click();
         await expect(page.getByRole('button', { name: /^parti$/i })).toBeVisible();

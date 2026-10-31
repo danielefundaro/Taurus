@@ -29,7 +29,7 @@
                         decrementButtonIcon="pi pi-minus"
                     />
                 </app-form-field>
-                <p-selectbutton [options]="repeatOptions" [(ngModel)]="withRepeats" (ngModelChange)="changeStructure()" optionLabel="label" optionValue="value" [allowEmpty]="false" [disabled]="status !== 'ready'" ariaLabel="Ritornelli" />
+                <p-selectbutton [options]="repeatOptions" [(ngModel)]="withRepeats" (ngModelChange)="changeStructure()" optionLabel="label" optionValue="value" [allowEmpty]="false" [disabled]="status !== 'ready'" aria-label="Ritornelli" />
                 <div class="flex items-center gap-2">
                     <p-checkbox inputId="playerCountIn" [binary]="true" [(ngModel)]="countIn" (ngModelChange)="changeStructure()" [disabled]="status !== 'ready'" />
                     <label for="playerCountIn">Battuta di attacco</label>

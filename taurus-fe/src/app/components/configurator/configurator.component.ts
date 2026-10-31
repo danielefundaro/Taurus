@@ -8,6 +8,7 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME } from '../../constants';
 import { LayoutService } from '../../service';
 
 const presets = {
@@ -246,6 +247,7 @@ export class ConfiguratorComponent {
 
         if (color.name === 'noir') {
             return {
+                components: { button: ACCESSIBLE_BUTTON },
                 semantic: {
                     primary: {
                         50: '{surface.50}',
@@ -268,6 +270,7 @@ export class ConfiguratorComponent {
                                 hoverColor: '{primary.800}',
                                 activeColor: '{primary.700}'
                             },
+                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
                                 background: '{primary.950}',
                                 focusBackground: '{primary.700}',
@@ -294,19 +297,16 @@ export class ConfiguratorComponent {
             };
         } else if (preset === 'Nora') {
             return {
+                components: { button: ACCESSIBLE_BUTTON },
                 semantic: {
                     primary: color.palette,
                     colorScheme: {
                         light: {
-                            primary: {
-                                color: '{primary.600}',
-                                contrastColor: '#ffffff',
-                                hoverColor: '{primary.700}',
-                                activeColor: '{primary.800}'
-                            },
+                            primary: ACCESSIBLE_LIGHT_SCHEME.primary,
+                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
-                                background: '{primary.600}',
-                                focusBackground: '{primary.700}',
+                                background: '{primary.700}',
+                                focusBackground: '{primary.800}',
                                 color: '#ffffff',
                                 focusColor: '#ffffff'
                             }
@@ -330,16 +330,13 @@ export class ConfiguratorComponent {
             };
         } else {
             return {
+                components: { button: ACCESSIBLE_BUTTON },
                 semantic: {
                     primary: color.palette,
                     colorScheme: {
                         light: {
-                            primary: {
-                                color: '{primary.500}',
-                                contrastColor: '#ffffff',
-                                hoverColor: '{primary.600}',
-                                activeColor: '{primary.700}'
-                            },
+                            primary: ACCESSIBLE_LIGHT_SCHEME.primary,
+                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
                                 background: '{primary.50}',
                                 focusBackground: '{primary.100}',

@@ -43,7 +43,7 @@
                     <div class="score-editor__group-row">
                         <div class="score-editor__group" role="group" aria-label="Figura">
                             <span class="score-editor__label">Figura</span>
-                            <p-selectbutton [options]="noteTypes" [ngModel]="note?.type" (ngModelChange)="setType($event)" optionLabel="label" optionValue="type" [allowEmpty]="false" size="small" [disabled]="!note" ariaLabel="Figura">
+                            <p-selectbutton [options]="noteTypes" [ngModel]="note?.type" (ngModelChange)="setType($event)" optionLabel="label" optionValue="type" [allowEmpty]="false" size="small" [disabled]="!note" aria-label="Figura">
                                 <ng-template #item let-option>
                                     <span [pTooltip]="option.label + ' (' + option.key + ')'">{{ option.label }}</span>
                                 </ng-template>
@@ -233,7 +233,7 @@
                     <p-button icon="pi pi-chevron-left" size="small" severity="secondary" text ariaLabel="Pagina precedente" [disabled]="pageIndex <= 0" (onClick)="showPage(pageIndex - 1)" />
                     <span class="text-sm">Pagina {{ pages.length ? pageIndex + 1 : 0 }} di {{ pages.length }}</span>
                     <p-button icon="pi pi-chevron-right" size="small" severity="secondary" text ariaLabel="Pagina seguente" [disabled]="pageIndex >= pages.length - 1" (onClick)="showPage(pageIndex + 1)" />
-                    <p-selectbutton [options]="zoomOptions" [(ngModel)]="zoom" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" ariaLabel="Ingrandimento" />
+                    <p-selectbutton [options]="zoomOptions" [(ngModel)]="zoom" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-label="Ingrandimento" />
                 </div>
                 @if (editor && !pages.length) {
                     <app-inline-alert severity="info" heading="Nessuna pagina" detail="La parte non ha immagini delle pagine da confrontare." />

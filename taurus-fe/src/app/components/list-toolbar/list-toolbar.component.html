@@ -14,8 +14,12 @@
     <span class="list-toolbar__spacer"></span>
     @if (showLayout && layout) {
     <p-selectbutton [ngModel]="layout" (ngModelChange)="layoutChange.emit($event)" [allowEmpty]="false"
-        [options]="['list', 'grid']" ariaLabel="Vista elenco">
-        <ng-template #item let-item><i [class]="item === 'list' ? 'pi pi-bars' : gridIcon"></i></ng-template>
+        [options]="['list', 'grid']" aria-label="Vista elenco">
+        <!-- Il modello dell'elemento sostituisce l'etichetta del pulsante: senza un testo per i
+             lettori di schermo i due pulsanti resterebbero senza nome, con la sola icona. -->
+        <ng-template #item let-item><i [class]="item === 'list' ? 'pi pi-bars' : gridIcon"
+                aria-hidden="true"></i><span class="sr-only">{{ item === 'list' ? 'Elenco' : 'Griglia'
+            }}</span></ng-template>
     </p-selectbutton>
     }
 </div>

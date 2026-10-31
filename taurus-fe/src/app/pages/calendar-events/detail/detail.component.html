@@ -129,7 +129,7 @@
 
                     @if (series.recurrence.frequency === 'WEEKLY') {
                     <div>
-                        <span class="block text-surface-500 mb-2">Giorni della settimana</span>
+                        <span class="block text-muted-color mb-2">Giorni della settimana</span>
                         <div class="flex flex-wrap gap-3">
                             @for (day of weekDayOptions; track day.code) {
                             <label class="flex items-center gap-1 cursor-pointer">
@@ -143,7 +143,7 @@
                     }
 
                     <div class="flex flex-col gap-3">
-                        <span class="text-surface-500">Termine della serie</span>
+                        <span class="text-muted-color">Termine della serie</span>
                         <label class="flex items-center gap-2">
                             <input type="radio" name="seriesEndType" value="COUNT"
                                 [(ngModel)]="series.recurrence.end.type" (ngModelChange)="onSeriesDefinitionChange()" />
@@ -175,7 +175,7 @@
                     <p class="text-sm m-0 text-orange-600 dark:text-orange-400"><i
                             class="pi pi-exclamation-triangle mr-1"></i>{{ seriesSkippedMonthsLabel }}</p>
                     }
-                    <small class="text-surface-500">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine
+                    <small class="text-muted-color">L’anteprima e il salvataggio usano Data/ora inizio e Data/ora fine
                         dell’evento visualizzato. Le occorrenze precedenti non vengono modificate.</small>
                 </div>
             </details>
@@ -303,19 +303,19 @@
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-                <small class="text-surface-500 block">Incassato</small><strong>{{ economicSummary.received | currency:
+                <small class="text-muted-color block">Incassato</small><strong>{{ economicSummary.received | currency:
                     'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
             <div>
-                <small class="text-surface-500 block">Pagato</small><strong>{{ economicSummary.paid | currency: 'EUR' :
+                <small class="text-muted-color block">Pagato</small><strong>{{ economicSummary.paid | currency: 'EUR' :
                     'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
             <div>
-                <small class="text-surface-500 block">Da incassare</small><strong>{{ economicSummary.remainingIncome |
+                <small class="text-muted-color block">Da incassare</small><strong>{{ economicSummary.remainingIncome |
                     currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
             <div>
-                <small class="text-surface-500 block">Da pagare</small><strong>{{ economicSummary.remainingExpense |
+                <small class="text-muted-color block">Da pagare</small><strong>{{ economicSummary.remainingExpense |
                     currency: 'EUR' : 'symbol' : '1.2-2' : 'it' }}</strong>
             </div>
         </div>
@@ -364,7 +364,7 @@
                     (onClick)="clearPersonalReminder()" />
                 }
             </div>
-            <div class="flex items-center gap-2 text-sm text-surface-500">
+            <div class="flex items-center gap-2 text-sm text-muted-color">
                 <i class="pi pi-bell text-primary"></i>
                 @if (personalReminderMinutes === 0) {
                 <span>Nessun promemoria per questo evento.</span>
