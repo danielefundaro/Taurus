@@ -22,6 +22,7 @@ import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.text.Normalizer;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -76,6 +77,11 @@ public class CieSignVerifier {
     private static final Pattern TAX_CODE = Pattern.compile("[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]");
     private static final Pattern NAME_SEPARATORS = Pattern.compile("[\\s'’‘`´-]");
 
+    /**
+     * How long before the expiry of a trust anchor the startup warns about it.
+     */
+    private static final int EXPIRY_WARNING_DAYS = 60;
+
     private final ApplicationProperties.CieProperties properties;
     private final CieRevocationChecker revocationChecker;
     private volatile Set<TrustAnchor> anchors = Set.of();
@@ -102,12 +108,28 @@ public class CieSignVerifier {
         if (anchors.isEmpty()) {
             LOG.info("signature_ciesign_not_configured: CieSign is not offered without the certificates of the CIE");
         } else {
-            anchors.forEach(anchor -> LOG.info(
-                "signature_ciesign_trust_anchor subject={} notAfter={}",
-                anchor.getTrustedCert().getSubjectX500Principal().getName(),
-                anchor.getTrustedCert().getNotAfter().toInstant()
-            ));
+            Instant now = Instant.now();
+            anchors.forEach(anchor -> {
+                X509Certificate certificate = anchor.getTrustedCert();
+                String subject = certificate.getSubjectX500Principal().getName();
+                Instant notAfter = certificate.getNotAfter().toInstant();
+                LOG.info("signature_ciesign_trust_anchor subject={} notAfter={}", subject, notAfter);
+                long days = daysToExpiry(certificate, now);
+                if (days < 0) {
+                    LOG.error("signature_ciesign_trust_anchor_expired subject={} notAfter={}", subject, notAfter);
+                } else if (days <= EXPIRY_WARNING_DAYS) {
+                    LOG.warn("signature_ciesign_trust_anchor_expiring subject={} notAfter={} days={}", subject, notAfter, days);
+                }
+            });
         }
+    }
+
+    /**
+     * Days left before the certificate expires, negative once it has. A CIE authority close to its renewal is worth a
+     * warning at the startup: as soon as it is no longer valid, the cards it issued are refused.
+     */
+    static long daysToExpiry(X509Certificate certificate, Instant at) {
+        return ChronoUnit.DAYS.between(at, certificate.getNotAfter().toInstant());
     }
 
     /**

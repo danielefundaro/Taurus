@@ -94,8 +94,7 @@ Anche qui non manca codice, ma servono un telefono di fascia media, parti reali 
 
 [Firma elettronica del foglio di affidamento](../inventory-electronic-signature-spec.md) — difficoltà media, dominata da dipendenze esterne.
 
-- Firma con una CIE reale (CieSign su Android e iOS, Software CIE su PC) e verifica in Acrobat di firma e sigillo, casi SIG-031–033.
-- Configurazione dei certificati reali delle CA della CIE come trust anchor in un'installazione.
+- Verifica in Acrobat di firma CieSign e sigillo del documento sigillato, caso SIG-033.
 - Invio delle e-mail dal server SMTP di una casella reale dell'associazione.
 - Stampa A4 del modello predefinito a confronto con il modello dell'associazione.
 - Conferma di un legale sui primi tre punti.
@@ -103,7 +102,11 @@ Anche qui non manca codice, ma servono un telefono di fascia media, parti reali 
 
 Un solo intervento di prodotto (il testo della notifica); tutto il resto è verifica con strumenti e persone reali, incluso un parere legale. Il tempo di attesa è il vero costo.
 
-> Il 2026-10-26 è stato chiuso l'unico intervento di prodotto, il testo della notifica di emissione. La voce resta `in-progress` per le cinque verifiche esterne, che nessuna modifica al codice può chiudere: CIE reale, trust anchor delle CA, casella SMTP dell'associazione, stampa A4 di confronto e parere legale.
+> Il 2026-10-26 è stato chiuso l'unico intervento di prodotto, il testo della notifica di emissione. La voce resta `in-progress` per le verifiche esterne, che nessuna modifica al codice può chiudere: CIE reale, casella SMTP dell'associazione, stampa A4 di confronto e parere legale.
+
+> Il 2026-10-31 i certificati delle CA della CIE non sono più una configurazione da procurare a mano: il bundle è versionato in `deploy/cie/trust-anchors.pem`, le impronte accettate stanno in `scripts/ops/cie-trust-anchors.sha256`, `scripts/ops/fetch-cie-trust-anchors.mjs` lo genera dalla lista di fiducia di AgID verificandole, il manifest di produzione lo monta in sola lettura e `SIGNATURE_CIE_TRUST_ANCHORS` ci punta per default. Restano quattro verifiche esterne; quella dei trust anchor si fa ora insieme alla firma con una CIE reale, perché non c'è più niente da configurare prima.
+
+> Il 2026-10-31 eseguita la firma con una CIE reale: SIG-031 e SIG-032 ripetuti con la carta e il PIN, con l'app CieSign e con il Software CIE, dall'applicazione come socio e dalla pagina pubblica come genitore, con i certificati veri delle CA della CIE come trust anchor. Delle verifiche esterne restano la lettura del documento sigillato in Acrobat (SIG-033), la casella SMTP dell'associazione, la stampa A4 di confronto e il parere legale.
 
 ## 7. `test-runbook`
 

@@ -233,6 +233,14 @@ class CieSignVerifierTest {
     }
 
     @Test
+    void countsTheDaysLeftBeforeATrustAnchorExpires() {
+        Instant expiry = cie.root().certificate().getNotAfter().toInstant();
+
+        assertThat(CieSignVerifier.daysToExpiry(cie.root().certificate(), expiry.minus(Duration.ofDays(90)))).isEqualTo(90);
+        assertThat(CieSignVerifier.daysToExpiry(cie.root().certificate(), expiry.plus(Duration.ofDays(1)))).isNegative();
+    }
+
+    @Test
     void isNotAvailableWithoutTrustAnchors() {
         ApplicationProperties properties = new ApplicationProperties();
         CieSignVerifier empty = new CieSignVerifier(properties, new CieRevocationChecker(properties));

@@ -174,7 +174,7 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 | Segreto del client della firma | `SIGNATURE_KEYCLOAK_CLIENT_SECRET` | Segreto del client Keycloak `taurus-signature`; vuoto non offre l'app di autenticazione (§4.7) |
 | Realm per la verifica dell'app | `SIGNATURE_KEYCLOAK_REALM_URI` | Facoltativo: per default l'issuer OIDC del backend; indirizzo del realm raggiungibile dal backend |
 | Indirizzo dei link di firma | `SIGNATURE_PUBLIC_BASE_URL` | HTTPS pubblico dell'applicazione Angular, da cui si costruiscono i link `/firma/{token}` inviati ai genitori; per default `TAURUS_PUBLIC_BASE_URL` (§4.7) |
-| Certificati della CIE per CieSign | `SIGNATURE_CIE_TRUST_ANCHORS` | Facoltativo: file PEM o DER delle CA della Carta d'Identità Elettronica, separati da virgola; vuoto non offre CieSign (§4.7) |
+| Certificati della CIE per CieSign | `SIGNATURE_CIE_TRUST_ANCHORS` | Nel manifest di produzione punta al bundle versionato montato in sola lettura su `/etc/taurus/cie`; vuoto non offre CieSign (§4.7) |
 
 Le altre proprietà dell'ascolto (dimensione dei caricamenti, tempi e concorrenza del servizio OMR, recupero dei job, versioni conservate e orario della pulizia) hanno valori predefiniti adatti alla produzione e sono elencate nella [specifica](track-score-playback-spec.md#configurazione-del-backend).
 
@@ -294,13 +294,22 @@ Senza segreto il profilo mostra l'app come non disponibile e le firme usano il c
 - Ogni ora (`application.signature.link-expiry-cron`) Taurus notifica agli amministratori i link scaduti senza firma e rimuove dal registro pubblico `public.signature_link_registry` le righe dei link revocati o scaduti (§11). Il registro non contiene dati personali.
 - Il token del link compare solo nell'e-mail e nell'indirizzo della pagina: non va mai incollato in ticket o log. Un link inoltrato per errore si revoca dalla sezione **Firme** e se ne invia uno nuovo.
 
-**CieSign** (facoltativo, non è un requisito): l'Affidatario con codice fiscale italiano, socio maggiorenne o genitore, può firmare i documenti con l'app CieSign o con il Software CIE e caricarli in Taurus, che verifica firma, certificato e integrità. Serve solo che il backend riconosca le CA della CIE:
+**CieSign** (facoltativo, non è un requisito): l'Affidatario con codice fiscale italiano, socio maggiorenne o genitore, può firmare i documenti con l'app CieSign o con il Software CIE e caricarli in Taurus, che verifica firma, certificato e integrità. Serve solo che il backend riconosca le CA della CIE, e nel manifest di produzione è già così: il bundle dei certificati è versionato in [`deploy/cie/trust-anchors.pem`](../deploy/cie/trust-anchors.pem), il manifest lo monta in sola lettura su `/etc/taurus/cie` e `SIGNATURE_CIE_TRUST_ANCHORS` ci punta per default. Un'installazione parte quindi con CieSign disponibile, senza chiamare nessuno all'avvio; per non offrirlo si mette `TAURUS_SIGNATURE_CIE_TRUST_ANCHORS=` vuoto nel `.env`.
 
-1. procurarsi i certificati della CA radice della Carta d'Identità Elettronica e delle sue CA intermedie (sub CA e issuing sub CA che emettono i certificati delle carte) da una fonte ufficiale, per esempio la lista di fiducia italiana pubblicata da AgID (`https://eidas.agid.gov.it/TL/TSL-IT.xml`), che contiene i certificati in base64: ognuno si salva in un file `.pem` racchiuso tra `-----BEGIN CERTIFICATE-----` e `-----END CERTIFICATE-----`;
-2. verificare soggetto, scadenza e impronta di ogni file con `keytool -printcert -file <file>.pem` o `openssl x509 -in <file>.pem -noout -subject -enddate -fingerprint -sha256`, confrontando l'impronta con la fonte;
-3. montare i file in sola lettura nel container del backend e indicarli in `SIGNATURE_CIE_TRUST_ANCHORS`, separati da virgola (anche più certificati in un solo file PEM); tutti i certificati indicati sono considerati attendibili.
+Il bundle si procura e si rinnova con uno script, che gira nel repository e non sull'host (serve Node.js 22), perché lo scaricamento sia ripetibile e la fiducia non dipenda da chi lo esegue:
 
-All'avvio il log registra `signature_ciesign_trust_anchor` con soggetto e scadenza di ogni certificato caricato, oppure `signature_ciesign_not_configured`; un file illeggibile produce `signature_ciesign_trust_anchor_invalid` ed è ignorato. Senza certificati la finestra di firma non propone CieSign e una richiesta diretta risponde `signature.cieSign.notConfigured`. Quando una CA della CIE viene rinnovata, il nuovo certificato si aggiunge all'elenco e si riavvia il backend: le carte emesse dalla nuova CA sono rifiutate finché manca.
+```bash
+node scripts/ops/fetch-cie-trust-anchors.mjs                  # scarica, verifica e riscrive il bundle
+node scripts/ops/fetch-cie-trust-anchors.mjs --verify-bundle   # controlla il bundle versionato, senza rete
+```
+
+Lo script legge la lista di fiducia italiana pubblicata da AgID (`https://eidas.agid.gov.it/TL/TSL-IT.xml`) e prende i certificati del prestatore «Ministero dell'Interno» i cui servizi sono in vigore: la CA radice della Carta d'Identità Elettronica e le issuing sub CA che emettono i certificati delle carte. Scarta i servizi ritirati e quello che non risale a una di quelle radici. La decisione di fiducia però non è dello script: le impronte SHA-256 accettate stanno in [`scripts/ops/cie-trust-anchors.sha256`](../scripts/ops/cie-trust-anchors.sha256), versionate, e un certificato che non è in quell'elenco fa fallire lo script invece di finire nel bundle. È lo stesso schema del SoundFont del lettore e dei modelli del servizio OMR: la rete porta i byte, il repository dice quali byte sono accettabili.
+
+Quando una CA della CIE viene rinnovata lo script fallisce, dicendo quale impronta non si aspettava. Il certificato nuovo si verifica sulla fonte ufficiale — `keytool -printcert -file <file>` oppure `openssl x509 -in <file> -noout -subject -enddate -fingerprint -sha256` — e il rinnovo si registra con `node scripts/ops/fetch-cie-trust-anchors.mjs --update-pins`, che riscrive bundle e impronte: la modifica va in un commit, rivista, e arriva all'installazione con l'aggiornamento. Il workflow `cie-trust-anchors` ripete il confronto il primo giorno di ogni mese, così il rinnovo si scopre prima che qualcuno provi a firmare.
+
+Fuori dal manifest — un backend avviato a mano, un host che non usa `deploy/` — `SIGNATURE_CIE_TRUST_ANCHORS` accetta uno o più percorsi separati da virgola, file PEM o DER, anche con più certificati in un solo file; tutti i certificati indicati sono considerati attendibili. In sviluppo, per provare una firma con una CIE reale, basta avviare il backend con `SIGNATURE_CIE_TRUST_ANCHORS=deploy/cie/trust-anchors.pem`.
+
+All'avvio il log registra `signature_ciesign_trust_anchor` con soggetto e scadenza di ogni certificato caricato, oppure `signature_ciesign_not_configured`; un file illeggibile produce `signature_ciesign_trust_anchor_invalid` ed è ignorato. Un certificato che scade entro 60 giorni aggiunge `signature_ciesign_trust_anchor_expiring` con i giorni che restano, uno già scaduto `signature_ciesign_trust_anchor_expired`: sono il promemoria che il bundle va rigenerato, perché le carte emesse da una CA non più valida vengono rifiutate. Senza certificati la finestra di firma non propone CieSign e una richiesta diretta risponde `signature.cieSign.notConfigured`.
 
 - La revoca si controlla con la CRL indicata nel certificato della carta: il backend deve poter raggiungere in uscita, in HTTP, l'indirizzo della CRL. La lista della CIE può essere grande: si scarica al massimo 20 MB entro `application.signature.cie.revocation-timeout` (10 secondi) e si tiene in memoria fino al suo aggiornamento, al massimo un giorno. Se non arriva in tempo la firma è accettata senza controllo di revoca: il log registra `signature_ciesign_revocation_unavailable` con il motivo e la metrica `taurus_signature_ciesign_total{outcome="acceptedRevocationUnavailable"}` cresce, mentre la prova e l'attestazione riportano «elenco di revoca non raggiungibile».
 - Un file rifiutato non viene salvato: il log registra `signature_ciesign_rejected` con la chiave, la metrica conta l'esito (`documentMismatch`, `invalidSignature`, `untrustedCertificate`, `signerMismatch`, …) e l'utente vede il motivo nella finestra. Molti `untrustedCertificate` dopo l'avvio indicano un certificato della CIE mancante o scaduto nell'elenco.
@@ -1184,7 +1193,9 @@ Note/link incidente:
 - `scripts/ops/smoke-test.sh`: smoke test non distruttivo di un'installazione;
 - `scripts/ops/validate-deploy-manifest.sh`: controllo del manifest, eseguito dalla CI;
 - `scripts/ops/restore-test.sh`: prova di ripristino del database;
+- `scripts/ops/fetch-cie-trust-anchors.mjs`, `scripts/ops/cie-trust-anchors.sha256` e `deploy/cie/trust-anchors.pem`: certificati delle CA della CIE, impronte attese e bundle montato dal manifest;
 - `.github/workflows/verify.yml`: verifiche CI, compresa l'accuratezza dei motori OMR;
+- `.github/workflows/cie-trust-anchors.yml`: confronto mensile dei certificati della CIE con la lista di fiducia di AgID;
 - `.github/workflows/docker-publish.yml`: pubblicazione e firma delle immagini di backend, frontend, OMR e sito informativo, e del JAR del provider Keycloak come allegato della release.
 
 ## 21. Criterio di “servizio ripristinato”

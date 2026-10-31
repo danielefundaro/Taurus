@@ -198,10 +198,20 @@ services:
       SIGNATURE_OTP_SECRET: ${TAURUS_SIGNATURE_OTP_SECRET:-}
       SIGNATURE_KEYCLOAK_CLIENT_SECRET: ${TAURUS_SIGNATURE_KEYCLOAK_CLIENT_SECRET:-}
       SIGNATURE_PUBLIC_BASE_URL: ${TAURUS_PUBLIC_URL}
+      # Le CA della Carta d'Identità Elettronica, che rendono disponibile CieSign: il bundle
+      # versionato in `cie/trust-anchors.pem` è montato qui sotto in sola lettura, quindi
+      # un'installazione parte con la firma con la CIE già pronta (§4.7 del runbook operativo).
+      # La forma `${VAR-default}`, senza i due punti, tiene il valore vuoto: metterlo vuoto nel
+      # `.env` spegne CieSign, invece di far ricomparire il percorso predefinito.
+      SIGNATURE_CIE_TRUST_ANCHORS: ${TAURUS_SIGNATURE_CIE_TRUST_ANCHORS-/etc/taurus/cie/trust-anchors.pem}
     # extra_hosts:
     #   - '${TAURUS_PUBLIC_HOSTNAME}:host-gateway'
     volumes:
       - taurus-media:/var/lib/taurus/media
+      # Solo lettura: sono i certificati con cui il backend decide di chi fidarsi, e il container
+      # non deve poterli cambiare. Il contenuto si rinnova dal repository, con
+      # `node scripts/ops/fetch-cie-trust-anchors.mjs`.
+      - ./cie:/etc/taurus/cie:ro
     depends_on:
       postgresql:
         condition: service_healthy

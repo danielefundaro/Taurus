@@ -1,0 +1,12 @@
+# Impronte SHA-256 dei certificati delle CA della Carta d'Identita' Elettronica accettati come
+# trust anchor di CieSign: sono la decisione di fiducia, e stanno nel repository perche' una CA
+# non diventi attendibile solo per essere arrivata dalla rete.
+#
+# Si aggiornano con `node scripts/ops/fetch-cie-trust-anchors.mjs --update-pins`, dopo aver
+# verificato i certificati sulla fonte ufficiale (punto 4.7 del runbook operativo). Il formato
+# e' quello di `sha256sum`, ma la seconda colonna e' il nome del certificato, non un file.
+87364fb476e74962e7c495b9bbaf727813ee007cb56a0ada6ab9868123db267e  National root CA for the Italian Electronic Identity Card (scade il 2036-06-06)
+40f425927e8a1e6a297a15c2a9d79e2221bf4fe25b2f21e3bfad53a1ba58b0d7  National root CA for the Italian Electronic Identity Card (scade il 2044-05-16)
+363a3386e9016ecbafa3d11be2877540812b52d6839e71dd22ab98d8a734ca05  Issuing sub CA for the Italian Electronic Identity Card - SUBCA002 (scade il 2035-05-22)
+8f3cce1555f96594d294f00fec381fda9d8bac7271fcbdc8bb8f7766b0e27eee  Issuing sub CA for the Italian Electronic Identity Card - SUBCA003 (scade il 2039-05-13)
+b1a742662b31738726071132840880c251f63d47db6b60a6dc6a8333eb1706ae  Issuing sub CA for the Italian Electronic Identity Card - SUBCA1 (scade il 2031-06-03)
