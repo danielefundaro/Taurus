@@ -1,0 +1,9 @@
+# Il file con i valori veri dell'installazione non appartiene al repository: contiene password,
+# segreti del client OIDC e la chiave privata VAPID. Nel repository vive solo `.env.example`.
+.env
+*.env
+!.env.example
+
+# Materiale dell'host che va copiato qui prima dell'avvio, non versionato.
+keycloak/providers/*.jar
+keycloak/realm/*.json
