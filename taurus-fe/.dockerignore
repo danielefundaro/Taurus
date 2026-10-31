@@ -1,0 +1,19 @@
+# Quello che non deve entrare nel contesto di build.
+#
+# `node_modules` va escluso soprattutto: il Dockerfile installa le dipendenze con `npm ci` prima di
+# copiare i sorgenti, e una copia dalla macchina di sviluppo sovrascriverebbe quell'installazione
+# con binari compilati per un altro sistema.
+node_modules
+dist
+coverage
+target
+out-tsc
+.angular
+e2e/test-results
+e2e/playwright-report
+# Il SoundFont del lettore (38 MB) viene scaricato dalla build e verificato per impronta.
+src/assets/soundfonts
+.git
+.gitignore
+Dockerfile
+.dockerignore
