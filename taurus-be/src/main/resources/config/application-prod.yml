@@ -20,6 +20,22 @@ logging:
     com.fundaro.zodiac.taurus: INFO
 
 management:
+  # In produzione resta esposto il minimo: salute per le probe, info per la versione e le metriche
+  # per Prometheus. Gli endpoint che stampano ambiente, proprietà, log e thread dump restano fuori:
+  # sono utili in sviluppo e in produzione raccontano configurazione e segreti a chi li raggiunge.
+  # L'elenco sostituisce quello di application.yml, non lo integra.
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+  endpoint:
+    env:
+      show-values: never
+    configprops:
+      show-values: never
   prometheus:
     metrics:
       export:
@@ -34,15 +50,21 @@ spring:
   # Replace by 'prod, faker' to add the faker context and have sample data loaded in production
   liquibase:
     contexts: prod
-    url: jdbc:postgresql://localhost:5432/taurus
+    url: ${TAURUS_DB_URL}
+  # Indirizzo e credenziali arrivano dall'ambiente e non hanno un valore predefinito: senza
+  # TAURUS_DB_URL, TAURUS_DB_USERNAME e TAURUS_DB_PASSWORD l'applicazione non parte, invece di
+  # partire su un database locale inesistente o con una password scritta nel repository.
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://localhost:5432/taurus
-    username: taurus
-    password: password
+    url: ${TAURUS_DB_URL}
+    username: ${TAURUS_DB_USERNAME}
+    password: ${TAURUS_DB_PASSWORD}
     hikari:
       poolName: Hikari
       auto-commit: false
+      # Il limite va tenuto insieme a max_connections di PostgreSQL e al numero di repliche:
+      # pool x repliche, più le connessioni di Keycloak, devono starci dentro.
+      maximum-pool-size: ${TAURUS_DB_POOL_MAX:20}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
@@ -75,6 +97,9 @@ spring:
 # ===================================================================
 server:
   port: 8080
+  # L'applicazione sta dietro il reverse proxy che termina TLS: le intestazioni X-Forwarded-* sono
+  # la sola fonte dello schema, dell'host e dell'indirizzo del chiamante.
+  forward-headers-strategy: framework
   shutdown: graceful # see https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-graceful-shutdown
   compression:
     enabled: true
@@ -92,7 +117,11 @@ jhipster:
     cache: # Used by the CachingHttpHeadersFilter
       timeToLiveInDays: 1461
   logging:
-    use-json-format: false # By default, logs are not in Json format
+    # Una riga JSON per evento: i campi del contesto (requestId del filtro di correlazione, tenant
+    # dell'interceptor) diventano campi del documento, e una raccolta automatica può filtrarli
+    # senza interpretare il testo. Lo standard output resta l'unica destinazione: la raccolta e la
+    # conservazione appartengono all'host, come spiega il runbook operativo.
+    use-json-format: true
     logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration
       enabled: false
       host: localhost
@@ -107,4 +136,8 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  # Radice dello storage dei media. Il valore predefinito di application.yml è un percorso
+  # Windows di sviluppo, che in produzione non esiste: qui è il volume montato dal manifest
+  # (deploy/compose.yml), l'unico posto in cui i file dei tenant devono vivere.
+  base-path: ${TAURUS_MEDIA_PATH:/var/lib/taurus/media}
