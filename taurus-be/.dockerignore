@@ -1,0 +1,9 @@
+# Quello che non deve entrare nel contesto di build: il Dockerfile copia `pom.xml` e `src`, e tutto
+# il resto farebbe solo crescere il contesto. `target` soprattutto: una build fatta sulla macchina di
+# sviluppo non deve finire dentro l'immagine.
+target
+node_modules
+.git
+.gitignore
+Dockerfile
+.dockerignore

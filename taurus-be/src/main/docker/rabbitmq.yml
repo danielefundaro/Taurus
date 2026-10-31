@@ -5,6 +5,19 @@ services:
     image: rabbitmq:4.0.7-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
+    environment:
+      # Le credenziali predefinite dell'immagine, che il backend di sviluppo usa così come sono.
+      # In produzione sono altre e arrivano dall'ambiente: vedi deploy/compose.yml.
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ['CMD-SHELL', 'rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms']
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    # Solo sul loopback, come le altre dipendenze di sviluppo: la coda e la sua console non devono
+    # ascoltare su tutte le interfacce della macchina.
     ports:
-      - 5672:5672
-      - 15672:15672
+      - 127.0.0.1:5672:5672
+      - 127.0.0.1:15672:15672
