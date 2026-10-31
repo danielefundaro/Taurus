@@ -18,7 +18,7 @@ public class ScoreRecognitionQueueConfiguration {
     @Bean
     public Declarables scoreRecognitionDeclarables() {
         return new Declarables(
-            new Queue(QUEUE, true),
+            DeadLetterQueueConfiguration.workQueue(QUEUE),
             new Binding(QUEUE, Binding.DestinationType.QUEUE, RabbitMQConfig.topicExchangeName, QUEUE, null)
         );
     }

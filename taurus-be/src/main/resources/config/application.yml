@@ -112,6 +112,12 @@ spring:
     enabled: false
   messages:
     basename: i18n/messages
+  rabbitmq:
+    listener:
+      simple:
+        # Un messaggio rifiutato finisce nella coda di scarto dichiarata da
+        # DeadLetterQueueConfiguration, non di nuovo in coda: la ripresa dei job vive nel database.
+        default-requeue-rejected: false
   main:
     allow-bean-definition-overriding: true
   mvc:

@@ -152,7 +152,7 @@ public class NotificationPushDeliveryService {
     @Transactional(propagation = Propagation.MANDATORY)
     public void process(long id) {
         ZonedDateTime now = ZonedDateTime.now();
-        NotificationPushDelivery delivery = repository.findByIdForUpdate(id).orElse(null);
+        NotificationPushDelivery delivery = repository.claimForUpdate(id).orElse(null);
         if (delivery == null || delivery.getStatus() != NotificationStatus.PENDING || delivery.getNextAttemptAt().isAfter(now))
             return;
         if (preferenceMetrics != null) {
@@ -200,8 +200,8 @@ public class NotificationPushDeliveryService {
     }
 
     private void processDigest(NotificationPushDelivery seed, ZonedDateTime now) {
-        List<NotificationPushDelivery> bucket = repository.findDigestForUpdate(
-            seed.getUserId(), seed.getDigestLocalDate(), NotificationPushDeliveryType.DIGEST_ITEM, NotificationStatus.PENDING, now
+        List<NotificationPushDelivery> bucket = repository.claimDigestForUpdate(
+            seed.getUserId(), seed.getDigestLocalDate(), NotificationPushDeliveryType.DIGEST_ITEM.name(), NotificationStatus.PENDING.name(), now
         );
         Map<com.fundaro.zodiac.taurus.domain.notification.NotificationSource, Integer> counts = new EnumMap<>(com.fundaro.zodiac.taurus.domain.notification.NotificationSource.class);
         List<NotificationPushDelivery> eligible = bucket.stream().filter(delivery -> {

@@ -257,8 +257,8 @@ class NotificationPushDeliveryServiceTest {
         NotificationPushDelivery calendarOne = digestItem(1L, NotificationSource.CALENDAR);
         NotificationPushDelivery calendarTwo = digestItem(2L, NotificationSource.CALENDAR);
         NotificationPushDelivery finance = digestItem(3L, NotificationSource.FINANCE);
-        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(calendarOne));
-        when(repository.findDigestForUpdate(anyString(), any(), any(), any(), any()))
+        when(repository.claimForUpdate(1L)).thenReturn(Optional.of(calendarOne));
+        when(repository.claimDigestForUpdate(anyString(), any(), any(), any(), any()))
             .thenReturn(List.of(calendarOne, calendarTwo, finance));
         activeUser();
         when(preferenceResolver.resolve(any(), eq(NotificationPreferencePolicy.CONFIGURABLE), any()))
@@ -307,8 +307,8 @@ class NotificationPushDeliveryServiceTest {
         notice.setId(11L);
         notice.setReadDate(ZonedDateTime.now());
         read.setNotice(notice);
-        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(kept));
-        when(repository.findDigestForUpdate(anyString(), any(), any(), any(), any())).thenReturn(List.of(kept, read));
+        when(repository.claimForUpdate(1L)).thenReturn(Optional.of(kept));
+        when(repository.claimDigestForUpdate(anyString(), any(), any(), any(), any())).thenReturn(List.of(kept, read));
         activeUser();
         when(preferenceResolver.resolve(any(), eq(NotificationPreferencePolicy.CONFIGURABLE), any()))
             .thenReturn(Map.of("user-1", preference(NotificationPushMode.DAILY_DIGEST, NotificationPushPreview.PRIVATE)));
@@ -327,7 +327,7 @@ class NotificationPushDeliveryServiceTest {
     @Test
     void skipsEveryJobOfAnInactiveUser() {
         NotificationPushDelivery delivery = pendingImmediate();
-        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
+        when(repository.claimForUpdate(1L)).thenReturn(Optional.of(delivery));
         Users user = new Users();
         user.setActive(false);
         when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.of(user));
@@ -341,7 +341,7 @@ class NotificationPushDeliveryServiceTest {
     @Test
     void sendsToAnEnabledGlobalSuperAdminWithoutATenantUserRecord() {
         NotificationPushDelivery delivery = pendingImmediate();
-        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
+        when(repository.claimForUpdate(1L)).thenReturn(Optional.of(delivery));
         when(usersRepository.findByKeycloakIdAndDeletedFalse("user-1")).thenReturn(Optional.empty());
         User superAdmin = new User();
         superAdmin.setId("user-1");
@@ -359,7 +359,7 @@ class NotificationPushDeliveryServiceTest {
     }
 
     private void primeProcessing(NotificationPushDelivery delivery, NotificationPushMode mode, NotificationPushPreview preview) {
-        when(repository.findByIdForUpdate(1L)).thenReturn(Optional.of(delivery));
+        when(repository.claimForUpdate(1L)).thenReturn(Optional.of(delivery));
         activeUser();
         when(preferenceResolver.resolve(any(), eq(NotificationPreferencePolicy.CONFIGURABLE), any()))
             .thenReturn(Map.of("user-1", preference(mode, preview)));

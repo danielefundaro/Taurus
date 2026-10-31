@@ -24,13 +24,16 @@ public class RabbitMQConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(queueNameListener);
         container.setMessageListener(listenerAdapter);
+        // Un messaggio rifiutato va nella coda di scarto, non di nuovo in coda: la ripresa dei job
+        // vive nella tabella, e la riconsegna senza fine occuperebbe soltanto il consumatore.
+        container.setDefaultRequeueRejected(false);
 
         return container;
     }
 
     @Bean
     public Queue queue() {
-        return new Queue(queueNameListener);
+        return DeadLetterQueueConfiguration.workQueue(queueNameListener);
     }
 
     @Bean

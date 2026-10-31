@@ -1,13 +1,17 @@
 package com.fundaro.zodiac.taurus.rabbitmq;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
+import com.fundaro.zodiac.taurus.config.DeadLetterQueueConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -34,7 +38,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Prove sul broker reale: consegna, riconsegna dopo un errore, messaggio avvelenato e broker
+ * Prove sul broker reale: consegna, riconsegna dopo un errore, messaggio avvelenato instradato
+ * nella coda di scarto e broker
  * irraggiungibile. Fino a questa suite le code erano sempre finte, quindi il comportamento del
  * broker — in particolare la riconsegna — non era mai stato verificato.
  *
@@ -120,7 +125,8 @@ class RabbitMqBrokerIT {
         listen(message -> {
             attempts.add(body(message));
             secondAttempt.countDown();
-            // Il primo tentativo fallisce: il broker rimette il messaggio in coda.
+            // Il primo tentativo fallisce: il broker rimette il messaggio in coda. È il
+            // comportamento predefinito del broker, che i consumatori di Taurus disattivano.
             if (attempts.size() == 1) throw new IllegalStateException("transient failure");
         });
 
@@ -131,22 +137,66 @@ class RabbitMqBrokerIT {
     }
 
     /**
-     * Comportamento attuale, da conoscere prima di decidere una coda di scarto: senza coda di
-     * scarto un messaggio che fallisce sempre viene riconsegnato senza fine. Il test si limita a
-     * osservare le prime riconsegne e poi ferma il consumatore.
+     * La decisione presa sul messaggio avvelenato: il consumatore rifiuta senza rimessa in coda e il
+     * broker instrada il messaggio nella coda di scarto. Un solo tentativo, nessuna riconsegna senza
+     * fine, e il messaggio resta leggibile per capire cosa è andato storto.
      */
     @Test
-    void keepsRedeliveringAMessageThatAlwaysFails() throws InterruptedException {
-        CountDownLatch attempts = new CountDownLatch(3);
-        listen(message -> {
-            attempts.countDown();
+    void movesAPoisonMessageToTheDeadLetterQueueInsteadOfRedeliveringIt() throws InterruptedException {
+        String workQueue = "test.work-" + UUID.randomUUID();
+        String deadLetterQueue = workQueue + ".dead";
+        // L'exchange è quello di produzione, già dichiarato dal contesto su questo broker: va
+        // ridichiarato con gli stessi argomenti, o il broker rifiuta il canale.
+        DirectExchange exchange = new DirectExchange(DeadLetterQueueConfiguration.DEAD_LETTER_EXCHANGE, true, false);
+        admin.declareExchange(exchange);
+        admin.declareQueue(QueueBuilder.nonDurable(deadLetterQueue).autoDelete().build());
+        admin.declareBinding(BindingBuilder.bind(new Queue(deadLetterQueue)).to(exchange).with(workQueue));
+        admin.declareQueue(
+            QueueBuilder.nonDurable(workQueue)
+                .autoDelete()
+                .deadLetterExchange(DeadLetterQueueConfiguration.DEAD_LETTER_EXCHANGE)
+                .deadLetterRoutingKey(workQueue)
+                .build()
+        );
+
+        List<String> attempts = new CopyOnWriteArrayList<>();
+        CountDownLatch firstAttempt = new CountDownLatch(1);
+        listener = new SimpleMessageListenerContainer(connectionFactory);
+        listener.setQueueNames(workQueue);
+        listener.setAcknowledgeMode(AcknowledgeMode.AUTO);
+        // La stessa scelta della configurazione di produzione.
+        listener.setDefaultRequeueRejected(false);
+        listener.setPrefetchCount(1);
+        listener.setMessageListener(message -> {
+            attempts.add(body(message));
+            firstAttempt.countDown();
             throw new IllegalStateException("poison message");
         });
+        listener.start();
 
-        rabbitTemplate.convertAndSend(queueName, "job-3");
+        rabbitTemplate.convertAndSend(workQueue, "job-3");
 
-        assertThat(attempts.await(TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
+        assertThat(firstAttempt.await(TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
+        Message discarded = rabbitTemplate.receive(deadLetterQueue, TIMEOUT.toMillis());
+        assertThat(discarded).isNotNull();
+        assertThat(body(discarded)).isEqualTo("job-3");
+        // Il consumatore non lo ha più ricevuto: la coda di scarto chiude il giro.
+        assertThat(attempts).containsExactly("job-3");
+
         listener.stop();
+        admin.deleteQueue(workQueue);
+        admin.deleteQueue(deadLetterQueue);
+    }
+
+    /** Gli argomenti della coda di lavoro di produzione mandano gli scarti all'exchange dedicato. */
+    @Test
+    void declaresTheWorkQueuesWithTheDeadLetterExchange() {
+        Queue queue = DeadLetterQueueConfiguration.workQueue("upload.files");
+
+        assertThat(queue.isDurable()).isTrue();
+        assertThat(queue.getArguments())
+            .containsEntry("x-dead-letter-exchange", DeadLetterQueueConfiguration.DEAD_LETTER_EXCHANGE)
+            .containsEntry("x-dead-letter-routing-key", "upload.files");
     }
 
     @Test
