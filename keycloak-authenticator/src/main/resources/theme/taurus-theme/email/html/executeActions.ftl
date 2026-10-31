@@ -6,21 +6,21 @@
   </svg>
 </#assign>
 <#if requiredActions?? && requiredActions?seq_contains("UPDATE_PASSWORD")>
-  <#assign actionTitle="Benvenuto in Taurus">
-  <#assign actionIntro="Il tuo account &egrave; stato creato. Clicca sul pulsante qui sotto per impostare la tua password e accedere alla piattaforma.">
-  <#assign actionBtn="Imposta la password">
+  <#assign actionTitle>Benvenuto in Taurus</#assign>
+  <#assign actionIntro>Il tuo account &egrave; stato creato. Clicca sul pulsante qui sotto per impostare la tua password e accedere alla piattaforma.</#assign>
+  <#assign actionBtn>Imposta la password</#assign>
 <#elseif requiredActions?? && requiredActions?seq_contains("VERIFY_EMAIL")>
-  <#assign actionTitle="Verifica il tuo indirizzo email">
-  <#assign actionIntro="Clicca sul pulsante qui sotto per verificare il tuo indirizzo email e attivare il tuo account.">
-  <#assign actionBtn="Verifica email">
+  <#assign actionTitle>Verifica il tuo indirizzo email</#assign>
+  <#assign actionIntro>Clicca sul pulsante qui sotto per verificare il tuo indirizzo email e attivare il tuo account.</#assign>
+  <#assign actionBtn>Verifica email</#assign>
 <#elseif requiredActions?? && requiredActions?seq_contains("CONFIGURE_TOTP")>
-  <#assign actionTitle="Configura l&apos;autenticazione a due fattori">
-  <#assign actionIntro="Clicca sul pulsante qui sotto per configurare il tuo autenticatore OTP e aumentare la sicurezza del tuo account.">
-  <#assign actionBtn="Configura OTP">
+  <#assign actionTitle>Configura l&apos;autenticazione a due fattori</#assign>
+  <#assign actionIntro>Clicca sul pulsante qui sotto per configurare il tuo autenticatore OTP e aumentare la sicurezza del tuo account.</#assign>
+  <#assign actionBtn>Configura OTP</#assign>
 <#else>
-  <#assign actionTitle="Azione richiesta">
-  <#assign actionIntro="Clicca sul pulsante qui sotto per completare la configurazione del tuo account su ${realmName!&quot;Taurus&quot;}.">
-  <#assign actionBtn="Accedi a Taurus">
+  <#assign actionTitle>Azione richiesta</#assign>
+  <#assign actionIntro>Clicca sul pulsante qui sotto per completare la configurazione del tuo account su ${realmName!'Taurus'}.</#assign>
+  <#assign actionBtn>Accedi a Taurus</#assign>
 </#if>
 <!DOCTYPE html>
 <html lang="it">
@@ -91,7 +91,7 @@
                   <!-- Expiry -->
                   <p
                     style="margin:0 0 10px;font-size:13px;color:#94a3b8;line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    Questo link &egrave; valido per <strong>${linkExpiry!""}</strong> minuti. Se non hai richiesto
+                    Questo link &egrave; valido per <strong>${linkExpiration!""}</strong> minuti. Se non hai richiesto
                     questa email, puoi ignorarla.
                   </p>
                   <!-- Fallback link -->
