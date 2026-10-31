@@ -79,7 +79,7 @@
                   <!-- Security note -->
                   <p
                     style="margin:0 0 10px;font-size:13px;color:#94a3b8;line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    Questo link &egrave; valido per <strong>${linkExpiry!""}</strong> minuti. Se non hai richiesto
+                    Questo link &egrave; valido per <strong>${linkExpiration!""}</strong> minuti. Se non hai richiesto
                     questa email, puoi ignorarla — la tua password non verr&agrave; modificata.
                   </p>
                   <!-- Fallback link -->
