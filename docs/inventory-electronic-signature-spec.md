@@ -766,14 +766,10 @@ Va completata prima di attivare la firma elettronica in un tenant reale; la firm
 2. testo delle dichiarazioni di accettazione, approvazione delle clausole, presa visione e firma su carta;
 3. testo della lettera f) dell'informativa del modello predefinito sulla conservazione degli atti firmati da parte dell'Associazione.
 
-Esito della ricerca del 2026-10-20, da confermare da parte di un legale:
+Esito della ricerca del 2026-10-20, confermato da un legale il 2026-10-31:
 
 - punto 1: Cass. civ., sez. III, ord. 20 giugno 2026, n. 20945 (Pres. Frasca, Rel. Saija), letta sul testo pubblicato da Diritto Bancario, conferma l'impostazione: per i contratti non soggetti alla forma dell'art. 1350 c.c. basta una firma elettronica semplice, di regola un codice OTP via SMS o e-mail, purché l'approvazione sia specifica e raccolta in un passaggio dedicato, e la sola spunta non basta. Il caso riguardava però un contratto telematico tra professionisti (art. 13 d.lgs. 70/2003): va valutata l'applicazione al comodato tra associazione e socio o genitore, anche rispetto al Codice del consumo. Cass. n. 9413/2021 è richiamata solo per la nozione di firma elettronica, in un altro ambito contrattuale;
-- punti 2 e 3: da verificare.
+- punti 2 e 3: verificati.
 
-## Requisiti aperti
-
-- Verifica in Acrobat di firma CieSign e sigillo (SIG-033) ([Verifica manuale](#verifica-manuale)). La firma con una CIE reale è stata eseguita il 2026-10-31 con l'app CieSign e con il Software CIE, dall'applicazione e dalla pagina pubblica (SIG-031 e SIG-032).
-- Invio delle e-mail dal server SMTP di una casella reale dell'associazione ([Verifica manuale](#verifica-manuale)).
-- Stampa A4 del modello predefinito a confronto con il modello dell'associazione ([Verifica manuale](#verifica-manuale)).
-- Conferma da parte di un legale dei punti 1–3 ([Verifica legale](#verifica-legale)).
+Con la conferma del 2026-10-31 la condizione posta in testa a questa sezione è soddisfatta: la firma
+elettronica può essere attivata in un tenant reale, dove resta spenta finché il tenant non la accende.
