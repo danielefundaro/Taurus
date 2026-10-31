@@ -1,0 +1,266 @@
+# Manifest di riferimento della produzione: lo stack completo di Taurus su un host singolo con
+# Docker Compose, che è la forma adatta a un'associazione senza infrastruttura e senza budget.
+#
+# Com'è fatto:
+# - una sola origine pubblica. Il container `frontend` serve l'applicazione e inoltra `/api` al
+#   backend e `/auth` a Keycloak, quindi il browser parla con un indirizzo solo: niente CORS e
+#   nessun nome della rete interna dentro il bundle.
+# - nessuna porta pubblicata, tranne quella del frontend, legata al loopback. TLS lo termina il
+#   reverse proxy dell'host (esempio in `reverse-proxy.example.conf`), che è anche il punto in cui
+#   vive il certificato.
+# - PostgreSQL, Keycloak, RabbitMQ e il servizio OMR stanno su una rete interna, raggiungibile solo
+#   dagli altri container.
+# - i dati stanno su volumi: database, coda, media dei tenant. Senza di essi un `docker compose down`
+#   cancellerebbe tutto.
+# - le immagini sono fissate per versione con `TAURUS_*_VERSION`, e si possono fissare per digest
+#   (`immagine@sha256:…`): è il punto 8.1 dei gate di deploy.
+#
+# Quello che questo file non fa, e che il runbook operativo descrive: validazione su un host reale,
+# backup, rotazioni, monitoraggio e scalatura oltre una replica del backend.
+#
+# Uso: copiare `.env.example` in `.env`, compilarlo, poi
+#   docker compose --env-file .env -f compose.yml up -d
+name: taurus
+
+services:
+  postgresql:
+    image: postgres:${TAURUS_POSTGRES_VERSION:-17.0}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TAURUS_DB_USERNAME:?impostare TAURUS_DB_USERNAME}
+      POSTGRES_PASSWORD: ${TAURUS_DB_PASSWORD:?impostare TAURUS_DB_PASSWORD}
+      POSTGRES_DB: ${TAURUS_DB_NAME:-taurus}
+      KEYCLOAK_DB_NAME: ${TAURUS_KEYCLOAK_DB_NAME:-taurus_keycloak}
+      KEYCLOAK_DB_USERNAME: ${TAURUS_KEYCLOAK_DB_USERNAME:-keycloak}
+      KEYCLOAK_DB_PASSWORD: ${TAURUS_KEYCLOAK_DB_PASSWORD:?impostare TAURUS_KEYCLOAK_DB_PASSWORD}
+    # Il limite di connessioni va tenuto insieme al pool del backend (TAURUS_DB_POOL_MAX), al numero
+    # di repliche e alle connessioni di Keycloak.
+    command: postgres -c max_connections=${TAURUS_DB_MAX_CONNECTIONS:-200}
+    volumes:
+      - taurus-db:/var/lib/postgresql/data
+      # Eseguiti solo alla prima inizializzazione del volume: creano il database di Keycloak.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_DB_MEMORY_LIMIT:-2g}
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:${TAURUS_KEYCLOAK_VERSION:-26.6.4}
+    restart: unless-stopped
+    # `start`, non `start-dev`: modalità produzione, con hostname, proxy e database veri. L'import
+    # del realm non è nell'avvio normale: è un'operazione deliberata del primo insediamento, che il
+    # runbook descrive.
+    command: start
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgresql
+      KC_DB_URL_DATABASE: ${TAURUS_KEYCLOAK_DB_NAME:-taurus_keycloak}
+      KC_DB_USERNAME: ${TAURUS_KEYCLOAK_DB_USERNAME:-keycloak}
+      KC_DB_PASSWORD: ${TAURUS_KEYCLOAK_DB_PASSWORD:?impostare TAURUS_KEYCLOAK_DB_PASSWORD}
+      KC_DB_POOL_MAX_SIZE: ${TAURUS_KEYCLOAK_DB_POOL_MAX:-20}
+      # L'indirizzo pubblico con cui Keycloak costruisce redirezioni, issuer e metadati: deve essere
+      # quello che vede il browser, non quello della rete interna.
+      KC_HOSTNAME: ${TAURUS_PUBLIC_URL:?impostare TAURUS_PUBLIC_URL}
+      KC_HTTP_RELATIVE_PATH: /auth
+      # TLS lo termina il reverse proxy: Keycloak ascolta in chiaro sulla rete interna e si fida
+      # delle intestazioni X-Forwarded-* che il proxy inoltra.
+      KC_HTTP_ENABLED: 'true'
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_PORT: '9080'
+      KC_HEALTH_ENABLED: 'true'
+      KC_HTTP_MANAGEMENT_PORT: '9990'
+      # Servono solo alla creazione del primo amministratore, al primissimo avvio: dopo si possono
+      # togliere, e la password va cambiata dall'interfaccia.
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${TAURUS_KEYCLOAK_ADMIN_USERNAME:?impostare TAURUS_KEYCLOAK_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${TAURUS_KEYCLOAK_ADMIN_PASSWORD:?impostare TAURUS_KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      # Il JAR del provider Taurus, tema compreso: va copiato qui prima dell'avvio.
+      - ./keycloak/providers:/opt/keycloak/providers:ro
+      # L'export del realm, per l'import del primo insediamento (`start --import-realm`).
+      - ./keycloak/realm:/opt/keycloak/data/import:ro
+      - ./keycloak/health-check.sh:/opt/keycloak/health-check.sh:ro
+    healthcheck:
+      # Lo stesso script dello sviluppo: l'immagine non ha curl, e la porta di management vuole una
+      # richiesta HTTP scritta a mano.
+      test: ['CMD', 'bash', '/opt/keycloak/health-check.sh']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_KEYCLOAK_MEMORY_LIMIT:-1g}
+
+  rabbitmq:
+    image: rabbitmq:${TAURUS_RABBITMQ_VERSION:-4.0.7-management-alpine}
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${TAURUS_RABBITMQ_USERNAME:?impostare TAURUS_RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${TAURUS_RABBITMQ_PASSWORD:?impostare TAURUS_RABBITMQ_PASSWORD}
+    # Nessuna porta pubblicata: la coda e la sua console vivono sulla rete interna. Per aprire la
+    # console durante un incidente: docker compose exec rabbitmq rabbitmq-diagnostics status, oppure
+    # un tunnel verso 15672 dall'host.
+    volumes:
+      - taurus-rabbit:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD-SHELL', 'rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms']
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_RABBITMQ_MEMORY_LIMIT:-1g}
+
+  omr:
+    image: fundanie/taurus-omr:${TAURUS_OMR_VERSION:?impostare TAURUS_OMR_VERSION}
+    restart: unless-stopped
+    environment:
+      TAURUS_OMR_API_KEY: ${TAURUS_OMR_API_KEY:?impostare TAURUS_OMR_API_KEY, almeno 16 caratteri}
+      TAURUS_OMR_CONCURRENCY: ${TAURUS_OMR_CONCURRENCY:-1}
+    # Le restrizioni di omr.yml: nessuna porta pubblicata, file system in sola lettura, /tmp in
+    # memoria, nessuna capability e nessun privilegio nuovo.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,exec,size=${TAURUS_OMR_TMPFS_SIZE:-2g}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          cpus: '${TAURUS_OMR_CPUS:-4}'
+          memory: ${TAURUS_OMR_MEMORY_LIMIT:-6g}
+
+  backend:
+    image: fundanie/taurus-backend:${TAURUS_VERSION:?impostare TAURUS_VERSION}
+    restart: unless-stopped
+    # Una replica sola. Liquibase prende il suo lock, ma la migrazione va applicata da un'istanza
+    # per volta: la sequenza per aggiungerne altre sta nel runbook operativo (§8.2).
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TAURUS_DB_URL: jdbc:postgresql://postgresql:5432/${TAURUS_DB_NAME:-taurus}
+      TAURUS_DB_USERNAME: ${TAURUS_DB_USERNAME}
+      TAURUS_DB_PASSWORD: ${TAURUS_DB_PASSWORD}
+      TAURUS_DB_POOL_MAX: ${TAURUS_DB_POOL_MAX:-20}
+      TAURUS_MEDIA_PATH: /var/lib/taurus/media
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: '5672'
+      SPRING_RABBITMQ_USERNAME: ${TAURUS_RABBITMQ_USERNAME}
+      SPRING_RABBITMQ_PASSWORD: ${TAURUS_RABBITMQ_PASSWORD}
+      # L'issuer è quello pubblico, perché è quello che finisce nei token e che il browser usa. Il
+      # backend deve poterlo risolvere e raggiungere: se l'host non lo risolve dall'interno della
+      # rete Docker, si aggiunge `extra_hosts` qui sotto.
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUER_URI: ${TAURUS_PUBLIC_URL}/auth/realms/${TAURUS_REALM:-taurus}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_ID: ${TAURUS_OIDC_CLIENT_ID:-web_app}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_OIDC_CLIENT_SECRET: ${TAURUS_OIDC_CLIENT_SECRET:?impostare TAURUS_OIDC_CLIENT_SECRET}
+      APPLICATION_KEYCLOAK_MASTER_URI: ${TAURUS_PUBLIC_URL}/auth/realms/master
+      APPLICATION_KEYCLOAK_ADMIN_ISSUER_URI: ${TAURUS_PUBLIC_URL}/auth/admin/realms/${TAURUS_REALM:-taurus}
+      APPLICATION_KEYCLOAK_ADMIN_USERNAME: ${TAURUS_KEYCLOAK_ADMIN_USERNAME}
+      APPLICATION_KEYCLOAK_ADMIN_PASSWORD: ${TAURUS_KEYCLOAK_ADMIN_PASSWORD}
+      # L'indirizzo pubblico con cui il backend costruisce i link dei feed calendario, dei QR e
+      # delle pagine di firma.
+      TAURUS_PUBLIC_BASE_URL: ${TAURUS_PUBLIC_URL}
+      APPLICATION_VAPID_PUBLIC_KEY: ${TAURUS_VAPID_PUBLIC_KEY:?impostare TAURUS_VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${TAURUS_VAPID_PRIVATE_KEY:?impostare TAURUS_VAPID_PRIVATE_KEY}
+      APPLICATION_VAPID_SUBJECT: ${TAURUS_VAPID_SUBJECT:?impostare TAURUS_VAPID_SUBJECT, per esempio mailto:tecnico@associazione.it}
+      # Ascolto delle parti: il servizio OMR risponde solo sulla rete interna.
+      SCORE_PLAYBACK_ENABLED: ${TAURUS_SCORE_PLAYBACK_ENABLED:-true}
+      SCORE_PLAYBACK_OMR_URL: http://omr:8090
+      SCORE_PLAYBACK_OMR_API_KEY: ${TAURUS_OMR_API_KEY}
+      INVENTORY_QR_ENABLED: ${TAURUS_INVENTORY_QR_ENABLED:-true}
+      INVENTORY_QR_PUBLIC_BASE_URL: ${TAURUS_PUBLIC_URL}
+      # Posta: serve ai codici e ai link della firma elettronica e alle notifiche. Senza un
+      # server configurato l'applicazione parte, ma quegli invii falliscono.
+      SPRING_MAIL_HOST: ${TAURUS_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${TAURUS_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${TAURUS_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${TAURUS_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${TAURUS_MAIL_STARTTLS:-true}
+      JHIPSTER_MAIL_FROM: ${TAURUS_MAIL_FROM:-taurus@localhost}
+      JHIPSTER_MAIL_BASE_URL: ${TAURUS_PUBLIC_URL}
+      SIGNATURE_OTP_SECRET: ${TAURUS_SIGNATURE_OTP_SECRET:-}
+      SIGNATURE_KEYCLOAK_CLIENT_SECRET: ${TAURUS_SIGNATURE_KEYCLOAK_CLIENT_SECRET:-}
+      SIGNATURE_PUBLIC_BASE_URL: ${TAURUS_PUBLIC_URL}
+    # extra_hosts:
+    #   - '${TAURUS_PUBLIC_HOSTNAME}:host-gateway'
+    volumes:
+      - taurus-media:/var/lib/taurus/media
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_BACKEND_MEMORY_LIMIT:-2g}
+
+  frontend:
+    image: fundanie/taurus-frontend:${TAURUS_VERSION}
+    restart: unless-stopped
+    environment:
+      TAURUS_API_UPSTREAM: http://backend:8080
+      TAURUS_KEYCLOAK_UPSTREAM: http://keycloak:9080
+      TAURUS_API_BASE_URL: /api
+      TAURUS_KEYCLOAK_BASE_URL: /auth
+      TAURUS_KEYCLOAK_REALM: ${TAURUS_REALM:-taurus}
+      TAURUS_KEYCLOAK_CLIENT_ID: ${TAURUS_OIDC_CLIENT_ID:-web_app}
+      TAURUS_VAPID_PUBLIC_KEY: ${TAURUS_VAPID_PUBLIC_KEY}
+      TAURUS_MAX_UPLOAD_SIZE: ${TAURUS_MAX_UPLOAD_SIZE:-500m}
+    # L'unica porta pubblicata, e solo sul loopback: davanti c'è il reverse proxy dell'host, che
+    # termina TLS e inoltra qui.
+    ports:
+      - '127.0.0.1:${TAURUS_HTTP_PORT:-8081}:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_FRONTEND_MEMORY_LIMIT:-256m}
+
+  # Il sito informativo: vive di vita propria e si avvia solo con `--profile info`, perché molte
+  # installazioni lo tengono su un altro host o non lo servono affatto.
+  info:
+    image: fundanie/taurus-info:${TAURUS_INFO_VERSION:-latest}
+    restart: unless-stopped
+    profiles: [info]
+    ports:
+      - '127.0.0.1:${TAURUS_INFO_HTTP_PORT:-8082}:80'
+    networks: [internal]
+    deploy:
+      resources:
+        limits:
+          memory: ${TAURUS_INFO_MEMORY_LIMIT:-128m}
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  taurus-db:
+  taurus-rabbit:
+  taurus-media:

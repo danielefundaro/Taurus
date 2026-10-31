@@ -87,6 +87,10 @@ jobs:
           fi
       - name: Report possible documentation drift
         run: node scripts/docs/check-feature-drift.mjs --changed-files changed-files.txt
+      # Il manifest di produzione: valido, con le porte sul loopback, i dati su volumi, le
+      # restrizioni del servizio OMR e Keycloak in modalita' produzione.
+      - name: Validate the production manifest
+        run: bash scripts/ops/validate-deploy-manifest.sh
 
   backend:
     needs: [changes, documentation]
@@ -210,8 +214,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
-      # File attesi, metadati di ogni pagina, collegamenti interni, sitemap e intestazioni del server.
+      # File attesi, metadati e accessibilita' strutturale di ogni pagina, collegamenti interni, sitemap e intestazioni del server.
       - run: pnpm test
+      # Immagine nginx costruita e interrogata come farebbe un browser: il runner ha Docker, quindi la sua assenza e' un errore.
+      - run: pnpm test:image
+        env:
+          TAURUS_REQUIRE_DOCKER: '1'
 
   security:
     needs: documentation
