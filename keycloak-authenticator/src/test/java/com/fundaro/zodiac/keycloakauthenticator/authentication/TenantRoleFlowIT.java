@@ -35,7 +35,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TenantRoleFlowIT {
 
     private static final Path PROVIDER = Path.of("target", "keycloak-authenticator.jar");
-    private static final Path THEME = Path.of("src", "main", "resources", "themes", "taurus");
     private static final String REALM = "tenant-role-test";
     private static final String CLIENT = "taurus-web";
     private static final String REDIRECT_URI = "http://localhost/callback";
@@ -63,9 +62,8 @@ class TenantRoleFlowIT {
             .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "tenant-role-password")
             .withCopyFileToContainer(MountableFile.forHostPath(PROVIDER), "/opt/keycloak/providers/keycloak-authenticator.jar")
             .withCopyFileToContainer(MountableFile.forClasspathResource("tenant-role-test-realm.json"), "/opt/keycloak/data/import/tenant-role-test-realm.json")
-            // Il tema arriva come cartella montata, con il nome usato dal deploy: la copia dentro il JAR
-            // non viene caricata, perché il JAR non dichiara i temi in META-INF/keycloak-themes.json.
-            .withCopyFileToContainer(MountableFile.forHostPath(THEME), "/opt/keycloak/themes/taurus-theme")
+            // Nessuna cartella di temi montata: taurus-theme arriva dal provider, che lo dichiara in
+            // META-INF/keycloak-themes.json. Se la dichiarazione manca, il realm cade sul tema di serie.
             .withCommand("start-dev", "--import-realm")
             .withExposedPorts(8080)
             .waitingFor(Wait.forHttp("/realms/" + REALM).forPort(8080).forStatusCode(200))
@@ -105,6 +103,19 @@ class TenantRoleFlowIT {
         });
 
         return response;
+    }
+
+    /**
+     * Il tema del realm arriva dal provider. Senza la dichiarazione in META-INF/keycloak-themes.json
+     * Keycloak non lo trova nel JAR e serve il tema di serie: la pagina non avrebbe il markup di Taurus.
+     */
+    @Test
+    void servesTheLoginPageWithTheThemeDeclaredInTheProvider() throws Exception {
+        HttpResponse<String> login = send(HttpRequest.newBuilder(URI.create(authorizeUrl())).GET());
+
+        assertThat(login.statusCode()).isEqualTo(200);
+        assertThat(login.body()).contains("taurus-card").contains("taurus-form-body");
+        assertThat(login.body()).contains("/login/taurus-theme/css/login.css");
     }
 
     @Test
@@ -169,10 +180,14 @@ class TenantRoleFlowIT {
     }
 
     /** Apre la pagina di accesso e invia le credenziali, restituendo la risposta del passo successivo. */
-    private HttpResponse<String> signIn(String username, String password) throws Exception {
-        String authorize = baseUrl + "/protocol/openid-connect/auth?client_id=" + CLIENT
+    /** L'indirizzo con cui il client avvia l'accesso, uguale per ogni prova. */
+    private static String authorizeUrl() {
+        return baseUrl + "/protocol/openid-connect/auth?client_id=" + CLIENT
             + "&response_type=code&scope=openid&state=test&redirect_uri=" + encode(REDIRECT_URI);
-        HttpResponse<String> loginPage = send(HttpRequest.newBuilder(URI.create(authorize)).GET());
+    }
+
+    private HttpResponse<String> signIn(String username, String password) throws Exception {
+        HttpResponse<String> loginPage = send(HttpRequest.newBuilder(URI.create(authorizeUrl())).GET());
         assertThat(loginPage.statusCode()).isEqualTo(200);
 
         return submit(loginPage, Map.of("username", username, "password", password, "credentialId", ""));
