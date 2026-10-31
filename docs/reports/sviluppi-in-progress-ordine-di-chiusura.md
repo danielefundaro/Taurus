@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-30 restano `in-progress` le voci 6, 7, 9 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17 e 18.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-31 restano `in-progress` le voci 7, 9 e 19 — le voci 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15, 16, 17 e 18.
 
 ## 1. `web-push-reminders`
 
@@ -106,7 +106,9 @@ Un solo intervento di prodotto (il testo della notifica); tutto il resto è veri
 
 > Il 2026-10-31 i certificati delle CA della CIE non sono più una configurazione da procurare a mano: il bundle è versionato in `deploy/cie/trust-anchors.pem`, le impronte accettate stanno in `scripts/ops/cie-trust-anchors.sha256`, `scripts/ops/fetch-cie-trust-anchors.mjs` lo genera dalla lista di fiducia di AgID verificandole, il manifest di produzione lo monta in sola lettura e `SIGNATURE_CIE_TRUST_ANCHORS` ci punta per default. Restano quattro verifiche esterne; quella dei trust anchor si fa ora insieme alla firma con una CIE reale, perché non c'è più niente da configurare prima.
 
-> Il 2026-10-31 eseguita la firma con una CIE reale: SIG-031 e SIG-032 ripetuti con la carta e il PIN, con l'app CieSign e con il Software CIE, dall'applicazione come socio e dalla pagina pubblica come genitore, con i certificati veri delle CA della CIE come trust anchor. Delle verifiche esterne restano la lettura del documento sigillato in Acrobat (SIG-033), la casella SMTP dell'associazione, la stampa A4 di confronto e il parere legale.
+> Il 2026-10-31 eseguita la firma con una CIE reale: SIG-031 e SIG-032 ripetuti con la carta e il PIN, con l'app CieSign e con il Software CIE, dall'applicazione come socio e dalla pagina pubblica come genitore, con i certificati veri delle CA della CIE come trust anchor.
+
+> Chiuso il 2026-10-31: eseguite anche le ultime tre verifiche esterne — SIG-033 in Acrobat Reader, l'invio dal server SMTP della casella reale dell'associazione e la stampa A4 di confronto con il modello dell'associazione — e un legale ha confermato i tre punti della verifica legale. I casi SIG-001…035 sono tutti `PASS`, la specifica non ha più requisiti aperti e la voce è passata a `implemented`.
 
 ## 7. `test-runbook`
 

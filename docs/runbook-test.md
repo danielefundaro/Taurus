@@ -805,15 +805,22 @@ Esecuzione del 2026-10-20, commit di base `f6bddebd` con le modifiche non ancora
 | SIG-020 | `PASS` dopo correzione | senza materiale in carico i dati restavano fino al termine del periodo di grazia |
 | SIG-021…030 | `PASS` | SIG-029 con lo scheduler anticipato a ogni minuto |
 | SIG-031, SIG-032 | `PASS` | con la CA di prova il 2026-10-20, ripetuti con una CIE reale il 2026-10-31 (sotto); la finestra di firma della pagina pubblica si bloccava ed è corretta |
-| SIG-033 | `NOT RUN` in Acrobat | integrità della firma CieSign e del sigillo verificata con PDFBox; attestazione con i dati del certificato |
+| SIG-033 | `PASS` | in Acrobat Reader il 2026-10-31; integrità della firma CieSign e del sigillo verificata anche con PDFBox; attestazione con i dati del certificato |
 | SIG-034 | `PASS` dopo correzione | il documento senza firma rispondeva `documentMismatch`, il file oltre 25 MB non era contato nella metrica |
 | SIG-035 | `PASS` | CRL non raggiungibile: firma accettata in 10,2 secondi con `UNAVAILABLE` |
 
 Ripetizione del 2026-10-31 con una Carta d'Identità Elettronica reale e il suo PIN, al posto della CA di
 prova: come trust anchor i certificati veri delle CA della CIE, dal bundle versionato (§4.7 del runbook
 operativo). SIG-031 e SIG-032 eseguiti con l'app CieSign e con il Software CIE, firmando sia
-dall'applicazione come socio sia dalla pagina pubblica come genitore: entrambi `PASS`. Dei casi di
-CieSign resta `NOT RUN` solo SIG-033, la verifica in Acrobat del documento sigillato.
+dall'applicazione come socio sia dalla pagina pubblica come genitore: entrambi `PASS`.
+
+Lo stesso giorno sono state eseguite le ultime verifiche esterne, e con esse i casi SIG-001…035
+sono tutti `PASS`. SIG-033: in Acrobat Reader il documento sigillato mostra la firma CieSign e il
+sigillo, entrambi senza modifiche dopo la firma. Invio dalla casella reale dell'associazione, al
+posto di Mailpit: codici di conferma e link di firma recapitati dal suo server SMTP. Stampa A4 del
+modello predefinito a confronto con il modello dell'associazione. Un legale ha inoltre confermato i
+tre punti della [verifica legale](inventory-electronic-signature-spec.md#verifica-legale) della
+specifica, che era la condizione per attivare la firma in un tenant reale.
 
 Le correzioni sono descritte nelle decisioni della fase 6 della [specifica](inventory-electronic-signature-spec.md). Fuori dalla firma elettronica resta un log `ERROR` di `KeycloakServiceImpl` che riporta l'e-mail di un utente alla sua creazione.
 
