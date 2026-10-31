@@ -13,7 +13,8 @@ Applicazione Angular 19 di Taurus per utenti e amministratori, con componenti Pr
 | `src/app/constants` | messaggi d'errore e comportamenti dello [Standard degli errori applicativi](../docs/application-errors-standard.md) |
 | `src/app/score-player`, `src/app/score-editor` | lettore ed editor dell'[ascolto delle parti](../docs/track-score-playback-spec.md) |
 | `src/assets` | risorse statiche, compresi Verovio, SpessaSynth e il SoundFont |
-| `src/environments` | indirizzi di backend e Keycloak: `environment.ts` per lo sviluppo, `environment.prod.ts` per la build di produzione |
+| `src/environments` | indirizzi di backend e Keycloak compilati nel bundle: `environment.ts` per lo sviluppo, `environment.prod.ts` come ripiego della configurazione a runtime |
+| `src/runtime-config.ts` | configurazione letta da `assets/config.json` prima dell'avvio: nel container la scrive l'entrypoint dalle variabili d'ambiente |
 
 ## Sviluppo
 
@@ -26,7 +27,7 @@ npm start
 
 L'applicazione è su `http://localhost:4200` e chiama il backend su `http://localhost:8080/api` e Keycloak su `http://localhost:9080`.
 
-`npm start` e `npm run build` eseguono prima `scripts/fetch-soundfont.mjs`, che scarica il SoundFont MuseScore General (circa 38 MB, non versionato) e ne verifica lo SHA-256. `TAURUS_SKIP_SOUNDFONT=1` salta il download, per esempio nei job che non usano il lettore.
+`npm start` e `npm run build` eseguono prima `scripts/fetch-soundfont.mjs`, che procura il SoundFont MuseScore General (circa 38 MB, non versionato) e ne verifica lo SHA-256. Le fonti, in ordine: `TAURUS_SOUNDFONT_PATH` per una copia già sulla macchina, `TAURUS_SOUNDFONT_URL` per una copia controllata e, in mancanza di entrambe, il mirror pubblico. Qualunque sia la fonte, una copia con un'impronta diversa viene rifiutata. `TAURUS_SKIP_SOUNDFONT=1` salta il passaggio, per esempio nei job che non usano il lettore.
 
 ## Comandi
 
@@ -48,4 +49,26 @@ TypeScript strict, indentazione a quattro spazi, apici singoli e punto e virgola
 
 ## Immagine
 
-Il `Dockerfile` costruisce l'applicazione con Node.js 22 e la serve con nginx. Il workflow `docker-publish.yml` pubblica l'immagine come `taurus-frontend` a ogni tag `v*.*.*`.
+Il `Dockerfile` costruisce l'applicazione con Node.js 22 e la serve con nginx. Il workflow
+`docker-publish.yml` pubblica l'immagine come `taurus-frontend` a ogni tag `v*.*.*`.
+
+L'immagine non porta dentro la configurazione: all'avvio `docker-entrypoint.d/40-taurus-runtime-config.sh`
+scrive `assets/config.json` dalle variabili d'ambiente e `nginx.conf.template` diventa la
+configurazione del server. Lo stesso container serve l'applicazione e inoltra `/api` e `/auth` ai
+servizi interni, così che tutto stia su una sola origine pubblica: niente CORS e nessun indirizzo
+della rete interna nel bundle. Le intestazioni di sicurezza e la Content-Security-Policy stanno in
+`security-headers.conf`, incluso da ogni blocco che aggiunge intestazioni proprie.
+
+| Variabile | Cosa configura | Predefinito |
+| --- | --- | --- |
+| `TAURUS_API_BASE_URL` | indirizzo dell'API per il browser | `/api` |
+| `TAURUS_KEYCLOAK_BASE_URL` | indirizzo di Keycloak per il browser | `/auth` |
+| `TAURUS_KEYCLOAK_REALM` | realm | `taurus` |
+| `TAURUS_KEYCLOAK_CLIENT_ID` | client OIDC | `web_app` |
+| `TAURUS_VAPID_PUBLIC_KEY` | chiave pubblica delle notifiche push | `CHANGE_ME` |
+| `TAURUS_API_UPSTREAM` | indirizzo interno del backend | `http://backend:8080` |
+| `TAURUS_KEYCLOAK_UPSTREAM` | indirizzo interno di Keycloak | `http://keycloak:9080` |
+| `TAURUS_MAX_UPLOAD_SIZE` | limite del corpo delle richieste | `500m` |
+| `TAURUS_DNS_RESOLVER` | DNS che risolve gli inoltri | `127.0.0.11` |
+
+Il manifest di riferimento che la usa è [`deploy/compose.yml`](../deploy/compose.yml).

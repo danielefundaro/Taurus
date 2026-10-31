@@ -1,0 +1,116 @@
+# Configurazione del container che serve l'applicazione Angular.
+#
+# È un modello: l'immagine nginx sostituisce le variabili `TAURUS_*` all'avvio
+# (`/docker-entrypoint.d/20-envsubst-on-templates.sh`), quindi gli indirizzi interni di API e
+# Keycloak si configurano senza ricostruire l'immagine.
+#
+# L'applicazione è servita su una sola origine pubblica: `/api` e `/auth` sono inoltrati qui dentro,
+# così il browser parla con un'unica origine — niente CORS, una Content-Security-Policy semplice e
+# nessun indirizzo della rete interna dentro il bundle. TLS lo termina il reverse proxy dell'host,
+# che inoltra a questo container le intestazioni `X-Forwarded-*`.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+    access_log off;
+
+    server_tokens off;
+
+    include /etc/nginx/taurus-security-headers.conf;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json application/xml application/manifest+json image/svg+xml;
+
+    # Il caricamento di un PDF arriva fino al limite del backend (500 MB): senza questo valore
+    # nginx risponderebbe 413 prima di inoltrare la richiesta.
+    client_max_body_size ${TAURUS_MAX_UPLOAD_SIZE};
+    client_body_timeout 300s;
+
+    # Il DNS interno di Docker. Serve perché gli indirizzi degli inoltri stanno in una variabile:
+    # così nginx li risolve a ogni richiesta e non al caricamento della configurazione, e il
+    # container parte anche quando il backend o Keycloak non sono ancora in piedi — risponde 502
+    # finché non lo sono, invece di rifiutare l'avvio.
+    resolver ${TAURUS_DNS_RESOLVER} valid=30s ipv6=off;
+
+    location = /health {
+        include /etc/nginx/taurus-security-headers.conf;
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Il file della configurazione a runtime: lo scrive l'entrypoint e cambia a ogni deploy, quindi
+    # non va mai in cache, altrimenti un browser continuerebbe a usare gli indirizzi precedenti.
+    location = /assets/config.json {
+        include /etc/nginx/taurus-security-headers.conf;
+        try_files $uri =404;
+        add_header Cache-Control "no-store";
+    }
+
+    # I file con l'impronta nel nome non cambiano mai contenuto: si possono tenere per sempre.
+    location ~* "-[A-Z0-9]{8,}\.(?:js|css)$" {
+        include /etc/nginx/taurus-security-headers.conf;
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Il service worker e il suo manifesto decidono quando l'applicazione si aggiorna: una copia in
+    # cache li congelerebbe alla versione precedente.
+    location ~* ^/(ngsw-worker\.js|ngsw\.json|safety-worker\.js|worker-basic\.min\.js)$ {
+        include /etc/nginx/taurus-security-headers.conf;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache";
+    }
+
+    location /assets/ {
+        include /etc/nginx/taurus-security-headers.conf;
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=86400";
+    }
+
+    # L'API del backend, sotto la stessa origine. `proxy_request_buffering off` fa passare i PDF
+    # grandi mentre arrivano, invece di scriverli prima tutti su disco.
+    location /api/ {
+        # Con la variabile e senza percorso, nginx inoltra l'indirizzo della richiesta tale e quale:
+        # /api/... arriva al backend come /api/..., che è dove l'API vive.
+        set $taurus_api ${TAURUS_API_UPSTREAM};
+        proxy_pass $taurus_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    # Keycloak, servito sotto `/auth` con `KC_HTTP_RELATIVE_PATH=/auth`: le intestazioni inoltrate
+    # gli servono per costruire gli indirizzi pubblici delle redirezioni (`KC_PROXY_HEADERS`).
+    location /auth/ {
+        set $taurus_keycloak ${TAURUS_KEYCLOAK_UPSTREAM};
+        proxy_pass $taurus_keycloak;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+    }
+
+    # Gli indirizzi dell'applicazione sono gestiti dal router: ogni percorso sconosciuto torna
+    # all'index, che poi decide.
+    location / {
+        include /etc/nginx/taurus-security-headers.conf;
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+}
