@@ -1,0 +1,8 @@
+{
+  "themes": [
+    {
+      "name": "taurus-theme",
+      "types": ["login", "email"]
+    }
+  ]
+}

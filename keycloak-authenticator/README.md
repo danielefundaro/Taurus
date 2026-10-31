@@ -17,4 +17,6 @@ Configurazioni realm, client e credenziali non appartengono al codice del provid
 
 ## Temi
 
-I temi usati dal realm (`loginTheme` ed `emailTheme` = `taurus-theme`) sono in `taurus-be/src/main/docker/realm-config/taurus-theme`, montati da `keycloak.yml` in `/opt/keycloak/themes/taurus-theme`. La cartella `src/main/resources/themes/taurus` di questo modulo è una copia non allineata a quei temi: senza `META-INF/keycloak-themes.json` Keycloak non la carica dal JAR.
+Il tema usato dal realm (`loginTheme` ed `emailTheme` = `taurus-theme`) vive in questo modulo, sotto `src/main/resources/theme/taurus-theme`, e viaggia dentro il JAR del provider: `src/main/resources/META-INF/keycloak-themes.json` lo dichiara con i tipi `login` ed `email`, e Keycloak lo carica dall'archivio. La cartella deve chiamarsi `theme`, al singolare: è l'unica che Keycloak legge dentro un JAR, mentre `themes` è il percorso del file system dell'immagine.
+
+Non esiste nessuna copia montata: installando il JAR si installa anche il tema, e non c'è una seconda cartella da tenere allineata. `TenantRoleFlowIT` chiede la pagina di accesso del realm di prova e verifica che arrivi con le classi e il foglio di stile del tema, cioè che Keycloak lo abbia caricato dal JAR. I modelli di posta, invece, restano provati a mano.
