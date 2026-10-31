@@ -42,11 +42,11 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 
 | Componente | Tecnologia | Responsabilità | Porta locale | Stato persistente |
 | --- | --- | --- | --- | --- |
-| `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push | `4200` in sviluppo, `80` nel container | Nessuno; configurazione incorporata in build |
+| `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
 | `taurus-be` | Java 17, Spring Boot 3.3, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.6.4 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
-| RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti) | `5672`, console `15672` | Code e messaggi in transito |
+| RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |
 | `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
 | `keycloak-authenticator` | Java 17, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
 | `taurus-info` | Astro, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
@@ -92,7 +92,7 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 - pnpm 11 per `taurus-info`;
 - Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
 - Chrome/Chromium per i test Karma;
-- accesso a Internet verso `ftp.osuosl.org` per `npm start` e `npm run build`, che scaricano il SoundFont del lettore (circa 38 MB, verificato con SHA-256; `TAURUS_SKIP_SOUNDFONT=1` salta lo scaricamento quando il lettore non serve);
+- una copia del SoundFont del lettore per `npm start` e `npm run build` (circa 38 MB, verificata con SHA-256): da `TAURUS_SOUNDFONT_PATH`, da `TAURUS_SOUNDFONT_URL` o, in mancanza di entrambe, da `ftp.osuosl.org`, che richiede accesso a Internet; `TAURUS_SKIP_SOUNDFONT=1` salta il passaggio quando il lettore non serve;
 - facoltativo: Python 3.12 per i test di `taurus-omr` fuori da Docker;
 - facoltativo: Tesseract OCR con dati `ita+eng`.
 
@@ -132,6 +132,8 @@ Gli accessi amministrativi devono essere personali, sottoposti a MFA e registrat
 - Conservare una matrice delle configurazioni per ambiente senza valori segreti.
 - Ricostruire `taurus-fe` e `taurus-info` quando cambia una variabile incorporata durante la build.
 - Montare `application.base-path` su storage persistente e sottoposto a backup.
+
+I valori dell'installazione stanno in `deploy/.env`, che non è versionato: il modello con tutte le variabili, obbligatorie e facoltative, è [`deploy/.env.example`](../deploy/.env.example), e il manifest che le usa è [`deploy/compose.yml`](../deploy/compose.yml). Le variabili senza valore predefinito fermano Compose prima dell'avvio, invece di lasciare partire lo stack a metà.
 
 Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. La baseline minima di produzione deve includere valori equivalenti ai seguenti:
 
@@ -178,25 +180,45 @@ Le altre proprietà dell'ascolto (dimensione dei caricamenti, tempi e concorrenz
 
 Le proprietà RabbitMQ standard Spring, per esempio `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`, devono essere impostate nell'ambiente distribuito. Le code applicative sono `upload.files` e `score.recognition`, l'exchange è `taurus.rabbitmq`. La coda `upload.files` ha due consumatori per replica, quello configurato e quello dell'annotazione sul worker: è atteso, e un messaggio resta comunque consegnato a uno solo. I messaggi di `score.recognition` sono JSON `{ tenant, jobId }`: la tabella dei job resta la fonte di verità e un messaggio perso viene ripubblicato dal recupero pianificato.
 
+Un messaggio che il consumatore rifiuta non torna in coda: `spring.rabbitmq.listener.simple.default-requeue-rejected` è `false`, le due code di lavoro dichiarano `x-dead-letter-exchange: taurus.dead-letter` con la propria `x-dead-letter-routing-key`, e il broker lo instrada una volta sola nella coda di scarto corrispondente — `upload.files.dead` e `score.recognition.dead`. La riconsegna infinita non servirebbe come nuovo tentativo, perché in entrambe le pipeline la tabella dei job è la fonte di verità e ha la sua ripresa pianificata (§11), mentre occuperebbe un consumatore senza far avanzare nulla. Le code di scarto sono materiale di diagnosi: vanno osservate (§10.2) e svuotate a mano dopo l'analisi, non riversate nella coda di lavoro.
+
 ### 4.2 Frontend Angular
 
-La configurazione è in:
+Il frontend si configura all'avvio del container, non alla build: l'entrypoint scrive
+`assets/config.json` dalle variabili d'ambiente e l'applicazione lo legge prima di partire
+(`taurus-fe/src/runtime-config.ts`). La stessa immagine serve quindi installazioni diverse, e nel
+bundle non finisce nessun indirizzo della rete interna.
 
-- `taurus-fe/src/environments/environment.ts` per sviluppo;
-- `taurus-fe/src/environments/environment.prod.ts` per produzione.
+| Variabile del container | Cosa configura | Predefinito |
+| --- | --- | --- |
+| `TAURUS_API_BASE_URL` | Indirizzo dell'API per il browser | `/api` |
+| `TAURUS_KEYCLOAK_BASE_URL` | Indirizzo di Keycloak per il browser | `/auth` |
+| `TAURUS_KEYCLOAK_REALM` | Realm | `taurus` |
+| `TAURUS_KEYCLOAK_CLIENT_ID` | Client OIDC, lo stesso del realm e del backend | `web_app` |
+| `TAURUS_VAPID_PUBLIC_KEY` | Chiave pubblica delle notifiche push | `CHANGE_ME`, che le disattiva |
+| `TAURUS_API_UPSTREAM` | Indirizzo interno del backend a cui inoltrare `/api` | `http://backend:8080` |
+| `TAURUS_KEYCLOAK_UPSTREAM` | Indirizzo interno di Keycloak a cui inoltrare `/auth` | `http://keycloak:9080` |
+| `TAURUS_MAX_UPLOAD_SIZE` | Limite del corpo delle richieste, da tenere con quello del backend | `500m` |
+| `TAURUS_DNS_RESOLVER` | DNS che risolve gli indirizzi degli inoltri a ogni richiesta | `127.0.0.11`, il DNS di Docker |
 
-Prima della build di produzione verificare:
+Il container serve l'applicazione e inoltra `/api` e `/auth`: una sola origine pubblica, quindi
+niente CORS e nessun contenuto misto. I valori compilati in `environment.prod.ts` sono solo il
+ripiego di quel file — `/api` e `/auth` sulla stessa origine — e non contengono più nomi della rete
+interna né il client `web-app`, che non esisteva nel realm.
 
-- `baseUrl` sia un URL HTTPS raggiungibile **dal browser**, non un hostname solo Docker;
-- `keycloak.baseurl` sia l'URL HTTPS pubblico di Keycloak;
-- realm e client ID coincidano esattamente con il realm importato;
+Da verificare prima del rilascio:
+
+- realm e client ID coincidano con il realm importato;
 - la chiave VAPID pubblica corrisponda alla privata del backend;
 - redirect URI, web origin e post-logout URI siano autorizzati in Keycloak;
-- il service worker possa essere servito via HTTPS.
+- il service worker sia servito via HTTPS, cioè il reverse proxy termini TLS.
 
-La build (`npm run build` e il `Dockerfile` del frontend) scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta SHA-256: l'ambiente di build deve raggiungere quell'indirizzo, altrimenti la build fallisce. Verovio e il SoundFont sono serviti come asset statici e messi in cache dal service worker al primo ascolto, non precaricati.
-
-Stato attuale da correggere prima della produzione: `environment.prod.ts` usa `http://backend:8080/api`, `http://keycloak:8081` e client `web-app`, mentre lo sviluppo e il backend usano il client `web_app`. Questi valori non costituiscono una configurazione di produzione valida per un browser esterno.
+La build (`npm run build` e il `Dockerfile` del frontend) procura il SoundFont del lettore e ne
+verifica l'impronta SHA-256. Le fonti, in ordine: `TAURUS_SOUNDFONT_PATH` (una copia già sulla
+macchina), `TAURUS_SOUNDFONT_URL` (la copia controllata dell'installazione, per esempio un allegato
+di release) e infine il mirror pubblico `ftp.osuosl.org`. Qualunque sia la fonte, una copia con
+un'impronta diversa viene rifiutata. Verovio e il SoundFont sono serviti come asset statici e messi
+in cache dal service worker al primo ascolto, non precaricati.
 
 ### 4.3 Sito informativo
 
@@ -483,7 +505,11 @@ Set-Location taurus-info
 pnpm install --frozen-lockfile
 pnpm check
 pnpm build
+pnpm test
+pnpm test:image
 ```
+
+`pnpm test` controlla il sito costruito — file attesi, metadati, accessibilità strutturale, collegamenti, sitemap e intestazioni della configurazione nginx — e `pnpm test:image` costruisce l'immagine, la avvia e la interroga: salute, home con le intestazioni di sicurezza davvero servite, pagina di errore e `Server` senza versione. Senza Docker lo smoke si salta.
 
 Per una modifica PrimeNG consultare solo le sezioni pertinenti di `docs/llms-full.md`. Per una migration tenant eseguire anche:
 
@@ -543,7 +569,9 @@ Non procedere se uno dei seguenti punti è vero:
 - le immagini non sono fissate per digest/versione;
 - manca una strategia per eseguire una sola volta le migration in presenza di più repliche.
 
-Il file `taurus-be/src/main/docker/app.yml` non è una baseline di produzione: usa riferimenti JHipster obsoleti, configura R2DBC mentre l'applicazione corrente usa JDBC/JPA, non include RabbitMQ né il servizio OMR e non monta lo storage media. Va sostituito da un manifest validato. Per il servizio OMR, `omr.yml` indica le restrizioni da riportare: rete interna senza porte pubblicate, file system in sola lettura, `/tmp` in memoria, nessuna capability, limiti di CPU e memoria.
+Il manifest di riferimento è [`deploy/compose.yml`](../deploy/compose.yml), con il suo [README](../deploy/README.md): stack completo su un host singolo, una sola porta pubblicata e legata al loopback, dati su volumi, servizio OMR con le restrizioni di `omr.yml` (rete interna senza porte pubblicate, file system in sola lettura, `/tmp` in memoria, nessuna capability, limiti di CPU e memoria) e Keycloak in modalità produzione. `scripts/ops/validate-deploy-manifest.sh` lo verifica a ogni esecuzione della CI. Il vecchio `app.yml`, erede di JHipster e mai valido per la produzione, è stato rimosso.
+
+Resta aperto il gate che nessun file può chiudere: il manifest non è ancora stato eseguito su un host di produzione. Finché non lo è, va trattato come riferimento da validare, non come configurazione collaudata.
 
 ### 8.2 Sequenza standard
 
@@ -561,6 +589,10 @@ Il file `taurus-be/src/main/docker/app.yml` non è una baseline di produzione: u
 12. Eseguire gli smoke test.
 13. Osservare metriche e log per almeno una finestra operativa concordata.
 14. Chiudere la change riportando esito, anomalie e versione effettiva.
+
+I comandi della sequenza, per un'installazione con il manifest di riferimento, stanno nel [README del deploy](../deploy/README.md): primo insediamento, import del realm, aggiornamento.
+
+Una volta sola, alla prima release che porta le code di scarto: `upload.files` e `score.recognition` cambiano argomenti e RabbitMQ non riapre una coda esistente con argomenti diversi, quindi il backend si fermerebbe all'avvio con `PRECONDITION_FAILED`. Con il backend fermo e le code vuote (ready e unacked a zero sulla console, o `rabbitmqctl list_queues name messages messages_unacknowledged`), cancellarle prima del punto 9 con `rabbitmqctl delete_queue upload.files` e `rabbitmqctl delete_queue score.recognition`; il backend le ricrea all'avvio con gli argomenti nuovi. Se un messaggio è ancora in coda non è una perdita di lavoro: il job resta nel database e la ripresa pianificata lo chiude in errore o lo ripubblica.
 
 ### 8.3 Verifica migration tenant
 
@@ -582,6 +614,19 @@ Condizione di successo:
 Non modificare manualmente `databasechangelog` o `databasechangeloglock` senza diagnosi e approvazione. Un lock può indicare una migration ancora in corso o interrotta.
 
 ### 8.4 Smoke test post-deploy
+
+La parte automatizzabile è in `scripts/ops/smoke-test.sh`, che non scrive nulla e si esegue
+subito dopo il deploy:
+
+```bash
+TAURUS_MANAGEMENT_URL=http://127.0.0.1:8080 scripts/ops/smoke-test.sh https://taurus.esempio.it
+```
+
+Controlla l'applicazione e il suo instradamento, la configurazione servita al browser (che non deve
+contenere indirizzi di sviluppo), le intestazioni di sicurezza, i metadati del realm con il suo
+issuer pubblico, il rifiuto di una richiesta API senza token e il fatto che gli endpoint di gestione
+non siano raggiungibili dall'origine pubblica. Il resto dell'elenco resta a mano, perché richiede
+un'identità vera e dati di collaudo:
 
 - [ ] `GET /management/health` restituisce `200/UP`.
 - [ ] `GET /management/info` risponde e identifica la build prevista.
@@ -648,7 +693,7 @@ Un restore del solo database può lasciare record che puntano a file assenti o f
 | `/management/liquibase` | Changeset | Amministrativo |
 | `/management/threaddump` | Diagnosi thread | Amministrativo e sensibile |
 
-Il repository espone anche `env`, `configprops` e `logfile` nell'Actuator. In produzione limitarli alla rete amministrativa e verificare la sanitizzazione, perché possono rivelare configurazione sensibile.
+Nel profilo `prod` l'Actuator espone solo `health`, `info` e `prometheus`: `env`, `configprops`, `loggers`, `logfile`, `threaddump`, `jhimetrics` e `liquibase` restano disponibili in sviluppo e fuori dalla produzione, dove raccontano configurazione e segreti a chi li raggiunge. Le due righe che restano — `env` e `configprops` — sono comunque configurate per non stampare i valori. `/management` non è inoltrato dal container del frontend, quindi dall'origine pubblica risponde `404`: le probe e Prometheus lo raggiungono dalla rete interna. Lo smoke test di §8.4 verifica entrambe le cose.
 
 ### 10.2 Segnali minimi e allarmi
 
@@ -660,6 +705,7 @@ Definire soglie specifiche per ambiente e almeno i seguenti alert:
 - connessioni o storage PostgreSQL prossimi al limite;
 - spazio/inode del filesystem media;
 - backlog e messaggi non confermati sulle code `upload.files` e `score.recognition`;
+- messaggi nelle code di scarto `upload.files.dead` e `score.recognition.dead`: ogni messaggio è un lavoro che il consumatore ha rifiutato e che nessuno riprenderà dalla coda, da analizzare e svuotare a mano;
 - riconoscimenti terminati con errore (`taurus_score_recognition_jobs_total` con `outcome` diverso da `done`) e servizio OMR non `UP`;
 - invii falliti dei codici e dei link di firma (`taurus_signature_mail_total` con `outcome` diverso da `sent`, `taurus_signature_links_total{outcome="mailFailed"}`) e catene delle prove non coerenti (`signature_chain_inconsistent` nel log);
 - firme CieSign rifiutate per certificato non attendibile (`taurus_signature_ciesign_total{outcome="untrustedCertificate"}`) o accettate senza controllo di revoca (`outcome="acceptedRevocationUnavailable"`) in crescita costante: certificati della CIE da aggiornare o CRL non raggiungibile;
@@ -688,7 +734,24 @@ Il rendering gira su un pool dedicato, fuori da ogni transazione, con il limite 
 
 ### 10.5 Log
 
-Il profilo `prod` usa livello `INFO`; i log non sono JSON per impostazione predefinita e Logstash è disabilitato. La piattaforma di produzione deve acquisire `stdout/stderr`, aggiungere timestamp e identità del pod/container e applicare retention controllata.
+Il profilo `prod` usa livello `INFO` e scrive una riga JSON per evento su `stdout`
+(`jhipster.logging.use-json-format`), con Logstash disabilitato. Ogni riga porta i campi del
+contesto, che sono quelli con cui si ricostruisce un guasto:
+
+| Campo | Da dove viene | A cosa serve |
+| --- | --- | --- |
+| `requestId` | `RequestCorrelationFilter`, dall'intestazione `X-Request-Id` del proxy o generato | Collega le righe della stessa richiesta, anche fra repliche e thread diversi; torna al chiamante nella stessa intestazione |
+| `tenant` | `TenantContextInterceptor`, dal token | Dice di quale associazione è il guasto |
+| `app_name`, `app_port` | `LoggingConfiguration` | Distinguono le istanze |
+
+Il reverse proxy dell'host inoltra `X-Request-Id` (l'esempio in `deploy/reverse-proxy.example.conf`
+lo fa): così la stessa richiesta ha lo stesso identificativo nei log del proxy e in quelli
+dell'applicazione, e la segnalazione di un utente — che quell'identificativo lo legge nella risposta
+— si ritrova nei log.
+
+L'utente non compare nei log: chi ha fatto cosa sta nelle tabelle di audit, dove il dato è protetto e
+cancellabile. La raccolta appartiene all'host, che deve acquisire `stdout/stderr`, aggiungere
+l'identità del container e applicare una retention dichiarata.
 
 Non registrare token, password, contenuto dei file, chiavi VAPID o dati personali completi. Un aumento temporaneo del livello log va annotato e ripristinato al termine della diagnosi.
 
@@ -893,7 +956,8 @@ Non bypassare OIDC e non distribuire client secret nel frontend.
 - confrontare stato e anzianità dei record `upload_job`: molti `TO_PROCESS` indicano in genere una coda o un consumer indisponibile, mentre `IN_PROGRESS` oltre soglia richiede la verifica del worker, delle risorse PDF e dello storage. Le stesse grandezze sono su `taurus.upload.jobs.pending`, `taurus.upload.jobs.oldest.age` e `taurus.upload.queue.messages`, che vale `-1` quando il broker non risponde;
 - un job fermo oltre `application.upload.stale-after` (trenta minuti) viene chiuso in `ERROR` dal recupero pianificato e l'utente lo vede con «Riprova»: i contatori sono `taurus.upload.jobs{operation="CLOSED_STALE"}` e `taurus.upload.failures{reason="STALE_WORKER"|"STALE_QUEUE"}`. Il contatore `LATE` segnala invece un'elaborazione conclusa su un job già chiuso, cioè una soglia troppo stretta: in quel caso le parti sono state create e un nuovo tentativo le duplicherebbe;
 - per un job in `ERROR`, conservare il file sorgente e usare il retry applicativo solo dopo aver escluso un consumer ancora attivo sullo stesso job;
-- non eliminare o requeue massivamente i messaggi senza valutarne l'idempotenza;
+- leggere `upload.files.dead`: i messaggi rifiutati finiscono lì, con il `jobId` nel corpo, e indicano un errore ripetibile del consumatore invece di una coda ferma;
+- non eliminare o requeue massivamente i messaggi senza valutarne l'idempotenza; dalla coda di scarto si riparte dal job nel database, non rimettendo il messaggio nella coda di lavoro;
 - sospendere nuovi upload se il backlog continua a crescere.
 
 Per la coda `score.recognition` seguire il §14.9.
@@ -1062,25 +1126,18 @@ Prima del failback impedire split brain e decidere quale sito è la fonte autore
 
 ## 18. Gap noti e piano di completamento produzione
 
-I seguenti punti emergono direttamente dal repository e devono diventare attività tracciate:
+I seguenti punti emergono direttamente dal repository e devono diventare attività tracciate.
+
+Chiusi il 2026-10-30 con il manifest di produzione e quello che gli sta intorno: manifest completo con reti, volumi, probe, limiti e segreti fuori dal repository; volume dei dati di PostgreSQL; configurazione del frontend a runtime, che toglie gli indirizzi interni dal bundle; client OIDC uniformato su `web_app`; Keycloak in modalità produzione con hostname, proxy e database; `app.yml` rimosso; pipeline che pubblica anche l'immagine del sito informativo e il JAR del provider, firmati e con la provenienza attestata; log in JSON con `requestId` e `tenant`; Actuator ristretto a `health`, `info` e `prometheus`; RabbitMQ di sviluppo sul loopback; smoke test non distruttivo (`scripts/ops/smoke-test.sh`); servizio OMR nel manifest con le sue restrizioni; SoundFont procurabile da una copia controllata.
 
 | Priorità | Gap | Azione richiesta |
 | --- | --- | --- |
-| Bloccante | Nessun manifest di produzione validato | Creare deployment/orchestrazione con reti, secret, probe, risorse, volumi e rolling strategy |
-| Bloccante | PostgreSQL compose senza volume dati attivo | Definire storage persistente e backup; mantenere il compose attuale solo per dev effimero |
-| Bloccante | `environment.prod.ts` non utilizzabile da browser esterno | Introdurre valori pubblici corretti o configurazione runtime |
-| Bloccante | Client OIDC `web-app`/`web_app` incoerente | Uniformare realm, FE e BE |
-| Bloccante | Keycloak avviato con `start-dev` | Creare configurazione production mode con hostname, proxy, TLS e tuning DB |
-| Alta | `app.yml` obsoleto/incompleto | Non usarlo; sostituirlo e aggiungere RabbitMQ/storage/JDBC corretti |
-| Alta | Pipeline non pubblica info/provider | Estendere CI/CD, firma e provenienza artefatti |
-| Alta | Scheduler multi-replica non governati globalmente | Validare locking/idempotenza o separare worker scheduler |
-| Alta | Nessun RPO/RTO/retention approvato; la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh` ma non programmata | Programmare lo script, estendere la prova a Keycloak e allo storage media, far approvare RPO, RTO e retention con i tempi misurati |
-| Media | Logging prod non strutturato | Definire formato, correlazione, raccolta e retention |
-| Media | Actuator espone endpoint sensibili | Restringere rete e autorizzazioni, verificare sanitizzazione |
-| Media | Compose RabbitMQ espone porte su tutte le interfacce | Limitare al loopback in dev e usare rete privata/TLS/credenziali in prod |
-| Media | Nessuna procedura automatica di smoke test | Creare test sintetici non distruttivi per release |
-| Media | Servizio OMR assente da ogni manifest di produzione | Aggiungerlo su rete interna con le restrizioni di `omr.yml`, chiave dal secret manager e immagine per digest |
-| Media | Build del frontend dipendente da `ftp.osuosl.org` per il SoundFont | Valutare una copia del file in un archivio controllato; l'impronta SHA-256 resta verificata |
+| Bloccante | Il manifest di produzione esiste ([`deploy/compose.yml`](../deploy/compose.yml)) ma non è mai stato eseguito su un host reale | Insediarlo su un server, registrare l'esito e promuoverlo da riferimento a configurazione collaudata |
+| Alta | Backup non programmati: la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh`, ma nessuno la esegue, e RPO, RTO e retention non sono approvati | Programmare backup e prova sull'host, estenderla a Keycloak e allo storage media, far approvare i tempi misurati |
+| Alta | Degli scheduler, hanno una presa in carico condizionata solo quelli di upload, onboarding, outbox delle notifiche, consegna push e promemoria eventi | Qualificare i restanti (ritenzione, pulizie, recuperi) per idempotenza o worker dedicato; finché non lo sono, il manifest avvia una replica sola del backend |
+| Media | La copia controllata del SoundFont non è ancora pubblicata: la build usa il mirror pubblico se non le viene indicata | Pubblicare il file come allegato di una release e impostare `TAURUS_SOUNDFONT_URL` nella pipeline |
+| Media | Il carattere Lato arriva da `fonts.cdnfonts.com`: ogni visitatore fa una richiesta a un dominio esterno | Servire il carattere dall'applicazione e stringere la Content-Security-Policy |
+| Media | Raccolta dei log e allarmi non configurati sull'host | Acquisire `stdout/stderr`, dichiarare la retention e definire gli allarmi di §10.2 |
 
 ## 19. Scheda rapida di change
 
@@ -1123,8 +1180,12 @@ Note/link incidente:
 - `taurus-omr/README.md`: API, configurazione e strumenti di accuratezza del servizio OMR;
 - `taurus-be/src/main/resources/config/application*.yml`: configurazione backend;
 - `taurus-be/src/main/docker/*.yml`: stack esclusivamente locale; `omr.yml` documenta le restrizioni del servizio OMR;
+- `deploy/compose.yml` e `deploy/README.md`: manifest di produzione, con `.env.example` e l'esempio del reverse proxy dell'host;
+- `scripts/ops/smoke-test.sh`: smoke test non distruttivo di un'installazione;
+- `scripts/ops/validate-deploy-manifest.sh`: controllo del manifest, eseguito dalla CI;
+- `scripts/ops/restore-test.sh`: prova di ripristino del database;
 - `.github/workflows/verify.yml`: verifiche CI, compresa l'accuratezza dei motori OMR;
-- `.github/workflows/docker-publish.yml`: pubblicazione immagini BE/FE/OMR.
+- `.github/workflows/docker-publish.yml`: pubblicazione e firma delle immagini di backend, frontend, OMR e sito informativo, e del JAR del provider Keycloak come allegato della release.
 
 ## 21. Criterio di “servizio ripristinato”
 
