@@ -1,6 +1,7 @@
 <#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false socialProvidersSupported=false showAnotherWayIfPresent=true>
   <!DOCTYPE html>
-  <html lang="${locale!'en'}">
+  <#-- `locale` è un LocaleBean: senza `currentLanguageTag` l'attributo riceve il nome dell'oggetto, che non è una lingua valida. -->
+  <html lang="${(locale.currentLanguageTag)!'it'}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

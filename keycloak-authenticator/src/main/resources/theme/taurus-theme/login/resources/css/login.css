@@ -4,6 +4,22 @@
   padding: 0;
 }
 
+/*
+ * Verde del marchio. La tinta chiara regge soltanto le decorazioni: con il bianco sopra, e come
+ * testo su fondo bianco, si ferma a 2,27:1, sotto il 4,5:1 di WCAG 2.1 AA. La tinta scura arriva
+ * a 5,0:1 in entrambi i versi e vale per testo, pulsanti, bordi e controlli.
+ */
+:root {
+  /* Decorazione: nessun testo le sta sopra. */
+  --taurus-green: #22c55e;
+  /* Testo, pulsanti, bordi e controlli: 5,0:1 sul bianco e con il bianco sopra. */
+  --taurus-green-strong: #15803d;
+  /* Passaggio del puntatore e avvisi: 7,1:1 sul bianco. */
+  --taurus-green-dark: #166534;
+  /* Attivazione. */
+  --taurus-green-darker: #14532d;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -40,7 +56,7 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #10b981 0%, #22c55e 60%, #10b981 100%);
+  background: linear-gradient(90deg, #10b981 0%, var(--taurus-green) 60%, #10b981 100%);
 }
 
 /* ─── Logo ─────────────────────────────────────────────────── */
@@ -92,7 +108,7 @@ body {
 
 .taurus-alert-success {
   background: #f0fdf4;
-  color: #16a34a;
+  color: var(--taurus-green-dark);
   border-color: #bbf7d0;
 }
 
@@ -140,7 +156,7 @@ body {
 }
 
 .taurus-input:focus {
-  border-color: #22c55e;
+  border-color: var(--taurus-green-strong);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
 }
 
@@ -231,26 +247,26 @@ body {
   width: 15px;
   height: 15px;
   cursor: pointer;
-  accent-color: #22c55e;
+  accent-color: var(--taurus-green-strong);
 }
 
 .taurus-forgot-link {
   font-size: 0.875rem;
-  color: #22c55e;
+  color: var(--taurus-green-strong);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.15s;
 }
 
 .taurus-forgot-link:hover {
-  color: #16a34a;
+  color: var(--taurus-green-dark);
 }
 
 /* ─── Submit button ──────────────────────────────────────────── */
 .taurus-btn-primary {
   width: 100%;
   padding: 12px 16px;
-  background: #22c55e;
+  background: var(--taurus-green-strong);
   color: #ffffff;
   border: none;
   border-radius: 10px;
@@ -263,12 +279,12 @@ body {
 }
 
 .taurus-btn-primary:hover {
-  background: #16a34a;
+  background: var(--taurus-green-dark);
 }
 
 .taurus-btn-primary:active {
   transform: scale(0.99);
-  background: #15803d;
+  background: var(--taurus-green-darker);
 }
 
 .taurus-btn-primary:disabled {
@@ -288,14 +304,14 @@ body {
 }
 
 .taurus-register-row a {
-  color: #22c55e;
+  color: var(--taurus-green-strong);
   text-decoration: none;
   font-weight: 500;
   margin-left: 3px;
 }
 
 .taurus-register-row a:hover {
-  color: #16a34a;
+  color: var(--taurus-green-dark);
   text-decoration: underline;
 }
 
@@ -350,7 +366,7 @@ body {
 }
 
 .taurus-social-btn:hover {
-  border-color: #22c55e;
+  border-color: var(--taurus-green-strong);
   background: #f0fdf4;
 }
 
@@ -373,7 +389,7 @@ select.taurus-input {
 }
 
 .taurus-back-link:hover {
-  color: #22c55e;
+  color: var(--taurus-green-strong);
 }
 
 .taurus-reset-info {
@@ -405,7 +421,7 @@ select.taurus-input {
   top: 1px;
   width: 22px;
   height: 22px;
-  background: #22c55e;
+  background: var(--taurus-green-strong);
   color: #fff;
   border-radius: 50%;
   font-size: 0.75rem;
@@ -442,7 +458,7 @@ select.taurus-input {
   content: '•';
   position: absolute;
   left: 0;
-  color: #22c55e;
+  color: var(--taurus-green-strong);
   font-weight: 700;
 }
 
@@ -466,7 +482,7 @@ select.taurus-input {
 .taurus-totp-link {
   display: inline-block;
   font-size: 0.8125rem;
-  color: #22c55e;
+  color: var(--taurus-green-strong);
   text-decoration: none;
   font-weight: 500;
   margin-bottom: 4px;
@@ -474,7 +490,7 @@ select.taurus-input {
 }
 
 .taurus-totp-link:hover {
-  color: #16a34a;
+  color: var(--taurus-green-dark);
   text-decoration: underline;
 }
 
@@ -568,14 +584,14 @@ select.taurus-input {
 
 .taurus-otp-account a {
   margin-left: 6px;
-  color: #22c55e;
+  color: var(--taurus-green-strong);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.15s;
 }
 
 .taurus-otp-account a:hover {
-  color: #16a34a;
+  color: var(--taurus-green-dark);
   text-decoration: underline;
 }
 
@@ -609,7 +625,7 @@ select.taurus-input {
 }
 
 .taurus-otp-device:has(input:checked) {
-  border-color: #22c55e;
+  border-color: var(--taurus-green-strong);
   background: #f0fdf4;
 }
 
@@ -623,7 +639,7 @@ select.taurus-input {
   margin: 0;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: #22c55e;
+  accent-color: var(--taurus-green-strong);
 }
 
 .taurus-otp-device-icon {
@@ -634,7 +650,7 @@ select.taurus-input {
 }
 
 .taurus-otp-device:has(input:checked) .taurus-otp-device-icon {
-  color: #16a34a;
+  color: var(--taurus-green-dark);
 }
 
 .taurus-otp-input {
