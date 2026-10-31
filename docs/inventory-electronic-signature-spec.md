@@ -773,8 +773,7 @@ Esito della ricerca del 2026-10-20, da confermare da parte di un legale:
 
 ## Requisiti aperti
 
-- Firma con una CIE reale, con CieSign su Android e iOS e con il Software CIE su PC, e verifica in Acrobat di firma CieSign e sigillo (SIG-031–033) ([Verifica manuale](#verifica-manuale)).
-- Configurazione dei certificati reali delle CA della CIE come trust anchor in un'installazione ([CieSign](#ciesign)).
+- Verifica in Acrobat di firma CieSign e sigillo (SIG-033) ([Verifica manuale](#verifica-manuale)). La firma con una CIE reale è stata eseguita il 2026-10-31 con l'app CieSign e con il Software CIE, dall'applicazione e dalla pagina pubblica (SIG-031 e SIG-032).
 - Invio delle e-mail dal server SMTP di una casella reale dell'associazione ([Verifica manuale](#verifica-manuale)).
 - Stampa A4 del modello predefinito a confronto con il modello dell'associazione ([Verifica manuale](#verifica-manuale)).
 - Conferma da parte di un legale dei punti 1–3 ([Verifica legale](#verifica-legale)).

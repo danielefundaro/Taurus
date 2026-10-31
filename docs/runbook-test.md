@@ -393,12 +393,27 @@ La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni v
 Il manifest di `deploy/` si verifica senza avviare niente: lo script riempie le variabili
 obbligatorie con valori finti, chiede a Compose di risolvere il file e controlla le scelte che non
 devono regredire (una sola porta pubblicata e sul loopback, i dati su volumi, le restrizioni del
-servizio OMR, Keycloak fuori da `start-dev`, profilo `prod` del backend). Lo esegue anche il job
-`documentation` della CI, quindi un manifest che regredisce ferma la PR.
+servizio OMR, Keycloak fuori da `start-dev`, profilo `prod` del backend, bundle dei certificati
+della CIE montato in sola lettura). Lo esegue anche il job `documentation` della CI, quindi un
+manifest che regredisce ferma la PR.
 
 ```powershell
 bash scripts/ops/validate-deploy-manifest.sh
 ```
+
+I certificati delle CA della CIE hanno due controlli. Il primo legge il bundle versionato e lo
+confronta con le impronte attese, senza rete, ed è quello che gira a ogni modifica nello stesso job
+della CI; il secondo riscarica la lista di fiducia di AgID e verifica che la fonte dica ancora le
+stesse cose, e in CI gira una volta al mese (workflow `cie-trust-anchors`), perché dipende da un
+servizio esterno:
+
+```powershell
+node scripts/ops/fetch-cie-trust-anchors.mjs --verify-bundle
+node scripts/ops/fetch-cie-trust-anchors.mjs --check
+```
+
+Il secondo fallisce quando una CA della CIE è stata rinnovata: la procedura di aggiornamento è al
+punto 4.7 del runbook operativo.
 
 Su un'installazione avviata, lo smoke test non distruttivo di §8.4 del runbook operativo:
 
@@ -426,7 +441,7 @@ Serve Docker Compose v2 per il primo e solo `curl` per il secondo. Nessuno dei d
 | Ascolto, riconoscimento e correzione delle parti | Casi `PLY-*` interessati, `ScorePlaybackIT` e `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, prova nel browser anche a larghezza di telefono |
 | Servizio OMR, motori o modelli | `pytest`, build dell'immagine, test di accuratezza sul corpus e, se cambiano i motori, `PLY-018` |
 | Keycloak provider/theme | Build JAR, avvio Keycloak reale, login, selezione tenant/ruolo e rendering temi |
-| Configurazione/manifest | `scripts/ops/validate-deploy-manifest.sh`, poi deploy staging, probe, secret, rete, restart, rollback e `scripts/ops/smoke-test.sh` |
+| Configurazione/manifest | `scripts/ops/validate-deploy-manifest.sh` e `scripts/ops/fetch-cie-trust-anchors.mjs --verify-bundle`, poi deploy staging, probe, secret, rete, restart, rollback e `scripts/ops/smoke-test.sh` |
 | Sito informativo | Link, metadata, sitemap, 404, cache, CSP, responsive e health |
 | Dipendenze | Suite completa del modulo, vulnerability scan e compatibility smoke |
 
@@ -766,7 +781,7 @@ Riferimento: [Firma elettronica del foglio di affidamento e della presa visione]
 - `SIG-027 P0`: il socio minorenne riceve la notifica, vede l'emissione nel riquadro **Firme** con «Prendi visione» e la conferma con il proprio codice; dopo la firma per l'Associazione il link usato per firmare non si apre più («Collegamento non valido») e Mailpit riceve «Atto firmato» con un nuovo link da cui si scaricano documenti firmati e attestazione.
 - `SIG-028 P1`: dalla sezione **Firme** «Reinvia link» manda un nuovo link e quello precedente smette di funzionare; «Revoca link» lo disattiva; una consegna successiva invia al genitore il link della variazione; annullando il foglio il link della variazione non si apre più.
 - `SIG-029 P1`: un link scaduto senza firma (scadenza anticipata nel database) produce al passaggio orario dello scheduler una sola notifica «Link di firma scaduto» agli amministratori; più di 120 aperture in un'ora dello stesso link rispondono «Troppe richieste».
-- `SIG-030 P0`: all'avvio con i certificati della CIE il log elenca ogni certificato caricato (`signature_ciesign_trust_anchor`); senza `SIGNATURE_CIE_TRUST_ANCHORS` registra `signature_ciesign_not_configured` e la finestra di firma non propone CieSign; non la propone nemmeno a chi ha dichiarato di non avere un codice fiscale italiano, né all'amministratore che firma per l'Associazione o al socio minorenne.
+- `SIG-030 P0`: all'avvio con i certificati della CIE il log elenca ogni certificato caricato (`signature_ciesign_trust_anchor`, e `signature_ciesign_trust_anchor_expiring` o `_expired` per uno a meno di 60 giorni dalla scadenza); con il manifest di produzione i certificati sono già al loro posto, perché `deploy/cie/trust-anchors.pem` è versionato e montato; senza `SIGNATURE_CIE_TRUST_ANCHORS` registra `signature_ciesign_not_configured` e la finestra di firma non propone CieSign; non la propone nemmeno a chi ha dichiarato di non avere un codice fiscale italiano, né all'amministratore che firma per l'Associazione o al socio minorenne.
 - `SIG-031 P0`: il socio maggiorenne, con il codice fiscale della propria CIE, sceglie «CieSign» nella finestra di firma, scarica il PDF, lo firma con l'app CieSign su Android e lo carica: la firma è registrata senza codice e la finestra si riapre per le clausole; le clausole si firmano con CieSign su iOS, oppure con il codice. Nelle prove il metodo è «CieSign» con certificato, emittente ed esito della revoca.
 - `SIG-032 P0`: lo stesso con il Software CIE su PC per un genitore dalla pagina pubblica, dove CieSign è indicato come consigliato; a firme complete il documento scaricato contiene la firma CieSign e il sigillo.
 - `SIG-033 P0`: in Acrobat Reader il documento sigillato mostra due firme: quella CieSign, valida se le CA della CIE sono tra le identità attendibili, e il sigillo; entrambe risultano senza modifiche dopo la firma. L'attestazione riporta soggetto, emittente, numero di serie e codice fiscale del certificato e l'esito del controllo di revoca.
@@ -789,10 +804,16 @@ Esecuzione del 2026-10-20, commit di base `f6bddebd` con le modifiche non ancora
 | SIG-013…019 | `PASS` | sigillo, attestazione e fascicolo verificati con PDFBox e con le istruzioni dell'attestazione, senza Acrobat |
 | SIG-020 | `PASS` dopo correzione | senza materiale in carico i dati restavano fino al termine del periodo di grazia |
 | SIG-021…030 | `PASS` | SIG-029 con lo scheduler anticipato a ogni minuto |
-| SIG-031, SIG-032 | `PASS` con la CA di prova | da ripetere con una CIE reale, l'app CieSign e il Software CIE; la finestra di firma della pagina pubblica si bloccava ed è corretta |
+| SIG-031, SIG-032 | `PASS` | con la CA di prova il 2026-10-20, ripetuti con una CIE reale il 2026-10-31 (sotto); la finestra di firma della pagina pubblica si bloccava ed è corretta |
 | SIG-033 | `NOT RUN` in Acrobat | integrità della firma CieSign e del sigillo verificata con PDFBox; attestazione con i dati del certificato |
 | SIG-034 | `PASS` dopo correzione | il documento senza firma rispondeva `documentMismatch`, il file oltre 25 MB non era contato nella metrica |
 | SIG-035 | `PASS` | CRL non raggiungibile: firma accettata in 10,2 secondi con `UNAVAILABLE` |
+
+Ripetizione del 2026-10-31 con una Carta d'Identità Elettronica reale e il suo PIN, al posto della CA di
+prova: come trust anchor i certificati veri delle CA della CIE, dal bundle versionato (§4.7 del runbook
+operativo). SIG-031 e SIG-032 eseguiti con l'app CieSign e con il Software CIE, firmando sia
+dall'applicazione come socio sia dalla pagina pubblica come genitore: entrambi `PASS`. Dei casi di
+CieSign resta `NOT RUN` solo SIG-033, la verifica in Acrobat del documento sigillato.
 
 Le correzioni sono descritte nelle decisioni della fase 6 della [specifica](inventory-electronic-signature-spec.md). Fuori dalla firma elettronica resta un log `ERROR` di `KeycloakServiceImpl` che riporta l'e-mail di un utente alla sua creazione.
 

@@ -25,6 +25,10 @@ e le scelte che li rendono eseguibili.
   backend gira senza privilegi e lo storage dei media appartiene al suo utente.
 - **Versioni fissate.** Le immagini arrivano da `TAURUS_*_VERSION`; per fissare anche il digest si
   usa la forma `1.2.3@sha256:…`.
+- **Certificati della CIE versionati.** Il bundle delle CA della Carta d'Identità Elettronica sta
+  in [`cie/trust-anchors.pem`](cie/trust-anchors.pem) ed è montato in sola lettura: CieSign è
+  disponibile dal primo avvio e il backend non chiede niente a nessuno per saperlo. Il file si
+  rigenera dal repository con `node scripts/ops/fetch-cie-trust-anchors.mjs`, non a mano.
 - **Segreti fuori dal repository.** Tutto passa da `.env`, che non è versionato: nel repository vive
   solo [`.env.example`](.env.example).
 
@@ -39,7 +43,9 @@ e le scelte che li rendono eseguibili.
    cp /percorso/taurus-realm.json keycloak/realm/
    ```
 
-   Il JAR del provider porta con sé anche il tema `taurus-theme`, che non va montato a parte.
+   Il JAR del provider porta con sé anche il tema `taurus-theme`, che non va montato a parte. La
+   cartella `cie/` arriva dal repository con i certificati delle CA della CIE già dentro: non va
+   modificata a mano, e se manca il backend parte comunque, ma senza offrire CieSign.
 
 2. **Compilare `.env`.** Le variabili senza valore predefinito sono obbligatorie: Compose si ferma
    dicendo quale manca. Le chiavi VAPID si generano con `npx web-push generate-vapid-keys`.

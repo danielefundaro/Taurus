@@ -103,6 +103,26 @@ else
     fail "manca KC_PROXY_HEADERS: senza, le redirezioni dell'accesso tornano su indirizzi sbagliati"
 fi
 
+echo "== Certificati della CIE"
+# Il bundle delle CA della CIE deve arrivare al backend, e in sola lettura: e' la base della fiducia
+# di CieSign, non un file che il container possa riscrivere.
+mount="$(printf '%s' "$resolved" | grep -A3 'target: /etc/taurus/cie' || true)"
+if [ -n "$mount" ]; then
+    ok "il bundle delle CA della CIE e' montato nel backend"
+    if printf '%s' "$mount" | grep -q 'read_only: true'; then
+        ok "il montaggio del bundle e' in sola lettura"
+    else
+        fail "il bundle delle CA della CIE e' montato in scrittura: va montato con :ro"
+    fi
+else
+    fail "manca il montaggio del bundle delle CA della CIE: senza, CieSign non viene offerto"
+fi
+if printf '%s' "$resolved" | grep -q 'SIGNATURE_CIE_TRUST_ANCHORS: /etc/taurus/cie/'; then
+    ok "il backend cerca i certificati della CIE dentro il montaggio"
+else
+    fail "SIGNATURE_CIE_TRUST_ANCHORS non punta dentro /etc/taurus/cie"
+fi
+
 echo "== Profilo Spring"
 if printf '%s' "$resolved" | grep -q 'SPRING_PROFILES_ACTIVE: prod'; then
     ok "il backend gira con il profilo prod"
@@ -116,4 +136,4 @@ if [ "$problems" -gt 0 ]; then
     exit 1
 fi
 
-echo "Manifest di produzione valido: porte, volumi, restrizioni del servizio OMR, Keycloak e profilo."
+echo "Manifest di produzione valido: porte, volumi, restrizioni del servizio OMR, Keycloak, certificati della CIE e profilo."

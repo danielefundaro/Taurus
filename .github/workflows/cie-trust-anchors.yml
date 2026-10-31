@@ -1,0 +1,33 @@
+name: CIE trust anchors
+
+# Confronta il bundle versionato dei certificati delle CA della Carta d'Identità Elettronica con la
+# lista di fiducia pubblicata da AgID. Quando una CA della CIE viene rinnovata, le carte che emette
+# sono rifiutate (`signature.cieSign.untrustedCertificate`) finché il suo certificato non è tra i
+# trust anchor del backend: questo controllo lo fa sapere prima, invece di farlo scoprire al primo
+# socio che prova a firmare.
+#
+# Gira una volta al mese, non a ogni modifica: il controllo chiama un servizio esterno, e nelle
+# verifiche delle PR basta il confronto senza rete di `--verify-bundle` (workflow `Verify`).
+#
+# Quando fallisce, il rinnovo si registra con `node scripts/ops/fetch-cie-trust-anchors.mjs
+# --update-pins` e si fa rivedere: il bundle e le impronte attese vanno in un commit.
+on:
+  schedule:
+    - cron: '0 5 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trust-anchors:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compare the bundle with the Italian trusted list
+        run: node scripts/ops/fetch-cie-trust-anchors.mjs --check

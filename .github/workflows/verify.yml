@@ -91,6 +91,11 @@ jobs:
       # restrizioni del servizio OMR e Keycloak in modalita' produzione.
       - name: Validate the production manifest
         run: bash scripts/ops/validate-deploy-manifest.sh
+      # I certificati delle CA della CIE: che il bundle versionato sia leggibile e contenga
+      # esattamente le impronte attese. Senza rete, perche' ogni modifica non deve dipendere dalla
+      # disponibilita' di AgID; il confronto con la fonte lo fa il workflow `cie-trust-anchors`.
+      - name: Verify the CIE trust anchors
+        run: node scripts/ops/fetch-cie-trust-anchors.mjs --verify-bundle
 
   backend:
     needs: [changes, documentation]
