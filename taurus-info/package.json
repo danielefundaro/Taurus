@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "serve:dist": "node scripts/serve-static.mjs",
     "check": "astro check",
-    "test": "node scripts/check-build.mjs"
+    "test": "node scripts/check-build.mjs",
+    "test:image": "node scripts/smoke-image.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.6.0",

@@ -23,6 +23,8 @@ RUN pnpm build
 FROM nginx:1.29-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Fuori da conf.d: i file .conf di quella cartella sono caricati come configurazioni a sé.
+COPY security-headers.conf /etc/nginx/taurus-security-headers.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
