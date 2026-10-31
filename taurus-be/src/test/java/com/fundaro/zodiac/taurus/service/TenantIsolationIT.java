@@ -1,14 +1,24 @@
 package com.fundaro.zodiac.taurus.service;
 
 import com.fundaro.zodiac.taurus.IntegrationTest;
+import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
+import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
 import com.fundaro.zodiac.taurus.service.dto.AlbumsDTO;
+import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsDTO;
 import com.fundaro.zodiac.taurus.service.dto.CommonFieldsOpenSearchDTO;
 import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
 import com.fundaro.zodiac.taurus.service.dto.PreferencesDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountRequest;
+import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
+import com.fundaro.zodiac.taurus.domain.finance.FinancialAccountType;
+import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
+import com.fundaro.zodiac.taurus.service.impl.FinanceService;
+import com.fundaro.zodiac.taurus.service.impl.InventoryService;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
@@ -24,6 +34,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -78,10 +90,24 @@ class TenantIsolationIT {
     private InstrumentsService instrumentsService;
 
     @Autowired
+    private CalendarEventsService calendarEventsService;
+
+    @Autowired
+    private InventoryService inventoryService;
+
+    @Autowired
+    private FinanceService financeService;
+
+    @Autowired
     private PreferencesService preferencesService;
+
+    @Autowired
+    private TenantsRepository tenantsRepository;
 
     @BeforeEach
     void provisionBothTenants() {
+        registerTenant(ownerTenant);
+        registerTenant(intruderTenant);
         provisioningService.provision(ownerTenant);
         provisioningService.provision(intruderTenant);
     }
@@ -92,7 +118,34 @@ class TenantIsolationIT {
             provisioningService.dropSchema(ownerTenant);
         } finally {
             provisioningService.dropSchema(intruderTenant);
+            unregisterTenant(ownerTenant);
+            unregisterTenant(intruderTenant);
         }
+    }
+
+    /**
+     * Inventario ed economia chiedono un tenant registrato e attivo, con il modulo acceso:
+     * provisionare il solo schema vale per le risorse comuni, non per loro.
+     */
+    private void registerTenant(String code) {
+        Date now = new Date();
+        Tenants tenant = new Tenants();
+        tenant.setName(code);
+        tenant.setCode(code);
+        tenant.setActive(true);
+        tenant.setInventoryEnabled(true);
+        tenant.setFinanceEnabled(true);
+        tenant.setDeleted(false);
+        tenant.setInsertBy("test");
+        tenant.setInsertDate(now);
+        tenant.setEditBy("test");
+        tenant.setEditDate(now);
+        tenant.setEntityVersion(0L);
+        tenantsRepository.save(tenant);
+    }
+
+    private void unregisterTenant(String code) {
+        tenantsRepository.findByCodeAndDeletedFalse(code).ifPresent(tenantsRepository::delete);
     }
 
     /** Le risorse sotto controllo: nome, servizio e come si costruisce una riga minima valida. */
@@ -118,8 +171,104 @@ class TenantIsolationIT {
                 dto.setKey("isolation-probe");
                 dto.setValue("1");
                 return dto;
-            })
+            }),
+            new Resource<>("calendar events", port(calendarEventsService), () -> {
+                CalendarEventsDTO dto = new CalendarEventsDTO();
+                dto.setName("Concerto di primavera");
+                dto.setStartDate(new Date());
+                dto.setEndDate(new Date(System.currentTimeMillis() + 3_600_000));
+                return dto;
+            }),
+            new Resource<>("inventory items", inventoryItems(), () -> new InventoryItemRequest(
+                "INV-" + UUID.randomUUID(),
+                "Leggio",
+                null,
+                1,
+                BigDecimal.TEN,
+                "EUR",
+                InventoryCondition.GOOD,
+                null,
+                null,
+                null,
+                null
+            )),
+            new Resource<>("finance accounts", financeAccounts(), () -> new AccountRequest(
+                "Cassa " + UUID.randomUUID(),
+                null,
+                FinancialAccountType.CASH,
+                "EUR",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ))
         );
+    }
+
+    /** L'inventario non passa da {@code CommonService}: la porta la costruisce il test. */
+    private Crud<InventoryItemRequest> inventoryItems() {
+        return new Crud<>() {
+            @Override
+            public Long save(InventoryItemRequest request, AbstractAuthenticationToken token) {
+                return inventoryService.createItem(request, token).id();
+            }
+
+            @Override
+            public void update(Long id, InventoryItemRequest request, AbstractAuthenticationToken token) {
+                inventoryService.updateItem(id, request, token);
+            }
+
+            // L'assenza si legge dall'elenco: il findItem di un id estraneo segnerebbe la
+            // transazione come sola rollback, e il test non potrebbe più chiuderla.
+            @Override
+            public boolean exists(Long id, AbstractAuthenticationToken token) {
+                return inventoryService.findItems(null, Pageable.unpaged(), token).stream()
+                    .anyMatch(item -> id.equals(item.id()));
+            }
+
+            @Override
+            public void delete(Long id, AbstractAuthenticationToken token) {
+                inventoryService.deleteItem(id, token);
+            }
+
+            @Override
+            public long countAll(AbstractAuthenticationToken token) {
+                return inventoryService.findItems(null, Pageable.unpaged(), token).getTotalElements();
+            }
+        };
+    }
+
+    /** Lo stesso per l'economia, che ha le sue firme con il DTO della richiesta. */
+    private Crud<AccountRequest> financeAccounts() {
+        return new Crud<>() {
+            @Override
+            public Long save(AccountRequest request, AbstractAuthenticationToken token) {
+                return financeService.createAccount(request, token).id();
+            }
+
+            @Override
+            public void update(Long id, AccountRequest request, AbstractAuthenticationToken token) {
+                financeService.updateAccount(id, request, token);
+            }
+
+            @Override
+            public boolean exists(Long id, AbstractAuthenticationToken token) {
+                return financeService.findAccounts(true, token).stream()
+                    .anyMatch(account -> id.equals(account.id()));
+            }
+
+            @Override
+            public void delete(Long id, AbstractAuthenticationToken token) {
+                financeService.deleteAccount(id, token);
+            }
+
+            @Override
+            public long countAll(AbstractAuthenticationToken token) {
+                return financeService.findAccounts(true, token).size();
+            }
+        };
     }
 
     @ParameterizedTest(name = "{0} stays inside its tenant")
@@ -142,7 +291,8 @@ class TenantIsolationIT {
     void refusesToUpdateAResourceFromAnotherTenant(Resource<?> resource) {
         Long id = create(resource);
 
-        assertThatThrownBy(() -> updateFromIntruder(resource, id)).hasMessageContaining("Entity not found");
+        // Il messaggio dipende dal servizio: conta che l'aggiornamento sia rifiutato.
+        assertThatThrownBy(() -> updateFromIntruder(resource, id)).isInstanceOf(RuntimeException.class);
 
         assertOwnerStillHas(resource, id);
     }
@@ -158,7 +308,7 @@ class TenantIsolationIT {
                 resource.service().delete(id, authentication(intruderTenant));
             });
         } catch (RuntimeException expected) {
-            assertThat(expected).hasMessageContaining("Entity not found");
+            // Rifiutata: il servizio decide il messaggio, la riga resta del proprietario.
         }
 
         assertOwnerStillHas(resource, id);
