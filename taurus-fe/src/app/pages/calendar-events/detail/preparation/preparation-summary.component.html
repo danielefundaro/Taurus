@@ -11,16 +11,16 @@
                 <div class="h-2 rounded bg-primary" [style.width.%]="evaluation.completionPercent"></div>
             </div>
             <strong class="text-xl">{{ evaluation.completionPercent }}%</strong>
-            <span class="text-surface-500 ml-2">{{ evaluation.passedChecks }} di {{ evaluation.applicableChecks }}
+            <span class="text-muted-color ml-2">{{ evaluation.passedChecks }} di {{ evaluation.applicableChecks }}
                 verifiche completate</span>
             @if (countsText) {
-            <small class="block text-surface-500 mt-1">{{ countsText }}</small>
+            <small class="block text-muted-color mt-1">{{ countsText }}</small>
             }
         </div>
         <div class="flex flex-col items-start gap-3">
             @if (evaluation.closureStatus !== 'NOT_REQUIRED') {
             <div>
-                <small class="text-surface-500 block">Chiusura successiva</small><strong>{{ closureLabel }}</strong>
+                <small class="text-muted-color block">Chiusura successiva</small><strong>{{ closureLabel }}</strong>
             </div>
             }
             @if (issues.length) {
@@ -41,20 +41,20 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         @if (configuration.availabilityRequired && availability) {
         <div>
-            <small class="text-surface-500 block">Disponibili</small><strong>{{ availability.available }} / {{
-                availability.minimumRequired }}</strong><span class="block text-surface-500">{{ availability.missing }}
+            <small class="text-muted-color block">Disponibili</small><strong>{{ availability.available }} / {{
+                availability.minimumRequired }}</strong><span class="block text-muted-color">{{ availability.missing }}
                 risposte mancanti</span>
         </div>
         }
         @if (configuration.programRequired) {
         <div>
-            <small class="text-surface-500 block">Programma</small><strong>{{ programCount }} {{ programCount === 1 ?
+            <small class="text-muted-color block">Programma</small><strong>{{ programCount }} {{ programCount === 1 ?
                 'brano' : 'brani' }}</strong>
         </div>
         }
         @if (configuration.materialsRequired) {
         <div>
-            <small class="text-surface-500 block">Materiali</small><strong>{{ materialsCount }} pianificati</strong>
+            <small class="text-muted-color block">Materiali</small><strong>{{ materialsCount }} pianificati</strong>
         </div>
         }
     </div>
@@ -74,7 +74,7 @@
                                     [severity]="issueSeverity(view.issue.severity)" />
                                 <span>{{ view.issue.message }}</span>
                             </h4>
-                            <small class="text-surface-500">{{ areaLabels[view.issue.area] }}</small>
+                            <small class="text-muted-color">{{ areaLabels[view.issue.area] }}</small>
                         </div>
                         @if (view.link) {
                         <a class="text-sm font-medium text-primary" [routerLink]="view.link.commands"
@@ -95,7 +95,7 @@
                         </li>
                         }
                         @if (view.hiddenDetails) {
-                        <li class="text-surface-500">e altri {{ view.hiddenDetails }}</li>
+                        <li class="text-muted-color">e altri {{ view.hiddenDetails }}</li>
                         }
                     </ul>
                     }
@@ -103,7 +103,7 @@
                 }
             </ul>
             @if (hiddenIssues) {
-            <p class="text-sm text-surface-500 mt-2 mb-0">Sono mostrate le prime {{ issues.length }} di {{
+            <p class="text-sm text-muted-color mt-2 mb-0">Sono mostrate le prime {{ issues.length }} di {{
                 evaluation.issueCount }} criticità: risolvi le prime per vedere le successive.</p>
             }
         </div>

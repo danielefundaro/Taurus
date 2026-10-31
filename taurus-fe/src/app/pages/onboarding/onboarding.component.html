@@ -1,6 +1,6 @@
 <p-fluid>
     <app-page-header heading="Configurazione iniziale" subtitle="Importa in modo controllato i dati iniziali">
-        <div actions class="flex gap-2">
+        <div pageActions class="flex gap-2">
             <p-button label="Modello XLSX" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadXlsx()" />
             @if (job) {
                 <p-button label="Rapporto" icon="pi pi-file-excel" severity="secondary" [outlined]="true" (onClick)="downloadReport()" />

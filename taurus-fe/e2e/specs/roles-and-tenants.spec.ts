@@ -1,4 +1,4 @@
-import { environmentMissing, expect, signIn, signOut, test } from '../fixtures/session';
+import { environmentMissing, expect, goToSection, mainMenu, signIn, signOut, test } from '../fixtures/session';
 
 /**
  * Il giro minimo chiesto dal Runbook di test: ogni ruolo vede soltanto il proprio menu e due
@@ -12,14 +12,15 @@ test.describe('ruoli e tenant', () => {
         const [first] = environment;
         test.skip(!first.users.admin || !first.users.user, 'Servono un amministratore e un utente del primo tenant');
 
+        // Le voci si cercano nel menu: le stesse parole compaiono anche nelle schede della dashboard.
         await signIn(page, first.users.admin!, 'admin');
-        await expect(page.getByRole('link', { name: /utenti/i })).toBeVisible();
-        await expect(page.getByRole('link', { name: /tracce/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /utenti/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /tracce/i })).toBeVisible();
         await signOut(page);
 
         await signIn(page, first.users.user!, 'user');
-        await expect(page.getByRole('link', { name: /tracce/i })).toBeVisible();
-        await expect(page.getByRole('link', { name: /utenti/i })).toHaveCount(0);
+        await expect(mainMenu(page).getByRole('link', { name: /tracce/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /utenti/i })).toHaveCount(0);
     });
 
     test('il nome del tenant nella topbar è quello dell’utente che ha eseguito l’accesso', async ({ page, environment }) => {
@@ -40,9 +41,16 @@ test.describe('ruoli e tenant', () => {
         test.skip(!first.users.archivist || !second.users.admin, 'Serve un archivista nel primo tenant e un amministratore nel secondo');
 
         await signIn(page, first.users.archivist!, 'archivist');
-        await page.getByRole('link', { name: /tracce/i }).click();
-        const firstTrack = page.getByRole('link').filter({ hasNotText: /tracce/i }).first();
+        await goToSection(page, /tracce/i);
+        // La riga si sceglie dall'elenco: senza aspettare l'arrivo il clic cadrebbe sulla dashboard.
+        await page.waitForURL('**/tracks');
+        // I nomi delle tracce dipendono dall'ambiente: la prima riga si trova dal suo indirizzo, e
+        // fra i collegamenti della riga solo alcuni si vedono, perché il formato cambia con la larghezza.
+        const firstTrack = page.locator('a[href^="/tracks/"]:visible').first();
+        await expect(firstTrack).toBeVisible();
         await firstTrack.click();
+        // Il clic avvia una navigazione del router: l'indirizzo cambia dopo, non durante.
+        await page.waitForURL(/\/tracks\/\d+/);
         const trackUrl = new URL(page.url()).pathname;
         expect(trackUrl).toMatch(/\/tracks\//);
         await signOut(page);

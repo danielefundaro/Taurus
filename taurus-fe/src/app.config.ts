@@ -3,15 +3,22 @@ import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angul
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
+import { definePreset } from '@primeng/themes';
 import Aura from '@primeng/themes/aura';
 import { AutoRefreshTokenService, provideKeycloak, UserActivityService, withAutoRefreshToken } from 'keycloak-angular';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { PRIMENG_TRANSLATION_IT, publicSignaturePage } from './app/constants';
+import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME, PRIMENG_TRANSLATION_IT, publicSignaturePage } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
+
+/** Il preset di partenza: Aura con i colori del tema portati sopra la soglia di contrasto. */
+const taurusPreset = definePreset(Aura, {
+    semantic: { colorScheme: { light: ACCESSIBLE_LIGHT_SCHEME } },
+    components: { button: ACCESSIBLE_BUTTON }
+});
 
 export const appConfig: ApplicationConfig = {
     providers: [

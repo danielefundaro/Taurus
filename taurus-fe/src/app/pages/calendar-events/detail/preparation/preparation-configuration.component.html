@@ -40,9 +40,9 @@
             <small class="text-orange-600 dark:text-orange-300">Scelta richiesta: il profilo non propone un
                 valore.</small>
             } @else if (disabledReason(requirement.key)) {
-            <small class="text-surface-500">{{ disabledReason(requirement.key) }}</small>
+            <small class="text-muted-color">{{ disabledReason(requirement.key) }}</small>
             } @else if (explicit(requirement.key)) {
-            <small class="text-surface-500">Scelta tua, non proposta dal profilo.</small>
+            <small class="text-muted-color">Scelta tua, non proposta dal profilo.</small>
             }
         </fieldset>
         }
@@ -54,7 +54,7 @@
 
     <div class="flex flex-wrap items-center justify-end gap-3">
         @if (draft && undecided.length) {
-        <small class="text-surface-500" role="note">Da scegliere: {{ undecided.length }} {{ undecided.length === 1 ?
+        <small class="text-muted-color" role="note">Da scegliere: {{ undecided.length }} {{ undecided.length === 1 ?
             'area' : 'aree' }}.</small>
         }
         <p-button label="Salva preparazione" icon="pi pi-check" [loading]="saving" [disabled]="!canSave"

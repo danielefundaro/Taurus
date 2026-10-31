@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { Page, Response } from '@playwright/test';
-import { environmentMissing, expect, signIn, test } from '../fixtures/session';
+import { environmentMissing, expect, expectNoHorizontalOverflow, signIn, test } from '../fixtures/session';
 
 interface ScanResult {
     target: 'ADMIN_ITEM' | 'OWN_ASSIGNMENTS';
@@ -122,8 +122,7 @@ test.describe('scansione QR inventario', () => {
         await page.goto(`/inventory/scan/v1/${code}`);
         await expect(page.getByRole('button', { name: /apri scheda completa/i })).toBeVisible();
 
-        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        expect(overflow).toBeLessThanOrEqual(0);
+        await expectNoHorizontalOverflow(page, 320);
         for (const button of await page.locator('app-inventory-scan .scan-actions .p-button').all()) {
             expect((await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
         }

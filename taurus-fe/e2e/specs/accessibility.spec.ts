@@ -20,6 +20,8 @@ test.describe('accessibilità', () => {
 
     test('la pagina di accesso non ha violazioni automatiche', async ({ page }) => {
         await page.goto('/');
+        // L'applicazione rimanda a Keycloak: senza aspettare il modulo, axe analizza una pagina che se ne va.
+        await expect(page.getByLabel(/username|nome utente|utente/i).first()).toBeVisible();
 
         await scan(page);
     });
@@ -33,6 +35,10 @@ test.describe('accessibilità', () => {
 
         for (const section of ['/tracks', '/albums', '/calendar']) {
             await page.goto(section);
+            // Senza aspettare il titolo della sezione axe analizza una pagina che se ne sta andando,
+            // e il contesto di esecuzione muore sotto l'analisi.
+            await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+            await page.waitForLoadState('networkidle');
             await scan(page);
         }
     });

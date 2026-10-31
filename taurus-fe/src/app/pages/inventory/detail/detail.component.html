@@ -78,7 +78,7 @@
                         <span class="flex flex-col">
                             <span>{{ option.label }}</span>
                             @if (option.description) {
-                            <small class="text-surface-500">{{ option.description }}</small>
+                            <small class="text-muted-color">{{ option.description }}</small>
                             }
                         </span>
                     </ng-template>
@@ -230,7 +230,7 @@
                 <tr>
                     <td class="min-w-48">
                         <strong>{{ assignment.userName }} {{ assignment.userLastName }}</strong>
-                        <div class="text-xs text-surface-500 mt-1">Assegnato il {{ assignment.assignedAt | date:
+                        <div class="text-xs text-muted-color mt-1">Assegnato il {{ assignment.assignedAt | date:
                             'dd/MM/yyyy HH:mm' }}</div>
                         <p-tag [value]="assignmentStatusLabel(assignment.status)" severity="info" class="mt-2" />
                         @if (assignment.loanSheetNumber) {
@@ -243,7 +243,7 @@
                             [disabled]="!!assignment.loanSheetId"
                             [pTooltip]="assignment.loanSheetId ? 'Nel foglio di affidamento la quantità si modifica con una nuova consegna o una riconsegna' : undefined"
                             (ngModelChange)="markAssignmentDirty(assignment.id)" />
-                        <div class="text-xs text-surface-500 mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
+                        <div class="text-xs text-muted-color mt-1">Residuo: {{ assignment.outstandingQuantity }}</div>
                     </td>
                     <td class="min-w-56">
                         <textarea pTextarea rows="2" [(ngModel)]="assignmentEdits[assignment.id].description"
@@ -260,11 +260,11 @@
                                 appendTo="body" [disabled]="!!assignment.loanSheetId"
                                 (ngModelChange)="editExpiration(assignment.id)" />
                             @if (assignment.loanSheetId) {
-                            <small class="text-surface-500">Si modifica con un rinnovo.</small>
+                            <small class="text-muted-color">Si modifica con un rinnovo.</small>
                             } @else if (assignmentExpirationProblems[assignment.id]) {
                             <small class="text-red-500" role="alert">{{ assignmentExpirationProblems[assignment.id] }}</small>
                             } @else if (assignmentRanges[assignment.id]) {
-                            <small class="text-surface-500">{{ rangeHint(assignmentRanges[assignment.id]) }}</small>
+                            <small class="text-muted-color">{{ rangeHint(assignmentRanges[assignment.id]) }}</small>
                             }
                             <app-inventory-expiration-badge
                                 [expirationDate]="assignmentExpirationDateEdits[assignment.id]" [compact]="true" />
@@ -280,7 +280,7 @@
                         } @else {
                         <p-tag value="In attesa" severity="warn" />
                         }
-                        <div class="text-xs text-surface-500 mt-2">Revisione {{ assignment.revision }}</div>
+                        <div class="text-xs text-muted-color mt-2">Revisione {{ assignment.revision }}</div>
                     </td>
                     <td class="min-w-80">
                         @for (itemReturn of assignment.returns; track itemReturn.id) {
@@ -295,7 +295,7 @@
                                         (onClick)="confirmDeleteReturn(assignment, itemReturn)" />
                                 </div>
                             </div>
-                            <div class="text-xs text-surface-500 mt-1">
+                            <div class="text-xs text-muted-color mt-1">
                                 Richiesta {{ itemReturn.requestedAt | date: 'dd/MM/yyyy HH:mm' }}
                                 @if (itemReturn.completedAt) {
                                 · Completata {{ itemReturn.completedAt | date: 'dd/MM/yyyy HH:mm' }}
