@@ -15,10 +15,10 @@ Copertura presente nel repository (la data dell'ultima verifica è nel catalogo)
 - frontend: 68 specifiche Jasmine/Karma;
 - servizio OMR: 7 file pytest, con test sui motori finti e test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
 - provider Keycloak: 5 classi di test, fra cui `TaurusOtpTest`, `TaurusOtpResourceIT` e `TenantRoleFlowIT`, che attraversa il browser flow e legge i claim del mapper su un Keycloak reale;
-- sito informativo: type-check e build, senza suite funzionale dedicata;
+- sito informativo: type-check, build e `pnpm test`/`pnpm test:image`, che controllano il sito costruito e l'immagine nginx che lo serve;
 - E2E: suite Playwright in `taurus-fe/e2e`, con i profili desktop e mobile, che richiede un'istanza completa e due tenant di prova e non è ancora stata eseguita su un ambiente reale;
 - JaCoCo produce report backend, ma non applica una soglia minima;
-- la CI esegue test/build dei moduli modificati con le soglie di copertura, impone la presenza di Docker, conserva report e copertura come artefatti, verifica il sito costruito e, per `taurus-omr`, misura l'accuratezza sull'immagine appena costruita; il job `security` cerca segreti, vulnerabilità di dipendenze e configurazioni e difetti con analisi statica. Restano fuori dalla CI i test full-stack, le performance, la sicurezza dinamica e il restore.
+- la CI esegue test/build dei moduli modificati con le soglie di copertura, impone la presenza di Docker, conserva report e copertura come artefatti, verifica il sito costruito e l'immagine nginx che lo serve e, per `taurus-omr`, misura l'accuratezza sull'immagine appena costruita; il job `security` cerca segreti, vulnerabilità di dipendenze e configurazioni e difetti con analisi statica. Restano fuori dalla CI i test full-stack, le performance, la sicurezza dinamica e il restore.
 
 I gap indicati nella sezione 19 restano rischi espliciti finché non sono risolti o formalmente accettati.
 
@@ -241,13 +241,21 @@ Isolamento tenant per risorsa, CRUD e IDOR:
 .\mvnw.cmd "-Dtest=TenantIsolationIT" test
 ```
 
-`TenantIsolationIT` esegue lo stesso giro di prove su ogni risorsa elencata nel suo metodo `resources()`: la riga creata in un tenant non è leggibile, modificabile né cancellabile dall'altro, e resta intatta nel proprio. Una risorsa nuova si aggiunge a quell'elenco e porta con sé le tre prove, invece di richiedere un test scritto a mano. Alcune tabelle nascono con i dati di riferimento del tenant, quindi il controllo confronta la variazione del conteggio, non il totale.
+`TenantIsolationIT` esegue lo stesso giro di prove su ognuna delle sette risorse elencate nel suo metodo `resources()` — tracce, avvisi, preferenze, ultime ricerche, eventi del calendario, oggetti dell'inventario e conti dell'economia: la riga creata in un tenant non è leggibile, modificabile né cancellabile dall'altro, e resta intatta nel proprio. Una risorsa nuova si aggiunge a quell'elenco e porta con sé le tre prove, invece di richiedere un test scritto a mano. Alcune tabelle nascono con i dati di riferimento del tenant, quindi il controllo confronta la variazione del conteggio, non il totale.
 
 Concorrenza di più repliche sulla coda degli upload:
 
 ```powershell
 .\mvnw.cmd "-Dtest=UploadJobConcurrencyIT" test
 ```
+
+Concorrenza di più repliche sulle notifiche:
+
+```powershell
+.\mvnw.cmd "-Dit.test=NotificationConcurrencyIT" verify
+```
+
+`NotificationConcurrencyIT` qualifica le tre code che lavorano a tempo: l'outbox delle notifiche, la consegna push e i promemoria degli eventi. Sei worker simultanei prendono lo stesso lavoro e il test conta gli effetti: un avviso, una consegna push e una sola chiamata al servizio di invio. Gli scheduler reali sono spenti nel test, perché ruberebbero i lavori ai worker della prova. Serve Docker.
 
 Percorso completo di un caricamento PDF, con PostgreSQL e RabbitMQ reali:
 
@@ -279,13 +287,15 @@ Broker RabbitMQ reale:
 .\mvnw.cmd "-Dtest=RabbitMqBrokerIT" test
 ```
 
-`RabbitMqBrokerIT` avvia RabbitMQ con Testcontainers e verifica consegna, riconsegna dopo un errore di elaborazione, messaggio avvelenato e broker irraggiungibile. Il caso del messaggio avvelenato registra il comportamento attuale: senza una coda di scarto un messaggio che fallisce sempre viene riconsegnato senza fine, quindi la prova osserva le prime riconsegne e ferma il consumatore. Serve Docker.
+`RabbitMqBrokerIT` avvia RabbitMQ con Testcontainers e verifica consegna, riconsegna dopo un errore di elaborazione, messaggio avvelenato, argomenti delle code di lavoro e broker irraggiungibile. Il messaggio avvelenato non torna in coda: il consumatore lo rifiuta senza rimessa (`default-requeue-rejected: false`) e il broker lo instrada sull'exchange `taurus.dead-letter`, da cui la prova lo rilegge nella coda di scarto dopo un solo tentativo. Un'altra prova controlla che `upload.files` e `score.recognition` siano dichiarate con `x-dead-letter-exchange` e `x-dead-letter-routing-key`. Serve Docker.
 
 I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
 
-La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,74 e 0,58, appena sotto la copertura misurata il 2026-10-29 (75,0% linee e 59,1% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,74 e 0,58, appena sotto la copertura misurata il 2026-10-30 (75,2% linee e 59,3% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
+
+Il `@BeforeAll` degli integration test a tenant prepara uno schema, cioè esegue tutte le migration Liquibase sul container: su una macchina lenta costa circa un minuto. Il limite del `@BeforeAll` in `taurus-be/src/test/resources/junit-platform.properties` è perciò di 180 s, mentre i singoli test restano a 15 s: il 2026-10-30 il limite precedente di 60 s ha fatto fallire `PreferencesResourceIT` con `TimeoutException: provisionTenant() timed out` a provisioning quasi finito, mentre la classe successiva, con lo stesso schema, ci ha messo 56 s ed è passata. Un fallimento così non è un difetto del prodotto; se invece il provisioning supera i 180 s, la causa va cercata nelle migration o nell'host, non alzando di nuovo il limite.
 
 Gli integration test delle risorse le cui tabelle vivono solo negli schemi tenant — `NoticesResourceIT`, `PreferencesResourceIT`, `LastResearchResourceIT`, `TenantBootstrapIT` — estendono `TenantAwareResourceIT`, che provisiona lo schema, registra un tenant attivo in `public.tenant` e apre il `TenantContext` sul thread di test. L'autenticazione passa da `@WithMockTenantUser`: `@WithMockUser` non basta, perché tenant e utente vengono letti dai claim di un `JwtAuthenticationToken` e qualsiasi altra autenticazione viene ignorata o rifiutata.
 
@@ -319,9 +329,9 @@ Set-Location keycloak-authenticator
 .\mvnw.cmd clean verify
 ```
 
-`TenantRoleFlowIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo, il tema montato come fa il deploy e un realm il cui browser flow usa `tenant-role-selector-authenticator`. Attraversa la pagina di accesso e quella di scelta, poi scambia il codice e legge i claim del token: tenant e ruolo scelti da soli quando l'utente ne ha uno, pagina di scelta quando il tenant offre più ruoli con `role_choice` nel token, ruolo non posseduto rifiutato, scelta del tenant fra due, utente senza tenant respinto. Serve Docker.
+`TenantRoleFlowIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo — tema compreso — e un realm il cui browser flow usa `tenant-role-selector-authenticator`. Attraversa la pagina di accesso e quella di scelta, poi scambia il codice e legge i claim del token: tenant e ruolo scelti da soli quando l'utente ne ha uno, pagina di scelta quando il tenant offre più ruoli con `role_choice` nel token, ruolo non posseduto rifiutato, scelta del tenant fra due, utente senza tenant respinto. Serve Docker.
 
-Il tema non è caricato dal JAR: Keycloak lo trova solo come cartella, perché il JAR non dichiara i temi in `META-INF/keycloak-themes.json`. Il deploy monta `taurus-be/src/main/docker/realm-config/taurus-theme`, che è una copia di `keycloak-authenticator/src/main/resources/themes/taurus`: le due copie possono divergere. Il test monta la cartella del modulo con il nome usato dal deploy.
+Il tema `taurus-theme` viaggia dentro il JAR, che lo dichiara in `META-INF/keycloak-themes.json` e lo porta sotto `theme/taurus-theme` — `theme` al singolare, l'unica cartella che Keycloak legge da un archivio. Non c'è più nessuna copia montata da `taurus-be/src/main/docker`, quindi nessuna copia da cui divergere. `servesTheLoginPageWithTheThemeDeclaredInTheProvider` chiede la pagina di accesso del realm e verifica che arrivi con le classi e il foglio di stile del tema, cioè che Keycloak lo abbia caricato dal JAR. I modelli di posta restano provati a mano.
 
 La suite verifica metadata del factory e service descriptor e, per il provider `taurus-otp` della firma, l'autorizzazione e la verifica dei codici (`TaurusOtpTest`). Dopo il pacchetto `TaurusOtpResourceIT` avvia Keycloak 26.6.4 con Testcontainers, il JAR del modulo e un realm di prova, e verifica stato dell'app, codice valido accettato una sola volta, codice errato e chiamanti non autorizzati: serve Docker. La qualificazione richiede anche i casi reali della sezione 12.
 
@@ -360,7 +370,11 @@ docker run --rm -p 127.0.0.1:8088:80 taurus-info:test
 
 In un secondo terminale verificare `http://localhost:8088/health` e le pagine principali.
 
-I controlli automatici del sito costruito sono in `pnpm test` (`scripts/check-build.mjs`): file attesi, `lang`, titolo, descrizione, canonical e `og:image` di ogni pagina, collegamenti interni che esistono, corrispondenza con la sitemap e intestazioni di sicurezza dichiarate in `nginx.conf`. Lo smoke sull'immagine servita da nginx resta a mano.
+I controlli automatici del sito costruito sono in `pnpm test` (`scripts/check-build.mjs`): file attesi, `lang`, titolo, descrizione, canonical e `og:image` di ogni pagina, accessibilità strutturale, collegamenti interni che esistono, corrispondenza con la sitemap e intestazioni di sicurezza della configurazione nginx. L'accessibilità è quella che si legge nel file costruito: un solo `h1` per pagina e livelli di titolo senza salti, il punto di riferimento `<main>`, il testo alternativo delle immagini, il nome accessibile di collegamenti e pulsanti, l'etichetta dei campi e nessun `tabindex` positivo. Contrasto e tastiera restano al gate axe della suite end to end, che gira su un browser vero.
+
+`pnpm test:image` (`scripts/smoke-image.mjs`) costruisce l'immagine, la avvia su una porta libera del loopback e la interroga come farebbe un browser: punto di salute, home con `200`, tipo `text/html`, le intestazioni di sicurezza davvero servite e `<main>` nel corpo, pagina inesistente con `404` e intestazione `Server` senza versione. Senza Docker si salta, a meno di `TAURUS_REQUIRE_DOCKER=1`.
+
+Le intestazioni di sicurezza stanno in `security-headers.conf`, incluso dal blocco `server` e da ogni `location` di `nginx.conf`: nginx non eredita gli `add_header` del blocco esterno in un `location` che ne dichiara di propri, quindi senza quell'include le pagine uscirebbero senza nessuna intestazione. È il difetto che lo smoke ha trovato alla prima esecuzione; `check-build.mjs` ora controlla anche che l'include non manchi.
 
 ### 8.7 Sicurezza
 
@@ -373,6 +387,26 @@ docker run --rm -v "${PWD}:/src" returntocorp/semgrep:1.97.0 semgrep scan --conf
 ```
 
 La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni vivono in `.gitleaks.toml` e sono soltanto valori di prova, di sviluppo e di documentazione: una credenziale vera non va aggiunta lì, va ruotata.
+
+### 8.8 Manifest di produzione
+
+Il manifest di `deploy/` si verifica senza avviare niente: lo script riempie le variabili
+obbligatorie con valori finti, chiede a Compose di risolvere il file e controlla le scelte che non
+devono regredire (una sola porta pubblicata e sul loopback, i dati su volumi, le restrizioni del
+servizio OMR, Keycloak fuori da `start-dev`, profilo `prod` del backend). Lo esegue anche il job
+`documentation` della CI, quindi un manifest che regredisce ferma la PR.
+
+```powershell
+bash scripts/ops/validate-deploy-manifest.sh
+```
+
+Su un'installazione avviata, lo smoke test non distruttivo di §8.4 del runbook operativo:
+
+```powershell
+bash scripts/ops/smoke-test.sh https://taurus.esempio.it
+```
+
+Serve Docker Compose v2 per il primo e solo `curl` per il secondo. Nessuno dei due scrive dati.
 
 ## 9. Selezione delle suite per modifica
 
@@ -392,7 +426,7 @@ La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni v
 | Ascolto, riconoscimento e correzione delle parti | Casi `PLY-*` interessati, `ScorePlaybackIT` e `ScoreRecognitionIT`, specifiche di `score-player/` e `score-editor/`, prova nel browser anche a larghezza di telefono |
 | Servizio OMR, motori o modelli | `pytest`, build dell'immagine, test di accuratezza sul corpus e, se cambiano i motori, `PLY-018` |
 | Keycloak provider/theme | Build JAR, avvio Keycloak reale, login, selezione tenant/ruolo e rendering temi |
-| Configurazione/manifest | Deploy staging, probe, secret, rete, restart, rollback e smoke |
+| Configurazione/manifest | `scripts/ops/validate-deploy-manifest.sh`, poi deploy staging, probe, secret, rete, restart, rollback e `scripts/ops/smoke-test.sh` |
 | Sito informativo | Link, metadata, sitemap, 404, cache, CSP, responsive e health |
 | Dipendenze | Suite completa del modulo, vulnerability scan e compatibility smoke |
 
@@ -809,6 +843,8 @@ Integrare uno scanner automatico di accessibilità e conservare un controllo man
 - `INFO-008 P1`: responsive, accessibilità e performance Lighthouse.
 - `INFO-009 P1`: nessun segreto o URL interno nel bundle statico.
 
+Automatizzati nella verifica del modulo: `INFO-001` dalla build, `INFO-003`, `INFO-004` e l'accessibilità strutturale di `INFO-008` da `pnpm test`, `INFO-005` e la presenza delle intestazioni di `INFO-007` da `pnpm test:image`, che interroga l'immagine nginx. Restano a mano `INFO-002`, `INFO-006`, `INFO-009`, le prestazioni Lighthouse e la prova che nessuna risorsa sia bloccata dalla CSP a browser aperto.
+
 ## 17. Test non funzionali
 
 ### 17.1 Performance
@@ -854,7 +890,7 @@ Verificare almeno:
 
 `TrackPageImageIT` qualifica la modifica di una pagina sullo stesso terreno: quattro salvataggi simultanei sulla stessa immagine con la versione attesa della traccia producono un solo vincitore, gli altri non toccano la relazione, e lo stesso tentativo ripetuto con la stessa chiave riceve il replay della prima risposta senza scrivere un secondo asset. Lo stesso test copre l'isolamento fra tenant, i byte che si dichiarano immagine senza esserlo, una decompression bomb rifiutata dall'header e il limite di tempo del rendering, che risponde `503` senza lasciare asset o ricevute a metà.
 
-I promemoria push (`push_reminders`) e l'outbox delle notifiche non hanno una presa in carico equivalente: leggono le righe dovute e le marcano dopo l'invio, quindi due repliche attive insieme possono inviare due volte lo stesso promemoria. Finché non si introduce una presa in carico condizionata, un lock o un worker dedicato, quegli scheduler vanno eseguiti su una replica sola.
+Le tre code che lavorano a tempo hanno ciascuna la sua presa in carico condizionata, qualificata da `NotificationConcurrencyIT`: l'outbox marca l'evento con un `UPDATE` sullo stato, i promemoria degli eventi (`push_reminders`) leggono le righe dovute con `for update skip locked`, e la consegna push fa lo stesso sulla riga del job e sulle voci del riepilogo. `skip locked` lascia la riga a chi la tiene già, invece di far attendere l'altro worker per poi fargli fallire la presa in carico; la lettura senza `join fetch` evita che PostgreSQL rifiuti il `for update` e che Hibernate ricada su un lock per id e versione, che dopo la consegna dell'altro worker solleverebbe `StaleObjectStateException`. Più repliche con gli scheduler attivi sono quindi sicure su queste code.
 
 ### 17.3 Resilienza
 
@@ -958,17 +994,13 @@ Eseguire solo test sintetici non distruttivi:
 | Priorità | Gap attuale | Azione |
 | --- | --- | --- |
 | Bloccante | Suite E2E Playwright presente in `taurus-fe/e2e` ma mai eseguita su un'istanza reale | Calibrare i selettori alla prima esecuzione, registrarne l'esito ed estendere gli scenari oltre ruoli, tenant e accessibilità |
-| Alta | Promemoria push e outbox delle notifiche senza presa in carico condizionata: due repliche possono inviare due volte | Introdurre presa in carico, lock o worker dedicato, poi coprirla con un test come `UploadJobConcurrencyIT` |
-| Alta | Un messaggio avvelenato viene riconsegnato senza fine | Decidere coda di scarto o rifiuto senza rimessa in coda per `upload.files` e `score.recognition`, poi coprirla con un test |
 | Alta | Script di carico k6 presente ma mai eseguito su dati realistici; SLO non approvati | Preparare il dataset, eseguire i profili e far approvare p95/p99, throughput ed error rate |
 | Alta | Prova di ripristino automatizzabile ma non programmata; RPO/RTO reali non misurati | Programmare `scripts/ops/restore-test.sh` sull'host del database, estenderla a Keycloak e allo storage media, registrare i tempi |
-| Alta | Tema e modelli di posta del provider Keycloak provati solo a mano; il tema nel JAR non viene caricato | Coprire le pagine del tema e i modelli di posta; dichiarare i temi in `META-INF/keycloak-themes.json` e togliere la copia montata |
+| Media | Modelli di posta del provider Keycloak provati solo a mano | Coprire i modelli di posta: il tema sta nel JAR e la pagina di accesso è verificata da `TenantRoleFlowIT` |
 | Media | Analisi dinamica (DAST) assente | Aggiungere una scansione su staging, fuori dalla pipeline delle pull request |
 | Media | Soglie di copertura alla baseline misurata, lontane dall'obiettivo | Alzare `jacoco.*.minimum` e la baseline di `scripts/check-coverage.mjs` man mano, fino a 80% linee e 70% branch sul codice modificato |
-| Media | Isolamento tenant parametrizzato su quattro risorse | Aggiungere all'elenco `resources()` di `TenantIsolationIT` le altre risorse, inventario ed economia comprese |
 | Media | Specifiche frontend ancora limitate rispetto a pagine e dialoghi | Estendere componenti, form, pagine e casi errore/ruolo, usando la copertura come guida |
 | Media | Accuratezza OMR misurata su un corpus scritto per il test | Aggiungere al corpus i casi difficili trovati nelle parti reali di `PLY-018` |
-| Media | Sito informativo: file, metadati, collegamenti, sitemap e intestazioni verificati; accessibilità e container no | Aggiungere un controllo di accessibilità delle pagine e uno smoke sull'immagine servita da nginx |
 | Media | Matrice browser definita (desktop, mobile, tablet, Firefox, WebKit) ma eseguita solo alla calibrazione | Eseguire `npm run e2e:matrix` nei cicli di release e registrarne l'esito |
 | Media | Processo flaky definito, storico negli artefatti della CI, nessuna raccolta automatica | Automatizzare il confronto fra esecuzioni se i casi crescono |
 

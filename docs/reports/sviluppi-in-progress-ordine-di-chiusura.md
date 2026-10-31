@@ -30,7 +30,7 @@ La difficoltà è stimata sul lavoro residuo — ampiezza, moduli toccati e dipe
 | 18 | `tenant-onboarding-import` | BE, FE | 23 | Molto alta | Dipende da 7 |
 | 19 | `operational-runbook` | Repository | 15 gap | Molto alta | Propedeutico a ogni `released` |
 
-La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-29 restano `in-progress` le voci 6, 7, 9 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17 e 18.
+La tabella resta la fotografia del 2026-10-24: i conteggi e le difficoltà sono quelli di allora, e le voci chiuse da quel giorno lo dichiarano in coda alla propria sezione. Al 2026-10-30 restano `in-progress` le voci 6, 7, 9 e 19 — le voci 6, 7 e 9 per sole verifiche che richiedono strumenti, ambienti o materiali reali — e sono chiuse le voci 1, 2, 3, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17 e 18.
 
 ## 1. `web-push-reminders`
 
@@ -124,6 +124,8 @@ Va prima delle funzionalità che seguono perché quasi tutte hanno fra i requisi
 > Secondo lotto, stesso giorno: `TenantRoleFlowIT` copre browser flow e mapper su un Keycloak reale. Restano soglie di coverage, security scan, performance, backup/restore, scheduler multi-replica e i gap di priorità media.
 
 > Il 2026-10-26 affrontato il resto: soglie di copertura, job `security` in CI, Docker imposto in pipeline, controlli del sito costruito, matrice browser, gate di accessibilità, script k6, prova di ripristino e `UploadJobConcurrencyIT`. La voce resta `in-progress` per le decisioni e le esecuzioni che richiedono ambienti reali, elencate nei gap del runbook.
+
+> Il 2026-10-30 è stato chiuso il lotto di codice dei gap restanti: presa in carico condizionata delle tre code a tempo con `NotificationConcurrencyIT` (e la correzione della consegna push, che sotto concorrenza falliva con `StaleObjectStateException`), messaggio avvelenato instradato alle code di scarto `.dead` senza rimessa in coda con due casi nuovi in `RabbitMqBrokerIT`, tema Keycloak dichiarato nel JAR del provider senza più la copia montata e verificato da `TenantRoleFlowIT`, `TenantIsolationIT` esteso a sette risorse e, per il sito informativo, controllo di accessibilità strutturale e smoke sull'immagine nginx, che ha trovato le intestazioni di sicurezza non servite. La voce resta `in-progress` per quanto richiede ambienti, dati o persone reali: prima esecuzione della suite end to end, DAST su staging, carico con SLO approvati, programmazione del restore e modelli di posta di Keycloak.
 
 ## 8. `track-pdf-processing`
 
@@ -314,6 +316,8 @@ Alta priorità: sostituire `app.yml` obsoleto, estendere CI/CD con pubblicazione
 Media priorità: logging di produzione strutturato e correlato, Actuator ristretto, porte RabbitMQ non esposte, smoke test automatici non distruttivi, servizio OMR nei manifest di produzione con chiave dal secret manager e immagine per digest, copia controllata del SoundFont oggi scaricato da `ftp.osuosl.org`.
 
 Non blocca il passaggio a `implemented` delle altre voci, ma blocca ogni `released`: senza questi punti non esiste un ambiente di produzione qualificato in cui rilasciarle.
+
+> Il 2026-10-30 è stato chiuso tutto ciò che di questi gap vive nel repository. Il manifest di produzione è in [`deploy/`](../../deploy/compose.yml) — stack completo su un host singolo, dati su volumi, una sola porta pubblicata e legata al loopback, probe e limiti, segreti fuori dal repository, servizio OMR con le sue restrizioni, Keycloak in modalità produzione — e `scripts/ops/validate-deploy-manifest.sh` lo verifica a ogni esecuzione della CI. Il frontend non ha più configurazione incorporata: l'immagine legge le variabili all'avvio e fa da ingresso unico, inoltrando `/api` e `/auth` sulla stessa origine, con le intestazioni di sicurezza e una CSP provate nel browser; così sono spariti sia gli indirizzi interni nel bundle sia il client `web-app`, che nel realm non esisteva. L'immagine del backend si costruisce sul profilo `prod` (prima pubblicava il profilo di sviluppo), l'Actuator espone solo `health`, `info` e `prometheus`, i log sono JSON con `requestId` e `tenant`, le porte di RabbitMQ in sviluppo stanno sul loopback, `app.yml` è stato rimosso, la pipeline pubblica e firma anche il sito informativo e il JAR del provider, e `scripts/ops/smoke-test.sh` verifica un'installazione senza scriverci niente. La voce resta `in-progress` per quello che nessun file può chiudere: il manifest non è ancora stato eseguito su un host reale, i backup non sono programmati, RPO, RTO e retention non sono approvati, gli scheduler diversi da upload, onboarding e notifiche non sono qualificati per più repliche, e la raccolta dei log e gli allarmi appartengono all'host.
 
 ## Note di metodo
 

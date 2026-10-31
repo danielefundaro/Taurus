@@ -66,6 +66,7 @@ Su Windows usare `mvnw.cmd` al posto di `./mvnw`.
 ## Documentazione
 
 - [Runbook operativo](docs/runbook-operativo.md): avvio, configurazione, release, deploy, monitoraggio, backup/restore, incident response e disaster recovery;
+- [Manifest di produzione](deploy/README.md): stack completo su un host singolo, con `.env.example`, l'esempio del reverse proxy e gli script di `scripts/ops`;
 - [Runbook di test](docs/runbook-test.md): strategia di qualità, matrici funzionali e di rischio, casi multi-tenant, sicurezza, performance, resilienza e criteri go/no-go;
 - [Catalogo funzionalità](docs/features.md): stato corrente, moduli ed evidenze di ogni iniziativa;
 - [Governance documentazione/implementazione](docs/documentation-implementation-alignment-spec.md): formato del catalogo e flusso di aggiornamento;
