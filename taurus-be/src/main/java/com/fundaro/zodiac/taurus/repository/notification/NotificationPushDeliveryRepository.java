@@ -34,9 +34,16 @@ public interface NotificationPushDeliveryRepository extends JpaRepository<Notifi
     @Query("select d.id from NotificationPushDelivery d where d.deleted = false and d.status = :status and d.nextAttemptAt <= :now order by d.nextAttemptAt, d.id")
     List<Long> findReadyIds(@Param("status") NotificationStatus status, @Param("now") ZonedDateTime now, Pageable pageable);
 
-    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-    @Query("select d from NotificationPushDelivery d left join fetch d.notice where d.id = :id and d.deleted = false")
-    Optional<NotificationPushDelivery> findByIdForUpdate(@Param("id") Long id);
+    /**
+     * Prende il job per questa replica sola. Il lock sta nella stessa istruzione che legge la riga e
+     * {@code skip locked} la lascia a chi la tiene già, invece di far attendere l'altro worker per poi
+     * fargli fallire la presa in carico. Senza join fetch: con un join esterno PostgreSQL non accetta
+     * {@code for update} e Hibernate ricadrebbe su un lock separato per id e versione, che dopo la
+     * consegna dell'altro worker solleva {@code StaleObjectStateException}. La notice è pigra e si
+     * carica da sola nella stessa transazione.
+     */
+    @Query(value = "select * from notification_push_delivery where id = :id and deleted = false for update skip locked", nativeQuery = true)
+    Optional<NotificationPushDelivery> claimForUpdate(@Param("id") Long id);
 
     /**
      * Lock senza join fetch: la console amministrativa non legge mai la notice collegata.
@@ -45,13 +52,19 @@ public interface NotificationPushDeliveryRepository extends JpaRepository<Notifi
     @Query("select d from NotificationPushDelivery d where d.id = :id and d.deleted = false")
     Optional<NotificationPushDelivery> findByIdForAdminUpdate(@Param("id") Long id);
 
-    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-    @Query("select d from NotificationPushDelivery d left join fetch d.notice where d.deleted = false and d.userId = :userId and d.digestLocalDate = :date and d.deliveryType = :type and d.status = :status and d.nextAttemptAt <= :now")
-    List<NotificationPushDelivery> findDigestForUpdate(
+    /** Il riepilogo del giorno, preso con lo stesso criterio di {@link #claimForUpdate(Long)}. */
+    @Query(
+        value = "select * from notification_push_delivery" +
+            " where deleted = false and user_id = :userId and digest_local_date = :date" +
+            " and delivery_type = :type and status = :status and next_attempt_at <= :now" +
+            " order by id for update skip locked",
+        nativeQuery = true
+    )
+    List<NotificationPushDelivery> claimDigestForUpdate(
         @Param("userId") String userId,
         @Param("date") LocalDate date,
-        @Param("type") NotificationPushDeliveryType type,
-        @Param("status") NotificationStatus status,
+        @Param("type") String type,
+        @Param("status") String status,
         @Param("now") ZonedDateTime now
     );
 
