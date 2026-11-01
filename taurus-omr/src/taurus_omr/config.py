@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shlex
+import sys
 import tempfile
 from dataclasses import dataclass, field
 
@@ -32,12 +33,20 @@ class Settings:
     max_midi_bytes: int = 10 * MEGABYTE
     max_image_pixels: int = 60_000_000
     concurrency: int = 1
+    # Text reading runs in its own process, with its own slots: it never waits for a recognition.
+    text_command: tuple[str, ...] = field(default_factory=lambda: (sys.executable, "-m", "taurus_omr.text"))
+    text_concurrency: int = 1
+    text_threads: int = 2
+    text_timeout_seconds: int = 60
     work_dir: str = field(default_factory=tempfile.gettempdir)
 
     def __post_init__(self) -> None:
         if len(self.api_key) < MIN_API_KEY_LENGTH:
             raise ConfigurationError(f"TAURUS_OMR_API_KEY must be at least {MIN_API_KEY_LENGTH} characters long")
-        for name in ("engine_timeout_seconds", "max_pages", "max_request_bytes", "max_midi_bytes", "max_image_pixels", "concurrency"):
+        for name in (
+            "engine_timeout_seconds", "max_pages", "max_request_bytes", "max_midi_bytes", "max_image_pixels", "concurrency",
+            "text_concurrency", "text_threads", "text_timeout_seconds",
+        ):
             if getattr(self, name) <= 0:
                 raise ConfigurationError(f"{name} must be positive")
 
@@ -52,6 +61,8 @@ class Settings:
             values["audiveris_version"] = env["TAURUS_OMR_AUDIVERIS_VERSION"]
         if "TAURUS_OMR_HOMR_COMMAND" in env:
             values["homr_command"] = tuple(shlex.split(env["TAURUS_OMR_HOMR_COMMAND"]))
+        if "TAURUS_OMR_TEXT_COMMAND" in env:
+            values["text_command"] = tuple(shlex.split(env["TAURUS_OMR_TEXT_COMMAND"]))
         integers = {
             "TAURUS_OMR_ENGINE_TIMEOUT_SECONDS": ("engine_timeout_seconds", 1),
             "TAURUS_OMR_MAX_PAGES": ("max_pages", 1),
@@ -59,6 +70,9 @@ class Settings:
             "TAURUS_OMR_MAX_MIDI_MB": ("max_midi_bytes", MEGABYTE),
             "TAURUS_OMR_MAX_IMAGE_PIXELS": ("max_image_pixels", 1),
             "TAURUS_OMR_CONCURRENCY": ("concurrency", 1),
+            "TAURUS_OMR_TEXT_CONCURRENCY": ("text_concurrency", 1),
+            "TAURUS_OMR_TEXT_THREADS": ("text_threads", 1),
+            "TAURUS_OMR_TEXT_TIMEOUT_SECONDS": ("text_timeout_seconds", 1),
         }
         for variable, (name, unit) in integers.items():
             if variable in env:

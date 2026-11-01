@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,25 @@ from . import compare, corpus
 CORPUS = Path(__file__).parent / "corpus"
 API_KEY_HEADER = "X-Taurus-Omr-Key"
 ENGINES = ("AUDIVERIS", "HOMR")
+# The rules of the backend for the text read on the first page of a part: the center of a line falls in the left 20% or
+# in the top 15% of the page, with a confidence of at least 0.5.
+LEFT_ZONE = 0.2
+TOP_ZONE = 0.15
+MIN_CONFIDENCE = 0.5
+
+
+@dataclass(frozen=True)
+class NameResult:
+    """The part name expected on the first page of a piece and the lines the backend would keep there."""
+
+    piece: str
+    expected: str
+    kept: tuple[str, ...]
+    seconds: float
+
+    @property
+    def correct(self) -> bool:
+        return _plain(self.expected) in {_plain(line) for line in self.kept}
 
 
 @dataclass(frozen=True)
@@ -104,3 +124,43 @@ def report(results: list[PieceResult]) -> str:
         summary.append(f"{correct}/{measures} ({correct / measures:.0%}), struttura {found}/{marks}")
     lines.append(f"| **Totale** | | {summary[0]} | {summary[1]} | | | {sum(r.seconds for r in results):.0f} |")
     return "\n".join(lines)
+
+
+def read_names(url: str, key: str, names: list[str] | None = None, folder: Path = CORPUS) -> list[NameResult]:
+    """Reads the first page of each piece with the text engine and keeps the lines as the backend does."""
+    results = []
+    for piece in corpus.PIECES:
+        if names and piece.name not in names:
+            continue
+        first = pages(piece.name, folder)[0]
+        response = httpx.post(
+            f"{url.rstrip('/')}/v1/text-recognitions",
+            headers={API_KEY_HEADER: key},
+            files=[("pages", (first.name, first.read_bytes(), "image/png"))],
+            timeout=120,
+        )
+        response.raise_for_status()
+        lines = response.json()["pages"][0]["lines"]
+        kept = tuple(line["text"] for line in lines if _in_zone(line) and line["confidence"] >= MIN_CONFIDENCE)
+        results.append(NameResult(piece.name, piece.part, kept, response.elapsed.total_seconds()))
+    return results
+
+
+def names_report(results: list[NameResult]) -> str:
+    """A Markdown table: the expected part name, whether it was read and the lines kept on the page."""
+    lines = ["| Brano | Nome atteso | Letto | Righe tenute | Secondi |", "| --- | --- | --- | --- | --- |"]
+    for result in results:
+        kept = ", ".join(f"«{line}»" for line in result.kept) or "nessuna"
+        lines.append(f"| {result.piece} | {result.expected} | {'sì' if result.correct else 'no'} | {kept} | {result.seconds:.1f} |")
+    correct = sum(result.correct for result in results)
+    lines.append(f"| **Totale** | | {correct}/{len(results)} | | {sum(r.seconds for r in results):.1f} |")
+    return "\n".join(lines)
+
+
+def _in_zone(line: dict[str, float]) -> bool:
+    return line["x"] + line["width"] / 2 <= LEFT_ZONE or line["y"] + line["height"] / 2 <= TOP_ZONE
+
+
+def _plain(text: str) -> str:
+    decomposed = unicodedata.normalize("NFD", text.casefold())
+    return " ".join("".join(char for char in decomposed if not unicodedata.combining(char)).split())

@@ -21,6 +21,7 @@ from . import __version__, images, midi, musicxml
 from .config import Settings
 from .engines import AUDIVERIS, HOMR, Engine, default_engines
 from .errors import Busy, EngineFailure, LengthRequired, OmrError, RequestTooLarge, TooManyPages, Unauthorized, UnknownEngine
+from .reading import TextReader
 
 log = logging.getLogger("taurus_omr")
 API_KEY_HEADER = "X-Taurus-Omr-Key"
@@ -33,12 +34,19 @@ def create_app(settings: Settings | None = None, engines: dict[str, Engine] | No
     settings = settings or Settings.from_env()
     _configure_logging()
     engines = engines if engines is not None else default_engines(settings)
+    reader = TextReader(settings)
     slots = threading.BoundedSemaphore(settings.concurrency)
+    # Separate slots: a text reading of a few seconds must not wait for a recognition that can last minutes.
+    text_slots = threading.BoundedSemaphore(settings.text_concurrency)
     app = FastAPI(title="Taurus OMR", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.exception_handler(OmrError)
     async def refused(_: Request, error: OmrError) -> JSONResponse:
         return JSONResponse(status_code=error.status, content={"code": error.code, "message": error.message})
+
+    @app.exception_handler(EngineFailure)
+    async def failed(_: Request, failure: EngineFailure) -> JSONResponse:
+        return JSONResponse(status_code=500, content={"code": failure.code, "message": str(failure)})
 
     def authenticated(request: Request) -> None:
         provided = request.headers.get(API_KEY_HEADER, "")
@@ -61,6 +69,7 @@ def create_app(settings: Settings | None = None, engines: dict[str, Engine] | No
             "status": "UP",
             "service": __version__,
             "engines": {name: engine.version for name, engine in engines.items()},
+            "textEngine": {"name": reader.name, "version": reader.version},
             "music21": _version("music21"),
         }
 
@@ -76,18 +85,39 @@ def create_app(settings: Settings | None = None, engines: dict[str, Engine] | No
         unknown = [name for name in names if name not in engines]
         if unknown:
             raise UnknownEngine(f"unknown engines {unknown}")
-        if len(pages) > settings.max_pages:
-            raise TooManyPages(f"at most {settings.max_pages} pages")
-        contents = [page.file.read() for page in pages]
-        if sum(len(content) for content in contents) > settings.max_request_bytes:
-            raise RequestTooLarge(f"pages larger than {settings.max_request_bytes} bytes")
-        decoded = [images.normalize(content, settings.max_image_pixels) for content in contents]
+        decoded = _pages(pages)
         with _slot(slots, settings.engine_timeout_seconds), tempfile.TemporaryDirectory(dir=settings.work_dir, prefix="omr-") as work:
             with ThreadPoolExecutor(max_workers=len(names)) as pool:
                 futures = [pool.submit(_recognize, engines[name], decoded, Path(work) / name.lower()) for name in dict.fromkeys(names)]
                 results = [future.result() for future in futures]
         log.info("recognition of %d pages: %s", len(pages), ", ".join(f"{r['engine']} {r['status']} {r['durationMillis']} ms" for r in results))
         return {"results": results}
+
+    @app.post(
+        "/v1/text-recognitions",
+        dependencies=[Depends(authenticated), Depends(limited(settings.max_request_bytes))],
+    )
+    def text_recognitions(
+        pages: Annotated[list[UploadFile], File(description="Page images, read one by one")],
+    ) -> dict[str, object]:
+        decoded = _pages(pages)
+        started = time.monotonic()
+        deadline = started + settings.text_timeout_seconds
+        try:
+            with _slot(text_slots, settings.text_timeout_seconds), tempfile.TemporaryDirectory(dir=settings.work_dir, prefix="text-") as work:
+                # The timeout covers the whole request: the wait for a slot is taken from the time of the engine.
+                read = reader.read(decoded, Path(work), max(1, int(deadline - time.monotonic())))
+        except EngineFailure as failure:
+            log.warning("text reading of %d pages failed after %d ms: %s", len(pages), _millis(started), failure)
+            raise
+        duration = _millis(started)
+        log.info("text reading of %d pages: %d lines in %d ms", len(pages), sum(len(lines) for lines in read), duration)
+        return {
+            "engine": reader.name,
+            "version": reader.version,
+            "durationMillis": duration,
+            "pages": [{"page": number, "lines": [line.to_json() for line in lines]} for number, lines in enumerate(read, start=1)],
+        }
 
     @app.post(
         "/v1/midi-conversions",
@@ -101,7 +131,20 @@ def create_app(settings: Settings | None = None, engines: dict[str, Engine] | No
             converted = midi.to_musicxml(data)
         return Response(content=converted, media_type=MUSICXML_MEDIA_TYPE)
 
+    def _pages(pages: list[UploadFile]) -> list[Image.Image]:
+        """The pages within the limits of the service, decoded as grayscale images."""
+        if len(pages) > settings.max_pages:
+            raise TooManyPages(f"at most {settings.max_pages} pages")
+        contents = [page.file.read() for page in pages]
+        if sum(len(content) for content in contents) > settings.max_request_bytes:
+            raise RequestTooLarge(f"pages larger than {settings.max_request_bytes} bytes")
+        return [images.normalize(content, settings.max_image_pixels) for content in contents]
+
     return app
+
+
+def _millis(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
 
 
 def _recognize(engine: Engine, pages: list[Image.Image], work: Path) -> dict[str, object]:

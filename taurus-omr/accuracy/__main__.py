@@ -3,6 +3,8 @@
 - ``python -m accuracy render``: writes the reference parts and their pages again (``requirements-accuracy.txt``);
 - ``python -m accuracy run --url http://localhost:8090 --key ...``: recognizes the corpus and prints the results;
   ``--save folder`` keeps what each engine read;
+- ``python -m accuracy names --url http://localhost:8090 --key ...``: reads the part name on the first page of each
+  piece with the text engine and prints the lines the backend would keep;
 - ``python -m accuracy compare corrected.mxl recognized.mxl``: compares a real part recognized by an engine with the
   version corrected by an archivist, both downloaded from Taurus, and lists the different measures.
 """
@@ -24,6 +26,10 @@ def main(arguments: list[str] | None = None) -> int:
     run.add_argument("--key", default=os.environ.get("TAURUS_OMR_ACCURACY_KEY"))
     run.add_argument("--save", type=Path, help="cartella dove salvare ciò che ha letto ogni motore")
     run.add_argument("pieces", nargs="*", help="solo i brani indicati")
+    names = commands.add_parser("names", help="legge il nome della parte sulla prima pagina dei brani")
+    names.add_argument("--url", default=os.environ.get("TAURUS_OMR_ACCURACY_URL", "http://localhost:8090"))
+    names.add_argument("--key", default=os.environ.get("TAURUS_OMR_ACCURACY_KEY"))
+    names.add_argument("pieces", nargs="*", help="solo i brani indicati")
     pair = commands.add_parser("compare", help="confronta una parte riconosciuta con la versione corretta")
     pair.add_argument("reference", type=Path, help="versione corretta (.mxl, .musicxml)")
     pair.add_argument("candidate", type=Path, help="versione riconosciuta (.mxl, .musicxml)")
@@ -41,6 +47,14 @@ def main(arguments: list[str] | None = None) -> int:
         if not options.key:
             parser.error("serve la chiave del servizio: --key o TAURUS_OMR_ACCURACY_KEY")
         print(report(evaluate(options.url, options.key, options.pieces or None, save=options.save)))
+        return 0
+
+    if options.command == "names":
+        from .run import names_report, read_names
+
+        if not options.key:
+            parser.error("serve la chiave del servizio: --key o TAURUS_OMR_ACCURACY_KEY")
+        print(names_report(read_names(options.url, options.key, options.pieces or None)))
         return 0
 
     from .compare import compare, load_file

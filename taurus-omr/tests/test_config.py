@@ -19,11 +19,36 @@ def test_reads_the_environment() -> None:
     assert settings.max_request_bytes == 5 * MEGABYTE
     assert settings.homr_command == ("python", "-m", "homr")
     assert settings.max_pages == 30
+    assert settings.text_concurrency == 1
+    assert settings.text_threads == 2
+    assert settings.text_timeout_seconds == 60
+    assert settings.text_command[1:] == ("-m", "taurus_omr.text")
+
+
+def test_reads_the_text_reading_settings() -> None:
+    settings = Settings.from_env(
+        {
+            "TAURUS_OMR_API_KEY": "k" * 32,
+            "TAURUS_OMR_TEXT_CONCURRENCY": "2",
+            "TAURUS_OMR_TEXT_THREADS": "1",
+            "TAURUS_OMR_TEXT_TIMEOUT_SECONDS": "30",
+            "TAURUS_OMR_TEXT_COMMAND": "python3 -m taurus_omr.text",
+        }
+    )
+
+    assert (settings.text_concurrency, settings.text_threads, settings.text_timeout_seconds) == (2, 1, 30)
+    assert settings.text_command == ("python3", "-m", "taurus_omr.text")
 
 
 @pytest.mark.parametrize(
     "environ",
-    [{}, {"TAURUS_OMR_API_KEY": "short"}, {"TAURUS_OMR_API_KEY": "k" * 32, "TAURUS_OMR_MAX_PAGES": "0"}, {"TAURUS_OMR_API_KEY": "k" * 32, "TAURUS_OMR_CONCURRENCY": "two"}],
+    [
+        {},
+        {"TAURUS_OMR_API_KEY": "short"},
+        {"TAURUS_OMR_API_KEY": "k" * 32, "TAURUS_OMR_MAX_PAGES": "0"},
+        {"TAURUS_OMR_API_KEY": "k" * 32, "TAURUS_OMR_CONCURRENCY": "two"},
+        {"TAURUS_OMR_API_KEY": "k" * 32, "TAURUS_OMR_TEXT_THREADS": "0"},
+    ],
 )
 def test_refuses_to_start_without_a_valid_configuration(environ: dict[str, str]) -> None:
     with pytest.raises(ConfigurationError):
