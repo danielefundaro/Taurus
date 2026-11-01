@@ -557,7 +557,7 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `MED-004 P0`: contenuto oltre 500 MB rifiutato anche dal proxy.
 - `MED-005 P0`: estensione/MIME discordante e file corrotto gestiti.
 - `MED-006 P1`: conversione PDF, pagine escluse e crop corretti.
-- `MED-007 P1`: OCR spento/attivo, lingua o data path mancanti.
+- `MED-007 P1`: lettura del testo dei PDF scansionati con il servizio OMR: con il servizio attivo una parte scansionata con il nome dello strumento nel margine sinistro o nella fascia in alto riceve lo strumento suggerito ed è marcata da rivedere; con OCR spento, servizio non configurato, fermo o con chiave diversa il caricamento termina `DONE` senza suggerimenti; un PDF digitale con testo nel margine non chiama il servizio.
 - `MED-008 P0`: cleanup elimina solo temporanei/orfani oltre soglia.
 - `MED-009 P0`: file referenziato non viene cancellato.
 - `MED-010 P1`: concorrenza upload/delete/download sullo stesso asset.
