@@ -21,6 +21,7 @@ def settings(tmp_path: Path, **overrides: object) -> Settings:
         "api_key": API_KEY,
         "audiveris_command": (sys.executable, str(FAKES / "fake_audiveris.py")),
         "homr_command": (sys.executable, str(FAKES / "fake_homr.py")),
+        "text_command": (sys.executable, str(FAKES / "fake_text.py")),
         "engine_timeout_seconds": 20,
         "work_dir": str(tmp_path),
     }

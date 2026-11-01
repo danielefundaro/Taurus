@@ -19,6 +19,9 @@ KEY = os.environ.get("TAURUS_OMR_ACCURACY_KEY")
 # and 6/26), lowered by a margin of a few measures and marks for small differences between processors.
 MINIMUM_MEASURES = {"AUDIVERIS": 0.84, "HOMR": 0.79}
 MINIMUM_MARKS = {"AUDIVERIS": 0.5, "HOMR": 0.15}
+# Measured on 01/11/2026 with RapidOCR 3.10.0 and the PP-OCRv6 small models: 6/6 part names read in the zone kept by
+# the backend; one miss is allowed.
+MINIMUM_NAMES = 0.8
 
 pytestmark = pytest.mark.skipif(not URL or not KEY, reason="no OMR service to check: set TAURUS_OMR_ACCURACY_URL and TAURUS_OMR_ACCURACY_KEY")
 
@@ -53,3 +56,21 @@ def test_every_piece_is_read_by_at_least_one_engine(results: list[run.PieceResul
     unread = [result.piece for result in results if all(comparison is None or comparison.correct_measures == 0 for comparison in result.comparisons.values())]
 
     assert unread == []
+
+
+@pytest.fixture(scope="module")
+def names() -> list[run.NameResult]:
+    results = run.read_names(URL or "", KEY or "")
+    table = run.names_report(results)
+    print(f"\n{table}")
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as output:
+            output.write(f"### Lettura dei nomi delle parti\n\n{table}\n")
+    return results
+
+
+def test_text_engine_reads_at_least_the_expected_share_of_part_names(names: list[run.NameResult]) -> None:
+    correct = sum(result.correct for result in names)
+
+    assert correct / len(names) >= MINIMUM_NAMES, f"{correct}/{len(names)} part names: {[r.piece for r in names if not r.correct]}"
