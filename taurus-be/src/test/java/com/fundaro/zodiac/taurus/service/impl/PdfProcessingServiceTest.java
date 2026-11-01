@@ -215,6 +215,32 @@ class PdfProcessingServiceTest {
         assertThat(PdfProcessingService.inReadZone(new TextLine("a", 1, 0.8, 0.15, 0.1, 0.02))).isFalse();
     }
 
+    @Test
+    void matchesTheInstrumentsByWholeWords() {
+        List<InstrumentsDTO> band = List.of(
+            instrument(1L, "Flauto 1°"),
+            instrument(2L, "Clarinetto soprano 1°"),
+            instrument(3L, "Clarinetto basso"),
+            instrument(4L, "Flicorno soprano 1°"),
+            instrument(5L, "Corno 1°"),
+            instrument(6L, "Corno 2°"),
+            instrument(7L, "Sax contralto 1°")
+        );
+
+        assertThat(name(PdfProcessingService.bestMatch("Corno in Mib", band))).isEqualTo("Corno 1°");
+        assertThat(name(PdfProcessingService.bestMatch("Clarinetto basso in Sib", band))).isEqualTo("Clarinetto basso");
+        assertThat(name(PdfProcessingService.bestMatch("Clarinetto", band))).isEqualTo("Clarinetto soprano 1°");
+        assertThat(name(PdfProcessingService.bestMatch("Flauto II", band))).isEqualTo("Flauto 1°");
+        assertThat(name(PdfProcessingService.bestMatch("Sax contralto Mib", band))).isEqualTo("Sax contralto 1°");
+        assertThat(PdfProcessingService.bestMatch("Flicorno", List.of(instrument(5L, "Corno 1°")))).isNull();
+        assertThat(PdfProcessingService.bestMatch("Tuba", band)).isNull();
+        assertThat(PdfProcessingService.bestMatch("1°", band)).isNull();
+    }
+
+    private static String name(InstrumentsDTO instrument) {
+        return instrument == null ? null : instrument.getName();
+    }
+
     private PdfProcessingService service() {
         return new PdfProcessingService(mediaService, instrumentsService, new OmrClient(properties, new ObjectMapper()), properties);
     }

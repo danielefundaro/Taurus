@@ -301,33 +301,62 @@ public class PdfProcessingService {
     private Set<ChildrenEntitiesDTO> matchInstruments(List<String> candidates, List<InstrumentsDTO> instruments) {
         Set<ChildrenEntitiesDTO> matched = new HashSet<>();
         for (String candidate : candidates) {
-            String normalizedCandidate = normalize(candidate);
-            if (normalizedCandidate.isBlank()) continue;
-            for (InstrumentsDTO instrument : instruments) {
-                String normalizedName = normalize(instrument.getName());
-                if (!normalizedName.isBlank()
-                    && (normalizedCandidate.contains(normalizedName) || normalizedName.contains(normalizedCandidate))
-                ) {
-                    ChildrenEntitiesDTO child = new ChildrenEntitiesDTO();
-                    child.setIndex(instrument.getId());
-                    child.setName(instrument.getName());
-                    child.setOrder((long) (matched.size() + 1));
-                    matched.add(child);
-                    break;
-                }
+            InstrumentsDTO instrument = bestMatch(candidate, instruments);
+            if (instrument != null) {
+                ChildrenEntitiesDTO child = new ChildrenEntitiesDTO();
+                child.setIndex(instrument.getId());
+                child.setName(instrument.getName());
+                child.setOrder((long) (matched.size() + 1));
+                matched.add(child);
             }
         }
         return matched;
     }
 
+    /**
+     * The instrument a line names, comparing whole words: the same name first, then the longest name found in the line,
+     * then the first name that holds the whole line. "Corno in Mib" is then "Corno 1°", never "Flicorno soprano 1°".
+     */
+    static InstrumentsDTO bestMatch(String candidate, List<InstrumentsDTO> instruments) {
+        List<String> line = words(candidate);
+        if (line.isEmpty()) return null;
+        InstrumentsDTO inLine = null;
+        int inLineWords = 0;
+        InstrumentsDTO holdingLine = null;
+        for (InstrumentsDTO instrument : instruments) {
+            List<String> name = words(instrument.getName());
+            if (name.isEmpty()) continue;
+            if (name.equals(line)) return instrument;
+            if (name.size() > inLineWords && Collections.indexOfSubList(line, name) >= 0) {
+                inLine = instrument;
+                inLineWords = name.size();
+            }
+            if (holdingLine == null && Collections.indexOfSubList(name, line) >= 0) {
+                holdingLine = instrument;
+            }
+        }
+        return inLine != null ? inLine : holdingLine;
+    }
+
+    private static List<String> words(String s) {
+        String normalized = normalize(s);
+        if (normalized.isEmpty()) return List.of();
+        return Arrays.stream(normalized.split("[^\\p{L}\\p{N}]+")).filter(word -> !word.isEmpty()).toList();
+    }
+
+    /** Lower case without accents, and without the key ("in Sib"), the roman or arabic number ("1°") at the end. */
     private static String normalize(String s) {
         if (s == null) return "";
-        String result = s.toLowerCase();
-        result = Normalizer.normalize(result, Normalizer.Form.NFD)
-            .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        result = result.replaceAll("\\s+[ivxlcdm]+$", "");
-        result = result.replaceAll("\\s+in\\s+\\w+$", "");
-        result = result.replaceAll("\\s+\\d+$", "");
-        return result.trim();
+        String result = Normalizer.normalize(s.toLowerCase(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "").trim();
+        String previous;
+        do {
+            previous = result;
+            result = result
+                .replaceAll("\\s+in\\s+\\w+$", "")
+                .replaceAll("\\s+[ivxlcdm]+$", "")
+                .replaceAll("\\s+\\d+\\s*[°ºª]?$", "")
+                .trim();
+        } while (!result.equals(previous));
+        return result;
     }
 }
