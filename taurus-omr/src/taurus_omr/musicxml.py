@@ -68,6 +68,17 @@ def remove_titles(root: ElementTree.Element) -> None:
             root.remove(element)
 
 
+def number_parts(root: ElementTree.Element) -> None:
+    """Names the parts P1, P2... in order, so that converting the same file twice gives the same part ids."""
+    names: dict[str | None, str] = {}
+    for number, score_part in enumerate(root.findall("part-list/score-part"), start=1):
+        names[score_part.get("id")] = f"P{number}"
+        score_part.set("id", f"P{number}")
+    for part in root.findall("part"):
+        if part.get("id") in names:
+            part.set("id", names[part.get("id")])
+
+
 def measure_count(root: ElementTree.Element) -> int:
     part = root.find("part")
     return 0 if part is None else len(part.findall("measure"))

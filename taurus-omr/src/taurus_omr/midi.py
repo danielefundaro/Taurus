@@ -30,6 +30,9 @@ def to_musicxml(data: bytes) -> bytes:
             raise UnreadableMidi("MIDI file without notes")
         converted = musicxml.parse(GeneralObjectExporter(score).parse())
         musicxml.remove_titles(converted)
+        # music21 draws new random part ids at every conversion, while the backend converts the file again on upload
+        # and looks for the part chosen on the first conversion.
+        musicxml.number_parts(converted)
         return musicxml.to_bytes(converted)
     except UnreadableMidi:
         raise

@@ -5,6 +5,7 @@ import io
 import time
 import zipfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 from fastapi.testclient import TestClient
@@ -152,6 +153,21 @@ def test_converts_midi_files_into_musicxml(client: TestClient, headers: dict[str
     assert b"<score-partwise" in response.content
     assert response.content.count(b"<note") >= 3
     assert b"Music21 Fragment" not in response.content
+
+
+def test_converting_the_same_midi_file_again_gives_the_same_part_ids(client: TestClient, headers: dict[str, str]) -> None:
+    first = stream.Part([note.Note("C4", quarterLength=1), note.Note("D4", quarterLength=1)])
+    second = stream.Part([note.Note("G3", quarterLength=2)])
+    data = midi.translate.streamToMidiFile(stream.Score([first, second])).writestr()
+
+    ids = []
+    for _ in range(2):
+        response = client.post("/v1/midi-conversions", files={"file": ("brano.mid", data, "audio/midi")}, headers=headers)
+        assert response.status_code == 200
+        root = ElementTree.fromstring(response.content)
+        ids.append(([part.get("id") for part in root.findall("part-list/score-part")], [part.get("id") for part in root.findall("part")]))
+
+    assert ids[0] == ids[1] == (["P1", "P2"], ["P1", "P2"])
 
 
 def test_refuses_files_that_are_not_midi(client: TestClient, headers: dict[str, str]) -> None:
