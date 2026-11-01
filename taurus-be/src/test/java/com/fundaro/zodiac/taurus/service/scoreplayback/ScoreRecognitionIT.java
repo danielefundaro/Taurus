@@ -72,7 +72,7 @@ import static org.mockito.Mockito.verify;
         "spring.datasource.hikari.minimum-idle=1",
         "spring.security.oauth2.client.registration.oidc.client-id=test",
         "spring.security.oauth2.client.registration.oidc.client-secret=test",
-        "application.score-playback.omr.api-key=it-service-key-0123456789",
+        "application.omr.api-key=it-service-key-0123456789",
         "application.score-playback.kept-versions=3",
     }
 )
@@ -147,7 +147,7 @@ class ScoreRecognitionIT {
 
     @DynamicPropertySource
     static void omrService(DynamicPropertyRegistry registry) {
-        registry.add("application.score-playback.omr.url", OMR::url);
+        registry.add("application.omr.url", OMR::url);
     }
 
     @AfterAll

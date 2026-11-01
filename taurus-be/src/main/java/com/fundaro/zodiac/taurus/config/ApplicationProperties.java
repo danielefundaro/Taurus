@@ -2,6 +2,8 @@ package com.fundaro.zodiac.taurus.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -55,6 +57,12 @@ public class ApplicationProperties {
 
     @Valid
     private ScorePlaybackProperties scorePlayback = new ScorePlaybackProperties();
+
+    @Valid
+    private OmrProperties omr = new OmrProperties();
+
+    @Valid
+    private PdfProcessingProperties pdfProcessing = new PdfProcessingProperties();
 
     @Valid
     private InventoryProperties inventory = new InventoryProperties();
@@ -177,6 +185,22 @@ public class ApplicationProperties {
         scorePlayback = value;
     }
 
+    public OmrProperties getOmr() {
+        return omr;
+    }
+
+    public void setOmr(OmrProperties value) {
+        omr = value;
+    }
+
+    public PdfProcessingProperties getPdfProcessing() {
+        return pdfProcessing;
+    }
+
+    public void setPdfProcessing(PdfProcessingProperties value) {
+        pdfProcessing = value;
+    }
+
     public InventoryProperties getInventory() {
         return inventory;
     }
@@ -199,16 +223,6 @@ public class ApplicationProperties {
 
     public void setSignature(SignatureProperties value) {
         signature = value;
-    }
-
-    private TesseractProperties tesseract = new TesseractProperties();
-
-    public TesseractProperties getTesseract() {
-        return tesseract;
-    }
-
-    public void setTesseract(TesseractProperties tesseract) {
-        this.tesseract = tesseract;
     }
 
     public static class Keycloak {
@@ -268,36 +282,6 @@ public class ApplicationProperties {
             public void setPassword(String password) {
                 this.password = password;
             }
-        }
-    }
-
-    public static class TesseractProperties {
-        private boolean enabled = false;
-        private String dataPath = "C:\\Program Files\\Tesseract-OCR\\tessdata";
-        private String language = "ita+eng";
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getDataPath() {
-            return dataPath;
-        }
-
-        public void setDataPath(String dataPath) {
-            this.dataPath = dataPath;
-        }
-
-        public String getLanguage() {
-            return language;
-        }
-
-        public void setLanguage(String language) {
-            this.language = language;
         }
     }
 
@@ -1055,7 +1039,7 @@ public class ApplicationProperties {
         private String cleanupCron = "0 15 4 * * *";
 
         @Valid
-        private OmrProperties omr = new OmrProperties();
+        private RecognitionJobProperties omr = new RecognitionJobProperties();
 
         public boolean isEnabled() {
             return enabled;
@@ -1089,40 +1073,26 @@ public class ApplicationProperties {
             cleanupCron = value;
         }
 
-        public OmrProperties getOmr() {
+        public RecognitionJobProperties getOmr() {
             return omr;
         }
 
-        public void setOmr(OmrProperties value) {
+        public void setOmr(RecognitionJobProperties value) {
             omr = value;
         }
     }
 
-    /** The optical music recognition service. Without a URL recognition and MIDI upload are not offered. */
+    /**
+     * Connection to the internal OMR service, shared by score playback and the text reading of uploaded PDFs. Without a
+     * URL recognition, MIDI upload and text reading are not offered.
+     */
     public static class OmrProperties {
         private String url = "";
 
         /** Key shared with the service, sent in the X-Taurus-Omr-Key header. */
         private String apiKey = "";
 
-        /** Longest wait for a recognition: both engines, all the pages. */
-        private Duration timeout = Duration.ofMinutes(12);
-
         private Duration connectTimeout = Duration.ofSeconds(5);
-
-        /** Recognition jobs run at the same time by this backend instance. */
-        @Min(1)
-        @Max(8)
-        private int concurrency = 1;
-
-        /** A running job not finished after this time is queued again, at most {@code maxAttempts} times in total. */
-        private Duration staleAfter = Duration.ofMinutes(30);
-
-        @Min(1)
-        private int maxAttempts = 3;
-
-        /** Requeues interrupted jobs and republishes lost messages; disabled in tests that drive jobs by hand. */
-        private boolean recoveryEnabled = true;
 
         public boolean isConfigured() {
             return url != null && !url.isBlank();
@@ -1144,20 +1114,41 @@ public class ApplicationProperties {
             apiKey = value;
         }
 
-        public Duration getTimeout() {
-            return timeout;
-        }
-
-        public void setTimeout(Duration value) {
-            timeout = value;
-        }
-
         public Duration getConnectTimeout() {
             return connectTimeout;
         }
 
         public void setConnectTimeout(Duration value) {
             connectTimeout = value;
+        }
+    }
+
+    /** The recognition jobs of score playback, run with the OMR service. */
+    public static class RecognitionJobProperties {
+
+        /** Longest wait for a recognition: both engines, all the pages. */
+        private Duration timeout = Duration.ofMinutes(12);
+
+        /** Recognition jobs run at the same time by this backend instance. */
+        @Min(1)
+        @Max(8)
+        private int concurrency = 1;
+
+        /** A running job not finished after this time is queued again, at most {@code maxAttempts} times in total. */
+        private Duration staleAfter = Duration.ofMinutes(30);
+
+        @Min(1)
+        private int maxAttempts = 3;
+
+        /** Requeues interrupted jobs and republishes lost messages; disabled in tests that drive jobs by hand. */
+        private boolean recoveryEnabled = true;
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration value) {
+            timeout = value;
         }
 
         public int getConcurrency() {
@@ -1190,6 +1181,72 @@ public class ApplicationProperties {
 
         public void setRecoveryEnabled(boolean value) {
             recoveryEnabled = value;
+        }
+    }
+
+    public static class PdfProcessingProperties {
+        @Valid
+        private OcrProperties ocr = new OcrProperties();
+
+        public OcrProperties getOcr() {
+            return ocr;
+        }
+
+        public void setOcr(OcrProperties value) {
+            ocr = value;
+        }
+    }
+
+    /**
+     * Text reading of the scanned first pages of the parts, done by the OMR service to suggest their instruments. Without
+     * the service configured in {@code application.omr} it has no effect.
+     */
+    public static class OcrProperties {
+        private boolean enabled = true;
+
+        /** Longest wait for one request to the service. */
+        private Duration timeout = Duration.ofMinutes(2);
+
+        /** Lowest confidence of a line read, from 0 to 1. */
+        @DecimalMin("0.0")
+        @DecimalMax("1.0")
+        private double minConfidence = 0.5;
+
+        /** Pages sent in one request: the service reads a page in a few seconds and stops a request after a minute. */
+        @Min(1)
+        @Max(30)
+        private int pagesPerRequest = 8;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration value) {
+            timeout = value;
+        }
+
+        public double getMinConfidence() {
+            return minConfidence;
+        }
+
+        public void setMinConfidence(double value) {
+            minConfidence = value;
+        }
+
+        public int getPagesPerRequest() {
+            return pagesPerRequest;
+        }
+
+        public void setPagesPerRequest(int value) {
+            pagesPerRequest = value;
         }
     }
 

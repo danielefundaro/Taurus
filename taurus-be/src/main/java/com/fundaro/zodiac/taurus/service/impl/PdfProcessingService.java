@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties.OcrProperties;
 import com.fundaro.zodiac.taurus.domain.criteria.InstrumentsCriteria;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.MediaService;
@@ -9,10 +10,14 @@ import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrClient;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.PageImage;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextLine;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextPage;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextRecognitionResponse;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrException;
 import com.fundaro.zodiac.taurus.utils.pdf.PageGroup;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfStructureAnalyzer;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.slf4j.Logger;
@@ -21,43 +26,56 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class PdfProcessingService {
 
+    /** A line read on a scanned page counts when its center falls in the left 20% of the page... */
+    static final double LEFT_ZONE = 0.20;
+
+    /** ...or in the top 15%, where band parts write the name of the instrument. */
+    static final double TOP_ZONE = 0.15;
+
+    /** Largest body of a text reading request, with a margin under the 25 MB accepted by the OMR service. */
+    static final long MAX_REQUEST_BYTES = 20L * 1024 * 1024;
+
     private static final Logger log = LoggerFactory.getLogger(PdfProcessingService.class);
 
     private final MediaService mediaService;
     private final InstrumentsService instrumentsService;
+    private final OmrClient omrClient;
     private final ApplicationProperties applicationProperties;
 
     public PdfProcessingService(
         MediaService mediaService,
         InstrumentsService instrumentsService,
+        OmrClient omrClient,
         ApplicationProperties applicationProperties
     ) {
         this.mediaService = mediaService;
         this.instrumentsService = instrumentsService;
+        this.omrClient = omrClient;
         this.applicationProperties = applicationProperties;
     }
 
     /**
      * Converts a list of page images into SheetsMusicDTOs grouped by PDF structure.
-     * For each group, attempts instrument detection via PDF text extraction (Level 1)
-     * and Tesseract OCR (Level 2, optional). Sets needsReview=true on DTOs that
+     * For each group, attempts instrument detection via PDF text extraction (Level 1); the groups without useful
+     * lines have the first page read by the OMR service (Level 2, optional). Sets needsReview=true on DTOs that
      * have auto-suggested instruments.
      */
     public List<SheetsMusicDTO> buildSheets(
@@ -83,34 +101,35 @@ public class PdfProcessingService {
         }
 
         List<InstrumentsDTO> allInstruments = loadAllInstruments(token);
-        List<SheetsMusicDTO> result = new ArrayList<>();
-        long scoreOrder = 0L;
+        List<Part> parts = new ArrayList<>();
 
         for (PageGroup group : groups) {
             Set<ChildrenEntitiesDTO> mediaSet = buildMediaSet(group, imagePaths, track, token);
             if (mediaSet.isEmpty()) continue;
-
             List<String> candidates = parseCandidateLines(textByFirstPage.getOrDefault(group.getFirstPage(), ""));
+            parts.add(new Part(group, mediaSet, candidates, candidates.isEmpty() ? firstPage(group, imagePaths) : null));
+        }
 
-            if (candidates.isEmpty() && applicationProperties.getTesseract().isEnabled()) {
-                String firstNonNullPath = null;
-                for (int i = group.getFirstPage(); i <= group.getLastPage() && i < imagePaths.size(); i++) {
-                    if (imagePaths.get(i) != null) {
-                        firstNonNullPath = imagePaths.get(i);
-                        break;
-                    }
-                }
-                if (firstNonNullPath != null) {
-                    candidates = extractViaOcr(firstNonNullPath);
-                }
-            }
+        List<List<String>> candidates = parts.stream().map(Part::candidates).collect(Collectors.toCollection(ArrayList::new));
+        List<Integer> scanned = new ArrayList<>();
+        for (int i = 0; i < parts.size(); i++) {
+            if (parts.get(i).scan() != null) scanned.add(i);
+        }
+        List<List<String>> read = readScannedPages(scanned.stream().map(i -> parts.get(i).scan()).toList());
+        for (int i = 0; i < scanned.size(); i++) {
+            candidates.set(scanned.get(i), read.get(i));
+        }
 
-            Set<ChildrenEntitiesDTO> suggested = matchInstruments(candidates, allInstruments);
+        List<SheetsMusicDTO> result = new ArrayList<>();
+        long scoreOrder = 0L;
+        for (int i = 0; i < parts.size(); i++) {
+            Part part = parts.get(i);
+            Set<ChildrenEntitiesDTO> suggested = matchInstruments(candidates.get(i), allInstruments);
 
             SheetsMusicDTO dto = new SheetsMusicDTO();
             dto.setOrder(++scoreOrder);
-            dto.setDescription(group.getTitle());
-            dto.setMedia(mediaSet);
+            dto.setDescription(part.group().getTitle());
+            dto.setMedia(part.media());
             if (!suggested.isEmpty()) {
                 dto.setInstruments(suggested);
                 dto.setNeedsReview(true);
@@ -119,6 +138,108 @@ public class PdfProcessingService {
         }
 
         return result;
+    }
+
+    /** A group of pages that becomes a part; {@code scan} is the page to read when the PDF gave no useful line. */
+    private record Part(PageGroup group, Set<ChildrenEntitiesDTO> media, List<String> candidates, Path scan) {}
+
+    /** The first page of the group not excluded by the user, or {@code null}. */
+    private static Path firstPage(PageGroup group, List<String> imagePaths) {
+        for (int i = group.getFirstPage(); i <= group.getLastPage() && i < imagePaths.size(); i++) {
+            if (imagePaths.get(i) != null) return Path.of(imagePaths.get(i));
+        }
+        return null;
+    }
+
+    /**
+     * The candidate lines of each page, in the same order, read by the OMR service in requests within its limits. A
+     * page that cannot be read gets no candidates. Without the service, the next requests are not attempted.
+     */
+    private List<List<String>> readScannedPages(List<Path> pages) {
+        List<List<String>> result = new ArrayList<>(Collections.nCopies(pages.size(), List.<String>of()));
+        OcrProperties ocr = applicationProperties.getPdfProcessing().getOcr();
+        if (pages.isEmpty() || !ocr.isEnabled() || !omrClient.isConfigured()) return result;
+
+        RuntimeException failure = null;
+        for (List<Integer> batch : batches(pages, ocr.getPagesPerRequest())) {
+            try {
+                read(pages, batch, ocr, result);
+            } catch (RuntimeException exception) {
+                failure = exception;
+                // The service is down, busy, slow or refuses the key: the other requests would fail the same way.
+                if (!(exception instanceof OmrException omr) || omr.isUnavailable()) break;
+            }
+        }
+        if (failure != null) {
+            log.warn("Text reading of the scanned pages not available ({}): their parts get no suggested instruments", failure.getMessage());
+        }
+        return result;
+    }
+
+    /** Indexes of the pages grouped in requests of at most {@code pagesPerRequest} pages and {@link #MAX_REQUEST_BYTES}. */
+    private static List<List<Integer>> batches(List<Path> pages, int pagesPerRequest) {
+        List<List<Integer>> batches = new ArrayList<>();
+        List<Integer> current = new ArrayList<>();
+        long bytes = 0;
+        for (int i = 0; i < pages.size(); i++) {
+            long size = sizeOf(pages.get(i));
+            if (!current.isEmpty() && (current.size() >= pagesPerRequest || bytes + size > MAX_REQUEST_BYTES)) {
+                batches.add(current);
+                current = new ArrayList<>();
+                bytes = 0;
+            }
+            current.add(i);
+            bytes += size;
+        }
+        if (!current.isEmpty()) batches.add(current);
+        return batches;
+    }
+
+    private static long sizeOf(Path page) {
+        try {
+            return Files.size(page);
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
+    private void read(List<Path> pages, List<Integer> batch, OcrProperties ocr, List<List<String>> result) {
+        List<Integer> sent = new ArrayList<>();
+        List<PageImage> images = new ArrayList<>();
+        for (int index : batch) {
+            try {
+                // Generic names: the service gets the images only, never the file, the track or the tenant.
+                images.add(new PageImage("page-" + (images.size() + 1) + ".png", "image/png", Files.readAllBytes(pages.get(index))));
+                sent.add(index);
+            } catch (IOException e) {
+                log.warn("Scanned page {} not readable: {}", pages.get(index).getFileName(), e.getMessage());
+            }
+        }
+        if (images.isEmpty()) return;
+        TextRecognitionResponse response = omrClient.readText(images);
+        for (TextPage page : Objects.requireNonNullElse(response.pages(), List.<TextPage>of())) {
+            int position = page.page() - 1;
+            if (position < 0 || position >= sent.size()) continue;
+            result.set(sent.get(position), candidateLines(page.lines(), ocr.getMinConfidence()));
+        }
+    }
+
+    /** The useful lines in the read zone with at least the minimum confidence. */
+    private List<String> candidateLines(List<TextLine> lines, double minConfidence) {
+        if (lines == null) return List.of();
+        String text = lines
+            .stream()
+            .filter(line -> line != null && line.text() != null)
+            .filter(line -> line.confidence() >= minConfidence)
+            .filter(PdfProcessingService::inReadZone)
+            .map(TextLine::text)
+            .collect(Collectors.joining("\n"));
+        log.debug("OCR kept from {} lines: {}", lines.size(), text);
+        return parseCandidateLines(text);
+    }
+
+    static boolean inReadZone(TextLine line) {
+        return line.x() + line.width() / 2 <= LEFT_ZONE || line.y() + line.height() / 2 <= TOP_ZONE;
     }
 
     private Set<ChildrenEntitiesDTO> buildMediaSet(
@@ -175,23 +296,6 @@ public class PdfProcessingService {
             .filter(line -> !line.matches("^[IVXivx]+\\.?$"))
             .distinct()
             .collect(Collectors.toList());
-    }
-
-    private List<String> extractViaOcr(String imagePath) {
-        ApplicationProperties.TesseractProperties cfg = applicationProperties.getTesseract();
-        try {
-            Tesseract tesseract = new Tesseract();
-            tesseract.setDatapath(cfg.getDataPath());
-            tesseract.setLanguage(cfg.getLanguage());
-            String text = tesseract.doOCR(new File(imagePath));
-            log.debug("OCR extracted {} chars from {}", text.length(), imagePath);
-            return parseCandidateLines(text);
-        } catch (TesseractException e) {
-            log.warn("OCR failed for {}: {}", imagePath, e.getMessage());
-        } catch (UnsatisfiedLinkError e) {
-            log.error("Tesseract native library not found — install Tesseract and ensure it is on the library path");
-        }
-        return List.of();
     }
 
     private Set<ChildrenEntitiesDTO> matchInstruments(List<String> candidates, List<InstrumentsDTO> instruments) {

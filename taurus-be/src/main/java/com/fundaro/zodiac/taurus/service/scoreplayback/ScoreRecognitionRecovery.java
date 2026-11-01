@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.scoreplayback;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties.OmrProperties;
+import com.fundaro.zodiac.taurus.config.ApplicationProperties.RecognitionJobProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.scoreplayback.ScoreRecognitionJob;
 import com.fundaro.zodiac.taurus.domain.scoreplayback.ScoreRecognitionJobStatus;
@@ -28,7 +29,8 @@ public class ScoreRecognitionRecovery {
 
     private static final Logger log = LoggerFactory.getLogger(ScoreRecognitionRecovery.class);
 
-    private final OmrProperties properties;
+    private final OmrProperties service;
+    private final RecognitionJobProperties properties;
     private final ScoreRecognitionJobRepository jobRepository;
     private final ScoreRecognitionQueue queue;
     private final ScoreRecognitionWorker worker;
@@ -45,6 +47,7 @@ public class ScoreRecognitionRecovery {
         TenantFeatureService tenantFeatureService,
         TenantTransactionExecutor transactions
     ) {
+        this.service = properties.getOmr();
         this.properties = properties.getScorePlayback().getOmr();
         this.jobRepository = jobRepository;
         this.queue = queue;
@@ -56,7 +59,7 @@ public class ScoreRecognitionRecovery {
 
     @Scheduled(fixedDelayString = "${application.score-playback.omr.recovery-delay:PT1M}", initialDelayString = "PT1M")
     public void recoverAllTenants() {
-        if (!properties.isConfigured() || !properties.isRecoveryEnabled()) return;
+        if (!service.isConfigured() || !properties.isRecoveryEnabled()) return;
         ZonedDateTime now = ZonedDateTime.now();
         for (String tenant : tenantSchemaRegistry.findActiveTenantCodes()) {
             if (!tenantFeatureService.isEnabledForTenant(tenant, TenantFeature.SCORE_PLAYBACK)) continue;

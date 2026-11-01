@@ -1,8 +1,8 @@
-# Optical music recognition service used by score playback, started with the other development services by services.yml.
+# Optical music recognition service used by score playback and by the text reading of scanned PDFs, started with the other development services by services.yml.
 # The image is the one published on Docker Hub by the release workflow (docker-publish.yml, at every v*.*.* tag):
 # TAURUS_OMR_VERSION chooses the version, latest by default. When the image is not published yet, Compose builds it
 # from taurus-omr; after changing the service, rebuild it with: docker compose -f src/main/docker/services.yml up -d --build omr
-# The backend calls it at http://localhost:8090 with SCORE_PLAYBACK_OMR_API_KEY, the same key of the service.
+# The backend calls it at http://localhost:8090 with TAURUS_OMR_API_KEY, the same key of the service.
 # In production publish no port: keep the service on an internal network reachable only by the backend.
 name: taurus
 
@@ -14,7 +14,7 @@ services:
     container_name: omr
     restart: unless-stopped
     environment:
-      - TAURUS_OMR_API_KEY=${SCORE_PLAYBACK_OMR_API_KEY:?set SCORE_PLAYBACK_OMR_API_KEY, at least 16 characters}
+      - TAURUS_OMR_API_KEY=${TAURUS_OMR_API_KEY:?set TAURUS_OMR_API_KEY, at least 16 characters}
       - TAURUS_OMR_CONCURRENCY=1
     read_only: true
     tmpfs:
