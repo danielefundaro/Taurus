@@ -47,4 +47,19 @@ public final class OmrDtos {
     /** A measure on a page: page from 1, coordinates as fractions of the page size. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MeasureBox(int measure, int page, double x, double y, double width, double height, boolean approximate) {}
+
+    /** The text read on the pages, one entry per page in the order they were sent. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TextRecognitionResponse(String engine, String version, long durationMillis, List<TextPage> pages) {}
+
+    /** The lines read on a page, from 1, top to bottom and left to right; empty when the page has no text. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TextPage(int page, List<TextLine> lines) {}
+
+    /**
+     * A line read on a page: the rectangle around it as fractions of the page size, the confidence of the engine from 0
+     * to 1. The text is untrusted: it is only compared with the names of the instruments.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TextLine(String text, double confidence, double x, double y, double width, double height) {}
 }

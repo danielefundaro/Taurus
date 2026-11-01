@@ -274,15 +274,26 @@ application:
     max-upload-bytes: 10485760
     kept-versions: 20
     cleanup-cron: '0 15 4 * * *'
+    # Recognition jobs; the connection to the service is application.omr.
     omr:
-      # Empty: recognition and MIDI upload are not offered.
-      url: ${SCORE_PLAYBACK_OMR_URL:}
-      api-key: ${SCORE_PLAYBACK_OMR_API_KEY:}
       timeout: PT12M
-      connect-timeout: PT5S
       concurrency: 1
       stale-after: PT30M
       max-attempts: 3
+  # Internal OMR service, shared by score playback and the text reading of uploaded PDFs.
+  omr:
+    # Empty: recognition, MIDI upload and text reading are not offered.
+    url: ${TAURUS_OMR_URL:}
+    # The same key of the service (TAURUS_OMR_API_KEY).
+    api-key: ${TAURUS_OMR_API_KEY:}
+    connect-timeout: PT5S
+  pdf-processing:
+    ocr:
+      # Reads the scanned first page of the parts with the OMR service, to suggest their instruments.
+      enabled: true
+      timeout: PT2M
+      min-confidence: 0.5
+      pages-per-request: 8
   onboarding:
     enabled: true
     recovery-enabled: true
@@ -359,10 +370,6 @@ application:
       issuer-uri: http://localhost:9080/admin/realms/taurus
       username: admin
       password: admin
-  tesseract:
-    enabled: false
-    data-path: C:\Program Files\Tesseract-OCR\tessdata
-    language: ita+eng
   vapid:
     # Generate keys with: npx web-push generate-vapid-keys
     public-key: BHEmW3uZIG2dS1KLCMqxvEnuA8lk_Tkf_gzVR9Qe7B5gsSRbrPKD903tCBiGCrVqVzfTG-zuiN6MnpN50sbAYfM

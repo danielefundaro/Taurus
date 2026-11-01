@@ -3,7 +3,9 @@ package com.fundaro.zodiac.taurus.service.scoreplayback.omr;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.PageImage;
+import com.fundaro.zodiac.taurus.service.scoreplayback.FakeOmrServer;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.RecognitionResponse;
+import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextRecognitionResponse;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +16,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -106,14 +109,71 @@ class OmrClientTest {
         assertThatThrownBy(() -> unconfigured.convertMidi("brano.mid", new byte[] { 1 })).isInstanceOf(OmrException.class);
     }
 
+    @Test
+    void readsTheTextOfThePages() throws IOException {
+        try (FakeOmrServer omr = new FakeOmrServer()) {
+            omr.answer("/v1/text-recognitions", 200, "application/json", """
+                {"engine":"RAPIDOCR","version":"3.10.0","durationMillis":840,"unknown":"ignored","pages":[
+                {"page":1,"lines":[{"text":"Clarinetto 1° in Sib","confidence":0.94,"x":0.05,"y":0.03,"width":0.22,"height":0.02}]},
+                {"page":2,"lines":[]}]}
+                """);
+
+            TextRecognitionResponse response = client(omr.url()).readText(List.of(
+                new PageImage("page-1.png", "image/png", new byte[] { 1, 2 }),
+                new PageImage("page-2.png", "image/png", new byte[] { 3 })
+            ));
+
+            assertThat(response.engine()).isEqualTo("RAPIDOCR");
+            assertThat(response.pages()).hasSize(2);
+            assertThat(response.pages().get(0).lines()).singleElement().satisfies(line -> {
+                assertThat(line.text()).isEqualTo("Clarinetto 1° in Sib");
+                assertThat(line.confidence()).isEqualTo(0.94);
+                assertThat(line.width()).isEqualTo(0.22);
+            });
+            assertThat(response.pages().get(1).lines()).isEmpty();
+            assertThat(omr.received()).singleElement().satisfies(received -> {
+                assertThat(received.key()).isEqualTo("service-key-0123456789");
+                assertThat(Long.parseLong(received.contentLength())).isEqualTo(received.bodySize());
+                assertThat(new String(received.body(), StandardCharsets.ISO_8859_1)).contains("filename=\"page-2.png\"");
+            });
+        }
+    }
+
+    @Test
+    void readingTheTextWaitsOnlyItsOwnTimeout() throws IOException {
+        try (FakeOmrServer omr = new FakeOmrServer()) {
+            omr.answerAfter(Duration.ofSeconds(4), "/v1/text-recognitions", 200, "application/json", "{\"pages\":[]}");
+            ApplicationProperties properties = properties(omr.url());
+            properties.getPdfProcessing().getOcr().setTimeout(Duration.ofSeconds(1));
+            OmrClient client = new OmrClient(properties, new ObjectMapper());
+            long started = System.nanoTime();
+
+            assertThatThrownBy(() -> client.readText(List.of(new PageImage("page-1.png", "image/png", new byte[] { 1 }))))
+                .isInstanceOfSatisfying(OmrException.class, exception -> assertThat(exception.isUnavailable()).isTrue());
+            assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofSeconds(4));
+        }
+    }
+
+    @Test
+    void anOlderServiceWithoutTextReadingIsUnavailable() throws IOException {
+        try (FakeOmrServer omr = new FakeOmrServer()) {
+            assertThatThrownBy(() -> client(omr.url()).readText(List.of(new PageImage("page-1.png", "image/png", new byte[] { 1 }))))
+                .isInstanceOfSatisfying(OmrException.class, exception -> assertThat(exception.isUnavailable()).isTrue());
+        }
+    }
+
     private String url() {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
     private static OmrClient client(String url) {
+        return new OmrClient(properties(url), new ObjectMapper());
+    }
+
+    private static ApplicationProperties properties(String url) {
         ApplicationProperties properties = new ApplicationProperties();
-        properties.getScorePlayback().getOmr().setUrl(url);
-        properties.getScorePlayback().getOmr().setApiKey("service-key-0123456789");
-        return new OmrClient(properties, new ObjectMapper());
+        properties.getOmr().setUrl(url);
+        properties.getOmr().setApiKey("service-key-0123456789");
+        return properties;
     }
 }

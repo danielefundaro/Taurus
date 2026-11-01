@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -17,35 +18,40 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /** A local stand-in for the OMR service: canned answers per path and a record of the requests received. */
-final class FakeOmrServer implements AutoCloseable {
+public final class FakeOmrServer implements AutoCloseable {
 
-    record Answer(int status, String contentType, byte[] body) {}
+    record Answer(int status, String contentType, byte[] body, Duration delay) {}
 
-    record Received(String path, String key, String contentLength, int bodySize) {}
+    public record Received(String path, String key, String contentLength, int bodySize, byte[] body) {}
 
     private final HttpServer server;
     private final Map<String, Answer> answers = new ConcurrentHashMap<>();
     private final List<Received> received = new CopyOnWriteArrayList<>();
 
-    FakeOmrServer() throws IOException {
+    public FakeOmrServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", this::handle);
         server.start();
     }
 
-    String url() {
+    public String url() {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    void answer(String path, int status, String contentType, String body) {
-        answers.put(path, new Answer(status, contentType, body.getBytes(StandardCharsets.UTF_8)));
+    public void answer(String path, int status, String contentType, String body) {
+        answerAfter(Duration.ZERO, path, status, contentType, body);
     }
 
-    List<Received> received() {
+    /** Answers only after the delay, as a slow service. */
+    public void answerAfter(Duration delay, String path, int status, String contentType, String body) {
+        answers.put(path, new Answer(status, contentType, body.getBytes(StandardCharsets.UTF_8), delay));
+    }
+
+    public List<Received> received() {
         return received;
     }
 
-    void reset() {
+    public void reset() {
         answers.clear();
         received.clear();
     }
@@ -83,9 +89,17 @@ final class FakeOmrServer implements AutoCloseable {
             exchange.getRequestURI().getPath(),
             exchange.getRequestHeaders().getFirst("X-Taurus-Omr-Key"),
             exchange.getRequestHeaders().getFirst("Content-Length"),
-            body.length
+            body.length,
+            body
         ));
-        Answer answer = answers.getOrDefault(exchange.getRequestURI().getPath(), new Answer(404, "application/json", "{\"code\":\"notFound\"}".getBytes(StandardCharsets.UTF_8)));
+        Answer answer = answers.getOrDefault(exchange.getRequestURI().getPath(), new Answer(404, "application/json", "{\"code\":\"notFound\"}".getBytes(StandardCharsets.UTF_8), Duration.ZERO));
+        if (!answer.delay().isZero()) {
+            try {
+                Thread.sleep(answer.delay().toMillis());
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        }
         exchange.getResponseHeaders().add("Content-Type", answer.contentType());
         exchange.sendResponseHeaders(answer.status(), answer.body().length);
         exchange.getResponseBody().write(answer.body());

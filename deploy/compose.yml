@@ -132,6 +132,7 @@ services:
     environment:
       TAURUS_OMR_API_KEY: ${TAURUS_OMR_API_KEY:?impostare TAURUS_OMR_API_KEY, almeno 16 caratteri}
       TAURUS_OMR_CONCURRENCY: ${TAURUS_OMR_CONCURRENCY:-1}
+      TAURUS_OMR_TEXT_CONCURRENCY: ${TAURUS_OMR_TEXT_CONCURRENCY:-1}
     # Le restrizioni di omr.yml: nessuna porta pubblicata, file system in sola lettura, /tmp in
     # memoria, nessuna capability e nessun privilegio nuovo.
     read_only: true
@@ -180,10 +181,11 @@ services:
       APPLICATION_VAPID_PUBLIC_KEY: ${TAURUS_VAPID_PUBLIC_KEY:?impostare TAURUS_VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${TAURUS_VAPID_PRIVATE_KEY:?impostare TAURUS_VAPID_PRIVATE_KEY}
       APPLICATION_VAPID_SUBJECT: ${TAURUS_VAPID_SUBJECT:?impostare TAURUS_VAPID_SUBJECT, per esempio mailto:tecnico@associazione.it}
-      # Ascolto delle parti: il servizio OMR risponde solo sulla rete interna.
+      # Ascolto delle parti e lettura del testo dei PDF scansionati: il servizio OMR risponde solo
+      # sulla rete interna, con la stessa chiave configurata sopra per il servizio.
       SCORE_PLAYBACK_ENABLED: ${TAURUS_SCORE_PLAYBACK_ENABLED:-true}
-      SCORE_PLAYBACK_OMR_URL: http://omr:8090
-      SCORE_PLAYBACK_OMR_API_KEY: ${TAURUS_OMR_API_KEY}
+      TAURUS_OMR_URL: http://omr:8090
+      TAURUS_OMR_API_KEY: ${TAURUS_OMR_API_KEY}
       INVENTORY_QR_ENABLED: ${TAURUS_INVENTORY_QR_ENABLED:-true}
       INVENTORY_QR_PUBLIC_BASE_URL: ${TAURUS_PUBLIC_URL}
       # Posta: serve ai codici e ai link della firma elettronica e alle notifiche. Senza un

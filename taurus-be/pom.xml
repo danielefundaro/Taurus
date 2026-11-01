@@ -353,12 +353,11 @@
       <version>5.25.0</version>
     </dependency>
 
-    <!-- OCR via Tesseract (optional, requires tesseract installed on the system) -->
-    <!-- https://mvnrepository.com/artifact/net.sourceforge.tess4j/tess4j -->
+    <!-- ImageIO reader of JBIG2, the compression of many scanned PDFs: without it PDFBox renders those pages blank. -->
     <dependency>
-      <groupId>net.sourceforge.tess4j</groupId>
-      <artifactId>tess4j</artifactId>
-      <version>5.13.0</version>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>jbig2-imageio</artifactId>
+      <version>3.0.4</version>
     </dependency>
 
     <!-- Web Push (VAPID) -->
