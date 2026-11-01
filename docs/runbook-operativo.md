@@ -93,8 +93,9 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 - Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
 - Chrome/Chromium per i test Karma;
 - una copia del SoundFont del lettore per `npm start` e `npm run build` (circa 38 MB, verificata con SHA-256): da `TAURUS_SOUNDFONT_PATH`, da `TAURUS_SOUNDFONT_URL` o, in mancanza di entrambe, da `ftp.osuosl.org`, che richiede accesso a Internet; `TAURUS_SKIP_SOUNDFONT=1` salta il passaggio quando il lettore non serve;
-- facoltativo: Python 3.12 per i test di `taurus-omr` fuori da Docker;
-- facoltativo: Tesseract OCR con dati `ita+eng`.
+- facoltativo: Python 3.12 per i test di `taurus-omr` fuori da Docker.
+
+Il backend non richiede librerie native: la lettura del testo delle pagine scansionate è del servizio OMR (§4.5).
 
 Verifica rapida:
 
@@ -161,8 +162,9 @@ Spring Boot accetta override tramite variabili d'ambiente con relaxed binding. L
 | Timeout etichette QR | `INVENTORY_QR_LABEL_TIMEOUT_SECONDS` | Facoltativo, predefinito 30, da 1 a 300; oltre il limite la stampa risponde `503 inventory.labels.timeout` |
 | Kill switch feed | `CALENDAR_FEED_ENABLED` | Come sopra |
 | Ascolto delle parti | `SCORE_PLAYBACK_ENABLED` | Capacità di installazione; il tenant la attiva con il proprio flag |
-| URL servizio OMR | `SCORE_PLAYBACK_OMR_URL` | Indirizzo interno di `taurus-omr`; vuoto nasconde riconoscimento e caricamento MIDI |
-| Chiave servizio OMR | `SCORE_PLAYBACK_OMR_API_KEY` | Segreto condiviso, uguale a `TAURUS_OMR_API_KEY` del servizio, almeno 16 caratteri |
+| URL servizio OMR | `TAURUS_OMR_URL` | Indirizzo interno di `taurus-omr`; vuoto nasconde riconoscimento e caricamento MIDI e spegne la lettura del testo dei PDF scansionati |
+| Chiave servizio OMR | `TAURUS_OMR_API_KEY` | Segreto condiviso: lo stesso nome e lo stesso valore per servizio e backend, almeno 16 caratteri |
+| Lettura del testo dei PDF | `APPLICATION_PDFPROCESSING_OCR_ENABLED` | Facoltativo, predefinito `true`: suggerisce gli strumenti delle parti scansionate con il servizio OMR |
 | Server SMTP | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME` | Senza host il backend non invia e-mail e la firma elettronica non è attivabile (§4.7) |
 | Password SMTP | `SPRING_MAIL_PASSWORD` | Segreto |
 | TLS SMTP | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true` o `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=true` | Secondo la porta del provider (587 STARTTLS, 465 SSL) |
@@ -248,10 +250,11 @@ Disabilitare un flag nasconde e blocca la funzione, ma non cancella i dati. Dopo
 ### 4.5 Servizio OMR
 
 - Avvio locale: fa parte di `services.yml` e si avvia con le altre dipendenze (§5.1). L'immagine è `fundanie/taurus-omr`, pubblicata su Docker Hub dal workflow `docker-publish.yml` a ogni tag `v*.*.*` come quelle di backend e frontend; `TAURUS_OMR_VERSION` nel file `.env` del compose sceglie la versione, `latest` per default. Se l'immagine non è pubblicata, Compose la costruisce da `taurus-omr` (pochi minuti la prima volta); dopo una modifica del servizio si ricostruisce con `docker compose -f taurus-be/src/main/docker/services.yml up -d --build omr`.
-- Chiave e indirizzo in sviluppo: il file `.env` del compose e il profilo `dev` del backend usano la stessa chiave di sviluppo e `http://localhost:8090`; `SCORE_PLAYBACK_OMR_API_KEY` e `SCORE_PLAYBACK_OMR_URL` li sostituiscono. Negli ambienti distribuiti la chiave va sempre impostata, diversa da quella di sviluppo.
+- Chiave e indirizzo in sviluppo: il file `.env` del compose e il profilo `dev` del backend usano la stessa chiave di sviluppo e `http://localhost:8090`; `TAURUS_OMR_API_KEY` e `TAURUS_OMR_URL` li sostituiscono. Negli ambienti distribuiti la chiave va sempre impostata, diversa da quella di sviluppo. Le vecchie variabili `SCORE_PLAYBACK_OMR_URL` e `SCORE_PLAYBACK_OMR_API_KEY` sono ignorate: con le sole vecchie variabili il servizio risulta non configurato e all'avvio il backend lo segnala con un messaggio informativo.
 - In produzione il servizio non pubblica porte: sta su una rete interna raggiungibile solo dal backend, con file system in sola lettura, `/tmp` in memoria, utente non privilegiato e limiti di CPU e memoria come in `omr.yml`.
-- Stato: `GET /v1/health` restituisce stato e versioni dei motori senza chiave. Un riconoscimento di una pagina richiede circa 40 secondi con 4 CPU, con i due motori in parallelo; la concorrenza predefinita è un job alla volta.
-- Rotazione della chiave: aggiornare insieme `TAURUS_OMR_API_KEY` del servizio e `SCORE_PLAYBACK_OMR_API_KEY` del backend (§15.4); con chiavi diverse i job terminano con `serviceUnavailable` e il backend registra un errore.
+- Stato: `GET /v1/health` restituisce senza chiave stato e versioni dei motori di riconoscimento e del motore di lettura del testo (`textEngine`). Un riconoscimento di una pagina richiede circa 40 secondi con 4 CPU, con i due motori in parallelo; la concorrenza predefinita è un job alla volta.
+- Lettura del testo: l'elaborazione dei PDF manda al servizio (`POST /v1/text-recognitions`) la prima pagina delle parti senza testo selezionabile, a lotti di 8 pagine, e suggerisce gli strumenti letti nel margine sinistro o nella fascia in alto. RapidOCR gira in un processo separato, con slot propri che non aspettano i riconoscimenti: circa 4 secondi a pagina con 2 thread. `TAURUS_OMR_TEXT_CONCURRENCY` (1), `TAURUS_OMR_TEXT_THREADS` (2) e `TAURUS_OMR_TEXT_TIMEOUT_SECONDS` (60) regolano il servizio; `application.pdf-processing.ocr.*` il backend (attivazione, attesa, affidabilità minima, pagine per richiesta). Se il servizio non risponde, l'elaborazione termina comunque e le parti restano senza suggerimenti.
+- Rotazione della chiave: aggiornare insieme `TAURUS_OMR_API_KEY` del servizio e del backend (§15.4); con chiavi diverse i job terminano con `serviceUnavailable`, le parti scansionate restano senza suggerimenti e il backend registra un errore.
 - Aggiornamento dei motori: nuova immagine con le versioni e le impronte aggiornate in `Dockerfile`, `requirements.txt` e `models.sha256`. La CI (`verify.yml`) costruisce l'immagine, la avvia e misura l'accuratezza sul corpus di riferimento: il job fallisce se un motore legge meno battute del minimo fissato in `taurus-omr/tests/test_accuracy.py` e la tabella dei risultati è nel riepilogo del job. Se i risultati migliorano si alza il minimo. Prima del rilascio si ripete la misura su parti reali (§4.6).
 
 ### 4.6 Accuratezza dei motori
@@ -259,6 +262,7 @@ Disabilitare un flag nasconde e blocca la funzione, ma non cancella i dati. Dopo
 Il modulo `taurus-omr` contiene gli strumenti di misura (`accuracy/`), da eseguire nella cartella del modulo con le dipendenze di `requirements-test.txt`:
 
 - corpus di riferimento: `python -m accuracy run --url http://localhost:8090 --key <chiave>` riconosce le sei parti del corpus con il servizio indicato e stampa, per motore, le battute corrette, le indicazioni di struttura lette e i tempi; `--save <cartella>` conserva ciò che ha letto ogni motore;
+- nomi delle parti: `python -m accuracy names --url http://localhost:8090 --key <chiave>` legge la prima pagina di ogni parte del corpus con il motore di lettura del testo e stampa le righe che il backend terrebbe, con le stesse regole di zona e affidabilità; `tests/test_accuracy.py` fissa la quota minima di nomi letti;
 - parti reali: dopo che un archivista ha corretto e approvato una parte riconosciuta, si scaricano dal dialogo delle versioni la versione approvata e quella del motore, e `python -m accuracy compare approvata.mxl audiveris.mxl` elenca le battute diverse e la quota di battute corrette;
 - una battuta è corretta se si ascolta uguale: stessa durata, stesse note per inizio, durata, altezza e legatura di valore; non contano grafia degli accidenti, voci, travature e pause. Le battute sono allineate, quindi una battuta persa o letta due volte conta una volta sola;
 - nuove parti di riferimento: si aggiungono a `accuracy/corpus.py` e si ridisegnano con `python -m accuracy render` (dipendenze di `requirements-accuracy.txt`, la libreria Cairo e un carattere compatibile con Times), per esempio in un container: `docker run --rm -v "${PWD}:/work" -w /work python:3.12-slim-bookworm sh -c "apt-get update && apt-get install -y libcairo2 fonts-liberation && pip install -r requirements-accuracy.txt && python -m accuracy render"`.
@@ -604,6 +608,12 @@ Resta aperto il gate che nessun file può chiudere: il manifest non è ancora st
 I comandi della sequenza, per un'installazione con il manifest di riferimento, stanno nel [README del deploy](../deploy/README.md): primo insediamento, import del realm, aggiornamento.
 
 Una volta sola, alla prima release che porta le code di scarto: `upload.files` e `score.recognition` cambiano argomenti e RabbitMQ non riapre una coda esistente con argomenti diversi, quindi il backend si fermerebbe all'avvio con `PRECONDITION_FAILED`. Con il backend fermo e le code vuote (ready e unacked a zero sulla console, o `rabbitmqctl list_queues name messages messages_unacknowledged`), cancellarle prima del punto 9 con `rabbitmqctl delete_queue upload.files` e `rabbitmqctl delete_queue score.recognition`; il backend le ricrea all'avvio con gli argomenti nuovi. Se un messaggio è ancora in coda non è una perdita di lavoro: il job resta nel database e la ripresa pianificata lo chiude in errore o lo ripubblica.
+
+Una volta sola, alla prima release che porta la lettura del testo nel servizio OMR:
+
+- le variabili del backend `SCORE_PLAYBACK_OMR_URL` e `SCORE_PLAYBACK_OMR_API_KEY` diventano `TAURUS_OMR_URL` e `TAURUS_OMR_API_KEY`: i nomi vecchi sono ignorati e senza i nuovi riconoscimento, caricamento MIDI e lettura del testo non vengono offerti. Il manifest di riferimento usa già i nomi nuovi;
+- le proprietà `application.tesseract.*` non esistono più: un'installazione che le imposta, nel file di configurazione o con variabili `APPLICATION_TESSERACT_*`, va ripulita prima, altrimenti il backend non si avvia;
+- il servizio OMR va aggiornato insieme al backend (punto 6): un servizio precedente risponde 404 alla lettura del testo e le parti scansionate restano senza suggerimenti.
 
 ### 8.3 Verifica migration tenant
 
@@ -993,12 +1003,13 @@ Per la coda `score.recognition` seguire il §14.9.
 
 ### 14.9 Riconoscimento delle parti lento o fallito
 
-- verificare `GET /v1/health` del servizio OMR dalla rete del backend e la corrispondenza tra `SCORE_PLAYBACK_OMR_API_KEY` e `TAURUS_OMR_API_KEY`: con chiavi diverse ogni job termina con `serviceUnavailable`;
+- verificare `GET /v1/health` del servizio OMR dalla rete del backend e che `TAURUS_OMR_API_KEY` abbia lo stesso valore nel servizio e nel backend: con chiavi diverse ogni job termina con `serviceUnavailable`;
 - leggere il codice d'errore dei job (`score_recognition_job.error_code`) e i log del backend per `jobId`, parte e tenant: `serviceUnavailable` indica servizio fermo o irraggiungibile, `engineFailed` ed `engineTimeout` un motore fallito su quelle pagine, che resta ripetibile con «Riprova»;
 - nei log del servizio ogni riconoscimento riporta pagine, esito e durata di ciascun motore; con la concorrenza predefinita le richieste attendono il proprio turno e oltre il tempo massimo rispondono `busy`, che il backend registra come `serviceUnavailable`;
 - verificare CPU, memoria e `/tmp` del container: Audiveris e homr insieme usano fino a 4 CPU e alcuni GB di memoria per pagina;
 - i job interrotti vengono rimessi in coda dal recupero pianificato (§11), al massimo tre volte, poi terminano con `interrupted`: non ripubblicare a mano i messaggi;
-- se un motore peggiora dopo un aggiornamento, tornare alla versione precedente dell'immagine con `TAURUS_OMR_VERSION` e misurare di nuovo l'accuratezza (§4.6).
+- se un motore peggiora dopo un aggiornamento, tornare alla versione precedente dell'immagine con `TAURUS_OMR_VERSION` e misurare di nuovo l'accuratezza (§4.6);
+- parti dei PDF scansionati senza strumenti suggeriti: il backend registra al massimo un avviso per caricamento con il motivo (servizio non raggiungibile, chiave rifiutata, `busy`, `engineTimeout`, 404 da un servizio non aggiornato); il caricamento termina comunque `DONE` e gli strumenti si assegnano a mano. Nei log del servizio ogni lettura riporta pagine, righe lette e durata, mai il testo; il testo letto compare nel backend solo a livello debug.
 
 ### 14.10 Sospetta violazione tenant o sicurezza
 
@@ -1050,9 +1061,9 @@ La chiave pubblica è incorporata nel frontend. La rotazione richiede coordiname
 ### 15.4 Rotazione della chiave del servizio OMR
 
 1. Generare una nuova chiave di almeno 16 caratteri nel secret manager.
-2. Aggiornare insieme `TAURUS_OMR_API_KEY` del servizio e `SCORE_PLAYBACK_OMR_API_KEY` del backend e riavviarli.
+2. Aggiornare `TAURUS_OMR_API_KEY`, che nel manifest di riferimento configura insieme servizio e backend, e riavviarli.
 3. Verificare un riconoscimento di prova: con chiavi diverse i job terminano con `serviceUnavailable`.
-4. Riavviare con «Riprova» i riconoscimenti falliti durante la rotazione.
+4. Riavviare con «Riprova» i riconoscimenti falliti durante la rotazione. I PDF caricati nel frattempo hanno le parti scansionate senza strumenti suggeriti: si assegnano a mano.
 
 ### 15.5 Rotazione della chiave dei codici di firma
 

@@ -127,6 +127,14 @@ La chiave usa lo stesso nome nel backend e nel servizio: nel compose una sola va
 
 **Nessun nuovo tentativo** quando il servizio è occupato, lento o non risponde: le parti restano senza suggerimenti. Ripetere la richiesta allungherebbe l'elaborazione del PDF per un risultato facoltativo, e con gli slot separati il servizio occupato è un caso raro.
 
+### 11. Pagine per richiesta
+
+Fissata il 01/11/2026 con la prova preliminare. **Al massimo 8 pagine per richiesta** (`application.pdf-processing.ocr.pages-per-request`) invece di 30: RapidOCR legge una pagina in circa 3,5–4 secondi con 2 thread, quindi 30 pagine supererebbero il tempo massimo di 60 secondi del servizio e l'intera richiesta resterebbe senza suggerimenti. Il caricamento dei modelli si ripete a ogni richiesta, ma costa 1,2 secondi.
+
+### 12. Servizio non disponibile a metà del PDF
+
+Fissata il 01/11/2026. Quando una richiesta fallisce perché il servizio non risponde, rifiuta la chiave, è occupato o supera il tempo massimo, **il backend non invia le richieste successive** dello stesso PDF: fallirebbero allo stesso modo, ognuna dopo la propria attesa. Un rifiuto che riguarda le immagini (413, 422) lascia senza suggerimenti solo le parti di quella richiesta.
+
 ## Servizio OMR
 
 ### API interna
@@ -181,9 +189,9 @@ La chiave usa lo stesso nome nel backend e nel servizio: nel compose una sola va
 
 1. `PdfProcessingService` applica il livello 1 a tutte le parti, come oggi.
 2. Raccoglie la prima pagina non esclusa delle parti per cui il livello 1 non ha dato righe utili (decisione 2).
-3. Se l'OCR è attivo e il servizio è configurato, invia le pagine al servizio in una o più richieste che rispettano i limiti: al massimo 30 pagine e 20 MB, con un margine sotto i 25 MB del servizio.
+3. Se l'OCR è attivo e il servizio è configurato, invia le pagine al servizio in una o più richieste che rispettano i limiti: al massimo 8 pagine (decisione 11) e 20 MB, con un margine sotto i 25 MB del servizio.
 4. Di ogni pagina tiene le righe nella zona letta (decisione 1) con affidabilità almeno pari a `min-confidence`, e le passa a `parseCandidateLines` e `matchInstruments` come oggi.
-5. Se il servizio non risponde, rifiuta la richiesta o supera il tempo massimo, le parti di quella richiesta restano senza suggerimenti, senza nuovi tentativi (decisione 10). L'elaborazione del PDF prosegue e termina `DONE`.
+5. Se il servizio non risponde, rifiuta la richiesta o supera il tempo massimo, le parti di quella richiesta restano senza suggerimenti, senza nuovi tentativi (decisione 10); se il servizio non è disponibile restano senza suggerimenti anche quelle delle richieste successive (decisione 12). L'elaborazione del PDF prosegue e termina `DONE`.
 
 Il backend invia al servizio solo le immagini, con nomi generici (`page-1.png`, `page-2.png`…), senza codice del tenant, nome del file originale o dati dell'utente.
 
@@ -208,6 +216,7 @@ Lettura del testo:
 | `application.pdf-processing.ocr.enabled` | `true` | lettura del testo delle pagine senza testo selezionabile; senza servizio configurato non ha effetto |
 | `application.pdf-processing.ocr.timeout` | `PT2M` | attesa massima di una richiesta al servizio |
 | `application.pdf-processing.ocr.min-confidence` | `0.5` | affidabilità minima di una riga |
+| `application.pdf-processing.ocr.pages-per-request` | `8` | pagine per richiesta al servizio, da 1 a 30 (decisione 11) |
 
 Il profilo `dev` imposta `http://localhost:8090` e la chiave di sviluppo, come oggi. Le impostazioni dei job di riconoscimento restano sotto `application.score-playback.omr`.
 
@@ -263,7 +272,7 @@ Prima della rimozione si confronta l'albero delle dipendenze (`./mvnw dependency
 
 | Situazione | Comportamento |
 | --- | --- |
-| PDF con più di 30 parti | più richieste da al massimo 30 pagine |
+| PDF con più di 8 parti scansionate | più richieste da al massimo 8 pagine |
 | Prime pagine che superano insieme 20 MB | più richieste, divise per dimensione |
 | PDF di più tenant elaborati insieme | richieste indipendenti, in coda sugli slot del servizio; nessun dato condiviso |
 
@@ -327,6 +336,8 @@ Prima della rimozione si confronta l'albero delle dipendenze (`./mvnw dependency
 ## Piano di adozione e compatibilità
 
 0. **Prova preliminare.** RapidOCR e Tesseract a confronto sulle prime pagine scansionate di 10–20 parti reali: strumenti suggeriti correttamente, suggerimenti sbagliati, tempi e caricamento dei modelli. La prova conferma o corregge le misure della zona, la soglia, il modello e l'esecuzione in un processo separato (decisioni 1, 3, 4 e 6). I nomi letti servono anche al vocabolario degli [strumenti da aggiungere](track-instrument-suggestions-spec.md).
+
+   Il 01/11/2026 la prova è stata fatta sulle sei pagine del corpus di accuratezza, comprese le pagine che imitano una scansione, nell'immagine del servizio senza rete: modelli caricati in 1,2 secondi (decisione 4 confermata), 3,5–4 secondi a pagina con 2 thread, tutti i nomi delle parti letti con affidabilità di almeno 0,98 e il centro nella zona della decisione 1. Il confronto con Tesseract su parti reali resta da fare prima del rilascio e può ancora correggere zona e soglia, che sono proprietà.
 1. **Servizio.** Endpoint, motore in un processo separato, slot, test e accuratezza; nuova immagine pubblicata con il tag di release.
 2. **Backend.** Client, nuovo flusso, configurazione `application.omr.*` e `application.pdf-processing.ocr.*`, rimozione di tess4j e test.
 3. **Configurazione di sviluppo.** `TAURUS_OMR_API_KEY` al posto di `SCORE_PLAYBACK_OMR_API_KEY` in `omr.yml` e nel file `.env` del compose; profilo `dev` aggiornato.

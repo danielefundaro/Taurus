@@ -204,7 +204,8 @@ Le versioni dei motori, delle dipendenze Python (`requirements.txt`) e dei model
 | --- | --- |
 | `POST /v1/recognitions` | multipart con le pagine PNG, JPEG o WebP in ordine (`pages`) e i motori richiesti (`engines`, predefiniti entrambi); risponde, al termine, con un risultato per motore |
 | `POST /v1/midi-conversions` | multipart con il file MIDI (`file`); risponde con il MusicXML, una parte per traccia, con le durate quantizzate a sedicesimi e terzine di crome |
-| `GET /v1/health` | stato e versioni dei motori, senza chiave |
+| `POST /v1/text-recognitions` | lettura del testo delle pagine, usata dall'elaborazione dei PDF: si veda [Lettura del testo nel servizio OMR](omr-text-recognition-spec.md#api-interna) |
+| `GET /v1/health` | stato e versioni dei motori, compreso quello di lettura del testo, senza chiave |
 
 Il risultato di un motore contiene stato, MusicXML compresso, posizioni delle battute (`{ measure, page, x, y, width, height, approximate }`), durata ed eventuale codice di errore. Elenco delle parti e controlli sono calcolati dal backend, come per i file caricati.
 
@@ -220,10 +221,10 @@ Il risultato di un motore contiene stato, MusicXML compresso, posizioni delle ba
 | --- | --- | --- |
 | `application.score-playback.enabled` | `false` | abilitazione a livello di installazione (variabile `SCORE_PLAYBACK_ENABLED`) |
 | `application.score-playback.max-upload-bytes` | 10 MB | dimensione massima di un file caricato |
-| `application.score-playback.omr.url` | vuoto | indirizzo del servizio; vuoto nasconde le azioni di riconoscimento |
-| `application.score-playback.omr.api-key` | da variabile d'ambiente | chiave condivisa |
-| `application.score-playback.omr.timeout` | `PT12M` | attesa massima della risposta |
-| `application.score-playback.omr.connect-timeout` | `PT5S` | attesa massima della connessione |
+| `application.omr.url` | vuoto | indirizzo del servizio, condiviso con la [lettura del testo dei PDF](omr-text-recognition-spec.md); vuoto nasconde le azioni di riconoscimento |
+| `application.omr.api-key` | da variabile d'ambiente | chiave condivisa |
+| `application.omr.connect-timeout` | `PT5S` | attesa massima della connessione |
+| `application.score-playback.omr.timeout` | `PT12M` | attesa massima della risposta a un riconoscimento |
 | `application.score-playback.omr.concurrency` | `1` | job eseguiti in parallelo dal backend |
 | `application.score-playback.omr.stale-after` | `PT30M` | dopo questo tempo un job in corso torna in coda e un job in coda viene pubblicato di nuovo |
 | `application.score-playback.omr.max-attempts` | `3` | tentativi di un job prima che diventi `FAILED` con `interrupted` |
@@ -231,7 +232,7 @@ Il risultato di un motore contiene stato, MusicXML compresso, posizioni delle ba
 | `application.score-playback.kept-versions` | `20` | versioni conservate per parte dalla pulizia notturna |
 | `application.score-playback.cleanup-cron` | `0 15 4 * * *` | orario della pulizia notturna |
 
-Le variabili d'ambiente sono `SCORE_PLAYBACK_OMR_URL` e `SCORE_PLAYBACK_OMR_API_KEY`.
+Le variabili d'ambiente sono `TAURUS_OMR_URL` e `TAURUS_OMR_API_KEY`, la stessa chiave del servizio: nel compose una sola variabile configura entrambi.
 
 In sviluppo il servizio si avvia con le altre dipendenze di `taurus-be/src/main/docker/services.yml`, definito in `omr.yml`: immagine `fundanie/taurus-omr` alla versione `TAURUS_OMR_VERSION` (`latest` per default), costruita da `taurus-omr` se non è pubblicata, e chiave di sviluppo condivisa con il profilo `dev` del backend. Il servizio ha file system in sola lettura, `/tmp` in memoria, nessuna capability e limiti di CPU e memoria; l'immagine è verificata da `verify.yml` e pubblicata da `docker-publish.yml` come `taurus-omr`.
 
@@ -707,7 +708,7 @@ Il nuovo modulo `taurus-omr` include i testi delle licenze e un riferimento ai s
 - Il foglio `Strumenti` dell'importazione iniziale accetta sia il formato precedente sia quello con le nuove colonne.
 - Rollback: disattivare la funzionalità; tabelle, versioni e file restano per una riattivazione.
 
-- Il servizio OMR è facoltativo: senza `SCORE_PLAYBACK_OMR_URL` riconoscimento e caricamento MIDI non vengono offerti. Per pubblicare l'immagine serve il repository `taurus-omr` su Docker Hub, come per backend e frontend.
+- Il servizio OMR è facoltativo: senza `TAURUS_OMR_URL` riconoscimento e caricamento MIDI non vengono offerti. Per pubblicare l'immagine serve il repository `taurus-omr` su Docker Hub, come per backend e frontend.
 
 Il modulo `taurus-omr` è descritto anche in `AGENTS.md`, è tra i moduli ammessi dal catalogo, è verificato da `verify.yml` e pubblicato da `docker-publish.yml`; le procedure sono nel [Runbook operativo](runbook-operativo.md) e nel [Runbook di test](runbook-test.md).
 
