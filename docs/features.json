@@ -1129,13 +1129,14 @@
       "title": "Strumenti da aggiungere dai PDF delle tracce",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "not-planned",
+      "deliveryStatus": "implemented",
       "spec": "docs/track-instrument-suggestions-spec.md",
       "relatedDocs": [
         "docs/application-errors-standard.md",
         "docs/event-preparation-spec.md",
         "docs/notification-editorial-style.md",
         "docs/omr-text-recognition-spec.md",
+        "docs/runbook-test.md",
         "docs/taurus-layout-standard.md",
         "docs/track-parts-workspace-spec.md",
         "docs/track-pdf-processing-spec.md",
@@ -1143,13 +1144,39 @@
       ],
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
-        "implementation": [],
-        "migrations": [],
-        "tests": []
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/InstrumentNameRecognizer.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/InstrumentNames.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/TrackInstrumentSuggestionService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/PdfInstrumentsOutcome.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/TrackInstrumentSuggestionResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scoreplayback/InstrumentPlaybackCatalog.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/PdfProcessingService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/InstrumentsServiceImpl.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/TracksServiceImpl.java",
+          "taurus-fe/src/app/pages/tracks/detail/instrument-suggestions-panel/instrument-suggestions-panel.component.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.ts",
+          "taurus-fe/src/app/pages/tracks/detail/detail.component.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261101000000_sheet_music_instrument_suggestion.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/InstrumentNamesTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/InstrumentNameRecognizerTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/PdfInstrumentsOutcomeTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/instrumentsuggestion/TrackInstrumentSuggestionIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InstrumentsServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/PdfProcessingServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/rabbitmq/ReceiverTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/SecurityConfigurationTest.java",
+          "taurus-fe/src/app/pages/tracks/detail/instrument-suggestions-panel/instrument-suggestions-panel.component.spec.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-workspace/score-workspace.component.spec.ts"
+        ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-24",
-      "notes": "Decisioni approvate il 2026-10-20, separate da omr-text-recognition: nomi letti sulle parti riconosciuti con il catalogo di riferimento arricchito, nome esatto poi parola chiave più lunga e tonalità rispettata; gli strumenti assenti dal tenant diventano suggerimenti salvati sulle parti, senza scadenza, da creare, associare o ignorare nel workspace Parti in un'unica transazione; nome proposto senza numeri d'ordine; unicità del nome controllata anche per la creazione manuale; proposta di suono applicata; notifica a chi ha caricato il PDF. Non dipende dalla lettura del testo nel servizio OMR. Implementazione non ancora pianificata. Il 2026-10-24 la specifica rimanda al comando Segna come verificata del workspace Parti, che azzera needsReview."
+      "lastVerifiedOn": "2026-11-01",
+      "notes": "Decisioni approvate il 2026-10-20, implementata il 2026-11-01. Il catalogo di riferimento dell'ascolto riconosce anche abbreviazioni, plurali e strumenti senza suono (arpa, contrabbasso, chitarra, pianoforte...); le righe lette sulle parti, dal PDF o dall'OCR, seguono nome esatto, parola chiave più lunga con tonalità compatibile e contenimento sui soli strumenti fuori catalogo. I nomi che il tenant non ha, o che corrispondono a più strumenti, sono salvati nella tabella sheet_music_instrument_suggestion con le parti di appendScores ed eliminati con le parti rimosse dal salvataggio della traccia. GET e POST /api/tracks/{id}/instrument-suggestions[/apply] applicano Crea, Associa e Ignora in una transazione, con la traccia bloccata e la versione controllata. Il nome degli strumenti è unico nel tenant sotto un advisory lock (instrument.name.exists). Il job salva il riepilogo delle parti e chi ha caricato il PDF riceve la notifica solo con strumenti da aggiungere. Nel workspace Parti il pannello Strumenti da aggiungere, l'etichetta sulle parti e l'avviso all'unione. Restano da fare la verifica manuale con un PDF di parti reali e il controllo visivo del pannello."
     },
     {
       "id": "track-page-image-editing",

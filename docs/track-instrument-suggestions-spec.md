@@ -344,3 +344,14 @@ Compatibilità:
 - **Strumenti doppi.** Nomi diversi per lo stesso strumento («Sax contralto» e «Sassofono contralto») possono portare a crearlo due volte. Mitigazione: confronto per parola chiave, proposta **Associa**, controllo sul nome e nome sempre modificabile.
 - **Suggerimenti dimenticati.** Suggerimenti mai decisi restano aperti senza che nessuno li guardi. Mitigazione: notifica a fine job ed etichetta sulle parti.
 - **Vocabolario incompleto.** Uno strumento che il catalogo non conosce non viene mai proposto. Mitigazione: elenco costruito sulle parti reali e aggiornabile senza modifiche al modello dati.
+
+## Note di implementazione
+
+Scelte fatte durante lo sviluppo, il 01/11/2026, su punti che la specifica lasciava aperti:
+
+- **Nome esatto con i numeri d'ordine.** Il confronto esatto tiene i numeri d'ordine come numeri («II» e «2°» valgono «2») e mette da parte la tonalità, che si confronta a sé: «Clarinetto 1° in Sib» va a «Clarinetto 1°», mentre «Clarinetto in Sib» con «Clarinetto 1°» e «Clarinetto 2°» nel tenant diventa **Associa**.
+- **Possibile partitura.** Conta gli strumenti già assegnati alla parte più i nomi ancora aperti: oltre 4 la parte non viene preselezionata.
+- **Più tardi.** Oltre a Crea, Associa e Ignora il pannello offre Più tardi, che non invia la decisione: il nome resta aperto, come previsto per i nomi assenti dalle decisioni.
+- **Decisione incompleta.** Un nome da creare senza nome o da associare senza strumento è rifiutato dalla validazione della richiesta (`validation`), senza una chiave di errore nuova.
+- **Riepilogo del job.** I conteggi stanno in tre colonne di `upload_job`, vuote per i job elaborati prima; il riepilogo e la notifica sono registrati dopo il salvataggio delle parti, in una transazione separata, e un loro errore non fa fallire il job.
+- **Parti eliminate.** Il salvataggio della traccia elimina in modo logico i suggerimenti delle parti che non invia più, prima di riscrivere l'elenco delle parti.
