@@ -8,7 +8,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `application-errors-standard` | [Standard degli errori applicativi](application-errors-standard.md) | standard | approved | implemented | BE, FE, Repository | 0 | [5](#application-errors-standard-evidenze) | non rilasciata | 2026-10-26 |
 | `board-role` | [Ruolo direttivo](board-role-spec.md) | feature | approved | in-progress | Keycloak, BE, FE | 0 | [11](#board-role-evidenze) | non rilasciata | 2026-11-02 |
 | `documentation-implementation-alignment` | [Governance e allineamento tra documentazione e implementazione](documentation-implementation-alignment-spec.md) | standard | approved | implemented | Repository | 0 | [1](#documentation-implementation-alignment-evidenze) | non rilasciata | 2026-10-23 |
-| `email-layout-standard` | [Aspetto unificato delle e-mail](email-layout-standard.md) | standard | draft | not-planned | Keycloak, BE | 0 | 0 | non rilasciata | 2026-11-02 |
+| `email-layout-standard` | [Aspetto unificato delle e-mail](email-layout-standard.md) | standard | approved | planned | Keycloak, BE | 0 | 0 | non rilasciata | 2026-11-03 |
 | `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | implemented | BE, FE | [2](#event-preparation-evidenze) | [16](#event-preparation-evidenze) | non rilasciata | 2026-10-28 |
 | `external-calendar-feed` | [Feed calendario esterno in sola lettura](external-calendar-feed-spec.md) | feature | approved | implemented | BE, FE | [5](#external-calendar-feed-evidenze) | [13](#external-calendar-feed-evidenze) | non rilasciata | 2026-10-29 |
@@ -77,7 +77,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Implementazione: nessuna
 - Migrazioni: nessuna
 - Test: nessuna
-- Note: Bozza del 2026-11-02: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG (in linea nel backend, dalle risorse del tema in Keycloak), parte solo testo in ogni e-mail, oggetti di Keycloak in italiano. Nessuna migrazione.
+- Note: Bozza del 2026-11-02, approvata il 2026-11-03: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG di Taurus (allegato in linea nel backend, dalle risorse del tema in Keycloak, senza toccare l'invio SMTP di Keycloak), parte solo testo in ogni e-mail, italiano come unica lingua del realm. Nessuna migrazione; nei realm esistenti la lingua si imposta a mano.
 
 <a id="event-payout-shares-evidenze"></a>
 ### Ripartizione dei compensi ai presenti

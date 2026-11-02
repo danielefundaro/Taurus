@@ -120,8 +120,8 @@
       "id": "email-layout-standard",
       "title": "Aspetto unificato delle e-mail",
       "kind": "standard",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "planned",
       "spec": "docs/email-layout-standard.md",
       "relatedDocs": ["docs/inventory-electronic-signature-spec.md", "docs/runbook-operativo.md", "docs/runbook-test.md"],
       "modules": ["keycloak-authenticator", "taurus-be"],
@@ -131,8 +131,8 @@
         "tests": []
       },
       "release": null,
-      "lastVerifiedOn": "2026-11-02",
-      "notes": "Bozza del 2026-11-02: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG (in linea nel backend, dalle risorse del tema in Keycloak), parte solo testo in ogni e-mail, oggetti di Keycloak in italiano. Nessuna migrazione."
+      "lastVerifiedOn": "2026-11-03",
+      "notes": "Bozza del 2026-11-02, approvata il 2026-11-03: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG di Taurus (allegato in linea nel backend, dalle risorse del tema in Keycloak, senza toccare l'invio SMTP di Keycloak), parte solo testo in ogni e-mail, italiano come unica lingua del realm. Nessuna migrazione; nei realm esistenti la lingua si imposta a mano."
     },
     {
       "id": "event-payout-shares",
