@@ -398,7 +398,7 @@ class EventPreparationServiceTest {
         NotificationCommand admins = commands.getAllValues().get(0);
         NotificationCommand member = commands.getAllValues().get(1);
         assertThat(admins.message()).contains("Leggio × 2").contains("Tamburo × 1");
-        assertThat(admins.audiences()).extracting(value -> value.value()).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_SUPER_ADMIN");
+        assertThat(admins.audiences()).extracting(value -> value.value()).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_BOARD", "ROLE_SUPER_ADMIN");
         assertThat(member.message()).contains("Leggio × 2").doesNotContain("Tamburo");
         assertThat(member.audiences()).extracting(value -> value.value()).containsExactly("member");
         assertThat(member.eventKey()).endsWith(":user:member").hasSizeLessThanOrEqualTo(160);

@@ -440,6 +440,162 @@ class UsersServiceImplTest {
         assertThat(account.getAttributes()).containsEntry("BMCDG_roles", List.of("ROLE_ARCHIVIST"));
     }
 
+    // A board member manages the users but not the administrators (docs/board-role-spec.md).
+
+    @Test
+    void shouldRefuseTheAdministratorRoleToABoardMember() {
+        UsersDTO input = newUser(true);
+        input.setRoles(Set.of(RoleEnum.ROLE_USER, RoleEnum.ROLE_ADMIN));
+
+        assertAdministratorForbidden(() -> service.save(input, authentication(RoleEnum.ROLE_BOARD)));
+
+        verify(keycloakService, never()).saveUser(any());
+        verify(keycloakService, never()).updateUser(any());
+    }
+
+    @Test
+    void shouldLetAnAdministratorGiveTheAdministratorRole() {
+        User account = account(true, Map.of("OTHER_roles", List.of("ROLE_USER")));
+        JwtAuthenticationToken authentication = authentication(RoleEnum.ROLE_ADMIN);
+        UsersDTO input = newUser(true);
+        input.setRoles(Set.of(RoleEnum.ROLE_ADMIN));
+        Role admin = new Role();
+        admin.setName(RoleEnum.ROLE_ADMIN.name());
+        UsersDTO saved = stubSave(input, account, authentication);
+        when(keycloakService.getClientRoles()).thenReturn(List.of(admin));
+
+        assertThat(service.save(input, authentication)).isSameAs(saved);
+        assertThat(account.getAttributes()).containsEntry("BMCDG_roles", List.of("ROLE_ADMIN"));
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberTheAccountOfAnAdministratorOfAnotherTenant() {
+        User account = account(true, Map.of("OTHER_roles", List.of("ROLE_USER,ROLE_ADMIN")));
+        JwtAuthenticationToken authentication = authentication(RoleEnum.ROLE_BOARD);
+        UsersDTO input = newUser(true);
+        stubSave(input, account, authentication);
+
+        assertAdministratorForbidden(() -> service.save(input, authentication));
+
+        verify(keycloakService, never()).updateUserGroup(any(), any());
+        verify(keycloakService, never()).updateUser(any());
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberTheAccountOfASuperAdministrator() {
+        User account = account(true, Map.of("OTHER_roles", List.of("ROLE_USER")));
+        JwtAuthenticationToken authentication = authentication(RoleEnum.ROLE_BOARD);
+        UsersDTO input = newUser(true);
+        stubSave(input, account, authentication);
+        when(keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN)).thenReturn(List.of(account));
+
+        assertAdministratorForbidden(() -> service.save(input, authentication));
+
+        verify(keycloakService, never()).updateUserGroup(any(), any());
+    }
+
+    @Test
+    void shouldLetABoardMemberLinkTheAccountOfAMember() {
+        User account = account(true, Map.of("OTHER_roles", List.of("ROLE_USER")));
+        JwtAuthenticationToken authentication = authentication(RoleEnum.ROLE_BOARD);
+        UsersDTO input = newUser(true);
+        UsersDTO saved = stubSave(input, account, authentication);
+
+        assertThat(service.save(input, authentication)).isSameAs(saved);
+        verify(keycloakService).updateUserGroup("kc-1", "group-bmcdg");
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberTheUpdateOfAnAdministrator() {
+        UsersDTO current = storedAdministrator();
+        stubFind(current);
+        UsersDTO update = request(current);
+
+        assertAdministratorForbidden(() -> service.update(2L, update, authentication(RoleEnum.ROLE_BOARD)));
+        assertAdministratorForbidden(() -> service.partialUpdate(2L, new UsersDTO(), authentication(RoleEnum.ROLE_BOARD)));
+
+        verify(keycloakService, never()).updateUser(any());
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberToMakeAUserAnAdministrator() {
+        UsersDTO current = stored(true);
+        UsersDTO update = request(current);
+        update.setRoles(Set.of(RoleEnum.ROLE_ADMIN));
+
+        assertAdministratorForbidden(() -> service.update(2L, update, authentication(RoleEnum.ROLE_BOARD)));
+
+        verify(keycloakService, never()).updateUser(any());
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberTheUpdateOfASuperAdministrator() {
+        UsersDTO current = stored(true);
+        stubFind(current);
+        User superAdministrator = account(true, null);
+        when(keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN)).thenReturn(List.of(superAdministrator));
+
+        assertAdministratorForbidden(() -> service.update(2L, request(current), authentication(RoleEnum.ROLE_BOARD)));
+    }
+
+    @Test
+    void shouldRefuseToABoardMemberTheOtherActionsOnAnAdministrator() {
+        UsersDTO current = storedAdministrator();
+        stubFind(current);
+        Users entity = new Users();
+        when(usersRepository.findById(2L)).thenReturn(Optional.of(entity));
+        when(usersMapper.toDto(entity)).thenReturn(current);
+        JwtAuthenticationToken board = authentication(RoleEnum.ROLE_BOARD);
+
+        assertAdministratorForbidden(() -> service.delete(2L, board));
+        assertAdministratorForbidden(() -> service.deleteForGdpr(2L, board));
+        assertAdministratorForbidden(() -> service.sendSetupEmail(2L, board));
+
+        verify(keycloakService, never()).sendExecuteActionsEmail(any(), any());
+        verify(dataErasureService, never()).requestInventoryAwareErasure(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldLetAnAdministratorInviteAnAdministrator() {
+        UsersDTO current = storedAdministrator();
+        stubFind(current);
+
+        service.sendSetupEmail(2L, authentication(RoleEnum.ROLE_ADMIN));
+
+        verify(keycloakService).sendExecuteActionsEmail("kc-1", List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
+        verify(keycloakService, never()).getUsersByClientRoles(any());
+    }
+
+    @Test
+    void shouldLetABoardMemberInviteAMember() {
+        stubFind(stored(true));
+
+        service.sendSetupEmail(2L, authentication(RoleEnum.ROLE_BOARD));
+
+        verify(keycloakService).sendExecuteActionsEmail("kc-1", List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
+    }
+
+    private static void assertAdministratorForbidden(org.assertj.core.api.ThrowableAssert.ThrowingCallable action) {
+        assertThatThrownBy(action)
+            .isInstanceOfSatisfying(RequestAlertException.class, exception -> {
+                assertThat(exception.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+                assertThat(exception.getErrorKey()).isEqualTo("user.admin.forbidden");
+            });
+    }
+
+    private static UsersDTO storedAdministrator() {
+        UsersDTO dto = stored(true);
+        dto.setRoles(Set.of(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_USER));
+        return dto;
+    }
+
+    /** The stored row of the user 2, read by id. */
+    private void stubFind(UsersDTO current) {
+        Users entity = new Users();
+        lenient().when(usersRepository.findByIdAndDeletedFalse(2L)).thenReturn(Optional.of(entity));
+        lenient().when(usersMapper.toDto(entity)).thenReturn(current);
+    }
+
     private static User account(boolean enabled, Map<String, List<String>> attributes) {
         User account = new User();
         account.setId("kc-1");
@@ -534,6 +690,11 @@ class UsersServiceImplTest {
     }
 
     private JwtAuthenticationToken authentication() {
+        return authentication(new RoleEnum[0]);
+    }
+
+    /** A session of the tenant BMCDG with the given roles. */
+    private JwtAuthenticationToken authentication(RoleEnum... roles) {
         Instant now = Instant.now();
         Jwt jwt = Jwt.withTokenValue("token")
             .header("alg", "none")
@@ -542,6 +703,9 @@ class UsersServiceImplTest {
             .issuedAt(now)
             .expiresAt(now.plusSeconds(300))
             .build();
-        return new JwtAuthenticationToken(jwt);
+        return new JwtAuthenticationToken(
+            jwt,
+            Arrays.stream(roles).map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority(role.toString())).toList()
+        );
     }
 }

@@ -346,8 +346,8 @@ class LoanSheetSignatureIT {
     void changesTheSignerForTheAssociationAndDeclaresAnActSignedOnPaper() {
         JwtAuthenticationToken admin = token(adminKey);
         JwtAuthenticationToken member = token(memberKey);
-        String otherAdmin = "admin-" + UUID.randomUUID();
-        createUser(otherAdmin, "Luca", "Verdi", "luca.verdi@example.org", "ROLE_SUPER_ADMIN");
+        String boardMember = "board-" + UUID.randomUUID();
+        createUser(boardMember, "Luca", "Verdi", "luca.verdi@example.org", "ROLE_BOARD");
         long version = tx(() -> templateService.overview(admin).settingsVersion());
         tx(() -> templateService.updateSignature(new SettingsUpdate(true, version), admin));
         InventoryAssignmentDTO clarinet = assign("INV-1", "Clarinetto", admin);
@@ -358,9 +358,9 @@ class LoanSheetSignatureIT {
         tx(() -> signatureService.submitHolderData(issue.id(), holderData("RSSMRA85T10A562S"), member));
         Act withData = tx(() -> signatureService.ownAct(issue.id(), member));
 
-        assertThatThrownBy(() -> tx(() -> signatureService.changeAssociationSigner(issue.id(), new AssociationSignerChange(otherAdmin, withData.entityVersion() - 1), admin)))
+        assertThatThrownBy(() -> tx(() -> signatureService.changeAssociationSigner(issue.id(), new AssociationSignerChange(boardMember, withData.entityVersion() - 1), admin)))
             .hasFieldOrPropertyWithValue("errorKey", "signature.act.versionConflict");
-        Act changed = tx(() -> signatureService.changeAssociationSigner(issue.id(), new AssociationSignerChange(otherAdmin, withData.entityVersion()), admin));
+        Act changed = tx(() -> signatureService.changeAssociationSigner(issue.id(), new AssociationSignerChange(boardMember, withData.entityVersion()), admin));
         assertThat(changed.status()).isEqualTo(SignatureActStatus.AWAITING_DATA);
         assertThat(changed.documents()).isEmpty();
         assertThat(changed.signers()).filteredOn(signer -> signer.role() == com.fundaro.zodiac.taurus.domain.signature.SignerRole.ASSOCIATION)

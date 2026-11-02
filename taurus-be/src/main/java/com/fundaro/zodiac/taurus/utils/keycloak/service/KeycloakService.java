@@ -54,7 +54,13 @@ public interface KeycloakService {
 
     List<Role> getClientRoles();
 
-    void ensureClientRole(String roleName, String description);
+    /**
+     * Creates the client roles that are missing, reading the existing ones once; existing roles are left as they are.
+     *
+     * @param descriptions description of each role, by role name
+     * @return the names of the roles created
+     */
+    List<String> ensureClientRoles(java.util.Map<String, String> descriptions);
 
     List<User> getUsersByClientRoles(RoleEnum roleEnum);
 }

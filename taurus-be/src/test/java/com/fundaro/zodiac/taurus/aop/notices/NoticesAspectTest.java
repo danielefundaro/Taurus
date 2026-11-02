@@ -154,7 +154,11 @@ class NoticesAspectTest {
             "Mario Rossi ha confermato la disponibilità per l'evento “Prova generale”.",
             NotificationSeverity.SUCCESS,
             "/calendar",
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN))
+            Set.of(
+                NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
+                NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+            )
         );
     }
 
@@ -197,7 +201,11 @@ class NoticesAspectTest {
             "Mario Rossi ha creato l'utente Luisa Bianchi.",
             NotificationSeverity.SUCCESS,
             "/users",
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN))
+            Set.of(
+                NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
+                NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+            )
         );
     }
 
@@ -287,7 +295,11 @@ class NoticesAspectTest {
             "Mario Rossi ha creato l'oggetto “INV-51 — Leggio”.",
             NotificationSeverity.SUCCESS,
             "/inventory",
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN))
+            Set.of(
+                NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
+                NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
+            )
         );
     }
 
@@ -380,6 +392,7 @@ class NoticesAspectTest {
             "/finance?tab=movements&movementId=71",
             Set.of(
                 NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
                 NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
                 NotificationAudience.role(RoleEnum.ROLE_TREASURER)
             )

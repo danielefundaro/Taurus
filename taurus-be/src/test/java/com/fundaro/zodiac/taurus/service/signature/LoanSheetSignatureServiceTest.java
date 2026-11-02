@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.signature;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSettings;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
@@ -50,6 +51,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +129,15 @@ class LoanSheetSignatureServiceTest {
         when(usersRepository.findActiveKeycloakIdsByRolesIn(anyCollection())).thenReturn(List.of("admin-1", "member-1"));
         when(usersRepository.findByKeycloakIdAndDeletedFalse("admin-1")).thenReturn(Optional.of(user("admin-1", "Anna", "Bianchi")));
         when(usersRepository.findByKeycloakIdAndDeletedFalse("member-1")).thenReturn(Optional.of(user("member-1", "Mario", "Rossi")));
+    }
+
+    @Test
+    void looksForWhoSignsForTheAssociationAmongTheAdministratorsAndTheBoardOnly() {
+        assertThat(LoanSheetSignatureService.ASSOCIATION_SIGNER_ROLES).containsExactly(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_BOARD);
+
+        service.checkIssue(InventoryLoanHolderRole.MEMBER, "member-1", "mario@example.org", "admin-1", TEMPLATE);
+
+        verify(usersRepository, atLeastOnce()).findActiveKeycloakIdsByRolesIn(List.of(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_BOARD));
     }
 
     @Test

@@ -61,6 +61,7 @@ public class NoticesAspect {
 
     private static final Set<RoleEnum> FINANCE_NOTIFICATION_ROLES = Set.of(
         RoleEnum.ROLE_ADMIN,
+        RoleEnum.ROLE_BOARD,
         RoleEnum.ROLE_SUPER_ADMIN,
         RoleEnum.ROLE_TREASURER
     );
@@ -689,6 +690,7 @@ public class NoticesAspect {
             token == null ? "Sistema" : getActorDisplayName(token),
             Set.of(
                 NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
                 NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
             ),
             null
@@ -1239,6 +1241,7 @@ public class NoticesAspect {
     private void publishAdmins(String title, String message, AbstractAuthenticationToken token) {
         publish(title, message, token, Set.of(
             NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_BOARD),
             NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
         ));
     }
@@ -1246,6 +1249,7 @@ public class NoticesAspect {
     private void publishEditorial(String title, String message, AbstractAuthenticationToken token) {
         publish(title, message, token, Set.of(
             NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_BOARD),
             NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
             NotificationAudience.role(RoleEnum.ROLE_ARCHIVIST)
         ));
@@ -1270,6 +1274,7 @@ public class NoticesAspect {
             NotificationAudience.role(RoleEnum.ROLE_USER),
             NotificationAudience.role(RoleEnum.ROLE_USER_EXTERNAL),
             NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+            NotificationAudience.role(RoleEnum.ROLE_BOARD),
             NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
             NotificationAudience.role(RoleEnum.ROLE_ARCHIVIST)
         ));
@@ -1357,6 +1362,7 @@ public class NoticesAspect {
             "Sistema",
             Set.of(
                 NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+                NotificationAudience.role(RoleEnum.ROLE_BOARD),
                 NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
             ),
             null

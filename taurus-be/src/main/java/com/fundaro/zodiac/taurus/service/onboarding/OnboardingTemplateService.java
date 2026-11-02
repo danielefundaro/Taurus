@@ -29,6 +29,7 @@ public class OnboardingTemplateService {
 
     static {
         ROLE_LABELS.put("ADMIN", "amministratore dell'istanza");
+        ROLE_LABELS.put("BOARD", "direttivo, gestisce l'associazione tranne gli amministratori");
         ROLE_LABELS.put("TREASURER", "tesoriere, gestisce cassa e conti");
         ROLE_LABELS.put("ARCHIVIST", "archivista, gestisce brani e parti");
         ROLE_LABELS.put("USER", "socio");

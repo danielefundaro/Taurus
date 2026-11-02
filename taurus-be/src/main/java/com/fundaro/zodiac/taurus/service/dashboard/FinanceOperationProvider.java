@@ -5,7 +5,7 @@ import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.repository.projection.FinanceUnreconciledProjection;
-import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
@@ -42,7 +42,7 @@ public class FinanceOperationProvider implements DashboardOperationProvider {
     @Override
     @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
-        if (!context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.TREASURER)) {
+        if (!context.hasAnyAuthority(RoleGroups.financeManagers())) {
             return List.of();
         }
         LocalDate today = context.generatedAt().toLocalDate();

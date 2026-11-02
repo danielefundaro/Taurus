@@ -16,7 +16,7 @@ import com.fundaro.zodiac.taurus.repository.*;
 import com.fundaro.zodiac.taurus.repository.eventpreparation.*;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.*;
-import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.eventpreparation.EventPreparationEvaluator.MaterialState;
@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -461,8 +460,7 @@ public class EventPreparationService {
      * their own view, never the administrative one with the materials and the other areas.
      */
     private View viewAfter(Long eventId, AbstractAuthenticationToken token, Function<Long, View> roleView) {
-        boolean administrator = token == null || token.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-            .anyMatch(authority -> AuthoritiesConstants.ADMIN.equals(authority) || AuthoritiesConstants.SUPER_ADMIN.equals(authority));
+        boolean administrator = token == null || RoleGroups.isTenantManager(token);
         return administrator ? get(eventId) : roleView.apply(eventId);
     }
 
@@ -681,7 +679,7 @@ public class EventPreparationService {
         String revision = PreparationHashes.materials(rows);
         String all = rows.isEmpty() ? "nessun materiale pianificato" : itemsLabel(rows);
         enqueue(event, token, "MATERIALS_UPDATED", revision + ":admins", "Materiali evento aggiornati", "Materiali di “" + event.getName() + "”: " + all + ".",
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)));
+            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_BOARD), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)));
         Map<String, List<CalendarEventMaterial>> byAssignee = new LinkedHashMap<>();
         rows.stream().filter(row -> row.getAssignment() != null && row.getAssignment().getUserKeycloakId() != null)
             .forEach(row -> byAssignee.computeIfAbsent(row.getAssignment().getUserKeycloakId(), key -> new ArrayList<>()).add(row));

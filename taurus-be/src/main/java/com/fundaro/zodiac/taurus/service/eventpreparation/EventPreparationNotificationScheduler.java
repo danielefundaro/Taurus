@@ -32,6 +32,7 @@ public class EventPreparationNotificationScheduler {
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Rome");
     private static final Set<NotificationAudience> ADMIN_AUDIENCE = Set.of(
         NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+        NotificationAudience.role(RoleEnum.ROLE_BOARD),
         NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN)
     );
     private final TenantSchemaRegistry tenantSchemaRegistry;

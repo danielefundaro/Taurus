@@ -318,7 +318,7 @@ public class InventoryIssueService {
     }
 
     private static Set<NotificationAudience> adminsExcept(String actor) {
-        return Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN), NotificationAudience.excludedUser(actor));
+        return Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_BOARD), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN), NotificationAudience.excludedUser(actor));
     }
 
     private static String severityLabel(InventoryIssueSeverity severity) {

@@ -10,7 +10,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportReposi
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemPhotoRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryItemRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
-import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanAction;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryQrDtos.ScanAssignment;
@@ -167,7 +167,7 @@ public class InventoryScanService {
     }
 
     private static boolean isAdministrator(AbstractAuthenticationToken token) {
-        return token.getAuthorities().stream().anyMatch(authority -> AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) || AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()));
+        return RoleGroups.isTenantManager(token);
     }
 
     private static String actor(AbstractAuthenticationToken token) {

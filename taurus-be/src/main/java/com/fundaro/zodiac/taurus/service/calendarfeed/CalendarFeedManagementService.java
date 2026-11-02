@@ -94,7 +94,8 @@ public class CalendarFeedManagementService {
         requireEnabled();
         Users caller = currentUser(auth);
         Collection<StateEnum> states = caller.getRoles().contains(RoleEnum.ROLE_USER) || caller.getRoles().contains(RoleEnum.ROLE_SUPER_ADMIN)
-            || caller.getRoles().contains(RoleEnum.ROLE_ADMIN) || caller.getRoles().contains(RoleEnum.ROLE_ARCHIVIST)
+            || caller.getRoles().contains(RoleEnum.ROLE_ADMIN) || caller.getRoles().contains(RoleEnum.ROLE_BOARD)
+            || caller.getRoles().contains(RoleEnum.ROLE_ARCHIVIST)
             || caller.getRoles().contains(RoleEnum.ROLE_TREASURER)
             ? List.of(StateEnum.COMPLETE, StateEnum.PUBLIC) : List.of(StateEnum.PUBLIC);
         return events.findIdByCalendarUid(uid, states).orElseThrow(this::notFound);

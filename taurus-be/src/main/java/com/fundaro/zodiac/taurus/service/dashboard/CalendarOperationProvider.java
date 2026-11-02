@@ -10,6 +10,7 @@ import com.fundaro.zodiac.taurus.repository.projection.CalendarAttentionProjecti
 import com.fundaro.zodiac.taurus.repository.projection.CalendarResponseProjection;
 import com.fundaro.zodiac.taurus.repository.projection.UserRoleProjection;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
@@ -134,7 +135,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     private PreparationGroups preparationGroups(DashboardRequestContext context, ZonedDateTime limit) {
         if (eventPreparationService == null
             || tenantFeatureService != null && !tenantFeatureService.isEnabled(TenantFeature.EVENT_PREPARATION)
-            || !context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) return PreparationGroups.EMPTY;
+            || !context.hasAnyAuthority(RoleGroups.tenantManagers())) return PreparationGroups.EMPTY;
         List<DashboardEntry> entries = eventPreparationService.dashboardEntries(context.generatedAt().minusDays(30), limit);
         ZonedDateTime now = context.generatedAt();
         return new PreparationGroups(
@@ -180,6 +181,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
         boolean internalParticipant = context.hasAnyAuthority(
             AuthoritiesConstants.SUPER_ADMIN,
             AuthoritiesConstants.ADMIN,
+            AuthoritiesConstants.BOARD,
             AuthoritiesConstants.ARCHIVIST,
             AuthoritiesConstants.USER
         );
@@ -217,7 +219,7 @@ public class CalendarOperationProvider implements DashboardOperationProvider {
     }
 
     private java.util.Optional<OperationalItemDTO> administrativeOperation(DashboardRequestContext context, ZonedDateTime limit, Set<Long> preparationAvailabilityEvents) {
-        if (!context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)) {
+        if (!context.hasAnyAuthority(RoleGroups.tenantManagers())) {
             return java.util.Optional.empty();
         }
         List<UserRoleProjection> audience = usersRepository.findActiveUserRoles(List.of(RoleEnum.ROLE_USER, RoleEnum.ROLE_USER_EXTERNAL));
