@@ -10,13 +10,13 @@ export default [
         path: '',
         component: InstrumentsComponent,
         canActivate: [canActivateAuthRole],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] },
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST] },
     },
     {
         path: ':id',
         component: DetailComponent,
         canActivate: [canActivateAuthRole],
         canDeactivate: [canDeactivateUnsavedChanges],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] },
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST] },
     },
 ] as Routes;

@@ -23,6 +23,19 @@ test.describe('ruoli e tenant', () => {
         await expect(mainMenu(page).getByRole('link', { name: /utenti/i })).toHaveCount(0);
     });
 
+    test('il direttivo gestisce l’associazione, ma la configurazione iniziale e le consegne restano all’amministratore', async ({ page, environment }) => {
+        const [first] = environment;
+        test.skip(!first.users.board, 'Serve un membro del direttivo del primo tenant');
+
+        await signIn(page, first.users.board!, 'board');
+        await expect(mainMenu(page).getByRole('link', { name: /utenti/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /calendario/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /strumenti/i })).toBeVisible();
+        await expect(mainMenu(page).getByRole('link', { name: /configurazione iniziale/i })).toHaveCount(0);
+        await expect(mainMenu(page).getByRole('link', { name: /consegne notifiche/i })).toHaveCount(0);
+        await expect(mainMenu(page).getByRole('link', { name: /feed calendario/i })).toHaveCount(0);
+    });
+
     test('il nome del tenant nella topbar è quello dell’utente che ha eseguito l’accesso', async ({ page, environment }) => {
         const [first, second] = environment;
         test.skip(!first.users.admin || !second.users.admin, 'Serve un amministratore in entrambi i tenant');

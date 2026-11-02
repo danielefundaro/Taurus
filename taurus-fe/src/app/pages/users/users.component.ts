@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -7,7 +7,7 @@ import { AddUsersDialogComponent } from '../../dialogs/add-users-dialog/add-user
 import { ImportsModule } from '../../imports';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Page, Users, UsersCriteria } from '../../module';
 import { StringFilter } from '../../module/criteria/filter';
-import { ConfirmService, InstrumentsService, ListLayout, ListLayoutService, ToastService, UsersService } from '../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, ListLayout, ListLayoutService, ToastService, UsersService } from '../../service';
 import { ListPageBase } from '../_shared/list-page.base';
 import { CommonOpenSearchService } from '../../service/common-open-search.service';
 
@@ -23,6 +23,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
     protected layout: ListLayout = 'list';
     protected users: Users[];
     protected selectedUsers: Users[] = [];
+    private readonly keycloakService = inject(KeycloakService);
 
     private readonly instruments: Instruments[];
 
@@ -134,8 +135,14 @@ export class UsersComponent extends ListPageBase implements OnInit {
         return this.selectedUsers.some((s) => s.id === item.id);
     }
 
+    /** A board member does not act on the administrators: they cannot be selected, invited or deleted. */
+    protected canManage(item: Users): boolean {
+        return this.keycloakService.canManageUser(item.roles);
+    }
+
     protected isAllSelected(items: Users[]): boolean {
-        return items.length > 0 && items.every((item) => this.isSelected(item));
+        const manageable = items.filter((item) => this.canManage(item));
+        return manageable.length > 0 && manageable.every((item) => this.isSelected(item));
     }
 
     protected toggleSelection(item: Users): void {
@@ -147,10 +154,11 @@ export class UsersComponent extends ListPageBase implements OnInit {
     }
 
     protected toggleSelectAll(items: Users[]): void {
+        const manageable = items.filter((item) => this.canManage(item));
         if (this.isAllSelected(items)) {
-            this.selectedUsers = this.selectedUsers.filter((s) => !items.some((item) => item.id === s.id));
+            this.selectedUsers = this.selectedUsers.filter((s) => !manageable.some((item) => item.id === s.id));
         } else {
-            const notYetSelected = items.filter((item) => !this.isSelected(item));
+            const notYetSelected = manageable.filter((item) => !this.isSelected(item));
             this.selectedUsers = [...this.selectedUsers, ...notYetSelected];
         }
     }

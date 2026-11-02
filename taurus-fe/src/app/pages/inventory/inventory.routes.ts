@@ -15,39 +15,39 @@ export default [
         path: 'scan/v1/:publicId',
         component: InventoryScanComponent,
         canActivate: [canActivateAuthRole],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
     },
     {
         path: '',
         component: InventoryComponent,
         canActivate: [canActivateAuthRole],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
     },
     {
         path: 'loan-template',
         component: InventoryLoanTemplateComponent,
         canActivate: [canActivateAuthRole, tenantFeatureGuard],
         canDeactivate: [canDeactivateUnsavedChanges],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN], feature: TenantFeature.INVENTORY_LOAN_SHEET }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD], feature: TenantFeature.INVENTORY_LOAN_SHEET }
     },
     {
         path: 'items/:id',
         component: InventoryDetailComponent,
         canActivate: [canActivateAuthRole],
         canDeactivate: [canDeactivateUnsavedChanges],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD] }
     },
     {
         path: 'assignments/:id',
         component: InventoryAssignmentDetailComponent,
         canActivate: [canActivateAuthRole],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
     },
     {
         path: ':id',
         component: InventoryDetailComponent,
         canActivate: [canActivateAuthRole],
         canDeactivate: [canDeactivateUnsavedChanges],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD] }
     }
 ] as Routes;

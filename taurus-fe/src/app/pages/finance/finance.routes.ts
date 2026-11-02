@@ -8,6 +8,6 @@ export default [
         path: '',
         component: FinanceComponent,
         canActivate: [canActivateAuthRole],
-        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER] }
+        data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER] }
     }
 ] as Routes;

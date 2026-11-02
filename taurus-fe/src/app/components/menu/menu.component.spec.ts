@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { RoleEnums } from '../../constants/role.enums';
 import { TenantFeatureService, TenantStatusService } from '../../service';
 import { MenuComponent } from './menu.component';
 
@@ -52,6 +53,34 @@ describe('MenuComponent', () => {
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeTrue();
+    });
+});
+
+describe('MenuComponent for the board', () => {
+    it('shows the association management and keeps the administration tools to the administrators', () => {
+        const service = {
+            loaded: signal(true),
+            financeEnabled: signal(true),
+            inventoryEnabled: signal(true),
+            onboardingImportEnabled: signal(true),
+            externalCalendarFeedEnabled: signal(true),
+            refresh: jasmine.createSpy().and.returnValue(of({}))
+        };
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: TenantFeatureService, useValue: service },
+                { provide: TenantStatusService, useValue: { bootstrap: signal(false) } }
+            ]
+        });
+        const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
+        TestBed.flushEffects();
+
+        for (const label of ['Utenti', 'Economia', 'Inventario', 'Album', 'Tracce', 'Strumenti', 'Calendario']) {
+            expect(menuItem(component, label)?.['hasRoles']).withContext(label).toContain(RoleEnums.BOARD);
+        }
+        for (const label of ['Configurazione iniziale', 'Consegne notifiche', 'Feed calendario']) {
+            expect(menuItem(component, label)?.['hasRoles']).withContext(label).toEqual([RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]);
+        }
     });
 });
 

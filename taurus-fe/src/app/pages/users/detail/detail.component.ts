@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -11,7 +11,7 @@ import { RoleEnums, RoleLabel, RoleLabelsMap } from '../../../constants';
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { ChildrenEntities, CommonFieldsOpenSearch, CommonOpenSearchCriteria, Instruments, InstrumentsCriteria, Users } from '../../../module';
-import { ConfirmService, InstrumentsService, TenantFeatureService, ToastService, UsersService } from '../../../service';
+import { ConfirmService, InstrumentsService, KeycloakService, TenantFeatureService, ToastService, UsersService } from '../../../service';
 import { CommonOpenSearchService } from '../../../service/common-open-search.service';
 
 @Component({
@@ -26,7 +26,9 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected user: Users = new Users();
     protected selectedTracks: ChildrenEntities[];
 
-    protected readonly roleOptions: RoleLabel[];
+    /** An administrator seen by a board member: shown read-only, only an administrator changes it. */
+    protected locked = false;
+    private readonly keycloakService = inject(KeycloakService);
     protected autoFilteredInstruments: ChildrenEntities[] = [];
     private instrumentsChildrenEntities: ChildrenEntities[] = [];
 
@@ -44,8 +46,6 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         super();
         this.selectedTracks = [];
 
-        this.roleOptions = RoleLabelsMap.filter((role) => role.code !== RoleEnums.SUPER_ADMIN);
-
         this.instruments = [];
 
         // Preload all instruments
@@ -53,6 +53,11 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.preloadEntities(this.instrumentsService, instrumentsCriteria, this.instruments);
         this.autoFilteredInstruments = [];
         this.instrumentsChildrenEntities = [];
+    }
+
+    protected get roleOptions(): RoleLabel[] {
+        // A locked user keeps the administrator option, so that its roles show as they are.
+        return this.locked ? RoleLabelsMap.filter((role) => role.code !== RoleEnums.SUPER_ADMIN) : this.keycloakService.assignableRoles(RoleLabelsMap);
     }
 
     ngOnInit() {
@@ -152,6 +157,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             .subscribe({
                 next: (user: Users) => {
                     this.user = user;
+                    this.locked = !this.keycloakService.canManageUser(user.roles);
                     this.isDirty = false;
                 }
             });

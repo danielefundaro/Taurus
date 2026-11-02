@@ -43,7 +43,7 @@ export class MenuComponent implements OnInit {
         this.model = [
             {
                 label: 'Home',
-                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                 items: [
                     {
                         label: 'Dashboard',
@@ -56,7 +56,7 @@ export class MenuComponent implements OnInit {
                 label: 'Menu',
                 icon: 'pi pi-fw pi-briefcase',
                 routerLink: ['/pages'],
-                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                 items: [
                     {
                         label: 'Documenti legali',
@@ -98,53 +98,53 @@ export class MenuComponent implements OnInit {
                         label: 'Utenti',
                         icon: 'pi pi-fw pi-users',
                         routerLink: ['/users'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD]
                     },
                     {
                         label: 'Economia',
                         icon: 'pi pi-fw pi-wallet',
                         routerLink: ['/finance'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER],
                         visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.financeEnabled()
                     },
                     {
                         label: 'Inventario',
                         icon: 'pi pi-fw pi-box',
                         routerLink: ['/inventory'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
                         visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.inventoryEnabled()
                     },
                     {
                         separator: true,
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Album',
                         icon: 'pi pi-fw pi-book',
                         routerLink: ['/albums'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Tracce',
                         icon: 'pi pi-fw pi-file',
                         routerLink: ['/tracks'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Strumenti',
                         icon: 'pi pi-fw pi-sliders-h',
                         routerLink: ['/instruments'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST]
                     },
                     {
                         separator: true,
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     },
                     {
                         label: 'Calendario',
                         icon: 'pi pi-fw pi-calendar',
                         routerLink: ['/calendar'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
                     }
                 ]
             }

@@ -8,7 +8,7 @@
             <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
                 [disabled]="!album.tracks?.length" /><p-button label="Salva album" icon="pi pi-check" [loading]="saving"
                 [disabled]="!isDirty" (onClick)="save()"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]" />
         </div>
     </app-page-header>
 
@@ -29,7 +29,7 @@
                     [(ngModel)]="album!.date" (ngModelChange)="isDirty = true" />
             </app-form-field>
             <app-form-field label="Stato" forId="states"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]">
                 <p-autocomplete inputId="states" [(ngModel)]="album!.state" [suggestions]="autoFilteredStatesLabels"
                     dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code"
                     optionLabel="name" />
@@ -44,7 +44,7 @@
     <app-detail-section heading="Tracce" [count]="album.tracks?.length"
         description="Composizione e ordine dell’album. Le modifiche si salvano con «Salva album» in alto.">
         <div sectionActions class="flex flex-col md:flex-row gap-2"
-            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]">
+            *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]">
             <p-button severity="primary" label="Aggiungi traccia" icon="pi pi-plus" outlined (onClick)="addNew()" />
             <p-button severity="secondary" label="Conferma ordine attuale" icon="pi pi-sort-alt" outlined
                 (onClick)="onRowReorder()" />
@@ -99,7 +99,7 @@
                             <p-button icon="pi pi-trash" ariaLabel="Rimuovi traccia dall’album" severity="danger"
                                 [rounded]="true" [outlined]="true" pTooltip="Elimina" tooltipPosition="top"
                                 (onClick)="confirmDeleteTrack(track)"
-                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]" />
                         </div>
                     </td>
                 </tr>
@@ -115,7 +115,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"
         [operations]="[{ id: 'delete', title: 'Elimina album', consequence: 'L’album e tutti i contenuti associati verranno eliminati definitivamente.', label: 'Elimina album' }]"
         (execute)="confirmDelete()" />
 

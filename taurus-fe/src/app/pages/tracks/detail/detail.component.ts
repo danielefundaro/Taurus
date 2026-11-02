@@ -144,7 +144,7 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
     }
 
     protected get canManagePdf(): boolean {
-        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
     }
 
     protected confirmDelete(): void {

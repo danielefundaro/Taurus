@@ -15,16 +15,16 @@
         [announcement]="operationsAnnouncement" (refreshRequested)="refreshOperations()" />
     <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
         [value]="totalTenants" [link]="'tenants'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]" label="Utenti" icon="pi-users" color="blue"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD]" label="Utenti" icon="pi-users" color="blue"
         [value]="totalUsers" [link]="'users'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
 
     @if (inventoryEnabled()) {
     <app-inventory-widget
-        *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]"
+        *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]"
         [mode]="inventoryMode" [adminSummary]="inventoryAdminSummary" [userSummary]="inventoryUserSummary"
         [recentAssignments]="recentInventoryAssignments" [loading]="inventoryLoading" />
     }

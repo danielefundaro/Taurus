@@ -19,9 +19,9 @@
         label="Firma per l’Associazione"
         forId="associationSigner"
         required
-        hint="Amministratori attivi, escluso il socio del foglio."
-        [error]="shell.validationAttempted && (!userId || userId === current) ? 'Scegli un amministratore diverso da quello attuale.' : undefined"
+        hint="Amministratori e membri del direttivo attivi, escluso il socio del foglio."
+        [error]="shell.validationAttempted && (!userId || userId === current) ? 'Scegli un firmatario diverso da quello attuale.' : undefined"
     >
-        <p-select inputId="associationSigner" [options]="data.options" optionLabel="displayName" optionValue="userId" [(ngModel)]="userId" placeholder="Scegli un amministratore" appendTo="body" />
+        <p-select inputId="associationSigner" [options]="data.options" optionLabel="displayName" optionValue="userId" [(ngModel)]="userId" placeholder="Scegli chi firma" appendTo="body" />
     </app-form-field>
 </app-dialog-shell>

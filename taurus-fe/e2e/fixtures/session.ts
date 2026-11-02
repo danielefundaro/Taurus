@@ -4,7 +4,7 @@ import { expect, Page, test as base } from '@playwright/test';
  * I ruoli coperti dalla suite. Ogni ruolo è un utente diverso dell'ambiente di prova, con le
  * credenziali lette dall'ambiente: nel repository non vive nessuna credenziale.
  */
-export type Role = 'superAdmin' | 'admin' | 'archivist' | 'user' | 'external' | 'treasurer';
+export type Role = 'superAdmin' | 'admin' | 'board' | 'archivist' | 'user' | 'external' | 'treasurer';
 
 /** Un tenant dell'ambiente di prova: la suite ne usa due per verificare che non si vedano fra loro. */
 export interface Tenant {
@@ -33,7 +33,7 @@ export const tenants = (): Tenant[] =>
         .map(({ slot, code }) => ({
             code,
             users: Object.fromEntries(
-                (['superAdmin', 'admin', 'archivist', 'user', 'external', 'treasurer'] as Role[])
+                (['superAdmin', 'admin', 'board', 'archivist', 'user', 'external', 'treasurer'] as Role[])
                     .map((role) => [role, credentials(slot, role)])
                     .filter(([, value]) => !!value)
             )
@@ -121,6 +121,8 @@ const roleLabel = (role?: Role): RegExp => {
             return /super ?amministratore/i;
         case 'admin':
             return /amministratore/i;
+        case 'board':
+            return /direttivo/i;
         case 'archivist':
             return /archivista/i;
         case 'treasurer':

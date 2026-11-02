@@ -84,7 +84,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
     }
 
     protected get isAdmin(): boolean {
-        return this.keycloakService.isAdmin;
+        return this.keycloakService.isTenantManager;
     }
 
     protected get personalView(): boolean {

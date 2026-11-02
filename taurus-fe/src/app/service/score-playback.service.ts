@@ -107,7 +107,7 @@ export class ScorePlaybackService {
     }
 
     get canManage(): boolean {
-        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
     }
 
     private readBase(trackId: number): string {
