@@ -531,7 +531,7 @@ Impostare nuovamente la disponibilità aggiorna la risposta esistente e la relat
 
 | Ambito e ruolo effettivo | Impostare disponibile/non disponibile | Annullare la risposta | Visibilità evento |
 | --- | --- | --- | --- |
-| `ROLE_SUPER_ADMIN`, `ROLE_ADMIN`, `ROLE_ARCHIVIST` | `PATCH /api/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/calendar-events/{id}/availability/cancel` | vista amministrativa consentita al ruolo |
+| `ROLE_SUPER_ADMIN`, `ROLE_ADMIN`, `ROLE_BOARD`, `ROLE_ARCHIVIST` | `PATCH /api/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/calendar-events/{id}/availability/cancel` | vista amministrativa consentita al ruolo |
 | `ROLE_USER` | `PATCH /api/user/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/user/calendar-events/{id}/availability/cancel` | eventi `COMPLETE` e `PUBLIC` |
 | `ROLE_USER_EXTERNAL` | `PATCH /api/external/calendar-events/{id}/availability?available=true` oppure `available=false` | `PATCH /api/external/calendar-events/{id}/availability/cancel` | solo eventi `PUBLIC` |
 

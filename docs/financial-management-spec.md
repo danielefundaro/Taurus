@@ -141,7 +141,7 @@ Non si deve cancellare o ricreare il realm per applicare il nuovo ruolo.
 - menu e route Angular;
 - test di estrazione authority dai claim;
 - configurazione del client role Keycloak;
-- destinatari delle notifiche economiche: `ROLE_ADMIN`, `ROLE_SUPER_ADMIN` e `ROLE_TREASURER`.
+- destinatari delle notifiche economiche: `ROLE_ADMIN`, `ROLE_BOARD`, `ROLE_SUPER_ADMIN` e `ROLE_TREASURER`.
 
 Dopo l'assegnazione o la rimozione del ruolo, l'utente deve effettuare un nuovo login oppure ottenere un nuovo ID token che contenga il claim aggiornato.
 
@@ -541,6 +541,7 @@ Autorità consentite:
 ```text
 ROLE_SUPER_ADMIN
 ROLE_ADMIN
+ROLE_BOARD
 ROLE_TREASURER
 ```
 
@@ -926,6 +927,7 @@ Un rollback applicativo deve preservare tabelle, movimenti e allegati. Non devon
 Ogni operazione economica esplicita genera una notifica interna destinata agli utenti attivi con uno dei ruoli:
 
 - `ROLE_ADMIN`;
+- `ROLE_BOARD`;
 - `ROLE_SUPER_ADMIN`;
 - `ROLE_TREASURER`.
 
