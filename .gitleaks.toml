@@ -20,4 +20,11 @@ paths = [
   '''taurus-be/src/main/docker/realm-config/.*''',
   # Compose della prima stesura del progetto, rimosso: resta nella storia.
   '''suite/docker-compose\.yml''',
+  # Esempio della configurazione di produzione: valori vuoti, e la regola generica prende per
+  # chiave il nome della variabile della riga successiva.
+  '''deploy/\.env\.example''',
+  # Verifica del manifesto di produzione: scrive un .env temporaneo di soli valori finti.
+  '''scripts/ops/validate-deploy-manifest\.sh''',
+  # Dati di prova delle spec Angular, come le impronte finte dei token del calendario.
+  '''taurus-fe/src/.*\.spec\.ts''',
 ]
