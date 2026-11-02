@@ -9,7 +9,7 @@ Riguarda le e-mail della [Firma elettronica dei fogli di affidamento](inventory-
 ID catalogo: `email-layout-standard`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Bozza del 2026-11-02: le scelte sono proposte in [Decisioni](#decisioni) e vanno approvate prima dell'implementazione.
+Bozza del 2026-11-02, approvata il 2026-11-03. Le scelte sono fissate in [Decisioni](#decisioni).
 
 ## Problema
 
@@ -37,6 +37,7 @@ Bozza del 2026-11-02: le scelte sono proposte in [Decisioni](#decisioni) e vanno
 - E-mail in altre lingue: sono tutte in italiano.
 - Un aspetto dedicato alla modalità scura: si dichiara solo lo schema chiaro (vedi [Struttura](#struttura)).
 - Nuovi tipi di e-mail, pixel di tracciamento, modelli modificabili dai tenant, server SMTP per tenant.
+- L'invio SMTP di Keycloak: resta quello di Keycloak, cambiano solo i modelli del tema.
 - La console account e la console di amministrazione di Keycloak.
 
 ## Contesto attuale
@@ -72,7 +73,8 @@ Thymeleaf e non Mustache: è già una dipendenza, sfugge i valori per default, c
   - `taurus-be/src/main/resources/templates/mail/logo.png`;
   - `keycloak-authenticator/src/main/resources/theme/taurus-theme/email/resources/img/logo.png`.
 - **Backend**: il logo è allegato in linea (`Content-ID: taurus-logo`, `multipart/related`) e citato con `cid:taurus-logo`. Si vede anche quando il programma di posta blocca le immagini remote e non rivela a nessun server l'apertura del messaggio.
-- **Keycloak**: non può allegare immagini in linea, quindi cita `${url.resourcesUrl}/img/logo.png`, servito da Keycloak come le risorse del tema di login. Un programma che blocca le immagini remote mostra il testo alternativo finché il destinatario non le sblocca.
+- **Keycloak**: cita `${url.resourcesUrl}/img/logo.png`, servito da Keycloak come le risorse del tema di login. Basta il modello: l'invio resta quello di Keycloak. Gmail e Apple Mail mostrano il logo; Outlook e Thunderbird, se bloccano le immagini remote, mostrano il testo alternativo finché il destinatario non le sblocca.
+- Allegare il logo anche nelle e-mail di Keycloak richiederebbe di riscrivere nel provider l'invio SMTP di Keycloak, perché la composizione del messaggio in `DefaultEmailSenderProvider` è privata. È escluso: il codice SMTP, TLS e di autenticazione andrebbe riallineato a ogni aggiornamento di Keycloak per una differenza visibile solo con le immagini bloccate.
 - In entrambi `alt="Taurus"` e, sotto il logo, la scritta «Taurus» in testo: l'intestazione resta riconoscibile anche senza immagine.
 - Il logo non è un link, in nessuna e-mail.
 
@@ -89,17 +91,17 @@ Il backend invia con il nome «Taurus» (`MimeMessageHelper.setFrom(jhipster.mai
 ### 5. Oggetti
 
 - Backend: invariati («Codice di conferma – {tenant}», «Firma richiesta – {tenant}», «Atto firmato – {tenant}»).
-- Keycloak: `email/messages/messages_it.properties` e `messages_en.properties` del tema, identici, con gli oggetti in italiano:
+- Keycloak: l'italiano diventa la lingua del realm (`internationalizationEnabled: true`, `supportedLocales: ["it"]`, `defaultLocale: "it"`). Con l'internazionalizzazione disattivata Keycloak sceglie l'inglese; con una sola lingua il selettore non compare.
+- `email/messages/messages_it.properties` del tema fissa gli oggetti:
   - `passwordResetSubject=Reimposta la password`;
   - `executeActionsSubject=Completa il tuo account Taurus`;
   - `emailTestSubject=Prova di invio da Taurus`.
-
-  Il file `en` serve perché il realm ha l'internazionalizzazione disattivata e Keycloak sceglie l'inglese.
+- Effetti sulle altre pagine di Keycloak: la pagina di login usa `login/messages/messages_it.properties` invece di quello inglese, che oggi mostra per esempio «Welcome to Taurus!»; la console account e i messaggi del tema base passano all'italiano. I due file del login hanno già le stesse chiavi.
 
 ### 6. E-mail di Keycloak con contenuto Taurus
 
 - Hanno testi Taurus in italiano: reimpostazione della password, azioni richieste e prova SMTP (`email-test.ftl`, inviata dal pulsante «Test connection» della console).
-- Le altre (verifica dell'indirizzo, eventi di sicurezza, collegamento a provider esterni, inviti alle organizzazioni) non sono previste dalla configurazione del realm: ricevono il layout Taurus tramite la macro e mantengono i testi del tema base.
+- Le altre (verifica dell'indirizzo, eventi di sicurezza, collegamento a provider esterni, inviti alle organizzazioni) non sono previste dalla configurazione del realm: ricevono il layout Taurus tramite la macro e mantengono i testi del tema base, in italiano con la lingua del realm.
 - La scadenza si scrive con `linkExpirationFormatter(linkExpiration)`, per esempio «12 ore».
 - Il piè di pagina delle azioni richieste dipende dall'azione: «perché è stato creato un account con questo indirizzo» solo per `UPDATE_PASSWORD`, «perché è stata chiesta un'azione sul tuo account Taurus» negli altri casi.
 
@@ -190,14 +192,18 @@ Nessuna migrazione e nessuna nuova proprietà di configurazione.
 | `email/html/password-reset.ftl`, `executeActions.ftl` | usano la macro; logo PNG; colori della tabella; scadenza formattata; motivo per azione |
 | `email/html/email-test.ftl`, `email/text/email-test.ftl` | prova SMTP in italiano |
 | `email/text/password-reset.ftl`, `executeActions.ftl` | parti testo |
-| `email/messages/messages_it.properties`, `messages_en.properties` | oggetti |
+| `email/messages/messages_it.properties` | oggetti |
 | `email/resources/img/logo.png` | logo |
 
-Nessun cambio al realm.
+### Realm
+
+- `taurus-be/src/main/docker/realm-config/taurus-realm.json`: `internationalizationEnabled: true`, `supportedLocales: ["it"]`, `defaultLocale: "it"`.
+- `--import-realm` non sovrascrive un realm esistente: nelle installazioni già avviate la lingua si imposta a mano da **Realm settings › Localization** (internazionalizzazione attiva, solo italiano, italiano predefinito). Il runbook lo riporta come le altre impostazioni del realm.
 
 ### Documenti da allineare
 
 - [Firma elettronica](inventory-electronic-signature-spec.md#codice-via-e-mail): il messaggio segue questo standard.
+- [Runbook operativo](runbook-operativo.md): lingua del realm da impostare a mano nei realm esistenti, accanto alla configurazione SMTP di Keycloak.
 - [Runbook di test](runbook-test.md): verifica visiva delle e-mail in Mailpit (vedi [Strategia di test](#strategia-di-test)).
 - [Catalogo funzionalità](features.md): moduli, evidenze e stato.
 
@@ -224,8 +230,11 @@ Nessun cambio al realm.
 - il logo è un `<img>` verso `…/img/logo.png` e non c'è più `<svg`;
 - la scadenza è formattata («12 ore» per 720 minuti);
 - un modello che chiama `<@layout.emailLayout>` senza parametri, come quelli del tema base, si rende con barra, logo e piè di pagina;
-- i due file dei messaggi hanno le stesse chiavi e gli stessi valori;
+- il file dei messaggi email definisce i tre oggetti;
+- i due file dei messaggi del login hanno le stesse chiavi;
 - il logo ha lo SHA-256 atteso.
+
+Un test di integrazione con Keycloak avviato, come `TenantRoleFlowIT`, verifica che `url.resourcesUrl` arrivi ai modelli email e che `…/img/logo.png` risponda `200` con `image/png`. Se l'attributo non arrivasse, il modello userebbe l'indirizzo pubblico del realm seguito dal percorso delle risorse del tema.
 
 ### Verifica manuale
 
@@ -243,13 +252,15 @@ In Mailpit (`http://localhost:8025`), dopo aver inviato codice, link, atto firma
 - Nessun testo ha contrasto sotto 4,5:1 sul suo sfondo.
 - Le e-mail della firma conservano oggetti, dati e regole di sicurezza; quella del codice non contiene link.
 - Gli oggetti delle e-mail di Keycloak sono in italiano e la scadenza è scritta in ore o minuti secondo la durata.
+- Il realm ha l'italiano come unica lingua e la pagina di login mostra i testi italiani del tema.
 - I test di backend e Keycloak passano con `./mvnw verify` nei due moduli.
 
 ## Piano di adozione e compatibilità
 
 1. Logo PNG nei due moduli e relativi test.
-2. Keycloak: macro di layout, modelli HTML e testo, messaggi, test. Si rilascia con il JAR del provider; il realm non cambia.
-3. Backend: motore dei modelli, `TaurusMailSender`, modelli della firma, test.
-4. Verifica manuale in Mailpit e aggiornamento dei documenti.
+2. Keycloak: macro di layout, modelli HTML e testo, messaggi del tema, test. Si rilascia con il JAR del provider.
+3. Realm: lingua italiana nel realm versionato e, a mano, nei realm esistenti, insieme al JAR del passo 2.
+4. Backend: motore dei modelli, `TaurusMailSender`, modelli della firma, test.
+5. Verifica manuale in Mailpit e aggiornamento dei documenti.
 
-I passi 2 e 3 sono indipendenti. Nessuna API, migrazione o configurazione di deployment cambia; i link già inviati restano validi.
+Il passo 4 è indipendente dai passi 2 e 3. Nessuna API, migrazione o variabile di deployment cambia; i link già inviati restano validi. L'unico cambio di configurazione è la lingua del realm.
