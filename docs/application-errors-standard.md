@@ -514,6 +514,7 @@ Le chiavi sono riportate senza il prefisso `error.` che il backend aggiunge nel 
 | --- | --- | --- | --- | --- |
 | `user.limit.exceeded` | 400 | Creazione di un utente quando il tenant ha già raggiunto il numero massimo di utenti | `maximum` | «Raggiunto il numero massimo di utenti del tenant ({maximum})» |
 | `user.role.forbidden` | 403 | Creazione o modifica di un utente con il ruolo di super amministratore, che non si assegna dall'applicazione | — | «Il ruolo di super amministratore non può essere assegnato» |
+| `user.profile.locked` | 409 | Modifica di nome, cognome o e-mail di un utente il cui account di accesso appartiene anche ad altri tenant ([Account di accesso condiviso](shared-user-account-spec.md#profilo-di-un-account-condiviso)) | — | «Nome, cognome ed e-mail sono condivisi con altri tenant: può modificarli solo la persona dal proprio profilo» |
 | `tenant.code.exists` | 409 | Creazione di un tenant con un codice già usato | — | «Codice tenant già utilizzato» |
 | `tenant.schema.provisioningFailed` | 500 | Creazione di un tenant: la preparazione dello schema non è riuscita e il tenant viene rimosso | — | «Impossibile preparare il database del tenant: il tenant non è stato creato» |
 | `tenant.timeZone.invalid` | 400 | Fuso orario del tenant non riconosciuto | — | «Fuso orario non valido» |

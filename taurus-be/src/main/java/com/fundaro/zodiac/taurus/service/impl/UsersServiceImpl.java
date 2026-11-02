@@ -101,30 +101,41 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", maxUsers), getEntityName(), "user.limit.exceeded").with("maximum", maxUsers);
         }
 
-        User user = getMapper().toKeycloakUser(dto);
-
-        // Check if the user already exists into keycloak
+        // The account is the person's, shared by all their tenants: an existing one is only linked to this tenant,
+        // its profile and its enabled flag stay as they are.
+        boolean active = !Boolean.FALSE.equals(dto.getActive());
+        Optional<String> existingId = findKeycloakId(dto.getEmail());
+        boolean created = existingId.isEmpty();
+        String userId = existingId.orElse(null);
+        TenantLink link = null;
         try {
-            String keycloakId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-            user.setId(keycloakId);
-            keycloakService.updateUser(user);
-        } catch (RequestAlertException e) {
-            keycloakService.saveUser(user);
+            if (created) {
+                User user = getMapper().toKeycloakUser(dto);
+                user.setId(null);
+                // Only this tenant knows a new account: its state is the state of the user in the tenant.
+                user.setEnabled(active);
+                keycloakService.saveUser(user);
+                userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
+            }
+            User account = keycloakService.getUser(userId);
+            link = readTenantLink(userId, account, tenantCode);
+            if (!link.previouslyInGroup()) keycloakService.updateUserGroup(userId, link.groupId());
+            setTenantRoles(account, tenantCode, active ? resolveRoleNames(dto.getRoles()) : List.of());
+            keycloakService.updateUser(account);
+        } catch (RuntimeException e) {
+            undoSave(created, userId, link, tenantCode, e);
+            throw e;
         }
 
-        // Set user's roles on keycloak
-        String userId = keycloakService.getUserIdByUsernameOrEmail(dto.getEmail(), dto.getEmail());
-        user = keycloakService.getUser(userId);
-        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
-
         // Save keycloakId of the user
-        dto.setKeycloakId(userId);
+        String keycloakId = userId;
+        dto.setKeycloakId(keycloakId);
         try {
             Users entity = getMapper().toEntity(dto);
-            UserIdentity identity = userIdentityRepository.findByKeycloakId(userId).orElseGet(() -> {
-                UserIdentity created = new UserIdentity();
-                created.setKeycloakId(userId);
-                return userIdentityRepository.save(created);
+            UserIdentity identity = userIdentityRepository.findByKeycloakId(keycloakId).orElseGet(() -> {
+                UserIdentity newIdentity = new UserIdentity();
+                newIdentity.setKeycloakId(keycloakId);
+                return userIdentityRepository.save(newIdentity);
             });
             entity.setUserIdentity(identity);
             entity.setInstruments(resolveInstruments(dto));
@@ -135,9 +146,55 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             membership.setJoinedAt(java.time.ZonedDateTime.now());
             membershipRepository.save(membership);
             return saved;
-        } catch (Exception e) {
-            keycloakService.deleteUser(userId);
+        } catch (RuntimeException e) {
+            undoSave(created, keycloakId, link, tenantCode, e);
             throw e;
+        }
+    }
+
+    /**
+     * The Keycloak id of the account with this e-mail, empty when there is none. Keycloak answers an unknown address
+     * with an error, the same as before this lookup existed.
+     */
+    private Optional<String> findKeycloakId(String email) {
+        try {
+            return Optional.of(keycloakService.getUserIdByUsernameOrEmail(email, email));
+        } catch (RequestAlertException e) {
+            return Optional.empty();
+        }
+    }
+
+    /** How the account was linked to the tenant before a creation, to put it back if the creation fails. */
+    private record TenantLink(String groupId, boolean previouslyInGroup, List<String> previousRoles) {
+    }
+
+    private TenantLink readTenantLink(String userId, User account, String tenantCode) {
+        String groupId = keycloakService.getGroupIdByName(tenantCode);
+        boolean inGroup = keycloakService.getUserGroups(userId).stream().anyMatch(group -> tenantCode.equals(group.getName()));
+        Map<String, List<String>> attributes = account.getAttributes();
+        List<String> roles = attributes == null ? null : attributes.get(getAttributeKey(tenantCode));
+        return new TenantLink(groupId, inGroup, roles == null ? null : List.copyOf(roles));
+    }
+
+    /**
+     * Undoes only what the failed creation did: an account it created is deleted, an existing one gets back its roles
+     * in the tenant and leaves the group only if the creation added it. A failure here is logged and the original
+     * error is kept.
+     */
+    private void undoSave(boolean created, String userId, TenantLink link, String tenantCode, RuntimeException failure) {
+        if (userId == null) return;
+        try {
+            if (created) {
+                keycloakService.deleteUser(userId);
+            } else if (link != null) {
+                User account = keycloakService.getUser(userId);
+                setTenantRoles(account, tenantCode, link.previousRoles());
+                keycloakService.updateUser(account);
+                if (!link.previouslyInGroup()) keycloakService.deleteUserGroup(userId, link.groupId());
+            }
+        } catch (RuntimeException undo) {
+            getLogger().error("Could not undo the creation of user {} in tenant {} on Keycloak", userId, tenantCode, undo);
+            failure.addSuppressed(undo);
         }
     }
 
@@ -197,7 +254,8 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
-        updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
+        // The roles left out keep their value; the update writes the account once.
+        if (dto.getRoles() == null) dto.setRoles(usersDTO.getRoles() == null ? Set.of() : usersDTO.getRoles());
         return update(id, dto, abstractAuthenticationToken);
     }
 
@@ -414,48 +472,85 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private void setUserRolesOnKeycloak(User user, Set<RoleEnum> dtoRoles, String userId, AbstractAuthenticationToken abstractAuthenticationToken) {
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        String groupId = keycloakService.getGroupIdByName(tenantId);
-        keycloakService.updateUserGroup(userId, groupId);
-        Map<String, List<String>> currentAttributes = user.getAttributes();
-
-        if (dtoRoles != null && !dtoRoles.isEmpty()) {
-            List<Role> roles = keycloakService.getClientRoles();
-            roles = roles.stream().filter(role -> dtoRoles.stream().anyMatch(roleEnum -> role.getName().equalsIgnoreCase(roleEnum.toString()))).toList();
-
-            if (!roles.isEmpty()) {
-                if (currentAttributes == null) {
-                    currentAttributes = new HashMap<>();
-                }
-
-                currentAttributes.put(getAttributeKey(tenantId), roles.stream().map(Role::getName).toList());
-                user.setAttributes(currentAttributes);
-            }
-        }
-
-        keycloakService.updateUser(user);
+    /** The names of the client roles matching the requested ones; empty when none is requested. */
+    private List<String> resolveRoleNames(Set<RoleEnum> dtoRoles) {
+        if (dtoRoles == null || dtoRoles.isEmpty()) return List.of();
+        return keycloakService.getClientRoles().stream()
+            .filter(role -> dtoRoles.stream().anyMatch(roleEnum -> role.getName().equalsIgnoreCase(roleEnum.toString())))
+            .map(Role::getName)
+            .toList();
     }
 
-    private void updateUserOnKeycloak(UsersDTO dto, UsersDTO usersDTO, AbstractAuthenticationToken abstractAuthenticationToken) {
-        User user = getMapper().toKeycloakUser(dto);
-        user.setId(usersDTO.getKeycloakId());
-        keycloakService.updateUser(user);
+    /**
+     * Sets the roles of the account in the tenant, the attribute the login reads to offer the tenant. Null or empty
+     * removes it: the tenant no longer offers the access, the group and the other tenants stay as they are.
+     */
+    private void setTenantRoles(User account, String tenantCode, List<String> roleNames) {
+        Map<String, List<String>> attributes = account.getAttributes() == null ? new HashMap<>() : new HashMap<>(account.getAttributes());
+        if (roleNames == null || roleNames.isEmpty()) attributes.remove(getAttributeKey(tenantCode));
+        else attributes.put(getAttributeKey(tenantCode), List.copyOf(roleNames));
+        account.setAttributes(attributes);
+    }
 
-        // Remove old roles, if any
-        String tenantId = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
-        String userId = user.getId();
-        user = keycloakService.getUser(userId);
-        Map<String, List<String>> currentAttributes = user.getAttributes();
+    /**
+     * Applies an update of the user of this tenant to the account, which is shared by all the tenants of the person:
+     * roles and state go to the attribute of this tenant; the account is disabled only when no tenant offers the
+     * access any more, and enabled again only when the user goes back to active; name, last name and e-mail change
+     * only when no other tenant shares the account.
+     */
+    private void updateUserOnKeycloak(UsersDTO dto, UsersDTO current, AbstractAuthenticationToken abstractAuthenticationToken) {
+        String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
+        String userId = current.getKeycloakId();
+        User account = keycloakService.getUser(userId);
+        List<String> otherTenants = keycloakService.getUserGroups(userId).stream()
+            .map(Group::getName)
+            .filter(name -> name != null && !name.isBlank() && !name.equals(tenantCode))
+            .toList();
 
-        if (currentAttributes != null && currentAttributes.containsKey(getAttributeKey(tenantId))) {
-            currentAttributes.remove(getAttributeKey(tenantId));
-            user.setAttributes(currentAttributes);
-            keycloakService.updateUser(user);
+        if (otherTenants.isEmpty()) {
+            if (dto.getName() != null) account.setFirstName(dto.getName());
+            if (dto.getLastName() != null) account.setLastName(dto.getLastName());
+            if (dto.getEmail() != null) {
+                account.setEmail(dto.getEmail());
+                account.setUsername(dto.getEmail());
+            }
+        } else if (changesProfile(dto, current)) {
+            throw new RequestAlertException(HttpStatus.CONFLICT, "Profile shared with other tenants", getEntityName(), "user.profile.locked");
         }
 
-        // Set user's roles on keycloak
-        setUserRolesOnKeycloak(user, dto.getRoles(), userId, abstractAuthenticationToken);
+        boolean wasActive = !Boolean.FALSE.equals(current.getActive());
+        boolean active = dto.getActive() == null ? wasActive : dto.getActive();
+        setTenantRoles(account, tenantCode, active ? resolveRoleNames(dto.getRoles()) : List.of());
+
+        boolean endSessions = false;
+        if (!active) {
+            boolean accessElsewhere = otherTenants.stream().anyMatch(tenant -> {
+                List<String> roles = account.getAttributes().get(getAttributeKey(tenant));
+                return roles != null && !roles.isEmpty();
+            });
+            if (!accessElsewhere) account.setEnabled(false);
+            // Another tenant keeps the account enabled: the open sessions would go on in this tenant.
+            else endSessions = wasActive;
+        } else if (!wasActive && Boolean.FALSE.equals(account.getEnabled())) {
+            account.setEnabled(true);
+        }
+
+        keycloakService.updateUser(account);
+        if (endSessions) keycloakService.logoutUser(userId);
+    }
+
+    /** Whether the request changes name, last name or e-mail of the user of this tenant; null fields are left out. */
+    private static boolean changesProfile(UsersDTO dto, UsersDTO current) {
+        return changed(dto.getName(), current.getName(), false)
+            || changed(dto.getLastName(), current.getLastName(), false)
+            || changed(dto.getEmail(), current.getEmail(), true);
+    }
+
+    private static boolean changed(String requested, String stored, boolean ignoreCase) {
+        if (requested == null) return false;
+        String left = requested.trim();
+        String right = stored == null ? "" : stored.trim();
+        return ignoreCase ? !left.equalsIgnoreCase(right) : !left.equals(right);
     }
 
     private String getAttributeKey(String tenantId) {
