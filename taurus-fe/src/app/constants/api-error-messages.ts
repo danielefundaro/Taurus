@@ -175,6 +175,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',
     'user.role.forbidden': 'Il ruolo di super amministratore non può essere assegnato',
+    'user.profile.locked': 'Nome, cognome ed e-mail sono condivisi con altri tenant: può modificarli solo la persona dal proprio profilo',
     'tenant.code.exists': 'Codice tenant già utilizzato',
     'tenant.schema.provisioningFailed': 'Impossibile preparare il database del tenant: il tenant non è stato creato',
     'tenant.timeZone.invalid': 'Fuso orario non valido',
