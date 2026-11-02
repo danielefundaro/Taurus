@@ -22,8 +22,12 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class KeycloakServiceImpl implements KeycloakService {
@@ -341,23 +345,35 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
-    public void ensureClientRole(String roleName, String description) {
-        if (getClientRoles().stream().anyMatch(role -> roleName.equals(role.getName()))) return;
-
+    public List<String> ensureClientRoles(Map<String, String> descriptions) {
         String id = getIdByClientId();
         String url = String.format("%s/clients/%s/roles", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
-        Role role = new Role();
-        role.setName(roleName);
-        role.setDescription(description);
-        role.setComposite(false);
-        role.setClientRole(true);
-        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        ParameterizedTypeReference<List<Role>> listType = new ParameterizedTypeReference<>() {
         };
-        ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), role, typeRef);
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "keycloak.configuration.incomplete");
+        ResponseEntity<List<Role>> existing = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, listType);
+        if (!existing.getStatusCode().is2xxSuccessful()) {
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error reading Keycloak client roles", Role.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
-        log.info("Provisioned Keycloak client role {}", roleName);
+        Set<String> names = Objects.requireNonNullElse(existing.getBody(), List.<Role>of()).stream().map(Role::getName).collect(Collectors.toSet());
+
+        List<String> created = new ArrayList<>();
+        ParameterizedTypeReference<Void> voidType = new ParameterizedTypeReference<>() {
+        };
+        for (Map.Entry<String, String> entry : descriptions.entrySet()) {
+            if (names.contains(entry.getKey())) continue;
+            Role role = new Role();
+            role.setName(entry.getKey());
+            role.setDescription(entry.getValue());
+            role.setComposite(false);
+            role.setClientRole(true);
+            ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), role, voidType);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error provisioning Keycloak client role", Role.class.getSimpleName(), "keycloak.configuration.incomplete");
+            }
+            log.info("Provisioned Keycloak client role {}", entry.getKey());
+            created.add(entry.getKey());
+        }
+        return created;
     }
 
     @Override

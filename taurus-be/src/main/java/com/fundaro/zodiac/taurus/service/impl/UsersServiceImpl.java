@@ -1,6 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.Users;
+import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.domain.UserIdentity;
 import com.fundaro.zodiac.taurus.domain.TenantUserMembership;
 import com.fundaro.zodiac.taurus.domain.TenantUserMembershipId;
@@ -90,6 +92,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         if (dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "user.role.forbidden");
         }
+        requireNoAdministratorRole(dto.getRoles(), abstractAuthenticationToken);
 
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         TenantsDTO tenantsDTO = tenantsService.findByCode(tenantCode, abstractAuthenticationToken)
@@ -105,6 +108,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         // its profile and its enabled flag stay as they are.
         boolean active = !Boolean.FALSE.equals(dto.getActive());
         Optional<String> existingId = findKeycloakId(dto.getEmail());
+        existingId.ifPresent(keycloakId -> requireNotAdministratorAccount(keycloakId, abstractAuthenticationToken));
         boolean created = existingId.isEmpty();
         String userId = existingId.orElse(null);
         TenantLink link = null;
@@ -150,6 +154,53 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
             undoSave(created, keycloakId, link, tenantCode, e);
             throw e;
         }
+    }
+
+    // A board member manages the users of the tenant but not its administrators: only an administrator gives the
+    // administrator role or acts on an administrator or a super administrator (docs/board-role-spec.md).
+
+    private static boolean actsAsBoardMember(AbstractAuthenticationToken token) {
+        return RoleGroups.hasAny(token, AuthoritiesConstants.BOARD) && !RoleGroups.isTenantAdmin(token);
+    }
+
+    private RequestAlertException administratorForbidden() {
+        return new RequestAlertException(HttpStatus.FORBIDDEN, "Only an administrator can manage the administrators", getEntityName(), "user.admin.forbidden");
+    }
+
+    private void requireNoAdministratorRole(Collection<RoleEnum> roles, AbstractAuthenticationToken token) {
+        if (roles != null && roles.contains(RoleEnum.ROLE_ADMIN) && actsAsBoardMember(token)) throw administratorForbidden();
+    }
+
+    /** The user is an administrator of the tenant, or the account is a super administrator. */
+    private void requireNotAdministrator(UsersDTO user, AbstractAuthenticationToken token) {
+        if (!actsAsBoardMember(token)) return;
+        Set<RoleEnum> roles = user.getRoles() == null ? Set.of() : user.getRoles();
+        if (roles.contains(RoleEnum.ROLE_ADMIN) || roles.contains(RoleEnum.ROLE_SUPER_ADMIN) || isSuperAdministrator(user.getKeycloakId())) {
+            throw administratorForbidden();
+        }
+    }
+
+    /** An existing account linked by a creation: a super administrator, or an administrator of any tenant. */
+    private void requireNotAdministratorAccount(String keycloakId, AbstractAuthenticationToken token) {
+        if (!actsAsBoardMember(token)) return;
+        if (isSuperAdministrator(keycloakId) || administratorInAnyTenant(keycloakService.getUser(keycloakId))) throw administratorForbidden();
+    }
+
+    private boolean isSuperAdministrator(String keycloakId) {
+        if (Strings.isBlank(keycloakId)) return false;
+        return keycloakService.getUsersByClientRoles(RoleEnum.ROLE_SUPER_ADMIN).stream().anyMatch(user -> keycloakId.equals(user.getId()));
+    }
+
+    private static boolean administratorInAnyTenant(User account) {
+        Map<String, List<String>> attributes = account == null ? null : account.getAttributes();
+        if (attributes == null) return false;
+        return attributes.entrySet().stream()
+            .filter(entry -> entry.getKey().endsWith("_roles") && entry.getValue() != null)
+            .flatMap(entry -> entry.getValue().stream())
+            .filter(Objects::nonNull)
+            .flatMap(value -> Arrays.stream(value.split(",")))
+            .map(String::trim)
+            .anyMatch(RoleEnum.ROLE_ADMIN.toString()::equals);
     }
 
     /**
@@ -225,9 +276,11 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         if (dto.getRoles() == null || dto.getRoles().stream().anyMatch(roleEnum -> roleEnum == RoleEnum.ROLE_SUPER_ADMIN)) {
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Not allow", getEntityName(), "user.role.forbidden");
         }
+        requireNoAdministratorRole(dto.getRoles(), abstractAuthenticationToken);
 
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        requireNotAdministrator(usersDTO, abstractAuthenticationToken);
         updateUserOnKeycloak(dto, usersDTO, abstractAuthenticationToken);
         Users entity = getRepository().findByIdAndDeletedFalse(id).orElseThrow();
         getMapper().partialUpdate(entity, dto);
@@ -254,6 +307,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
 
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        requireNotAdministrator(usersDTO, abstractAuthenticationToken);
         // The roles left out keep their value; the update writes the account once.
         if (dto.getRoles() == null) dto.setRoles(usersDTO.getRoles() == null ? Set.of() : usersDTO.getRoles());
         return update(id, dto, abstractAuthenticationToken);
@@ -339,6 +393,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public UsersDTO delete(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO user = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
+        requireNotAdministrator(user, abstractAuthenticationToken);
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         // Before the soft delete, while the row is still readable: the personal feeds of a user who
         // leaves the tenant are closed at once, and the history says why.
@@ -355,6 +410,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public void deleteForGdpr(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO user = findOneIncludingDeleted(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "User not found", getEntityName(), "id.notFound"));
+        requireNotAdministrator(user, abstractAuthenticationToken);
         String tenantCode = SecurityUtils.getTenantIdFromAuthentication(abstractAuthenticationToken);
         boolean deferred = dataErasureService.requestInventoryAwareErasure(
             user.getKeycloakId(),
@@ -426,6 +482,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     public void sendSetupEmail(Long id, AbstractAuthenticationToken abstractAuthenticationToken) {
         UsersDTO usersDTO = findOne(id, abstractAuthenticationToken)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        requireNotAdministrator(usersDTO, abstractAuthenticationToken);
         keycloakService.sendExecuteActionsEmail(usersDTO.getKeycloakId(), List.of("UPDATE_PASSWORD", "VERIFY_EMAIL"));
     }
 

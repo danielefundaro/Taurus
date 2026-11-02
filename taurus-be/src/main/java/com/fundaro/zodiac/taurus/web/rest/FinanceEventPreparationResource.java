@@ -24,19 +24,19 @@ public class FinanceEventPreparationResource {
     }
 
     @GetMapping("/preparation")
-    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_BOARD','ROLE_TREASURER')")
     public ResponseEntity<View> get(@PathVariable Long eventId) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.getFinance(eventId));
     }
 
     @PostMapping("/budget-confirmation")
-    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_BOARD','ROLE_TREASURER')")
     public View confirmBudget(@PathVariable Long eventId, AbstractAuthenticationToken token) {
         return service.confirmBudget(eventId, token);
     }
 
     @PostMapping("/no-movements-confirmation")
-    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_TREASURER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPER_ADMIN','ROLE_ADMIN','ROLE_BOARD','ROLE_TREASURER')")
     public View confirmNoMovements(@PathVariable Long eventId, @Valid @RequestBody(required = false) NoMovementsRequest request,
                                    AbstractAuthenticationToken token) {
         return service.confirmNoMovements(eventId, request == null ? null : request.reason(), token);

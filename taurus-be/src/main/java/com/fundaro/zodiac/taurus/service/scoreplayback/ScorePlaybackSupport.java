@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.domain.scoreplayback.ScoreVersion;
 import com.fundaro.zodiac.taurus.domain.scoreplayback.ScoreVersionStatus;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.scoreplayback.ScorePlaybackDtos.MeasureBoxDTO;
 import com.fundaro.zodiac.taurus.service.dto.scoreplayback.ScorePlaybackDtos.PlaybackInstrumentDTO;
@@ -63,7 +64,7 @@ public class ScorePlaybackSupport {
         }
 
         public static Viewer of(AbstractAuthenticationToken token) {
-            if (hasAuthority(token, AuthoritiesConstants.SUPER_ADMIN) || hasAuthority(token, AuthoritiesConstants.ADMIN) || hasAuthority(token, AuthoritiesConstants.ARCHIVIST)) {
+            if (RoleGroups.isCatalogueManager(token)) {
                 return MANAGER;
             }
             if (hasAuthority(token, AuthoritiesConstants.USER)) return USER;

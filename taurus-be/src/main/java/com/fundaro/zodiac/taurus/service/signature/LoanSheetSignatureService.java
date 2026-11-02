@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
@@ -101,7 +102,8 @@ public class LoanSheetSignatureService {
     );
     static final Set<SignatureActStatus> AWAITING = EnumSet.of(SignatureActStatus.AWAITING_DATA, SignatureActStatus.AWAITING_SIGNATURES);
     private static final List<InventoryAssignmentStatus> OUTSTANDING_ASSIGNMENTS = List.of(InventoryAssignmentStatus.ACTIVE, InventoryAssignmentStatus.PARTIALLY_RETURNED);
-    static final List<RoleEnum> ADMIN_ROLES = List.of(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_SUPER_ADMIN);
+    /** Who can sign for the association: administrators and board members, never the platform super administrator. */
+    static final List<RoleEnum> ASSOCIATION_SIGNER_ROLES = RoleGroups.ASSOCIATION_SIGNER_ROLES;
     static final String REMOVED_NAME = SignatureErasureService.REMOVED_NAME;
     private static final Pattern POSTAL_CODE = Pattern.compile("^\\d{5}$");
     private static final java.time.format.DateTimeFormatter DATE = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -169,7 +171,7 @@ public class LoanSheetSignatureService {
     }
 
     /**
-     * Who signs for the association: an active administrator, never the holder of the sheet.
+     * Who signs for the association: an active administrator or board member, never the holder of the sheet.
      */
     public record AssociationSigner(String userId, String displayName) {
     }
@@ -210,12 +212,12 @@ public class LoanSheetSignatureService {
     }
 
     /**
-     * Active administrators who can sign for the association on a sheet of the holder.
+     * Active administrators and board members who can sign for the association on a sheet of the holder.
      */
     @Transactional(readOnly = true)
     public List<AssociationSignerOption> associationSigners(String holderUserId) {
         List<AssociationSignerOption> options = new ArrayList<>();
-        for (String userId : new LinkedHashSet<>(usersRepository.findActiveKeycloakIdsByRolesIn(ADMIN_ROLES))) {
+        for (String userId : new LinkedHashSet<>(usersRepository.findActiveKeycloakIdsByRolesIn(ASSOCIATION_SIGNER_ROLES))) {
             if (userId.equals(holderUserId)) continue;
             usersRepository.findByKeycloakIdAndDeletedFalse(userId).ifPresent(user -> options.add(new AssociationSignerOption(userId, displayName(user))));
         }
@@ -792,8 +794,8 @@ public class LoanSheetSignatureService {
         return signerRepository.findAllByActIdAndDeletedFalseOrderByIdAsc(act.getId()).stream().filter(signer -> signer.getSignerRole() == role).findFirst();
     }
 
-    boolean activeAdministrator(String userId) {
-        return userId != null && usersRepository.findActiveKeycloakIdsByRolesIn(ADMIN_ROLES).contains(userId);
+    boolean activeAssociationSigner(String userId) {
+        return userId != null && usersRepository.findActiveKeycloakIdsByRolesIn(ASSOCIATION_SIGNER_ROLES).contains(userId);
     }
 
     /**
@@ -964,24 +966,24 @@ public class LoanSheetSignatureService {
     private AssociationSigner associationSigner(String userId, String holderUserId) {
         RequestAlertException notAdmin = SignatureSupport.error(
             HttpStatus.UNPROCESSABLE_ENTITY,
-            "The signer for the association is not an active administrator",
+            "The signer for the association is not an active administrator or board member",
             "signature.associationSigner.notAdmin"
         );
         if (userId == null || userId.isBlank()) throw notAdmin;
         if (userId.equals(holderUserId)) {
             throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The holder cannot sign for the association", "signature.associationSigner.sameAsHolder");
         }
-        if (!activeAdministrator(userId)) throw notAdmin;
+        if (!activeAssociationSigner(userId)) throw notAdmin;
         Users user = usersRepository.findByKeycloakIdAndDeletedFalse(userId).orElseThrow(() -> notAdmin);
         return new AssociationSigner(userId, displayName(user));
     }
 
     /**
-     * Who signs a variation or the return for the association: the administrator who records it or, when that is the
-     * holder or no longer an administrator, the signer designated at issue.
+     * Who signs a variation or the return for the association: the administrator or board member who records it or,
+     * when that is the holder or can no longer sign for the association, the signer designated at issue.
      */
     private AssociationSigner operationSigner(InventoryLoanSheet sheet, String actor) {
-        if (!actor.equals(sheet.getUserKeycloakId()) && activeAdministrator(actor)) {
+        if (!actor.equals(sheet.getUserKeycloakId()) && activeAssociationSigner(actor)) {
             Optional<AssociationSigner> recorder = usersRepository.findByKeycloakIdAndDeletedFalse(actor).map(user -> new AssociationSigner(actor, displayName(user)));
             if (recorder.isPresent()) return recorder.orElseThrow();
         }

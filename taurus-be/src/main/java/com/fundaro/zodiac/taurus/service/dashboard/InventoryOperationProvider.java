@@ -11,7 +11,7 @@ import com.fundaro.zodiac.taurus.repository.inventory.InventoryAssignmentReposit
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryReturnRepository;
 import com.fundaro.zodiac.taurus.repository.inventory.InventoryIssueReportRepository;
 import com.fundaro.zodiac.taurus.repository.projection.InventoryExpirationProjection;
-import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardDomain;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardOperationType;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.DashboardSeverity;
@@ -79,7 +79,7 @@ public class InventoryOperationProvider implements DashboardOperationProvider {
     @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
         List<OperationalItemDTO> result = new ArrayList<>();
-        boolean administrator = context.hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN);
+        boolean administrator = context.hasAnyAuthority(RoleGroups.tenantManagers());
         if (administrator && qrProperties.isEnabled()
             && (tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.INVENTORY_QR)))
             addIssues(result);

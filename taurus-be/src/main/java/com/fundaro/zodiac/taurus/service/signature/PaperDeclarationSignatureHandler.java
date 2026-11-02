@@ -100,7 +100,7 @@ public class PaperDeclarationSignatureHandler implements SignaturePurposeHandler
     }
 
     private Item check(Long actId, String note, String userId, boolean lock) {
-        if (!signatureService.activeAdministrator(userId)) throw LoanSheetSignatureService.actNotFound();
+        if (!signatureService.activeAssociationSigner(userId)) throw LoanSheetSignatureService.actNotFound();
         SignatureAct act = signatureService.sheetAct(actId, lock);
         if (!LoanSheetSignatureService.AWAITING.contains(act.getStatus())) {
             throw SignatureSupport.error(HttpStatus.CONFLICT, "The act does not wait for signatures", "signature.act.notAwaitingSignatures");

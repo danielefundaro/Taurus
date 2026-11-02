@@ -84,7 +84,7 @@ class EventPreparationNotificationSchedulerTest {
         assertThat(command.eventKey().length()).isLessThanOrEqualTo(160);
         assertThat(command.message()).contains("Leggio").contains("Concerto");
         assertThat(command.targetPath()).isEqualTo("/calendar/42#preparation-materials");
-        assertThat(command.audiences()).extracting(value -> value.value()).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_SUPER_ADMIN");
+        assertThat(command.audiences()).extracting(value -> value.value()).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_BOARD", "ROLE_SUPER_ADMIN");
         assertThat(registry.counter("taurus.event_preparation.confirmation.invalidated", "area", "material").count()).isEqualTo(1);
     }
 

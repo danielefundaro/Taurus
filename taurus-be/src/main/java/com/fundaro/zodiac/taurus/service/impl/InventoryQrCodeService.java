@@ -103,7 +103,7 @@ public class InventoryQrCodeService {
             "/inventory/items/" + item.getId(),
             actor,
             displayName(token),
-            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
+            Set.of(NotificationAudience.role(RoleEnum.ROLE_ADMIN), NotificationAudience.role(RoleEnum.ROLE_BOARD), NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
                 NotificationAudience.excludedUser(actor)),
             null
         ));

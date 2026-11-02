@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItemPhoto;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryNoticeDataService {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryNoticeDataService.class);
-    private static final List<RoleEnum> ADMIN_ROLES = List.of(RoleEnum.ROLE_ADMIN, RoleEnum.ROLE_SUPER_ADMIN);
+    private static final List<RoleEnum> ADMIN_ROLES = List.copyOf(RoleGroups.TENANT_MANAGER_ROLES);
 
     private final InventoryItemRepository itemRepository;
     private final InventoryAssignmentRepository assignmentRepository;

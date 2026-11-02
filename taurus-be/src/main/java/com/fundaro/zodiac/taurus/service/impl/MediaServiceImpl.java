@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.domain.enumeration.StateEnum;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
@@ -311,9 +312,7 @@ public class MediaServiceImpl extends CommonOpenSearchServiceImpl<Media, MediaDT
     }
 
     private static boolean isPrivileged(AbstractAuthenticationToken token) {
-        return hasAuthority(token, AuthoritiesConstants.SUPER_ADMIN) ||
-            hasAuthority(token, AuthoritiesConstants.ADMIN) ||
-            hasAuthority(token, AuthoritiesConstants.ARCHIVIST);
+        return RoleGroups.isCatalogueManager(token);
     }
 
     private static boolean hasAuthority(AbstractAuthenticationToken token, String authority) {

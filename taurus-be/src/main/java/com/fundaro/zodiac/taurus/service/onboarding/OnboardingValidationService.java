@@ -35,7 +35,7 @@ public class OnboardingValidationService {
     public static final String SOURCE_INTEGRITY_FAILURE = "SOURCE_INTEGRITY_FAILURE";
     private static final Logger LOG = LoggerFactory.getLogger(OnboardingValidationService.class);
     private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
-    private static final Set<String> ROLES = Set.of("ADMIN", "TREASURER", "ARCHIVIST", "USER", "USER_EXTERNAL");
+    private static final Set<String> ROLES = Set.of("ADMIN", "BOARD", "TREASURER", "ARCHIVIST", "USER", "USER_EXTERNAL");
     private final OnboardingFileInspectionService inspection;
     private final OnboardingImportJobRepository jobs;
     private final OnboardingImportRowRepository rows;

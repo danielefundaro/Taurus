@@ -260,7 +260,7 @@ public class LoanSheetSigning {
         if (already) throw SignatureSupport.error(HttpStatus.CONFLICT, "The signer already signed", "signature.act.alreadySigned");
         // The holder signs for the items of the sheet only after the member has acknowledged their data and photos.
         if (role == SignerRole.HOLDER) signatureService.requireNoPendingAcknowledgments(act.getSheetId());
-        if (role == SignerRole.ASSOCIATION && !signatureService.activeAdministrator(who.userId())) {
+        if (role == SignerRole.ASSOCIATION && !signatureService.activeAssociationSigner(who.userId())) {
             throw SignatureSupport.error(
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "The signer for the association is no longer an active administrator",

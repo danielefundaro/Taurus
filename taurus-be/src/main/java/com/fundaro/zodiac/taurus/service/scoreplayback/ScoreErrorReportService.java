@@ -59,6 +59,7 @@ public class ScoreErrorReportService {
     private static final Set<NotificationAudience> MANAGERS = Set.of(
         NotificationAudience.role(RoleEnum.ROLE_SUPER_ADMIN),
         NotificationAudience.role(RoleEnum.ROLE_ADMIN),
+        NotificationAudience.role(RoleEnum.ROLE_BOARD),
         NotificationAudience.role(RoleEnum.ROLE_ARCHIVIST)
     );
 

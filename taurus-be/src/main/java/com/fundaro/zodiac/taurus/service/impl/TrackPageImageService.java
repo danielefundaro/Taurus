@@ -12,7 +12,7 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TrackPageEditReceiptRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
-import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -462,11 +462,7 @@ public class TrackPageImageService {
     }
 
     private static void requireEditor(AbstractAuthenticationToken token) {
-        boolean allowed = token != null && token.getAuthorities().stream().anyMatch(authority ->
-            AuthoritiesConstants.SUPER_ADMIN.equals(authority.getAuthority()) ||
-                AuthoritiesConstants.ADMIN.equals(authority.getAuthority()) ||
-                AuthoritiesConstants.ARCHIVIST.equals(authority.getAuthority())
-        );
+        boolean allowed = RoleGroups.isCatalogueManager(token);
         if (!allowed)
             throw new RequestAlertException(HttpStatus.FORBIDDEN, "Image editing is not allowed", "trackPageImage", "image.forbidden");
     }

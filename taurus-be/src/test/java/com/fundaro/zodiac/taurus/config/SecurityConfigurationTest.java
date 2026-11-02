@@ -135,7 +135,7 @@ class SecurityConfigurationTest {
     }
 
     private static Stream<String> catalogueManagers() {
-        return Stream.of(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST);
+        return Stream.of(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.BOARD, AuthoritiesConstants.ARCHIVIST);
     }
 
     private static Stream<String> otherRoles() {

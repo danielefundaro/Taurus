@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.config;
 
 import com.fundaro.zodiac.taurus.security.AuthoritiesConstants;
+import com.fundaro.zodiac.taurus.security.RoleGroups;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.security.oauth2.AudienceValidator;
 import com.fundaro.zodiac.taurus.web.rest.errors.SecurityProblemSupport;
@@ -134,7 +135,7 @@ public class SecurityConfiguration {
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/dashboard/operations").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/dashboard/operations/calendar-events")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers("/api/dashboard/**").denyAll()
                     .requestMatchers(HttpMethod.POST, "/api/logout").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/legal/status").authenticated()
@@ -192,15 +193,15 @@ public class SecurityConfiguration {
 
                     // Tenant inventory administration. Personal inventory endpoints are matched above.
                     .requestMatchers("/api/inventory/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
 
                     // Tenant finance management.
                     .requestMatchers("/api/finance/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.TREASURER)
+                    .hasAnyAuthority(RoleGroups.financeManagers())
 
                     // Tenant initial configuration and additive imports.
                     .requestMatchers("/api/onboarding/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantAdmins())
 
                     // All users can get instruments information
                     .requestMatchers(HttpMethod.GET, "/api/instruments/**").authenticated()
@@ -218,13 +219,13 @@ public class SecurityConfiguration {
 
                     // User administration. Self-service endpoints are matched above.
                     .requestMatchers(HttpMethod.DELETE, "/api/users/{id}/gdpr")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers("/api/users/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
 
                     // Catalogue administration.
                     .requestMatchers("/api/albums/**", "/api/tracks/**", "/api/instruments/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.catalogueManagers())
 
                     // Read-only catalogue APIs for standard and external users; listeners can report the errors they hear.
                     .requestMatchers(HttpMethod.GET, "/api/user/albums/**", "/api/user/tracks/**", "/api/user/media/**")
@@ -242,47 +243,47 @@ public class SecurityConfiguration {
                     // as in the method annotations of the resources: the administrative one carries materials and
                     // budget, the catalogue one only what an archivist edits.
                     .requestMatchers(HttpMethod.GET, "/api/calendar-events/{eventId}/preparation/catalogue")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers("/api/calendar-events/{eventId}/preparation", "/api/calendar-events/{eventId}/preparation/configuration")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(HttpMethod.PUT, "/api/calendar-events/{eventId}/preparation/program")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/calendar-events/{eventId}/preparation/materials/{materialId}/confirm",
                         "/api/calendar-events/{eventId}/preparation/presence-confirmation"
                     )
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/calendar-events/{eventId}/preparation/budget-confirmation",
                         "/api/calendar-events/{eventId}/preparation/no-movements-confirmation"
                     )
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/availability/cancel")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/series/{seriesId}/availability")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/series/{seriesId}/availability/cancel")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/{id}/reminder")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.GET, "/api/calendar-events/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.tenantManagersAnd(AuthoritiesConstants.ARCHIVIST))
                     .requestMatchers(HttpMethod.POST, "/api/calendar-events")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(HttpMethod.PUT, "/api/calendar-events/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(HttpMethod.PATCH, "/api/calendar-events/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers(HttpMethod.DELETE, "/api/calendar-events/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
                     .requestMatchers("/api/calendar-events/**").denyAll()
 
                     .requestMatchers("/api/calendar-event-series/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantManagers())
 
                     .requestMatchers(HttpMethod.GET, "/api/user/calendar-events/**")
                     .hasAuthority(AuthoritiesConstants.USER)
@@ -315,28 +316,28 @@ public class SecurityConfiguration {
                     // Media reads are used by every authenticated FE role; writes remain administrative.
                     .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/media/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.catalogueManagers())
                     .requestMatchers(HttpMethod.PUT, "/api/media/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.catalogueManagers())
                     .requestMatchers(HttpMethod.PATCH, "/api/media/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.catalogueManagers())
                     .requestMatchers(HttpMethod.DELETE, "/api/media/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST)
+                    .hasAnyAuthority(RoleGroups.catalogueManagers())
                     .requestMatchers("/api/media/**").denyAll()
 
                     .requestMatchers("/api/admin/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantAdmins())
                     .requestMatchers("/api/**").authenticated()
                     .requestMatchers("/services/**").authenticated()
                     .requestMatchers("/v3/api-docs/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantAdmins())
                     .requestMatchers("/management/health").permitAll()
                     .requestMatchers("/management/health/**").permitAll()
                     .requestMatchers("/management/info").permitAll()
                     .requestMatchers("/management/prometheus")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantAdmins())
                     .requestMatchers("/management/**")
-                    .hasAnyAuthority(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN)
+                    .hasAnyAuthority(RoleGroups.tenantAdmins())
 
                     // Angular static resources and client-side route fallback. Must remain last.
                     .requestMatchers("/**").permitAll()
