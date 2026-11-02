@@ -134,6 +134,19 @@ Il workspace privilegia la leggibilità delle pagine senza sacrificare la scansi
 5. Il flag resta vero finché la traccia non viene salvata: correggere gli strumenti non lo azzera da solo, perché la conferma è una decisione dell’utente.
 6. In sola lettura l’avviso è informativo e i comandi non compaiono.
 
+### Strumenti da aggiungere
+
+I nomi di strumenti letti sulle parti che il tenant non ha, o che corrispondono a più strumenti, compaiono nel pannello **Strumenti da aggiungere**, sopra il workspace ([Strumenti da aggiungere dai PDF delle tracce](track-instrument-suggestions-spec.md)).
+
+1. Il pannello compare solo a super amministratore, amministratore e archivista, e solo con nomi ancora aperti; li rilegge a ogni nuova versione della traccia.
+2. Ogni nome offre Crea, con il nome proposto modificabile, Associa, con gli strumenti proposti in cima all’elenco, Ignora e Più tardi, che lascia il nome aperto.
+3. Le parti che riportano il nome hanno una casella: sono preselezionate quelle senza strumenti, non quelle che ne hanno già né quelle con l’etichetta Possibile partitura, cioè con più di quattro nomi.
+4. Uno strumento nuovo, o senza soci, mostra l’avviso che le parti che lo ricevono restano visibili solo a chi gestisce l’archivio.
+5. Applica scelte salva in una sola operazione, fuori dalla bozza: le parti selezionate ricevono lo strumento e diventano da verificare, la traccia riceve una nuova versione e la pagina la adotta.
+6. Con modifiche non salvate nel workspace il pannello è disabilitato e chiede di salvare prima.
+7. Se un nome da creare esiste già o un nome è stato deciso altrove, il pannello mostra il messaggio e rilegge i nomi; se la traccia è cambiata, la pagina la rilegge.
+8. Nell’elenco le parti con nomi aperti mostrano l’icona Strumento da aggiungere, e il pannello della parte l’etichetta omonima.
+
 ### Navigare e consultare le pagine
 
 - Sopra la griglia, quando sono presenti almeno due pagine, compaiono i comandi Pagina precedente e Pagina successiva con l’indicazione Pagina x di n.
@@ -159,7 +172,7 @@ La barra delle pagine compare con almeno una pagina selezionata, accanto al tito
 
 ### Unire parti
 
-L’unione resta un’azione sulle parti, non sulle pagine. Dopo l’attivazione della modalità Seleziona parti, la barra contestuale mostra il numero di parti, l’ordine di concatenazione e l’azione Unisci. Il risultato usa la posizione della prima parte, concatena le pagine nell’ordine delle parti e rimuove duplicati dagli strumenti mantenendo il primo ordine incontrato.
+L’unione resta un’azione sulle parti, non sulle pagine. Dopo l’attivazione della modalità Seleziona parti, la barra contestuale mostra il numero di parti, l’ordine di concatenazione e l’azione Unisci. Il risultato usa la posizione della prima parte, concatena le pagine nell’ordine delle parti e rimuove duplicati dagli strumenti mantenendo il primo ordine incontrato. Se una delle parti ha strumenti da aggiungere, la conferma avvisa che la parte unita non li avrà più: al salvataggio i nomi delle parti di partenza vengono eliminati con loro.
 
 ### Dividere una parte
 
@@ -198,6 +211,7 @@ I job PDF mantengono la semantica definita dalla specifica di elaborazione asinc
 | Job completato prima dell’apertura | La successiva lettura della traccia include le nuove parti e le presenta normalmente. |
 | Job completato mentre esiste una bozza | La traccia non viene ricaricata da sé. Il completamento viene rilevato senza polling in due momenti: quando la scheda del browser torna visibile con un job ancora in lavorazione, con una sola rilettura dei job per ritorno, e quando un salvataggio riceve `409`. In entrambi i casi compare il banner Nuove parti disponibili. |
 | Retry del job | Aggiornare lo stato locale del job a In coda senza polling. |
+| Job completato con il riepilogo | Sotto lo stato, quante parti hanno ricevuto strumenti, quante hanno strumenti da aggiungere e quante nessuno strumento. I job elaborati prima del riepilogo non lo mostrano. |
 | Riallineamento della bozza | «Ricarica e continua» legge la traccia dal server, aggiunge in coda alla bozza le parti che non ha e adotta la nuova `version`: le modifiche locali restano e la bozza resta da salvare. «Salva prima» fa lo stesso e salva subito, perché un salvataggio senza riallineamento riceverebbe di nuovo `409`. Le parti che il job ha creato non vengono mai sovrascritte dalla bozza. |
 
 ### Protezione da perdita dati
@@ -307,6 +321,7 @@ Il frontend tratta da sé questo `409`, senza il toast generico «Dati modificat
 | Score list | Elenco parti, ricerca, riordino e virtualizzazione oltre la soglia. | Markup semantico custom con DragDrop e PrimeNG Scroller |
 | Score editor | Strumenti, pagine e azioni della parte selezionata. | MultiSelect o AutoComplete multiple e componenti custom |
 | Media thumbnail | Anteprima, selezione, caricamento ed errore. | Componente OnPush riutilizzabile |
+| Instrument suggestions panel | Nomi da aggiungere della traccia, scelta per nome e applicazione fuori dalla bozza. | Nuovo componente standalone con PrimeNG SelectButton, Select e Checkbox |
 | Selection bar | Azioni contestuali sulle pagine o sulle parti. | Estensione del componente condiviso esistente, con l’ingresso `alwaysVisible` per la modalità di selezione delle parti |
 | Panel divider | Larghezza dei pannelli da puntatore e da tastiera. | Separatore custom con `role="separator"` e `aria-valuenow` |
 | Inline alert | Banner della bozza, del conflitto e delle parti nuove. | Componente condiviso esistente, con una seconda azione per i casi in cui l’utente ha due modi legittimi di proseguire |

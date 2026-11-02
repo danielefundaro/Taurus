@@ -268,7 +268,7 @@ I componenti non mostrano un proprio toast per un errore HTTP: il titolo specifi
 
 Un componente che mostra l'errore accanto al campo dichiara le chiavi che gestisce con un secondo `HttpContextToken` (`HANDLED_ERRORS`, con `withHandledErrors`). Per quelle chiavi l'interceptor non mostra il toast, e il componente chiede il testo ad `ApiErrorService` e lo mostra sotto il campo.
 
-Lo usano la scadenza dell'assegnazione nel dettaglio inventario, con le chiavi `inventory.loanDuration.*` e i codici di scadenza di `inventory.loanSheet.*`, e i dialoghi della firma elettronica per i codici di conferma, i dati del firmatario e il documento firmato con CieSign.
+Lo usano la scadenza dell'assegnazione nel dettaglio inventario, con le chiavi `inventory.loanDuration.*` e i codici di scadenza di `inventory.loanSheet.*`, i dialoghi della firma elettronica per i codici di conferma, i dati del firmatario e il documento firmato con CieSign, e il pannello Strumenti da aggiungere della traccia, che per `version.conflict`, `instrument.name.exists` e `instrumentSuggestion.notOpen` mostra il messaggio nel pannello e rilegge i nomi.
 
 ### Registro dei comportamenti
 
@@ -866,6 +866,13 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `legal.document.notFound` | 404 | Documento inesistente | — | «Documento legale non trovato» |
 | `legal.document.version.exists` | 409 | Creazione o modifica con tipo e versione di un documento già esistente | — | «Esiste già questa versione del documento» |
 | `legal.document.accepted.immutable` | 409 | Modifica del contenuto di un documento già accettato da almeno un utente | — | «Un documento già accettato non si modifica: crearne una nuova versione» |
+
+### Strumenti e strumenti da aggiungere
+
+| Chiave | HTTP | Quando si verifica | Parametri | Messaggio |
+| --- | --- | --- | --- | --- |
+| `instrument.name.exists` | 409 | Creazione o rinomina di uno strumento, a mano o dal pannello Strumenti da aggiungere, con il nome di un altro strumento del tenant, confrontato senza maiuscole, accenti, punteggiatura e spazi ripetuti | — | «Esiste già uno strumento con questo nome» |
+| `instrumentSuggestion.notOpen` | 409 | Decisione su un nome da aggiungere che non è più aperto per la traccia o per una delle parti indicate | — | «Uno dei nomi è già stato deciso da un'altra richiesta» |
 
 ### Brani, upload e immagini delle pagine
 
