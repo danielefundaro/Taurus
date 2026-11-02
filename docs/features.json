@@ -39,6 +39,34 @@
       "notes": "Bozza del 2026-10-10, riscritta e implementata il 2026-10-11. Il backend restituisce solo stato, chiave, parametri strutturati ed errorId, anche per i 401 e 403 della catena di sicurezza; descrizioni, nomi delle entità e messaggi di Keycloak restano nel log. Il frontend costruisce ogni messaggio dal catalogo per chiave. Rinominate e scomposte le chiavi della tabella di corrispondenza; le risorse di altri soci rispondono 404. La verifica automatica del catalogo gira nella CI."
     },
     {
+      "id": "board-role",
+      "title": "Ruolo direttivo",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "planned",
+      "spec": "docs/board-role-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/event-preparation-spec.md",
+        "docs/financial-management-spec.md",
+        "docs/inventory-electronic-signature-spec.md",
+        "docs/inventory-management-spec.md",
+        "docs/notification-editorial-style.md",
+        "docs/operational-dashboard-spec.md",
+        "docs/taurus-layout-standard.md",
+        "docs/tenant-onboarding-import-spec.md"
+      ],
+      "modules": ["keycloak-authenticator", "taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-11-02",
+      "notes": "Decisioni approvate il 2026-11-02: ROLE_BOARD con i permessi dell'amministratore su catalogo, economia, inventario, calendario ed eventi e utenti, e firmatario per l'Associazione dei fogli di affidamento; restano agli amministratori configurazione iniziale, consegne notifiche, feed calendario di tutti, documentazione API e metriche e le azioni sugli amministratori. Nessuna migrazione."
+    },
+    {
       "id": "documentation-implementation-alignment",
       "title": "Governance e allineamento tra documentazione e implementazione",
       "kind": "standard",
@@ -57,6 +85,24 @@
       },
       "release": null,
       "lastVerifiedOn": "2026-10-23"
+    },
+    {
+      "id": "email-layout-standard",
+      "title": "Aspetto unificato delle e-mail",
+      "kind": "standard",
+      "designStatus": "draft",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/email-layout-standard.md",
+      "relatedDocs": ["docs/inventory-electronic-signature-spec.md", "docs/runbook-operativo.md", "docs/runbook-test.md"],
+      "modules": ["keycloak-authenticator", "taurus-be"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-11-02",
+      "notes": "Bozza del 2026-11-02: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG (in linea nel backend, dalle risorse del tema in Keycloak), parte solo testo in ogni e-mail, oggetti di Keycloak in italiano. Nessuna migrazione."
     },
     {
       "id": "event-payout-shares",
