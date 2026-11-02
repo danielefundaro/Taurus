@@ -26,6 +26,12 @@ public interface KeycloakService {
 
     void deleteUser(String user);
 
+    /**
+     * Ends every session of the user, in every tenant. Best effort: false, with a warning in the log, when Keycloak
+     * does not confirm it.
+     */
+    boolean logoutUser(String userId);
+
     List<Role> getUserRoles(String userId);
 
     void saveUserRoles(String userId, List<Role> roles);

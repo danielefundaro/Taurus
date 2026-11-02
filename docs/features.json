@@ -962,6 +962,31 @@
       "lastVerifiedOn": "2026-10-24"
     },
     {
+      "id": "shared-user-account",
+      "title": "Account di accesso condiviso fra tenant",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "implemented",
+      "spec": "docs/shared-user-account-spec.md",
+      "relatedDocs": ["docs/application-errors-standard.md", "docs/tenant-onboarding-import-spec.md"],
+      "modules": ["taurus-be", "taurus-fe"],
+      "evidence": {
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/UsersServiceImpl.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/utils/keycloak/service/impl/KeycloakServiceImpl.java",
+          "taurus-fe/src/app/constants/api-error-messages.ts"
+        ],
+        "migrations": [],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/UsersServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/SharedUserAccountKeycloakIT.java"
+        ]
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-11-02",
+      "notes": "La creazione su un account Keycloak esistente non scrive profilo ed enabled e, se fallisce, annulla solo il collegamento al tenant. Lo stato attivo è del tenant: l'attributo <TENANT>_roles viene tolto, enabled diventa false solo quando nessun tenant offre più l'accesso, altrimenti le sessioni dell'account vengono chiuse. La modifica di nome, cognome ed e-mail di un account condiviso è rifiutata con user.profile.locked; regola approvata il 2026-11-02."
+    },
+    {
       "id": "support-requests",
       "title": "Segnalazioni e richieste di supporto",
       "kind": "feature",

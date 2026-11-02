@@ -151,6 +151,21 @@ public class KeycloakServiceImpl implements KeycloakService {
     }
 
     @Override
+    public boolean logoutUser(String userId) {
+        String url = String.format("%s/users/%s/logout", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
+        };
+        try {
+            ResponseEntity<Void> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), null, typeRef);
+            if (response.getStatusCode().is2xxSuccessful()) return true;
+            log.warn("Keycloak did not end the sessions of user {}: {}", userId, response.getStatusCode());
+        } catch (RuntimeException e) {
+            log.warn("Keycloak did not end the sessions of user {}", userId, e);
+        }
+        return false;
+    }
+
+    @Override
     public List<Role> getUserRoles(String userId) {
         String id = getIdByClientId();
         String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
