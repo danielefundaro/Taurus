@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 /** Baseline misurata sul ramo principale, in punti percentuali. */
 const minimum = {
     statements: 62,
-    branches: 51,
+    branches: 52,
     lines: 64
 };
 

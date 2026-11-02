@@ -13,6 +13,7 @@ export * from './event-present-user.module';
 export * from './event-user-entry.module';
 export * from './finance.module';
 export * from './instruments.module';
+export * from './instrument-suggestions.module';
 export * from './inventory.module';
 export * from './last-researches.module';
 export * from './legal.module';

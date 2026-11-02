@@ -1,0 +1,100 @@
+@if (hasNames) {
+    <section class="instrument-suggestions" aria-labelledby="instrument-suggestions-heading">
+        <header class="instrument-suggestions__header">
+            <div>
+                <h3 id="instrument-suggestions-heading">
+                    Strumenti da aggiungere <span class="instrument-suggestions__count">{{ drafts.length }}</span>
+                </h3>
+                <p>Nomi letti sulle parti che non corrispondono a uno strumento del tenant. Per ciascuno scegli se crearlo, associarlo a uno strumento esistente o ignorarlo: le parti selezionate ricevono lo strumento e restano da verificare.</p>
+            </div>
+            <p-button label="Applica scelte" icon="pi pi-check" [loading]="applying" [disabled]="!canApply" (onClick)="apply()" />
+        </header>
+
+        @if (disabled) {
+            <app-inline-alert severity="info" heading="Modifiche da salvare" detail="Salva la traccia prima di aggiungere gli strumenti: le scelte valgono per le parti come sono sul server." />
+        }
+        @if (errorDetail) {
+            <app-inline-alert severity="warn" heading="Strumenti non applicati" [detail]="errorDetail" />
+        }
+
+        <div class="instrument-suggestions__list" [attr.aria-busy]="loading">
+            @for (draft of drafts; track draft.name.normalizedName; let index = $index) {
+                <article class="instrument-suggestion" [attr.aria-labelledby]="'instrument-suggestion-' + index">
+                    <div class="instrument-suggestion__head">
+                        <strong [id]="'instrument-suggestion-' + index">{{ draft.name.proposedName }}</strong>
+                        <p-selectbutton [options]="choices" [(ngModel)]="draft.choice" optionLabel="label" optionValue="value" [allowEmpty]="false" [disabled]="disabled || applying" [ariaLabelledBy]="'instrument-suggestion-' + index" />
+                    </div>
+
+                    @if (draft.choice === 'CREATE') {
+                        <app-form-field label="Nome dello strumento" [forId]="'instrument-suggestion-name-' + index" [error]="draft.createName.trim() ? undefined : 'Inserisci il nome dello strumento.'">
+                            <input pInputText [id]="'instrument-suggestion-name-' + index" type="text" maxlength="255" [(ngModel)]="draft.createName" [disabled]="disabled || applying" />
+                        </app-form-field>
+                    } @else if (draft.choice === 'ASSOCIATE') {
+                        <app-form-field
+                            label="Strumento"
+                            [forId]="'instrument-suggestion-instrument-' + index"
+                            [hint]="draft.name.candidates.length > 1 ? 'In cima gli strumenti con lo stesso nome di catalogo: scegli quello che suona la parte.' : undefined"
+                        >
+                            <p-select
+                                [inputId]="'instrument-suggestion-instrument-' + index"
+                                [options]="options(draft)"
+                                optionLabel="name"
+                                optionValue="id"
+                                [filter]="true"
+                                filterBy="name"
+                                appendTo="body"
+                                placeholder="Scegli lo strumento"
+                                [(ngModel)]="draft.instrumentId"
+                                [disabled]="disabled || applying"
+                            >
+                                <ng-template #item let-option>
+                                    <span>{{ option.name }}</span>
+                                    @if (option.candidate) {
+                                        <p-tag class="ml-2" value="Proposto" severity="info" />
+                                    }
+                                </ng-template>
+                            </p-select>
+                        </app-form-field>
+                    } @else if (draft.choice === 'IGNORE') {
+                        <p class="instrument-suggestion__note">Il nome non verrà più proposto per queste parti.</p>
+                    } @else {
+                        <p class="instrument-suggestion__note">Il nome resta nel pannello finché non decidi.</p>
+                    }
+
+                    @if (withoutMembers(draft)) {
+                        <p class="instrument-suggestion__warning" role="note">
+                            <i class="pi pi-users" aria-hidden="true"></i> Nessun socio suona ancora questo strumento: le parti che lo ricevono restano visibili solo a chi gestisce l'archivio finché non lo assegni ai soci.
+                        </p>
+                    }
+
+                    @if (draft.choice === 'CREATE' || draft.choice === 'ASSOCIATE') {
+                        <fieldset class="instrument-suggestion__parts">
+                            <legend>Parti che lo riportano</legend>
+                            @for (part of draft.name.parts; track part.sheetMusicId) {
+                                <div class="instrument-suggestion__part">
+                                    <p-checkbox
+                                        [inputId]="'instrument-suggestion-' + index + '-part-' + part.sheetMusicId"
+                                        [binary]="true"
+                                        [ngModel]="draft.selected.has(part.sheetMusicId)"
+                                        [disabled]="disabled || applying"
+                                        (ngModelChange)="togglePart(draft, part, $event)"
+                                    />
+                                    <label [for]="'instrument-suggestion-' + index + '-part-' + part.sheetMusicId">
+                                        <span>{{ partTitle(part) }}</span>
+                                        <small>Letto{{ part.source === 'OCR' ? ' sulla scansione' : '' }}: «{{ part.readText }}»</small>
+                                    </label>
+                                    @if (part.possibleScore) {
+                                        <p-tag value="Possibile partitura" severity="warn" pTooltip="Sulla parte ci sono molti nomi: probabilmente è la partitura del direttore." />
+                                    }
+                                    @if (part.hasInstruments) {
+                                        <p-tag value="Ha già strumenti" severity="secondary" pTooltip="Se la selezioni, lo strumento si aggiunge a quelli che ha." />
+                                    }
+                                </div>
+                            }
+                        </fieldset>
+                    }
+                </article>
+            }
+        </div>
+    </section>
+}

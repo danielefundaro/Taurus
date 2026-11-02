@@ -110,7 +110,11 @@
                         [readOnly]="readOnly" (focus)="beginInlineEdit()" (blur)="endInlineEdit()"
                         (ngModelChange)="onDescriptionChange($event)" />
                 </app-form-field>
-                <app-form-field label="Strumenti" forId="score-instruments">
+                <app-form-field label="Strumenti" forId="score-instruments"
+                    [hint]="hasOpenSuggestions(score) ? 'Sulla parte c’è uno strumento da aggiungere: sceglilo nel pannello Strumenti da aggiungere.' : undefined">
+                    @if (hasOpenSuggestions(score)) {
+                    <p-tag class="suggestion-tag" value="Strumento da aggiungere" icon="pi pi-plus-circle" severity="info" />
+                    }
                     @if (readOnly) {
                     <div class="instrument-tags">
                         @for (instrument of score.instruments; track instrument.index) {
@@ -281,6 +285,10 @@
         @if (item.score.needsReview) {
         <i class="pi pi-exclamation-circle review-icon" aria-label="Parte da verificare"
             pTooltip="Parte da verificare"></i>
+        }
+        @if (hasOpenSuggestions(item.score)) {
+        <i class="pi pi-plus-circle suggestion-icon" aria-label="Strumento da aggiungere"
+            pTooltip="Strumento da aggiungere"></i>
         }
         @if (!readOnly && !filterQuery.trim()) {
         <span class="part-reorder" aria-label="Comandi di riordino">

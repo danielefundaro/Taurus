@@ -137,6 +137,29 @@ describe('Track DetailComponent', () => {
         expect(component['isPendingUpload']({ id: 1, name: 'a.pdf', trackId: 8, status: 'DONE' })).toBeFalse();
     });
 
+    it('summarizes how the parts of a finished job were matched with the instruments', () => {
+        const component = new DetailComponent(null!, null!, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+        const job = { id: 1, name: 'a.pdf', trackId: 8, status: 'DONE' as const, partsWithInstruments: 1, partsWithSuggestions: 2, partsWithoutInstruments: 0 };
+
+        expect(component['uploadSummary'](job)).toBe('1 parte con strumenti assegnati · 2 con strumenti da aggiungere · 0 senza strumenti');
+        expect(component['uploadSummary']({ ...job, partsWithInstruments: 3 })).toContain('3 parti con strumenti assegnati');
+        expect(component['uploadSummary']({ ...job, status: 'IN_PROGRESS' })).toBeUndefined();
+        expect(component['uploadSummary']({ id: 1, name: 'a.pdf', trackId: 8, status: 'DONE' })).toBeUndefined();
+    });
+
+    it('takes the track of the applied instruments as saved and reads the instruments again', () => {
+        const instrumentsService = jasmine.createSpyObj('InstrumentsService', ['getAll']);
+        instrumentsService.getAll.and.returnValue(of({ content: [{ id: 4, name: 'Arpa' }], totalElements: 1 }));
+        const component = new DetailComponent(null!, instrumentsService, null!, null!, null!, null!, null!, null!, null!, tenantFeatures, telemetry());
+        component['isDirty'] = true;
+
+        component['onInstrumentSuggestionsApplied']({ id: 8, version: 6, scores: [{ id: 1, instruments: [{ index: 4, name: 'Arpa' }] }] });
+
+        expect(component['track'].version).toBe(6);
+        expect(component['baselineScores'][0].instruments![0].name).toBe('Arpa');
+        expect(instrumentsService.getAll).toHaveBeenCalled();
+    });
+
     it('shows the job of the accepted upload at once, without asking the server again', () => {
         const tracksService = jasmine.createSpyObj('TracksService', ['uploadPdf']);
         const toastService = jasmine.createSpyObj('ToastService', ['success']);

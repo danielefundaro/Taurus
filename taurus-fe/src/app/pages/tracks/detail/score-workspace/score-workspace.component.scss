@@ -203,6 +203,15 @@ p {
     color: var(--p-orange-500);
 }
 
+.suggestion-icon {
+    color: var(--p-primary-color);
+}
+
+.suggestion-tag {
+    display: inline-flex;
+    margin-bottom: 0.5rem;
+}
+
 .part-reorder {
     display: flex;
 }

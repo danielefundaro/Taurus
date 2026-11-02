@@ -501,6 +501,10 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'legal.document.version.exists': 'Esiste già questa versione del documento',
     'legal.document.accepted.immutable': 'Un documento già accettato non si modifica: crearne una nuova versione',
 
+    // Instruments and the instruments to add of the tracks
+    'instrument.name.exists': 'Esiste già uno strumento con questo nome',
+    'instrumentSuggestion.notOpen': "Uno dei nomi è già stato deciso da un'altra richiesta",
+
     // Tracks, uploads and page images
     'track.notFound': 'Brano non trovato',
     'track.file.empty': 'Il file è vuoto',
