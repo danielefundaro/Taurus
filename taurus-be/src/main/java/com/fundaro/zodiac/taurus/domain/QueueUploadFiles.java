@@ -39,6 +39,16 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
     @Column(name = "type")
     private String type;
 
+    /** Summary of the processing: parts with tenant instruments, with names to add and without instruments. */
+    @Column(name = "parts_with_instruments")
+    private Integer partsWithInstruments;
+
+    @Column(name = "parts_with_suggestions")
+    private Integer partsWithSuggestions;
+
+    @Column(name = "parts_without_instruments")
+    private Integer partsWithoutInstruments;
+
     @Transient
     public Long getUserId() {
         return user == null ? null : user.getId();
@@ -122,6 +132,30 @@ public class QueueUploadFiles extends CommonFieldsOpenSearch {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public Integer getPartsWithInstruments() {
+        return partsWithInstruments;
+    }
+
+    public void setPartsWithInstruments(Integer partsWithInstruments) {
+        this.partsWithInstruments = partsWithInstruments;
+    }
+
+    public Integer getPartsWithSuggestions() {
+        return partsWithSuggestions;
+    }
+
+    public void setPartsWithSuggestions(Integer partsWithSuggestions) {
+        this.partsWithSuggestions = partsWithSuggestions;
+    }
+
+    public Integer getPartsWithoutInstruments() {
+        return partsWithoutInstruments;
+    }
+
+    public void setPartsWithoutInstruments(Integer partsWithoutInstruments) {
+        this.partsWithoutInstruments = partsWithoutInstruments;
     }
 // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 

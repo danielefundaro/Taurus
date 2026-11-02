@@ -1,8 +1,11 @@
 package com.fundaro.zodiac.taurus.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentSuggestionDraft;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -30,6 +33,18 @@ public class SheetsMusicDTO implements Serializable {
     private Integer soundBankOverride;
 
     private Integer soundProgramOverride;
+
+    /** Names to add read on a part created from a PDF: never part of the API, saved apart from the part. */
+    @JsonIgnore
+    private transient List<InstrumentSuggestionDraft> instrumentSuggestions;
+
+    public List<InstrumentSuggestionDraft> getInstrumentSuggestions() {
+        return instrumentSuggestions;
+    }
+
+    public void setInstrumentSuggestions(List<InstrumentSuggestionDraft> instrumentSuggestions) {
+        this.instrumentSuggestions = instrumentSuggestions;
+    }
 
     public Long getId() {
         return id;

@@ -15,6 +15,7 @@ import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
 import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.PdfInstrumentsOutcome;
 import com.fundaro.zodiac.taurus.service.upload.UploadJobMetrics;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
@@ -44,6 +45,7 @@ public class Receiver {
     private final ObjectMapper objectMapper;
     private final ImageTransformationService imageTransformationService;
     private final UploadJobMetrics metrics;
+    private final PdfInstrumentsOutcome instrumentsOutcome;
 
     public Receiver(
         QueueUploadFilesService queueUploadFilesService,
@@ -52,7 +54,8 @@ public class Receiver {
         TenantStorageService tenantStorageService,
         MediaService mediaService,
         ImageTransformationService imageTransformationService,
-        UploadJobMetrics metrics
+        UploadJobMetrics metrics,
+        PdfInstrumentsOutcome instrumentsOutcome
     ) {
         this.tracksService = tracksService;
         this.pdfProcessingService = pdfProcessingService;
@@ -62,6 +65,7 @@ public class Receiver {
         this.mediaService = mediaService;
         this.imageTransformationService = imageTransformationService;
         this.metrics = metrics;
+        this.instrumentsOutcome = instrumentsOutcome;
         this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -112,6 +116,7 @@ public class Receiver {
 
                 List<SheetsMusicDTO> sheets = pdfProcessingService.buildSheets(source.bytes(), filesPath, track, token);
                 tracksService.appendScores(track.getId(), sheets, token);
+                recordInstrumentsOutcome(upload.getId(), track, sheets, token);
                 if (queueUploadFilesService.transitionStatus(upload.getId(), UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token)) {
                     metrics.record(UploadJobMetrics.Operation.COMPLETED);
                     metrics.recordDuration(System.nanoTime() - startedAt, UploadJobMetrics.Operation.COMPLETED);
@@ -136,6 +141,15 @@ public class Receiver {
             metrics.recordFailure(UploadJobMetrics.FailureReason.PROCESSING_FAILED);
             metrics.recordDuration(System.nanoTime() - startedAt, UploadJobMetrics.Operation.FAILED);
             log.error("Could not process upload job {} in tenant {}", upload.getId(), tenantCode, exception);
+        }
+    }
+
+    /** The parts are already saved: a failure of the summary or of the notification must not fail the job. */
+    private void recordInstrumentsOutcome(Long jobId, TracksDTO track, List<SheetsMusicDTO> sheets, AbstractAuthenticationToken token) {
+        try {
+            instrumentsOutcome.record(jobId, track, sheets, token);
+        } catch (RuntimeException exception) {
+            log.warn("Could not record how the parts of upload job {} matched the instruments", jobId, exception);
         }
     }
 

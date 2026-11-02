@@ -4,11 +4,14 @@ import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.criteria.TracksCriteria;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
+import com.fundaro.zodiac.taurus.domain.instrumentsuggestion.SheetMusicInstrumentSuggestion;
 import com.fundaro.zodiac.taurus.rabbitmq.Sender;
 import com.fundaro.zodiac.taurus.rabbitmq.UploadFilesPackage;
 import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.TracksRepository;
+import com.fundaro.zodiac.taurus.repository.instrumentsuggestion.SheetMusicInstrumentSuggestionRepository;
+import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.QueueUploadFilesService;
 import com.fundaro.zodiac.taurus.service.upload.UploadJobMetrics;
 import com.fundaro.zodiac.taurus.service.TracksService;
@@ -16,6 +19,7 @@ import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentSuggestionDraft;
 import com.fundaro.zodiac.taurus.service.mapper.TracksMapper;
 import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
@@ -24,11 +28,14 @@ import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -54,6 +61,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private final Sender sender;
     private final ImageTransformationService imageTransformationService;
     private final UploadJobMetrics uploadJobMetrics;
+    private final SheetMusicInstrumentSuggestionRepository suggestionRepository;
     private final ObjectMapper annotationsMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public TracksServiceImpl(
@@ -64,7 +72,8 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         InstrumentsRepository instrumentsRepository,
         Sender sender,
         ImageTransformationService imageTransformationService,
-        UploadJobMetrics uploadJobMetrics
+        UploadJobMetrics uploadJobMetrics,
+        SheetMusicInstrumentSuggestionRepository suggestionRepository
     ) {
         super(repository, mapper, TracksService.class, Tracks.class);
         this.queueUploadFilesService = queueUploadFilesService;
@@ -73,6 +82,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         this.sender = sender;
         this.imageTransformationService = imageTransformationService;
         this.uploadJobMetrics = uploadJobMetrics;
+        this.suggestionRepository = suggestionRepository;
     }
 
     @Override
@@ -101,6 +111,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
         }
         getMapper().partialUpdate(entity, dto);
         List<SheetsMusic> resolvedScores = resolveScores(dto, entity.getScores());
+        deleteSuggestionsOfRemovedScores(entity.getScores(), resolvedScores, token);
         entity.getScores().clear();
         entity.getScores().addAll(resolvedScores);
         saveEntity(entity, token, false);
@@ -122,17 +133,29 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             return getMapper().toDto(entity);
         }
 
+        // By position in the list of the track: the save merges the track and replaces each new part with its managed copy.
+        List<Map.Entry<Integer, List<InstrumentSuggestionDraft>>> suggestions = new ArrayList<>();
         for (SheetsMusicDTO score : scores) {
             if (score.getId() != null) {
                 throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Generated score cannot already have an ID", getEntityName(), "id.exists");
             }
             normalizeOrder(score.getMedia());
             normalizeOrder(score.getInstruments());
-            entity.getScores().add(resolveScore(score, new HashMap<>()));
+            SheetsMusic created = resolveScore(score, new HashMap<>());
+            entity.getScores().add(created);
+            if (score.getInstrumentSuggestions() != null && !score.getInstrumentSuggestions().isEmpty()) {
+                suggestions.add(Map.entry(entity.getScores().size() - 1, score.getInstrumentSuggestions()));
+            }
         }
 
         saveEntity(entity, token, false);
         getRepository().flush();
+        // The parts have their ids only now: the names to add are saved in the same transaction.
+        String actor = SecurityUtils.getUserIdFromAuthentication(token);
+        for (Map.Entry<Integer, List<InstrumentSuggestionDraft>> part : suggestions) {
+            Long sheetMusicId = entity.getScores().get(part.getKey()).getId();
+            part.getValue().forEach(draft -> suggestionRepository.save(suggestion(sheetMusicId, draft, actor)));
+        }
         return getMapper().toDto(entity);
     }
 
@@ -307,6 +330,26 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
             .map(ref -> instrumentsRepository.getReferenceById(ref.getIndex()))
             .collect(Collectors.toCollection(ArrayList::new)));
         return score;
+    }
+
+    private static SheetMusicInstrumentSuggestion suggestion(Long sheetMusicId, InstrumentSuggestionDraft draft, String actor) {
+        SheetMusicInstrumentSuggestion suggestion = new SheetMusicInstrumentSuggestion();
+        suggestion.setSheetMusicId(sheetMusicId);
+        suggestion.setReadText(draft.readText());
+        suggestion.setProposedName(draft.proposedName());
+        suggestion.setNormalizedName(draft.normalizedName());
+        suggestion.setCatalogKeyword(draft.catalogKeyword());
+        suggestion.setSource(draft.source());
+        suggestion.initializeAudit(actor);
+        return suggestion;
+    }
+
+    /** The names to add go with the parts the track no longer has, merged parts included. */
+    private void deleteSuggestionsOfRemovedScores(List<SheetsMusic> existing, List<SheetsMusic> kept, AbstractAuthenticationToken token) {
+        Set<Long> keptIds = kept.stream().map(SheetsMusic::getId).filter(Objects::nonNull).collect(Collectors.toSet());
+        List<Long> removed = existing.stream().map(SheetsMusic::getId).filter(id -> id != null && !keptIds.contains(id)).toList();
+        if (removed.isEmpty()) return;
+        suggestionRepository.deleteBySheetMusicIds(removed, SecurityUtils.getUserIdFromAuthentication(token), ZonedDateTime.now());
     }
 
     private Long orderOf(ChildrenEntitiesDTO ref) {

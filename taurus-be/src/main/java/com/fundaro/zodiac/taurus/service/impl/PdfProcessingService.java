@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties.OcrProperties;
 import com.fundaro.zodiac.taurus.domain.criteria.InstrumentsCriteria;
+import com.fundaro.zodiac.taurus.domain.instrumentsuggestion.InstrumentSuggestionSource;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -10,6 +11,9 @@ import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentNameRecognizer;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentNames;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentSuggestionDraft;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrClient;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.PageImage;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextLine;
@@ -29,12 +33,13 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -75,8 +80,8 @@ public class PdfProcessingService {
     /**
      * Converts a list of page images into SheetsMusicDTOs grouped by PDF structure.
      * For each group, attempts instrument detection via PDF text extraction (Level 1); the groups without useful
-     * lines have the first page read by the OMR service (Level 2, optional). Sets needsReview=true on DTOs that
-     * have auto-suggested instruments.
+     * lines have the first page read by the OMR service (Level 2, optional). The names read become tenant instruments,
+     * with needsReview=true, or names to add ({@link SheetsMusicDTO#getInstrumentSuggestions()}).
      */
     public List<SheetsMusicDTO> buildSheets(
         byte[] pdfBytes,
@@ -120,24 +125,62 @@ public class PdfProcessingService {
             candidates.set(scanned.get(i), read.get(i));
         }
 
+        InstrumentNameRecognizer recognizer = new InstrumentNameRecognizer(allInstruments);
         List<SheetsMusicDTO> result = new ArrayList<>();
         long scoreOrder = 0L;
         for (int i = 0; i < parts.size(); i++) {
             Part part = parts.get(i);
-            Set<ChildrenEntitiesDTO> suggested = matchInstruments(candidates.get(i), allInstruments);
+            InstrumentSuggestionSource source = part.scan() != null ? InstrumentSuggestionSource.OCR : InstrumentSuggestionSource.PDF_TEXT;
 
             SheetsMusicDTO dto = new SheetsMusicDTO();
             dto.setOrder(++scoreOrder);
             dto.setDescription(part.group().getTitle());
             dto.setMedia(part.media());
-            if (!suggested.isEmpty()) {
-                dto.setInstruments(suggested);
-                dto.setNeedsReview(true);
-            }
+            recognize(candidates.get(i), recognizer, source, dto);
             result.add(dto);
         }
 
         return result;
+    }
+
+    /**
+     * Assigns the tenant instruments named by the lines, marking the part to be reviewed, and keeps the names to add. A
+     * name to add is dropped when one of the instruments it could be is already assigned to the part.
+     */
+    static void recognize(List<String> lines, InstrumentNameRecognizer recognizer, InstrumentSuggestionSource source, SheetsMusicDTO dto) {
+        Map<Long, InstrumentsDTO> assigned = new LinkedHashMap<>();
+        Map<String, InstrumentSuggestionDraft> suggestions = new LinkedHashMap<>();
+        Map<String, InstrumentNameRecognizer.Suggested> suggested = new HashMap<>();
+        for (String line : lines) {
+            for (InstrumentNameRecognizer.Outcome outcome : recognizer.recognize(line)) {
+                if (outcome instanceof InstrumentNameRecognizer.Assigned value) {
+                    assigned.putIfAbsent(value.instrument().getId(), value.instrument());
+                } else if (outcome instanceof InstrumentNameRecognizer.Suggested value && !suggestions.containsKey(value.normalizedName())) {
+                    suggested.put(value.normalizedName(), value);
+                    suggestions.put(
+                        value.normalizedName(),
+                        new InstrumentSuggestionDraft(InstrumentNames.truncated(line), value.proposedName(), value.normalizedName(), value.keyword(), source)
+                    );
+                }
+            }
+        }
+        suggestions.values().removeIf(draft ->
+            suggested.get(draft.normalizedName()).candidates().stream().anyMatch(candidate -> assigned.containsKey(candidate.getId()))
+        );
+
+        if (!assigned.isEmpty()) {
+            Set<ChildrenEntitiesDTO> instruments = new LinkedHashSet<>();
+            for (InstrumentsDTO instrument : assigned.values()) {
+                ChildrenEntitiesDTO child = new ChildrenEntitiesDTO();
+                child.setIndex(instrument.getId());
+                child.setName(instrument.getName());
+                child.setOrder((long) (instruments.size() + 1));
+                instruments.add(child);
+            }
+            dto.setInstruments(instruments);
+            dto.setNeedsReview(true);
+        }
+        if (!suggestions.isEmpty()) dto.setInstrumentSuggestions(List.copyOf(suggestions.values()));
     }
 
     /** A group of pages that becomes a part; {@code scan} is the page to read when the PDF gave no useful line. */
@@ -296,67 +339,5 @@ public class PdfProcessingService {
             .filter(line -> !line.matches("^[IVXivx]+\\.?$"))
             .distinct()
             .collect(Collectors.toList());
-    }
-
-    private Set<ChildrenEntitiesDTO> matchInstruments(List<String> candidates, List<InstrumentsDTO> instruments) {
-        Set<ChildrenEntitiesDTO> matched = new HashSet<>();
-        for (String candidate : candidates) {
-            InstrumentsDTO instrument = bestMatch(candidate, instruments);
-            if (instrument != null) {
-                ChildrenEntitiesDTO child = new ChildrenEntitiesDTO();
-                child.setIndex(instrument.getId());
-                child.setName(instrument.getName());
-                child.setOrder((long) (matched.size() + 1));
-                matched.add(child);
-            }
-        }
-        return matched;
-    }
-
-    /**
-     * The instrument a line names, comparing whole words: the same name first, then the longest name found in the line,
-     * then the first name that holds the whole line. "Corno in Mib" is then "Corno 1°", never "Flicorno soprano 1°".
-     */
-    static InstrumentsDTO bestMatch(String candidate, List<InstrumentsDTO> instruments) {
-        List<String> line = words(candidate);
-        if (line.isEmpty()) return null;
-        InstrumentsDTO inLine = null;
-        int inLineWords = 0;
-        InstrumentsDTO holdingLine = null;
-        for (InstrumentsDTO instrument : instruments) {
-            List<String> name = words(instrument.getName());
-            if (name.isEmpty()) continue;
-            if (name.equals(line)) return instrument;
-            if (name.size() > inLineWords && Collections.indexOfSubList(line, name) >= 0) {
-                inLine = instrument;
-                inLineWords = name.size();
-            }
-            if (holdingLine == null && Collections.indexOfSubList(name, line) >= 0) {
-                holdingLine = instrument;
-            }
-        }
-        return inLine != null ? inLine : holdingLine;
-    }
-
-    private static List<String> words(String s) {
-        String normalized = normalize(s);
-        if (normalized.isEmpty()) return List.of();
-        return Arrays.stream(normalized.split("[^\\p{L}\\p{N}]+")).filter(word -> !word.isEmpty()).toList();
-    }
-
-    /** Lower case without accents, and without the key ("in Sib"), the roman or arabic number ("1°") at the end. */
-    private static String normalize(String s) {
-        if (s == null) return "";
-        String result = Normalizer.normalize(s.toLowerCase(), Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "").trim();
-        String previous;
-        do {
-            previous = result;
-            result = result
-                .replaceAll("\\s+in\\s+\\w+$", "")
-                .replaceAll("\\s+[ivxlcdm]+$", "")
-                .replaceAll("\\s+\\d+\\s*[°ºª]?$", "")
-                .trim();
-        } while (!result.equals(previous));
-        return result;
     }
 }

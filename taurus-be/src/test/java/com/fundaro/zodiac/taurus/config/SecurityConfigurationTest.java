@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,16 +27,24 @@ import tech.jhipster.config.JHipsterProperties;
 import java.util.stream.Stream;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {SecurityConfigurationTest.CancelAvailabilityController.class, SecurityConfigurationTest.ErrorReportController.class})
+@WebMvcTest(
+    controllers = {
+        SecurityConfigurationTest.CancelAvailabilityController.class,
+        SecurityConfigurationTest.ErrorReportController.class,
+        SecurityConfigurationTest.InstrumentSuggestionController.class,
+    }
+)
 @Import({
     SecurityConfiguration.class,
     SecurityProblemSupport.class,
     SecurityConfigurationTest.CancelAvailabilityController.class,
     SecurityConfigurationTest.ErrorReportController.class,
+    SecurityConfigurationTest.InstrumentSuggestionController.class,
 })
 @EnableConfigurationProperties(JHipsterProperties.class)
 @TestPropertySource(properties = "spring.security.oauth2.client.provider.oidc.issuer-uri=https://issuer.example")
@@ -101,6 +110,36 @@ class SecurityConfigurationTest {
     @MethodSource("deniedListenerWrites")
     void keepsTheOtherCatalogueWritesClosedToListeners(String authority, String path) throws Exception {
         mockMvc.perform(post(path).with(user("member").authorities(new SimpleGrantedAuthority(authority)))).andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @MethodSource("catalogueManagers")
+    void letsTheCatalogueManagersReadAndApplyTheInstrumentsToAdd(String authority) throws Exception {
+        mockMvc
+            .perform(get("/api/tracks/4/instrument-suggestions").with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isOk());
+        mockMvc
+            .perform(post("/api/tracks/4/instrument-suggestions/apply").with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @MethodSource("otherRoles")
+    void keepsTheInstrumentsToAddClosedToTheOtherRoles(String authority) throws Exception {
+        mockMvc
+            .perform(get("/api/tracks/4/instrument-suggestions").with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isForbidden());
+        mockMvc
+            .perform(post("/api/tracks/4/instrument-suggestions/apply").with(user("member").authorities(new SimpleGrantedAuthority(authority))))
+            .andExpect(status().isForbidden());
+    }
+
+    private static Stream<String> catalogueManagers() {
+        return Stream.of(AuthoritiesConstants.SUPER_ADMIN, AuthoritiesConstants.ADMIN, AuthoritiesConstants.ARCHIVIST);
+    }
+
+    private static Stream<String> otherRoles() {
+        return Stream.of(AuthoritiesConstants.USER, AuthoritiesConstants.USER_EXTERNAL, AuthoritiesConstants.TREASURER);
     }
 
     private static Stream<Arguments> allowedErrorReports() {
@@ -183,6 +222,18 @@ class SecurityConfigurationTest {
             "/api/external/tracks/{trackId}/scores/{scoreId}/error-reports",
         })
         void reportError() {
+        }
+    }
+
+    @RestController
+    static class InstrumentSuggestionController {
+
+        @GetMapping("/api/tracks/{trackId}/instrument-suggestions")
+        void find() {
+        }
+
+        @PostMapping("/api/tracks/{trackId}/instrument-suggestions/apply")
+        void apply() {
         }
     }
 }

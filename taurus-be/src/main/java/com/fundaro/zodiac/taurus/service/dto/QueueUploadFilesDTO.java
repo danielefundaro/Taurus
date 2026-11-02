@@ -24,8 +24,39 @@ public class QueueUploadFilesDTO extends CommonFieldsOpenSearchDTO {
 
     private String type;
 
+    /** Read only: summary of the processing, set when the parts are created. */
+    private Integer partsWithInstruments;
+
+    private Integer partsWithSuggestions;
+
+    private Integer partsWithoutInstruments;
+
     @JsonIgnore
     private MultipartFile multipartFile;
+
+    public Integer getPartsWithInstruments() {
+        return partsWithInstruments;
+    }
+
+    public void setPartsWithInstruments(Integer partsWithInstruments) {
+        this.partsWithInstruments = partsWithInstruments;
+    }
+
+    public Integer getPartsWithSuggestions() {
+        return partsWithSuggestions;
+    }
+
+    public void setPartsWithSuggestions(Integer partsWithSuggestions) {
+        this.partsWithSuggestions = partsWithSuggestions;
+    }
+
+    public Integer getPartsWithoutInstruments() {
+        return partsWithoutInstruments;
+    }
+
+    public void setPartsWithoutInstruments(Integer partsWithoutInstruments) {
+        this.partsWithoutInstruments = partsWithoutInstruments;
+    }
 
     public Long getUserId() {
         return userId;
