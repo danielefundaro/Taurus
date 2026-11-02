@@ -358,6 +358,34 @@ describe('ScoreWorkspaceComponent', () => {
         expect(component['virtualizedParts']).toBeTrue();
         expect(component['partRowSize']).toBe(88);
     });
+
+    it('labels the parts with instruments to add and warns before merging them', () => {
+        const confirmService = jasmine.createSpyObj<ConfirmService>('ConfirmService', ['confirmReversible']);
+        const component = new ScoreWorkspaceComponent(confirmService);
+        const initial: SheetsMusic[] = [
+            { id: 1, order: 1, description: 'Clarinetto basso', media: [], instruments: [] },
+            { id: 2, order: 2, description: 'Fagotto', media: [], instruments: [] },
+            { id: 3, order: 3, description: 'Tuba', media: [], instruments: [] }
+        ];
+        component.scores = initial;
+        component.suggestionPartIds = [1];
+        component.ngOnChanges({ scores: new SimpleChange(undefined, initial, true) });
+
+        expect(component['hasOpenSuggestions'](component['draftScores'][0])).toBeTrue();
+        expect(component['hasOpenSuggestions'](component['draftScores'][1])).toBeFalse();
+        expect(component['hasOpenSuggestions']({ description: 'Nuova' })).toBeFalse();
+
+        component['togglePart'](component['draftScores'][0]);
+        component['togglePart'](component['draftScores'][1]);
+        component['confirmMerge']();
+        expect(confirmService.confirmReversible.calls.mostRecent().args[0].consequence).toContain('Alcune parti hanno strumenti da aggiungere');
+
+        component['selectedPartKeys'] = new Set<string>();
+        component['togglePart'](component['draftScores'][1]);
+        component['togglePart'](component['draftScores'][2]);
+        component['confirmMerge']();
+        expect(confirmService.confirmReversible.calls.mostRecent().args[0].consequence).not.toContain('strumenti da aggiungere');
+    });
 });
 
 function dragEvent(): DragEvent {

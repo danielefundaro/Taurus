@@ -30,6 +30,8 @@ export class ScoreWorkspaceComponent implements OnChanges {
     @Input() readOnly = false;
     @Input() saving = false;
     @Input() trackDirty = false;
+    /** Parti con strumenti da aggiungere ancora aperti, dal pannello Strumenti da aggiungere. */
+    @Input() suggestionPartIds: readonly number[] = [];
     @Output() scoresChange = new EventEmitter<SheetsMusic[]>();
     @Output() dirtyChange = new EventEmitter<boolean>();
     @Output() imageEdit = new EventEmitter<{ scoreId: number; media: ChildrenEntities; pageNumber: number; scoreTitle: string }>();
@@ -267,11 +269,20 @@ export class ScoreWorkspaceComponent implements OnChanges {
         this.selectedPartKeys = new Set<string>();
     }
 
+    /** La parte ha nomi di strumenti da aggiungere ancora da decidere. */
+    protected hasOpenSuggestions(score: SheetsMusic): boolean {
+        return score.id !== undefined && this.suggestionPartIds.includes(score.id);
+    }
+
     protected confirmMerge(): void {
         if (this.selectedPartKeys.size < 2) return;
+        // La parte unita è nuova: i nomi da aggiungere delle parti di partenza spariscono al salvataggio.
+        const withSuggestions = this.draftScores.some((score) => this.selectedPartKeys.has(this.scoreKey(score)) && this.hasOpenSuggestions(score));
         this.confirmService.confirmReversible({
             title: 'Unisci parti',
-            consequence: 'Le pagine saranno concatenate nell’ordine delle parti selezionate. Gli strumenti duplicati verranno rimossi.',
+            consequence:
+                'Le pagine saranno concatenate nell’ordine delle parti selezionate. Gli strumenti duplicati verranno rimossi.' +
+                (withSuggestions ? ' Alcune parti hanno strumenti da aggiungere: dopo il salvataggio quei nomi non saranno più proposti per la parte unita.' : ''),
             actionLabel: 'Unisci',
             accept: () => {
                 this.uxEvent.emit('merge');

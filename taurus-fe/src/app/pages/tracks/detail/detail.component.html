@@ -82,8 +82,15 @@
                 <p-tabpanel value="parts">
                     <app-detail-section heading="Parti" [count]="track.scores?.length ?? 0"
                         description="Organizza strumenti e pagine. Le modifiche si salvano insieme alla traccia con «Salva traccia» in alto.">
+                        @if (canManagePdf && track.id) {
+                        <app-instrument-suggestions-panel [trackId]="track.id" [trackVersion]="track.version"
+                            [scores]="baselineScores" [instruments]="instruments" [disabled]="isDirty"
+                            (applied)="onInstrumentSuggestionsApplied($event)" (trackStale)="reloadTrack()"
+                            (openPartsChange)="suggestionPartIds = $event" />
+                        }
                         <app-score-workspace [scores]="track.scores ?? []" [baseline]="baselineScores"
                             [instruments]="instruments" [readOnly]="isUser" [saving]="saving" [trackDirty]="isDirty"
+                            [suggestionPartIds]="suggestionPartIds"
                             (scoresChange)="onScoresChange($event)" (dirtyChange)="onScoresDirtyChange($event)"
                             (imageEdit)="openImageEditor($event)" (uxEvent)="onUxEvent($event)"
                             (pdfRequested)="openPdfTab()" />
@@ -140,6 +147,9 @@
                                     <div class="min-w-0">
                                         <strong class="block truncate">{{ job.name }}</strong><span
                                             class="text-sm text-muted-color">{{ uploadStatusLabel(job.status) }}</span>
+                                        @if (uploadSummary(job); as summary) {
+                                        <span class="block text-sm text-muted-color">{{ summary }}</span>
+                                        }
                                     </div>
                                 </div>
                                 @if (job.status === 'ERROR') {

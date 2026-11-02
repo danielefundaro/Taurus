@@ -2,7 +2,7 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { RoleEnums } from '../constants';
-import { ImageTransformRecipe, TrackPageAnalysis, TrackPageEditResult, TrackUploadJob, Tracks, TracksCriteria } from '../module';
+import { ImageTransformRecipe, InstrumentSuggestionApplyRequest, InstrumentSuggestions, TrackPageAnalysis, TrackPageEditResult, TrackUploadJob, Tracks, TracksCriteria } from '../module';
 import { CommonOpenSearchService } from './common-open-search.service';
 import { KeycloakService } from './keycloak.service';
 
@@ -45,6 +45,16 @@ export class TracksService extends CommonOpenSearchService<Tracks, TracksCriteri
 
     public retryUploadJob(trackId: number, jobId: number): Observable<TrackUploadJob> {
         return this.http.post<TrackUploadJob>(`${this.baseUrl}/${this.resourceName()}/${trackId}/upload-jobs/${jobId}/retry`, {});
+    }
+
+    /** The open names of the instruments to add, grouped by name, with the parts that report them. */
+    public getInstrumentSuggestions(trackId: number): Observable<InstrumentSuggestions> {
+        return this.http.get<InstrumentSuggestions>(`${this.baseUrl}/tracks/${trackId}/instrument-suggestions`);
+    }
+
+    /** Applies the decisions in one transaction and returns the updated track. */
+    public applyInstrumentSuggestions(trackId: number, request: InstrumentSuggestionApplyRequest, context?: HttpContext): Observable<Tracks> {
+        return this.http.post<Tracks>(`${this.baseUrl}/tracks/${trackId}/instrument-suggestions/apply`, request, { context });
     }
 
     public analyzePage(trackId: number, scoreId: number, mediaId: number): Observable<TrackPageAnalysis> {

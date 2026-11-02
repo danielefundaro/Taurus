@@ -6,6 +6,7 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { FileUpload } from 'primeng/fileupload';
 import { delay, finalize, first, firstValueFrom } from 'rxjs';
 import { TypeHandlerComponent } from '../../../components/type-handler/type-handler.component';
+import { InstrumentSuggestionsPanelComponent } from './instrument-suggestions-panel/instrument-suggestions-panel.component';
 import { ScoreWorkspaceComponent } from './score-workspace/score-workspace.component';
 import { compareScores, DraftComparison, mergeServerScores } from './score-workspace/score-workspace.operations';
 import { ScorePlaybackPanelComponent } from './score-playback-panel/score-playback-panel.component';
@@ -20,7 +21,7 @@ import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, Te
 
 @Component({
     selector: 'app-track-detail',
-    imports: [ImportsModule, TypeHandlerComponent, ScoreWorkspaceComponent, ScorePlaybackPanelComponent],
+    imports: [ImportsModule, TypeHandlerComponent, ScoreWorkspaceComponent, ScorePlaybackPanelComponent, InstrumentSuggestionsPanelComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [TracksService, InstrumentsService, KeycloakService, DialogService],
@@ -48,6 +49,8 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
     protected conflict?: DraftComparison;
     /** Parti come stanno sul server: riferimento del confronto e della bozza del workspace. */
     protected baselineScores: SheetsMusic[] = [];
+    /** Parti con strumenti da aggiungere ancora aperti: alimenta l'etichetta nel workspace. */
+    protected suggestionPartIds: number[] = [];
     private detailsDirty = false;
     private scoresDirty = false;
 
@@ -93,24 +96,7 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
             if (this.canManagePdf) this.loadUploadJobs(trackId);
         });
 
-        let page = 0;
-        const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name,asc'] };
-
-        this.instrumentsService
-            .getAll(instrumentsCriteria)
-            .pipe(first())
-            .subscribe(async (result) => {
-                let totalElements = result.totalElements;
-                this.instruments = result.content;
-
-                while (totalElements > this.instruments.length) {
-                    instrumentsCriteria.page = ++page;
-
-                    const data = await firstValueFrom(this.instrumentsService.getAll(instrumentsCriteria));
-                    this.instruments.push(...data.content);
-                    totalElements = data.totalElements;
-                }
-            });
+        this.loadInstruments();
     }
 
     ngOnDestroy(): void {
@@ -495,6 +481,55 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
 
     private syncFormDirty(): void {
         this.isDirty = this.detailsDirty || this.scoresDirty;
+    }
+
+    /** Tutti gli strumenti del tenant, pagina dopo pagina: servono alla scelta nel workspace e nel pannello. */
+    private loadInstruments(): void {
+        let page = 0;
+        const instrumentsCriteria: InstrumentsCriteria = { page: page, sort: ['name,asc'] };
+
+        this.instrumentsService
+            .getAll(instrumentsCriteria)
+            .pipe(first())
+            .subscribe(async (result) => {
+                let totalElements = result.totalElements;
+                const instruments = result.content;
+
+                while (totalElements > instruments.length) {
+                    instrumentsCriteria.page = ++page;
+
+                    const data = await firstValueFrom(this.instrumentsService.getAll(instrumentsCriteria));
+                    instruments.push(...data.content);
+                    totalElements = data.totalElements;
+                }
+                this.instruments = instruments;
+            });
+    }
+
+    /** Le scelte del pannello sono già salvate: la traccia torna quella del server, con gli strumenti nuovi. */
+    protected onInstrumentSuggestionsApplied(track: Tracks): void {
+        this.track = track;
+        this.baselineScores = structuredClone(track.scores ?? []);
+        this.detailsDirty = false;
+        this.scoresDirty = false;
+        this.clearDirtyUnits();
+        this.savedIndicator = false;
+        this.loadInstruments();
+    }
+
+    /** Il pannello ha trovato la traccia cambiata: senza modifiche in sospeso si rilegge dal server. */
+    protected reloadTrack(): void {
+        if (this.track.id !== undefined && !this.isDirty) this.loadElement(this.track.id);
+    }
+
+    /** Il riepilogo dell'abbinamento delle parti con gli strumenti; vuoto per i job elaborati prima del riepilogo. */
+    protected uploadSummary(job: TrackUploadJob): string | undefined {
+        if (job.status !== 'DONE' || job.partsWithInstruments == null || job.partsWithSuggestions == null || job.partsWithoutInstruments == null) return undefined;
+        return [
+            `${job.partsWithInstruments} ${job.partsWithInstruments === 1 ? 'parte' : 'parti'} con strumenti assegnati`,
+            `${job.partsWithSuggestions} con strumenti da aggiungere`,
+            `${job.partsWithoutInstruments} senza strumenti`
+        ].join(' · ');
     }
 
     private loadUploadJobs(trackId: number): void {
