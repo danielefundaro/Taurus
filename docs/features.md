@@ -6,7 +6,9 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | ID | Funzionalità | Tipo | Progettazione | Consegna | Moduli | Migrazioni | Test | Release | Verificata |
 | --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
 | `application-errors-standard` | [Standard degli errori applicativi](application-errors-standard.md) | standard | approved | implemented | BE, FE, Repository | 0 | [5](#application-errors-standard-evidenze) | non rilasciata | 2026-10-26 |
+| `board-role` | [Ruolo direttivo](board-role-spec.md) | feature | approved | planned | Keycloak, BE, FE | 0 | 0 | non rilasciata | 2026-11-02 |
 | `documentation-implementation-alignment` | [Governance e allineamento tra documentazione e implementazione](documentation-implementation-alignment-spec.md) | standard | approved | implemented | Repository | 0 | [1](#documentation-implementation-alignment-evidenze) | non rilasciata | 2026-10-23 |
+| `email-layout-standard` | [Aspetto unificato delle e-mail](email-layout-standard.md) | standard | draft | not-planned | Keycloak, BE | 0 | 0 | non rilasciata | 2026-11-02 |
 | `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | implemented | BE, FE | [2](#event-preparation-evidenze) | [16](#event-preparation-evidenze) | non rilasciata | 2026-10-28 |
 | `external-calendar-feed` | [Feed calendario esterno in sola lettura](external-calendar-feed-spec.md) | feature | approved | implemented | BE, FE | [5](#external-calendar-feed-evidenze) | [13](#external-calendar-feed-evidenze) | non rilasciata | 2026-10-29 |
@@ -52,12 +54,28 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/errors/ExceptionTranslatorIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/errors/ExceptionTranslatorIT.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanDurationPolicyTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanDurationPolicyTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanTemplateValidatorTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/loansheet/LoanTemplateValidatorTest.java), [`taurus-fe/src/app/service/api-error.service.spec.ts`](../taurus-fe/src/app/service/api-error.service.spec.ts), [`scripts/docs/error-catalog.test.mjs`](../scripts/docs/error-catalog.test.mjs)
 - Note: Bozza del 2026-10-10, riscritta e implementata il 2026-10-11. Il backend restituisce solo stato, chiave, parametri strutturati ed errorId, anche per i 401 e 403 della catena di sicurezza; descrizioni, nomi delle entità e messaggi di Keycloak restano nel log. Il frontend costruisce ogni messaggio dal catalogo per chiave. Rinominate e scomposte le chiavi della tabella di corrispondenza; le risorse di altri soci rispondono 404. La verifica automatica del catalogo gira nella CI.
 
+<a id="board-role-evidenze"></a>
+### Ruolo direttivo
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Decisioni approvate il 2026-11-02: ROLE_BOARD con i permessi dell'amministratore su catalogo, economia, inventario, calendario ed eventi e utenti, e firmatario per l'Associazione dei fogli di affidamento; restano agli amministratori configurazione iniziale, consegne notifiche, feed calendario di tutti, documentazione API e metriche e le azioni sugli amministratori. Nessuna migrazione.
+
 <a id="documentation-implementation-alignment-evidenze"></a>
 ### Governance e allineamento tra documentazione e implementazione
 
 - Implementazione: [`scripts/docs/feature-catalog-lib.mjs`](../scripts/docs/feature-catalog-lib.mjs), [`scripts/docs/validate-feature-catalog.mjs`](../scripts/docs/validate-feature-catalog.mjs), [`scripts/docs/generate-feature-index.mjs`](../scripts/docs/generate-feature-index.mjs)
 - Migrazioni: nessuna
 - Test: [`scripts/docs/feature-catalog.test.mjs`](../scripts/docs/feature-catalog.test.mjs)
+
+<a id="email-layout-standard-evidenze"></a>
+### Aspetto unificato delle e-mail
+
+- Implementazione: nessuna
+- Migrazioni: nessuna
+- Test: nessuna
+- Note: Bozza del 2026-11-02: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG (in linea nel backend, dalle risorse del tema in Keycloak), parte solo testo in ogni e-mail, oggetti di Keycloak in italiano. Nessuna migrazione.
 
 <a id="event-payout-shares-evidenze"></a>
 ### Ripartizione dei compensi ai presenti
