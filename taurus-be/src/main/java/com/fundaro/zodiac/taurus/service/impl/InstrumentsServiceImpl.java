@@ -6,6 +6,7 @@ import com.fundaro.zodiac.taurus.repository.InstrumentsRepository;
 import com.fundaro.zodiac.taurus.repository.UsersRepository;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentNames;
 import com.fundaro.zodiac.taurus.service.mapper.InstrumentsMapper;
 import com.fundaro.zodiac.taurus.service.scoreplayback.PlaybackSettingsValidator;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -39,6 +40,7 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
     @Override
     public InstrumentsDTO save(InstrumentsDTO dto, AbstractAuthenticationToken token) {
         requireValidPlaybackSettings(dto);
+        requireUniqueName(dto.getName(), null);
         return super.save(dto, token);
     }
 
@@ -54,6 +56,7 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
         }
         Instruments entity = getRepository().findByIdAndDeletedFalse(id)
             .orElseThrow(() -> new RequestAlertException(HttpStatus.NOT_FOUND, "Entity not found", getEntityName(), "id.notFound"));
+        requireUniqueRename(entity, dto.getName());
         getMapper().partialUpdate(entity, dto);
         entity.setTranspositionSemitones(dto.getTranspositionSemitones());
         entity.setBassClefTranspositionSemitones(dto.getBassClefTranspositionSemitones());
@@ -66,6 +69,7 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
     @Override
     public InstrumentsDTO partialUpdate(Long id, InstrumentsDTO dto, AbstractAuthenticationToken token) {
         requireValidPlaybackSettings(dto);
+        if (id != null) getRepository().findByIdAndDeletedFalse(id).ifPresent(entity -> requireUniqueRename(entity, dto.getName()));
         return super.update(id, dto, token);
     }
 
@@ -108,6 +112,27 @@ public class InstrumentsServiceImpl extends CommonOpenSearchServiceImpl<Instrume
             );
             return Boolean.TRUE.equals(criteria.getPlaybackConfigured().getEquals()) ? configured : cb.not(configured);
         });
+    }
+
+    /** A rename is checked only when the name really changes: names already doubled before the check stay as they are. */
+    private void requireUniqueRename(Instruments entity, String name) {
+        if (name == null || InstrumentNames.uniqueKey(name).equals(InstrumentNames.uniqueKey(entity.getName()))) return;
+        requireUniqueName(name, entity.getId());
+    }
+
+    /**
+     * No two instruments of the tenant may have the same name, compared in lower case without accents, punctuation and
+     * repeated spaces. The lock of the tenant, held until the end of the transaction, makes the check atomic.
+     */
+    private void requireUniqueName(String name, Long excludedId) {
+        String key = InstrumentNames.uniqueKey(name);
+        if (key.isEmpty()) return;
+        getRepository().lockTenantNames();
+        for (Object[] row : getRepository().findActiveNames()) {
+            if (!Objects.equals(row[0], excludedId) && key.equals(InstrumentNames.uniqueKey((String) row[1]))) {
+                throw new RequestAlertException(HttpStatus.CONFLICT, "An instrument with the same name exists", getEntityName(), "instrument.name.exists");
+            }
+        }
     }
 
     private void requireValidPlaybackSettings(InstrumentsDTO dto) {

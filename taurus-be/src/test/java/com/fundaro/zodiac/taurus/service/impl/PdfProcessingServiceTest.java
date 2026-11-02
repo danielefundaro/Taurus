@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
+import com.fundaro.zodiac.taurus.domain.instrumentsuggestion.InstrumentSuggestionSource;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
 import com.fundaro.zodiac.taurus.service.MediaService;
 import com.fundaro.zodiac.taurus.service.dto.ChildrenEntitiesDTO;
@@ -9,6 +10,8 @@ import com.fundaro.zodiac.taurus.service.dto.InstrumentsDTO;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentNameRecognizer;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.InstrumentSuggestionDraft;
 import com.fundaro.zodiac.taurus.service.scoreplayback.FakeOmrServer;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrClient;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.TextLine;
@@ -216,29 +219,42 @@ class PdfProcessingServiceTest {
     }
 
     @Test
-    void matchesTheInstrumentsByWholeWords() {
-        List<InstrumentsDTO> band = List.of(
-            instrument(1L, "Flauto 1°"),
-            instrument(2L, "Clarinetto soprano 1°"),
-            instrument(3L, "Clarinetto basso"),
-            instrument(4L, "Flicorno soprano 1°"),
-            instrument(5L, "Corno 1°"),
-            instrument(6L, "Corno 2°"),
-            instrument(7L, "Sax contralto 1°")
-        );
+    void keepsTheNamesTheTenantDoesNotHave() throws IOException {
+        List<SheetsMusicDTO> sheets = service().buildSheets(pdfWithMarginText("Clarinetto basso"), images(1), track, null);
 
-        assertThat(name(PdfProcessingService.bestMatch("Corno in Mib", band))).isEqualTo("Corno 1°");
-        assertThat(name(PdfProcessingService.bestMatch("Clarinetto basso in Sib", band))).isEqualTo("Clarinetto basso");
-        assertThat(name(PdfProcessingService.bestMatch("Clarinetto", band))).isEqualTo("Clarinetto soprano 1°");
-        assertThat(name(PdfProcessingService.bestMatch("Flauto II", band))).isEqualTo("Flauto 1°");
-        assertThat(name(PdfProcessingService.bestMatch("Sax contralto Mib", band))).isEqualTo("Sax contralto 1°");
-        assertThat(PdfProcessingService.bestMatch("Flicorno", List.of(instrument(5L, "Corno 1°")))).isNull();
-        assertThat(PdfProcessingService.bestMatch("Tuba", band)).isNull();
-        assertThat(PdfProcessingService.bestMatch("1°", band)).isNull();
+        assertThat(sheets).singleElement().satisfies(sheet -> {
+            assertThat(sheet.getInstruments()).isNullOrEmpty();
+            assertThat(sheet.getNeedsReview()).isNotEqualTo(Boolean.TRUE);
+            assertThat(sheet.getInstrumentSuggestions()).containsExactly(
+                new InstrumentSuggestionDraft("Clarinetto basso", "Clarinetto basso", "clarinetto basso", "clarinetto basso", InstrumentSuggestionSource.PDF_TEXT)
+            );
+        });
     }
 
-    private static String name(InstrumentsDTO instrument) {
-        return instrument == null ? null : instrument.getName();
+    @Test
+    void readsTheNamesToAddOnTheScannedPages() throws IOException {
+        omr.answer(TEXT, 200, "application/json", pages(List.of(line("SAX TENORE 2°", 0.9, 0.05, 0.1, 0.1, 0.02), line("Tromba", 0.9, 0.05, 0.2, 0.1, 0.02))));
+
+        List<SheetsMusicDTO> sheets = service().buildSheets(pdf(1), images(1), track, null);
+
+        assertThat(sheets).singleElement().satisfies(sheet -> {
+            assertThat(instruments(sheet)).containsExactly("Tromba");
+            assertThat(sheet.getNeedsReview()).isTrue();
+            assertThat(sheet.getInstrumentSuggestions()).containsExactly(
+                new InstrumentSuggestionDraft("SAX TENORE 2°", "Sax tenore", "sax tenore", "sax tenore", InstrumentSuggestionSource.OCR)
+            );
+        });
+    }
+
+    @Test
+    void dropsTheChoiceWhenOneOfItsInstrumentsIsAssigned() {
+        InstrumentNameRecognizer recognizer = new InstrumentNameRecognizer(List.of(instrument(1L, "Clarinetto 1°"), instrument(2L, "Clarinetto 2°")));
+        SheetsMusicDTO part = new SheetsMusicDTO();
+
+        PdfProcessingService.recognize(List.of("Clarinetto in Sib", "Clarinetto 1° in Sib"), recognizer, InstrumentSuggestionSource.PDF_TEXT, part);
+
+        assertThat(instruments(part)).containsExactly("Clarinetto 1°");
+        assertThat(part.getInstrumentSuggestions()).isNull();
     }
 
     private PdfProcessingService service() {

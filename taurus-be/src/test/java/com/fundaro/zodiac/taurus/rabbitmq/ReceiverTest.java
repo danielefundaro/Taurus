@@ -20,6 +20,7 @@ import com.fundaro.zodiac.taurus.service.TracksService;
 import com.fundaro.zodiac.taurus.service.impl.PdfProcessingService;
 import com.fundaro.zodiac.taurus.service.impl.ImageTransformationService;
 import com.fundaro.zodiac.taurus.service.impl.TenantStorageService;
+import com.fundaro.zodiac.taurus.service.instrumentsuggestion.PdfInstrumentsOutcome;
 import com.fundaro.zodiac.taurus.service.dto.QueueUploadFilesDTO;
 import com.fundaro.zodiac.taurus.service.dto.SheetsMusicDTO;
 import com.fundaro.zodiac.taurus.service.dto.TracksDTO;
@@ -51,6 +52,7 @@ class ReceiverTest {
     private final TenantStorageService tenantStorageService = mock(TenantStorageService.class);
     private final MediaService mediaService = mock(MediaService.class);
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
+    private final PdfInstrumentsOutcome instrumentsOutcome = mock(PdfInstrumentsOutcome.class);
 
     private final Receiver receiver = new Receiver(
         queueUploadFilesService,
@@ -59,7 +61,8 @@ class ReceiverTest {
         tenantStorageService,
         mediaService,
         new ImageTransformationService(),
-        new UploadJobMetrics(registry)
+        new UploadJobMetrics(registry),
+        instrumentsOutcome
     );
 
     @Test
@@ -118,21 +121,50 @@ class ReceiverTest {
             QueueUploadFilesDTO upload = job();
             TracksDTO track = new TracksDTO();
             track.setId(8L);
+            SheetsMusicDTO sheet = new SheetsMusicDTO();
             when(queueUploadFilesService.findOne(3L, token)).thenReturn(Optional.of(upload));
             when(queueUploadFilesService.transitionStatus(3L, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, token)).thenReturn(true);
             when(queueUploadFilesService.transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token)).thenReturn(true);
             when(tracksService.findOne(8L, token)).thenReturn(Optional.of(track));
             when(mediaService.getContent(any(Long.class), any(AbstractAuthenticationToken.class))).thenReturn(new MediaService.MediaContent("score.pdf", "application/pdf", 1024, onePagePdf()));
             when(tenantStorageService.createTemporaryDirectory(anyString(), anyString())).thenReturn(workingDirectory);
-            when(pdfProcessingService.buildSheets(any(), anyList(), any(), any())).thenReturn(List.of(new SheetsMusicDTO()));
+            when(pdfProcessingService.buildSheets(any(), anyList(), any(), any())).thenReturn(List.of(sheet));
 
             receiver.receive(Converter.objectToBytes(new UploadFilesPackage(3L, token)));
 
             verify(tracksService).appendScores(anyLong(), anyList(), any());
+            verify(instrumentsOutcome).record(3L, track, List.of(sheet), token);
             verify(queueUploadFilesService).transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token);
             verify(queueUploadFilesService, never()).transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.ERROR, token);
             assertThat(operations("COMPLETED")).isEqualTo(1);
             assertThat(registry.find("taurus.upload.job.duration").tag("outcome", "COMPLETED").timer().count()).isEqualTo(1);
+        } finally {
+            deleteRecursively(workingDirectory);
+        }
+    }
+
+    /** The parts are saved: a failure of the summary or of the notice is logged and the job still ends as done. */
+    @Test
+    void endsTheJobEvenWhenTheInstrumentsOutcomeFails() throws Exception {
+        JwtAuthenticationToken token = authentication();
+        Path workingDirectory = Files.createTempDirectory("receiver-test");
+        try {
+            TracksDTO track = new TracksDTO();
+            track.setId(8L);
+            when(queueUploadFilesService.findOne(3L, token)).thenReturn(Optional.of(job()));
+            when(queueUploadFilesService.transitionStatus(3L, UploadFileStatusEnum.TO_PROCESS, UploadFileStatusEnum.IN_PROGRESS, token)).thenReturn(true);
+            when(queueUploadFilesService.transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token)).thenReturn(true);
+            when(tracksService.findOne(8L, token)).thenReturn(Optional.of(track));
+            when(mediaService.getContent(any(Long.class), any(AbstractAuthenticationToken.class))).thenReturn(new MediaService.MediaContent("score.pdf", "application/pdf", 1024, onePagePdf()));
+            when(tenantStorageService.createTemporaryDirectory(anyString(), anyString())).thenReturn(workingDirectory);
+            when(pdfProcessingService.buildSheets(any(), anyList(), any(), any())).thenReturn(List.of(new SheetsMusicDTO()));
+            when(instrumentsOutcome.record(any(), any(), anyList(), any())).thenThrow(new IllegalStateException("outbox unavailable"));
+
+            receiver.receive(Converter.objectToBytes(new UploadFilesPackage(3L, token)));
+
+            verify(queueUploadFilesService).transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.DONE, token);
+            verify(queueUploadFilesService, never()).transitionStatus(3L, UploadFileStatusEnum.IN_PROGRESS, UploadFileStatusEnum.ERROR, token);
+            assertThat(operations("COMPLETED")).isEqualTo(1);
         } finally {
             deleteRecursively(workingDirectory);
         }

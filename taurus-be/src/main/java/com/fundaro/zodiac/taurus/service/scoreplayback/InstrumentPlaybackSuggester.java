@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * <p>
  * The name is normalized (lower case, no accents, no punctuation, no ordinals), the longest catalogue keyword found as
  * whole words wins, and a key written in the name ("in Mib", "Lab") moves the transposition to the same pitch class
- * nearest to the reference value. Without a keyword there is no proposal.
+ * nearest to the reference value. Without a keyword, or for an entry without sound, there is no proposal.
  */
 public final class InstrumentPlaybackSuggester {
 
@@ -51,23 +51,10 @@ public final class InstrumentPlaybackSuggester {
 
     public static Optional<Suggestion> suggest(String name) {
         List<String> tokens = tokens(name);
-        if (tokens.isEmpty()) return Optional.empty();
-
-        InstrumentPlaybackCatalog.Entry best = null;
-        String bestKeyword = null;
-        int bestLength = 0;
-        for (InstrumentPlaybackCatalog.Entry entry : InstrumentPlaybackCatalog.entries()) {
-            for (String keyword : entry.keywords()) {
-                List<String> keywordTokens = List.of(keyword.split(" "));
-                int length = keywordTokens.size() * 1000 + keyword.length();
-                if (length > bestLength && containsSequence(tokens, keywordTokens)) {
-                    best = entry;
-                    bestKeyword = keyword;
-                    bestLength = length;
-                }
-            }
-        }
-        if (best == null) return Optional.empty();
+        Match match = match(tokens);
+        if (match == null || !match.entry().hasSound()) return Optional.empty();
+        InstrumentPlaybackCatalog.Entry best = match.entry();
+        String bestKeyword = match.keyword();
 
         if (best.percussionKey() != null) {
             return Optional.of(new Suggestion(bestKeyword, null, null, null, null, null, best.percussionKey()));
@@ -85,6 +72,33 @@ public final class InstrumentPlaybackSuggester {
             best.soundProgram(),
             null
         ));
+    }
+
+    /** The catalogue entry of the longest keyword found as whole words in the name, also for entries without sound. */
+    public static Optional<Match> match(String name) {
+        return Optional.ofNullable(match(tokens(name)));
+    }
+
+    /** Pitch class of the key written in the name ("in Mib", "Lab"), or {@code null}. */
+    public static Integer writtenKey(String name) {
+        return writtenKey(tokens(name));
+    }
+
+    private static Match match(List<String> tokens) {
+        if (tokens.isEmpty()) return null;
+        Match best = null;
+        int bestLength = 0;
+        for (InstrumentPlaybackCatalog.Entry entry : InstrumentPlaybackCatalog.entries()) {
+            for (String keyword : entry.keywords()) {
+                List<String> keywordTokens = List.of(keyword.split(" "));
+                int length = keywordTokens.size() * 1000 + keyword.length();
+                if (length > bestLength && containsSequence(tokens, keywordTokens)) {
+                    best = new Match(entry, keyword);
+                    bestLength = length;
+                }
+            }
+        }
+        return best;
     }
 
     static List<String> tokens(String name) {
@@ -121,6 +135,9 @@ public final class InstrumentPlaybackSuggester {
         }
         return false;
     }
+
+    /** The catalogue entry recognized in a name and the keyword that recognized it. */
+    public record Match(InstrumentPlaybackCatalog.Entry entry, String keyword) {}
 
     /**
      * A proposal: values are {@code null} when they do not apply (no transposition for unpitched percussion, no drum key

@@ -43,6 +43,7 @@ public interface TracksMapper extends EntityOpenSearchMapper<TracksDTO, Tracks> 
 
     @Mapping(target = "instruments", expression = "java(toInstrumentRefs(s.getInstruments()))")
     @Mapping(target = "media", expression = "java(toMediaRefs(s.getMedia()))")
+    @Mapping(target = "instrumentSuggestions", ignore = true)
     SheetsMusicDTO toSheetsMusicDTO(SheetsMusic s);
 
     @Named("orderScores")

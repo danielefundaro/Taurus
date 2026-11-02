@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="20261101000000-1" author="taurus">
+    <comment>Instrument names read on the parts of a PDF that the tenant does not have, until someone decides.</comment>
+    <createTable tableName="sheet_music_instrument_suggestion">
+      <column name="id" type="bigint" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="sheet_music_id" type="bigint">
+        <constraints nullable="false"/>
+      </column>
+      <column name="read_text" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="proposed_name" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="normalized_name" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="catalog_keyword" type="varchar(64)"/>
+      <column name="source" type="varchar(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="varchar(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="instrument_id" type="bigint"/>
+      <column name="resolved_by" type="varchar(255)"/>
+      <column name="resolved_at" type="timestamp with time zone"/>
+      <column name="entity_version" type="bigint" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="deleted" type="boolean" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="insert_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_date" type="timestamp with time zone">
+        <constraints nullable="false"/>
+      </column>
+      <column name="edit_by" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sheet_music_instrument_suggestion" baseColumnNames="sheet_music_id"
+                             referencedTableName="sheet_music" referencedColumnNames="id"
+                             constraintName="fk_instrument_suggestion_sheet_music" onDelete="CASCADE"/>
+    <addForeignKeyConstraint baseTableName="sheet_music_instrument_suggestion" baseColumnNames="instrument_id"
+                             referencedTableName="instrument" referencedColumnNames="id"
+                             constraintName="fk_instrument_suggestion_instrument" onDelete="RESTRICT"/>
+    <sql><![CDATA[
+      ALTER TABLE sheet_music_instrument_suggestion
+        ADD CONSTRAINT ck_instrument_suggestion_source CHECK (source IN ('PDF_TEXT', 'OCR')),
+        ADD CONSTRAINT ck_instrument_suggestion_status CHECK (status IN ('OPEN', 'ACCEPTED', 'IGNORED')),
+        ADD CONSTRAINT ck_instrument_suggestion_accepted CHECK ((status = 'ACCEPTED') = (instrument_id IS NOT NULL)),
+        ADD CONSTRAINT ck_instrument_suggestion_resolved
+          CHECK ((status = 'OPEN') = (resolved_by IS NULL AND resolved_at IS NULL)),
+        ADD CONSTRAINT ck_instrument_suggestion_name CHECK (length(btrim(normalized_name)) > 0);
+      CREATE UNIQUE INDEX uq_instrument_suggestion_open_name
+        ON sheet_music_instrument_suggestion (sheet_music_id, normalized_name)
+        WHERE status = 'OPEN' AND deleted = FALSE;
+      CREATE INDEX idx_instrument_suggestion_part ON sheet_music_instrument_suggestion (sheet_music_id, status)
+        WHERE deleted = FALSE;
+      CREATE INDEX idx_instrument_suggestion_instrument ON sheet_music_instrument_suggestion (instrument_id);
+      ]]></sql>
+  </changeSet>
+
+  <changeSet id="20261101000000-2" author="taurus">
+    <comment>How the parts of a PDF were matched with the instruments, for the summary of the processing.</comment>
+    <addColumn tableName="upload_job">
+      <column name="parts_with_instruments" type="integer"/>
+      <column name="parts_with_suggestions" type="integer"/>
+      <column name="parts_without_instruments" type="integer"/>
+    </addColumn>
+  </changeSet>
+</databaseChangeLog>
