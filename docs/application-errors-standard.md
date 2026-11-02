@@ -514,6 +514,7 @@ Le chiavi sono riportate senza il prefisso `error.` che il backend aggiunge nel 
 | --- | --- | --- | --- | --- |
 | `user.limit.exceeded` | 400 | Creazione di un utente quando il tenant ha già raggiunto il numero massimo di utenti | `maximum` | «Raggiunto il numero massimo di utenti del tenant ({maximum})» |
 | `user.role.forbidden` | 403 | Creazione o modifica di un utente con il ruolo di super amministratore, che non si assegna dall'applicazione | — | «Il ruolo di super amministratore non può essere assegnato» |
+| `user.admin.forbidden` | 403 | Un membro del direttivo assegna il ruolo di amministratore, oppure crea, modifica, invita o elimina un amministratore o un super amministratore, anche collegando un account che lo è in un altro tenant ([Ruolo direttivo](board-role-spec.md)) | — | «Solo un amministratore può gestire gli amministratori» |
 | `user.profile.locked` | 409 | Modifica di nome, cognome o e-mail di un utente il cui account di accesso appartiene anche ad altri tenant ([Account di accesso condiviso](shared-user-account-spec.md#profilo-di-un-account-condiviso)) | — | «Nome, cognome ed e-mail sono condivisi con altri tenant: può modificarli solo la persona dal proprio profilo» |
 | `tenant.code.exists` | 409 | Creazione di un tenant con un codice già usato | — | «Codice tenant già utilizzato» |
 | `tenant.schema.provisioningFailed` | 500 | Creazione di un tenant: la preparazione dello schema non è riuscita e il tenant viene rimosso | — | «Impossibile preparare il database del tenant: il tenant non è stato creato» |
@@ -745,7 +746,7 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `signature.holderData.invalid` | 422 | Dati dell'Affidatario mancanti o non validi | `fields`: nomi tra `birthPlace`, `residence`, `postalCode`, `cityProvince`, `taxCode`, `document`, `documentIssuedBy`, `documentIssuedOn`, `minorBirthPlace` | «Dati mancanti o non validi: {fields}», con i nomi dei campi tradotti |
 | `signature.holderData.birthDateMissing` | 422 | Dati dell'Affidatario inviati quando il profilo del socio non ha la data di nascita | `holderRole`: `MEMBER` o `GUARDIAN` | «Manca la data di nascita: aggiungerla nella pagina Profilo, poi completare i dati»; con `GUARDIAN` «Manca la data di nascita del socio minorenne: chiedere all'associazione di inserirla, poi completare i dati» |
 | `signature.associationSigner.sameAsHolder` | 422 | Firmatario per l'Associazione coincidente con l'Affidatario | — | «Chi firma per l'Associazione non può essere l'Affidatario» |
-| `signature.associationSigner.notAdmin` | 422 | Firmatario per l'Associazione mancante o non più amministratore attivo | — | «Chi firma per l'Associazione deve essere un amministratore attivo: designare un altro firmatario» |
+| `signature.associationSigner.notAdmin` | 422 | Firmatario per l'Associazione mancante, o non più amministratore o membro del direttivo attivo | — | «Chi firma per l'Associazione deve essere un amministratore o un membro del direttivo attivo: designare un altro firmatario» |
 | `signature.associationSigner.locked` | 409 | Cambio del firmatario per l'Associazione dopo la prima firma dell'atto | — | «Dopo la prima firma il firmatario per l'Associazione non cambia più: se non può firmare, dichiarare l'atto firmato su carta» |
 
 ### Economia

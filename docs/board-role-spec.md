@@ -153,7 +153,7 @@ Il direttivo riceve le notifiche oggi destinate agli amministratori per utenti, 
 ### 8. Keycloak e importazione
 
 - `KeycloakRoleProvisioner` crea **tutti** i ruoli di `RoleEnum`, non solo `ROLE_TREASURER`. Così l'elenco dei ruoli sta in un posto solo e un ruolo nuovo arriva in Keycloak senza altri interventi. Senza il ruolo client, `setUserRolesOnKeycloak` scarterebbe l'assegnazione in silenzio.
-  - Le descrizioni stanno in una mappa accanto a `RoleEnum`, con una voce per ogni valore:
+  - Ogni valore di `RoleEnum` porta la propria descrizione (`getKeycloakDescription()`):
 
     | Ruolo | Descrizione |
     | --- | --- |
@@ -168,7 +168,7 @@ Il direttivo riceve le notifiche oggi destinate agli amministratori per utenti, 
   - Comprende il super amministratore: creare un ruolo non lo assegna a nessuno, e `getUsersByClientRoles(ROLE_SUPER_ADMIN)` fallisce se il ruolo manca.
   - Il provisioner legge una volta i ruoli del client e crea solo quelli mancanti. Non aggiorna le descrizioni dei ruoli esistenti e non cancella ruoli assenti da `RoleEnum`: cancellare un ruolo assegnato è un'operazione manuale.
   - Gira all'avvio quando `application.keycloak.provision-roles` è attivo, come oggi. Se fallisce, lo registra nel log e riprova all'avvio successivo.
-- Il realm di sviluppo (`taurus-realm.json`) riceve `ROLE_BOARD` e le stesse descrizioni della mappa al posto del generico «Client role».
+- Il realm di sviluppo (`taurus-realm.json`) riceve `ROLE_BOARD` e le stesse descrizioni di `RoleEnum` al posto del generico «Client role».
 - I temi del login hanno l'etichetta del ruolo (`role.ROLE_BOARD`) per la scelta del ruolo.
 - L'importazione iniziale accetta `BOARD` tra i ruoli. La configurazione iniziale resta dell'amministratore, quindi un direttivo non può usarla per creare amministratori.
 
@@ -186,8 +186,9 @@ Nessuna migrazione Liquibase: `ROLE_BOARD` è un nuovo valore di `RoleEnum`, sal
 
 **Ruolo e gruppi**
 - `AuthoritiesConstants.BOARD`, `RoleEnum.ROLE_BOARD` (anche in `mapToString`), nuova classe `RoleGroups`.
-- `KeycloakRoleProvisioner`: creazione di tutti i ruoli di `RoleEnum` con le descrizioni della mappa ([decisione 8](#8-keycloak-e-importazione)), leggendo una volta i ruoli del client.
-- `KeycloakServiceImpl.ensureClientRole`: accetta l'elenco dei ruoli esistenti, così non lo rilegge a ogni ruolo.
+- `RoleEnum`: descrizione Keycloak di ogni ruolo.
+- `KeycloakRoleProvisioner`: creazione di tutti i ruoli di `RoleEnum` con le loro descrizioni ([decisione 8](#8-keycloak-e-importazione)).
+- `KeycloakService.ensureClientRoles(Map)` sostituisce `ensureClientRole`: legge una volta i ruoli del client, crea solo quelli mancanti e restituisce i nomi creati.
 
 **Regole per percorso (`SecurityConfiguration`)**
 
@@ -253,7 +254,7 @@ Restano senza: `AdminCalendarFeedResource` e `NotificationDeliveryAdminResource`
 ### Keycloak (`keycloak-authenticator` e realm)
 
 - `messages_it.properties` e `messages_en.properties`: `role.ROLE_BOARD=Direttivo` / `Board`.
-- `taurus-be/src/main/docker/realm-config/taurus-realm.json`: ruolo client `ROLE_BOARD` e descrizioni allineate alla mappa dei ruoli.
+- `taurus-be/src/main/docker/realm-config/taurus-realm.json`: ruolo client `ROLE_BOARD` e descrizioni allineate a `RoleEnum`.
 - Realm di test dell'authenticator, se serve alle prove di scelta del ruolo.
 
 ### Documenti da allineare
@@ -276,12 +277,14 @@ Restano senza: `AdminCalendarFeedResource` e `NotificationDeliveryAdminResource`
 
 ### Backend
 
-- **Matrice di parità** (`*IT`): per ogni regola di `SecurityConfiguration` e ogni `@PreAuthorize`, una richiesta come direttivo ha lo stesso esito di una come amministratore. Fanno eccezione le cinque esclusioni, dove il direttivo riceve `403`. La matrice è la protezione contro i punti dimenticati.
+- **Matrice di parità**: la protezione contro i punti dimenticati.
+  - `BoardRoleSecurityConfigurationTest` prova le regole per percorso di `SecurityConfiguration`: dove passa l'amministratore passa il direttivo, tranne le esclusioni, dove il direttivo riceve `403`.
+  - `BoardRoleMethodSecurityTest` legge ogni `@PreAuthorize` delle risorse REST: chi nomina `ROLE_ADMIN` deve nominare anche `ROLE_BOARD`, tranne `AdminCalendarFeedResource`.
 - **Utenti**: in sessione direttivo, ogni azione dell'elenco su un amministratore, su un super amministratore e su un'email Keycloak protetta restituisce `user.admin.forbidden`. Lo stesso per l'assegnazione di `ROLE_ADMIN`. Le stesse azioni su utenti e direttivi riescono; da amministratore nulla cambia.
 - **Firma**: il direttivo compare tra i firmatari, firma per l'associazione, registra le operazioni e la dichiarazione cartacea. Chi ha in carico il foglio è escluso; un direttivo disattivato non può firmare. Il super amministratore non compare tra i firmatari e non può firmare per l'associazione.
 - **Notifiche e dashboard**: i destinatari includono `ROLE_BOARD` dove previsto e lo escludono dall'onboarding. Le operazioni della dashboard per il direttivo coincidono con quelle dell'amministratore, senza le consegne notifiche.
 - **Provisioning**:
-  - ogni valore di `RoleEnum` ha una descrizione nella mappa;
+  - ogni valore di `RoleEnum` ha una descrizione;
   - il provisioner crea solo i ruoli mancanti, leggendo una volta i ruoli del client, e non tocca quelli esistenti;
   - un errore di Keycloak non blocca l'avvio;
   - `taurus-realm.json` contiene tutti i ruoli di `RoleEnum`.

@@ -140,6 +140,7 @@ Preparare almeno un'identità per:
 
 - `ROLE_SUPER_ADMIN`;
 - `ROLE_ADMIN`;
+- `ROLE_BOARD`;
 - `ROLE_TREASURER`;
 - `ROLE_ARCHIVIST`;
 - `ROLE_USER`;
