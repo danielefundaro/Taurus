@@ -1,6 +1,6 @@
 <p-confirmdialog />
 <app-page-header heading="Calendario" [subtitle]="totalRecords + (totalRecords === 1 ? ' evento' : ' eventi')">
-    <div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"><p-button label="Nuovo evento"
+    <div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]"><p-button label="Nuovo evento"
             icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
@@ -35,7 +35,7 @@
     searchPlaceholder="Cerca evento…" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
 @if (layout === 'list') {
-<app-selection-bar *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [count]="selectedEvents.length"
+<app-selection-bar *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" [count]="selectedEvents.length"
     [allSelected]="isAllSelected(events)" (toggleAll)="toggleSelectAll(events)" (clear)="selectedEvents = []"
     (delete)="deleteSelectedElements()" />
 }
@@ -53,7 +53,7 @@
             <div class="flex flex-col">
                 @for (item of items; track item.id) {
                 <app-list-row>
-                    <p-checkbox rowSelection *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [binary]="true"
+                    <p-checkbox rowSelection *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" [binary]="true"
                         [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)"
                         [ariaLabel]="'Seleziona ' + item.name" />
                     <a rowMedia class="list-thumbnail list-thumbnail--date" [routerLink]="item.id"
@@ -89,7 +89,7 @@
                     </div>
                     <div rowActions>
                         <p-button icon="pi pi-pencil" label="Dettaglio" [routerLink]="item.id" />
-                        <ng-container *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                        <ng-container *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
                             <p-button icon="pi pi-trash" severity="danger" text ariaLabel="Elimina evento"
                                 pTooltip="Elimina" (onClick)="deleteElement(item)" />
                         </ng-container>

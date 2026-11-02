@@ -163,7 +163,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected get isAdmin(): boolean {
-        return this.keycloakService.isAdmin;
+        return this.keycloakService.isTenantManager;
     }
 
     protected get isUser(): boolean {

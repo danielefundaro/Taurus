@@ -89,6 +89,7 @@ describe('DetailComponent preparation', () => {
                     useValue: {
                         currentUserRole: role,
                         isAdmin: [RoleEnums.ADMIN, RoleEnums.SUPER_ADMIN].includes(role),
+                        isTenantManager: [RoleEnums.ADMIN, RoleEnums.SUPER_ADMIN, RoleEnums.BOARD].includes(role),
                         isUser: role === RoleEnums.USER,
                         isUserExternal: role === RoleEnums.USER_EXTERNAL
                     }
@@ -139,6 +140,14 @@ describe('DetailComponent preparation', () => {
     }
 
     const sections = (element: HTMLElement) => Array.from(element.querySelectorAll('app-detail-section[id]')).map((section) => section.id);
+
+    it('gives the board every area of the preparation, as to the administrators', async () => {
+        const { element } = await open(RoleEnums.BOARD);
+
+        expect(sections(element)).toEqual(['preparation', 'preparation-confirmations', 'preparation-program', 'preparation-materials', 'event-data', 'preparation-finance', 'availability', 'presence']);
+        expect(element.querySelector('app-preparation-configuration')).not.toBeNull();
+        expect(element.querySelectorAll('app-preparation-confirmation').length).toBe(3);
+    });
 
     it('gives administrators every area of the preparation and the anchors of its issues', async () => {
         const { element } = await open(RoleEnums.ADMIN);

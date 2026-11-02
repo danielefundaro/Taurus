@@ -71,7 +71,7 @@ I due tenant non nascono da soli: il codice del tenant vive in tre posti, che va
    `TenantSchemaNameResolver`. Al riavvio il backend crea lo schema e vi esegue Liquibase.
 2. **Keycloak**: un gruppo per ogni codice — la descrizione è il nome mostrato nella scelta del
    tenant — e un utente per ruolo, iscritto al gruppo, con l'attributo `<CODICE>_roles` che vale
-   `ROLE_ADMIN`, `ROLE_ARCHIVIST`, `ROLE_USER`, `ROLE_TREASURER`, `ROLE_USER_EXTERNAL` o
+   `ROLE_ADMIN`, `ROLE_BOARD`, `ROLE_ARCHIVIST`, `ROLE_USER`, `ROLE_TREASURER`, `ROLE_USER_EXTERNAL` o
    `ROLE_SUPER_ADMIN`: l'authenticator legge i tenant dai gruppi e i ruoli da quell'attributo.
 3. **Schema del tenant**: per ogni utente una riga in `public.user_identity`, una in
    `public.tenant_user_membership` e una in `<schema>.app_user` con il suo `<schema>.app_user_role`.
@@ -96,7 +96,7 @@ quando non sono configurati.
 | `E2E_PREPARATION_EVENT_ID` | Evento del primo tenant con `EVENT_PREPARATION` attivo, piano configurato e programma richiesto, possibilmente con almeno due brani e una criticità; senza di esso le prove della preparazione si saltano |
 | `E2E_LARGE_TRACK_ID` | Traccia del primo tenant con 200 parti e 1.000 pagine, per il gate prestazionale del workspace; senza di essa quella prova si salta |
 
-I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.
+I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `BOARD` (direttivo), `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.
 
 ## Esecuzione
 

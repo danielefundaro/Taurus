@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
@@ -10,8 +10,9 @@ import { FluidModule } from 'primeng/fluid';
 import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TextareaModule } from 'primeng/textarea';
-import { RoleEnums, RoleLabel, RoleLabelsMap } from '../../constants';
+import { RoleLabel, RoleLabelsMap } from '../../constants';
 import { ChildrenEntities, Instruments, Users } from '../../module';
+import { KeycloakService } from '../../service/keycloak.service';
 import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
 import { FormFieldComponent } from '../../components/form-field/form-field.component';
 
@@ -30,13 +31,15 @@ export class AddUsersDialogComponent {
 
     private readonly instrumentsChildrenEntities: ChildrenEntities[];
 
+    private readonly keycloakService = inject(KeycloakService);
+
     constructor(
         private readonly dialogRef: DynamicDialogRef<AddUsersDialogComponent>,
         private readonly config: DynamicDialogConfig<any, { instruments: Instruments[] }>
     ) {
         this.user = new Users();
         this.user.active = true;
-        this.roleOptions = RoleLabelsMap.filter((role) => role.code !== RoleEnums.SUPER_ADMIN);
+        this.roleOptions = this.keycloakService.assignableRoles(RoleLabelsMap);
         this.instruments = this.config.inputValues?.instruments ?? [];
 
         this.instrumentsChildrenEntities =

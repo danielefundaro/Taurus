@@ -104,10 +104,10 @@
                 label="Firma per l’Associazione"
                 forId="loanAssociationSigner"
                 required
-                hint="Amministratore che firma il foglio con il proprio codice; non può essere il socio. Si può cambiare finché nessuno ha firmato."
+                hint="Amministratore o membro del direttivo che firma il foglio con il proprio codice; non può essere il socio. Si può cambiare finché nessuno ha firmato."
                 [error]="shell.validationAttempted && !associationSignerId ? 'Scegli chi firma per l’Associazione.' : undefined"
             >
-                <p-select inputId="loanAssociationSigner" [options]="proposal.signature.associationSigners" optionLabel="displayName" optionValue="userId" [(ngModel)]="associationSignerId" placeholder="Scegli un amministratore" appendTo="body" />
+                <p-select inputId="loanAssociationSigner" [options]="proposal.signature.associationSigners" optionLabel="displayName" optionValue="userId" [(ngModel)]="associationSignerId" placeholder="Scegli chi firma" appendTo="body" />
             </app-form-field>
         } @else {
             <app-form-field class="md:col-span-2" label="Firmatario per l’Associazione" forId="loanSignatory" hint="Presidente o consigliere delegato: nome e cognome.">

@@ -167,7 +167,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected canReorder(): boolean {
-        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
+        return [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST].includes(this.keycloakService.currentUserRole);
     }
 
     protected confirmDeleteTrack(track: ChildrenEntities): void {

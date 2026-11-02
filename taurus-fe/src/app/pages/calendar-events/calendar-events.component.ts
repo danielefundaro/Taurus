@@ -374,7 +374,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
         criteria.page = 0;
         criteria.size = 1000;
         criteria.active = { equals: true };
-        if (this.attention === 'missing-availability' && this.keycloakService.isAdmin) {
+        if (this.attention === 'missing-availability' && this.keycloakService.isTenantManager) {
             this.usersService
                 .getAll(criteria)
                 .pipe(first())

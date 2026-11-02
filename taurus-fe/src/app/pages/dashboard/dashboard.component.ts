@@ -115,6 +115,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 this.adminMethods();
                 break;
             case RoleEnums.ADMIN:
+            case RoleEnums.BOARD:
                 this.adminMethods();
                 break;
             case RoleEnums.TREASURER:

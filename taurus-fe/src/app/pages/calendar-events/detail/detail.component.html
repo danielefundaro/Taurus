@@ -14,7 +14,7 @@
                 severity="info" [rounded]="true" />
             }
         </div>
-        <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+        <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
             @if (event.seriesId) {
             <p-button label="Salva da questo evento in poi" icon="pi pi-sync" severity="secondary" outlined
                 [loading]="saving" [disabled]="!isDirtyForm || seriesRuleInvalid" (onClick)="saveSeriesFuture()" />
@@ -34,7 +34,7 @@
     <app-detail-section id="preparation" heading="Preparazione operativa"
         description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
         [dirty]="isDirtyPreparation"
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]">
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]">
         @if (preparationLoadFailed) {
         <app-inline-alert severity="error" heading="Preparazione non disponibile"
             detail="Non è stato possibile caricare la preparazione dell’evento." actionLabel="Riprova"
@@ -46,7 +46,7 @@
                 [availability]="preparation.availability" [programCount]="preparation.program.length"
                 [materialsCount]="preparation.materials.length" [administrator]="isAdmin" />
             }
-            <div *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]"
+            <div *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]"
                 class="border-t border-surface-200 dark:border-surface-700 pt-5">
                 <h3 class="text-base font-semibold mt-0 mb-4">Requisiti</h3>
                 <app-preparation-configuration [eventId]="event.id" [configuration]="preparation.configuration"
@@ -62,7 +62,7 @@
     @if (preparation?.configuration?.budgetRequired) {
     <app-detail-section id="preparation-confirmations" heading="Conferma del preventivo"
         description="Attesta compenso, costi e valuta attuali. Una modifica successiva la rende da rinnovare senza bloccare le correzioni."
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]">
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.TREASURER]">
         <app-preparation-confirmation [eventId]="event.id" area="budget"
             [confirmations]="preparation?.confirmations" [role]="currentRole"
             (confirmed)="onPreparationChanged($event, 'Preventivo confermato', 'Lo stato della preparazione è stato ricalcolato.')" />
@@ -73,7 +73,7 @@
     <app-detail-section id="preparation-program" heading="Programma" [count]="preparation?.program?.length"
         [description]="canManageProgram ? 'Aggiungi le tracce una alla volta o collega un album; riordina trascinando o con i pulsanti di ogni brano.' : 'La scaletta dell’evento, con gli spartiti da consultare.'"
         [dirty]="isDirtyProgram"
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]">
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]">
         <app-preparation-program [eventId]="event.id" [entries]="preparation?.program ?? []"
             [version]="preparation?.programVersion ?? 0" [editable]="canManageProgram"
             [personal]="personalPreparation"
@@ -86,7 +86,7 @@
     @if (preparation?.configuration?.materialsRequired) {
     <app-detail-section id="preparation-materials" heading="Materiali" [count]="preparation?.materials?.length"
         description="Oggetti e assegnazioni necessari per questa singola occorrenza." [dirty]="isDirtyMaterials"
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
         <app-preparation-materials [eventId]="event.id" [materials]="preparation?.materials ?? []"
             [version]="preparation?.materialsVersion ?? 0"
             (saved)="onPreparationChanged($event, 'Materiali aggiornati', 'Le assegnazioni sono state rivalutate.')"
@@ -98,7 +98,7 @@
     }
 
     <app-detail-section id="event-data"
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
         [dirty]="isDirtyForm">
         @if (series) {
@@ -188,7 +188,7 @@
                 <input pInputText id="name" type="text" [(ngModel)]="event.name" [readonly]="!isAdmin"
                     (ngModelChange)="isDirty = true" />
             </app-form-field>
-            <app-form-field label="Stato" forId="state" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+            <app-form-field label="Stato" forId="state" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
                 <p-autocomplete inputId="state" [(ngModel)]="event.state" [suggestions]="autoFilteredStatesLabels"
                     dropdown (completeMethod)="filterStates($event)" (ngModelChange)="isDirty = true" optionValue="code"
                     optionLabel="name" />
@@ -209,7 +209,7 @@
                     (ngModelChange)="onEventScheduleChange()" />
             </app-form-field>
             @if (financeEnabled()) {
-            <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+            <app-form-field label="Compenso" forId="fee" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
                 <p-inputnumber inputId="fee" [(ngModel)]="event.fee" mode="currency" currency="EUR" locale="it-IT"
                     [disabled]="!isAdmin" (ngModelChange)="isDirty = true" />
             </app-form-field>
@@ -217,7 +217,7 @@
             @if (webPushRemindersEnabled()) {
             <app-form-field label="Promemoria" forId="reminderMinutes"
                 hint="Minuti prima dell’evento, 0 per nessun promemoria"
-                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]">
+                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
                 <p-inputnumber inputId="reminderMinutes" [(ngModel)]="event.reminderMinutes" [min]="0" [max]="1440"
                     suffix=" min" [showButtons]="true" (ngModelChange)="isDirty = true" />
             </app-form-field>
@@ -230,7 +230,7 @@
     </app-detail-section>
 
     @if (financeEnabled()) {
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Costi"
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Costi"
         [count]="event.costs?.length"
         description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
@@ -293,7 +293,7 @@
 
     @if (financeEnabled() && economicSummary) {
     <app-detail-section id="preparation-finance"
-        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TREASURER]" heading="Consuntivo economico"
+        *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.TREASURER]" heading="Consuntivo economico"
         description="Movimenti effettivamente associati all’evento.">
         <div sectionActions class="flex flex-wrap gap-2">
             <p-button label="Movimenti dell’evento" icon="pi pi-list" severity="secondary" [outlined]="true"
@@ -329,7 +329,7 @@
     </app-detail-section>
     }
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]" heading="La tua disponibilità"
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]" heading="La tua disponibilità"
         description="La risposta si registra subito: è un’operazione autonoma.">
         <div class="flex flex-col gap-3">
             @if (event.seriesId) {
@@ -385,7 +385,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section id="availability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+    <app-detail-section id="availability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Utenti disponibili" [count]="event.availableUsers?.length">
         <p-table [value]="event.availableUsers ?? []" [rowHover]="true">
             <ng-template #header>
@@ -418,7 +418,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Utenti non disponibili" [count]="event.unavailableUsers?.length">
         <p-table [value]="event.unavailableUsers ?? []" [rowHover]="true">
             <ng-template #header>
@@ -451,7 +451,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-detail-section id="presence" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" heading="Gestisci presenze"
+    <app-detail-section id="presence" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Gestisci presenze"
         [count]="event.presentUsers?.length"
         description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
         <div sectionActions>
@@ -516,7 +516,7 @@
     </app-detail-section>
 
     @if (!isAdmin) {
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Utenti presenti" [count]="event.presentUsers?.length">
         <p-table [value]="event.presentUsers ?? []" [rowHover]="true">
             <ng-template #header>
@@ -547,7 +547,7 @@
     </app-detail-section>
     }
 
-    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]" [operations]="dangerZoneOperations"
+    <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" [operations]="dangerZoneOperations"
         (execute)="$event === 'series' ? confirmDeleteSeries() : confirmDelete()" />
 
     <p-scrolltop />

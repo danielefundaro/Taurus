@@ -10,7 +10,7 @@
             <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
                 [disabled]="!track.scores?.length" />
             <p-button label="Salva traccia" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm"
-                (onClick)="save()" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]" />
+                (onClick)="save()" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]" />
         </div>
     </app-page-header>
 
@@ -63,7 +63,7 @@
                                     [(ngModel)]="track.tone" [readOnly]="isUser"
                                     (ngModelChange)="markDetailsDirty()" /></app-form-field>
                             <app-form-field label="Stato" forId="states"
-                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"><p-autocomplete
+                                *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"><p-autocomplete
                                     inputId="states" [(ngModel)]="track.state" [suggestions]="autoFilteredStatesLabels"
                                     dropdown (completeMethod)="filterStates($event)"
                                     (ngModelChange)="markDetailsDirty()" optionValue="code"
@@ -166,7 +166,7 @@
             </p-tabpanels>
         </p-tabs>
 
-        <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.ARCHIVIST]"
+        <app-danger-zone *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"
             [operations]="[{ id: 'delete', title: 'Elimina traccia', consequence: 'La traccia non sarà più visibile e i file associati non saranno più accessibili.', label: 'Elimina traccia' }]"
             (execute)="confirmDelete()" />
     </div>

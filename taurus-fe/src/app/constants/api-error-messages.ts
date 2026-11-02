@@ -175,6 +175,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',
     'user.role.forbidden': 'Il ruolo di super amministratore non può essere assegnato',
+    'user.admin.forbidden': 'Solo un amministratore può gestire gli amministratori',
     'user.profile.locked': 'Nome, cognome ed e-mail sono condivisi con altri tenant: può modificarli solo la persona dal proprio profilo',
     'tenant.code.exists': 'Codice tenant già utilizzato',
     'tenant.schema.provisioningFailed': 'Impossibile preparare il database del tenant: il tenant non è stato creato',
@@ -364,7 +365,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'signature.holderData.birthDateMissing': (args) =>
         args['holderRole'] === 'GUARDIAN' ? "Manca la data di nascita del socio minorenne: chiedere all'associazione di inserirla, poi completare i dati" : 'Manca la data di nascita: aggiungerla nella pagina Profilo, poi completare i dati',
     'signature.associationSigner.sameAsHolder': "Chi firma per l'Associazione non può essere l'Affidatario",
-    'signature.associationSigner.notAdmin': "Chi firma per l'Associazione deve essere un amministratore attivo: designare un altro firmatario",
+    'signature.associationSigner.notAdmin': "Chi firma per l'Associazione deve essere un amministratore o un membro del direttivo attivo: designare un altro firmatario",
     'signature.associationSigner.locked': "Dopo la prima firma il firmatario per l'Associazione non cambia più: se non può firmare, dichiarare l'atto firmato su carta",
 
     // Outcomes of the loan template check
