@@ -1,0 +1,17 @@
+Firma richiesta
+
+Ciao,
+
+L'associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento, come genitore o tutore del socio minorenne.
+
+[# th:each="row : ${details}"][(${row['label']})]: [(${row['value']})]
+[/]
+Per leggere i documenti e firmarli apri questa pagina:
+[(${url})]
+
+Il collegamento vale fino alle [(${expiresTime})] del [(${expiresDate})] e solo per questo atto. Per firmare riceverai a questo indirizzo un codice di conferma.
+Non inoltrare il messaggio: chi ha il collegamento può leggere i documenti dell'atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l'associazione.
+
+--
+Taurus
+Hai ricevuto questa e-mail perché [(${tenant})] ti ha indicato come genitore o tutore di un socio minorenne.

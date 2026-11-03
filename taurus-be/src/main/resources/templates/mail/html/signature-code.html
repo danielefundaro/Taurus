@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+        title='Codice di conferma',
+        preheader=|Il codice scade alle ${expiresTime}.|,
+        reason='Hai ricevuto questa e-mail perché è stata chiesta una firma con questo indirizzo.',
+        content=~{signature-code :: content})}">
+<body>
+<!-- Nessun link: il codice viaggia da solo (docs/inventory-electronic-signature-spec.md, «Codice via e-mail»). -->
+<th:block th:fragment="content">
+  <p th:replace="~{parts :: greeting}"></p>
+  <p th:replace="~{parts :: paragraph('Usa questo codice per confermare la firma.')}"></p>
+  <table th:replace="~{parts :: code(${code})}"></table>
+  <table th:replace="~{parts :: details(${details})}"></table>
+  <table th:replace="~{parts :: notes(~{signature-code :: notes})}"></table>
+</th:block>
+<th:block th:fragment="notes">
+  <p th:replace="~{parts :: note(|Il codice scade alle ${expiresTime} del ${expiresDate} e vale solo per questa operazione.|)}"></p>
+  <p th:replace="~{parts :: note('Se non hai chiesto tu questa conferma, ignora il messaggio: senza il codice non viene registrata alcuna firma.')}"></p>
+</th:block>
+</body>
+</html>

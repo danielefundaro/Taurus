@@ -1,21 +1,21 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.mail.MailSendException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import tech.jhipster.config.JHipsterProperties;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+
+import com.fundaro.zodiac.taurus.service.mail.MailParts;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.mail.internet.MimeMessage;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.javamail.JavaMailSender;
 
 class SignatureMailServiceTest {
 
@@ -29,34 +29,58 @@ class SignatureMailServiceTest {
         ZoneId.of("Europe/Rome")
     );
 
+    private static final String LINK_URL = "https://app.example.org/firma/abc";
+
     @Test
-    void sendsTheCodeWithTheTenantTheOperationTheReferenceAndTheExpiryButNoLinks() {
-        JavaMailSender sender = mock(JavaMailSender.class);
+    void sendsTheCodeWithTheTenantTheOperationTheReferenceAndTheExpiry() throws Exception {
+        JavaMailSender sender = MailParts.sender();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        SignatureMailService service = service(sender, registry);
 
-        service.sendCode(MESSAGE);
+        service(sender, registry).sendCode(MESSAGE);
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(sender).send(captor.capture());
-        SimpleMailMessage mail = captor.getValue();
-        assertThat(mail.getTo()).containsExactly("mario.rossi@example.org");
-        assertThat(mail.getFrom()).isEqualTo("taurus@example.org");
+        MimeMessage mail = sent(sender);
+        assertThat(mail.getAllRecipients()).extracting(Object::toString).containsExactly("mario.rossi@example.org");
         assertThat(mail.getSubject()).isEqualTo("Codice di conferma – Banda musicale di prova");
-        assertThat(mail.getText())
-            .contains("Codice di conferma: 042137")
+        assertThat(MailParts.text(mail))
+            .startsWith("Codice di conferma\n")
+            .contains("Usa questo codice per confermare la firma:\n042137\n")
             .contains("Associazione: Banda musicale di prova")
             .contains("Operazione: Presa visione dell'assegnazione di «Clarinetto»")
             .contains("Riferimento del documento: 1a2b3c4d")
             .contains("scade alle 10:40 del 18/10/2026")
-            .doesNotContain("http");
+            .endsWith("perché è stata chiesta una firma con questo indirizzo.\n");
+        assertThat(MailParts.html(mail))
+            .contains(">042137</div>")
+            .contains(">Presa visione dell&#39;assegnazione di «Clarinetto»</td>")
+            .contains(">Riferimento del documento</td>")
+            .contains("scade alle 10:40 del 18/10/2026")
+            .contains("perché è stata chiesta una firma con questo indirizzo.");
         assertThat(registry.counter("taurus.signature.mail", "outcome", "sent").count()).isEqualTo(1);
+    }
+
+    /**
+     * Il messaggio del codice non ha link, e il codice compare una sola volta: non nell'oggetto, nel titolo o
+     * nell'anteprima, che le notifiche del telefono mostrano anche a schermo bloccato.
+     */
+    @Test
+    void keepsTheCodeOutOfLinksSubjectAndPreview() throws Exception {
+        JavaMailSender sender = MailParts.sender();
+
+        service(sender, new SimpleMeterRegistry()).sendCode(MESSAGE);
+
+        MimeMessage mail = sent(sender);
+        String html = MailParts.html(mail);
+        assertThat(html).doesNotContain("<a ").doesNotContain("http");
+        assertThat(MailParts.text(mail)).doesNotContain("http");
+        assertThat(Pattern.compile("042137").matcher(html).results().count()).isEqualTo(1);
+        assertThat(html).contains("Il codice scade alle 10:40.</div>");
+        assertThat(mail.getSubject()).doesNotContain("042137");
     }
 
     @Test
     void reportsAnSmtpFailure() {
-        JavaMailSender sender = mock(JavaMailSender.class);
-        doThrow(new MailSendException("refused")).when(sender).send(any(SimpleMailMessage.class));
+        JavaMailSender sender = MailParts.sender();
+        doThrow(new MailSendException("refused")).when(sender).send(any(MimeMessage.class));
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         assertThatThrownBy(() -> service(sender, registry).sendCode(MESSAGE)).isInstanceOf(MailSendException.class);
@@ -65,10 +89,12 @@ class SignatureMailServiceTest {
 
     @Test
     void isNotConfiguredWithoutAnSmtpServer() {
-        SignatureMailService service = service(null, new SimpleMeterRegistry());
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        SignatureMailService service = service(null, registry);
 
         assertThat(service.configured()).isFalse();
         assertThatThrownBy(() -> service.sendCode(MESSAGE)).isInstanceOf(IllegalStateException.class);
+        assertThat(registry.counter("taurus.signature.mail", "outcome", "unconfigured").count()).isEqualTo(1);
     }
 
     @Test
@@ -77,41 +103,55 @@ class SignatureMailServiceTest {
     }
 
     @Test
-    void sendsToTheParentTheLinkToSignWithTheMinorAndTheExpiry() {
-        JavaMailSender sender = mock(JavaMailSender.class);
+    void sendsToTheParentTheLinkToSignWithTheMinorAndTheExpiry() throws Exception {
+        JavaMailSender sender = MailParts.sender();
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
         service(sender, registry).sendLink(link(false));
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(sender).send(captor.capture());
-        SimpleMailMessage mail = captor.getValue();
-        assertThat(mail.getTo()).containsExactly("genitore@example.org");
+        MimeMessage mail = sent(sender);
+        assertThat(mail.getAllRecipients()).extracting(Object::toString).containsExactly("genitore@example.org");
         assertThat(mail.getSubject()).isEqualTo("Firma richiesta – Banda musicale di prova");
-        assertThat(mail.getText())
+        assertThat(MailParts.text(mail))
+            .startsWith("Firma richiesta\n")
             .contains("Associazione: Banda musicale di prova")
             .contains("Atto: Emissione del foglio – foglio di affidamento n. 2026/007")
             .contains("Socio minorenne: Luca Rossi")
-            .contains("https://app.example.org/firma/abc")
+            .contains("apri questa pagina:\n" + LINK_URL + "\n")
             .contains("vale fino alle 10:40 del 25/10/2026")
-            .contains("codice di conferma");
+            .contains("codice di conferma")
+            .contains("Non inoltrare il messaggio")
+            .endsWith("perché Banda musicale di prova ti ha indicato come genitore o tutore di un socio minorenne.\n");
+        String html = MailParts.html(mail);
+        // L'indirizzo sta nel pulsante e nel link di riserva.
+        assertThat(html).contains("<a href=\"" + LINK_URL + "\" style=\"display:inline-block;background-color:#15803d;");
+        assertThat(html).contains(">Leggi e firma</a>").contains(">" + LINK_URL + "</a>");
+        assertThat(html).contains(">Emissione del foglio – foglio di affidamento n. 2026/007</td>").contains(">Luca Rossi</td>");
+        assertThat(html).contains("Banda musicale di prova ti chiede di firmare un atto.</div>");
         assertThat(registry.counter("taurus.signature.mail", "outcome", "sent").count()).isEqualTo(1);
     }
 
     @Test
-    void sendsToTheParentTheLinkToTheSignedDocuments() {
-        JavaMailSender sender = mock(JavaMailSender.class);
+    void sendsToTheParentTheLinkToTheSignedDocuments() throws Exception {
+        JavaMailSender sender = MailParts.sender();
 
         service(sender, new SimpleMeterRegistry()).sendLink(link(true));
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(sender).send(captor.capture());
-        assertThat(captor.getValue().getSubject()).isEqualTo("Atto firmato – Banda musicale di prova");
-        assertThat(captor.getValue().getText())
+        MimeMessage mail = sent(sender);
+        assertThat(mail.getSubject()).isEqualTo("Atto firmato – Banda musicale di prova");
+        assertThat(MailParts.text(mail))
+            .startsWith("Atto firmato\n")
             .contains("Tutte le parti hanno firmato l'atto.")
-            .contains("https://app.example.org/firma/abc")
+            .contains(LINK_URL)
             .contains("conserva una copia dei documenti");
+        assertThat(MailParts.html(mail)).contains(">Scarica i documenti</a>").contains("conserva una copia dei documenti");
         assertThat(link(true).toString()).doesNotContain("firma/abc").doesNotContain("genitore");
+    }
+
+    private static MimeMessage sent(JavaMailSender sender) {
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(captor.capture());
+        return captor.getValue();
     }
 
     private static SignatureMailService.LinkMessage link(boolean signed) {
@@ -121,19 +161,14 @@ class SignatureMailServiceTest {
             "Emissione del foglio",
             "2026/007",
             "Luca Rossi",
-            "https://app.example.org/firma/abc",
+            LINK_URL,
             ZonedDateTime.of(2026, 10, 25, 9, 40, 0, 0, ZoneId.of("UTC")),
             ZoneId.of("Europe/Rome"),
             signed
         );
     }
 
-    @SuppressWarnings("unchecked")
     private static SignatureMailService service(JavaMailSender sender, SimpleMeterRegistry registry) {
-        ObjectProvider<JavaMailSender> provider = mock(ObjectProvider.class);
-        when(provider.getIfAvailable()).thenReturn(sender);
-        JHipsterProperties properties = new JHipsterProperties();
-        properties.getMail().setFrom("taurus@example.org");
-        return new SignatureMailService(provider, properties, new SignatureMetrics(registry));
+        return new SignatureMailService(MailParts.mailSender(sender), new SignatureMetrics(registry));
     }
 }

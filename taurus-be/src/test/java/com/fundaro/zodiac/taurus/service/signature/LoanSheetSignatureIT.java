@@ -17,6 +17,7 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.service.mail.MailParts;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryItemRequest;
@@ -39,7 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -89,7 +90,7 @@ import static org.mockito.Mockito.verify;
 )
 class LoanSheetSignatureIT {
 
-    private static final Pattern CODE = Pattern.compile("Codice di conferma: (\\d{6})");
+    private static final Pattern CODE = Pattern.compile("confermare la firma:\\s*(\\d{6})");
     private static final Pattern LINK = Pattern.compile("/firma/([A-Za-z0-9_-]{43})");
 
     @MockBean
@@ -157,6 +158,7 @@ class LoanSheetSignatureIT {
 
     @BeforeEach
     void provisionTenant() {
+        MailParts.stub(mailSender);
         provisioningService.provision(tenantCode);
         tenantId = transactionExecutor.execute(
             TenantSchemaNameResolver.DEFAULT_SCHEMA,
@@ -403,9 +405,9 @@ class LoanSheetSignatureIT {
             .hasFieldOrPropertyWithValue("errorKey", "inventory.loanSheet.holderEmailRequired");
         long sheetId = tx(() -> loanSheetService.issue(memberIndex, guardianIssue(clarinet.id(), "genitore@example.org"), admin)).summary().id();
         assertThat(tx(() -> loanSheetService.detail(sheetId, admin)).summary().signatureMode()).isEqualTo(InventoryLoanSignatureMode.ELECTRONIC);
-        SimpleMailMessage linkMail = lastMailTo("genitore@example.org");
-        assertThat(linkMail.getSubject()).isEqualTo("Firma richiesta – Banda musicale di prova");
-        assertThat(linkMail.getText()).contains("Socio minorenne: Mario Rossi").contains("/firma/");
+        MimeMessage linkMail = lastMailTo("genitore@example.org");
+        assertThat(MailParts.subject(linkMail)).isEqualTo("Firma richiesta – Banda musicale di prova");
+        assertThat(MailParts.text(linkMail)).contains("Socio minorenne: Mario Rossi").contains("/firma/");
         String link = linkToken(linkMail);
 
         LinkAct opened = linkResolver.within(link, "192.0.2.10", signatureService::linkAct);
@@ -439,7 +441,7 @@ class LoanSheetSignatureIT {
             challengeService.createForLink(session, new LinkChallengeRequest(SignaturePurpose.ACCEPTANCE, mainHash), http()));
         assertThat(acceptance.maskedEmail()).isEqualTo("g***@example.org");
         String code = sentCode();
-        assertThat(lastMailTo("genitore@example.org").getText()).contains(code);
+        assertThat(MailParts.text(lastMailTo("genitore@example.org"))).contains(code);
         linkResolver.within(link, "192.0.2.10", session -> challengeService.confirmForLink(session, acceptance.id(), new ConfirmRequest(code), http()));
         Challenge clauses = linkResolver.within(link, "192.0.2.10", session ->
             challengeService.createForLink(session, new LinkChallengeRequest(SignaturePurpose.CLAUSE_APPROVAL, hash(withData.act(), SignatureDocumentRole.CLAUSES)), http()));
@@ -462,8 +464,8 @@ class LoanSheetSignatureIT {
         confirm(challenge(SignaturePurpose.ASSOCIATION_SIGNATURE, awaitingAssociation, SignatureDocumentRole.MAIN, admin), admin);
 
         assertThatThrownBy(() -> linkResolver.within(link, "192.0.2.10", signatureService::linkAct)).isInstanceOf(SignatureLinkUnavailableException.class);
-        SimpleMailMessage signedMail = lastMailTo("genitore@example.org");
-        assertThat(signedMail.getSubject()).isEqualTo("Atto firmato – Banda musicale di prova");
+        MimeMessage signedMail = lastMailTo("genitore@example.org");
+        assertThat(MailParts.subject(signedMail)).isEqualTo("Atto firmato – Banda musicale di prova");
         String download = linkToken(signedMail);
         LinkAct signed = linkResolver.within(download, "192.0.2.10", signatureService::linkAct);
         assertThat(signed.act().status()).isEqualTo(SignatureActStatus.SIGNED);
@@ -716,19 +718,18 @@ class LoanSheetSignatureIT {
         assertThat(tx(() -> signatureService.ownAct(issue.id(), member)).pendingPurposes()).containsExactly(SignaturePurpose.CLAUSE_APPROVAL);
     }
 
-    private SimpleMailMessage lastMailTo(String address) {
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+    private MimeMessage lastMailTo(String address) {
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender, atLeastOnce()).send(captor.capture());
-        List<SimpleMailMessage> sent = captor.getAllValues();
+        List<MimeMessage> sent = captor.getAllValues();
         for (int index = sent.size() - 1; index >= 0; index--) {
-            String[] to = sent.get(index).getTo();
-            if (to != null && List.of(to).contains(address)) return sent.get(index);
+            if (MailParts.sentTo(sent.get(index), address)) return sent.get(index);
         }
         throw new AssertionError("No e-mail to " + address);
     }
 
-    private static String linkToken(SimpleMailMessage mail) {
-        Matcher matcher = LINK.matcher(mail.getText());
+    private static String linkToken(MimeMessage mail) {
+        Matcher matcher = LINK.matcher(MailParts.text(mail));
         assertThat(matcher.find()).isTrue();
         return matcher.group(1);
     }
@@ -805,9 +806,9 @@ class LoanSheetSignatureIT {
     }
 
     private String sentCode() {
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender, atLeastOnce()).send(captor.capture());
-        Matcher matcher = CODE.matcher(captor.getValue().getText());
+        Matcher matcher = CODE.matcher(MailParts.text(captor.getValue()));
         assertThat(matcher.find()).isTrue();
         return matcher.group(1);
     }

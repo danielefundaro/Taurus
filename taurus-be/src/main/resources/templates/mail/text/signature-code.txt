@@ -1,0 +1,15 @@
+Codice di conferma
+
+Ciao,
+
+Usa questo codice per confermare la firma:
+[(${code})]
+
+[# th:each="row : ${details}"][(${row['label']})]: [(${row['value']})]
+[/]
+Il codice scade alle [(${expiresTime})] del [(${expiresDate})] e vale solo per questa operazione.
+Se non hai chiesto tu questa conferma, ignora il messaggio: senza il codice non viene registrata alcuna firma.
+
+--
+Taurus
+Hai ricevuto questa e-mail perché è stata chiesta una firma con questo indirizzo.

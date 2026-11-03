@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+        title='Firma richiesta',
+        preheader=|${tenant} ti chiede di firmare un atto.|,
+        reason=|Hai ricevuto questa e-mail perché ${tenant} ti ha indicato come genitore o tutore di un socio minorenne.|,
+        content=~{signature-link :: content})}">
+<body>
+<th:block th:fragment="content">
+  <p th:replace="~{parts :: greeting}"></p>
+  <p th:replace="~{parts :: paragraph('L\'associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento, come genitore o tutore del socio minorenne.')}"></p>
+  <table th:replace="~{parts :: details(${details})}"></table>
+  <table th:replace="~{parts :: button(${url}, 'Leggi e firma')}"></table>
+  <table th:replace="~{parts :: notes(~{signature-link :: notes})}"></table>
+</th:block>
+<th:block th:fragment="notes">
+  <p th:replace="~{parts :: note(|Il collegamento vale fino alle ${expiresTime} del ${expiresDate} e solo per questo atto. Per firmare riceverai a questo indirizzo un codice di conferma.|)}"></p>
+  <p th:replace="~{parts :: note('Non inoltrare il messaggio: chi ha il collegamento può leggere i documenti dell\'atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l\'associazione.')}"></p>
+  <p th:replace="~{parts :: fallbackLink(${url})}"></p>
+</th:block>
+</body>
+</html>
