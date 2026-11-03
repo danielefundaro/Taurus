@@ -9,7 +9,7 @@ Riguarda le e-mail della [Firma elettronica dei fogli di affidamento](inventory-
 ID catalogo: `email-layout-standard`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Bozza del 2026-11-02, approvata il 2026-11-03. Le scelte sono fissate in [Decisioni](#decisioni).
+Bozza del 2026-11-02, approvata e implementata il 2026-11-03. Le scelte sono fissate in [Decisioni](#decisioni).
 
 ## Problema
 
@@ -61,7 +61,7 @@ Bozza del 2026-11-02, approvata il 2026-11-03. Le scelte sono fissate in [Decisi
 
 ### 1. Un modello di impaginazione per modulo
 
-- **Backend**: un layout Thymeleaf `templates/mail/html/layout.html`, usato da ogni e-mail con `th:replace`, e un modello solo testo per e-mail in `templates/mail/text/`.
+- **Backend**: un layout Thymeleaf `templates/mail/html/layout.html`, usato da ogni e-mail con `th:replace`, le parti del contenuto in `templates/mail/html/parts.html` e un modello solo testo per e-mail in `templates/mail/text/`.
 - **Keycloak**: `email/html/template.ftl` del tema ridefinisce la macro `emailLayout`. I modelli Taurus la usano con i loro parametri; i modelli del tema base, che la chiamano senza parametri, ricevono lo stesso aspetto senza modifiche.
 - I due layout producono lo stesso HTML a parità di contenuto: stessa struttura, stessi stili in linea, stessi testi fissi. Un cambio d'aspetto si fa in entrambi nella stessa modifica.
 
@@ -118,7 +118,7 @@ Impaginazione a tabelle con stili in linea, larghezza massima 540 px, senza fogl
 | Saluto | «Ciao {nome},» oppure «Ciao,» senza nome | sì |
 | Testo | uno o due paragrafi | sì |
 | Dati | tabella etichetta–valore (associazione, atto, socio, riferimento) | no |
-| Azione | pulsante con un link, oppure riquadro del codice | no |
+| Azione | pulsante con un link, oppure riquadro del codice; il riquadro del codice viene prima dei dati, subito dopo il testo | no |
 | Note | scadenza, avvertenze di sicurezza, separate da una linea | sì |
 | Link di riserva | «Se il pulsante non funziona, copia questo link nel browser:» e l'indirizzo | solo con il pulsante |
 | Piè di pagina | «Taurus» e il motivo per cui si riceve l'e-mail | sì |
@@ -174,10 +174,10 @@ Il saluto è «Ciao,»: il genitore non ha un nome nel modello del messaggio e i
 
 | Elemento | Modifica |
 | --- | --- |
-| `MailTemplateConfiguration` (`config`) | motore Thymeleaf dedicato alle e-mail: un resolver HTML per `templates/mail/html/` e uno testo per `templates/mail/text/`, UTF-8, con cache; separato da quello delle pagine web |
-| `TaurusMailSender` (`service/mail`) | rende HTML e testo di un modello con il suo modello dati, compone il `MimeMessage` (`multipart/alternative` dentro `multipart/related` con il logo), imposta mittente e nome, invia con `JavaMailSender`; lancia `MailException` come oggi |
+| `TaurusMailSender` (`service/mail`) | ha due motori Thymeleaf dedicati alle e-mail, separati da quello delle pagine web: HTML per `templates/mail/html/` e testo per `templates/mail/text/`, UTF-8, con cache; rende HTML e testo di un modello con il suo modello dati, compone il `MimeMessage` (`multipart/alternative` dentro `multipart/related` con il logo), imposta mittente e nome, invia con `JavaMailSender`; lancia `MailException` come oggi |
 | `SignatureMailService` | `sendCode` e `sendLink` costruiscono il modello dati e chiamano `TaurusMailSender`; metriche, eccezioni, `configured()` e oggetti invariati; `text(...)` lascia il posto ai modelli |
 | `templates/mail/html/layout.html` | layout comune |
+| `templates/mail/html/parts.html` | saluto, paragrafo, dati, codice, pulsante, note e link di riserva: le stesse macro di `template.ftl` |
 | `templates/mail/html/signature-code.html`, `signature-link.html`, `signature-signed.html` | contenuto delle tre e-mail |
 | `templates/mail/text/…` | le tre parti testo, con lo stesso nome |
 | `templates/mail/logo.png` | logo |
@@ -220,7 +220,7 @@ Nessuna migrazione e nessuna nuova proprietà di configurazione.
   - l'e-mail del codice non contiene `<a ` né `http` nell'HTML e nel testo, e l'anteprima non contiene il codice;
   - le e-mail dei link contengono l'indirizzo nel pulsante e nel link di riserva;
   - metriche ed eccezioni come oggi, anche senza server SMTP.
-- `MailLogoTest`: il logo esiste, è un PNG 144 × 144 e ha lo SHA-256 atteso, lo stesso del test Keycloak.
+- `TaurusMailSenderTest` verifica anche lo SHA-256 del logo, lo stesso del test Keycloak.
 
 ### Keycloak
 
@@ -234,7 +234,7 @@ Nessuna migrazione e nessuna nuova proprietà di configurazione.
 - i due file dei messaggi del login hanno le stesse chiavi;
 - il logo ha lo SHA-256 atteso.
 
-Un test di integrazione con Keycloak avviato, come `TenantRoleFlowIT`, verifica che `url.resourcesUrl` arrivi ai modelli email e che `…/img/logo.png` risponda `200` con `image/png`. Se l'attributo non arrivasse, il modello userebbe l'indirizzo pubblico del realm seguito dal percorso delle risorse del tema.
+`EmailDeliveryIT` avvia Keycloak 26.6.4 con il JAR del provider e Mailpit, chiede l'e-mail di configurazione dell'account dall'API di amministrazione e la legge da Mailpit: oggetto italiano, mittente «Taurus», parte testo, e logo citato con `url.resourcesUrl` che Keycloak serve con `200` e `image/png`. Se un aggiornamento di Keycloak togliesse l'attributo, il modello non mostrerebbe il logo ma solo la scritta «Taurus», e il test fallirebbe.
 
 ### Verifica manuale
 
