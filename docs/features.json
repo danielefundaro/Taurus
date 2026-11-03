@@ -121,18 +121,45 @@
       "title": "Aspetto unificato delle e-mail",
       "kind": "standard",
       "designStatus": "approved",
-      "deliveryStatus": "planned",
+      "deliveryStatus": "implemented",
       "spec": "docs/email-layout-standard.md",
       "relatedDocs": ["docs/inventory-electronic-signature-spec.md", "docs/runbook-operativo.md", "docs/runbook-test.md"],
       "modules": ["keycloak-authenticator", "taurus-be"],
       "evidence": {
-        "implementation": [],
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/mail/TaurusMailSender.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/signature/SignatureMailService.java",
+          "taurus-be/src/main/resources/templates/mail/html/layout.html",
+          "taurus-be/src/main/resources/templates/mail/html/parts.html",
+          "taurus-be/src/main/resources/templates/mail/html/signature-code.html",
+          "taurus-be/src/main/resources/templates/mail/html/signature-link.html",
+          "taurus-be/src/main/resources/templates/mail/html/signature-signed.html",
+          "taurus-be/src/main/resources/templates/mail/text/signature-code.txt",
+          "taurus-be/src/main/resources/templates/mail/text/signature-link.txt",
+          "taurus-be/src/main/resources/templates/mail/text/signature-signed.txt",
+          "taurus-be/src/main/resources/templates/mail/logo.png",
+          "taurus-be/src/main/docker/realm-config/taurus-realm.json",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/html/template.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/html/password-reset.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/html/executeActions.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/html/email-test.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/text/password-reset.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/text/executeActions.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/text/email-test.ftl",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/messages/messages_it.properties",
+          "keycloak-authenticator/src/main/resources/theme/taurus-theme/email/resources/img/logo.png"
+        ],
         "migrations": [],
-        "tests": []
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/mail/TaurusMailSenderTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/signature/SignatureMailServiceTest.java",
+          "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/theme/EmailTemplatesTest.java",
+          "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/theme/EmailDeliveryIT.java"
+        ]
       },
       "release": null,
       "lastVerifiedOn": "2026-11-03",
-      "notes": "Bozza del 2026-11-02, approvata il 2026-11-03: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG di Taurus (allegato in linea nel backend, dalle risorse del tema in Keycloak, senza toccare l'invio SMTP di Keycloak), parte solo testo in ogni e-mail, italiano come unica lingua del realm. Nessuna migrazione; nei realm esistenti la lingua si imposta a mano."
+      "notes": "Bozza del 2026-11-02, approvata e implementata il 2026-11-03: un layout per modulo (Thymeleaf nel backend, macro emailLayout nel tema Keycloak) con la stessa struttura e gli stessi colori, logo PNG di Taurus (allegato in linea nel backend, dalle risorse del tema in Keycloak, senza toccare l'invio SMTP di Keycloak), parte solo testo in ogni e-mail, italiano come unica lingua del realm. EmailDeliveryIT verifica su Keycloak reale oggetto, mittente e logo servito. Nessuna migrazione; nei realm esistenti la lingua si imposta a mano."
     },
     {
       "id": "event-payout-shares",
