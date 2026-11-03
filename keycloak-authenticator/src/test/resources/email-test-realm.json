@@ -1,0 +1,29 @@
+{
+  "realm": "email-test",
+  "displayName": "Taurus",
+  "enabled": true,
+  "emailTheme": "taurus-theme",
+  "loginTheme": "taurus-theme",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["it"],
+  "defaultLocale": "it",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "taurus@localhost",
+    "fromDisplayName": "Taurus",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  },
+  "users": [
+    {
+      "username": "anna",
+      "email": "anna@example.test",
+      "firstName": "Anna",
+      "lastName": "Rossi",
+      "enabled": true,
+      "emailVerified": true
+    }
+  ]
+}
