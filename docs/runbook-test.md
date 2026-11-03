@@ -11,13 +11,13 @@ Il documento è una checklist eseguibile e una matrice di copertura. Non sostitu
 
 Copertura presente nel repository (la data dell'ultima verifica è nel catalogo):
 
-- backend: 170 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
+- backend: 220 file Java di test e supporto sotto `src/test`, con unit test, test Spring e integrazioni PostgreSQL/Testcontainers;
 - frontend: 68 specifiche Jasmine/Karma;
 - servizio OMR: 7 file pytest, con test sui motori finti e test di accuratezza sui motori reali, eseguiti solo con il servizio in esecuzione;
 - provider Keycloak: 7 classi di test, fra cui `TaurusOtpTest`, `TaurusOtpResourceIT`, `EmailTemplatesTest` sui modelli di posta del tema, `EmailDeliveryIT`, che fa partire un'e-mail vera verso Mailpit, e `TenantRoleFlowIT`, che attraversa il browser flow e legge i claim del mapper su un Keycloak reale;
 - sito informativo: type-check, build e `pnpm test`/`pnpm test:image`, che controllano il sito costruito e l'immagine nginx che lo serve;
 - E2E: suite Playwright in `taurus-fe/e2e`, con i profili desktop e mobile, che richiede un'istanza completa e due tenant di prova; eseguita la prima volta il 2026-10-31, calibrata e verde — 46 prove passate e 34 saltate per dati assenti;
-- JaCoCo produce report backend, ma non applica una soglia minima;
+- JaCoCo produce i report backend e applica le soglie di copertura della suite intera, unit e integrazione (§8.2);
 - la CI esegue test/build dei moduli modificati con le soglie di copertura, impone la presenza di Docker, conserva report e copertura come artefatti, verifica il sito costruito e l'immagine nginx che lo serve e, per `taurus-omr`, misura l'accuratezza sull'immagine appena costruita; il job `security` cerca segreti, vulnerabilità di dipendenze e configurazioni e difetti con analisi statica. Restano fuori dalla CI i test full-stack, le performance, la sicurezza dinamica e il restore.
 
 I gap indicati nella sezione 19 restano rischi espliciti finché non sono risolti o formalmente accettati.
@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 73% linee e 57% branch sulla suite intera, frontend 61% istruzioni, 51% branch e 63% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 74% linee e 59% branch sulla suite intera, frontend 61% istruzioni, 51% branch e 63% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -292,7 +292,7 @@ Broker RabbitMQ reale:
 
 I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
 
-La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,74 e 0,58, appena sotto la copertura misurata il 2026-10-30 (75,2% linee e 59,3% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,74 e 0,59, la seconda alzata il 2026-11-02, appena sotto la copertura misurata il 2026-11-03 (74,9% linee e 59,6% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
