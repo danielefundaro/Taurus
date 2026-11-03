@@ -1,20 +1,24 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
+import com.fundaro.zodiac.taurus.service.mail.TaurusMailSender;
+import com.fundaro.zodiac.taurus.service.mail.TaurusMailSender.Mail;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import tech.jhipster.config.JHipsterProperties;
 
 /**
  * Sends the confirmation codes and the links of the parents without an account through the SMTP server of the
  * installation ({@code spring.mail.*}), shared by all the tenants; every message names the tenant. Messages with a code
- * contain no links, and neither codes, links nor addresses are logged.
+ * contain no links, and neither codes, links nor addresses are logged. The layout is the one of all the e-mails of
+ * Taurus (docs/email-layout-standard.md): templates {@code signature-code}, {@code signature-link} and
+ * {@code signature-signed} under {@code templates/mail}.
  */
 @Service
 public class SignatureMailService {
@@ -22,13 +26,11 @@ public class SignatureMailService {
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final ObjectProvider<JavaMailSender> mailSender;
-    private final JHipsterProperties jHipsterProperties;
+    private final TaurusMailSender mailSender;
     private final SignatureMetrics metrics;
 
-    public SignatureMailService(ObjectProvider<JavaMailSender> mailSender, JHipsterProperties jHipsterProperties, SignatureMetrics metrics) {
+    public SignatureMailService(TaurusMailSender mailSender, SignatureMetrics metrics) {
         this.mailSender = mailSender;
-        this.jHipsterProperties = jHipsterProperties;
         this.metrics = metrics;
     }
 
@@ -36,30 +38,14 @@ public class SignatureMailService {
      * Whether an SMTP server is configured: Spring Boot creates the mail sender only when {@code spring.mail.host} is set.
      */
     public boolean configured() {
-        return mailSender.getIfAvailable() != null;
+        return mailSender.configured();
     }
 
     /**
      * Sends a confirmation code; throws {@link MailException} when the SMTP server refuses or cannot be reached.
      */
     public void sendCode(CodeMessage message) {
-        JavaMailSender sender = mailSender.getIfAvailable();
-        if (sender == null) {
-            metrics.mail("unconfigured");
-            throw new IllegalStateException("No SMTP server is configured");
-        }
-        SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setFrom(jHipsterProperties.getMail().getFrom());
-        mail.setTo(message.destination());
-        mail.setSubject("Codice di conferma – " + message.tenantName());
-        mail.setText(text(message));
-        try {
-            sender.send(mail);
-            metrics.mail("sent");
-        } catch (MailException exception) {
-            metrics.mail("failed");
-            throw exception;
-        }
+        send(new Mail(message.destination(), "Codice di conferma – " + message.tenantName(), "signature-code", variables(message)));
     }
 
     /**
@@ -67,18 +53,17 @@ public class SignatureMailService {
      * server refuses or cannot be reached.
      */
     public void sendLink(LinkMessage message) {
-        JavaMailSender sender = mailSender.getIfAvailable();
-        if (sender == null) {
+        String subject = (message.signed() ? "Atto firmato – " : "Firma richiesta – ") + message.tenantName();
+        send(new Mail(message.destination(), subject, message.signed() ? "signature-signed" : "signature-link", variables(message)));
+    }
+
+    private void send(Mail mail) {
+        if (!mailSender.configured()) {
             metrics.mail("unconfigured");
             throw new IllegalStateException("No SMTP server is configured");
         }
-        SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setFrom(jHipsterProperties.getMail().getFrom());
-        mail.setTo(message.destination());
-        mail.setSubject((message.signed() ? "Atto firmato – " : "Firma richiesta – ") + message.tenantName());
-        mail.setText(text(message));
         try {
-            sender.send(mail);
+            mailSender.send(mail);
             metrics.mail("sent");
         } catch (MailException exception) {
             metrics.mail("failed");
@@ -86,72 +71,46 @@ public class SignatureMailService {
         }
     }
 
-    static String text(LinkMessage message) {
-        ZonedDateTime expiresAt = message.expiresAt().withZoneSameInstant(message.zone());
-        if (message.signed()) {
-            return """
-                Tutte le parti hanno firmato l'atto.
-
-                Associazione: %s
-                Atto: %s – foglio di affidamento n. %s
-                Socio minorenne: %s
-
-                I documenti firmati e l'attestazione si scaricano da questa pagina:
-                %s
-
-                Il collegamento vale fino alle %s del %s: conserva una copia dei documenti. Dopo questa data puoi chiederli all'associazione.
-                """.formatted(
-                message.tenantName(),
-                message.operation(),
-                message.sheetNumber(),
-                message.minorName(),
-                message.url(),
-                TIME.format(expiresAt),
-                DATE.format(expiresAt)
-            );
-        }
-        return """
-            L'associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento, come genitore o tutore del socio minorenne.
-
-            Associazione: %s
-            Atto: %s – foglio di affidamento n. %s
-            Socio minorenne: %s
-
-            Per leggere i documenti e firmarli apri questa pagina:
-            %s
-
-            Il collegamento vale fino alle %s del %s e solo per questo atto. Per firmare riceverai a questo indirizzo un codice di conferma.
-            Non inoltrare il messaggio: chi ha il collegamento può leggere i documenti dell'atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l'associazione.
-            """.formatted(
-            message.tenantName(),
-            message.operation(),
-            message.sheetNumber(),
-            message.minorName(),
-            message.url(),
-            TIME.format(expiresAt),
-            DATE.format(expiresAt)
+    static Map<String, Object> variables(CodeMessage message) {
+        Map<String, Object> variables = expiry(message.expiresAt(), message.zone());
+        variables.put("tenant", message.tenantName());
+        variables.put("code", message.code());
+        variables.put(
+            "details",
+            List.of(
+                row("Associazione", message.tenantName()),
+                row("Operazione", message.operation()),
+                row("Riferimento del documento", message.reference())
+            )
         );
+        return variables;
     }
 
-    static String text(CodeMessage message) {
-        ZonedDateTime expiresAt = message.expiresAt().withZoneSameInstant(message.zone());
-        return """
-            Codice di conferma: %s
-
-            Associazione: %s
-            Operazione: %s
-            Riferimento del documento: %s
-            Il codice scade alle %s del %s e vale solo per questa operazione.
-
-            Se non hai chiesto tu questa conferma, ignora il messaggio: senza il codice non viene registrata alcuna firma.
-            """.formatted(
-            message.code(),
-            message.tenantName(),
-            message.operation(),
-            message.reference(),
-            TIME.format(expiresAt),
-            DATE.format(expiresAt)
+    static Map<String, Object> variables(LinkMessage message) {
+        Map<String, Object> variables = expiry(message.expiresAt(), message.zone());
+        variables.put("tenant", message.tenantName());
+        variables.put("url", message.url());
+        variables.put(
+            "details",
+            List.of(
+                row("Associazione", message.tenantName()),
+                row("Atto", message.operation() + " – foglio di affidamento n. " + message.sheetNumber()),
+                row("Socio minorenne", message.minorName())
+            )
         );
+        return variables;
+    }
+
+    private static Map<String, Object> expiry(ZonedDateTime expiresAt, ZoneId zone) {
+        ZonedDateTime local = expiresAt.withZoneSameInstant(zone);
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("expiresTime", TIME.format(local));
+        variables.put("expiresDate", DATE.format(local));
+        return variables;
+    }
+
+    private static Map<String, String> row(String label, String value) {
+        return Map.of("label", label, "value", value);
     }
 
     /**

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  Impaginazione comune delle e-mail di Taurus (docs/email-layout-standard.md). Il tema Keycloak produce lo
+  stesso HTML con theme/taurus-theme/email/html/template.ftl: un cambio d'aspetto si fa in entrambi.
+-->
+<html lang="it" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, preheader, reason, content)">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title th:text="${title} + ' — Taurus'">Taurus</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<div th:if="${preheader}" style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#f1f5f9;" th:text="${preheader}"></div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;">
+  <tr>
+    <td align="center" style="padding:48px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:540px;">
+        <tr>
+          <td style="background-color:#22c55e;height:5px;border-radius:12px 12px 0 0;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="background-color:#ffffff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:40px 40px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="padding-bottom:32px;">
+                  <img src="cid:taurus-logo" width="72" height="72" alt="Taurus" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;">
+                  <div style="margin-top:10px;font-size:20px;font-weight:700;letter-spacing:-0.3px;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Taurus</div>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin:0 0 12px;font-size:19px;font-weight:600;line-height:1.4;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" th:text="${title}"></h1>
+            <div style="font-size:15px;line-height:1.6;color:#475569;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <th:block th:replace="${content}"></th:block>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:24px 16px 0;">
+            <p style="margin:0 0 4px;font-size:12px;line-height:1.5;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Taurus</p>
+            <p th:if="${reason}" style="margin:0;font-size:12px;line-height:1.5;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" th:text="${reason}"></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

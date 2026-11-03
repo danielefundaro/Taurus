@@ -11,6 +11,7 @@ import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaNameResolver;
 import com.fundaro.zodiac.taurus.multitenancy.TenantSchemaProvisioningService;
 import com.fundaro.zodiac.taurus.multitenancy.TenantTransactionExecutor;
+import com.fundaro.zodiac.taurus.service.mail.MailParts;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentDTO;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryAssignmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryDecisionRequest;
@@ -26,7 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -67,7 +68,7 @@ import static org.mockito.Mockito.verify;
 )
 class SignatureIT {
 
-    private static final Pattern CODE = Pattern.compile("Codice di conferma: (\\d{6})");
+    private static final Pattern CODE = Pattern.compile("confermare la firma:\\s*(\\d{6})");
 
     @MockBean
     private ClientRegistrationRepository clientRegistrationRepository;
@@ -113,6 +114,7 @@ class SignatureIT {
 
     @BeforeEach
     void provisionTenant() {
+        MailParts.stub(mailSender);
         provisioningService.provision(tenantCode);
         tenantId = transactionExecutor.execute(
             TenantSchemaNameResolver.DEFAULT_SCHEMA,
@@ -218,9 +220,9 @@ class SignatureIT {
     }
 
     private String sentCode() {
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
         verify(mailSender, atLeastOnce()).send(captor.capture());
-        Matcher matcher = CODE.matcher(captor.getValue().getText());
+        Matcher matcher = CODE.matcher(MailParts.text(captor.getValue()));
         assertThat(matcher.find()).isTrue();
         return matcher.group(1);
     }

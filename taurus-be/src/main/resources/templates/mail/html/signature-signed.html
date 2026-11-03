@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(
+        title='Atto firmato',
+        preheader='I documenti firmati sono pronti.',
+        reason=|Hai ricevuto questa e-mail perché ${tenant} ti ha indicato come genitore o tutore di un socio minorenne.|,
+        content=~{signature-signed :: content})}">
+<body>
+<th:block th:fragment="content">
+  <p th:replace="~{parts :: greeting}"></p>
+  <p th:replace="~{parts :: paragraph('Tutte le parti hanno firmato l\'atto. I documenti firmati e l\'attestazione si scaricano dalla pagina dell\'atto.')}"></p>
+  <table th:replace="~{parts :: details(${details})}"></table>
+  <table th:replace="~{parts :: button(${url}, 'Scarica i documenti')}"></table>
+  <table th:replace="~{parts :: notes(~{signature-signed :: notes})}"></table>
+</th:block>
+<th:block th:fragment="notes">
+  <p th:replace="~{parts :: note(|Il collegamento vale fino alle ${expiresTime} del ${expiresDate}: conserva una copia dei documenti. Dopo questa data puoi chiederli all'associazione.|)}"></p>
+  <p th:replace="~{parts :: fallbackLink(${url})}"></p>
+</th:block>
+</body>
+</html>

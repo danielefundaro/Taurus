@@ -1,0 +1,14 @@
+Atto firmato
+
+Ciao,
+
+Tutte le parti hanno firmato l'atto. I documenti firmati e l'attestazione si scaricano da questa pagina:
+[(${url})]
+
+[# th:each="row : ${details}"][(${row['label']})]: [(${row['value']})]
+[/]
+Il collegamento vale fino alle [(${expiresTime})] del [(${expiresDate})]: conserva una copia dei documenti. Dopo questa data puoi chiederli all'associazione.
+
+--
+Taurus
+Hai ricevuto questa e-mail perché [(${tenant})] ti ha indicato come genitore o tutore di un socio minorenne.
