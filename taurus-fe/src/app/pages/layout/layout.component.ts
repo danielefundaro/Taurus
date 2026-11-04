@@ -19,7 +19,7 @@ import { GuidedTourService, LayoutService, NotificationCenterService, PushNotifi
 })
 export class LayoutComponent {
     /** Invito non invasivo ad attivare i promemoria push: mai un prompt automatico del browser. */
-    protected pushPromptVisible: boolean;
+    private pushPromptAllowed: boolean;
 
     private static readonly PUSH_PROMPT_DISMISSED = 'pushPromptDismissed';
 
@@ -44,7 +44,7 @@ export class LayoutComponent {
     ) {
         // In modalità bootstrap il tenant non ha schema: niente notifiche né promemoria da attivare.
         const bootstrap = this.tenantStatusService.bootstrap();
-        this.pushPromptVisible = !bootstrap && this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
+        this.pushPromptAllowed = !bootstrap && this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
         if (!bootstrap) {
             this.notificationCenter.start();
             this.guidedTour.load().subscribe();
@@ -118,16 +118,21 @@ export class LayoutComponent {
         };
     }
 
+    /** Le sottoscrizioni push esistono solo con la funzionalità «Preferenze notifiche». */
+    protected get pushPromptVisible(): boolean {
+        return this.pushPromptAllowed && this.tenantFeatureService.notificationPreferencesEnabled();
+    }
+
     protected enablePush(): void {
         this.pushNotificationService.requestPermissionAndSubscribe().then((enabled) => {
-            this.pushPromptVisible = false;
+            this.pushPromptAllowed = false;
             if (enabled) this.toastService.success('Notifiche attive', 'Riceverai un promemoria prima degli eventi a cui hai dato disponibilità.');
             else this.toastService.info('Notifiche non attivate', 'Puoi attivarle in qualsiasi momento dal tuo profilo.');
         });
     }
 
     protected dismissPushPrompt(): void {
-        this.pushPromptVisible = false;
+        this.pushPromptAllowed = false;
         sessionStorage.setItem(LayoutComponent.PUSH_PROMPT_DISMISSED, 'true');
     }
 

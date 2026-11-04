@@ -2,6 +2,8 @@ import { SwPush } from '@angular/service-worker';
 import { of, throwError } from 'rxjs';
 import { PushNotificationService } from './push-notification.service';
 import { PushSubscriptionService } from './push-subscription.service';
+import { TenantFeatureService } from './tenant-feature.service';
+import { TenantFeatures } from '../module';
 
 const subscription = (endpoint: string): PushSubscription =>
     ({
@@ -13,10 +15,11 @@ describe('PushNotificationService', () => {
     let requestSubscription: jasmine.Spy;
     let swUnsubscribe: jasmine.Spy;
     let backend: jasmine.SpyObj<PushSubscriptionService>;
+    let features: jasmine.SpyObj<TenantFeatureService>;
 
     const service = (isEnabled: boolean, existing: PushSubscription | null = null): PushNotificationService => {
         const swPush = { isEnabled, requestSubscription, unsubscribe: swUnsubscribe } as unknown as SwPush;
-        const created = new PushNotificationService(swPush, backend);
+        const created = new PushNotificationService(swPush, backend, features);
         // La sottoscrizione del browser non è raggiungibile dal runner: si sostituisce la sola lettura.
         (created as unknown as { currentSubscription: () => Promise<PushSubscription | null> }).currentSubscription = () => Promise.resolve(existing);
 
@@ -29,6 +32,8 @@ describe('PushNotificationService', () => {
         backend = jasmine.createSpyObj<PushSubscriptionService>('PushSubscriptionService', ['subscribe', 'unsubscribe']);
         backend.subscribe.and.returnValue(of(undefined));
         backend.unsubscribe.and.returnValue(of(undefined));
+        features = jasmine.createSpyObj<TenantFeatureService>('TenantFeatureService', ['refresh']);
+        features.refresh.and.returnValue(of({ notificationPreferencesEnabled: true } as TenantFeatures));
     });
 
     it('reports the push as unsupported when the service worker is disabled', () => {
@@ -63,6 +68,27 @@ describe('PushNotificationService', () => {
         expect(requestSubscription).not.toHaveBeenCalled();
         expect(backend.subscribe).toHaveBeenCalledWith(existing);
         expect(created.subscribed()).toBeTrue();
+    });
+
+    it('skips the startup realignment when the tenant has no notification preferences', async () => {
+        spyOnProperty(Notification, 'permission', 'get').and.returnValue('granted');
+        features.refresh.and.returnValue(of({ notificationPreferencesEnabled: false } as TenantFeatures));
+        const created = service(true, subscription('https://push.example/known'));
+
+        await created.init();
+
+        expect(requestSubscription).not.toHaveBeenCalled();
+        expect(backend.subscribe).not.toHaveBeenCalled();
+        expect(created.subscribed()).toBeFalse();
+    });
+
+    it('skips the startup realignment when the tenant features cannot be read', async () => {
+        spyOnProperty(Notification, 'permission', 'get').and.returnValue('granted');
+        features.refresh.and.returnValue(throwError(() => new Error('rete')));
+
+        await service(true, subscription('https://push.example/known')).init();
+
+        expect(backend.subscribe).not.toHaveBeenCalled();
     });
 
     it('refuses to subscribe when the permission is denied', async () => {
