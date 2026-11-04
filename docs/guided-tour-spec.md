@@ -222,8 +222,7 @@ Ogni tappa del catalogo dichiara:
 | --- | --- |
 | `id` | identificativo stabile, formato `{area}.{oggetto}` in camelCase |
 | `roles` | ruoli a cui si applica |
-| `requires` | funzionalità del tenant tutte necessarie; tappa esclusa se una manca |
-| `excludes` | funzionalità che, se attive, escludono la tappa |
+| `requires` | funzionalità del tenant tutte necessarie; tappa esclusa se una manca. La guida non mostra né cita le sezioni non attive |
 | `route` | pagina da aprire prima di mostrare la tappa, facoltativa |
 | `anchors` | ancore candidate in ordine di preferenza, facoltative |
 | `mobileAnchors` | ancore candidate sotto i 992 px, quando diverse: una tappa di pagina punta all'intestazione |
@@ -283,8 +282,9 @@ Stesse tappe dell'Utente, con varianti di testo che non promettono ciò che il r
 | 3 | `finance.overview` | `/finance`, `finance.summary` | `FINANCE` | «In Economia trovi conti, saldi e movimenti dell'organizzazione.» |
 | 4 | `finance.movements` | `/finance`, `finance.create` | `FINANCE` | «Registra entrate, uscite e trasferimenti, allega le ricevute e segna i movimenti riconciliati.» |
 | 5 | `finance.events` | scheda centrata | `FINANCE` | «Le notifiche economiche ti portano al dettaglio dell'evento, dove gestisci preventivo e consuntivo.» |
-| 3 | `finance.unavailable` | scheda centrata | esclusa con `FINANCE` | «La sezione Economia non è ancora attiva per questa organizzazione. Chiedi all'amministratore di Taurus di attivarla.» |
 | 6–8 | notifiche, profilo, aiuto | — | — | — |
+
+Senza `FINANCE` il percorso del Tesoriere si riduce a benvenuto, menu, notifiche, profilo e aiuto.
 
 ### Amministratore
 
@@ -704,7 +704,7 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 | Stato nel browser non affidabile | `localStorage` svuotato alla chiusura e senza separazione per utente | backend come fonte; `sessionStorage` solo per il rinvio di sessione |
 | Ancore fragili | rotte lazy, menu per ruolo e flag, contenuti asincroni e layout mobile | identificativi stabili, candidate multiple, attesa limitata, scheda centrata, script di controllo |
 | Testi che invecchiano | una pagina cambia e la guida descrive un'interfaccia che non esiste più | catalogo accanto al codice, script delle ancore, voce nel template di pull request |
-| Tesoriere senza Economia | il ruolo non ha quasi nulla da usare e la guida sarebbe vuota | tappa dedicata che spiega a chi chiedere |
+| Tesoriere senza Economia | il ruolo non ha quasi nulla da usare e la guida sarebbe vuota | la guida mostra solo le sezioni attive: restano le tappe comuni |
 | Percorsi lunghi per gli amministratori | troppe tappe rendono la guida pesante e verrebbe saltata | limite di 10, tappa unica per gli strumenti, guide di pagina in fase 2 |
 | Interferenze con il flusso esistente | documenti legali, collegamenti diretti, dialoghi, modifiche non salvate, aggiornamento dell'applicazione | avvio solo sulla dashboard, condizioni di avvio, pausa su navigazione annullata, ripresa dall'ultima tappa |
 | Pulsante di aiuto conteso | la specifica delle richieste di assistenza usa la stessa icona nella topbar | un solo pulsante di aiuto con menu, da riportare nella specifica di assistenza |

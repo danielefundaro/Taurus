@@ -26,18 +26,20 @@ describe('Guided tour catalog', () => {
         expect(ids(RoleEnums.SUPER_ADMIN, allOff)).toEqual([...START, 'superAdmin.tenants', 'superAdmin.legalDocuments', 'admin.users', 'admin.tools', ...END]);
         expect(ids(RoleEnums.ADMIN, allOff)).toEqual([...START, 'admin.users', 'admin.calendar', 'admin.tools', ...END]);
         expect(ids(RoleEnums.BOARD, allOff)).toEqual([...START, 'admin.users', 'admin.calendar', ...END]);
-        expect(ids(RoleEnums.TREASURER, allOff)).toEqual([...START, 'finance.unavailable', ...END]);
+        expect(ids(RoleEnums.TREASURER, allOff)).toEqual([...START, ...END]);
         expect(ids(RoleEnums.ARCHIVIST, allOff)).toEqual([...START, 'catalog.manage', 'catalog.instruments', 'calendar.program', ...END]);
         expect(ids(RoleEnums.USER, allOff)).toEqual([...START, 'calendar.availability', 'catalog.tracks', ...END]);
         expect(ids(RoleEnums.USER_EXTERNAL, allOff)).toEqual([...START, 'calendar.availability', 'catalog.tracks', ...END]);
     });
 
-    it('explains to a treasurer without finance whom to ask', () => {
-        const onlyFinance = (feature: TenantFeature) => feature === TenantFeature.FINANCE;
+    it('never shows a section that is off', () => {
+        const allButFinance = (feature: TenantFeature) => feature !== TenantFeature.FINANCE;
 
-        expect(ids(RoleEnums.TREASURER, onlyFinance)).not.toContain('finance.unavailable');
-        expect(ids(RoleEnums.TREASURER, allOff)).toContain('finance.unavailable');
-        expect(ids(RoleEnums.TREASURER, allOff)).not.toContain('finance.overview');
+        for (const role of ROLES) {
+            expect(ids(role, allButFinance).filter((id) => id.startsWith('finance.')))
+                .withContext(role)
+                .toEqual([]);
+        }
     });
 
     it('keeps the points whose features are on', () => {
@@ -94,11 +96,15 @@ describe('Guided tour catalog', () => {
         expect(unique.size).toBe(GUIDED_TOUR_STEPS.length);
 
         for (const step of GUIDED_TOUR_STEPS) {
-            expect(step.id).withContext(step.id).toMatch(/^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/);
+            expect(step.id)
+                .withContext(step.id)
+                .toMatch(/^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/);
             expect(step.id.length).withContext(step.id).toBeLessThanOrEqual(64);
             expect(step.title.length).withContext(step.id).toBeLessThanOrEqual(40);
             texts(step.body).forEach((body) => expect(body.length).withContext(step.id).toBeLessThanOrEqual(180));
-            expect((step.points ?? []).length).withContext(step.id).toBeLessThanOrEqual(3);
+            expect((step.points ?? []).length)
+                .withContext(step.id)
+                .toBeLessThanOrEqual(3);
             (step.points ?? []).forEach((point) => expect(point.text.length).withContext(step.id).toBeLessThanOrEqual(60));
             expect(step.introducedIn).withContext(step.id).toBeGreaterThan(0);
         }
