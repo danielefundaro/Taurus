@@ -3,7 +3,7 @@
 <app-inline-alert class="block mb-4" severity="info" heading="Primo accesso" [detail]="bootstrapDetail"
     actionLabel="Esci" (action)="logout()" />
 }
-<app-page-header heading="Tenant" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')">
+<app-page-header heading="Tenant" appTourAnchor="tenants.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')">
     <div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 

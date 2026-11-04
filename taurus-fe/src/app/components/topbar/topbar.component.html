@@ -1,7 +1,7 @@
 <div class="layout-topbar not-print">
     <div class="layout-topbar-logo-container">
         <button type="button" class="layout-menu-button layout-topbar-action" aria-label="Apri menu"
-            (click)="toggleMenu()">
+            appTourAnchor="layout.menuButton" (click)="toggleMenu()">
             <i class="pi pi-bars"></i>
         </button>
         <a class="layout-topbar-logo" routerLink="/">
@@ -68,6 +68,30 @@
 
     <div class="layout-topbar-actions">
         <div class="layout-config-menu">
+            @if (!bootstrap) {
+            <!-- Visibile anche sotto i 992 px: è l'unico modo per ritrovare la guida. -->
+            <div #help class="relative">
+                <button type="button" class="layout-topbar-action" appTourAnchor="topbar.help"
+                    [attr.aria-label]="guidedTour.attention() ? 'Aiuto, guida da completare' : 'Aiuto'"
+                    aria-haspopup="menu" [attr.aria-expanded]="helpMenuOpen" (click)="toggleHelpMenu()"
+                    pTooltip="Aiuto" tooltipPosition="bottom">
+                    <i class="pi pi-question-circle"></i>
+                    @if (guidedTour.attention()) {
+                    <span class="topbar-help-dot" aria-hidden="true"></span>
+                    }
+                </button>
+                @if (helpMenuOpen) {
+                <ul class="topbar-help-menu" role="menu" aria-label="Aiuto">
+                    <li role="none">
+                        <button type="button" role="menuitem" (click)="openGuidedTour()">
+                            <i class="pi pi-compass" aria-hidden="true"></i>
+                            <span>Guida introduttiva</span>
+                        </button>
+                    </li>
+                </ul>
+                }
+            </div>
+            }
             <button type="button" class="layout-topbar-action" aria-label="Cambia tema" (click)="toggleDarkMode()"
                 pTooltip="Cambia tema" tooltipPosition="bottom">
                 <i
@@ -87,6 +111,7 @@
         </div>
 
         <button type="button" class="layout-topbar-menu-button layout-topbar-action" aria-label="Apri azioni utente"
+            appTourAnchor="topbar.more"
             pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden"
             leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
             <i class="pi pi-ellipsis-v"></i>
@@ -113,6 +138,7 @@
                     <span>Notifiche</span>
                 </button>
                 <button type="button" class="layout-topbar-action" [routerLink]="['/profile']" aria-label="Profilo"
+                    appTourAnchor="topbar.profile"
                     pTooltip="Profilo" tooltipPosition="bottom">
                     <i class="pi pi-user"></i>
                     <span>Profilo</span>

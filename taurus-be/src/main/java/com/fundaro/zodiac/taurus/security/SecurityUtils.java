@@ -157,6 +157,13 @@ public final class SecurityUtils {
         return getAttributeFromAuthentication("tenant", authToken);
     }
 
+    /**
+     * The role chosen at login for the tenant of the session: the {@code role} claim holds exactly one.
+     */
+    public static String getRoleFromAuthentication(AbstractAuthenticationToken authToken) {
+        return getAttributeFromAuthentication("role", authToken);
+    }
+
     private static String extractPrincipal(Authentication authentication) {
         if (authentication == null) {
             return null;

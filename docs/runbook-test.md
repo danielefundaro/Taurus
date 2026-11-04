@@ -311,7 +311,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (62% istruzioni, 51% branch, 64% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti, dell’editor delle immagini, della dashboard e dei QR dell’inventario, il 2026-10-28 con quelle della preparazione evento e il 2026-10-29 con quelle del feed calendario). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (63% istruzioni, 53% branch, 65% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti, dell’editor delle immagini, della dashboard e dei QR dell’inventario, il 2026-10-28 con quelle della preparazione evento, il 2026-10-29 con quelle del feed calendario e il 2026-11-04 con quelle della guida introduttiva). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -845,6 +845,22 @@ Riferimento: [Standard degli errori applicativi](application-errors-standard.md)
 - `ERR-006 P1`: un errore 5xx o 502 mostra nel toast «Codice errore» con l'`errorId`.
 - `ERR-007 P1`: la scadenza non valida nel dettaglio inventario compare sotto il campo, senza toast.
 - `ERR-008 P0`: `node scripts/docs/check-error-catalog.mjs` termina senza errori: backend, catalogo e frontend riportano le stesse chiavi e gli stessi parametri.
+
+### 14.16 Guida introduttiva
+
+Riferimento: [Guida introduttiva per ruolo](guided-tour-spec.md). Il backend è automatizzato da `GuidedTourServiceTest` (default, validazione, versioni, metriche, interruttore applicativo), `GuidedTourIT` (ruoli separati, isolamento tra tenant, super amministratore senza utente, conflitti, cancellazione GDPR), `GuidedTourMigrationIT` (invito degli utenti esistenti e vincoli) e `GuidedTourResourceIT` (endpoint HTTP, validazione, conflitto di versione, token senza ruolo). Il frontend è automatizzato da `guided-tour-steps.spec.ts` (percorsi dei sette ruoli con le funzionalità accese e spente, punti, limiti della scheda), `guided-tour.service.spec.ts` (regole di avvio, invito, rinvio di sessione, salvataggio accorpato, conflitto con unione delle tappe, errori silenziosi), `guided-tour.component.spec.ts` (benvenuto, ancore mancanti, nascoste o per il mobile, ripresa, navigazione annullata, `Esc`, fuoco, invito, posizionamento) e dalla spec della topbar; `npm run check:tour-anchors` confronta le ancore del catalogo con quelle dei template. Restano manuali il giro completo per ruolo su desktop e su un telefono Android reale, il tema scuro, lo zoom al 200%, il lettore di schermo e la rilettura dei testi da parte del responsabile del progetto.
+
+- `TOUR-001 P0`: persona e ruolo vengono solo dal token; un token senza ruolo riconosciuto riceve `403 auth.forbidden`.
+- `TOUR-002 P0`: la stessa persona in due tenant ha impostazioni e avanzamento separati; ruoli diversi nello stesso tenant, Direttivo compreso, hanno avanzamenti separati.
+- `TOUR-003 P0`: la migrazione crea il profilo con invito per ogni utente non cancellato, nessuno per i cancellati e nessuno in un tenant nuovo.
+- `TOUR-004 P0`: la cancellazione GDPR dell'utente elimina profilo e avanzamento nel solo tenant interessato.
+- `TOUR-005 P1`: `validation` per stato, ID tappa e contatori non validi, `guidedTour.step.limit` oltre 100 tappe, `guidedTour.versionConflict` per una versione superata.
+- `TOUR-006 P1`: con `application.guided-tour.enabled=false` la lettura riporta `enabled: false` e le scritture rispondono `404 guidedTour.disabled`.
+- `TOUR-007 P1`: `taurus.guided_tour.decisions` e `taurus.guided_tour.invitations` hanno solo ruolo ed esito tra i tag.
+- `TOUR-008 P0`: al primo ingresso, dopo i documenti legali, la dashboard mostra il benvenuto; su altre pagine e con un dialogo aperto la guida non parte; gli utenti presenti al rilascio vedono l'invito al posto del benvenuto.
+- `TOUR-009 P1`: ogni ruolo vede solo tappe del proprio ruolo e delle funzionalità attive, al più 10; un'ancora assente o nascosta lascia la scheda centrata senza errori, anche sotto i 992 px.
+- `TOUR-010 P1`: chiudere conserva l'ultima tappa e la riapertura riprende da lì; dopo 3 proposte automatiche chiuse la guida non parte più da sola e il pulsante di aiuto mostra il punto; **Salta la guida**, **Non avviare più la guida automaticamente** e **Ricomincia la guida** hanno l'effetto descritto nella specifica.
+- `TOUR-011 P1`: la guida si usa da tastiera e con lettore di schermo: fuoco sul comando primario e restituito alla chiusura, `Esc`, annuncio del passo; con tema scuro, zoom al 200% e `prefers-reduced-motion` resta leggibile.
 
 ## 15. Frontend, UX e accessibilità
 

@@ -154,7 +154,7 @@ Gli errori che non nascono da `RequestAlertException` ricevono comunque una chia
 ### La chiave
 
 - Formato `{area}.{oggetto}.{condizione}`, in camelCase, con l'oggetto omesso quando coincide con l'area: `inventory.photo.tooLarge`, `onboarding.disabled`.
-- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `scorePlayback`, `signature`, `tenant`, `tenantFeature`, `track`, `user`.
+- L'area è obbligatoria. Le aree sono: `auth`, `calendar`, `calendarFeed`, `eventPreparation`, `finance`, `guidedTour`, `image`, `inventory`, `keycloak`, `legal`, `media`, `notice`, `notification`, `onboarding`, `preferences`, `scorePlayback`, `signature`, `tenant`, `tenantFeature`, `track`, `user`.
 - Fanno eccezione le chiavi trasversali dei servizi CRUD comuni: `id.notFound`, `id.exists`, `id.invalid`, `id.null` e `version.conflict`.
 - Una chiave produce un solo messaggio e ha un solo stato HTTP. La stessa condizione usa la stessa chiave in tutti i punti in cui si verifica.
 - Le nuove chiavi usano un vocabolario chiuso per la condizione. Le chiavi esistenti già conformi ad area e significato restano invariate: si rinominano solo per i motivi elencati in [Corrispondenza con le chiavi precedenti](#corrispondenza-con-le-chiavi-precedenti).
@@ -858,6 +858,16 @@ Codici dell'elenco `issues` restituito dalla verifica del modello del foglio e d
 | `notification.delivery.notFailed` | 409 | Nuovo tentativo su una consegna non fallita | — | «Si ripetono soltanto le consegne non riuscite» |
 | `notification.delivery.notClosable` | 409 | Chiusura di una consegna che non è in attesa né fallita | — | «Si chiudono soltanto le consegne in attesa o non riuscite» |
 | `notification.delivery.close.unsupported` | 409 | Chiusura di un evento della coda di distribuzione delle notifiche interne | — | «La distribuzione delle notifiche interne non si chiude manualmente» |
+
+### Guida introduttiva
+
+La guida non mostra all'utente gli errori delle proprie chiamate automatiche: i messaggi compaiono solo per i comandi della sezione **Guida** del profilo. La [specifica](guided-tour-spec.md#validazione-ed-errori) descrive il comportamento del client.
+
+| Chiave | HTTP | Quando si verifica | Parametri | Messaggio |
+| --- | --- | --- | --- | --- |
+| `guidedTour.disabled` | 404 | Scrittura di impostazioni o avanzamento con l'interruttore applicativo `application.guided-tour.enabled` spento | — | «La guida non è disponibile» |
+| `guidedTour.versionConflict` | 409 | Un'altra richiesta, per esempio da un'altra scheda, ha modificato impostazioni o avanzamento della guida | — | «La guida è stata aggiornata da un'altra scheda: ricaricare la pagina» |
+| `guidedTour.step.limit` | 400 | Avanzamento con più di 100 tappe viste | — | «Avanzamento della guida non valido: ricaricare la pagina e riprovare» |
 
 ### Documenti legali
 

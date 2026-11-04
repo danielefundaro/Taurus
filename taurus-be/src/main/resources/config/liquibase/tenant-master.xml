@@ -92,4 +92,5 @@
            relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261101000000_sheet_music_instrument_suggestion.xml"
            relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261103000000_guided_tour.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

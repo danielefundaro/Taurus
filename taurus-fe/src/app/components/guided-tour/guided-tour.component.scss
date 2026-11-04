@@ -1,0 +1,158 @@
+// Limits of the card: docs/taurus-layout-standard.md, section «Guida introduttiva».
+.guided-tour {
+    position: fixed;
+    inset: 0;
+    // Above topbar, menu and mask of the layout, below PrimeNG dialogs, toasts and tooltips.
+    z-index: 1090;
+}
+
+.guided-tour__veil,
+.guided-tour__spotlight {
+    position: fixed;
+    pointer-events: none;
+}
+
+.guided-tour__veil {
+    inset: 0;
+    background: var(--p-mask-background);
+}
+
+.guided-tour__spotlight {
+    border-radius: var(--p-content-border-radius);
+    box-shadow: 0 0 0 200vmax var(--p-mask-background);
+    outline: 2px solid var(--p-primary-color);
+}
+
+.guided-tour__card {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 22rem;
+    max-width: calc(100vw - 2rem);
+    padding: 1.25rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-background);
+    color: var(--p-text-color);
+    box-shadow: var(--p-overlay-modal-shadow);
+    animation: guided-tour-fade 150ms ease-out;
+
+    h2,
+    p {
+        margin: 0;
+    }
+
+    h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+}
+
+.guided-tour__card--centered {
+    top: 50%;
+    left: 50%;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+}
+
+.guided-tour__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    > i {
+        color: var(--p-primary-color);
+    }
+
+    h2 {
+        flex: 1;
+    }
+}
+
+.guided-tour__points {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--p-text-muted-color);
+}
+
+.guided-tour__progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+}
+
+.guided-tour__dots {
+    display: flex;
+    gap: 0.35rem;
+
+    > span {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--p-content-border-color);
+    }
+
+    > .guided-tour__dot--done {
+        background: var(--p-primary-color);
+    }
+}
+
+.guided-tour__footer,
+.guided-tour__navigation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.guided-tour__footer {
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.guided-tour__welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+}
+
+.guided-tour__role-icon {
+    font-size: 2rem;
+    color: var(--p-primary-color);
+}
+
+.guided-tour__welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+// Below 992 px the card takes the width of the window less 1rem per side, below or above the anchor.
+@media (max-width: 991px) {
+    .guided-tour__card {
+        width: calc(100vw - 2rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guided-tour__card {
+        animation: none;
+    }
+}
+
+@keyframes guided-tour-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

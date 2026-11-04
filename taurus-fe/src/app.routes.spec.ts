@@ -1,8 +1,19 @@
+import { Route } from '@angular/router';
 import { tenantFeatureGuard } from './app/guard/tenant-feature.guard';
 import { RoleEnums } from './app/constants';
 import { TenantFeature } from './app/module';
 import calendarRoutes from './app/pages/calendar-events/calendar-events.routes';
 import { appRoutes } from './app.routes';
+
+const layoutRoutes = appRoutes.find((route) => route.path === '')?.children ?? [];
+
+function layoutRoute(path: string): Route | undefined {
+    return layoutRoutes.find((route) => route.path === path);
+}
+
+function roles(route: Route | undefined): RoleEnums[] {
+    return (route?.data?.['role'] as RoleEnums[] | undefined) ?? [];
+}
 
 describe('appRoutes tenant features', () => {
     const children = appRoutes.find((route) => route.path === '')?.children ?? [];
@@ -22,6 +33,22 @@ describe('appRoutes tenant features', () => {
 
         expect(albums?.canActivate).not.toContain(tenantFeatureGuard);
         expect(albums?.data?.['feature']).toBeUndefined();
+    });
+});
+
+// The guard of the layout route runs before the one of the child routes: a role missing here never reaches the area.
+// The child route files are not imported, so their pages, still without tests, stay out of the coverage measure.
+describe('appRoutes roles', () => {
+    it('lets the board reach the dashboard, the profile and the areas it manages', () => {
+        for (const path of ['', 'users', 'albums', 'tracks', 'instruments', 'inventory', 'finance', 'calendar', 'preview', 'profile']) {
+            expect(roles(layoutRoute(path))).withContext(path).toContain(RoleEnums.BOARD);
+        }
+    });
+
+    it('keeps the tenant configuration and the platform pages to the administrators', () => {
+        for (const path of ['onboarding', 'admin/notification-delivery', 'admin/calendar-feeds', 'tenants', 'legal-documents']) {
+            expect(roles(layoutRoute(path))).withContext(path).not.toContain(RoleEnums.BOARD);
+        }
     });
 });
 

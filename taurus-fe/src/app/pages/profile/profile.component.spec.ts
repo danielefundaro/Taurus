@@ -1,8 +1,9 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import Keycloak from 'keycloak-js';
 import { of, throwError } from 'rxjs';
 import { NotificationPreferences } from '../../module';
-import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, PushPermission, TenantFeatureService, ToastService, UsersService } from '../../service';
+import { ConfirmService, GuidedTourService, KeycloakService, NotificationPreferencesService, PushNotificationService, PushPermission, TenantFeatureService, ToastService, UsersService } from '../../service';
 import { ProfileComponent } from './profile.component';
 
 type Pushes = jasmine.SpyObj<PushNotificationService>;
@@ -25,7 +26,7 @@ const preferences = (overrides: Partial<NotificationPreferences> = {}): Notifica
 });
 
 describe('ProfileComponent notification preferences', () => {
-    beforeEach(() => TestBed.configureTestingModule({ providers: [{ provide: Keycloak, useValue: {} }] }));
+    beforeEach(() => TestBed.configureTestingModule({ providers: [{ provide: Keycloak, useValue: {} }, { provide: GuidedTourService, useValue: { tour: signal(null), load: () => of(null) } }] }));
 
     function create(initial: NotificationPreferences = preferences(), browser: { supported: boolean; permission: PushPermission } = { supported: true, permission: 'default' }): {
         component: ProfileComponent;

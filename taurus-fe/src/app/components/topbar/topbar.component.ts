@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { BadgeModule } from 'primeng/badge';
@@ -7,24 +7,31 @@ import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { StyleClassModule } from 'primeng/styleclass';
 import { TooltipModule } from 'primeng/tooltip';
 import { RoleLabelsMap } from '../../constants';
-import { KeycloakService, LayoutService, TenantFeatureService, TenantStatusService } from '../../service';
+import { TourAnchorDirective } from '../../directive';
+import { GuidedTourService, KeycloakService, LayoutService, TenantFeatureService, TenantStatusService } from '../../service';
 import { ConfiguratorComponent } from '../configurator/configurator.component';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, BadgeModule, OverlayBadgeModule, TooltipModule, ConfiguratorComponent],
+    imports: [RouterModule, CommonModule, StyleClassModule, BadgeModule, OverlayBadgeModule, TooltipModule, ConfiguratorComponent, TourAnchorDirective],
     templateUrl: './topbar.component.html',
     styleUrl: './topbar.component.scss'
 })
 export class TopbarComponent implements OnInit {
     items!: MenuItem[];
 
+    /** Help menu: the guided tour today, the page guides and the news of the next phases. */
+    protected helpMenuOpen = false;
+
+    @ViewChild('help') private help?: ElementRef<HTMLElement>;
+
     constructor(
         protected layoutService: LayoutService,
         private readonly keycloakService: KeycloakService,
         private readonly tenantFeatureService: TenantFeatureService,
-        private readonly tenantStatusService: TenantStatusService
+        private readonly tenantStatusService: TenantStatusService,
+        protected readonly guidedTour: GuidedTourService
     ) { }
 
     ngOnInit(): void {
@@ -54,6 +61,28 @@ export class TopbarComponent implements OnInit {
     protected get fullName(): string {
         const parts = [this.keycloakService.currentUserFirstName, this.keycloakService.currentUserLastName];
         return parts.filter(Boolean).join(' ');
+    }
+
+    protected toggleHelpMenu(): void {
+        this.helpMenuOpen = !this.helpMenuOpen;
+        if (this.helpMenuOpen) setTimeout(() => this.help?.nativeElement.querySelector<HTMLElement>('[role="menuitem"]')?.focus());
+    }
+
+    protected openGuidedTour(): void {
+        this.helpMenuOpen = false;
+        this.guidedTour.open();
+    }
+
+    @HostListener('document:click', ['$event'])
+    protected closeHelpMenuOutside(event: MouseEvent): void {
+        if (this.helpMenuOpen && !this.help?.nativeElement.contains(event.target as Node)) this.helpMenuOpen = false;
+    }
+
+    @HostListener('document:keydown.escape')
+    protected closeHelpMenu(): void {
+        if (!this.helpMenuOpen) return;
+        this.helpMenuOpen = false;
+        this.help?.nativeElement.querySelector<HTMLElement>('button')?.focus();
     }
 
     protected logout(): void {

@@ -73,6 +73,7 @@
           "taurus-fe/src/app/constants/role.enums.ts",
           "taurus-fe/src/app/service/keycloak.service.ts",
           "taurus-fe/src/app/components/menu/menu.component.ts",
+          "taurus-fe/src/app.routes.ts",
           "taurus-fe/src/app/pages/users/users.component.ts",
           "taurus-fe/src/app/pages/users/detail/detail.component.ts",
           "taurus-fe/e2e/fixtures/session.ts"
@@ -88,13 +89,14 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/signature/LoanSheetSignatureIT.java",
           "taurus-fe/src/app/service/keycloak.service.spec.ts",
           "taurus-fe/src/app/components/menu/menu.component.spec.ts",
+          "taurus-fe/src/app.routes.spec.ts",
           "taurus-fe/src/app/pages/users/users.component.spec.ts",
           "taurus-fe/e2e/specs/roles-and-tenants.spec.ts"
         ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-11-02",
-      "notes": "Decisioni approvate il 2026-11-02: ROLE_BOARD con i permessi dell'amministratore su catalogo, economia, inventario, calendario ed eventi e utenti, e firmatario per l'Associazione dei fogli di affidamento; restano agli amministratori configurazione iniziale, consegne notifiche, feed calendario di tutti, documentazione API e metriche e le azioni sugli amministratori. Nessuna migrazione. Al 2026-11-02 backend, frontend e temi Keycloak sono implementati con test unitari; resta da eseguire la prova end-to-end del direttivo su un'istanza completa, con l'utente E2E_FIRST_BOARD_*."
+      "lastVerifiedOn": "2026-11-04",
+      "notes": "Decisioni approvate il 2026-11-02: ROLE_BOARD con i permessi dell'amministratore su catalogo, economia, inventario, calendario ed eventi e utenti, e firmatario per l'Associazione dei fogli di affidamento; restano agli amministratori configurazione iniziale, consegne notifiche, feed calendario di tutti, documentazione API e metriche e le azioni sugli amministratori. Nessuna migrazione. Al 2026-11-02 backend, frontend e temi Keycloak sono implementati con test unitari; resta da eseguire la prova end-to-end del direttivo su un'istanza completa, con l'utente E2E_FIRST_BOARD_*. Il 2026-11-04 è corretto un difetto delle rotte: quelle di app.routes.ts che contengono le aree non ammettevano ROLE_BOARD, e il direttivo finiva su /forbidden già dalla dashboard, anche se le rotte figlie lo ammettevano. Ora le ammettono, e app.routes.spec.ts verifica le aree aperte al direttivo e quelle che restano agli amministratori."
     },
     {
       "id": "documentation-implementation-alignment",
@@ -337,23 +339,52 @@
       "title": "Guida introduttiva per ruolo",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "not-planned",
+      "deliveryStatus": "in-progress",
       "spec": "docs/guided-tour-spec.md",
       "relatedDocs": [
         "docs/application-errors-standard.md",
+        "docs/board-role-spec.md",
         "docs/support-requests-spec.md",
         "docs/taurus-layout-standard.md",
         "docs/tenant-feature-flags-spec.md"
       ],
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
-        "implementation": [],
-        "migrations": [],
-        "tests": []
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/guidedtour/GuidedTourProfile.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/guidedtour/GuidedTourProgress.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/guidedtour/GuidedTourService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/guidedtour/GuidedTourMetrics.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/GuidedTourResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/DataErasureService.java",
+          "taurus-fe/src/app/constants/api-error-messages.ts",
+          "taurus-fe/src/app/module/guided-tour.module.ts",
+          "taurus-fe/src/app/constants/guided-tour-steps.ts",
+          "taurus-fe/src/app/service/guided-tour.service.ts",
+          "taurus-fe/src/app/directive/tour-anchor.directive.ts",
+          "taurus-fe/src/app/components/guided-tour/guided-tour.component.ts",
+          "taurus-fe/src/app/components/topbar/topbar.component.ts",
+          "taurus-fe/src/app/pages/profile/profile.component.ts",
+          "taurus-fe/scripts/check-tour-anchors.mjs"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261103000000_guided_tour.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/guidedtour/GuidedTourServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/guidedtour/GuidedTourIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/multitenancy/GuidedTourMigrationIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/GuidedTourResourceIT.java",
+          "taurus-fe/src/app/constants/guided-tour-steps.spec.ts",
+          "taurus-fe/src/app/service/guided-tour.service.spec.ts",
+          "taurus-fe/src/app/components/guided-tour/guided-tour.component.spec.ts",
+          "taurus-fe/src/app/components/topbar/topbar.component.spec.ts",
+          "taurus-fe/scripts/check-tour-anchors.test.mjs"
+        ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-24",
-      "notes": "Decisioni approvate il 2026-10-24: stato per persona e ruolo nello schema del tenant; invito discreto agli utenti esistenti al rilascio; al massimo tre proposte automatiche per ruolo; interruttore di avvio automatico unico per persona nel tenant, disattivabile e riattivabile dal profilo; pulsante di aiuto sempre disponibile e condiviso con l'assistenza; nessun flag del tenant; guide di pagina in fase 2 e novità in fase 3; testi riletti dal responsabile del progetto. Implementazione non ancora pianificata."
+      "lastVerifiedOn": "2026-11-04",
+      "notes": "Decisioni approvate il 2026-10-24: stato per persona e ruolo nello schema del tenant; invito discreto agli utenti esistenti al rilascio; al massimo tre proposte automatiche per ruolo; interruttore di avvio automatico unico per persona nel tenant, disattivabile e riattivabile dal profilo; pulsante di aiuto sempre disponibile e condiviso con l'assistenza; nessun flag del tenant; guide di pagina in fase 2 e novità in fase 3; testi riletti dal responsabile del progetto. Al 2026-11-03 è implementato il backend: tabelle e migrazione con invito, API, interruttore applicativo, metriche e cancellazione GDPR, con test unitari, di integrazione e della migrazione. Decisione del 2026-11-04: il Direttivo (ROLE_BOARD) ha un percorso proprio come gli altri ruoli, senza la tappa degli strumenti di amministrazione. Al 2026-11-04 è implementato anche il frontend della fase 1: catalogo dei sette percorsi, servizio, sovrapposizione caricata in differita, pulsante di aiuto nella topbar, sezione Guida del profilo, ancore delle pagine, controllo delle ancore in CI e sezione dello standard di layout, con test Karma e dello script. Restano il giro manuale per ruolo su desktop e su un telefono Android reale, la rilettura dei testi da parte del responsabile del progetto."
     },
     {
       "id": "inventory-electronic-signature",

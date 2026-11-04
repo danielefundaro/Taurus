@@ -15,12 +15,15 @@ public class WithMockTenantUserSecurityContextFactory implements WithSecurityCon
 
     @Override
     public SecurityContext createSecurityContext(WithMockTenantUser annotation) {
-        Jwt jwt = Jwt.withTokenValue("mock-token")
+        Jwt.Builder builder = Jwt.withTokenValue("mock-token")
             .header("alg", "none")
             .claim("sub", annotation.userId())
             .claim("preferred_username", annotation.userId())
-            .claim("tenant", annotation.tenant())
-            .build();
+            .claim("tenant", annotation.tenant());
+        if (!annotation.role().isBlank()) {
+            builder.claim("role", annotation.role());
+        }
+        Jwt jwt = builder.build();
         List<GrantedAuthority> authorities = Arrays.stream(annotation.authorities())
             .map(authority -> (GrantedAuthority) new SimpleGrantedAuthority(authority))
             .toList();

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261103000000-1-guided-tour" author="taurus">
+    <comment>Guided tour of the tenant: the personal auto-start switch and the progress of each role of a person.</comment>
+    <sql splitStatements="false"><![CDATA[
+      CREATE TABLE guided_tour_profile
+      (
+        id                 BIGSERIAL PRIMARY KEY,
+        user_keycloak_id   VARCHAR(255) NOT NULL,
+        user_id            BIGINT REFERENCES app_user (id) ON DELETE CASCADE,
+        auto_start_enabled BOOLEAN      NOT NULL DEFAULT TRUE,
+        legacy_invitation  BOOLEAN      NOT NULL DEFAULT FALSE,
+        deleted            BOOLEAN      NOT NULL DEFAULT FALSE,
+        insert_date        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        insert_by          VARCHAR(255) NOT NULL,
+        edit_date          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        edit_by            VARCHAR(255) NOT NULL,
+        entity_version     BIGINT       NOT NULL DEFAULT 0
+      );
+      CREATE UNIQUE INDEX uq_guided_tour_profile_active_subject ON guided_tour_profile (user_keycloak_id) WHERE deleted = FALSE;
+
+      CREATE TABLE guided_tour_progress
+      (
+        id               BIGSERIAL PRIMARY KEY,
+        profile_id       BIGINT       NOT NULL REFERENCES guided_tour_profile (id) ON DELETE CASCADE,
+        role             VARCHAR(32)  NOT NULL,
+        status           VARCHAR(16)  NOT NULL,
+        seen_steps       JSONB        NOT NULL DEFAULT '[]'::jsonb,
+        last_step_id     VARCHAR(64),
+        auto_proposals   SMALLINT     NOT NULL DEFAULT 0,
+        catalog_revision INTEGER      NOT NULL DEFAULT 0,
+        started_at       TIMESTAMPTZ,
+        completed_at     TIMESTAMPTZ,
+        deleted          BOOLEAN      NOT NULL DEFAULT FALSE,
+        insert_date      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        insert_by        VARCHAR(255) NOT NULL,
+        edit_date        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        edit_by          VARCHAR(255) NOT NULL,
+        entity_version   BIGINT       NOT NULL DEFAULT 0,
+        CONSTRAINT ck_guided_tour_progress_role CHECK (role IN ('ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_BOARD', 'ROLE_TREASURER',
+                                                                'ROLE_ARCHIVIST', 'ROLE_USER', 'ROLE_USER_EXTERNAL')),
+        CONSTRAINT ck_guided_tour_progress_status CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'SKIPPED')),
+        CONSTRAINT ck_guided_tour_progress_steps CHECK (
+          CASE WHEN jsonb_typeof(seen_steps) = 'array' THEN jsonb_array_length(seen_steps) <= 100 ELSE FALSE END
+          ),
+        CONSTRAINT ck_guided_tour_progress_proposals CHECK (auto_proposals BETWEEN 0 AND 3),
+        CONSTRAINT ck_guided_tour_progress_revision CHECK (catalog_revision >= 0),
+        CONSTRAINT ck_guided_tour_progress_completed CHECK ((status = 'COMPLETED') = (completed_at IS NOT NULL))
+      );
+      CREATE UNIQUE INDEX uq_guided_tour_progress_active_role ON guided_tour_progress (profile_id, role) WHERE deleted = FALSE;
+    ]]></sql>
+    <rollback>
+      <sql splitStatements="false">
+        DROP TABLE guided_tour_progress;
+        DROP TABLE guided_tour_profile;
+      </sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="20261103000000-2-guided-tour-invitation" author="taurus">
+    <comment>The members already in the tenant at the release receive the invitation instead of the automatic start.</comment>
+    <sql splitStatements="false"><![CDATA[
+      INSERT INTO guided_tour_profile(user_keycloak_id, user_id, auto_start_enabled, legacy_invitation,
+                                      deleted, insert_date, insert_by, edit_date, edit_by, entity_version)
+      SELECT u.keycloak_id, u.id, TRUE, TRUE, FALSE, CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'system', 0
+      FROM app_user u
+      WHERE u.deleted = FALSE
+        AND NOT EXISTS (SELECT 1
+                        FROM guided_tour_profile profile
+                        WHERE profile.user_keycloak_id = u.keycloak_id
+                          AND profile.deleted = FALSE);
+    ]]></sql>
+    <rollback>
+      <sql>DELETE FROM guided_tour_profile WHERE legacy_invitation = TRUE;</sql>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

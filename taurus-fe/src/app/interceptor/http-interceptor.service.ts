@@ -11,7 +11,8 @@ import { tenantFeatureOfError } from '../constants';
 })
 export class HttpInterceptorService implements HttpInterceptor {
     private readonly _nonProtectedRoutes: (RegExp | string)[] = [];
-    private readonly excludedRoutes = ['api/preferences', 'api/notices', '/count'];
+    // The guided tour saves in the background: no loading indicator for its requests.
+    private readonly excludedRoutes = ['api/preferences', 'api/notices', '/count', 'api/guided-tour'];
 
     private readonly httpRequestStack = new Array<HttpRequest<any>>();
     private isRefreshing = false;

@@ -12,6 +12,7 @@ export * from './event-preparation.module';
 export * from './event-present-user.module';
 export * from './event-user-entry.module';
 export * from './finance.module';
+export * from './guided-tour.module';
 export * from './instruments.module';
 export * from './instrument-suggestions.module';
 export * from './inventory.module';

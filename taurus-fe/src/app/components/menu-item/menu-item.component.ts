@@ -47,6 +47,11 @@ export class MenuItemComponent implements OnInit, OnDestroy {
 
     @Input() parentKey!: string;
 
+    /** Anchor of the guided tour declared by the item of the menu model (`tourAnchor`). */
+    @HostBinding('attr.data-tour-anchor') get tourAnchor(): string | null {
+        return this.item?.['tourAnchor'] ?? null;
+    }
+
     active = false;
 
     menuSourceSubscription: Subscription;

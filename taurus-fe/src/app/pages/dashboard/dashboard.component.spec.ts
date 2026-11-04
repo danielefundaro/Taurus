@@ -5,6 +5,7 @@ import { OperationalDashboard } from '../../module';
 import {
     AlbumsService,
     CalendarEventsService,
+    GuidedTourService,
     InventoryService,
     KeycloakService,
     LayoutService,
@@ -69,7 +70,8 @@ describe('DashboardComponent operations snapshot', () => {
             { getOperations } as unknown as OperationalDashboardService,
             { inventoryEnabled: () => false } as unknown as TenantFeatureService,
             {} as ToastService,
-            {} as Router
+            {} as Router,
+            {} as GuidedTourService
         );
         state = component as unknown as DashboardState;
         spyOnProperty(document, 'visibilityState', 'get').and.returnValue('visible');

@@ -331,6 +331,9 @@ application:
     delivered-retention-days: 30
     skipped-retention-days: 30
     failed-retention-days: 90
+  # Emergency switch of the guided tour (docs/guided-tour-spec.md).
+  guided-tour:
+    enabled: true
   dashboard:
     enabled: false
     calendar-look-ahead-days: 14

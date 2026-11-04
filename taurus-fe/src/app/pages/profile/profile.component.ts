@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import Keycloak, { KeycloakProfile } from 'keycloak-js';
-import { first } from 'rxjs';
-import { fromApiDate, toLocalDate } from '../../constants';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { finalize, first } from 'rxjs';
+import { fromApiDate, RoleLabelsMap, toLocalDate } from '../../constants';
 import { ImportsModule } from '../../imports';
 import { DetailPageBase } from '../_shared/detail-page.base';
-import { ConfirmService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
+import { ConfirmService, GuidedTourService, KeycloakService, NotificationPreferencesService, PushNotificationService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../service';
 import { CalendarEventsTableComponent } from '../../components/calendar-events-table/calendar-events-table.component';
 import { CalendarFeedPanelComponent } from '../../components/calendar-feed-panel/calendar-feed-panel.component';
 import { SignatureMethodSettingsComponent } from '../../components/signature-method-settings/signature-method-settings.component';
@@ -13,7 +14,7 @@ import { NotificationCategoryPreference, NotificationPreferences, NotificationPu
 @Component({
     selector: 'app-profile',
     standalone: true,
-    imports: [ImportsModule, CalendarEventsTableComponent, CalendarFeedPanelComponent, SignatureMethodSettingsComponent],
+    imports: [ImportsModule, ToggleSwitchModule, CalendarEventsTableComponent, CalendarFeedPanelComponent, SignatureMethodSettingsComponent],
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [UsersService],
@@ -21,6 +22,10 @@ import { NotificationCategoryPreference, NotificationPreferences, NotificationPu
 })
 export class ProfileComponent extends DetailPageBase implements OnInit {
     private readonly keycloak = inject(Keycloak);
+    /** Guida introduttiva: interruttore personale e stato del ruolo della sessione, salvati subito. */
+    protected readonly guidedTour = inject(GuidedTourService);
+    protected guidedTourAutoStart = true;
+    protected savingGuidedTour = false;
 
     protected firstName: string = '';
     protected lastName: string = '';
@@ -101,6 +106,47 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
             },
             error: () => undefined
         });
+        this.guidedTour.load().subscribe((tour) => (this.guidedTourAutoStart = tour?.settings.autoStartEnabled ?? true));
+    }
+
+    protected get guidedTourStatus(): string {
+        const tour = this.guidedTour.tour();
+        const role = RoleLabelsMap.find((label) => label.code === tour?.role)?.name ?? '';
+        const progress = tour?.progress;
+        let status = 'non iniziata';
+        if (progress?.status === 'IN_PROGRESS') status = 'in corso';
+        else if (progress?.status === 'SKIPPED') status = 'saltata';
+        else if (progress?.status === 'COMPLETED') status = progress.completedAt ? `completata il ${new Date(progress.completedAt).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}` : 'completata';
+        return `Stato per il ruolo ${role}: ${status}`;
+    }
+
+    /** Separato da «Salva preferenze»: l'interruttore si salva subito, come il consenso push del dispositivo. */
+    protected onGuidedTourAutoStart(enabled: boolean): void {
+        this.savingGuidedTour = true;
+        this.guidedTour
+            .saveAutoStart(enabled)
+            .pipe(
+                first(),
+                finalize(() => (this.savingGuidedTour = false))
+            )
+            .subscribe({
+                next: (tour) => (this.guidedTourAutoStart = tour.settings.autoStartEnabled),
+                error: () => {
+                    this.guidedTourAutoStart = !enabled;
+                    this.guidedTour.reload();
+                }
+            });
+    }
+
+    /** Azzera lo stato del solo ruolo corrente, senza conferma: la guida resta sempre riapribile. */
+    protected restartGuidedTour(): void {
+        this.guidedTour
+            .restart()
+            .pipe(first())
+            .subscribe({
+                next: () => this.toastService.success('Guida ricominciata', 'La guida ripartirà dal benvenuto.'),
+                error: () => undefined
+            });
     }
 
     protected get calendarFeedVisible(): boolean {

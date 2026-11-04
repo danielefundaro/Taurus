@@ -241,7 +241,7 @@ Restano senza: `AdminCalendarFeedResource` e `NotificationDeliveryAdminResource`
 
 **Menu, route e template**
 - Menu: aggiungono il direttivo Utenti, Economia, Inventario, Album, Tracce, Strumenti e Calendario. Restano senza Configurazione iniziale, Consegne notifiche e Feed calendario.
-- Route: album, tracce, strumenti, calendario, economia, inventario (tutte, compresi modello del foglio e dettagli) e utenti. L'onboarding resta senza.
+- Route: dashboard, profilo, anteprima, album, tracce, strumenti, calendario, economia, inventario (tutte, compresi modello del foglio e dettagli) e utenti. Il ruolo va sia nella rotta di `app.routes.ts` sia nelle rotte figlie dell'area, perché la guardia della rotta che le contiene decide per prima. Onboarding, consegne notifiche e feed calendario di tutti restano senza.
 - Template con `*hasRoles`: album, dettaglio album, tracce, dettaglio traccia, calendario, dettaglio evento, dashboard.
 - Controlli scritti nei componenti: `albums/detail`, `tracks/detail`, `score-playback.service`, `event-preparation.service`, `preparation-confirmation`, `calendar-events.component`.
 - Dashboard: il direttivo carica i dati dell'amministratore (`adminMethods`) e vede il widget Utenti.
@@ -263,6 +263,7 @@ Restano senza: `AdminCalendarFeedResource` e `NotificationDeliveryAdminResource`
 - Firma elettronica, fogli di affidamento, preparazione eventi, dashboard operativa e importazione iniziale: i passaggi che oggi indicano solo l'amministratore.
 - `taurus-fe/e2e/README.md`: utente di prova `E2E_FIRST_BOARD_*` con `ROLE_BOARD`.
 - [Runbook dei test](runbook-test.md): nuove prove e baseline di copertura.
+- [Guida introduttiva per ruolo](guided-tour-spec.md): percorso del direttivo, aggiunto il 2026-11-04.
 
 ## Sicurezza e osservabilità
 

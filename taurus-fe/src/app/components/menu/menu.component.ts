@@ -3,13 +3,13 @@ import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RoleEnums } from '../../constants';
-import { HasRolesDirective } from '../../directive';
+import { HasRolesDirective, TourAnchorDirective } from '../../directive';
 import { MenuItemComponent } from '../menu-item/menu-item.component';
 import { TenantFeatureService, TenantStatusService } from '../../service';
 
 @Component({
     selector: 'app-menu',
-    imports: [CommonModule, MenuItemComponent, RouterModule, HasRolesDirective],
+    imports: [CommonModule, MenuItemComponent, RouterModule, HasRolesDirective, TourAnchorDirective],
     templateUrl: './menu.component.html',
     styleUrl: './menu.component.scss'
 })
@@ -79,20 +79,23 @@ export class MenuComponent implements OnInit {
                         icon: 'pi pi-fw pi-file-import',
                         routerLink: ['/onboarding'],
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
-                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.onboardingImportEnabled()
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.onboardingImportEnabled(),
+                        tourAnchor: 'layout.menu.admin'
                     },
                     {
                         label: 'Consegne notifiche',
                         icon: 'pi pi-fw pi-send',
                         routerLink: ['/admin/notification-delivery'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
+                        tourAnchor: 'layout.menu.admin'
                     },
                     {
                         label: 'Feed calendario',
                         icon: 'pi pi-fw pi-calendar-plus',
                         routerLink: ['/admin/calendar-feeds'],
                         hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
-                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.externalCalendarFeedEnabled()
+                        visible: this.tenantFeatureService.loaded() && this.tenantFeatureService.externalCalendarFeedEnabled(),
+                        tourAnchor: 'layout.menu.admin'
                     },
                     {
                         label: 'Utenti',

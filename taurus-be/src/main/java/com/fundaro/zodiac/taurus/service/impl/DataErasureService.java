@@ -40,6 +40,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import com.fundaro.zodiac.taurus.repository.calendarfeed.CalendarFeedTokenRegistryRepository;
+import com.fundaro.zodiac.taurus.repository.guidedtour.GuidedTourProfileRepository;
 import com.fundaro.zodiac.taurus.service.calendarfeed.CalendarFeedOwnerRevocationService;
 import com.fundaro.zodiac.taurus.repository.signature.SignatureLinkRegistryRepository;
 import com.fundaro.zodiac.taurus.repository.TenantsRepository;
@@ -74,6 +75,7 @@ public class DataErasureService {
     private SignatureLinkRegistryRepository signatureLinkRegistryRepository;
     private TenantsRepository tenantsRepository;
     private ScoreErrorReportRepository scoreErrorReportRepository;
+    private GuidedTourProfileRepository guidedTourProfileRepository;
     private ApplicationEventPublisher events;
 
     public DataErasureService(
@@ -146,6 +148,11 @@ public class DataErasureService {
     @Autowired
     void setScoreErrorReportRepository(ScoreErrorReportRepository scoreErrorReportRepository) {
         this.scoreErrorReportRepository = scoreErrorReportRepository;
+    }
+
+    @Autowired
+    void setGuidedTourProfileRepository(GuidedTourProfileRepository guidedTourProfileRepository) {
+        this.guidedTourProfileRepository = guidedTourProfileRepository;
     }
 
     public boolean requestInventoryAwareErasure(
@@ -279,6 +286,9 @@ public class DataErasureService {
             deleted += notificationProfileRepository.deleteAllByKeycloakSubject(userId);
         if (scoreErrorReportRepository != null)
             deleted += scoreErrorReportRepository.deleteAllByReportedBy(userId);
+        // The progress of every role follows the profile with ON DELETE CASCADE.
+        if (guidedTourProfileRepository != null)
+            deleted += guidedTourProfileRepository.deleteAllByKeycloakSubject(userId);
         log.info("Physically deleted {} relational records for user {}", deleted, userId);
     }
 

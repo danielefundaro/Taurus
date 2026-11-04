@@ -8,6 +8,7 @@ export * from './calendar-feed.service';
 export * from './confirm.service';
 export * from './event-preparation.service';
 export * from './finance.service';
+export * from './guided-tour.service';
 export * from './instruments.service';
 export * from './inventory-scan.service';
 export * from './inventory.service';

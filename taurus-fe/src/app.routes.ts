@@ -17,7 +17,7 @@ export const appRoutes: Routes = [
                 path: '',
                 loadComponent: () => import('./app/pages/dashboard/dashboard.component').then((module) => module.DashboardComponent),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'tenants',
@@ -29,7 +29,7 @@ export const appRoutes: Routes = [
                 path: 'users',
                 loadChildren: () => import('./app/pages/users/users.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD] }
             },
             {
                 path: 'onboarding',
@@ -47,38 +47,38 @@ export const appRoutes: Routes = [
                 path: 'albums',
                 loadChildren: () => import('./app/pages/albums/albums.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'tracks',
                 loadChildren: () => import('./app/pages/tracks/tracks.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'instruments',
                 loadChildren: () => import('./app/pages/instruments/instruments.routes'),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST] }
             },
             {
                 path: 'inventory',
                 loadChildren: () => import('./app/pages/inventory/inventory.routes'),
                 canActivate: [canActivateAuthRole, tenantFeatureGuard],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL], feature: TenantFeature.INVENTORY }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL], feature: TenantFeature.INVENTORY }
             },
             {
                 path: 'finance',
                 loadChildren: () => import('./app/pages/finance/finance.routes'),
                 canActivate: [canActivateAuthRole, tenantFeatureGuard],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER], feature: TenantFeature.FINANCE }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER], feature: TenantFeature.FINANCE }
             },
             {
                 path: 'calendar',
                 loadChildren: () => import('./app/pages/calendar-events/calendar-events.routes'),
                 canActivate: [canActivateAuthRole],
                 // The treasurer opens only the detail of an event, from the economic notifications: the child routes decide.
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'admin/notification-delivery',
@@ -96,14 +96,14 @@ export const appRoutes: Routes = [
                 path: 'preview',
                 loadComponent: () => import('./app/pages/preview/preview.component').then((module) => module.PreviewComponent),
                 canActivate: [canActivateAuthRole],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             },
             {
                 path: 'profile',
                 loadComponent: () => import('./app/pages/profile/profile.component').then((module) => module.ProfileComponent),
                 canActivate: [canActivateAuthRole],
                 canDeactivate: [canDeactivateUnsavedChanges],
-                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
+                data: { role: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL] }
             }
         ]
     },
