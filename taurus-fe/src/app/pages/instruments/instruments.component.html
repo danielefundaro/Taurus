@@ -1,5 +1,5 @@
 <p-confirmdialog />
-<app-page-header heading="Strumenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' strumento' : ' strumenti')">
+<app-page-header heading="Strumenti" appTourAnchor="instruments.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' strumento' : ' strumenti')">
     <div pageActions><p-button label="Nuovo strumento" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 

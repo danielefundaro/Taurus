@@ -3,16 +3,20 @@ import { ComponentFixture, DeferBlockBehavior, TestBed } from '@angular/core/tes
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { RoleEnums } from '../../constants';
-import { KeycloakService, LayoutService, TenantFeatureService, TenantStatusService } from '../../service';
+import { GuidedTourService, KeycloakService, LayoutService, TenantFeatureService, TenantStatusService } from '../../service';
 import { TopbarComponent } from './topbar.component';
 
 describe('TopbarComponent', () => {
     let bootstrap: ReturnType<typeof signal<boolean>>;
+    let attention: ReturnType<typeof signal<boolean>>;
+    let guidedTour: jasmine.SpyObj<GuidedTourService>;
     let keycloakService: jasmine.SpyObj<KeycloakService>;
     let fixture: ComponentFixture<TopbarComponent>;
 
     beforeEach(() => {
         bootstrap = signal(false);
+        attention = signal(false);
+        guidedTour = jasmine.createSpyObj<GuidedTourService>('GuidedTourService', ['open'], { attention });
         keycloakService = jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], {
             currentUserFirstName: 'Daniele',
             currentUserLastName: 'Rossi',
@@ -28,7 +32,8 @@ describe('TopbarComponent', () => {
                 { provide: KeycloakService, useValue: keycloakService },
                 { provide: LayoutService, useValue: { isDarkTheme: signal(false), notificationNumber: signal(0) } },
                 { provide: TenantFeatureService, useValue: { refresh: () => of({}), current: signal({ tenantName: 'Orchestra Aurora' }) } },
-                { provide: TenantStatusService, useValue: { bootstrap } }
+                { provide: TenantStatusService, useValue: { bootstrap } },
+                { provide: GuidedTourService, useValue: guidedTour }
             ]
         });
         fixture = TestBed.createComponent(TopbarComponent);
@@ -69,5 +74,58 @@ describe('TopbarComponent', () => {
         (fixture.nativeElement.querySelector('button[aria-label="Esci"]') as HTMLButtonElement).click();
 
         expect(keycloakService.logout).toHaveBeenCalled();
+    });
+
+    describe('help button', () => {
+        const help = (): HTMLButtonElement => fixture.nativeElement.querySelector('[data-tour-anchor="topbar.help"]');
+        const menuItems = (): HTMLButtonElement[] => Array.from(fixture.nativeElement.querySelectorAll('.topbar-help-menu [role="menuitem"]'));
+
+        it('opens the guided tour from its menu, which then closes', () => {
+            fixture.detectChanges();
+            expect(help().getAttribute('aria-expanded')).toBe('false');
+
+            help().click();
+            fixture.detectChanges();
+            expect(help().getAttribute('aria-expanded')).toBe('true');
+            expect(menuItems().map((item) => item.textContent?.trim())).toEqual(['Guida introduttiva']);
+
+            menuItems()[0].click();
+            fixture.detectChanges();
+            expect(guidedTour.open).toHaveBeenCalled();
+            expect(menuItems()).toEqual([]);
+        });
+
+        it('closes the menu on a click outside and on Esc', () => {
+            fixture.detectChanges();
+            help().click();
+            fixture.detectChanges();
+            document.body.click();
+            fixture.detectChanges();
+            expect(menuItems()).toEqual([]);
+
+            help().click();
+            fixture.detectChanges();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            fixture.detectChanges();
+            expect(menuItems()).toEqual([]);
+            expect(guidedTour.open).not.toHaveBeenCalled();
+        });
+
+        it('shows a dot while the tour waits to be concluded', () => {
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('.topbar-help-dot')).toBeNull();
+            expect(help().getAttribute('aria-label')).toBe('Aiuto');
+
+            attention.set(true);
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('.topbar-help-dot')).not.toBeNull();
+            expect(help().getAttribute('aria-label')).toBe('Aiuto, guida da completare');
+        });
+
+        it('is not offered in bootstrap mode', () => {
+            bootstrap.set(true);
+            fixture.detectChanges();
+            expect(help()).toBeNull();
+        });
     });
 });

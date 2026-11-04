@@ -1,8 +1,8 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header [heading]="personalView ? 'Il mio inventario' : 'Inventario'"
+    <app-page-header [heading]="personalView ? 'Il mio inventario' : 'Inventario'" appTourAnchor="inventory.header"
         [subtitle]="totalRecords + (personalView ? (totalRecords === 1 ? ' consegna' : ' consegne') : totalRecords === 1 ? ' oggetto registrato' : ' oggetti registrati')">
-        <div pageActions class="flex flex-wrap gap-2">
+        <div pageActions class="flex flex-wrap gap-2" appTourAnchor="inventory.create">
             @if (!personalView) {
             <p-button label="Nuovo oggetto" icon="pi pi-plus" (onClick)="addNew()" />
             @if (inventoryLoanSheetEnabled()) {

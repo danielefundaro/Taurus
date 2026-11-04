@@ -2,6 +2,10 @@
     <app-topbar></app-topbar>
     <app-sidebar></app-sidebar>
     <div class="layout-main-container">
+        <!-- Guida introduttiva e invito della dashboard: un chunk separato, caricato solo quando serve. -->
+        @defer (when guidedTour.active()) {
+        <app-guided-tour />
+        }
         @if (pushPromptVisible) {
         <div class="flex flex-wrap items-center gap-2 mb-4">
             <app-inline-alert class="flex-1" severity="info" heading="Promemoria degli eventi"

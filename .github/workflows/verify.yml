@@ -140,6 +140,8 @@ jobs:
           cache: npm
           cache-dependency-path: taurus-fe/package-lock.json
       - run: npm ci
+      # Le ancore citate dal catalogo della guida devono esistere nell'interfaccia.
+      - run: npm run check:tour-anchors
       # Esegue i test con la copertura e fallisce se scende sotto la baseline.
       - run: npm run test:coverage
       - run: npm run build

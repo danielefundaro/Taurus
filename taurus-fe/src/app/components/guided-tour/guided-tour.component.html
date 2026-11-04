@@ -1,0 +1,71 @@
+@if (session()?.presentation === 'invitation') {
+<app-inline-alert class="block mb-4" severity="info" heading="Novità" [detail]="invitationDetail"
+    actionLabel="Inizia la guida" secondaryActionLabel="No, grazie" (action)="tour.acceptInvitation()"
+    (secondaryAction)="tour.declineInvitation()" />
+}
+
+<div class="sr-only" aria-live="polite">{{ announcement() }}</div>
+
+@if (shown() && step(); as current) {
+<div class="guided-tour">
+    @if (spotlight(); as spot) {
+    <div class="guided-tour__spotlight" [style.top.px]="spot.top" [style.left.px]="spot.left"
+        [style.width.px]="spot.width" [style.height.px]="spot.height"></div>
+    } @else {
+    <div class="guided-tour__veil"></div>
+    }
+
+    <section #card class="guided-tour__card" [class.guided-tour__card--centered]="!position()"
+        [style.top.px]="position()?.top" [style.left.px]="position()?.left"
+        [style.opacity]="placed() ? null : 0" role="dialog" aria-modal="true"
+        aria-labelledby="guided-tour-title" aria-describedby="guided-tour-body" pFocusTrap>
+        @if (welcome()) {
+        <div class="guided-tour__welcome">
+            <i [class]="roleIcon" class="guided-tour__role-icon" aria-hidden="true"></i>
+            <h2 id="guided-tour-title">{{ welcomeTitle }}</h2>
+            <p id="guided-tour-body">{{ welcomeBody }}</p>
+            <div class="guided-tour__welcome-actions">
+                <p-button label="Inizia la guida" data-tour-primary (onClick)="begin()" />
+                <p-button label="Più tardi" [text]="true" severity="secondary" (onClick)="tour.postpone()" />
+            </div>
+            @if (autoStartEnabled) {
+            <p-button label="Non avviare più la guida automaticamente" [link]="true" size="small"
+                (onClick)="tour.disableAutoStart()" />
+            }
+        </div>
+        } @else {
+        <header class="guided-tour__header">
+            <i [class]="current.icon" aria-hidden="true"></i>
+            <h2 id="guided-tour-title">{{ current.title }}</h2>
+            <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary"
+                ariaLabel="Chiudi la guida" (onClick)="close()" />
+        </header>
+        <p id="guided-tour-body">{{ current.body }}</p>
+        @if (current.points.length) {
+        <ul class="guided-tour__points">
+            @for (point of current.points; track point) {
+            <li>{{ point }}</li>
+            }
+        </ul>
+        }
+        <div class="guided-tour__progress">
+            <span class="guided-tour__dots" aria-hidden="true">
+                @for (item of steps(); track item.id; let position = $index) {
+                <span [class.guided-tour__dot--done]="position <= index()"></span>
+                }
+            </span>
+            <span>{{ index() + 1 }} di {{ steps().length }}</span>
+        </div>
+        <footer class="guided-tour__footer">
+            <p-button label="Salta la guida" [link]="true" size="small" (onClick)="tour.skip()" />
+            <div class="guided-tour__navigation">
+                @if (index() > 1) {
+                <p-button label="Indietro" severity="secondary" [outlined]="true" (onClick)="back()" />
+                }
+                <p-button [label]="last() ? 'Fine' : 'Avanti'" data-tour-primary (onClick)="next()" />
+            </div>
+        </footer>
+        }
+    </section>
+</div>
+}

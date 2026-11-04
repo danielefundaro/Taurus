@@ -318,6 +318,8 @@ Prima della forma va deciso il criterio. Ogni comunicazione ricade in uno di cin
 
 Il corollario che comporta più modifiche: l'errore di validazione non è un toast e non è un pulsante disabilitato. Un toast se ne va, e il campo sbagliato resta.
 
+La [guida introduttiva](guided-tour-spec.md) è un sesto canale, bloccante ma sempre rinunciabile e senza dati da raccogliere: ha regole proprie, in [La guida introduttiva](#la-guida-introduttiva).
+
 ## Il dialogo standard
 
 Tre fasce fisse — intestazione, corpo scorrevole, piede ancorato — su un'unica meccanica. `DialogService.open` ovunque; le `p-dialog` inline di `finance` e `legal-documents` diventano componenti sotto `dialogs/`.
@@ -405,6 +407,24 @@ Quattro gravità e due forme. Il toast è effimero e riguarda un'azione appena c
 **Il titolo dice l'esito, non la categoria.** Vale per toast, conferme e banner.
 
 **Nessun colore fisso.** Ogni avviso prende i colori dai token di tema; gli esadecimali di riserva di `legal-acceptance` spariscono.
+
+## La guida introduttiva
+
+La guida mostra a ogni ruolo cosa può fare, una tappa alla volta. Non è un dialogo, perché non raccoglie dati, e non è una conferma, perché ogni comando è reversibile: per questo ha una scheda propria invece di `p-dialog`, che ammette solo posizioni fisse rispetto alla finestra.
+
+**Una sola istanza.** `components/guided-tour/` è montato una volta in `LayoutComponent`, dentro `@defer (when guidedTour.active())`: componente e catalogo `constants/guided-tour-steps.ts` formano un chunk separato e non entrano nel bundle iniziale. Nessuna pagina apre la guida per conto proprio; la dashboard la propone, il pulsante di aiuto della topbar e il profilo la aprono.
+
+**La scheda.** Larga al massimo 22rem; sotto i 992 px occupa la larghezza della finestra meno 1rem per lato e sta sopra o sotto l'elemento. Intestazione con icona PrimeIcons, titolo entro 40 caratteri e chiusura; corpo di una o due frasi entro 180 caratteri; al più tre punti entro 60 caratteri; pallini e «3 di 8» sempre visibili; nel piede **Salta la guida** come collegamento a sinistra, **Indietro** `outlined` secondario e **Avanti** pieno a destra, che all'ultima tappa diventa **Fine**. Il benvenuto è centrato, con **Inizia la guida** pieno e **Più tardi** `text`.
+
+**Evidenziazione.** Un velo dai token di tema oscura la pagina e lascia libero un riquadro, con il contorno nel colore primario, attorno all'elemento. La scheda si mette a destra, sotto, sopra o a sinistra, in quest'ordine; se nessun lato ha spazio, o la finestra è alta meno di 480 px come con lo zoom al 200%, è centrata e scorrevole. Una sola misura per frame, qualunque cosa scorra o cambi dimensione.
+
+**Ancore, non selettori.** Un elemento evidenziabile dichiara `appTourAnchor="area.oggetto"`; una voce del menu dichiara `tourAnchor` nel modello. Le ancore sono contratti con il catalogo: `npm run check:tour-anchors` fallisce se il catalogo ne cita una che nessun template dichiara. Chi rifà una pagina conserva le ancore della sua intestazione e del suo pulsante di creazione.
+
+**Accessibilità.** `role="dialog"`, `aria-modal`, titolo e corpo collegati con `aria-labelledby` e `aria-describedby`, fuoco sul comando primario trattenuto da `pFocusTrap` e restituito alla chiusura, `Esc` come chiusura, regione `aria-live` che annuncia «Passo 3 di 8: titolo». I testi dicono dove si trova l'elemento, così valgono anche senza evidenziazione.
+
+**Movimento e tema.** Solo una dissolvenza di 150 ms, assente con `prefers-reduced-motion`; colori, bordi e raggi dai token PrimeNG, quindi corretti in tema chiaro e scuro. Nessuna immagine.
+
+**Silenziosa.** Gli errori delle letture e dei salvataggi della guida non producono toast né indicatori di caricamento; solo i comandi della sezione **Guida** del profilo, che sono azioni esplicite, seguono la gestione normale degli errori. L'invito degli utenti già presenti al rilascio è un banner `app-inline-alert` sopra la dashboard.
 
 ## Pagine di dettaglio: stato prima dell'adozione
 
@@ -617,6 +637,8 @@ Lo standard vale poco se resta copiato in nove template e undici dialoghi. I pez
 | `components/dialog-shell/` | Guscio del dialogo: intestazione, corpo scorrevole, piede ancorato. Ingressi `heading`, `subtitle`, `size`, `confirmLabel`, `cancelLabel`, `saving`, `invalidCount`, `dirty` e `dismissOnly` per i dialoghi senza conferma; uscite `confirm` e `cancel`, con l'intercettazione della chiusura sporca. |
 | `components/form-field/` | Campo di modulo: etichetta sopra, asterisco di obbligatorietà, messaggio di errore sotto, stato di errore sul controllo. Sostituisce l'uso di `p-floatlabel` dentro i dialoghi. |
 | `components/inline-alert/` | Banner. Involucro su `p-message` con gravità, titolo, dettaglio, azione opzionale e ruolo ARIA corretto. Sostituisce le sei implementazioni artigianali. |
+| `components/guided-tour/` | Guida introduttiva: velo, riquadro, scheda ancorata o centrata e banner di invito. Montata una sola volta dal layout in un blocco `@defer`. |
+| `directive/tour-anchor.directive.ts` | Ancora della guida: `appTourAnchor` scrive `data-tour-anchor`, controllato da `scripts/check-tour-anchors.mjs`. |
 | `service/confirm.service.ts` | Conferme tipizzate: `confirmDestructive`, `confirmReversible`, `confirmDiscard`. Assorbe le quarantaquattro invocazioni e le loro otto proprietà ripetute, correggendo la severità inesistente e l'icona mancante. |
 | `service/toast.service.ts` | Revisione: nuove durate, errore persistente, pulsante di chiusura. La firma `(title, message)` resta invariata, così la migrazione delle chiamate esistenti è meccanica. |
 | `interceptor/http-interceptor.service.ts` | Mappatura da stato HTTP a messaggio e azione, al posto dell'unico «Errore durante la richiesta». |

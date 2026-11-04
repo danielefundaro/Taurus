@@ -4,15 +4,16 @@ import { ButtonModule } from 'primeng/button';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { FooterComponent } from '../../components/footer/footer.component';
+import { GuidedTourComponent } from '../../components/guided-tour/guided-tour.component';
 import { InlineAlertComponent } from '../../components/inline-alert/inline-alert.component';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../components/topbar/topbar.component';
-import { LayoutService, NotificationCenterService, PushNotificationService, TenantFeatureService, TenantStatusService, ToastService } from '../../service';
+import { GuidedTourService, LayoutService, NotificationCenterService, PushNotificationService, TenantFeatureService, TenantStatusService, ToastService } from '../../service';
 
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [CommonModule, ButtonModule, InlineAlertComponent, TopbarComponent, SidebarComponent, RouterModule, FooterComponent],
+    imports: [CommonModule, ButtonModule, InlineAlertComponent, TopbarComponent, SidebarComponent, RouterModule, FooterComponent, GuidedTourComponent],
     templateUrl: './layout.component.html',
     styleUrl: './layout.component.scss'
 })
@@ -37,13 +38,17 @@ export class LayoutComponent {
         private readonly tenantFeatureService: TenantFeatureService,
         private readonly tenantStatusService: TenantStatusService,
         private readonly toastService: ToastService,
+        protected readonly guidedTour: GuidedTourService,
         public renderer: Renderer2,
         public router: Router
     ) {
         // In modalità bootstrap il tenant non ha schema: niente notifiche né promemoria da attivare.
         const bootstrap = this.tenantStatusService.bootstrap();
         this.pushPromptVisible = !bootstrap && this.pushNotificationService.permission === 'default' && sessionStorage.getItem(LayoutComponent.PUSH_PROMPT_DISMISSED) !== 'true';
-        if (!bootstrap) this.notificationCenter.start();
+        if (!bootstrap) {
+            this.notificationCenter.start();
+            this.guidedTour.load().subscribe();
+        }
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });
         effect(() => {
             if (!this.tenantFeatureService.loaded()) return;

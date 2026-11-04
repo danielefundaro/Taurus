@@ -1,15 +1,16 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { catchError, finalize, first, forkJoin, of, Subscription } from 'rxjs';
 import { RoleEnums } from '../../constants';
-import { HasRolesDirective } from '../../directive';
+import { HasRolesDirective, TourAnchorDirective } from '../../directive';
 import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, OperationalDashboard, Page, Tracks, TracksCriteria } from '../../module';
 import { DateFilter } from '../../module/criteria/filter';
 import {
     AlbumsService,
     CalendarEventsService,
+    GuidedTourService,
     InventoryService,
     KeycloakService,
     LayoutService,
@@ -33,13 +34,13 @@ import { OperationsWidgetComponent } from './components/operations-widget/operat
 
 @Component({
     selector: 'app-dashboard',
-    imports: [DatePipe, ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, OperationsWidgetComponent, HasRolesDirective],
+    imports: [DatePipe, ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, OperationsWidgetComponent, HasRolesDirective, TourAnchorDirective],
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.scss',
     providers: [KeycloakService, TenantsService, UsersService, AlbumsService, TracksService, CalendarEventsService, InventoryService, UserInventoryService],
     changeDetection: ChangeDetectionStrategy.Default
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     protected totalTenants: number = 0;
     protected totalUsers: number = 0;
     protected totalAlbums: number = 0;
@@ -84,7 +85,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         private readonly operationalDashboardService: OperationalDashboardService,
         private readonly tenantFeatureService: TenantFeatureService,
         private readonly toastService: ToastService,
-        private readonly router: Router
+        private readonly router: Router,
+        private readonly guidedTourService: GuidedTourService
     ) {
         this.inventoryEnabled = this.tenantFeatureService.inventoryEnabled;
     }
@@ -139,6 +141,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     protected refreshOperations(): void {
         this.loadOperations(true);
+    }
+
+    /** La guida introduttiva si propone solo da qui, dopo il primo rendering della dashboard. */
+    ngAfterViewInit(): void {
+        this.guidedTourService.proposeFromDashboard();
     }
 
     ngOnDestroy(): void {

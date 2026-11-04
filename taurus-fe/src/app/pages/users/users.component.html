@@ -1,6 +1,6 @@
 <p-confirmdialog />
-<app-page-header heading="Utenti" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')">
-    <div pageActions><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div>
+<app-page-header heading="Utenti" appTourAnchor="users.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' utente' : ' utenti')">
+    <div pageActions appTourAnchor="users.create"><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
 <app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"

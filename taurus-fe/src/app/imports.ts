@@ -37,7 +37,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { HasRolesDirective } from './directive';
+import { HasRolesDirective, TourAnchorDirective } from './directive';
 import { DangerZoneComponent } from './components/danger-zone/danger-zone.component';
 import { DetailSectionComponent } from './components/detail-section/detail-section.component';
 import { DialogShellComponent } from './components/dialog-shell/dialog-shell.component';
@@ -98,6 +98,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
+        TourAnchorDirective,
         InitialsPipe,
         ConfirmDialogModule,
         MessageModule,
@@ -161,6 +162,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
+        TourAnchorDirective,
         InitialsPipe,
         ConfirmDialogModule,
         MessageModule,

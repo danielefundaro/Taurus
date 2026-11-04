@@ -1,8 +1,8 @@
 <p-confirmdialog />
 <p-fluid>
-    <app-page-header heading="Economia"
+    <app-page-header heading="Economia" appTourAnchor="finance.header"
         subtitle="Gestisci casse, conti correnti, movimenti e risultati economici degli eventi.">
-        <div pageActions class="flex flex-wrap gap-2">
+        <div pageActions class="flex flex-wrap gap-2" appTourAnchor="finance.create">
             <p-button label="Trasferimento" icon="pi pi-arrow-right-arrow-left" severity="secondary"
                 (onClick)="openTransfer()" />
             <p-button label="Nuovo movimento" icon="pi pi-plus" (onClick)="openMovement()" />
@@ -18,7 +18,7 @@
     </div>
 
     @if (dashboard) {
-    <div class="summary-grid">
+    <div class="summary-grid" appTourAnchor="finance.summary">
         <div class="summary-card">
             <span>Disponibilità complessiva</span>
             <strong>{{ dashboard.totalBalance | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>

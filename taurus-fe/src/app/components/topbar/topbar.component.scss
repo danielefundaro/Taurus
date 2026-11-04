@@ -52,6 +52,51 @@
     }
 }
 
+.topbar-help-dot {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--p-primary-color);
+}
+
+.topbar-help-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 1;
+    min-width: 13rem;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: var(--p-content-border-radius);
+    background: var(--p-content-background);
+    box-shadow: var(--p-overlay-popover-shadow);
+
+    button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 0;
+        border-radius: var(--p-content-border-radius);
+        background: transparent;
+        color: var(--p-text-color);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            background: var(--p-content-hover-background);
+        }
+    }
+}
+
 .blink-animation {
     animation: blink 2s infinite cubic-bezier(0.4, 0.13, 0, 0.99);
 }

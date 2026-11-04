@@ -72,7 +72,7 @@ La prima versione deve:
 
 ### Compreso
 
-- percorso principale per i sei ruoli: Super amministratore, Amministratore, Tesoriere, Archivista, Utente, Utente esterno;
+- percorso principale per i sette ruoli: Super amministratore, Amministratore, Direttivo, Tesoriere, Archivista, Utente, Utente esterno;
 - filtro delle tappe per ruolo e per funzionalità del tenant;
 - scheda di benvenuto con nome, organizzazione e ruolo;
 - evidenziazione degli elementi con ripiego sulla scheda centrata;
@@ -226,6 +226,7 @@ Ogni tappa del catalogo dichiara:
 | `excludes` | funzionalità che, se attive, escludono la tappa |
 | `route` | pagina da aprire prima di mostrare la tappa, facoltativa |
 | `anchors` | ancore candidate in ordine di preferenza, facoltative |
+| `mobileAnchors` | ancore candidate sotto i 992 px, quando diverse: una tappa di pagina punta all'intestazione |
 | `icon` | icona PrimeIcons |
 | `title`, `body` | testi, con varianti per ruolo quando servono |
 | `points` | punti facoltativi, ciascuno con le proprie `requires` |
@@ -293,11 +294,26 @@ Stesse tappe dell'Utente, con varianti di testo che non promettono ciò che il r
 | 3 | `admin.users` | `/users`, `users.create` | — | «Aggiungi i membri dell'organizzazione e assegna il ruolo: riceveranno un'e-mail per impostare la password.» |
 | 4 | `admin.calendar` | `/calendar`, `calendar.create` | — | «Crea prove e concerti, anche ricorrenti, e segui chi ha risposto.» Punti: «Controlla materiali, programma e costi nella preparazione» con `EVENT_PREPARATION`; «Conferma le presenze dopo l'evento» |
 | 5 | `admin.inventory` | `/inventory`, `inventory.create` | `INVENTORY` | «Registra strumenti e materiali, affidali ai membri e segui riconsegne e scadenze.» Punti: «Stampa le etichette con il QR» con `INVENTORY_QR`; «Prepara il modello del foglio di affidamento» con `INVENTORY_LOAN_SHEET` |
-| 6 | `finance.overview` | come per il Tesoriere | `FINANCE` | variante: «…e prepara preventivi e consuntivi degli eventi.» |
+| 6 | `finance.overview` | come per il Tesoriere | `FINANCE` | variante: «…e prepari preventivi e consuntivi degli eventi.» |
 | 7 | `admin.tools` | `layout.menu.admin`; su mobile `layout.menuButton` | — | «Nel menu trovi anche gli strumenti di amministrazione.» Punti: «Configurazione iniziale: importa dati da un file» con `ONBOARDING_IMPORT`; «Consegne notifiche: controlla quelle non arrivate»; «Feed calendario: pubblica il calendario» con `EXTERNAL_CALENDAR_FEED` |
 | 8–10 | notifiche, profilo, aiuto | — | — | — |
 
 Album, tracce e strumenti, disponibili anche all'Amministratore, sono lasciati alle guide di pagina per rispettare il limite di 10 tappe.
+
+### Direttivo
+
+Il [Ruolo direttivo](board-role-spec.md) gestisce l'associazione come l'Amministratore: utenti, calendario ed eventi, inventario, economia e catalogo. Non vede Configurazione iniziale, Consegne notifiche e Feed calendario, quindi il suo percorso non ha la tappa `admin.tools`.
+
+| Ordine | ID | Pagina e ancora | Condizioni | Testo e punti |
+| ---: | --- | --- | --- | --- |
+| 1–2 | benvenuto e menu | — | — | — |
+| 3 | `admin.users` | come per l'Amministratore | — | variante: «Aggiungi i membri dell'organizzazione e assegna il ruolo: riceveranno un'e-mail per impostare la password. Solo l'Amministratore gestisce gli amministratori.» |
+| 4 | `admin.calendar` | come per l'Amministratore | — | come per l'Amministratore |
+| 5 | `admin.inventory` | come per l'Amministratore | `INVENTORY` | come per l'Amministratore |
+| 6 | `finance.overview` | come per il Tesoriere | `FINANCE` | variante dell'Amministratore |
+| 7–9 | notifiche, profilo, aiuto | — | — | — |
+
+Come per l'Amministratore, album, tracce e strumenti sono lasciati alle guide di pagina.
 
 ### Super amministratore
 
@@ -414,7 +430,7 @@ Il profilo si cerca per subject, come `notification_profile`, perché un Super a
 | --- | --- | --- |
 | `id` | `BIGINT` | PK |
 | `profile_id` | `BIGINT` | FK con `ON DELETE CASCADE` |
-| `role` | `VARCHAR(32)` | valore di `RoleEnum` |
+| `role` | `VARCHAR(32)` | valore di `RoleEnum`, vincolato da un `CHECK` |
 | `status` | `VARCHAR(16)` | `IN_PROGRESS`, `COMPLETED`, `SKIPPED` |
 | `seen_steps` | `JSONB` | array di ID tappa, massimo 100 elementi |
 | `last_step_id` | `VARCHAR(64)` | facoltativo |
@@ -463,6 +479,8 @@ DELETE /api/guided-tour/progress
     "lastStepId": "calendar.availability",
     "autoProposals": 1,
     "catalogRevision": 1,
+    "startedAt": "2026-11-03T18:30:00+01:00",
+    "completedAt": null,
     "version": 4
   }
 }
@@ -470,11 +488,15 @@ DELETE /api/guided-tour/progress
 
 `progress` è `null` quando il ruolo non ha stato; `settings.version` è `null` finché il profilo non è materializzato. `enabled` riporta l'interruttore applicativo.
 
+`startedAt` e `completedAt` servono alla sezione del profilo. `startedAt` si imposta quando lo stato diventa `IN_PROGRESS`, anche quando si riapre una guida conclusa, e resta vuoto per un ruolo saltato senza averla iniziata; `completedAt` si imposta quando lo stato diventa `COMPLETED` e si azzera negli altri stati.
+
 `PUT /settings` riceve `autoStartEnabled` e `version`; materializza il profilo alla prima scrittura. Spegnere o accendere l'interruttore non modifica `legacyInvitation`.
 
 `PUT /progress` riceve `status`, `seenSteps`, `lastStepId`, `autoProposals`, `catalogRevision` e `version`; crea o aggiorna la riga del ruolo del token e, se serve, materializza il profilo. Qualunque scrittura dell'avanzamento azzera di fatto l'invito per quel ruolo, perché la riga esiste.
 
 `DELETE /progress` elimina la riga del ruolo del token: è il comando **Ricomincia la guida**.
+
+Le tre scritture restituiscono l'aggregato aggiornato, nello stesso formato di `GET`. Gli ID delle tappe viste ripetuti si salvano una volta sola, nell'ordine della prima comparsa.
 
 ### Validazione ed errori
 
@@ -485,6 +507,8 @@ DELETE /api/guided-tour/progress
 | `guidedTour.versionConflict` | 409 | `version` non coincide con quella salvata |
 | `guidedTour.disabled` | 404 | interruttore applicativo spento, per le scritture |
 | `auth.forbidden` | 403 | token senza ruolo riconosciuto |
+
+Il servizio valida i campi dell'avanzamento: anche uno stato sconosciuto o un campo mancante rispondono `validation`, non un errore di lettura del corpo. Due scritture concorrenti che creano lo stesso profilo o lo stesso avanzamento, o che aggiornano la stessa versione, rispondono `guidedTour.versionConflict`.
 
 Il formato degli ID è `^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$`, massimo 64 caratteri. Il backend non conosce il catalogo: valida il formato, non l'esistenza della tappa, così un rilascio frontend non richiede un rilascio backend. Le nuove chiavi e l'area `guidedTour` entrano nello standard degli errori e in `api-error-messages.ts` insieme all'implementazione, perché `check-error-catalog.mjs` respinge chiavi documentate ma non ancora lanciate.
 
@@ -526,6 +550,16 @@ La scheda è un componente proprio, non `p-dialog`, perché `p-dialog` ammette s
 - Se `GET` fallisce la guida non parte; il pulsante di aiuto ritenta la lettura quando viene usato.
 - Solo i comandi del profilo seguono la normale gestione degli errori di `ApiErrorService`, perché sono azioni esplicite.
 
+### Precisazioni dell'implementazione
+
+- La dashboard propone la guida dal proprio `ngAfterViewInit`; il servizio attende i 600 ms e verifica le condizioni di avvio allo scadere.
+- Il menu del pulsante di aiuto è un piccolo popup della topbar con ruolo `menu`, non `p-menu`, così il bundle iniziale non riceve un componente in più.
+- Le ancore candidate si controllano ogni 100 ms per al massimo 2 secondi: vince la prima, in ordine di preferenza, con elementi visibili. Per questo `finance.overview` su desktop cita solo `finance.summary`, che compare con i dati, e non ricade subito sull'intestazione.
+- Se un'ancora ha più elementi visibili, come le voci di amministrazione del menu, il riquadro li comprende tutti.
+- **Indietro** compare dalla seconda tappa dopo il benvenuto; sul benvenuto `Esc` equivale a **Più tardi**.
+- Il punto informativo del pulsante di aiuto scompare, per la sessione, quando la guida viene aperta a mano.
+- Le richieste della guida non accendono l'indicatore di caricamento globale.
+
 ### Standard di layout
 
 La guida è un sesto canale rispetto ai cinque della sezione «Quale canale, quando» dello [Standard di layout Taurus](taurus-layout-standard.md): bloccante ma sempre rinunciabile e senza dati da raccogliere. All'implementazione lo standard riceve una sezione dedicata con i limiti della scheda descritti sopra, così che il componente non diventi un'eccezione non documentata.
@@ -549,6 +583,8 @@ Contatori a bassa cardinalità, senza tenant né utente tra i tag:
 
 - `taurus.guided_tour.decisions` con `role` e `outcome` tra `started`, `completed`, `skipped`, `restarted`, `auto_start_disabled`, `auto_start_enabled`;
 - `taurus.guided_tour.invitations` con `outcome` tra `accepted` e `declined`.
+
+Un invito si considera deciso alla prima scrittura dell'avanzamento di un ruolo per un profilo con `legacyInvitation`: `SKIPPED` conta come `declined`, ogni altro stato come `accepted`, anche quando la guida parte dal pulsante di aiuto invece che dal banner.
 
 I contatori servono a capire se la guida viene completata o saltata per ruolo. Non esiste un tracciamento per tappa né per persona.
 
@@ -580,7 +616,7 @@ I contatori servono a capire se la guida viene completata o saltata per ruolo. N
 
 ### Frontend
 
-- composizione delle tappe per ognuno dei sei ruoli con tutti i flag accesi e tutti spenti, confrontata con un elenco atteso di ID;
+- composizione delle tappe per ognuno dei sette ruoli con tutti i flag accesi e tutti spenti, confrontata con un elenco atteso di ID;
 - Tesoriere con e senza `FINANCE`;
 - punti condizionati dai flag;
 - regole di avvio: rotta, interruttore, stato, tre proposte, rinvio di sessione, dialogo aperto, invito;
@@ -634,14 +670,14 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 
 - tabelle, migrazione con invito, API e interruttore applicativo;
 - servizio, catalogo, direttiva, componente e pulsante di aiuto;
-- tappe dei sei ruoli e sezione del profilo;
+- tappe dei sette ruoli e sezione del profilo;
 - script delle ancore, test e aggiornamento dello standard di layout e del catalogo errori.
 
 ### Fase 2 — Guide di pagina
 
 - tappe con ambito di pagina, aperte solo da **Guida di questa pagina**;
 - prime pagine: dashboard, calendario e dettaglio evento, tracce e dettaglio, album, inventario e assegnazione, economia, utenti, profilo;
-- approfondimento delle funzioni escluse dal percorso principale dell'Amministratore e del Super amministratore.
+- approfondimento delle funzioni escluse dal percorso principale dell'Amministratore, del Direttivo e del Super amministratore.
 
 ### Fase 3 — Novità
 
@@ -695,6 +731,10 @@ Decisioni prese il 2026-10-24 sui punti aperti della bozza:
 11. **Pulsante di aiuto.** Uno solo nella topbar, con menu condiviso con le richieste di assistenza; la [specifica delle richieste di assistenza](support-requests-spec.md) va allineata quando sarà implementata.
 12. **Tappe.** Solo descrittive nella prima versione.
 13. **Lingua.** Solo italiano.
+
+Decisione presa il 2026-11-04, dopo l'introduzione del [Ruolo direttivo](board-role-spec.md):
+
+14. **Direttivo.** `ROLE_BOARD` è previsto e gestito come gli altri ruoli: ha un proprio percorso, stato e avanzamento separati e lo stesso filtro per funzionalità del tenant.
 
 ## Alternative scartate
 

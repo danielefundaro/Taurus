@@ -29,4 +29,9 @@ public @interface WithMockTenantUser {
     String tenant() default "resource-it-tenant";
 
     String[] authorities() default {"ROLE_USER"};
+
+    /**
+     * Valore del claim {@code role}, l'unico ruolo della sessione; vuoto lascia il token senza claim.
+     */
+    String role() default "";
 }

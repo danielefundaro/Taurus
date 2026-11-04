@@ -1,6 +1,6 @@
 <p-confirmdialog />
-<app-page-header heading="Tracce" [subtitle]="totalRecords + (totalRecords === 1 ? ' traccia' : ' tracce')">
-    <div pageActions class="flex gap-2" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]">
+<app-page-header heading="Tracce" appTourAnchor="tracks.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' traccia' : ' tracce')">
+    <div pageActions class="flex gap-2" appTourAnchor="tracks.create" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]">
         <p-button label="Nuova traccia" icon="pi pi-plus" severity="secondary" (onClick)="addNew()" /><p-button
             label="Carica spartito" icon="pi pi-upload" (onClick)="addNewFile()" />
     </div>

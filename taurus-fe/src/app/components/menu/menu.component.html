@@ -1,4 +1,4 @@
-<ul class="layout-menu">
+<ul class="layout-menu" appTourAnchor="layout.menu">
     <ng-container *ngFor="let item of model; let i = index">
         <ng-container *ngIf="!item['hasRoles']; else roleBlock">
             <li app-menuitem *ngIf="!item.separator; else separatorBlock" [item]="item" [index]="i" [root]="true"></li>

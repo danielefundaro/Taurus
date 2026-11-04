@@ -73,6 +73,8 @@ public class ApplicationProperties {
     @Valid
     private UploadProperties upload = new UploadProperties();
 
+    private GuidedTourProperties guidedTour = new GuidedTourProperties();
+
     public String getBasePath() {
         return basePath;
     }
@@ -215,6 +217,14 @@ public class ApplicationProperties {
 
     public void setUpload(UploadProperties value) {
         upload = value;
+    }
+
+    public GuidedTourProperties getGuidedTour() {
+        return guidedTour;
+    }
+
+    public void setGuidedTour(GuidedTourProperties value) {
+        guidedTour = value;
     }
 
     public SignatureProperties getSignature() {
@@ -1775,6 +1785,22 @@ public class ApplicationProperties {
 
         public void setMaxRecoveredPerRun(int value) {
             maxRecoveredPerRun = value;
+        }
+    }
+
+    /**
+     * Emergency switch of the guided tour: when off the client does not open it and the writes answer
+     * {@code guidedTour.disabled}.
+     */
+    public static class GuidedTourProperties {
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean value) {
+            enabled = value;
         }
     }
 

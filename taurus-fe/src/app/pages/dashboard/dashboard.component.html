@@ -31,7 +31,7 @@
 
     <app-recents-widget [tracks]="tracks" />
     <app-calendar-events-widget [events]="upcomingEvents" (pageChange)="upcomingEventsPageChange($event)" />
-    <div class="col-span-12 xl:col-span-6">
+    <div class="col-span-12 xl:col-span-6" appTourAnchor="dashboard.notifications">
         <app-notifications-widget [notices]="notices" [view]="noticeView" [timeZone]="noticeTimeZone"
             (viewChange)="changeNoticeView($event)"
             (pageChange)="pageChange($event)" (markAsRead)="markNoticesAsRead($event)"

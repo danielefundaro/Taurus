@@ -12,6 +12,7 @@
         "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
         "test": "ng test",
         "test:coverage": "node scripts/check-coverage.mjs",
+        "check:tour-anchors": "node scripts/check-tour-anchors.mjs && node --test scripts/check-tour-anchors.test.mjs",
         "e2e": "playwright test --config e2e/playwright.config.ts --project=desktop --project=mobile",
         "e2e:matrix": "playwright test --config e2e/playwright.config.ts",
         "e2e:install": "playwright install --with-deps chromium firefox webkit"

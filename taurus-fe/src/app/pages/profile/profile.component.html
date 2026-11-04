@@ -208,6 +208,25 @@
     <app-signature-method-settings (configureApp)="configureOTP()" />
     }
 
+    @if (guidedTour.tour()?.enabled) {
+    <app-detail-section heading="Guida" description="Ti mostra cosa puoi fare con il tuo ruolo.">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between gap-4 max-w-md">
+                <label for="guidedTourAutoStart">Avvia la guida automaticamente</label>
+                <p-toggleswitch inputId="guidedTourAutoStart" [(ngModel)]="guidedTourAutoStart"
+                    [disabled]="savingGuidedTour" (ngModelChange)="onGuidedTourAutoStart($event)" />
+            </div>
+            <small class="text-muted-color">{{ guidedTourStatus }}</small>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <p-button label="Apri la guida" icon="pi pi-compass" severity="secondary"
+                    (onClick)="guidedTour.open()" />
+                <p-button label="Ricomincia la guida" icon="pi pi-refresh" severity="secondary" [outlined]="true"
+                    [disabled]="!guidedTour.tour()?.progress" (onClick)="restartGuidedTour()" />
+            </div>
+        </div>
+    </app-detail-section>
+    }
+
     <app-detail-section heading="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />

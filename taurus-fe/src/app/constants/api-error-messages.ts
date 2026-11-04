@@ -496,6 +496,11 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'notification.delivery.notClosable': 'Si chiudono soltanto le consegne in attesa o non riuscite',
     'notification.delivery.close.unsupported': 'La distribuzione delle notifiche interne non si chiude manualmente',
 
+    // Guided tour
+    'guidedTour.disabled': 'La guida non è disponibile',
+    'guidedTour.versionConflict': "La guida è stata aggiornata da un'altra scheda: ricaricare la pagina",
+    'guidedTour.step.limit': 'Avanzamento della guida non valido: ricaricare la pagina e riprovare',
+
     // Legal documents
     'legal.acceptance.incomplete': 'Confermare tutti i documenti obbligatori',
     'legal.document.stale': 'Uno o più documenti non sono più in vigore: ricaricare la pagina',
