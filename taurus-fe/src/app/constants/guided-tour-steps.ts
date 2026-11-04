@@ -220,15 +220,6 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
         introducedIn: 1
     },
     {
-        id: 'finance.unavailable',
-        roles: [RoleEnums.TREASURER],
-        excludes: [TenantFeature.FINANCE],
-        icon: 'pi pi-info-circle',
-        title: 'Economia non attiva',
-        body: "La sezione Economia non è ancora attiva per questa organizzazione. Chiedi all'amministratore di Taurus di attivarla.",
-        introducedIn: 1
-    },
-    {
         id: 'admin.tools',
         roles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN],
         anchors: ['layout.menu.admin', 'layout.menuButton'],
@@ -278,9 +269,9 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
     }
 ];
 
-/** The path of the role with the features of the tenant: evaluated once, when the tour opens. */
+/** The path of the role with the features of the tenant: evaluated once, when the tour opens. Sections off are left out. */
 export function composeGuidedTour(role: RoleEnums, isEnabled: (feature: TenantFeature) => boolean): GuidedTourStep[] {
-    return GUIDED_TOUR_STEPS.filter((step) => step.roles.includes(role) && (step.requires ?? []).every(isEnabled) && !(step.excludes ?? []).some(isEnabled)).map((step) => ({
+    return GUIDED_TOUR_STEPS.filter((step) => step.roles.includes(role) && (step.requires ?? []).every(isEnabled)).map((step) => ({
         id: step.id,
         route: step.route,
         anchors: step.anchors ?? [],

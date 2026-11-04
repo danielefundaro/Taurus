@@ -59,7 +59,6 @@ export interface GuidedTourStepDefinition {
     id: string;
     roles: RoleEnums[];
     requires?: TenantFeature[];
-    excludes?: TenantFeature[];
     /** Page opened before showing the step. */
     route?: string;
     /** Candidate anchors in order of preference; the step is centered when none is visible. */
