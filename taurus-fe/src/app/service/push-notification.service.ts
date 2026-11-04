@@ -1,8 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
-import { first } from 'rxjs';
+import { first, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { PushSubscriptionService } from './push-subscription.service';
+import { TenantFeatureService } from './tenant-feature.service';
 
 export type PushPermission = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -13,7 +14,8 @@ export class PushNotificationService {
 
     constructor(
         private readonly swPush: SwPush,
-        private readonly pushSubscriptionService: PushSubscriptionService
+        private readonly pushSubscriptionService: PushSubscriptionService,
+        private readonly tenantFeatureService: TenantFeatureService
     ) { }
 
     get supported(): boolean {
@@ -28,10 +30,14 @@ export class PushNotificationService {
     /**
      * All'avvio non si chiede mai il permesso: ci si limita a riallineare il
      * backend a una sottoscrizione che il browser ha già concesso. Il consenso
-     * viene richiesto solo da un gesto esplicito dell'utente.
+     * viene richiesto solo da un gesto esplicito dell'utente. Senza la
+     * funzionalità «Preferenze notifiche» il backend rifiuta la sottoscrizione:
+     * il riallineamento si salta.
      */
     async init(): Promise<void> {
         if (!this.supported || Notification.permission !== 'granted') return;
+        const features = await firstValueFrom(this.tenantFeatureService.refresh()).catch(() => null);
+        if (!features?.notificationPreferencesEnabled) return;
         const existing = await this.currentSubscription();
         if (existing) {
             this.sendToBackend(existing);
