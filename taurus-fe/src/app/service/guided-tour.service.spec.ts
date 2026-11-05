@@ -195,6 +195,40 @@ describe('GuidedTourService', () => {
         expect(service.session()).toBeNull();
     }));
 
+    it('counts a proposal only for a tour opened by itself, and writes nothing before the tour has a state', fakeAsync(() => {
+        service.skip();
+        http.expectNone(`${url}/progress`);
+
+        service.open();
+        http.expectOne(url).flush(tour({ progress: progress({ autoProposals: 1 }) }));
+        service.pause();
+        const pause = http.expectOne(`${url}/progress`);
+        expect(pause.request.body).toEqual(jasmine.objectContaining({ autoProposals: 1, lastStepId: 'common.welcome' }));
+        pause.flush(tour({ progress: progress({ autoProposals: 1, version: 1 }) }));
+
+        service.restart().subscribe();
+        http.expectOne(`${url}/progress`).flush(tour());
+        service.open();
+        service.pause();
+        http.expectNone(`${url}/progress`);
+    }));
+
+    it('sends the steps taken while a write is travelling as soon as it returns', fakeAsync(() => {
+        propose(tour({ progress: progress() }));
+        service.visit('common.navigation');
+        tick(GuidedTourService.SAVE_DELAY_MS);
+        const first = http.expectOne(`${url}/progress`);
+
+        service.complete('common.help');
+        http.expectNone(`${url}/progress`);
+        first.flush(tour({ progress: progress({ seenSteps: ['common.welcome', 'common.navigation'], version: 1 }) }));
+
+        expect(service.tour()?.progress?.status).toBe('COMPLETED');
+        const second = http.expectOne(`${url}/progress`);
+        expect(second.request.body).toEqual(jasmine.objectContaining({ status: 'COMPLETED', lastStepId: 'common.help', version: 1 }));
+        second.flush(tour({ progress: progress({ status: 'COMPLETED', version: 2 }) }));
+    }));
+
     it('gathers the steps of a second into one write', fakeAsync(() => {
         propose(tour());
         service.useCatalogRevision(1);
@@ -209,9 +243,7 @@ describe('GuidedTourService', () => {
         tick(1);
 
         const request = http.expectOne(`${url}/progress`);
-        expect(request.request.body).toEqual(
-            jasmine.objectContaining({ seenSteps: ['common.welcome', 'common.navigation', 'calendar.availability'], lastStepId: 'calendar.availability', version: 0 })
-        );
+        expect(request.request.body).toEqual(jasmine.objectContaining({ seenSteps: ['common.welcome', 'common.navigation', 'calendar.availability'], lastStepId: 'calendar.availability', version: 0 }));
         request.flush(tour({ progress: progress({ seenSteps: ['common.welcome', 'common.navigation', 'calendar.availability'], version: 1 }) }));
     }));
 
