@@ -18,7 +18,7 @@
             detail="Il modello è il contratto che l’Affidatario firma. Rimandi tra articoli, elenco delle clausole approvate nella sezione 7 e lettera f) dell’informativa, che descrive come Taurus conserva e rimuove i dati del foglio, sono esclusiva responsabilità dell’associazione."
         />
 
-        <app-detail-section heading="Modello in uso" description="Il modello con cui vengono stampati i nuovi fogli. Ogni foglio emesso resta legato al modello con cui è stato firmato.">
+        <app-detail-section appTourAnchor="loanTemplate.active" heading="Modello in uso" description="Il modello con cui vengono stampati i nuovi fogli. Ogni foglio emesso resta legato al modello con cui è stato firmato.">
             <div class="flex flex-col gap-3">
                 @if (overview.active; as active) {
                     <p class="m-0">
@@ -38,7 +38,7 @@
             </div>
         </app-detail-section>
 
-        <app-detail-section heading="Carica un modello" description="File HTML in UTF-8, al massimo 2 MB. Il file viene verificato subito e diventa il modello dei nuovi fogli solo con «Attiva modello».">
+        <app-detail-section appTourAnchor="loanTemplate.upload" heading="Carica un modello" description="File HTML in UTF-8, al massimo 2 MB. Il file viene verificato subito e diventa il modello dei nuovi fogli solo con «Attiva modello».">
             <input #fileInput type="file" accept=".html,.htm,text/html" class="hidden" aria-label="File del modello" (change)="selectFile(fileInput)" />
             <div class="flex flex-wrap items-center gap-2">
                 <p-button label="Scegli il file" icon="pi pi-upload" severity="secondary" [outlined]="true" [loading]="checking" [disabled]="checking || !!busy" (onClick)="fileInput.click()" />
@@ -76,7 +76,7 @@
             }
         </app-detail-section>
 
-        <app-detail-section heading="Regole di durata del comodato" [description]="durationDescription" [dirty]="isDirty">
+        <app-detail-section appTourAnchor="loanTemplate.rules" heading="Regole di durata del comodato" [description]="durationDescription" [dirty]="isDirty">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <app-form-field label="Durata minima (mesi)" forId="loanMinMonths">
                     <p-inputnumber inputId="loanMinMonths" [(ngModel)]="durations.minMonths" [min]="1" [max]="120" [showButtons]="true" (ngModelChange)="isDirty = true" />
@@ -97,7 +97,7 @@
         </app-detail-section>
 
         @if (inventorySignatureEnabled()) {
-            <app-detail-section
+            <app-detail-section appTourAnchor="loanTemplate.signature"
                 heading="Firma elettronica"
                 description="Con la firma attiva, fogli di affidamento e prese visione si firmano con un codice di 6 cifre, inviato via e-mail o mostrato dall’app di autenticazione, o con CieSign per l’Affidatario; ogni firma viene registrata con le sue prove. Conservare i documenti firmati per il tempo richiesto dalla legge resta compito dell’associazione, che scarica il fascicolo di ogni foglio."
             >
@@ -148,7 +148,7 @@
             </app-detail-section>
         }
 
-        <app-detail-section heading="Guida alle variabili" description="Il modello è un file HTML: i dati del foglio si inseriscono con le variabili, scritte con la sintassi Mustache.">
+        <app-detail-section appTourAnchor="loanTemplate.variables" heading="Guida alle variabili" description="Il modello è un file HTML: i dati del foglio si inseriscono con le variabili, scritte con la sintassi Mustache.">
             <h3 class="text-base font-semibold mt-0 mb-2">Sintassi</h3>
             <p-table [value]="syntax">
                 <ng-template #header>
@@ -221,7 +221,7 @@
             </p-tabs>
         </app-detail-section>
 
-        <app-detail-section heading="Storico dei modelli caricati" [count]="overview.versions.length" description="Ogni foglio emesso registra la versione e l’impronta del modello usato.">
+        <app-detail-section appTourAnchor="loanTemplate.history" heading="Storico dei modelli caricati" [count]="overview.versions.length" description="Ogni foglio emesso registra la versione e l’impronta del modello usato.">
             @if (overview.versions.length) {
                 <p-table [value]="overview.versions">
                     <ng-template #header>

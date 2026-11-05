@@ -5,7 +5,7 @@
         [state]="album.state === StateEnum.PUBLIC ? 'Pubblico' : undefined">
         <div pageMetadata>{{ album.date ? (album.date | date: 'dd-MM-yyyy') : 'Senza data' }}</div>
         <div pageActions class="flex gap-2">
-            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
+            <p-button appTourAnchor="album.preview" label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
                 [disabled]="!album.tracks?.length" /><p-button label="Salva album" icon="pi pi-check" [loading]="saving"
                 [disabled]="!isDirty" (onClick)="save()"
                 *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]" />
@@ -17,7 +17,7 @@
         detail="Non è stato possibile caricare le tracce dell’album. La selezione è rimasta invariata: riprova per aprire l’anteprima completa."
         actionLabel="Riprova" (action)="retryPreview()" />
     }
-    <app-detail-section heading="Dati album"
+    <app-detail-section appTourAnchor="album.data" heading="Dati album"
         description="Nome, data e stato di pubblicazione. Si salva con «Salva album» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required
@@ -41,7 +41,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section heading="Tracce" [count]="album.tracks?.length"
+    <app-detail-section appTourAnchor="album.tracks" heading="Tracce" [count]="album.tracks?.length"
         description="Composizione e ordine dell’album. Le modifiche si salvano con «Salva album» in alto.">
         <div sectionActions class="flex flex-col md:flex-row gap-2"
             *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]">

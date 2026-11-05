@@ -13,7 +13,7 @@
     detail="Non è stato possibile caricare i metadati tecnici." actionLabel="Riprova" (action)="load()" />
 }
 
-<app-list-toolbar [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions"
+<app-list-toolbar appTourAnchor="deliveries.toolbar" [showSearch]="false" [showLayout]="false" [sort]="sort" [sortOptions]="sortOptions"
     (sortChange)="onSortChange($event)">
     <div listFilters class="delivery-status-filter">
         <div class="delivery-status-filter__field">
@@ -64,7 +64,7 @@
     actionIcon="pi pi-replay" [actionSeverity]="null" [actionLoading]="bulkRetrying"
     (toggleAll)="toggleAllVisible($event)" (clear)="selected = []" (action)="retrySelected()" />
 
-<div class="card !p-0 overflow-hidden">
+<div class="card !p-0 overflow-hidden" appTourAnchor="deliveries.list">
     <p-table [value]="loading ? skeletonRows : deliveries" [(selection)]="selected" dataKey="rowKey" [lazy]="true"
         [lazyLoadOnInit]="true" [loading]="loading" [showLoader]="false" [paginator]="true" paginatorPosition="bottom"
         [first]="tableFirst" [rows]="tableRows" [rowsPerPageOptions]="[12, 24, 48]" paginatorDropdownAppendTo="body"

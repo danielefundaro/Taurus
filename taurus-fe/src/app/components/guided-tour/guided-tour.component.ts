@@ -42,6 +42,10 @@ export class GuidedTourComponent implements OnDestroy {
     protected readonly step = computed(() => this.steps()[this.index()]);
     protected readonly welcome = computed(() => this.step()?.id === GUIDED_TOUR_WELCOME);
     protected readonly last = computed(() => this.index() === this.steps().length - 1);
+    /** A page guide: no welcome, nothing saved, «Chiudi» in place of «Salta la guida». */
+    protected readonly pageGuide = computed(() => this.session()?.presentation === 'page');
+    /** «Indietro» from the second step, the welcome not counted. */
+    protected readonly canGoBack = computed(() => this.index() > (this.pageGuide() ? 0 : 1));
     protected readonly shown = signal(false);
     protected readonly spotlight = signal<Box | null>(null);
     protected readonly position = signal<{ top: number; left: number } | null>(null);
@@ -67,7 +71,11 @@ export class GuidedTourComponent implements OnDestroy {
         tour.useCatalogRevision(GUIDED_TOUR_CATALOG_REVISION);
         effect(() => {
             const session = this.session();
-            untracked(() => (session?.presentation === 'tour' ? this.open() : this.teardown()));
+            untracked(() => {
+                if (session?.presentation === 'tour') this.open();
+                else if (session?.presentation === 'page') this.openPage(session.steps ?? []);
+                else this.teardown();
+            });
         });
     }
 
@@ -107,18 +115,20 @@ export class GuidedTourComponent implements OnDestroy {
     protected next(): void {
         const step = this.step();
         if (!step) return;
-        if (this.last()) this.tour.complete(step.id);
-        else this.show(this.index() + 1);
+        if (!this.last()) this.show(this.index() + 1);
+        else if (this.pageGuide()) this.tour.closePage();
+        else this.tour.complete(step.id);
     }
 
     protected back(): void {
-        if (this.index() > 1) this.show(this.index() - 1);
+        if (this.canGoBack()) this.show(this.index() - 1);
     }
 
     @HostListener('document:keydown.escape')
     protected close(): void {
         if (!this.shown()) return;
-        if (this.welcome()) this.tour.postpone();
+        if (this.pageGuide()) this.tour.closePage();
+        else if (this.welcome()) this.tour.postpone();
         else this.tour.pause();
     }
 
@@ -136,6 +146,28 @@ export class GuidedTourComponent implements OnDestroy {
         const progress = tour.progress;
         const resumeAt = progress?.status === 'IN_PROGRESS' && progress.lastStepId ? steps.findIndex((step) => step.id === progress.lastStepId) : -1;
         this.show(Math.max(resumeAt, 0));
+    }
+
+    /**
+     * A page guide speaks only of what the page shows: it waits for a page still loading until one of its anchors
+     * appears, then keeps the steps with a visible anchor. Evaluated once, when the guide opens.
+     */
+    private async openPage(candidates: GuidedTourStep[]): Promise<void> {
+        if (!this.shown()) this.returnFocus = document.activeElement as HTMLElement | null;
+        const ticket = ++this.ticket;
+        const anchorsOf = (step: GuidedTourStep) => (this.layoutService.isMobile() ? step.mobileAnchors : step.anchors);
+        await this.findTargets(
+            candidates.flatMap((step) => anchorsOf(step)),
+            ticket
+        );
+        if (ticket !== this.ticket) return;
+        const steps = candidates.filter((step) => anchorsOf(step).some((anchor) => visibleElements(anchor).length > 0));
+        if (!steps.length) {
+            this.tour.pageGuideUnavailable();
+            return;
+        }
+        this.steps.set(steps);
+        this.show(0);
     }
 
     private async show(index: number): Promise<void> {
@@ -161,7 +193,7 @@ export class GuidedTourComponent implements OnDestroy {
         if (ticket !== this.ticket) return;
         this.targets = targets;
         targets[0]?.scrollIntoView({ block: 'center' });
-        if (step.id !== GUIDED_TOUR_WELCOME) this.tour.visit(step.id);
+        if (step.id !== GUIDED_TOUR_WELCOME && !this.pageGuide()) this.tour.visit(step.id);
         this.announcement.set(`Passo ${index + 1} di ${this.steps().length}: ${step.id === GUIDED_TOUR_WELCOME ? this.welcomeTitle : step.title}`);
         this.observe();
         this.shown.set(true);
@@ -174,7 +206,7 @@ export class GuidedTourComponent implements OnDestroy {
         const deadline = Date.now() + GuidedTourComponent.ANCHOR_TIMEOUT_MS;
         while (ticket === this.ticket) {
             for (const anchor of anchors) {
-                const visible = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-anchor="${anchor}"]`)).filter(isVisible);
+                const visible = visibleElements(anchor);
                 if (visible.length) return visible;
             }
             if (Date.now() >= deadline) break;
@@ -238,6 +270,10 @@ export class GuidedTourComponent implements OnDestroy {
         if (wasShown && this.returnFocus?.isConnected) this.returnFocus.focus();
         this.returnFocus = null;
     }
+}
+
+function visibleElements(anchor: string): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-anchor="${anchor}"]`)).filter(isVisible);
 }
 
 function isVisible(element: HTMLElement): boolean {

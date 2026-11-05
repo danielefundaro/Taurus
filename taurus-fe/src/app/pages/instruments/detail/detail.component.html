@@ -7,7 +7,7 @@
                 (onClick)="save()" /></div>
     </app-page-header>
 
-    <app-detail-section heading="Dati strumento"
+    <app-detail-section appTourAnchor="instrument.data" heading="Dati strumento"
         description="Nome e descrizione. Si salva con «Salva strumento» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required
@@ -23,7 +23,7 @@
     </app-detail-section>
 
     @if (scorePlaybackEnabled) {
-    <app-detail-section heading="Ascolto"
+    <app-detail-section appTourAnchor="instrument.sound" heading="Ascolto"
         description="Suono e trasposizione con cui si ascoltano le parti di questo strumento. Si salvano con «Salva strumento» in alto."
         [dirty]="isDirty">
         <div class="flex flex-col gap-4">

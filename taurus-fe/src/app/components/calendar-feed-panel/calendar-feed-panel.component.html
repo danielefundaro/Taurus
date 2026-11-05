@@ -18,7 +18,7 @@
         </div>
     }
 
-    <div class="feed-form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div appTourAnchor="calendarFeed.create" class="feed-form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <app-form-field label="Nome del feed" forId="feedName" required hint="Serve per riconoscere il feed nell'elenco." [error]="nameTouched && !draft.name.trim() ? 'Inserisci un nome per creare il feed.' : undefined">
             <input pInputText id="feedName" [(ngModel)]="draft.name" maxlength="120" required [attr.aria-invalid]="nameTouched && !draft.name.trim()" placeholder="Ad esempio: Calendario eventi Taurus" (blur)="nameTouched = true" />
         </app-form-field>
@@ -34,11 +34,11 @@
     @if (loading) {
         <p-skeleton height="8rem" />
     } @else if (feeds.length) {
-        <div class="feed-list-heading">
+        <div class="feed-list-heading" appTourAnchor="calendarFeed.list">
             <strong>Feed esistenti</strong>
             <small>Per sicurezza l'elenco mostra solo un codice identificativo, non il link completo.</small>
         </div>
-        <p-table [value]="feeds" responsiveLayout="scroll">
+        <p-table appTourAnchor="calendarFeed.list" [value]="feeds" responsiveLayout="scroll">
             <ng-template #header>
                 <tr>
                     <th>Feed</th>

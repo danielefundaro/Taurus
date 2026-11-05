@@ -1,6 +1,6 @@
 <p-fluid>
     <app-page-header heading="Configurazione iniziale" subtitle="Importa in modo controllato i dati iniziali">
-        <div pageActions class="flex gap-2">
+        <div pageActions class="flex gap-2" appTourAnchor="onboarding.template">
             <p-button label="Modello XLSX" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="downloadXlsx()" />
             @if (job) {
                 <p-button label="Rapporto" icon="pi pi-file-excel" severity="secondary" [outlined]="true" (onClick)="downloadReport()" />
@@ -9,7 +9,7 @@
     </app-page-header>
 
     @if (context) {
-        <section class="card tenant-summary grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-4" aria-label="Riepilogo configurazione iniziale">
+        <section appTourAnchor="onboarding.summary" class="card tenant-summary grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-4" aria-label="Riepilogo configurazione iniziale">
             <div>
                 <strong>{{ context.tenantName }}</strong>
             </div>
@@ -39,7 +39,7 @@
 
     <div class="card" [attr.aria-busy]="locked || busy">
         <p-stepper [(value)]="activeStep" [linear]="!job">
-            <p-step-list>
+            <p-step-list appTourAnchor="onboarding.steps">
                 <p-step [value]="1" [disabled]="locked">Prepara</p-step>
                 <p-step [value]="2" [disabled]="locked">Carica</p-step>
                 <p-step [value]="3" [disabled]="!job || locked">Controlla</p-step>
@@ -350,7 +350,7 @@
     </div>
 
     @if (!job && recentJobs.length) {
-        <section class="card">
+        <section class="card" appTourAnchor="onboarding.history">
             <h2>Importazioni recenti</h2>
             <div class="grid gap-2">
                 @for (recent of recentJobs; track recent.id) {

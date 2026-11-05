@@ -32,7 +32,7 @@
     }
 
     @if (isAdmin && !personalView && erasureRequests.length > 0) {
-    <div class="card flex flex-col gap-4">
+    <div class="card flex flex-col gap-4" appTourAnchor="inventory.erasures">
         <app-inline-alert severity="warn" heading="Cancellazioni GDPR in attesa di riconsegna"
             detail="La cancellazione può essere completata solo dopo la riconsegna di tutto il materiale." />
         <p-table [value]="erasureRequests">
@@ -60,21 +60,21 @@
     @if (isAdmin || personalView) {
     <div class="card flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         @if (isAdmin) {
-        <p-select-button [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label" optionValue="value"
+        <p-select-button appTourAnchor="inventory.views" [(ngModel)]="viewMode" [options]="viewOptions" optionLabel="label" optionValue="value"
             [allowEmpty]="false" (ngModelChange)="onViewChange($event)" />
         }
         @if (personalView) {
-        <p-select-button [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value"
+        <p-select-button appTourAnchor="inventory.scope" [(ngModel)]="scope" [options]="scopeOptions" optionLabel="label" optionValue="value"
             [allowEmpty]="false" (ngModelChange)="onScopeChange($event)" />
         }
     </div>
     }
 
     @if (personalView && inventorySignatureEnabled()) {
-    <app-own-signature-acts />
+    <app-own-signature-acts appTourAnchor="inventory.ownActs" />
     }
     @if (personalView && inventoryLoanSheetEnabled()) {
-    <app-own-loan-sheets />
+    <app-own-loan-sheets appTourAnchor="inventory.ownSheets" />
     }
 
     <app-list-toolbar [search]="searchTerm" searchPlaceholder="Nome o numero inventariale" [sortOptions]="sortOptions"
@@ -94,7 +94,7 @@
         (delete)="deleteSelectedItems()" />
     }
 
-    <div class="card !p-0 overflow-hidden">
+    <div class="card !p-0 overflow-hidden" [appTourAnchor]="personalView ? 'inventory.assignments' : 'inventory.items'">
         <p-dataview [value]="values" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
             [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
             paginatorPosition="bottom" [totalRecords]="totalRecords" [sortField]="dataViewLazyLoadEvent.sortField"

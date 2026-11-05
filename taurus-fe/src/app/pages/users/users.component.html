@@ -3,14 +3,14 @@
     <div pageActions appTourAnchor="users.create"><p-button label="Nuovo utente" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
-<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
+<app-list-toolbar appTourAnchor="users.toolbar" [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
     (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
 <app-selection-bar [count]="selectedUsers.length" [allSelected]="isAllSelected(users)"
     deleteLabel="Elimina utenti selezionati" (toggleAll)="toggleSelectAll(users)" (clear)="selectedUsers = []"
     (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden">
+<div class="card !p-0 overflow-hidden" appTourAnchor="users.list">
     <p-dataview [value]="users" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

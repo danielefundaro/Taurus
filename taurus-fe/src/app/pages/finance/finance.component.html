@@ -9,7 +9,7 @@
         </div>
     </app-page-header>
 
-    <div class="report-toolbar">
+    <div class="report-toolbar" appTourAnchor="finance.period">
         <app-form-field label="Dal" forId="dashboard-from"><p-datepicker inputId="dashboard-from"
                 [(ngModel)]="dashboardFrom" dateFormat="dd/mm/yy" /></app-form-field>
         <app-form-field label="Al" forId="dashboard-to"><p-datepicker inputId="dashboard-to" [(ngModel)]="dashboardTo"
@@ -89,13 +89,13 @@
     <div class="card">
         <p-tabs [(value)]="activeTab">
             <p-tablist>
-                <p-tab value="movements">Movimenti</p-tab>
-                <p-tab value="accounts">Conti</p-tab>
-                <p-tab value="categories">Categorie</p-tab>
+                <p-tab value="movements" appTourAnchor="finance.tabMovements">Movimenti</p-tab>
+                <p-tab value="accounts" appTourAnchor="finance.tabAccounts">Conti</p-tab>
+                <p-tab value="categories" appTourAnchor="finance.tabCategories">Categorie</p-tab>
                 @if (calendarEnabled()) {
-                <p-tab value="events">Eventi</p-tab>
+                <p-tab value="events" appTourAnchor="finance.tabEvents">Eventi</p-tab>
                 }
-                <p-tab value="years">Esercizi</p-tab>
+                <p-tab value="years" appTourAnchor="finance.tabYears">Esercizi</p-tab>
             </p-tablist>
             <p-tabpanels>
                 <p-tabpanel value="movements">

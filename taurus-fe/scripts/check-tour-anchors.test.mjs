@@ -13,6 +13,7 @@ test('reads the anchors and the mobile anchors of the catalog', () => {
 
 test('reads the anchors of templates and of the menu model', () => {
     assert.deepEqual([...declaredAnchors('<app-page-header appTourAnchor="users.header" /><div [appTourAnchor]="\'users.create\'"></div>', 'users.component.html')], ['users.header', 'users.create']);
+    assert.deepEqual([...declaredAnchors(`<div [appTourAnchor]="personal ? 'inventory.assignments' : 'inventory.items'"></div>`, 'inventory.component.html')], ['inventory.assignments', 'inventory.items']);
     assert.deepEqual([...declaredAnchors("{ label: 'Consegne', tourAnchor: 'layout.menu.admin' }", 'menu.component.ts')], ['layout.menu.admin']);
     assert.deepEqual([...declaredAnchors('appTourAnchor="ignored.inTypeScript"', 'menu.component.ts')], []);
 });

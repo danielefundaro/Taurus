@@ -10,28 +10,28 @@
 <!-- A 320 px i soli spazi di `gap-8` chiedono 308 px e la griglia sporge dalla pagina: lo spazio
      ridotto, come nelle altre pagine, torna a quello pieno quando lo schermo lo consente. -->
 <div class="grid grid-cols-12 gap-4 md:gap-8">
-    <app-operations-widget [dashboard]="operations" [initialLoading]="operationsInitialLoading"
+    <app-operations-widget appTourAnchor="dashboard.operations" [dashboard]="operations" [initialLoading]="operationsInitialLoading"
         [refreshing]="operationsRefreshing" [error]="operationsError" [refreshWarning]="operationsRefreshWarning"
         [announcement]="operationsAnnouncement" (refreshRequested)="refreshOperations()" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
+    <app-stats-widget appTourAnchor="dashboard.stats" *hasRoles="[RoleEnums.SUPER_ADMIN]" label="Tenant" icon="pi-building" color="cyan"
         [value]="totalTenants" [link]="'tenants'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD]" label="Utenti" icon="pi-users" color="blue"
+    <app-stats-widget appTourAnchor="dashboard.stats" *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD]" label="Utenti" icon="pi-users" color="blue"
         [value]="totalUsers" [link]="'users'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget appTourAnchor="dashboard.stats" *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Album" icon="pi-book" color="orange" [value]="totalAlbums" [link]="'albums'" />
-    <app-stats-widget *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
+    <app-stats-widget appTourAnchor="dashboard.stats" *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER]"
         label="Tracce" icon="pi-file" color="green" [value]="totalTracks" [link]="'tracks'" />
 
     @if (inventoryEnabled()) {
-    <app-inventory-widget
+    <app-inventory-widget appTourAnchor="dashboard.inventory"
         *hasRoles="[RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]"
         [mode]="inventoryMode" [adminSummary]="inventoryAdminSummary" [userSummary]="inventoryUserSummary"
         [recentAssignments]="recentInventoryAssignments" [loading]="inventoryLoading" />
     }
 
-    <app-recents-widget [tracks]="tracks" />
+    <app-recents-widget appTourAnchor="dashboard.recents" [tracks]="tracks" />
     @if (calendarEnabled()) {
-    <app-calendar-events-widget [events]="upcomingEvents" (pageChange)="upcomingEventsPageChange($event)" />
+    <app-calendar-events-widget appTourAnchor="dashboard.events" [events]="upcomingEvents" (pageChange)="upcomingEventsPageChange($event)" />
     }
     <div class="col-span-12 xl:col-span-6" appTourAnchor="dashboard.notifications">
         <app-notifications-widget [notices]="notices" [view]="noticeView" [timeZone]="noticeTimeZone"

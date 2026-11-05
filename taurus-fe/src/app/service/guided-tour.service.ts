@@ -3,7 +3,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { catchError, filter, finalize, Observable, of, shareReplay, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { GuidedTour, GuidedTourProgress } from '../module';
+import { GuidedTour, GuidedTourProgress, GuidedTourStep } from '../module';
 import { withErrorSummary, withHandledErrors } from './api-error-context';
 import { KeycloakService } from './keycloak.service';
 import { TenantFeatureService } from './tenant-feature.service';
@@ -13,10 +13,16 @@ import { ToastService } from './toast.service';
 /** One opening of the tour: the component composes the path again for each. */
 export interface GuidedTourSession {
     id: number;
-    presentation: 'tour' | 'invitation';
+    presentation: 'tour' | 'invitation' | 'page';
     /** Opened by itself: closing it counts as an automatic proposal. */
     automatic: boolean;
+    /** Page guide: the steps of the role and of the features, before the check of what the page shows. */
+    steps?: GuidedTourStep[];
+    /** Page guide: the path it belongs to; leaving it closes the guide. */
+    path?: string;
 }
+
+type PageCatalog = typeof import('../constants/guided-tour-pages');
 
 /**
  * State, start rules and saving of the guided tour (docs/guided-tour-spec.md). The catalog and the overlay live in a
@@ -61,10 +67,61 @@ export class GuidedTourService {
         private readonly tenantFeatureService: TenantFeatureService,
         private readonly toastService: ToastService
     ) {
-        // The invitation is a banner of the dashboard: it leaves with the page.
+        // The invitation is a banner of the dashboard and a page guide belongs to its page: both leave with it.
         this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-            if (this.sessionState()?.presentation === 'invitation' && !this.onDashboard()) this.close();
+            const session = this.sessionState();
+            if (session?.presentation === 'invitation' && !this.onDashboard()) this.close();
+            if (session?.presentation === 'page' && session.path !== this.path()) this.close();
         });
+    }
+
+    /**
+     * Whether the current page has a guide for the role and the features of the session. The catalog of the page
+     * guides is a chunk of its own, loaded the first time the help menu asks.
+     */
+    async pageGuideAvailable(): Promise<boolean> {
+        return (await this.composePageGuide())?.length ? true : false;
+    }
+
+    /** «Guida di questa pagina»: it writes nothing on the server and never changes page. */
+    async openPage(): Promise<void> {
+        if (this.sessionState()) return;
+        const path = this.path();
+        const steps = await this.composePageGuide();
+        if (this.sessionState() || path !== this.path()) return;
+        if (steps?.length) this.sessionState.set({ id: ++this.sessions, presentation: 'page', automatic: false, steps, path });
+        else this.pageGuideUnavailable();
+    }
+
+    /** Close, `Esc` or «Fine» of a page guide. */
+    closePage(): void {
+        if (this.sessionState()?.presentation === 'page') this.close();
+    }
+
+    /** No element of the page guide is on screen, for example while the page is still loading. */
+    pageGuideUnavailable(): void {
+        this.closePage();
+        this.toastService.info('Guida non disponibile', 'La guida di questa pagina non è disponibile in questo momento.');
+    }
+
+    private async composePageGuide(): Promise<GuidedTourStep[] | null> {
+        // The emergency switch of the application closes the page guides too.
+        if (this.state()?.enabled === false) return null;
+        const catalog = await this.pageCatalog();
+        const page = catalog?.matchGuidedTourPage(this.path());
+        return page ? catalog!.composePageGuide(page, this.keycloakService.currentUserRole, (feature) => this.tenantFeatureService.isEnabled(feature)) : null;
+    }
+
+    private async pageCatalog(): Promise<PageCatalog | null> {
+        try {
+            return await import('../constants/guided-tour-pages');
+        } catch {
+            return null;
+        }
+    }
+
+    private path(): string {
+        return this.router.url.split(/[?#]/)[0];
     }
 
     /** Reads the state once, after the tenant is confirmed provisioned; `null` when the tour cannot start. */
@@ -101,6 +158,8 @@ export class GuidedTourService {
 
     /** Help button and profile: always available, even with the automatic start switched off. */
     open(): void {
+        // The two guides are never open together.
+        if (this.sessionState()?.presentation === 'page') return;
         this.openedManually.set(true);
         this.load().subscribe((tour) => {
             if (tour?.enabled) this.start('tour', false);
@@ -218,7 +277,7 @@ export class GuidedTourService {
     }
 
     private onDashboard(): boolean {
-        return this.router.url.split(/[?#]/)[0] === '/';
+        return this.path() === '/';
     }
 
     private postponed(): boolean {

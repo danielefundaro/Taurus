@@ -9,7 +9,7 @@
 }
 
 @if (layout === 'grid') {
-<div class="card flex items-center justify-between flex-wrap gap-2">
+<div class="card flex items-center justify-between flex-wrap gap-2" appTourAnchor="calendar.views">
     <div class="flex items-center gap-1">
         <p-button label="Oggi" icon="pi pi-calendar" size="small" [outlined]="true" severity="secondary"
             (onClick)="goToToday()" />
@@ -30,7 +30,7 @@
 </p-popover>
 }
 
-<app-list-toolbar [search]="searchTerm" [showSearch]="layout === 'list'"
+<app-list-toolbar appTourAnchor="calendar.views" [search]="searchTerm" [showSearch]="layout === 'list'"
     [sortOptions]="layout === 'list' ? sortOptions : []" [layout]="layout" gridIcon="pi pi-calendar"
     searchPlaceholder="Cerca evento…" (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
@@ -40,7 +40,7 @@
     (delete)="deleteSelectedElements()" />
 }
 
-<div class="card !p-0 overflow-hidden">
+<div class="card !p-0 overflow-hidden" appTourAnchor="calendar.events">
     @if (layout === 'list') {
     <p-dataview [value]="events" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"

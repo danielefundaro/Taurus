@@ -1,13 +1,13 @@
 <p-confirmdialog />
 <app-page-header heading="Strumenti" appTourAnchor="instruments.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' strumento' : ' strumenti')">
-    <div pageActions><p-button label="Nuovo strumento" icon="pi pi-plus" (onClick)="addNew()" /></div>
+    <div pageActions appTourAnchor="instruments.create"><p-button label="Nuovo strumento" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
 <app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
     (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
 @if (scorePlaybackEnabled) {
-<div class="flex items-center gap-2 mb-3">
+<div class="flex items-center gap-2 mb-3" appTourAnchor="instruments.unconfigured">
     <p-checkbox inputId="onlyUnconfigured" [binary]="true" [(ngModel)]="onlyUnconfigured" (ngModelChange)="onUnconfiguredChange()" />
     <label for="onlyUnconfigured">Da configurare per l'ascolto</label>
 </div>

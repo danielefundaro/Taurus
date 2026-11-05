@@ -18,7 +18,9 @@ describe('TopbarComponent', () => {
         bootstrap = signal(false);
         attention = signal(false);
         calendarEnabled = signal(true);
-        guidedTour = jasmine.createSpyObj<GuidedTourService>('GuidedTourService', ['open'], { attention });
+        guidedTour = jasmine.createSpyObj<GuidedTourService>('GuidedTourService', ['open', 'openPage', 'pageGuideAvailable'], { attention });
+        guidedTour.pageGuideAvailable.and.resolveTo(false);
+        guidedTour.openPage.and.resolveTo();
         keycloakService = jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], {
             currentUserFirstName: 'Daniele',
             currentUserLastName: 'Rossi',
@@ -101,6 +103,21 @@ describe('TopbarComponent', () => {
             menuItems()[0].click();
             fixture.detectChanges();
             expect(guidedTour.open).toHaveBeenCalled();
+            expect(menuItems()).toEqual([]);
+        });
+
+        it('adds the guide of the page when the page has one', async () => {
+            guidedTour.pageGuideAvailable.and.resolveTo(true);
+            fixture.detectChanges();
+            help().click();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            expect(menuItems().map((item) => item.textContent?.trim())).toEqual(['Guida introduttiva', 'Guida di questa pagina']);
+
+            menuItems()[1].click();
+            fixture.detectChanges();
+            expect(guidedTour.openPage).toHaveBeenCalled();
+            expect(guidedTour.open).not.toHaveBeenCalled();
             expect(menuItems()).toEqual([]);
         });
 

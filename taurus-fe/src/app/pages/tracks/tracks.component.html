@@ -6,14 +6,14 @@
     </div>
 </app-page-header>
 
-<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
+<app-list-toolbar appTourAnchor="tracks.toolbar" [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
     (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
 <app-selection-bar *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"
     [count]="selectedTracks.length" [allSelected]="isAllSelected(tracks)" (toggleAll)="toggleSelectAll(tracks)"
     (clear)="selectedTracks = []" (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden">
+<div class="card !p-0 overflow-hidden" appTourAnchor="tracks.list">
     <p-dataview [value]="tracks" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"
