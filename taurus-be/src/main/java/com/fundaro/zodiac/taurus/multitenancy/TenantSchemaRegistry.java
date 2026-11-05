@@ -93,6 +93,7 @@ public class TenantSchemaRegistry {
               AND tenant.deleted = FALSE
               AND tenant.active = TRUE
               AND tenant.event_preparation_enabled = TRUE
+              AND tenant.calendar_enabled = TRUE
             ORDER BY registry.tenant_code
             """);
     }

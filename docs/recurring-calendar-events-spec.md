@@ -7,6 +7,8 @@ La consegna delle notifiche interne descritte in questa specifica segue `docs/no
 ID catalogo: `recurring-calendar-events`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
+Le API delle serie richiedono la funzionalità tenant `CALENDAR`: con il calendario spento rispondono `403` e serie, template e occorrenze restano conservati (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#comportamento-del-calendario)).
+
 ## Obiettivo
 
 Consentire ad Admin e Super Admin di creare e gestire serie di eventi ricorrenti senza perdere il comportamento già disponibile per il singolo evento:

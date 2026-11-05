@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 import com.fundaro.zodiac.taurus.domain.Users;
 import com.fundaro.zodiac.taurus.domain.criteria.UserCalendarEventsCriteria;
 import com.fundaro.zodiac.taurus.domain.criteria.UsersCriteria;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.UsersService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventsDTO;
 import com.fundaro.zodiac.taurus.service.dto.UsersDTO;
@@ -50,6 +51,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entity in body.
      */
     @GetMapping("/{id}/calendar-events")
+    @RequiresTenantFeature(TenantFeature.CALENDAR)
     public ResponseEntity<Page<CalendarEventsDTO>> getUserCalendarEvents(@PathVariable(value = "id") Long id, UserCalendarEventsCriteria criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to get calendar events for user {}", id);
         Page<CalendarEventsDTO> page = getService().getUserCalendarEvents(id, criteria, pageable, abstractAuthenticationToken);
@@ -119,6 +121,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of entity in body.
      */
     @GetMapping("/me/calendar-events")
+    @RequiresTenantFeature(TenantFeature.CALENDAR)
     public ResponseEntity<Page<CalendarEventsDTO>> getCurrentUserCalendarEvents(UserCalendarEventsCriteria criteria, @ParameterObject Pageable pageable, HttpServletRequest request, AbstractAuthenticationToken abstractAuthenticationToken) {
         getLog().debug("REST request to get calendar events for the current user");
         Page<CalendarEventsDTO> page = getService().getCurrentUserCalendarEvents(criteria, pageable, abstractAuthenticationToken);

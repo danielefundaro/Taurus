@@ -448,6 +448,7 @@ class CalendarFeedIT {
         tenant.setCode(code);
         tenant.setActive(true);
         tenant.setExternalCalendarFeedEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setDeleted(false);
         tenant.setInsertBy("super-admin");
         tenant.setInsertDate(now);

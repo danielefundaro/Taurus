@@ -74,6 +74,7 @@ La prima versione comprende:
 Le voci dipendono dalle funzionalita del tenant:
 
 - i provider Inventario ed Economia vengono saltati senza `INVENTORY` o `FINANCE`;
+- il provider del Calendario, e con esso le voci di preparazione, viene saltato senza `CALENDAR`; `GET /api/operations/calendar-events` risponde allora `403`;
 - la firma richiesta compare solo con `INVENTORY_SIGNATURE`;
 - i guasti compaiono solo con `INVENTORY_QR` e `application.inventory.qr.enabled`;
 - le voci di preparazione compaiono solo con `EVENT_PREPARATION`;

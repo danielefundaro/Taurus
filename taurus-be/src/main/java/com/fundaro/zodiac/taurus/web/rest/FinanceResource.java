@@ -231,6 +231,7 @@ public class FinanceResource {
     }
 
     @GetMapping("/reports/event-statement")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public ResponseEntity<byte[]> eventStatementReport(
         @RequestParam long eventId,
         @RequestParam(defaultValue = "csv") String format,
@@ -251,6 +252,7 @@ public class FinanceResource {
     }
 
     @GetMapping("/reports/events")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public ResponseEntity<byte[]> eventsReport(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -310,6 +312,7 @@ public class FinanceResource {
     }
 
     @GetMapping("/events")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public Page<EventSummaryDTO> events(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -322,11 +325,13 @@ public class FinanceResource {
     }
 
     @GetMapping("/events/{id}")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public EventSummaryDTO event(@PathVariable long id, AbstractAuthenticationToken token) {
         return financeService.eventSummary(id, token);
     }
 
     @PatchMapping("/events/{id}/budget")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public EventSummaryDTO updateBudget(
         @PathVariable long id,
         @Valid @RequestBody EventBudgetRequest request,
@@ -336,16 +341,19 @@ public class FinanceResource {
     }
 
     @GetMapping("/events/{id}/statement")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public EventStatementDTO eventStatement(@PathVariable long id, AbstractAuthenticationToken token) {
         return financeService.eventStatement(id, token);
     }
 
     @GetMapping("/events/{id}/movements")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public List<MovementDTO> eventMovements(@PathVariable long id, AbstractAuthenticationToken token) {
         return financeService.eventSummary(id, token).movements();
     }
 
     @PostMapping("/events/{id}/movements")
+    @RequiresTenantFeature({TenantFeature.FINANCE, TenantFeature.CALENDAR})
     public ResponseEntity<MovementDTO> createEventMovement(
         @PathVariable long id,
         @Valid @RequestBody MovementRequest request,

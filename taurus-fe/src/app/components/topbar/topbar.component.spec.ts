@@ -9,6 +9,7 @@ import { TopbarComponent } from './topbar.component';
 describe('TopbarComponent', () => {
     let bootstrap: ReturnType<typeof signal<boolean>>;
     let attention: ReturnType<typeof signal<boolean>>;
+    let calendarEnabled: ReturnType<typeof signal<boolean>>;
     let guidedTour: jasmine.SpyObj<GuidedTourService>;
     let keycloakService: jasmine.SpyObj<KeycloakService>;
     let fixture: ComponentFixture<TopbarComponent>;
@@ -16,6 +17,7 @@ describe('TopbarComponent', () => {
     beforeEach(() => {
         bootstrap = signal(false);
         attention = signal(false);
+        calendarEnabled = signal(true);
         guidedTour = jasmine.createSpyObj<GuidedTourService>('GuidedTourService', ['open'], { attention });
         keycloakService = jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], {
             currentUserFirstName: 'Daniele',
@@ -31,7 +33,7 @@ describe('TopbarComponent', () => {
                 provideRouter([]),
                 { provide: KeycloakService, useValue: keycloakService },
                 { provide: LayoutService, useValue: { isDarkTheme: signal(false), notificationNumber: signal(0) } },
-                { provide: TenantFeatureService, useValue: { refresh: () => of({}), current: signal({ tenantName: 'Orchestra Aurora' }) } },
+                { provide: TenantFeatureService, useValue: { refresh: () => of({}), current: signal({ tenantName: 'Orchestra Aurora' }), loaded: signal(true), calendarEnabled } },
                 { provide: TenantStatusService, useValue: { bootstrap } },
                 { provide: GuidedTourService, useValue: guidedTour }
             ]
@@ -49,6 +51,13 @@ describe('TopbarComponent', () => {
 
         expect(actionLabels()).toEqual(['Calendar', 'Notifiche', 'Profilo']);
         expect(fixture.nativeElement.querySelector('.topbar-tenant-name')?.textContent.trim()).toBe('Orchestra Aurora');
+    });
+
+    it('leaves the calendar shortcut out when the tenant has no calendar', () => {
+        calendarEnabled.set(false);
+        fixture.detectChanges();
+
+        expect(actionLabels()).toEqual(['Notifiche', 'Profilo']);
     });
 
     it('adds the role to the tenant name only when the user chose it among more roles of the tenant', () => {

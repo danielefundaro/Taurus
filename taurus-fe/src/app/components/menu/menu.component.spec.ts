@@ -12,12 +12,14 @@ describe('MenuComponent', () => {
         const inventoryEnabled = signal(false);
         const onboardingImportEnabled = signal(false);
         const externalCalendarFeedEnabled = signal(false);
+        const calendarEnabled = signal(false);
         const service = {
             loaded,
             financeEnabled,
             inventoryEnabled,
             onboardingImportEnabled,
             externalCalendarFeedEnabled,
+            calendarEnabled,
             refresh: jasmine.createSpy().and.returnValue(of({}))
         };
         TestBed.configureTestingModule({
@@ -32,6 +34,7 @@ describe('MenuComponent', () => {
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
         expect(menuItem(component, 'Configurazione iniziale')?.visible).toBeFalse();
+        expect(menuItem(component, 'Calendario')?.visible).toBeFalse();
 
         loaded.set(true);
         financeEnabled.set(true);
@@ -53,6 +56,12 @@ describe('MenuComponent', () => {
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeTrue();
+        expect(menuItem(component, 'Calendario')?.visible).toBeFalse();
+
+        calendarEnabled.set(true);
+        TestBed.flushEffects();
+
+        expect(menuItem(component, 'Calendario')?.visible).toBeTrue();
     });
 });
 
@@ -64,6 +73,7 @@ describe('MenuComponent for the board', () => {
             inventoryEnabled: signal(true),
             onboardingImportEnabled: signal(true),
             externalCalendarFeedEnabled: signal(true),
+            calendarEnabled: signal(true),
             refresh: jasmine.createSpy().and.returnValue(of({}))
         };
         TestBed.configureTestingModule({
@@ -93,6 +103,7 @@ describe('MenuComponent in bootstrap mode', () => {
             inventoryEnabled: signal(false),
             onboardingImportEnabled: signal(false),
             externalCalendarFeedEnabled: signal(false),
+            calendarEnabled: signal(false),
             refresh: jasmine.createSpy().and.returnValue(of({}))
         };
         TestBed.configureTestingModule({

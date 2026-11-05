@@ -171,6 +171,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'tenantFeature.scorePlayback.disabled': 'La funzionalità Ascolto delle parti non è disponibile per questo tenant',
     'tenantFeature.inventoryLoanSheet.disabled': 'La funzionalità Fogli di affidamento non è disponibile per questo tenant',
     'tenantFeature.inventorySignature.disabled': 'La funzionalità Firma elettronica non è disponibile per questo tenant',
+    'tenantFeature.calendar.disabled': 'La funzionalità Calendario non è disponibile per questo tenant',
 
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',

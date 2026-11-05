@@ -14,6 +14,8 @@ export class TenantFeatureService {
     private inFlight?: Observable<TenantFeatures>;
 
     readonly loaded = computed(() => this.features() !== null);
+    /** Calendario degli eventi: Feed esterno, Preparazione evento e Promemoria Web Push lo richiedono. */
+    readonly calendarEnabled = computed(() => this.features()?.calendarEnabled === true);
     readonly financeEnabled = computed(() => this.features()?.financeEnabled === true);
     readonly inventoryEnabled = computed(() => this.features()?.inventoryEnabled === true);
     readonly onboardingImportEnabled = computed(() => this.features()?.onboardingImportEnabled === true);
@@ -84,6 +86,8 @@ export class TenantFeatureService {
                 return this.inventoryLoanSheetEnabled();
             case TenantFeature.INVENTORY_SIGNATURE:
                 return this.inventorySignatureEnabled();
+            case TenantFeature.CALENDAR:
+                return this.calendarEnabled();
         }
     }
 
@@ -102,7 +106,8 @@ export class TenantFeatureService {
             eventPreparationEnabled: false,
             scorePlaybackEnabled: false,
             inventoryLoanSheetEnabled: false,
-            inventorySignatureEnabled: false
+            inventorySignatureEnabled: false,
+            calendarEnabled: false
         };
     }
 

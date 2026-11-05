@@ -44,7 +44,8 @@ public class TenantFeatureService {
             enabled(tenant, TenantFeature.EVENT_PREPARATION),
             enabled(tenant, TenantFeature.SCORE_PLAYBACK),
             enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET),
-            enabled(tenant, TenantFeature.INVENTORY_SIGNATURE)
+            enabled(tenant, TenantFeature.INVENTORY_SIGNATURE),
+            enabled(tenant, TenantFeature.CALENDAR)
         );
     }
 
@@ -96,24 +97,28 @@ public class TenantFeatureService {
             case FINANCE -> Boolean.TRUE.equals(tenant.getFinanceEnabled());
             case INVENTORY -> Boolean.TRUE.equals(tenant.getInventoryEnabled());
             case ONBOARDING_IMPORT -> Boolean.TRUE.equals(tenant.getOnboardingImportEnabled());
-            case EXTERNAL_CALENDAR_FEED -> Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled());
+            case EXTERNAL_CALENDAR_FEED -> Boolean.TRUE.equals(tenant.getExternalCalendarFeedEnabled())
+                && enabled(tenant, TenantFeature.CALENDAR);
             case INVENTORY_QR ->
                 Boolean.TRUE.equals(tenant.getInventoryQrEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
             case NOTIFICATION_PREFERENCES -> Boolean.TRUE.equals(tenant.getNotificationPreferencesEnabled());
             case WEB_PUSH_REMINDERS -> Boolean.TRUE.equals(tenant.getWebPushRemindersEnabled())
-                && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES);
-            case EVENT_PREPARATION -> Boolean.TRUE.equals(tenant.getEventPreparationEnabled());
+                && enabled(tenant, TenantFeature.NOTIFICATION_PREFERENCES)
+                && enabled(tenant, TenantFeature.CALENDAR);
+            case EVENT_PREPARATION -> Boolean.TRUE.equals(tenant.getEventPreparationEnabled())
+                && enabled(tenant, TenantFeature.CALENDAR);
             case SCORE_PLAYBACK -> Boolean.TRUE.equals(tenant.getScorePlaybackEnabled());
             case INVENTORY_LOAN_SHEET ->
                 Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled()) && enabled(tenant, TenantFeature.INVENTORY);
             case INVENTORY_SIGNATURE ->
                 Boolean.TRUE.equals(tenant.getInventorySignatureEnabled()) && enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET);
+            case CALENDAR -> Boolean.TRUE.equals(tenant.getCalendarEnabled());
         };
     }
 
     private boolean applicationAvailable(TenantFeature feature) {
         return switch (feature) {
-            case FINANCE, INVENTORY, INVENTORY_LOAN_SHEET -> true;
+            case FINANCE, INVENTORY, INVENTORY_LOAN_SHEET, CALENDAR -> true;
             // The tenant administrator turns the signature on only when mail, codes and seal are configured.
             case INVENTORY_SIGNATURE -> true;
             case ONBOARDING_IMPORT -> properties.getOnboarding().isEnabled();

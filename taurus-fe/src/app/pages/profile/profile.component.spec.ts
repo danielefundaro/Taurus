@@ -45,6 +45,7 @@ describe('ProfileComponent notification preferences', () => {
         const features = {
             notificationPreferencesEnabled: () => true,
             webPushRemindersEnabled: () => true,
+            calendarEnabled: () => true,
             inventorySignatureEnabled: () => false,
             externalCalendarFeedEnabled: () => false,
             refresh: () => of(null)

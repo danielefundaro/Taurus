@@ -67,6 +67,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
     protected readonly reminderUnit = 'notifiche';
     protected readonly notificationPreferencesEnabled;
     protected readonly webPushRemindersEnabled;
+    protected readonly calendarEnabled;
     /** Le impostazioni della firma elettronica compaiono solo se il tenant ha la funzionalità. */
     protected readonly inventorySignatureEnabled;
 
@@ -82,6 +83,7 @@ export class ProfileComponent extends DetailPageBase implements OnInit {
         super();
         this.notificationPreferencesEnabled = tenantFeatureService.notificationPreferencesEnabled;
         this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;
+        this.calendarEnabled = tenantFeatureService.calendarEnabled;
         this.inventorySignatureEnabled = tenantFeatureService.inventorySignatureEnabled;
     }
 

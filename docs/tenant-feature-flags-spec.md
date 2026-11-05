@@ -5,7 +5,7 @@
 ID catalogo: `tenant-feature-flags`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-I flag tenant descritti in questo documento sono undici; `notification-delivery-generalization` resta esplicitamente fuori perimetro.
+I flag tenant descritti in questo documento sono dodici; `notification-delivery-generalization` resta esplicitamente fuori perimetro.
 
 ## Obiettivo
 
@@ -20,7 +20,8 @@ Consentire a un super amministratore di attivare o disattivare dalla pagina di d
 - **Promemoria eventi Web Push**;
 - **Preparazione evento**;
 - **Ascolto delle parti**, aggiunto dopo la prima versione (vedi [Ascolto delle parti](#ascolto-delle-parti));
-- **Fogli di affidamento** e **Firma elettronica**, aggiunti dopo la prima versione (vedi [Fogli di affidamento e firma elettronica](#fogli-di-affidamento-e-firma-elettronica)).
+- **Fogli di affidamento** e **Firma elettronica**, aggiunti dopo la prima versione (vedi [Fogli di affidamento e firma elettronica](#fogli-di-affidamento-e-firma-elettronica));
+- **Calendario**, aggiunto dopo la prima versione (vedi [Comportamento del Calendario](#comportamento-del-calendario)).
 
 `notification-delivery-generalization` è esclusa da questa evolutiva: è un'infrastruttura trasversale autorevole e non una funzionalità tenant disattivabile.
 
@@ -73,11 +74,14 @@ event_preparation_enabled          BOOLEAN NOT NULL DEFAULT FALSE
 score_playback_enabled             BOOLEAN NOT NULL DEFAULT FALSE
 inventory_loan_sheet_enabled       BOOLEAN NOT NULL DEFAULT FALSE
 inventory_signature_enabled        BOOLEAN NOT NULL DEFAULT FALSE
+calendar_enabled                   BOOLEAN NOT NULL DEFAULT FALSE
 ```
 
 Il valore predefinito è `FALSE`: nessuna funzionalità opzionale viene concessa implicitamente a un nuovo tenant. La creazione richiede quindi un'abilitazione esplicita da parte del super amministratore, oltre alla disponibilità applicativa e alle eventuali dipendenze.
 
 La migration non deve sovrascrivere i valori `finance_enabled` e `inventory_enabled` già persistiti dai tenant esistenti: per queste colonne modifica soltanto il default dello schema. Le sei nuove colonne vengono invece aggiunte con `DEFAULT FALSE`, quindi i tenant esistenti partono con le nuove funzionalità disabilitate finché non vengono inclusi esplicitamente nel rollout. Allo stesso modo `20261016000001_tenant_score_playback_flag.xml` aggiunge `score_playback_enabled` con `DEFAULT FALSE`.
+
+`20261104000000_tenant_calendar_flag.xml` aggiunge `calendar_enabled` con `DEFAULT FALSE` e, in un secondo changeset, lo porta a `TRUE` per tutti i tenant già presenti: prima di questo flag il calendario era sempre attivo e il rilascio non deve toglierlo a nessuno. Un tenant creato dopo la migration segue la regola generale e riceve il calendario solo se il super amministratore lo spunta.
 
 Non è necessario modificare gli schemi tenant: la configurazione è globale rispetto all'istanza del tenant e risiede nel catalogo pubblico.
 
@@ -108,6 +112,7 @@ eventPreparationEnabled: boolean = false;
 scorePlaybackEnabled: boolean = false;
 inventoryLoanSheetEnabled: boolean = false;
 inventorySignatureEnabled: boolean = false;
+calendarEnabled: boolean = false;
 ```
 
 I nuovi tenant nascono con tutti i flag configurati a `false`. La pagina di creazione può consentire al super amministratore di abilitarli esplicitamente prima del salvataggio; in assenza di scelta rimangono disabilitati.
@@ -120,8 +125,10 @@ Ogni checkbox usa `[binary]="true"`, un `inputId` stabile e una `label` semantic
 
 I controlli, nell'ordine della pagina, sono:
 
-- **Moduli principali**: Economia; Inventario; Onboarding e importazione iniziale; Feed calendario esterno; Preparazione evento; Ascolto delle parti; Preferenze notifiche.
-- **Estensioni**: QR code inventario; Fogli di affidamento; Firma elettronica; Promemoria eventi Web Push.
+- **Moduli principali**: Calendario; Economia; Inventario; Onboarding e importazione iniziale; Ascolto delle parti; Preferenze notifiche.
+- **Estensioni**: Feed calendario esterno; Preparazione evento; QR code inventario; Fogli di affidamento; Firma elettronica; Promemoria eventi Web Push.
+
+Una funzionalità può dipendere da più moduli: Promemoria eventi Web Push richiede sia Preferenze notifiche sia Calendario e risulta **Richiede un'altra funzionalità** finché uno dei due è spento.
 
 Ogni checkbox deve avere un `inputId`, una label associata e una breve descrizione. Esempio:
 
@@ -158,7 +165,8 @@ Esempio di risposta:
   "eventPreparationEnabled": true,
   "scorePlaybackEnabled": false,
   "inventoryLoanSheetEnabled": true,
-  "inventorySignatureEnabled": false
+  "inventorySignatureEnabled": false,
+  "calendarEnabled": true
 }
 ```
 
@@ -205,7 +213,8 @@ public record TenantFeaturesDTO(
     boolean eventPreparationEnabled,
     boolean scorePlaybackEnabled,
     boolean inventoryLoanSheetEnabled,
-    boolean inventorySignatureEnabled
+    boolean inventorySignatureEnabled,
+    boolean calendarEnabled
 ) {}
 ```
 
@@ -225,7 +234,8 @@ public enum TenantFeature {
     EVENT_PREPARATION,
     SCORE_PLAYBACK,
     INVENTORY_LOAN_SHEET,
-    INVENTORY_SIGNATURE
+    INVENTORY_SIGNATURE,
+    CALENDAR
 }
 ```
 
@@ -250,19 +260,20 @@ Non deve utilizzare uno stato statico condiviso tra tenant. Può leggere la conf
 
 | Funzionalità | Capacità applicativa | Dipendenze tenant | Stato effettivo |
 | --- | --- | --- | --- |
+| `CALENDAR` | sempre disponibile dopo il deploy | nessuna | `calendar_enabled` |
 | `FINANCE` | sempre disponibile dopo il deploy | nessuna | `finance_enabled` |
 | `INVENTORY` | sempre disponibile dopo il deploy | nessuna | `inventory_enabled` |
 | `ONBOARDING_IMPORT` | `application.onboarding.enabled` | nessuna per il wizard; Economia e Inventario per le relative sezioni | globale AND `onboarding_import_enabled` |
-| `EXTERNAL_CALENDAR_FEED` | `application.calendar-feed.enabled` | Calendario base | globale AND `external_calendar_feed_enabled` |
+| `EXTERNAL_CALENDAR_FEED` | `application.calendar-feed.enabled` | `CALENDAR` | globale AND `external_calendar_feed_enabled` AND `calendar_enabled` |
 | `INVENTORY_QR` | `application.inventory.qr.enabled` e URL pubblico valido | `INVENTORY` | globale AND `inventory_qr_enabled` AND `inventory_enabled` |
 | `INVENTORY_LOAN_SHEET` | sempre disponibile dopo il deploy | `INVENTORY` | `inventory_loan_sheet_enabled` AND `inventory_enabled` |
 | `INVENTORY_SIGNATURE` | sempre disponibile dopo il deploy; posta, chiave dei codici e sigillo li verifica l'attivazione dell'amministratore del tenant | `INVENTORY_LOAN_SHEET` | `inventory_signature_enabled` AND fogli di affidamento effettivi |
 | `NOTIFICATION_PREFERENCES` | `application.notification-preferences.enabled` | outbox generalizzata disponibile | globale AND `notification_preferences_enabled` |
-| `WEB_PUSH_REMINDERS` | chiavi VAPID pubblica e privata non vuote e diverse da `CHANGE_ME` | `NOTIFICATION_PREFERENCES` | capacità push AND `web_push_reminders_enabled` AND preferenze effettive |
-| `EVENT_PREPARATION` | `application.event-preparation.enabled` | Calendario base | globale AND `event_preparation_enabled` |
+| `WEB_PUSH_REMINDERS` | chiavi VAPID pubblica e privata non vuote e diverse da `CHANGE_ME` | `NOTIFICATION_PREFERENCES`, `CALENDAR` | capacità push AND `web_push_reminders_enabled` AND preferenze effettive AND `calendar_enabled` |
+| `EVENT_PREPARATION` | `application.event-preparation.enabled` | `CALENDAR` | globale AND `event_preparation_enabled` AND `calendar_enabled` |
 | `SCORE_PLAYBACK` | `application.score-playback.enabled` | nessuna | globale AND `score_playback_enabled` |
 
-Economia e Inventario non sono prerequisiti dell'intera Preparazione evento. Quando sono disabilitati, soltanto le aree dipendenti escono dalla valutazione, come descritto nella [specifica di preparazione](event-preparation-spec.md#contratto-della-vista-completa).
+Economia non dipende dal Calendario e il Calendario non dipende da Economia: con il calendario spento Economia resta attiva e perde soltanto le informazioni economiche degli eventi (vedi [Comportamento del Calendario](#comportamento-del-calendario)). Economia e Inventario non sono prerequisiti dell'intera Preparazione evento. Quando sono disabilitati, soltanto le aree dipendenti escono dalla valutazione, come descritto nella [specifica di preparazione](event-preparation-spec.md#contratto-della-vista-completa).
 
 Il backend calcola la matrice in un solo punto. Controller, scheduler, dispatcher e frontend non devono ricostruire autonomamente le dipendenze.
 
@@ -280,7 +291,10 @@ Applicazioni:
 
 | Endpoint | Funzionalità richiesta |
 | --- | --- |
+| `/api/calendar-events/**`, `/api/user/calendar-events/**`, `/api/external/calendar-events/**` e `/api/calendar-event-series/**` | `CALENDAR` |
+| `GET /api/users/{id}/calendar-events`, `GET /api/users/me/calendar-events` e `GET /api/operations/calendar-events` | `CALENDAR` |
 | `/api/finance/**` | `FINANCE` |
+| `/api/finance/events/**`, `/api/finance/reports/events` e `/api/finance/reports/event-statement` | `FINANCE` e `CALENDAR` |
 | `/api/inventory/**` | `INVENTORY` |
 | `/api/user/inventory/**` | `INVENTORY` |
 | sotto `/api/onboarding/**`: `GET /context`, template XLSX e CSV, creazione, nuova validazione e applicazione | `ONBOARDING_IMPORT` |
@@ -294,7 +308,9 @@ Applicazioni:
 | endpoint di preparazione amministrativi, personali, esterni ed economici | `EVENT_PREPARATION` |
 | ascolto e correzione delle parti sotto `/api/tracks/{trackId}`, `/api/user/tracks/{trackId}` e `/api/external/tracks/{trackId}`; `GET /api/instruments/playback-suggestion` in `InstrumentsResource` | `SCORE_PLAYBACK` |
 
-I requisiti sono cumulativi: gli endpoint economici di Preparazione richiedono `EVENT_PREPARATION` e `FINANCE`; quelli QR richiedono `INVENTORY_QR`, che incorpora già la dipendenza da `INVENTORY`. Consultazione di elenco, esiti, righe, problemi e rapporti Onboarding, eliminazione di un job, `retry-compensation`, `retry-setup-emails`, retention e cleanup non portano l'annotazione e non vengono bloccati dal flag.
+I requisiti sono cumulativi: gli endpoint economici degli eventi richiedono `FINANCE` e `CALENDAR`; quelli economici di Preparazione richiedono `EVENT_PREPARATION` e `FINANCE`; quelli QR richiedono `INVENTORY_QR`, che incorpora già la dipendenza da `INVENTORY`. Consultazione di elenco, esiti, righe, problemi e rapporti Onboarding, eliminazione di un job, `retry-compensation`, `retry-setup-emails`, retention e cleanup non portano l'annotazione e non vengono bloccati dal flag.
+
+Un'annotazione sul metodo sostituisce quella della classe: per questo gli endpoint degli eventi sotto `/api/finance` dichiarano entrambe le funzionalità, mentre gli endpoint dei promemoria nelle risorse del calendario dichiarano soltanto `WEB_PUSH_REMINDERS`, che include già `CALENDAR` tra le dipendenze.
 
 Le operazioni interne non raggiunte tramite controller, in particolare job schedulati e dispatcher, devono chiamare esplicitamente `isEnabled` o `requireEnabled`.
 
@@ -322,11 +338,37 @@ error.tenantFeature.eventPreparation.disabled
 error.tenantFeature.scorePlayback.disabled
 error.tenantFeature.inventoryLoanSheet.disabled
 error.tenantFeature.inventorySignature.disabled
+error.tenantFeature.calendar.disabled
 ```
 
 Il resolver anonimo del feed calendario e gli identificatori QR non restituiscono `403`: per non rivelare l'esistenza di token, tenant o oggetti rispondono `404` con lo stesso corpo usato per una credenziale inesistente. Gli endpoint autenticati di amministrazione e profilo usano invece il `403` applicativo distinguibile.
 
 In una prima versione non è consigliata una cache backend: la lettura riguarda pochi booleani su una riga individuata da un codice univoco, mentre l'assenza di cache rende la modifica effettiva dalla richiesta successiva anche in un'installazione con più istanze applicative.
+
+## Comportamento del Calendario
+
+`calendarEnabled` (checkbox **Calendario**) governa eventi, serie ricorrenti, disponibilità, presenze e informazioni economiche degli eventi. Non ha capacità applicativa né dipendenze tenant; ne dipendono Feed calendario esterno, Preparazione evento e Promemoria eventi Web Push.
+
+Quando `calendarEnabled` è `false`:
+
+- la voce **Calendario** del menu e il pulsante della topbar non compaiono, e la rotta `/calendar` riporta alla dashboard;
+- la dashboard non mostra **Prossimi eventi** e la sezione «Da fare» non interroga il provider del calendario;
+- profilo e dettaglio utente non mostrano gli eventi a cui la persona ha partecipato;
+- il tour guidato salta i passi dedicati agli eventi;
+- gli endpoint del calendario, delle serie, degli eventi dell'utente e della dashboard degli eventi restituiscono `403 tenantFeature.calendar.disabled`;
+- Feed calendario esterno, Preparazione evento e Promemoria eventi Web Push diventano inefficaci per dipendenza, conservando il proprio flag;
+- le notifiche con sorgente `CALENDAR` sono escluse da lista e conteggio e quelle ancora in outbox sono soppresse;
+- eventi, serie, disponibilità, presenze, preparazioni, scalette e costi restano nello schema del tenant.
+
+Economia resta attiva e indipendente:
+
+- la pagina Economia non mostra la scheda **Eventi**, i riquadri «Da incassare dagli eventi» e «Da pagare per gli eventi», gli eventi aperti, il filtro per evento dei movimenti né gli eventi economicamente aperti dell'esercizio;
+- il dialog dei movimenti non offre la scelta dell'evento;
+- gli endpoint economici degli eventi e i relativi rapporti restituiscono `403`;
+- creando un movimento non si può collegarlo a un evento; modificandone uno già collegato il backend conserva evento e nome dell'evento registrati, anche se la richiesta non li contiene;
+- il riepilogo dell'esercizio non elenca gli eventi aperti, mentre saldi e totali dei movimenti restano invariati.
+
+Alla riattivazione eventi, collegamenti e informazioni economiche tornano visibili; le notifiche soppresse non vengono inviate in ritardo e i promemoria chiusi come `SKIPPED` non ripartono.
 
 ## Comportamento della funzionalità Economia
 
@@ -534,6 +576,7 @@ eventPreparationEnabled: Signal<boolean>;
 scorePlaybackEnabled: Signal<boolean>;
 inventoryLoanSheetEnabled: Signal<boolean>;
 inventorySignatureEnabled: Signal<boolean>;
+calendarEnabled: Signal<boolean>;
 loaded: Signal<boolean>;
 refresh(force?: boolean): Observable<TenantFeatures>;
 ```
@@ -581,18 +624,22 @@ Creare un `tenantFeatureGuard` che legga dalla route:
 data: { feature: TenantFeature.INVENTORY }
 ```
 
-Usarlo sulle route lazy-loaded `/inventory` e `/finance`, insieme al guard dei ruoli. Il guard deve attendere il primo caricamento della configurazione e reindirizzare alla dashboard quando la feature non è disponibile.
+Usarlo sulle route lazy-loaded `/inventory`, `/finance` e `/calendar`, insieme al guard dei ruoli. Il guard deve attendere il primo caricamento della configurazione e reindirizzare alla dashboard quando la feature non è disponibile.
 
 Principali punti di applicazione:
 
 | Area frontend | Regola |
 | --- | --- |
-| Menu | Filtrare Economia e Inventario prima di costruire il modello |
-| Dashboard | Non creare la card Inventario e non avviare le sue richieste |
-| Dettaglio utente | Non creare `InventoryAssignmentsComponent` |
+| Menu | Filtrare Calendario, Economia e Inventario prima di costruire il modello |
+| Topbar | Nascondere il pulsante Calendario finché i flag non sono letti o quando il calendario è spento |
+| Dashboard | Non creare la card Inventario né il widget dei prossimi eventi e non avviare le loro richieste |
+| Dettaglio utente | Non creare `InventoryAssignmentsComponent` né la tabella degli eventi a cui ha partecipato |
+| Profilo | Nascondere gli eventi a cui si è partecipato |
+| Economia | Senza Calendario nascondere scheda Eventi, riepiloghi, filtro e scelta dell'evento nei movimenti |
+| Tour guidato | Saltare i passi degli eventi senza Calendario |
 | Dettaglio evento | Nascondere compenso, costi e consuntivo |
 | Dialog nuovo evento | Nascondere il compenso |
-| Route Economia/Inventario | Impedire anche l'accesso diretto tramite URL |
+| Route Calendario/Economia/Inventario | Impedire anche l'accesso diretto tramite URL |
 | Menu e dettaglio tenant | Nascondere collegamenti Onboarding quando non effettivo |
 | Profilo e amministrazione feed | Nascondere gestione e URL del feed calendario |
 | Inventario | Nascondere etichette, scansione, rotazione, azioni rapide e guasti QR |
@@ -624,7 +671,7 @@ Una richiesta già iniziata prima del commit della modifica potrebbe concludersi
 
 ## Notifiche
 
-Il dominio possiede già le sorgenti `FINANCE` e `INVENTORY`, che devono essere utilizzate per il filtro.
+Il dominio possiede già le sorgenti `FINANCE`, `INVENTORY` e `CALENDAR`, che devono essere utilizzate per il filtro.
 
 Quando una funzionalità è disabilitata:
 
@@ -636,6 +683,7 @@ Quando una funzionalità è disabilitata:
 
 Per i nuovi flag valgono inoltre queste regole:
 
+- le notifiche con sorgente `CALENDAR` richiedono il Calendario, oltre all'eventuale funzionalità propria del tipo, come Preparazione evento;
 - le notifiche di QR inventario (`INVENTORY_ISSUE`), Preparazione evento e atti della firma elettronica (`SIGNATURE_ACT`) sono soppresse quando la funzionalità origine non è effettiva; l'Onboarding non produce notifiche e `NotificationFeaturePolicy` non ha una regola per esso;
 - disabilitare Preferenze notifiche non sopprime le notifiche: applica il profilo di compatibilità e conserva quelle obbligatorie;
 - disabilitare Promemoria Web Push chiude come `SKIPPED` soltanto i job reminder interessati;
@@ -667,8 +715,8 @@ Utilizzo:
 - il resolver del feed applica il flag prima di aprire lo schema, mentre lifecycle, tombstone cleanup e revoche di sicurezza continuano su tutti i tenant attivi;
 - dashboard e notifiche QR elaborano soltanto tenant con Inventario e QR effettivi;
 - dispatcher di preferenze e digest applicano il profilo di compatibilità ai tenant con Preferenze disabilitate;
-- lo scheduler Web Push non pianifica o consegna reminder evento per tenant con il flag disabilitato;
-- lo scheduler Preparazione evento usa soltanto i tenant con Preparazione effettiva;
+- lo scheduler Web Push non pianifica o consegna reminder evento per tenant con il flag disabilitato o senza Calendario;
+- lo scheduler Preparazione evento usa soltanto i tenant con Preparazione effettiva: la query di `findEventPreparationEnabledTenantCodes` richiede anche `calendar_enabled`;
 - recupero del riconoscimento e pulizia delle versioni delle parti saltano i tenant senza Ascolto delle parti effettivo;
 - scheduler generici, GDPR, retention e pulizia media continuano a usare tutti i tenant attivi.
 
@@ -731,6 +779,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - profilo di compatibilità quando Preferenze notifiche è disabilitata;
 - reminder Web Push pendenti marcati `SKIPPED` senza consegna tardiva;
 - Preparazione evento assente, dati conservati e aree Economia/Inventario degradate indipendentemente;
+- Calendario spento: `403` sugli endpoint degli eventi, dipendenti inefficaci, notifiche `CALENDAR` soppresse, provider della dashboard saltato, collegamento dei movimenti agli eventi conservato e nessun evento aperto nell'esercizio (`TenantFeatureServiceTest`, `TenantsServiceImplTest`, `NotificationFeaturePolicyTest`, `OperationalDashboardServiceTest`, `FinanceServiceGuardsTest`);
 - verifica che l'outbox generalizzata rimanga l'unico percorso con ogni combinazione di flag.
 
 ### Frontend
@@ -746,7 +795,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - aggiornamento periodico e al ritorno in primo piano;
 - gestione specifica del `403` per feature disabilitata;
 - conferma prima della disattivazione dal dettaglio tenant;
-- rendering delle undici checkbox nei due gruppi, stato della capacità applicativa, spiegazione dell'abilitazione pianificata e dipendenze;
+- rendering delle dodici checkbox nei due gruppi, stato della capacità applicativa, spiegazione dell'abilitazione pianificata e dipendenze;
 - permanenza nella pagina condivisa, e uscita dalla sola pagina dedicata, quando una funzionalità viene disattivata;
 - Onboarding nascosto e polling interrotto dopo la disattivazione;
 - gestione feed nascosta senza esporre URL o token conservati;
@@ -754,7 +803,8 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - sezione Preferenze notifiche nascosta senza influire sul centro notifiche obbligatorio;
 - impostazioni reminder nascoste senza disabilitare push di altre categorie;
 - workspace Preparazione e relativo provider dashboard non creati quando disabilitati;
-- combinazioni padre/figlio, compreso il ripristino automatico dell'efficacia del figlio quando il padre viene riattivato.
+- combinazioni padre/figlio, compreso il ripristino automatico dell'efficacia del figlio quando il padre viene riattivato;
+- Calendario spento: menu, topbar, route, dashboard, profilo, dettaglio utente, tour guidato e pagina Economia senza eventi.
 
 ### Test di accettazione multi-tenant
 
@@ -770,6 +820,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 10. Disabilitare Onboarding durante validazione e durante applicazione, verificando rispettivamente arresto sicuro e completamento atomico.
 11. Verificare che un token feed del tenant disabilitato restituisca `404`, mentre lo stesso endpoint continui a funzionare per un altro tenant.
 12. Verificare che la consegna generalizzata delle notifiche degli altri moduli non venga mai disattivata.
+13. Spegnere il Calendario per A con Economia attiva: A non vede eventi né economia degli eventi, i movimenti già collegati conservano l'evento, B continua a usare il proprio calendario; riattivandolo A ritrova eventi e collegamenti.
 
 ## Strategia di rilascio
 
@@ -790,7 +841,7 @@ Questo ordine mantiene compatibile il frontend precedente durante il rilascio. I
 
 La funzionalità è completata quando:
 
-- tutti gli undici flag sono modificabili dalla pagina di dettaglio tenant;
+- tutti i dodici flag sono modificabili dalla pagina di dettaglio tenant;
 - menu, route, card e azioni collegate rispettano i flag;
 - il backend impedisce ogni accesso diretto ai moduli disabilitati;
 - il Calendario resta utilizzabile senza mostrare o alterare dati economici nascosti;
@@ -805,4 +856,5 @@ La funzionalità è completata quando:
 - disabilitare Preferenze notifiche non disabilita l'outbox né le notifiche obbligatorie;
 - disabilitare Web Push reminder non spegne i push di altre categorie e non causa invii tardivi;
 - Preparazione evento conserva dati e conferme, degradando separatamente le aree Economia e Inventario;
+- spegnere il Calendario conserva tutti i dati degli eventi e lascia Economia utilizzabile senza alterare i collegamenti esistenti;
 - `notification-delivery-generalization` non compare tra i controlli tenant e resta l'unico meccanismo di consegna.

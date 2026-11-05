@@ -2,6 +2,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.EventCost;
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYear;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialAccount;
@@ -21,6 +22,7 @@ import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentR
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementRepository;
 import com.fundaro.zodiac.taurus.security.SecurityUtils;
 import com.fundaro.zodiac.taurus.service.MediaService;
+import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.dto.MediaDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.AccountStatementDTO;
@@ -73,6 +75,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -103,6 +106,7 @@ public class FinanceService {
     private final MediaRepository mediaRepository;
     private final MediaService mediaService;
     private final FinanceMetrics metrics;
+    private TenantFeatureService tenantFeatureService;
 
     public FinanceService(
         AccountingYearRepository yearRepository,
@@ -124,6 +128,16 @@ public class FinanceService {
         this.mediaRepository = mediaRepository;
         this.mediaService = mediaService;
         this.metrics = metrics;
+    }
+
+    @Autowired(required = false)
+    void setTenantFeatureService(TenantFeatureService value) {
+        tenantFeatureService = value;
+    }
+
+    /** Without the calendar the economics of the events leave the dashboard and the year, and no movement gets a new event. */
+    private boolean calendarEnabled() {
+        return tenantFeatureService == null || tenantFeatureService.isEnabled(TenantFeature.CALENDAR);
     }
 
     @Transactional(readOnly = true)
@@ -915,6 +929,7 @@ public class FinanceService {
      * nel rendiconto in cui e' stato contabilizzato.
      */
     private List<EventEconomicLineDTO> eventLines(LocalDate from, LocalDate to, List<FinancialMovement> movements) {
+        if (!calendarEnabled()) return List.of();
         Set<Long> withMovements = movements.stream()
             .filter(movement -> movement.getEvent() != null)
             .map(movement -> movement.getEvent().getId())
@@ -1062,12 +1077,15 @@ public class FinanceService {
         if (category != null && category.getDirection() != FinancialCategoryDirection.BOTH && !category.getDirection().name().equals(request.direction().name())) {
             throw error(HttpStatus.BAD_REQUEST, "La categoria non è compatibile con la direzione del movimento", "finance.movement.categoryDirection");
         }
-        CalendarEvents event = request.eventId() == null ? null : requiredEvent(request.eventId());
         movement.setAccountingYear(ensureYear(request.bookingDate().getYear(), actor));
         movement.setAccount(account);
         movement.setCategory(category);
-        movement.setEvent(event);
-        movement.setEventNameSnapshot(event == null ? null : event.getName());
+        // Without the calendar the link to an event is kept as it is: it can be neither chosen nor removed.
+        if (calendarEnabled()) {
+            CalendarEvents event = request.eventId() == null ? null : requiredEvent(request.eventId());
+            movement.setEvent(event);
+            movement.setEventNameSnapshot(event == null ? null : event.getName());
+        }
         movement.setDirection(request.direction());
         movement.setBookingDate(request.bookingDate());
         movement.setValueDate(request.valueDate());

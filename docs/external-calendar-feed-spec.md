@@ -469,7 +469,7 @@ Esempio di creazione:
 
 La rotazione richiede anch'essa una chiave UUID v4 e accetta il corpo `{ "idempotencyKey": "..." }`. Il retry con la stessa chiave restituisce lo stesso URL finché quella versione del token è ancora corrente, altrimenti `409 calendarFeed.idempotency.stale`; il riuso della chiave con un payload diverso restituisce `409 calendarFeed.idempotency.conflict`.
 
-Tutte le API di gestione richiedono la funzionalità tenant `EXTERNAL_CALENDAR_FEED`.
+Tutte le API di gestione richiedono la funzionalità tenant `EXTERNAL_CALENDAR_FEED`, che dipende dal Calendario (`CALENDAR`): con il calendario spento il feed è inefficace, le API di gestione rispondono `403` e il download anonimo `404`, come per la funzionalità spenta (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#comportamento-del-calendario)).
 
 Risposta `201 Created`:
 

@@ -18,6 +18,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/calendar-events")
+@RequiresTenantFeature(TenantFeature.CALENDAR)
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
     public CalendarEventsResource(CalendarEventsService service) {

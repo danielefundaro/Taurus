@@ -14,6 +14,8 @@ public class NotificationFeaturePolicy {
         Set<TenantFeature> result = new LinkedHashSet<>();
         if (source == NotificationSource.FINANCE) result.add(TenantFeature.FINANCE);
         if (source == NotificationSource.INVENTORY) result.add(TenantFeature.INVENTORY);
+        // Event notices, preparation and reminders: nothing about the events reaches a tenant without the calendar.
+        if (source == NotificationSource.CALENDAR) result.add(TenantFeature.CALENDAR);
         if ("INVENTORY_ISSUE".equals(aggregateType)) result.add(TenantFeature.INVENTORY_QR);
         // The summary of an initial import: it has no meaning for an instance where the import is off.
         if ("ONBOARDING_IMPORT".equals(aggregateType)) result.add(TenantFeature.ONBOARDING_IMPORT);

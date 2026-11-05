@@ -114,6 +114,8 @@ public class OperationalDashboardService {
                 continue;
             if (provider.domain() == DashboardDomain.FINANCE && !tenantFeatureService.isEnabled(TenantFeature.FINANCE))
                 continue;
+            if (provider.domain() == DashboardDomain.CALENDAR && !tenantFeatureService.isEnabled(TenantFeature.CALENDAR))
+                continue;
             long providerStartedAt = System.nanoTime();
             try {
                 for (OperationalItemDTO item : provider.getOperations(context)) {

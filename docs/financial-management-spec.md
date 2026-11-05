@@ -545,7 +545,7 @@ ROLE_BOARD
 ROLE_TREASURER
 ```
 
-`FinanceResource` è annotata con `@RequiresTenantFeature(TenantFeature.FINANCE)`: con la funzionalità spenta per il tenant tutte le API economiche rispondono `403`.
+`FinanceResource` è annotata con `@RequiresTenantFeature(TenantFeature.FINANCE)`: con la funzionalità spenta per il tenant tutte le API economiche rispondono `403`. Gli endpoint degli eventi (`/api/finance/events/**`, `/api/finance/reports/events` e `/api/finance/reports/event-statement`) richiedono anche `CALENDAR`: con il calendario spento rispondono `403`, la pagina nasconde scheda Eventi, riepiloghi, filtro e scelta dell'evento, un movimento nuovo non può essere collegato a un evento, la modifica di un movimento già collegato conserva l'evento registrato e il riepilogo dell'esercizio non elenca gli eventi aperti (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#comportamento-del-calendario)).
 
 ### Conti
 

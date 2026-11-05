@@ -80,6 +80,7 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
     {
         id: 'admin.calendar',
         roles: [RoleEnums.ADMIN, RoleEnums.BOARD],
+        requires: [TenantFeature.CALENDAR],
         route: '/calendar',
         anchors: ['calendar.create', 'calendar.header'],
         mobileAnchors: ['calendar.header'],
@@ -108,6 +109,7 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
     {
         id: 'calendar.availability',
         roles: [RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+        requires: [TenantFeature.CALENDAR],
         route: '/calendar',
         anchors: ['calendar.header'],
         icon: 'pi pi-calendar',
@@ -157,6 +159,7 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
     {
         id: 'calendar.program',
         roles: [RoleEnums.ARCHIVIST],
+        requires: [TenantFeature.CALENDAR],
         route: '/calendar',
         anchors: ['calendar.header'],
         icon: 'pi pi-list',
@@ -213,7 +216,7 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
     {
         id: 'finance.events',
         roles: [RoleEnums.TREASURER],
-        requires: [TenantFeature.FINANCE],
+        requires: [TenantFeature.FINANCE, TenantFeature.CALENDAR],
         icon: 'pi pi-calendar',
         title: 'Economia degli eventi',
         body: "Le notifiche economiche ti portano al dettaglio dell'evento, dove gestisci preventivo e consuntivo.",

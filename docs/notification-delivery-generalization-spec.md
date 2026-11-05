@@ -232,7 +232,7 @@ Enum iniziale `NotificationSource`:
 
 - `GENERAL`, riservato a notifiche legacy non ancora classificate;
 - `CONTENT`, per album, tracce e strumenti;
-- `CALENDAR`, per eventi, disponibilità e presenze;
+- `CALENDAR`, per eventi, disponibilità e presenze; soppressa quando la funzionalità tenant `CALENDAR` è spenta;
 - `IDENTITY`, per utenti;
 - `TENANT`, per operazioni sui tenant;
 - `INVENTORY`, per oggetti, assegnazioni, fotografie, riconsegne e scadenze;

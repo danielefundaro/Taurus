@@ -13,7 +13,8 @@ public enum TenantFeature {
     EVENT_PREPARATION("eventPreparation"),
     SCORE_PLAYBACK("scorePlayback"),
     INVENTORY_LOAN_SHEET("inventoryLoanSheet"),
-    INVENTORY_SIGNATURE("inventorySignature");
+    INVENTORY_SIGNATURE("inventorySignature"),
+    CALENDAR("calendar");
 
     private final String errorKey;
 
@@ -33,7 +34,8 @@ public enum TenantFeature {
         return switch (this) {
             case INVENTORY_QR, INVENTORY_LOAN_SHEET -> List.of(INVENTORY);
             case INVENTORY_SIGNATURE -> List.of(INVENTORY_LOAN_SHEET);
-            case WEB_PUSH_REMINDERS -> List.of(NOTIFICATION_PREFERENCES);
+            case WEB_PUSH_REMINDERS -> List.of(NOTIFICATION_PREFERENCES, CALENDAR);
+            case EXTERNAL_CALENDAR_FEED, EVENT_PREPARATION -> List.of(CALENDAR);
             default -> List.of();
         };
     }

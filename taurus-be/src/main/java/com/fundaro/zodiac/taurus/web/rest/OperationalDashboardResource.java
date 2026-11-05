@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.OperationalDashboardService;
 import com.fundaro.zodiac.taurus.service.dto.dashboard.OperationalDashboardDTO;
 import java.util.List;
@@ -33,6 +34,7 @@ public class OperationalDashboardResource {
      * {@code /calendar?attention=event-follow-up}. Reserved to administrators by {@code SecurityConfiguration}.
      */
     @GetMapping("/operations/calendar-events")
+    @RequiresTenantFeature(TenantFeature.CALENDAR)
     public ResponseEntity<List<Long>> getAttentionEvents(
         @RequestParam("attention") String attention,
         AbstractAuthenticationToken authentication

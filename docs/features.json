@@ -1190,7 +1190,8 @@
           "taurus-be/src/main/resources/config/liquibase/changelog/20260904000000_tenant_feature_flags.xml",
           "taurus-be/src/main/resources/config/liquibase/changelog/20260904000001_tenant_feature_notification_status.xml",
           "taurus-be/src/main/resources/config/liquibase/changelog/20260907000000_tenant_extended_feature_flags.xml",
-          "taurus-be/src/main/resources/config/liquibase/changelog/20261021100000_tenant_loan_sheet_signature_flags.xml"
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261021100000_tenant_loan_sheet_signature_flags.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261104000000_tenant_calendar_flag.xml"
         ],
         "tests": [
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/TenantFeatureServiceTest.java",
@@ -1199,6 +1200,9 @@
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/InventoryExpirationNotificationSchedulerTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/NotificationDispatcherTest.java",
           "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TenantsServiceImplTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceGuardsTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/OperationalDashboardServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationFeaturePolicyTest.java",
           "taurus-fe/src/app.routes.spec.ts",
           "taurus-fe/src/app/pages/tenants/detail/detail.component.spec.ts",
           "taurus-fe/src/app/interceptor/http-interceptor.service.spec.ts",
@@ -1206,13 +1210,16 @@
           "taurus-fe/src/app/guard/tenant-feature.guard.spec.ts",
           "taurus-fe/src/app/components/menu/menu.component.spec.ts",
           "taurus-fe/src/app/components/topbar/topbar.component.spec.ts",
+          "taurus-fe/src/app/pages/dashboard/dashboard.component.spec.ts",
+          "taurus-fe/src/app/pages/finance/finance.component.spec.ts",
+          "taurus-fe/src/app/constants/guided-tour-steps.spec.ts",
           "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/authentication/TenantRoleSelectorAuthenticatorTest.java",
           "keycloak-authenticator/src/test/java/com/fundaro/zodiac/keycloakauthenticator/protocol/oidc/mappers/TenantRoleMapperTest.java"
         ]
       },
-      "notes": "Implementati undici flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar e aggiunto il ruolo della sessione quando è stato scelto tra più ruoli del tenant (claim role_choice del provider Keycloak). Il 2026-10-25 sono stati chiusi i quattro requisiti aperti: le checkbox sono divise in Moduli principali ed Estensioni in base alle dipendenze dichiarate; con la capacità applicativa spenta la pagina spiega se il valore salvato è un'abilitazione pianificata; una funzionalità incorporata in una pagina condivisa non porta più l'utente a / ma fa sparire la sola sezione, perché l'interceptor esce soltanto dalla pagina che dichiara quella funzionalità in data.feature; il log tenant_features_updated elenca in dependentChanges le figlie il cui stato effettivo cambia per dipendenza, con le dipendenze dichiarate una sola volta in TenantFeature.dependencies(). La specifica non ha più requisiti aperti.",
+      "notes": "Implementati i flag tenant con default FALSE, capacità applicative e dipendenze effettive, protezione degli endpoint, soppressione di scheduler/notifiche, conservazione dei dati e aggiornamento dinamico della UI. Onboarding filtra le sezioni dipendenti da Economia e Inventario; QR e feed anonimi non espongono risorse quando disabilitati. notification-delivery-generalization resta esclusa. Il 2026-10-21 fogli di affidamento e firma elettronica sono diventati funzionalità tenant. Il 2026-10-24 documentata la regola del nome dell'organizzazione nella topbar e aggiunto il ruolo della sessione quando è stato scelto tra più ruoli del tenant (claim role_choice del provider Keycloak). Il 2026-10-25 sono stati chiusi i quattro requisiti aperti: le checkbox sono divise in Moduli principali ed Estensioni in base alle dipendenze dichiarate; con la capacità applicativa spenta la pagina spiega se il valore salvato è un'abilitazione pianificata; una funzionalità incorporata in una pagina condivisa non porta più l'utente a / ma fa sparire la sola sezione, perché l'interceptor esce soltanto dalla pagina che dichiara quella funzionalità in data.feature; il log tenant_features_updated elenca in dependentChanges le figlie il cui stato effettivo cambia per dipendenza, con le dipendenze dichiarate una sola volta in TenantFeature.dependencies(). La specifica non ha più requisiti aperti. Il 2026-11-04 il Calendario è diventato il dodicesimo flag (calendar_enabled), acceso dalla migration per tutti i tenant esistenti e spento per i nuovi come gli altri: ne dipendono Feed calendario esterno, Preparazione evento e Promemoria Web Push, che ora richiede anche Preferenze notifiche; Economia resta indipendente, nasconde scheda, riepiloghi e scelta degli eventi e conserva i collegamenti già registrati dei movimenti; le notifiche con sorgente CALENDAR sono soppresse e la dashboard salta il provider del calendario.",
       "release": null,
-      "lastVerifiedOn": "2026-10-25"
+      "lastVerifiedOn": "2026-11-04"
     },
     {
       "id": "tenant-onboarding-import",

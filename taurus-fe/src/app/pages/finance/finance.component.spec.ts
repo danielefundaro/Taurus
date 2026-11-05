@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -12,7 +13,7 @@ import {
     FinancialMovement,
     Page
 } from '../../module';
-import { ConfirmService, FinanceService, ToastService } from '../../service';
+import { ConfirmService, FinanceService, TenantFeatureService, ToastService } from '../../service';
 import { FinanceComponent } from './finance.component';
 
 type Finance = jasmine.SpyObj<FinanceService>;
@@ -36,11 +37,17 @@ const movement = (overrides: Partial<FinancialMovement> = {}): FinancialMovement
 });
 
 describe('FinanceComponent', () => {
-    beforeEach(() =>
+    const calendarEnabled = signal(true);
+
+    beforeEach(() => {
+        calendarEnabled.set(true);
         TestBed.configureTestingModule({
-            providers: [{ provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: new Map() } } }]
-        })
-    );
+            providers: [
+                { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: new Map() } } },
+                { provide: TenantFeatureService, useValue: { calendarEnabled } }
+            ]
+        });
+    });
 
     function create(): {
         component: FinanceComponent;
@@ -201,6 +208,21 @@ describe('FinanceComponent', () => {
         expect(component['activeTab']).toBe('movements');
         expect(financeService.getMovements.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ eventId: 70, reconciled: false }));
         expect(financeService.getEvent).not.toHaveBeenCalled();
+    });
+
+    it('reads no event and offers no event tab without the calendar', () => {
+        TestBed.overrideProvider(ActivatedRoute, {
+            useValue: { snapshot: { queryParamMap: new Map([['tab', 'events']]) } }
+        });
+        calendarEnabled.set(false);
+        const { component, financeService } = create();
+
+        component.ngOnInit();
+        component['onEventLazyLoad']({ first: 0, rows: 12 });
+
+        expect(financeService.getEvents).not.toHaveBeenCalled();
+        expect(component['eventOptions']).toEqual([]);
+        expect(component['activeTab']).toBe('movements');
     });
 
     it('reloads the dashboard on the chosen period', () => {

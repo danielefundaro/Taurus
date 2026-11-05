@@ -68,7 +68,7 @@ describe('DashboardComponent operations snapshot', () => {
             {} as NotificationCenterService,
             {} as NotificationPreferencesService,
             { getOperations } as unknown as OperationalDashboardService,
-            { inventoryEnabled: () => false } as unknown as TenantFeatureService,
+            { inventoryEnabled: () => false, calendarEnabled: () => true } as unknown as TenantFeatureService,
             {} as ToastService,
             {} as Router,
             {} as GuidedTourService
@@ -145,5 +145,47 @@ describe('DashboardComponent operations snapshot', () => {
         expect(state.operations?.summary.groupCount).toBe(2);
         expect(state.operationsRefreshWarning).toBeTrue();
         expect(state.operationsError).toBeFalse();
+    });
+});
+
+describe('DashboardComponent without the calendar', () => {
+    function create(calendarEnabled: boolean): { component: DashboardComponent; getAll: jasmine.Spy } {
+        const getAll = jasmine.createSpy('getAll').and.returnValue(of({ content: [], totalElements: 0 }));
+        const component = new DashboardComponent(
+            {} as KeycloakService,
+            {} as TenantsService,
+            {} as UsersService,
+            {} as AlbumsService,
+            {} as TracksService,
+            { getAll } as unknown as CalendarEventsService,
+            {} as InventoryService,
+            {} as UserInventoryService,
+            {} as NoticesService,
+            {} as LayoutService,
+            {} as NotificationCenterService,
+            {} as NotificationPreferencesService,
+            {} as OperationalDashboardService,
+            { inventoryEnabled: () => false, calendarEnabled: () => calendarEnabled } as unknown as TenantFeatureService,
+            {} as ToastService,
+            {} as Router,
+            {} as GuidedTourService
+        );
+        return { component, getAll };
+    }
+
+    it('does not read the upcoming events', () => {
+        const { component, getAll } = create(false);
+
+        (component as unknown as { loadUpcomingEvents(): void }).loadUpcomingEvents();
+
+        expect(getAll).not.toHaveBeenCalled();
+    });
+
+    it('reads the upcoming events when the tenant has the calendar', () => {
+        const { component, getAll } = create(true);
+
+        (component as unknown as { loadUpcomingEvents(): void }).loadUpcomingEvents();
+
+        expect(getAll).toHaveBeenCalled();
     });
 });

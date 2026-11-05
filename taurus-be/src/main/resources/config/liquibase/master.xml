@@ -30,4 +30,5 @@
   <include file="config/liquibase/changelog/20261016000001_tenant_score_playback_flag.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261020100000_signature_link_registry.xml" relativeToChangelogFile="false"/>
   <include file="config/liquibase/changelog/20261021100000_tenant_loan_sheet_signature_flags.xml" relativeToChangelogFile="false"/>
+  <include file="config/liquibase/changelog/20261104000000_tenant_calendar_flag.xml" relativeToChangelogFile="false"/>
 </databaseChangeLog>

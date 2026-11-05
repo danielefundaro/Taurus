@@ -125,11 +125,13 @@
                 </div>
                 }
                 @if (!bootstrap) {
+                @if (calendarEnabled) {
                 <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']" aria-label="Calendario"
                     pTooltip="Calendario" tooltipPosition="bottom">
                     <i class="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
+                }
                 <button type="button" class="layout-topbar-action" [routerLink]="['']" aria-label="Notifiche"
                     pTooltip="Notifiche" tooltipPosition="bottom">
                     <i class="pi pi-bell"></i>

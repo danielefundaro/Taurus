@@ -42,6 +42,11 @@ export class TopbarComponent implements OnInit {
         return this.tenantStatusService.bootstrap();
     }
 
+    /** Hidden until the flags are read, like the menu: the shortcut must not flash and then disappear. */
+    protected get calendarEnabled(): boolean {
+        return this.tenantFeatureService.loaded() && this.tenantFeatureService.calendarEnabled();
+    }
+
     protected get tenantName(): string {
         if (this.bootstrap) return 'Primo accesso';
         return this.tenantFeatureService.current()?.tenantName?.trim() ?? '';

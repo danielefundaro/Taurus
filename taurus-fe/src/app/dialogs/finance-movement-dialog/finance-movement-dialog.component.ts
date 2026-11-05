@@ -22,6 +22,8 @@ export class FinanceMovementDialogComponent {
     protected readonly movement: FinancialMovement;
     protected readonly accounts: FinancialAccount[];
     protected readonly events: FinancialEventSummary[];
+    /** False without the calendar: the backend keeps the event already linked and accepts no new one. */
+    protected readonly eventsEnabled: boolean;
     protected bookingDate: Date;
     protected valueDate?: Date;
     protected attachments: FinancialAttachment[] = [];
@@ -44,6 +46,7 @@ export class FinanceMovementDialogComponent {
                 accounts: FinancialAccount[];
                 categories: FinancialCategory[];
                 events: FinancialEventSummary[];
+                eventsEnabled?: boolean;
                 eventId?: number;
                 /** Direzione proposta dall'azione che ha aperto il form, per esempio «Registra incasso». */
                 direction?: FinancialDirection;
@@ -58,6 +61,7 @@ export class FinanceMovementDialogComponent {
         this.accounts = values?.accounts ?? [];
         this.categories = values?.categories ?? [];
         this.events = values?.events ?? [];
+        this.eventsEnabled = values?.eventsEnabled ?? true;
         this.movement = values?.movement ? { ...values.movement } : { accountId: 0, direction: 'EXPENSE', bookingDate: toIsoDate(new Date()), amount: 0, description: '' };
         if (!this.movement.id && values?.eventId) this.movement.eventId = values.eventId;
         // Chi arriva da «Registra incasso» non deve riscegliere la direzione: il form la propone già,

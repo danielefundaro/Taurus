@@ -1053,7 +1053,7 @@ I percorsi seguenti, che modificano i dati, restano un collaudo manuale su stagi
 
 ## Migrazione e rilascio
 
-La funzionalità richiede il flag globale `application.event-preparation.enabled` (default `false` in `application.yml`) e la funzionalità tenant `EVENT_PREPARATION`. Le API dei materiali richiedono anche `INVENTORY`; le conferme economiche richiedono `FINANCE`.
+La funzionalità richiede il flag globale `application.event-preparation.enabled` (default `false` in `application.yml`) e la funzionalità tenant `EVENT_PREPARATION`, che dipende dal Calendario (`CALENDAR`): con il calendario spento la preparazione è inefficace e lo scheduler salta il tenant (vedi [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md#comportamento-del-calendario)). Le API dei materiali richiedono anche `INVENTORY`; le conferme economiche richiedono `FINANCE`.
 
 Prima dell'abilitazione:
 

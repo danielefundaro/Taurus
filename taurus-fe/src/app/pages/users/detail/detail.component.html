@@ -63,10 +63,12 @@
         </div>
     </app-detail-section>
 
+    @if (tenantFeatureService.calendarEnabled()) {
     <app-detail-section heading="Eventi a cui ha partecipato"
         description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
         <app-calendar-events-table [userId]="user.id" />
     </app-detail-section>
+    }
 
     @if (user.id && tenantFeatureService.inventoryEnabled()) {
     <app-inventory-assignments [userIndex]="user.id" />

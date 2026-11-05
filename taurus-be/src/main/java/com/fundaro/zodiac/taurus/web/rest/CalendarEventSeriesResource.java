@@ -1,5 +1,6 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
+import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.service.CalendarEventSeriesService;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesDTO;
 import com.fundaro.zodiac.taurus.service.dto.CalendarEventSeriesPreviewDTO;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/calendar-event-series")
+@RequiresTenantFeature(TenantFeature.CALENDAR)
 public class CalendarEventSeriesResource {
 
     private final CalendarEventSeriesService service;

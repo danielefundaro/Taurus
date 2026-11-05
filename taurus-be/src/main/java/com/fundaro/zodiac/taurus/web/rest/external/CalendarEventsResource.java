@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController("ExternalPermissionsCalendarEventsResource")
 @RequestMapping("/api/external/calendar-events")
+@RequiresTenantFeature(TenantFeature.CALENDAR)
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
     public CalendarEventsResource(@Qualifier("ExternalPermissionsCalendarEventsService") CalendarEventsService service) {

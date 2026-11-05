@@ -18,14 +18,17 @@ function roles(route: Route | undefined): RoleEnums[] {
 describe('appRoutes tenant features', () => {
     const children = appRoutes.find((route) => route.path === '')?.children ?? [];
 
-    it('protects Inventory and Finance with their feature flags', () => {
+    it('protects Inventory, Finance and the calendar with their feature flags', () => {
         const inventory = children.find((route) => route.path === 'inventory');
         const finance = children.find((route) => route.path === 'finance');
+        const calendar = children.find((route) => route.path === 'calendar');
 
         expect(inventory?.canActivate).toContain(tenantFeatureGuard);
         expect(inventory?.data?.['feature']).toBe(TenantFeature.INVENTORY);
         expect(finance?.canActivate).toContain(tenantFeatureGuard);
         expect(finance?.data?.['feature']).toBe(TenantFeature.FINANCE);
+        expect(calendar?.canActivate).toContain(tenantFeatureGuard);
+        expect(calendar?.data?.['feature']).toBe(TenantFeature.CALENDAR);
     });
 
     it('does not couple unrelated routes to tenant features', () => {

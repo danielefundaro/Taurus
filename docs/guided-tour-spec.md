@@ -249,7 +249,7 @@ La guida di un ruolo è l'elenco ordinato delle tappe applicabili. Benvenuto e t
 | ---: | --- | --- | --- | --- |
 | 1 | `common.welcome` | — | — | — |
 | 2 | `common.navigation` | — | — | — |
-| 3 | `calendar.availability` | `/calendar`, `calendar.header` | — | «Nel calendario trovi concerti e prove. Apri un evento e indica se ci sarai: chi organizza vede subito la risposta.» Punti: «Nel dettaglio trovi luogo, orario e scaletta»; «Riceverai un promemoria prima dell'inizio» con `WEB_PUSH_REMINDERS` |
+| 3 | `calendar.availability` | `/calendar`, `calendar.header` | `CALENDAR` | «Nel calendario trovi concerti e prove. Apri un evento e indica se ci sarai: chi organizza vede subito la risposta.» Punti: «Nel dettaglio trovi luogo, orario e scaletta»; «Riceverai un promemoria prima dell'inizio» con `WEB_PUSH_REMINDERS` |
 | 4 | `catalog.tracks` | `/tracks`, `tracks.header` | — | «In Tracce trovi il repertorio con gli spartiti dei tuoi strumenti; in Album i brani sono raccolti per programma.» Punto: «Ascolta le parti mentre leggi» con `SCORE_PLAYBACK` |
 | 5 | `inventory.mine` | `/inventory`, `inventory.header` | `INVENTORY` | «Qui trovi strumenti e materiali che ti sono stati affidati: prendine visione o avvia la riconsegna.» Punti: «Scarica i fogli di affidamento» con `INVENTORY_LOAN_SHEET`; «Firma gli atti quando ti viene chiesto» con `INVENTORY_SIGNATURE`; «Inquadra il QR dell'oggetto per segnalare un guasto» con `INVENTORY_QR` |
 | 6 | `common.notifications` | — | — | — |
@@ -270,7 +270,7 @@ Stesse tappe dell'Utente, con varianti di testo che non promettono ciò che il r
 | 1–2 | benvenuto e menu | — | — | — |
 | 3 | `catalog.manage` | `/tracks`, `tracks.create` | — | «Crea album e tracce e carica gli spartiti in PDF, associando ogni parte al suo strumento.» |
 | 4 | `catalog.instruments` | `/instruments`, `instruments.header` | — | «L'elenco degli strumenti dell'organizzazione serve ad abbinare parti e musicisti.» |
-| 5 | `calendar.program` | `/calendar`, `calendar.header` | — | «Apri un evento e collega un album: le sue tracce diventano la scaletta. Puoi indicare anche la tua disponibilità.» Punto: «Nel riepilogo vedi cosa manca a programma e spartiti» con `EVENT_PREPARATION` |
+| 5 | `calendar.program` | `/calendar`, `calendar.header` | `CALENDAR` | «Apri un evento e collega un album: le sue tracce diventano la scaletta. Puoi indicare anche la tua disponibilità.» Punto: «Nel riepilogo vedi cosa manca a programma e spartiti» con `EVENT_PREPARATION` |
 | 6 | `inventory.mine` | come per l'Utente | `INVENTORY` | come per l'Utente |
 | 7–9 | notifiche, profilo, aiuto | — | — | — |
 
@@ -281,7 +281,7 @@ Stesse tappe dell'Utente, con varianti di testo che non promettono ciò che il r
 | 1–2 | benvenuto e menu | — | — | — |
 | 3 | `finance.overview` | `/finance`, `finance.summary` | `FINANCE` | «In Economia trovi conti, saldi e movimenti dell'organizzazione.» |
 | 4 | `finance.movements` | `/finance`, `finance.create` | `FINANCE` | «Registra entrate, uscite e trasferimenti, allega le ricevute e segna i movimenti riconciliati.» |
-| 5 | `finance.events` | scheda centrata | `FINANCE` | «Le notifiche economiche ti portano al dettaglio dell'evento, dove gestisci preventivo e consuntivo.» |
+| 5 | `finance.events` | scheda centrata | `FINANCE`, `CALENDAR` | «Le notifiche economiche ti portano al dettaglio dell'evento, dove gestisci preventivo e consuntivo.» |
 | 6–8 | notifiche, profilo, aiuto | — | — | — |
 
 Senza `FINANCE` il percorso del Tesoriere si riduce a benvenuto, menu, notifiche, profilo e aiuto.
@@ -292,7 +292,7 @@ Senza `FINANCE` il percorso del Tesoriere si riduce a benvenuto, menu, notifiche
 | ---: | --- | --- | --- | --- |
 | 1–2 | benvenuto e menu | — | — | — |
 | 3 | `admin.users` | `/users`, `users.create` | — | «Aggiungi i membri dell'organizzazione e assegna il ruolo: riceveranno un'e-mail per impostare la password.» |
-| 4 | `admin.calendar` | `/calendar`, `calendar.create` | — | «Crea prove e concerti, anche ricorrenti, e segui chi ha risposto.» Punti: «Controlla materiali, programma e costi nella preparazione» con `EVENT_PREPARATION`; «Conferma le presenze dopo l'evento» |
+| 4 | `admin.calendar` | `/calendar`, `calendar.create` | `CALENDAR` | «Crea prove e concerti, anche ricorrenti, e segui chi ha risposto.» Punti: «Controlla materiali, programma e costi nella preparazione» con `EVENT_PREPARATION`; «Conferma le presenze dopo l'evento» |
 | 5 | `admin.inventory` | `/inventory`, `inventory.create` | `INVENTORY` | «Registra strumenti e materiali, affidali ai membri e segui riconsegne e scadenze.» Punti: «Stampa le etichette con il QR» con `INVENTORY_QR`; «Prepara il modello del foglio di affidamento» con `INVENTORY_LOAN_SHEET` |
 | 6 | `finance.overview` | come per il Tesoriere | `FINANCE` | variante: «…e prepari preventivi e consuntivi degli eventi.» |
 | 7 | `admin.tools` | `layout.menu.admin`; su mobile `layout.menuButton` | — | «Nel menu trovi anche gli strumenti di amministrazione.» Punti: «Configurazione iniziale: importa dati da un file» con `ONBOARDING_IMPORT`; «Consegne notifiche: controlla quelle non arrivate»; «Feed calendario: pubblica il calendario» con `EXTERNAL_CALENDAR_FEED` |
@@ -308,7 +308,7 @@ Il [Ruolo direttivo](board-role-spec.md) gestisce l'associazione come l'Amminist
 | ---: | --- | --- | --- | --- |
 | 1–2 | benvenuto e menu | — | — | — |
 | 3 | `admin.users` | come per l'Amministratore | — | variante: «Aggiungi i membri dell'organizzazione e assegna il ruolo: riceveranno un'e-mail per impostare la password. Solo l'Amministratore gestisce gli amministratori.» |
-| 4 | `admin.calendar` | come per l'Amministratore | — | come per l'Amministratore |
+| 4 | `admin.calendar` | come per l'Amministratore | `CALENDAR` | come per l'Amministratore |
 | 5 | `admin.inventory` | come per l'Amministratore | `INVENTORY` | come per l'Amministratore |
 | 6 | `finance.overview` | come per il Tesoriere | `FINANCE` | variante dell'Amministratore |
 | 7–9 | notifiche, profilo, aiuto | — | — | — |
@@ -356,7 +356,7 @@ Riattivato l'interruttore, la guida si riapre da sola alla visita successiva del
 Il pulsante di aiuto nella topbar, con icona `pi-question-circle` e tooltip «Aiuto», apre un piccolo menu:
 
 - **Guida introduttiva**: riprende dall'ultima tappa se il ruolo è `IN_PROGRESS`, altrimenti riparte dall'inizio;
-- **Guida di questa pagina**, dalla fase 2;
+- **Guida di questa pagina**, dalla fase 2, solo sulle pagine che ne hanno una per la sessione;
 - **Novità**, dalla fase 3, solo quando ce ne sono;
 - **Assistenza e segnalazioni**, quando la relativa funzionalità sarà implementata.
 
@@ -664,6 +664,349 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 20. Lo script delle ancore fallisce se il catalogo cita un'ancora inesistente.
 21. La cancellazione GDPR dell'utente o del tenant rimuove i dati della guida.
 
+## Guide di pagina
+
+Proposta per la fase 2, in bozza: le scelte da approvare sono raccolte in [Punti da decidere per la fase 2](#punti-da-decidere-per-la-fase-2).
+
+La guida introduttiva resta breve e invariata, entro 10 tappe. I dettagli di ogni pagina passano a una guida propria, aperta su richiesta dalla pagina stessa. Così ogni ruolo trova, per ogni pagina che può aprire, una spiegazione delle sezioni e delle azioni che vede, senza allungare il primo ingresso.
+
+### Principi
+
+| Aspetto | Proposta |
+| --- | --- |
+| Apertura | solo dalla voce **Guida di questa pagina** del pulsante di aiuto; mai automatica |
+| Disponibilità | la voce compare solo sulle pagine che hanno almeno una tappa per il ruolo e le funzionalità della sessione |
+| Ambito | la guida resta sulla pagina: le tappe non hanno `route` e non navigano |
+| Composizione | ruolo, funzionalità del tenant ed elementi presenti sulla pagina, valutati all'apertura |
+| Lunghezza | al massimo 8 tappe per pagina, senza scheda di benvenuto |
+| Scheda | la stessa della guida introduttiva, con gli stessi limiti di titolo, corpo e punti |
+| Stato | nessun salvataggio: né tappe viste né esito |
+| Backend | nessuna modifica: niente API, tabelle, migrazioni o chiavi di errore nuove |
+
+### Composizione e presenza degli elementi
+
+Una tappa di pagina entra nella guida quando:
+
+1. il ruolo della sessione è tra i suoi `roles`;
+2. tutte le funzionalità di `requires` sono attive;
+3. almeno una delle sue ancore è presente e visibile sulla pagina al momento dell'apertura.
+
+La terza condizione è nuova rispetto alla guida introduttiva, dove un'ancora mancante porta alla scheda centrata. Una pagina mostra sezioni diverse secondo i dati: la preparazione di un evento compare solo se configurata, le cancellazioni GDPR in attesa solo se ce ne sono, l'inventario cambia tra la vista dell'organizzazione e quella personale. Una scheda centrata che descrive una sezione assente confonderebbe; la tappa viene quindi lasciata fuori, e la guida parla solo di ciò che si vede.
+
+All'apertura la guida attende al massimo 2 secondi che compaia almeno un'ancora delle sue tappe, per le pagine ancora in caricamento. Se non ne compare nessuna, un toast informativo dice «La guida di questa pagina non è disponibile in questo momento». La composizione resta quella dell'apertura anche se poi la pagina cambia.
+
+Gli elementi nascosti dentro schede non attive o passi chiusi non sono visibili. Per le pagine con schede, come il dettaglio di una traccia o Economia, le tappe puntano all'intestazione della scheda, che è sempre visibile, e il testo dice dove si trova.
+
+### Comandi
+
+| Comando | Effetto |
+| --- | --- |
+| **Avanti**, **Indietro** | tappa successiva o precedente; **Indietro** dalla seconda tappa |
+| **Fine** | all'ultima tappa chiude la guida |
+| **Chiudi**, icona di chiusura o `Esc` | chiude la guida |
+
+Il piede della scheda mostra **Chiudi** a sinistra al posto di **Salta la guida**. Nessun comando scrive sul server. Il toast di chiusura non compare: la guida si riapre dallo stesso menu.
+
+Se la pagina cambia mentre la guida è aperta, per esempio con il tasto Indietro del browser, la guida si chiude. Guida introduttiva e guida di pagina non sono mai aperte insieme: mentre una è aperta, il menu di aiuto non avvia l'altra.
+
+### Stato e novità
+
+Le guide di pagina non salvano nulla. Le ragioni:
+
+- sono consultazioni volontarie, da ripetere quando serve, senza un esito da ricordare;
+- registrare le tappe viste farebbe crescere `seen_steps` oltre il limite di 100 per gli amministratori, che hanno molte pagine;
+- senza scritture il backend resta com'è e la guida non aggiunge dati personali.
+
+Ogni tappa ha comunque `introducedIn`, che vale 2 per le tappe di questa fase, così la [fase 3](#fase-3--novità) potrà segnalare le tappe nuove di una pagina dopo un rilascio. `GUIDED_TOUR_CATALOG_REVISION` passa a 2 con il rilascio della fase 2.
+
+### Catalogo, ancore e caricamento
+
+| Elemento | Percorso proposto | Ruolo |
+| --- | --- | --- |
+| Catalogo delle pagine | `src/app/constants/guided-tour-pages.ts` | pagine, tappe e testi |
+| Modelli | `src/app/module/guided-tour.module.ts` | `GuidedTourPageDefinition` con `page` e `steps` |
+| Servizio | `src/app/service/guided-tour.service.ts` | riconoscimento della pagina, composizione, apertura |
+| Aiuto | `topbar.component` | voce **Guida di questa pagina** |
+
+- `page` è il percorso della rotta con i parametri, per esempio `/calendar/:id`. Il servizio lo confronta con l'URL corrente segmento per segmento, ignorando parametri di query e frammento.
+- Gli ID delle tappe seguono il formato `page.{pagina}.{oggetto}` e sono unici insieme a quelli della guida introduttiva.
+- Le nuove ancore usano la direttiva esistente e il formato `{pagina}.{oggetto}`; `check-tour-anchors.mjs` controlla anche il catalogo delle pagine.
+- Il catalogo delle pagine forma un chunk proprio, caricato con un import dinamico alla prima apertura del menu di aiuto: serve a sapere se la pagina corrente ha una guida. Mentre il chunk arriva, la voce resta nascosta.
+- Limiti di peso: bundle iniziale al massimo 1 kB compresso in più rispetto alla fase 1; chunk del catalogo delle pagine entro 20 kB compressi; chunk della guida introduttiva invariato.
+
+### Collegamento con la guida introduttiva
+
+Il testo di `common.help` diventa: «Riapri la guida quando vuoi da qui; in ogni pagina trovi anche la guida di quella pagina. Se preferisci che non parta da sola, disattivala dal profilo.» Le tappe introduttive non cambiano.
+
+### Contenuti per pagina
+
+Sigle dei ruoli: SA Super amministratore, AD Amministratore, DI Direttivo, TE Tesoriere, AR Archivista, UT Utente, UE Utente esterno. **Gestori** indica SA, AD e DI, cioè i ruoli di `isTenantManager`; **Catalogo** indica i gestori e AR.
+
+La colonna «Ruoli» elenca i ruoli della tappa, sempre dentro quelli ammessi dalla rotta. Le funzionalità della rotta, indicate accanto al titolo della pagina, valgono per tutte le sue tappe. Le ancore sono nuove salvo quelle già usate dalla fase 1, segnate con *.
+
+Le varianti di testo seguono le regole della fase 1: chi non può fare un'azione non la legge.
+
+#### Profilo — `/profile`, tutti i ruoli
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.profile.personal` | tutti | — | `profile.personal` | «Aggiorna nome, cognome, data di nascita ed e-mail e salva con «Salva profilo» in alto. Il nome utente non si cambia.» |
+| 2 | `page.profile.events` | tutti | `CALENDAR` | `profile.events` | «Qui trovi gli eventi in cui sei stato segnato presente.» |
+| 3 | `page.profile.calendarFeed` | UT, UE | `EXTERNAL_CALENDAR_FEED` | `profile.calendarFeed` | «Crea il collegamento e aggiungilo al calendario del telefono: concerti e prove compaiono da soli. Il link si vede una volta sola.» |
+| 4 | `page.profile.notifications` | tutti | `NOTIFICATION_PREFERENCES` | `profile.notifications` | «Scegli quali notifiche ricevere e come, poi premi «Salva preferenze».» Punti: «Promemoria prima degli eventi» con `WEB_PUSH_REMINDERS` e `CALENDAR`; «Riepilogo giornaliero e ore di silenzio»; «Attiva le notifiche su questo dispositivo» |
+| 5 | `page.profile.signature` | tutti tranne TE | `INVENTORY_SIGNATURE` | `profile.signature` | «Scegli come confermare con un codice le firme dei fogli di affidamento e delle prese visione.» |
+| 6 | `page.profile.guide` | tutti | — | `profile.guide` | «Accendi o spegni l'avvio automatico della guida, riaprila o ricominciala da capo.» |
+| 7 | `page.profile.security` | tutti | — | `profile.security` | «Cambia la password e attiva la verifica in due passaggi con un'app di autenticazione.» |
+| 8 | `page.profile.account` | tutti | — | `profile.dangerZone` | «Qui disattivi il tuo account o chiedi la cancellazione definitiva dei tuoi dati. Entrambe le azioni chiedono conferma.» |
+
+Le sezioni Notifiche e Guida esistono solo con la relativa funzionalità o con l'interruttore applicativo acceso: la condizione di presenza le esclude da sola.
+
+#### Dashboard — `/`, tutti i ruoli
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.dashboard.todo` | tutti | — | `dashboard.operations` | «Da fare raccoglie le attività che chiedono la tua attenzione: apri una voce per andare dove serve. «Aggiorna» ricarica l'elenco.» |
+| 2 | `page.dashboard.counters` | SA, AD, DI, AR, UT | — | `dashboard.stats` | Gestori: «I contatori mostrano utenti, album e tracce dell'organizzazione: toccane uno per aprire l'elenco.» Variante SA: «I contatori mostrano i totali della piattaforma e dell'organizzazione: toccane uno per aprire l'elenco.» Variante AR e UT: «Album e tracce disponibili: tocca un contatore per aprire l'elenco.» |
+| 3 | `page.dashboard.inventory` | tutti tranne TE | `INVENTORY` | `dashboard.inventory` | Gestori: «Il riepilogo dell'inventario con le prese visione e le riconsegne in attesa.» Variante AR, UT, UE: «Il materiale che ti è affidato e le prese visione da confermare.» |
+| 4 | `page.dashboard.recents` | tutti tranne TE | — | `dashboard.recents` | «Le tracce aggiunte o modificate di recente: aprine una per leggere le parti.» |
+| 5 | `page.dashboard.events` | tutti | `CALENDAR` | `dashboard.events` | «I prossimi concerti e prove: apri un evento per vederne i dettagli.» |
+| 6 | `page.dashboard.notifications` | tutti | — | `dashboard.notifications`* | «Filtra le notifiche, segnale come lette, rimandale o eliminale; aprine una per andare al dettaglio.» Punto: «Da una notifica puoi disattivarne la categoria» con `NOTIFICATION_PREFERENCES` |
+
+#### Calendario — `/calendar`, SA, AD, DI, AR, UT, UE; `CALENDAR`
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.calendar.create` | Gestori | — | `calendar.create`* | «Crea una prova o un concerto; nel dettaglio scegli date, luogo e, se serve, la ricorrenza.» Punto: «In elenco selezioni più eventi per eliminarli insieme» |
+| 2 | `page.calendar.views` | tutti | — | `calendar.views` | «Passa dal mese all'elenco; nel mese usa le frecce e «Oggi» per spostarti.» |
+| 3 | `page.calendar.open` | tutti | — | `calendar.events` | «Apri un evento per vederne i dettagli e dire se ci sarai.» Variante gestori: «…per modificarlo, vedere le risposte e segnare le presenze.» Variante UE: «Trovi gli eventi pubblici: aprine uno…» |
+
+#### Dettaglio evento — `/calendar/:id`, tutti i ruoli; `CALENDAR`
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.event.data` | tutti tranne TE | — | `event.data` | Gestori: «Date, luogo e compenso dell'evento: modifica e salva con «Salva evento» in alto.» Variante AR, UT, UE: «Data, orario e luogo dell'evento.» Punti per i gestori: «In una serie scegli se cambiare anche gli eventi successivi»; «Imposta il promemoria per chi partecipa» con `WEB_PUSH_REMINDERS` |
+| 2 | `page.event.myAvailability` | tutti tranne TE | — | `event.myAvailability` | «Rispondi «Sono disponibile» o «Non sono disponibile»: la risposta si registra subito e puoi annullarla.» Punti: «In una serie puoi rispondere anche per le date future»; «Scegli quando ricevere il promemoria» con `WEB_PUSH_REMINDERS` |
+| 3 | `page.event.answers` | tutti tranne TE | — | `event.availability` | «Chi ha risposto: disponibili e non disponibili, aggiornati a ogni risposta.» |
+| 4 | `page.event.preparation` | Gestori, AR, TE | `EVENT_PREPARATION` | `event.preparation` | Gestori: «Scegli cosa serve all'evento, come programma, materiali e preventivo, e segui nel riepilogo cosa manca.» Variante AR e TE: «Il riepilogo mostra cosa manca all'evento: programma, materiali, preventivo e chiusure.» |
+| 5 | `page.event.program` | tutti tranne TE | `EVENT_PREPARATION` | `event.program` | Gestori e AR: «Collega un album o aggiungi i brani: diventano la scaletta che i musicisti vedono qui.» Variante UT e UE: «La scaletta dell'evento, con i brani nell'ordine in cui si suonano.» |
+| 6 | `page.event.materials` | Gestori | `EVENT_PREPARATION` | `event.materials` | «Elenca gli oggetti dell'inventario che servono all'evento e salva: il riepilogo segnala quelli da risolvere.» |
+| 7 | `page.event.economics` | Gestori, TE | `FINANCE` | `event.costs`, `event.finance` | Gestori: «Prevedi i costi dell'evento; il consuntivo li confronta con i movimenti registrati in Economia.» Variante TE: «Il consuntivo confronta i costi previsti con i movimenti: da qui li vedi o ne registri uno nuovo.» Punto: «Conferma il preventivo quando la preparazione lo chiede» con `EVENT_PREPARATION` |
+| 8 | `page.event.presence` | Gestori | — | `event.presence` | «Dopo l'evento segna chi c'era e premi «Salva presenze»: l'evento compare tra quelli a cui ciascuno ha partecipato.» Punto: «Chiudi le presenze quando la preparazione lo chiede» con `EVENT_PREPARATION` |
+
+Il Tesoriere apre solo il dettaglio, dalle notifiche economiche: la sua guida ha al massimo preparazione e consuntivo.
+
+#### Tracce — `/tracks`, SA, AD, DI, AR, UT, UE
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.tracks.create` | Catalogo | — | `tracks.create`* | «Crea una traccia o carica subito lo spartito in PDF: poi lo dividi in parti, una per strumento.» |
+| 2 | `page.tracks.search` | tutti | — | `tracks.toolbar` | «Cerca un brano e passa dall'elenco alle schede con il pulsante della vista.» |
+| 3 | `page.tracks.open` | tutti | — | `tracks.list` | «Apri un brano per i dettagli, oppure usa l'anteprima per leggere e stampare le parti.» Variante UE: «Trovi i brani pubblici: aprine uno…». Punto per Catalogo: «Lo stato Pubblico lo mostra anche agli utenti esterni» |
+
+#### Dettaglio traccia — `/tracks/:id`, SA, AD, DI, AR, UT, UE
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.track.preview` | tutti | — | `track.preview` | «L'anteprima mostra le parti a tutta pagina: scegli quali includere e stampale.» |
+| 2 | `page.track.details` | tutti | — | `track.tabDetails` | Catalogo: «Nella scheda Dettagli trovi titolo, autori, tempo, tonalità e stato: salva con «Salva traccia» in alto.» Variante UT e UE: «Nella scheda Dettagli trovi titolo, autori, tempo e tonalità del brano.» |
+| 3 | `page.track.parts` | tutti | — | `track.tabParts` | Catalogo: «Nella scheda Parti ogni parte raccoglie pagine e strumenti: puoi dividerle, unirle e segnarle come verificate.» Variante UT e UE: «Nella scheda Parti trovi le parti del brano e gli strumenti che le suonano.» Punto per Catalogo: «Applica gli strumenti proposti dai nomi delle parti» |
+| 4 | `page.track.playback` | tutti | `SCORE_PLAYBACK` | `track.tabPlayback` | Catalogo: «Nella scheda Ascolto riconosci le note dalle pagine, ascolti le parti e correggi gli errori accanto all'originale.» Variante UT e UE: «Nella scheda Ascolto senti la partitura o una sola parte mentre leggi.» |
+| 5 | `page.track.pdf` | Catalogo | — | `track.tabPdf` | «Nella scheda File PDF carichi uno spartito e premi «Analizza PDF»: le pagine diventano parti da controllare.» |
+
+#### Album — `/albums`, SA, AD, DI, AR, UT, UE
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.albums.create` | Catalogo | — | `albums.create` | «Un album raccoglie i brani di un programma o di un concerto, nell'ordine in cui si suonano.» |
+| 2 | `page.albums.open` | tutti | — | `albums.toolbar` | «Cerca un album e aprilo per vedere i brani in ordine; l'anteprima mostra le parti di tutti i brani.» |
+
+#### Dettaglio album — `/albums/:id`, SA, AD, DI, AR, UT, UE
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.album.data` | tutti | — | `album.data` | Catalogo: «Nome, data, stato e descrizione dell'album: salva con «Salva album» in alto.» Variante UT e UE: «Nome, data e descrizione dell'album.» |
+| 2 | `page.album.tracks` | tutti | — | `album.tracks` | Catalogo: «Aggiungi tracce, trascinale per cambiare l'ordine e confermalo.» Variante UT e UE: «I brani dell'album nell'ordine in cui si suonano: aprine uno per la tua parte.» |
+| 3 | `page.album.preview` | tutti | — | `album.preview` | «L'anteprima mostra in un'unica vista le parti di tutti i brani, da leggere o stampare.» |
+
+#### Anteprima spartiti — `/preview`, SA, AD, DI, AR, UT, UE
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.preview.parts` | tutti | — | `preview.parts` | «Scegli le parti da includere, per esempio solo quella del tuo strumento.» |
+| 2 | `page.preview.pages` | tutti | — | `preview.pages` | «Scorri le pagine e ingrandisci o riduci lo spartito con i comandi in alto.» |
+| 3 | `page.preview.print` | tutti | — | `preview.print` | «Nelle impostazioni di stampa scegli quante pagine dello spartito mettere in ogni foglio.» |
+
+#### Strumenti — `/instruments` e `/instruments/:id`, Catalogo
+
+| Pagina | Ordine | ID | Condizioni | Ancora | Testo |
+| --- | ---: | --- | --- | --- | --- |
+| elenco | 1 | `page.instruments.create` | — | `instruments.create` | «Aggiungi gli strumenti dell'organizzazione: servono ad abbinare le parti degli spartiti ai musicisti.» |
+| elenco | 2 | `page.instruments.playback` | `SCORE_PLAYBACK` | `instruments.unconfigured` | «Mostra solo gli strumenti ancora da configurare per l'ascolto e aprili per scegliere il suono.» |
+| dettaglio | 1 | `page.instrument.data` | — | `instrument.data` | «Nome e descrizione dello strumento: salva con «Salva strumento» in alto.» |
+| dettaglio | 2 | `page.instrument.sound` | `SCORE_PLAYBACK` | `instrument.sound` | «Scegli suono e trasposizione per l'ascolto: «Proponi dal nome» suggerisce un suono, «Prova» lo fa sentire.» |
+
+#### Inventario — `/inventory`, tutti tranne TE; `INVENTORY`
+
+La pagina ha due viste: quella dell'organizzazione, solo per i gestori, e quella personale, l'unica per AR, UT e UE. La condizione di presenza sceglie le tappe della vista aperta.
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.inventory.create` | Gestori | — | `inventory.create`* | «Registra strumenti e materiali con numero inventariale, quantità e stato di conservazione.» Punti: «Genera le etichette con il QR» con `INVENTORY_QR`; «Prepara il modello del foglio di affidamento» con `INVENTORY_LOAN_SHEET` |
+| 2 | `page.inventory.views` | Gestori | — | `inventory.views` | «Passa dall'inventario dell'organizzazione al materiale affidato a te.» |
+| 3 | `page.inventory.erasures` | Gestori | — | `inventory.erasures` | «Chi ha chiesto la cancellazione dei dati deve prima riconsegnare: completa la cancellazione dopo la riconsegna.» |
+| 4 | `page.inventory.items` | Gestori | — | `inventory.items` | «Apri un oggetto per affidarlo, vedere consegne e fotografie; selezionane più d'uno per le azioni comuni.» |
+| 5 | `page.inventory.scope` | tutti | — | `inventory.scope` | «Passa dal materiale che hai ora a quello già riconsegnato.» |
+| 6 | `page.inventory.acts` | tutti | `INVENTORY_SIGNATURE` | `inventory.ownActs` | «Gli atti che ti chiedono una firma: aprili e conferma con il codice.» |
+| 7 | `page.inventory.sheets` | tutti | `INVENTORY_LOAN_SHEET` | `inventory.ownSheets` | «I tuoi fogli di affidamento, da scaricare quando servono.» |
+| 8 | `page.inventory.assignments` | tutti | — | `inventory.assignments` | «Apri una consegna per prenderne visione, avviare la riconsegna o segnalare un guasto.» |
+
+#### Consegna — `/inventory/assignments/:id`, tutti tranne TE; `INVENTORY`
+
+| Ordine | ID | Ruoli | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `page.assignment.data` | tutti | — | `assignment.data` | «Cosa ti è stato affidato, in che quantità e fino a quando.» |
+| 2 | `page.assignment.decision` | tutti | — | `assignment.decision` | «Conferma di aver ricevuto il materiale o rifiutalo indicando il motivo.» Punto: «Confermi con un codice, come una firma» con `INVENTORY_SIGNATURE` |
+| 3 | `page.assignment.return` | tutti | — | `assignment.return` | «Indica quantità e note e avvia la riconsegna: chi gestisce l'inventario la completa.» |
+| 4 | `page.assignment.issues` | tutti | `INVENTORY_QR` | `assignment.reportIssue` | «Segnala un guasto dell'oggetto: le segnalazioni aperte restano elencate in fondo alla pagina.» |
+
+#### Oggetto dell'inventario — `/inventory/:id` e `/inventory/items/:id`, Gestori; `INVENTORY`
+
+| Ordine | ID | Condizioni | Ancora | Testo |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.inventoryItem.data` | — | `inventoryItem.data` | «Numero inventariale, quantità, conservazione, valore e regime di comodato: salva con «Salva oggetto» in alto.» |
+| 2 | `page.inventoryItem.qr` | `INVENTORY_QR` | `inventoryItem.qr` | «Stampa l'etichetta con il QR; se l'etichetta va persa, ruota il codice e ristampala.» |
+| 3 | `page.inventoryItem.photos` | — | `inventoryItem.photos` | «Aggiungi le fotografie dell'oggetto e salvane l'ordine.» |
+| 4 | `page.inventoryItem.assign` | — | `inventoryItem.assign` | «Affida l'oggetto a un membro con quantità, accessori ed eventuale scadenza.» |
+| 5 | `page.inventoryItem.history` | — | `inventoryItem.assignments` | «Consegne e riconsegne dell'oggetto, con il foglio di affidamento quando c'è.» |
+
+#### Modello del foglio di affidamento — `/inventory/loan-template`, Gestori; `INVENTORY_LOAN_SHEET`
+
+| Ordine | ID | Condizioni | Ancora | Testo |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.loanTemplate.active` | — | `loanTemplate.active` | «Il modello in uso: scaricalo, guardane l'anteprima o torna al predefinito.» |
+| 2 | `page.loanTemplate.upload` | — | `loanTemplate.upload` | «Carica un modello HTML: Taurus lo controlla e lo attivi dopo aver visto l'anteprima.» |
+| 3 | `page.loanTemplate.variables` | — | `loanTemplate.variables` | «Le variabili da usare nel modello, con il dato che ciascuna inserisce.» |
+| 4 | `page.loanTemplate.rules` | — | `loanTemplate.rules` | «Durata minima e massima del comodato e dei rinnovi.» |
+| 5 | `page.loanTemplate.signature` | `INVENTORY_SIGNATURE` | `loanTemplate.signature` | «Controlla che la firma elettronica sia pronta per i fogli di affidamento.» |
+| 6 | `page.loanTemplate.history` | — | `loanTemplate.history` | «I modelli caricati in passato.» |
+
+#### Scansione del QR — `/inventory/scan/v1/:publicId`, tutti tranne TE; `INVENTORY`
+
+| Ordine | ID | Condizioni | Ancora | Testo |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.scan.status` | `INVENTORY_QR` | `scan.summary` | «Lo stato dell'oggetto e gli avvisi: scadenze, prese visione da completare e guasti aperti.» |
+| 2 | `page.scan.actions` | `INVENTORY_QR` | `scan.actions` | «Le azioni che puoi fare da qui, come segnalare un guasto; «Apri scheda completa» porta al dettaglio.» |
+
+#### Economia — `/finance`, Gestori e TE; `FINANCE`
+
+| Ordine | ID | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.finance.create` | — | `finance.create`* | «Registra un movimento o un trasferimento tra conti e allega la ricevuta.» |
+| 2 | `page.finance.period` | — | `finance.period` | «Scegli il periodo e premi «Aggiorna»: riepilogo e saldi si ricalcolano.» |
+| 3 | `page.finance.summary` | — | `finance.summary`* | «Saldi dei conti e risultato del periodo.» Punto: «Gli eventi aperti da chiudere economicamente» con `CALENDAR` |
+| 4 | `page.finance.movements` | — | `finance.tabMovements` | «Nella scheda Movimenti filtri, esporti in CSV, XLSX o PDF e segni i movimenti riconciliati.» |
+| 5 | `page.finance.accounts` | — | `finance.tabAccounts` | «Nella scheda Conti trovi casse e conti correnti: aprine uno per l'estratto conto.» |
+| 6 | `page.finance.categories` | — | `finance.tabCategories` | «Nella scheda Categorie classifichi entrate e uscite per i rendiconti.» |
+| 7 | `page.finance.events` | `CALENDAR` | `finance.tabEvents` | «Nella scheda Eventi vedi per ogni evento costi previsti, incassi, spese e risultato.» |
+| 8 | `page.finance.years` | — | `finance.tabYears` | «Nella scheda Esercizi trovi il riepilogo annuale, il riporto all'anno corrente e le segnalazioni da controllare.» |
+
+#### Utenti — `/users` e `/users/:id`, Gestori
+
+| Pagina | Ordine | ID | Condizioni | Ancora | Testo e punti |
+| --- | ---: | --- | --- | --- | --- |
+| elenco | 1 | `page.users.create` | — | `users.create`* | «Aggiungi un membro e assegna il ruolo: riceverà un'e-mail per impostare la password.» Variante DI: «… Solo l'Amministratore gestisce gli amministratori.» |
+| elenco | 2 | `page.users.search` | — | `users.toolbar` | «Cerca un membro e passa dall'elenco alle schede.» |
+| elenco | 3 | `page.users.actions` | — | `users.list` | «Da ogni riga apri la scheda, rimandi l'e-mail di invito o elimini l'utente.» |
+| dettaglio | 1 | `page.user.data` | — | `user.data` | «Dati, ruoli, stato dell'account e strumenti suonati: salva con «Salva utente» in alto.» Punto: «Gli strumenti abbinano il membro alle sue parti» |
+| dettaglio | 2 | `page.user.invite` | — | `user.invite` | «Rimanda l'e-mail per impostare la password a chi non l'ha ricevuta o l'ha persa.» |
+| dettaglio | 3 | `page.user.events` | `CALENDAR` | `user.events` | «Gli eventi a cui il membro è stato segnato presente.» |
+| dettaglio | 4 | `page.user.inventory` | `INVENTORY` | `user.inventory` | «Il materiale affidato al membro.» Punto: «I suoi fogli di affidamento» con `INVENTORY_LOAN_SHEET` |
+| dettaglio | 5 | `page.user.account` | — | `user.dangerZone` | «Disattiva l'utente conservandone i dati, o cancellalo definitivamente con la cancellazione GDPR.» |
+
+#### Configurazione iniziale — `/onboarding`, SA e AD; `ONBOARDING_IMPORT`
+
+| Ordine | ID | Condizioni | Ancora | Testo e punti |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.onboarding.summary` | — | `onboarding.summary` | «Il riepilogo dell'organizzazione e dell'ultima importazione.» |
+| 2 | `page.onboarding.template` | — | `onboarding.template` | «Scarica il modello XLSX completo, o un CSV per una sola sezione, e compilalo.» |
+| 3 | `page.onboarding.steps` | — | `onboarding.steps` | «Cinque passi: prepara, carica, controlla, conferma, esito. L'importazione aggiunge dati e non modifica né elimina quelli esistenti.» Punti: «Correggi gli errori segnalati e ricarica il file»; «Il rapporto elenca righe ed esiti»; «Le persone importate ricevono l'e-mail per la password» |
+| 4 | `page.onboarding.history` | — | `onboarding.history` | «Le importazioni precedenti: aprine una per rivederne l'esito.» |
+
+#### Consegne notifiche — `/admin/notification-delivery`, SA e AD
+
+| Ordine | ID | Condizioni | Ancora | Testo |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.deliveries.filters` | — | `deliveries.toolbar` | «Filtra le consegne per stato, origine, categoria o codice operazione.» |
+| 2 | `page.deliveries.actions` | — | `deliveries.list` | «Riprova una consegna non riuscita, oppure chiudila indicando il motivo se non serve più.» |
+
+#### Feed calendario — `/admin/calendar-feeds`, SA e AD; `EXTERNAL_CALENDAR_FEED`
+
+| Ordine | ID | Condizioni | Ancora | Testo |
+| ---: | --- | --- | --- | --- |
+| 1 | `page.calendarFeeds.create` | — | `calendarFeeds.create` | «Crea un feed condiviso, per esempio per il sito dell'associazione: il link si vede una volta sola, copialo subito.» |
+| 2 | `page.calendarFeeds.list` | — | `calendarFeeds.list` | «Rigenera il link, revoca un feed o consultane la cronologia; in caso di incidente revoca anche i feed personali.» |
+
+#### Tenant e documenti legali — Super amministratore
+
+| Pagina | Ordine | ID | Ancora | Testo |
+| --- | ---: | --- | --- | --- |
+| `/tenants` | 1 | `page.tenants.create` | `tenants.create` | «Crea un tenant con i dati dell'organizzazione e le funzionalità da attivare.» |
+| `/tenants` | 2 | `page.tenants.list` | `tenants.list` | «Codice, stato e scadenza di ogni tenant: aprilo per modificarlo.» |
+| `/tenants/:id` | 1 | `page.tenant.data` | `tenant.data` | «Anagrafica, numero massimo di utenti, scadenza, fuso orario e dominio del tenant.» |
+| `/tenants/:id` | 2 | `page.tenant.configure` | `tenant.configureData` | «Configura dati apre la Configurazione iniziale del tenant per importare i dati.» |
+| `/tenants/:id` | 3 | `page.tenant.features` | `tenant.features` | «Accendi o spegni le funzionalità: quelle che dipendono da un'altra restano inefficaci finché quella è spenta.» |
+| `/legal-documents` | 1 | `page.legalDocuments.create` | `legalDocuments.create` | «Pubblica una nuova versione di privacy o condizioni d'uso: gli utenti la accettano al prossimo ingresso.» |
+| `/legal-documents` | 2 | `page.legalDocuments.versions` | `legalDocuments.notice` | «Le versioni pubblicate non si modificano: per cambiare un testo pubblicane una nuova.» |
+
+### Pagine senza guida
+
+Restano senza guida le pagine fuori dal layout (accettazione dei documenti legali, firma pubblica, pagine di errore) e il reindirizzamento `/calendar/uid/:uid`, che porta al dettaglio dell'evento. Sulle pagine senza tappe per la sessione la voce **Guida di questa pagina** non compare.
+
+### Test della fase 2
+
+Frontend:
+
+- composizione di ogni pagina per ognuno dei sette ruoli, con tutte le funzionalità accese e tutte spente, confrontata con un elenco atteso di ID;
+- esclusione delle tappe con ancore assenti o nascoste, con le due viste dell'inventario come caso di prova;
+- attesa di 2 secondi della prima ancora e toast quando non ne compare nessuna;
+- riconoscimento della pagina dall'URL, con parametri di percorso e di query;
+- nessuna richiesta HTTP all'apertura, alla navigazione e alla chiusura di una guida di pagina;
+- chiusura della guida al cambio di pagina;
+- guida introduttiva e guida di pagina mai aperte insieme;
+- voce del menu assente sulle pagine senza tappe e finché il chunk del catalogo non è arrivato;
+- al massimo 8 tappe per pagina; limiti dei testi, formato e unicità degli ID insieme alla guida introduttiva;
+- nessun testo per i ruoli di un'organizzazione con la parola «tenant»;
+- `check-tour-anchors.mjs` esteso al catalogo delle pagine.
+
+Verifica manuale:
+
+- ogni pagina per ogni ruolo che può aprirla, su desktop e su un telefono, con le funzionalità accese e spente;
+- rilettura dei testi da parte del responsabile del progetto;
+- misura del bundle iniziale e del nuovo chunk.
+
+### Criteri di accettazione della fase 2
+
+1. La voce **Guida di questa pagina** compare solo sulle pagine con almeno una tappa per il ruolo e le funzionalità della sessione.
+2. Una guida di pagina non si apre mai da sola e non cambia pagina.
+3. Ogni tappa riguarda un elemento presente e visibile sulla pagina all'apertura.
+4. Nessuna guida di pagina supera 8 tappe.
+5. Nessuna tappa cita funzioni che il ruolo non può usare o funzionalità spente.
+6. Le guide di pagina non chiamano il backend.
+7. Il bundle iniziale cresce al massimo di 1 kB compresso rispetto alla fase 1, e il chunk del catalogo delle pagine resta entro 20 kB compressi.
+8. Lo script delle ancore fallisce se il catalogo delle pagine cita un'ancora inesistente.
+9. Le guide di pagina sono utilizzabili da tastiera, con lettore di schermo e sotto i 992 px, come la guida introduttiva.
+
+### Punti da decidere per la fase 2
+
+1. **Stato.** Proposta: nessun salvataggio delle guide di pagina. L'alternativa è ricordare le pagine viste, con un'estensione delle API e un limite proprio.
+2. **Lunghezza.** Proposta: al massimo 8 tappe per pagina, senza benvenuto.
+3. **Presenza degli elementi.** Proposta: escludere le tappe senza ancore visibili invece di mostrarle centrate.
+4. **Rilascio a blocchi.** Proposta:
+   - A: le pagine di tutti i ruoli, cioè profilo, dashboard, calendario e dettaglio evento, tracce e dettaglio, album e dettaglio, anteprima, inventario personale e consegna;
+   - B: le pagine di gestione, cioè utenti, economia, oggetti, modello del foglio e scansione dell'inventario, strumenti, configurazione iniziale, consegne notifiche e feed calendario;
+   - C: tenant e documenti legali.
+5. **Testo di `common.help`.** Proposta: citare la guida di pagina, senza aggiungere tappe alla guida introduttiva.
+
 ## Piano di rilascio
 
 ### Fase 1 — Guida introduttiva
@@ -675,9 +1018,12 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 
 ### Fase 2 — Guide di pagina
 
-- tappe con ambito di pagina, aperte solo da **Guida di questa pagina**;
-- prime pagine: dashboard, calendario e dettaglio evento, tracce e dettaglio, album, inventario e assegnazione, economia, utenti, profilo;
-- approfondimento delle funzioni escluse dal percorso principale dell'Amministratore, del Direttivo e del Super amministratore.
+Descritta in [Guide di pagina](#guide-di-pagina):
+
+- tappe con ambito di pagina, aperte solo da **Guida di questa pagina**, senza stato salvato e senza modifiche al backend;
+- una guida per ogni pagina del layout che un ruolo può aprire, compresi profilo, configurazione iniziale, economia, inventario e strumenti;
+- approfondimento delle funzioni escluse dal percorso principale dell'Amministratore, del Direttivo e del Super amministratore;
+- rilascio proposto in tre blocchi: pagine di tutti i ruoli, pagine di gestione, pagine del Super amministratore.
 
 ### Fase 3 — Novità
 
@@ -713,6 +1059,8 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 | Utente esterno | testi pensati per l'Utente prometterebbero eventi e brani non visibili | varianti di testo per ruolo e verifica manuale |
 | Telefoni modesti | molti musicisti usano Taurus da telefono | nessuna libreria, chunk differito, un ricalcolo per frame |
 | Due schede aperte | salvataggi concorrenti dello stesso avanzamento | lock ottimistico e unione delle tappe viste |
+| Molte guide di pagina da mantenere | oltre cento tappe che invecchiano con le pagine | tappe brevi e legate a un'ancora, condizione di presenza, script delle ancore, rilascio a blocchi |
+| Sezioni che dipendono dai dati | una guida di pagina descriverebbe sezioni che l'utente non vede | tappe escluse quando le loro ancore non sono visibili all'apertura |
 
 ## Decisioni approvate
 
