@@ -666,19 +666,19 @@ Uno script Node 22 senza dipendenze, `taurus-fe/scripts/check-tour-anchors.mjs`,
 
 ## Guide di pagina
 
-Proposta per la fase 2, in bozza: le scelte da approvare sono raccolte in [Punti da decidere per la fase 2](#punti-da-decidere-per-la-fase-2).
+Progetto della fase 2, approvato il 2026-11-05: le scelte sono riportate in [Decisioni approvate](#decisioni-approvate), punti da 15 a 19.
 
 La guida introduttiva resta breve e invariata, entro 10 tappe. I dettagli di ogni pagina passano a una guida propria, aperta su richiesta dalla pagina stessa. Così ogni ruolo trova, per ogni pagina che può aprire, una spiegazione delle sezioni e delle azioni che vede, senza allungare il primo ingresso.
 
 ### Principi
 
-| Aspetto | Proposta |
+| Aspetto | Decisione |
 | --- | --- |
 | Apertura | solo dalla voce **Guida di questa pagina** del pulsante di aiuto; mai automatica |
 | Disponibilità | la voce compare solo sulle pagine che hanno almeno una tappa per il ruolo e le funzionalità della sessione |
 | Ambito | la guida resta sulla pagina: le tappe non hanno `route` e non navigano |
 | Composizione | ruolo, funzionalità del tenant ed elementi presenti sulla pagina, valutati all'apertura |
-| Lunghezza | al massimo 8 tappe per pagina, senza scheda di benvenuto |
+| Lunghezza | al massimo 10 tappe per pagina, senza scheda di benvenuto |
 | Scheda | la stessa della guida introduttiva, con gli stessi limiti di titolo, corpo e punti |
 | Stato | nessun salvataggio: né tappe viste né esito |
 | Backend | nessuna modifica: niente API, tabelle, migrazioni o chiavi di errore nuove |
@@ -974,7 +974,7 @@ Frontend:
 - chiusura della guida al cambio di pagina;
 - guida introduttiva e guida di pagina mai aperte insieme;
 - voce del menu assente sulle pagine senza tappe e finché il chunk del catalogo non è arrivato;
-- al massimo 8 tappe per pagina; limiti dei testi, formato e unicità degli ID insieme alla guida introduttiva;
+- al massimo 10 tappe per pagina; limiti dei testi, formato e unicità degli ID insieme alla guida introduttiva;
 - nessun testo per i ruoli di un'organizzazione con la parola «tenant»;
 - `check-tour-anchors.mjs` esteso al catalogo delle pagine.
 
@@ -989,23 +989,22 @@ Verifica manuale:
 1. La voce **Guida di questa pagina** compare solo sulle pagine con almeno una tappa per il ruolo e le funzionalità della sessione.
 2. Una guida di pagina non si apre mai da sola e non cambia pagina.
 3. Ogni tappa riguarda un elemento presente e visibile sulla pagina all'apertura.
-4. Nessuna guida di pagina supera 8 tappe.
+4. Nessuna guida di pagina supera 10 tappe.
 5. Nessuna tappa cita funzioni che il ruolo non può usare o funzionalità spente.
 6. Le guide di pagina non chiamano il backend.
 7. Il bundle iniziale cresce al massimo di 1 kB compresso rispetto alla fase 1, e il chunk del catalogo delle pagine resta entro 20 kB compressi.
 8. Lo script delle ancore fallisce se il catalogo delle pagine cita un'ancora inesistente.
 9. Le guide di pagina sono utilizzabili da tastiera, con lettore di schermo e sotto i 992 px, come la guida introduttiva.
 
-### Punti da decidere per la fase 2
+### Blocchi di rilascio
 
-1. **Stato.** Proposta: nessun salvataggio delle guide di pagina. L'alternativa è ricordare le pagine viste, con un'estensione delle API e un limite proprio.
-2. **Lunghezza.** Proposta: al massimo 8 tappe per pagina, senza benvenuto.
-3. **Presenza degli elementi.** Proposta: escludere le tappe senza ancore visibili invece di mostrarle centrate.
-4. **Rilascio a blocchi.** Proposta:
-   - A: le pagine di tutti i ruoli, cioè profilo, dashboard, calendario e dettaglio evento, tracce e dettaglio, album e dettaglio, anteprima, inventario personale e consegna;
-   - B: le pagine di gestione, cioè utenti, economia, oggetti, modello del foglio e scansione dell'inventario, strumenti, configurazione iniziale, consegne notifiche e feed calendario;
-   - C: tenant e documenti legali.
-5. **Testo di `common.help`.** Proposta: citare la guida di pagina, senza aggiungere tappe alla guida introduttiva.
+La fase 2 si rilascia in tre blocchi, ciascuno con i propri test, controllo delle ancore e verifica manuale:
+
+1. **Blocco A, pagine di tutti i ruoli**: profilo, dashboard, calendario e dettaglio evento, tracce e dettaglio, album e dettaglio, anteprima, inventario personale e consegna.
+2. **Blocco B, pagine di gestione**: utenti, economia, oggetti, modello del foglio e scansione dell'inventario, strumenti, configurazione iniziale, consegne notifiche e feed calendario.
+3. **Blocco C, pagine del Super amministratore**: tenant e documenti legali.
+
+Il nuovo testo di `common.help` e il passaggio di `GUIDED_TOUR_CATALOG_REVISION` a 2 entrano con il blocco A.
 
 ## Piano di rilascio
 
@@ -1023,7 +1022,7 @@ Descritta in [Guide di pagina](#guide-di-pagina):
 - tappe con ambito di pagina, aperte solo da **Guida di questa pagina**, senza stato salvato e senza modifiche al backend;
 - una guida per ogni pagina del layout che un ruolo può aprire, compresi profilo, configurazione iniziale, economia, inventario e strumenti;
 - approfondimento delle funzioni escluse dal percorso principale dell'Amministratore, del Direttivo e del Super amministratore;
-- rilascio proposto in tre blocchi: pagine di tutti i ruoli, pagine di gestione, pagine del Super amministratore.
+- rilascio in tre blocchi, descritti in [Blocchi di rilascio](#blocchi-di-rilascio).
 
 ### Fase 3 — Novità
 
@@ -1084,9 +1083,19 @@ Decisione presa il 2026-11-04, dopo l'introduzione del [Ruolo direttivo](board-r
 
 14. **Direttivo.** `ROLE_BOARD` è previsto e gestito come gli altri ruoli: ha un proprio percorso, stato e avanzamento separati e lo stesso filtro per funzionalità del tenant.
 
+Decisioni prese il 2026-11-05 sulle [guide di pagina](#guide-di-pagina) della fase 2:
+
+15. **Stato delle guide di pagina.** Nessun salvataggio: né pagine viste né esito, e nessuna modifica al backend.
+16. **Lunghezza.** Al massimo 10 tappe per pagina, senza scheda di benvenuto, come il limite della guida introduttiva.
+17. **Presenza degli elementi.** Le tappe senza ancore visibili all'apertura sono escluse, non mostrate al centro dello schermo.
+18. **Rilascio.** In tre blocchi: pagine di tutti i ruoli, pagine di gestione, pagine del Super amministratore.
+19. **Collegamento.** Il testo di `common.help` cita la guida di pagina; la guida introduttiva non riceve tappe nuove.
+
 ## Alternative scartate
 
 - **Stato globale nello schema `public`.** Avrebbe evitato di ripetere la guida a chi appartiene a più organizzazioni, ma avrebbe introdotto dati personali fuori dagli schemi tenant e una cancellazione GDPR legata all'ultima appartenenza attiva. Prevale l'isolamento per tenant, coerente con preferenze e notifiche.
 - **Libreria di tour esterna.** Avrebbe aggiunto una dipendenza per funzioni già coperte da PrimeNG e da poche decine di righe di posizionamento.
 - **Chiavi libere in `preferences`.** Senza tipi, vincoli e versione, e contrarie alla scelta di tabelle tipizzate fatta per le preferenze di notifica.
 - **Guida obbligatoria.** Rallenterebbe chi conosce già Taurus senza garantire che venga letta.
+- **Pagine viste salvate.** Avrebbe richiesto un'estensione delle API e un limite proprio oltre i 100 ID di `seen_steps`, per guide che si consultano quando servono e non hanno un esito da ricordare.
+- **Tappe centrate per le sezioni assenti.** Avrebbero descritto parti della pagina che l'utente non vede, come una preparazione non configurata o la vista dell'inventario non aperta.
