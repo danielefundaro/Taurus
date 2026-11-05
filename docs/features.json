@@ -627,6 +627,30 @@
       "notes": "Il 2026-10-27 sono stati chiusi i diciotto requisiti aperti della specifica. La scansione mostra all'amministratore stato, guasti, scadenze e prese visione mancanti, con un comando per ogni azione di allowedActions, e apre le sezioni della scheda con il focus; il socio con una sola consegna arriva direttamente al dettaglio, altrimenti trova i collegamenti a presa visione, riconsegna e segnalazioni. Il dialogo del guasto allega fino a cinque foto con anteprima e rimozione, il dettaglio della consegna elenca le segnalazioni personali e accetta foto, gli amministratori rimuovono le foto con dati personali. Le notifiche escludono l'autore con la nuova audience EXCLUDED_USER (migration 20261027000000), hanno eventKey per destinatario, la quantità nella creazione, la presa in carico al solo segnalante e la motivazione ripulita nella rotazione. Aggiunte otto metriche taurus.inventory.* a etichette chiuse e log strutturati con impronte SHA-256 troncate; la stampa usa un pool dedicato con timeout configurabile (INVENTORY_QR_LABEL_TIMEOUT_SECONDS, 30 secondi) e risponde 503 inventory.labels.timeout o inventory.labels.busy. Aggiunti i test backend della strategia, compresa la decodifica del QR renderizzato dal PDF, le spec Angular di scansione, etichette, rotazione e guasti e la suite e2e inventory-qr.spec.ts, che richiede un'istanza completa e non è stata eseguita. Corretto il rifiuto dell'host locale IPv6 [::1] come URL pubblico di sviluppo. Verificati ./mvnw verify -Dtaurus.test.requireDocker=true, npm run test:coverage e la build di produzione. Prima di attivare il flag su un tenant restano le verifiche fisiche di stampa e scansione previste dalla specifica."
     },
     {
+      "id": "legal-documents",
+      "title": "Documenti legali nell'applicativo",
+      "kind": "feature",
+      "designStatus": "approved",
+      "deliveryStatus": "not-planned",
+      "spec": "docs/legal-documents-spec.md",
+      "relatedDocs": [
+        "docs/application-errors-standard.md",
+        "docs/guided-tour-spec.md",
+        "docs/inventory-electronic-signature-spec.md",
+        "docs/shared-user-account-spec.md",
+        "docs/taurus-layout-standard.md"
+      ],
+      "modules": ["taurus-be", "taurus-fe", "taurus-info"],
+      "evidence": {
+        "implementation": [],
+        "migrations": [],
+        "tests": []
+      },
+      "release": null,
+      "lastVerifiedOn": "2026-11-06",
+      "notes": "Testo di termini e informativa privacy salvato nel database in Markdown, versioni immutabili dalla pubblicazione e pagine pubbliche /legal/terms e /legal/privacy nell'applicativo. Il 2026-11-06 sono state fissate le scelte su percorsi in inglese, completamento una tantum dei documenti esistenti e formato Markdown. Oggi Documenti legali registra solo l'URL delle pagine del sito informativo."
+    },
+    {
       "id": "media-asset",
       "title": "Gestione centralizzata dei media",
       "kind": "platform",
